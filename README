@@ -1,0 +1,42 @@
+This is the lightweight FORTRAN library of the
+
+Department Computational Hydrosystems
+Helmholtz Centre for Environmental Research - UFZ
+Permoserstr. 15
+04318 Leipzig, Germany
+
+One can produce a browseable html of the library in the directory html by calling: make SRCPATH=. html
+
+The library is maintained with a versioning system at:
+https://git.ufz.de/chs/fortran
+
+For running on Windows under Cygwin:
+The link files on the SVN server are *nix style. One has to redo them on Windows.
+In cygwin, in the directory FORTRAN_chs_lib do:
+    for i in $(find . -mindepth 2 -maxdepth 2 -name mo_\* -print) ; do if [[ $(head -1 $i | cut -f 1 -d ' ') == link ]] ; then cd $(dirname $i) ; ln -sf ../$(basename $i) ; cd .. ; fi ; done
+    for i in $(find . -mindepth 3 -maxdepth 3 -name mo_\* -print) ; do if [[ $(head -1 $i | cut -f 1 -d ' ') == link ]] ; then cd $(dirname $i) ; ln -sf ../../$(basename $i) ; cd ../.. ; fi ; done
+    cd test/test_mo_kernel ; ln -sf ../../nr_chs/golden.f90 ; cd ../..
+Please do not commit these files because it will break the Library everywhere else except on Cygwin.
+
+Created 11.11.2011 by Juliane Mai and Matthias Cuntz
+Contact Matthias Cuntz - mc (at) macu.de
+
+
+License
+-------
+This file is part of the UFZ lightweight Fortran library.
+
+The routine is released under the GNU Lesser General Public License. The following applies:
+The UFZ Fortran library is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+The UFZ Fortran library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+If not, see <http://www.gnu.org/licenses/>.
