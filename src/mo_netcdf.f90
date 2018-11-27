@@ -1863,15 +1863,15 @@ contains
     character(*)         :: dtype
 
     select case(dtype)
-    case("sp")
+    case("f32")
        getDtypeFromString = NF90_FLOAT
-    case("dp")
+    case("f64")
        getDtypeFromString = NF90_DOUBLE
-    case("i1")
+    case("i8")
        getDtypeFromString = NF90_BYTE
-    case("i2")
+    case("i16")
        getDtypeFromString = NF90_SHORT
-    case("i4")
+    case("i32")
        getDtypeFromString = NF90_INT
     case default
        write(*,*) "Datatype not understood: ", dtype
