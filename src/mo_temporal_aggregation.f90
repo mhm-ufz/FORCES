@@ -35,7 +35,7 @@ MODULE mo_temporal_aggregation
 
   use mo_kind, ONLY : i4, dp
   use mo_julian, ONLY : julday, dec2date
-  use mo_common_constants, ONLY : eps_dp
+  use mo_constants, ONLY : eps_dp
 
   IMPLICIT NONE
 

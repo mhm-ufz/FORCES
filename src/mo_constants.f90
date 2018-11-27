@@ -36,7 +36,7 @@ MODULE mo_constants
 
   ! Copyright 2011-2014 Matthias Cuntz
 
-  USE mo_kind, ONLY : sp, dp
+  USE mo_kind, ONLY : sp, dp, i4
   use, intrinsic :: iso_fortran_env, only : input_unit, output_unit, error_unit
 
   IMPLICIT NONE
@@ -158,5 +158,13 @@ MODULE mo_constants
   INTEGER, PARAMETER :: nerr = error_unit   ! error output stream
   !> Standard file unit for namelist
   INTEGER, PARAMETER :: nnml = 100 ! namelist unit
+
+  ! computational, these values need to be the same!!!
+  real(dp), public, parameter :: nodata_dp = -9999.0_dp ! [-]     global no data value
+  integer(i4), public, parameter :: nodata_i4 = int(nodata_dp)  ! [-]     global no data value
+  !> epsilon(1.0) in double precision
+  REAL(dp), public, PARAMETER :: eps_dp = epsilon(1.0_dp)
+  REAL(sp), public, PARAMETER :: eps_sp = epsilon(1.0_sp)
+
 
 END MODULE mo_constants
