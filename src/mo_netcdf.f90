@@ -24,7 +24,7 @@ module mo_netcdf
   ! -------
   ! GNU Lesser General Public License http://www.gnu.org/licenses/
 
-  use mo_kind, only: i1, i2, i4, sp, dp
+  use mo_kind, only: i1, i2, i4, i8, sp, dp
   use netcdf,          only: &
        nf90_open, nf90_close, nf90_strerror, nf90_def_dim, nf90_def_var,   &
        nf90_put_var, nf90_get_var, nf90_put_att, nf90_get_att,             &
@@ -66,6 +66,7 @@ module mo_netcdf
      procedure, private :: setAttributeI8
      procedure, private :: setAttributeI16
      procedure, private :: setAttributeI32
+     procedure, private :: setAttributeI64
      procedure, private :: setAttributeF32
      procedure, private :: setAttributeF64
 
@@ -73,6 +74,7 @@ module mo_netcdf
      procedure, private :: getAttributeI8
      procedure, private :: getAttributeI16
      procedure, private :: getAttributeI32
+     procedure, private :: getAttributeI64
      procedure, private :: getAttributeF32
      procedure, private :: getAttributeF64
 
@@ -81,6 +83,7 @@ module mo_netcdf
           setAttributeI8,    &
           setAttributeI16,   &
           setAttributeI32,   &
+          setAttributeI64,   &
           setAttributeF32,   &
           setAttributeF64
 
@@ -89,6 +92,7 @@ module mo_netcdf
           getAttributeI8,    &
           getAttributeI16,   &
           getAttributeI32,   &
+          getAttributeI64,   &
           getAttributeF32,   &
           getAttributeF64
   end type NcAttributable
@@ -215,6 +219,12 @@ module mo_netcdf
      procedure, private :: setData3dI32
      procedure, private :: setData4dI32
      procedure, private :: setData5dI32
+     procedure, private :: setDataScalarI64
+     procedure, private :: setData1dI64
+     procedure, private :: setData2dI64
+     procedure, private :: setData3dI64
+     procedure, private :: setData4dI64
+     procedure, private :: setData5dI64
      procedure, private :: setDataScalarF32
      procedure, private :: setData1dF32
      procedure, private :: setData2dF32
@@ -246,6 +256,12 @@ module mo_netcdf
      procedure, private :: getData3dI32
      procedure, private :: getData4dI32
      procedure, private :: getData5dI32
+     procedure, private :: getDataScalarI64
+     procedure, private :: getData1dI64
+     procedure, private :: getData2dI64
+     procedure, private :: getData3dI64
+     procedure, private :: getData4dI64
+     procedure, private :: getData5dI64
      procedure, private :: getDataScalarF32
      procedure, private :: getData1dF32
      procedure, private :: getData2dF32
@@ -262,12 +278,14 @@ module mo_netcdf
      procedure, private :: setVariableFillValueI8
      procedure, private :: setVariableFillValueI16
      procedure, private :: setVariableFillValueI32
+     procedure, private :: setVariableFillValueI64
      procedure, private :: setVariableFillValueF32
      procedure, private :: setVariableFillValueF64
 
      procedure, private :: getVariableFillValueI8
      procedure, private :: getVariableFillValueI16
      procedure, private :: getVariableFillValueI32
+     procedure, private :: getVariableFillValueI64
      procedure, private :: getVariableFillValueF32
      procedure, private :: getVariableFillValueF64
 
@@ -302,6 +320,12 @@ module mo_netcdf
           setData3dI32, &
           setData4dI32, &
           setData5dI32, &
+          setDataScalarI64, &
+          setData1dI64, &
+          setData2dI64, &
+          setData3dI64, &
+          setData4dI64, &
+          setData5dI64, &
           setDataScalarF32, &
           setData1dF32, &
           setData2dF32, &
@@ -334,6 +358,12 @@ module mo_netcdf
           getData3dI32, &
           getData4dI32, &
           getData5dI32, &
+          getDataScalarI64, &
+          getData1dI64, &
+          getData2dI64, &
+          getData3dI64, &
+          getData4dI64, &
+          getData5dI64, &
           getDataScalarF32, &
           getData1dF32, &
           getData2dF32, &
@@ -351,6 +381,7 @@ module mo_netcdf
           setVariableFillValueI8,  &
           setVariableFillValueI16, &
           setVariableFillValueI32, &
+          setVariableFillValueI64, &
           setVariableFillValueF32, &
           setVariableFillValueF64
 
@@ -358,6 +389,7 @@ module mo_netcdf
           getVariableFillValueI8,  &
           getVariableFillValueI16, &
           getVariableFillValueI32, &
+          getVariableFillValueI64, &
           getVariableFillValueF32, &
           getVariableFillValueF64
 
@@ -898,6 +930,18 @@ contains
 
   end subroutine setAttributeI32
 
+  subroutine setAttributeI64(self, name, data)
+    class(NcAttributable), intent(in) :: self
+    character(*)         , intent(in) :: name
+    integer(i8)         , intent(in) :: data
+    integer(i4)                      :: ids(2)
+
+    ids = self%getAttributableIds()
+    call check(nf90_put_att(ids(1), ids(2), name, data), &
+         "Failed to write attribute: " // name)
+
+  end subroutine setAttributeI64
+
   subroutine setAttributeF32(self, name, data)
     class(NcAttributable), intent(in) :: self
     character(*)         , intent(in) :: name
@@ -976,6 +1020,20 @@ contains
          "Could not read attribute "//name)
 
   end subroutine getAttributeI32
+
+  subroutine getAttributeI64(self, name, avalue)
+    class(NcAttributable) , intent(in)  :: self
+    character(*)          , intent(in)  :: name
+    integer(i8)          , intent(out) :: avalue
+    integer(i4)                        :: length, ids(2)
+
+    ids = self%getAttributableIds()
+    call check(nf90_inquire_attribute(ids(1), ids(2), name, len=length),&
+         "Could not inquire attribute " // name)
+    call check(nf90_get_att(ids(1), ids(2), name, avalue), &
+         "Could not read attribute "//name)
+
+  end subroutine getAttributeI64
 
   subroutine getAttributeF32(self, name, avalue)
     class(NcAttributable) , intent(in)  :: self
@@ -1065,6 +1123,15 @@ contains
     end if
   end subroutine setVariableFillValueI32
 
+  subroutine setVariableFillValueI64(self, fvalue)
+    class(NcVariable), intent(inout)  :: self
+    integer(i8)      , intent(in)  :: fvalue
+
+    if (.not. self%hasAttribute("_FillValue")) then
+       call self%setAttribute("_FillValue",fvalue)
+    end if
+  end subroutine setVariableFillValueI64
+
   subroutine setVariableFillValueF32(self, fvalue)
     class(NcVariable), intent(inout)  :: self
     real(sp)         , intent(in)  :: fvalue
@@ -1115,6 +1182,17 @@ contains
        fvalue = NF90_FILL_INT
     end if
   end subroutine getVariableFillValueI32
+
+  subroutine getVariableFillValueI64(self, fvalue)
+    class(NcVariable), intent(inout)  :: self
+    integer(i8)      , intent(out) :: fvalue
+
+    if (self%hasAttribute("_FillValue")) then
+       call self%getAttribute("_FillValue", fvalue)
+    else
+       fvalue = NF90_FILL_INT
+    end if
+  end subroutine getVariableFillValueI64
 
   subroutine getVariableFillValueF32(self, fvalue)
     class(NcVariable), intent(inout)  :: self
@@ -1299,6 +1377,60 @@ contains
     call check( nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
          "Failed to write data into variable: " // trim(self%getName()))
   end subroutine setData5dI32
+
+  subroutine setDataScalarI64(self, values, start)
+    class(NcVariable), intent(in)           :: self
+    integer(i8)      , intent(in)           :: values
+    integer(i4)      , intent(in), optional :: start(:)
+
+    call check( nf90_put_var(self%parent%id, self%id, values, start), &
+         "Failed to write data into variable: " // trim(self%getName()))
+  end subroutine setDataScalarI64
+
+  subroutine setData1dI64(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in)           :: self
+    integer(i8)      , intent(in)           :: values(:)
+    integer(i4)      , intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+
+    call check( nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+         "Failed to write data into variable: " // trim(self%getName()))
+  end subroutine setData1dI64
+
+  subroutine setData2dI64(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in)           :: self
+    integer(i8)      , intent(in)           :: values(:,:)
+    integer(i4)      , intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+
+    call check( nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+         "Failed to write data into variable: " // trim(self%getName()))
+  end subroutine setData2dI64
+
+  subroutine setData3dI64(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in)           :: self
+    integer(i8)      , intent(in)           :: values(:,:,:)
+    integer(i4)      , intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+
+    call check( nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+         "Failed to write data into variable: " // trim(self%getName()))
+  end subroutine setData3dI64
+
+  subroutine setData4dI64(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in)           :: self
+    integer(i8)      , intent(in)           :: values(:,:,:,:)
+    integer(i4)      , intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+
+    call check( nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+         "Failed to write data into variable: " // trim(self%getName()))
+  end subroutine setData4dI64
+
+  subroutine setData5dI64(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in)           :: self
+    integer(i8)      , intent(in)           :: values(:,:,:,:,:)
+    integer(i4)      , intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+
+    call check( nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+         "Failed to write data into variable: " // trim(self%getName()))
+  end subroutine setData5dI64
 
   subroutine setDataScalarF32(self, values, start)
     class(NcVariable), intent(in)           :: self
@@ -1650,6 +1782,87 @@ contains
     call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
          "Could not read data from variable: "//trim(self%getName()))
   end subroutine getData5dI32
+
+  subroutine getDataScalarI64(self, data, start, cnt, stride, map)
+    class(NcVariable), intent(in)               :: self
+    integer(i4)     , intent(in) , optional    :: start(:), cnt(:), stride(:), map(:)
+    integer(i8)     , intent(out)              :: data
+    integer(i4)                                :: tmp(1)
+
+    call check (nf90_get_var(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+         "Could not read data from variable: "//trim(self%getName()))
+    data = tmp(1)
+  end subroutine getDataScalarI64
+
+  subroutine getData1dI64(self, data, start, cnt, stride, map)
+    class(NcVariable), intent(in)               :: self
+    integer(i4)     , intent(in) , optional    :: start(:), cnt(:), stride(:), map(:)
+    integer(i8)     , intent(out), allocatable :: data(:)
+    integer(i4)                  , allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+
+    allocate(data(datashape(1)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+         "Could not read data from variable: "//trim(self%getName()))
+  end subroutine getData1dI64
+
+  subroutine getData2dI64(self, data, start, cnt, stride, map)
+    class(NcVariable), intent(in)               :: self
+    integer(i4)     , intent(in) , optional    :: start(:), cnt(:), stride(:), map(:)
+    integer(i8)     , intent(out), allocatable :: data(:,:)
+    integer(i4)                  , allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+
+    allocate(data(datashape(1), datashape(2)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+         "Could not read data from variable: "//trim(self%getName()))
+  end subroutine getData2dI64
+
+  subroutine getData3dI64(self, data, start, cnt, stride, map)
+    class(NcVariable), intent(in)               :: self
+    integer(i4)     , intent(in) , optional    :: start(:), cnt(:), stride(:), map(:)
+    integer(i8)     , intent(out), allocatable :: data(:,:,:)
+    integer(i4)                  , allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+
+    allocate(data(datashape(1), datashape(2), datashape(3)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+         "Could not read data from variable: "//trim(self%getName()))
+  end subroutine getData3dI64
+
+  subroutine getData4dI64(self, data, start, cnt, stride, map)
+    class(NcVariable), intent(in)               :: self
+    integer(i4)     , intent(in) , optional    :: start(:), cnt(:), stride(:), map(:)
+    integer(i8)     , intent(out), allocatable :: data(:,:,:,:)
+    integer(i4)                  , allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+
+    allocate(data(datashape(1), datashape(2), datashape(3), datashape(4)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+         "Could not read data from variable: "//trim(self%getName()))
+  end subroutine getData4dI64
+
+  subroutine getData5dI64(self, data, start, cnt, stride, map)
+    class(NcVariable), intent(in)               :: self
+    integer(i4)     , intent(in) , optional    :: start(:), cnt(:), stride(:), map(:)
+    integer(i8)     , intent(out), allocatable :: data(:,:,:,:,:)
+    integer(i4)                  , allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+
+    allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+         "Could not read data from variable: "//trim(self%getName()))
+  end subroutine getData5dI64
 
   subroutine getDataScalarF32(self, data, start, cnt, stride, map)
     class(NcVariable), intent(in)             :: self
