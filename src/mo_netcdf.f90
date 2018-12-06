@@ -128,11 +128,10 @@ module mo_netcdf
 
      ! setter
      procedure, public  :: setGroup
-     procedure, private :: setLimitedDimension
-     procedure, private :: setUnlimitedDimension
-     generic, public    :: setDimension => &
-          setLimitedDimension, &
-          setUnlimitedDimension
+     !procedure, private :: setDimension_1Dbounds
+     !procedure, private :: setDimension_2Dbounds
+     procedure, private :: setDimension_
+     procedure, public  :: setDimension
      procedure, private :: setVariableWithTypes
      procedure, private :: setVariableWithNames
      procedure, private :: setVariableWithIds
@@ -613,33 +612,171 @@ contains
     end if
   end function isUnlimitedDimension
 
-
-  function setUnlimitedDimension(self, name)
-    class(NcGroup), intent(in)           :: self
-    character(*)  , intent(in)           :: name
-    type(NcDimension)                    :: setUnlimitedDimension
-
-    setUnlimitedDimension = self%setLimitedDimension(name, -1)
-  end function setUnlimitedDimension
-
-  function setLimitedDimension(self, name, length)
+  function setDimension_(self, name, length)
     class(NcGroup), intent(in) :: self
     character(*)  , intent(in) :: name
-    integer(i4)  , intent(in) :: length
-    type(NcDimension)          :: setLimitedDimension
-    integer(i4)               :: id, dimlength
+    integer(i4)   , intent(in), optional :: length
+    
+    type(NcDimension)          :: setDimension_
+    integer(i4)                :: id, dimlength
 
-    if (length .le. 0) then
+    dimlength = NF90_UNLIMITED
+    if (present(length)) then
+      if (length .le. 0) then
        dimlength = NF90_UNLIMITED
-    else
-       dimlength = length
+      else
+        dimlength = length
+      end if
     end if
 
     call check(nf90_def_dim(self%id, name, dimlength, id), &
          "Failed to create dimension: " // name)
 
-    setLimitedDimension = NcDimension(id,self)
-  end function setLimitedDimension
+    setDimension_ = NcDimension(id,self)
+
+  end function setDimension_
+
+  function setDimension(self, name, length, bounds, reference, attribute_names, attribute_values)
+    class(NcGroup), intent(in) :: self
+    character(*)  , intent(in) :: name
+    integer(i4)   , intent(in), optional :: length
+    real(dp)      , intent(in), optional, dimension(:) :: bounds
+    integer(i4)   , intent(in), optional :: reference
+    character(64) , intent(in), optional, dimension(:) :: attribute_names
+    character(64) , intent(in), optional, dimension(:) :: attribute_values
+    
+    type(NcDimension)          :: setDimension, bnds_dim
+    type(NcVariable)           :: nc_var
+    integer(i4)                :: dimlength, reference_default, iAtt
+    character(64)              :: dim_bound_name
+    real(dp), allocatable, dimension(:, :) :: bound_data
+
+    ! set the new ncDimension (integer values and name)
+    setDimension = setDimension_(self, name, length)
+    
+    if (present(bounds)) then
+      ! init
+      dimlength = size(bounds) - 1
+      print*, bounds(dimlength)
+      stop 1
+      reference_default = 1_i4
+      if (present(reference)) then
+        reference_default = reference
+      end if
+      ! here we set the reference to ncDimension for labelled ncDimension which in fact is a variable
+      nc_var = self%setVariable(name, "f64", [setDimension])
+      ! write the data based on the type of reference
+      select case(reference_default)
+      case(0_i4)
+        ! set the start values
+        call nc_var%setData(bounds(0 : dimlength - 1))
+      case(1_i4)
+        ! set the center values
+        call nc_var%setData((bounds(1:dimlength) + bounds(0:dimlength-1)) / 2.0_dp)
+      case(2_4)
+        ! set the end values
+        call nc_var%setData(bounds(1 : dimlength))
+      case default
+        write(*,*) "reference id for set_Dimension is unknown"
+        stop 1
+      end select
+      ! set attributes
+      ! already set attributes
+      if (present(attribute_names) .and. present(attribute_values)) then
+        do iAtt = 1, size(attribute_names)
+          call nc_var%setAttribute(trim(attribute_names(iAtt)), &
+                  trim(attribute_values(iAtt)))
+        end do
+      end if
+      ! --- bounds ---
+      ! allocate array for data
+      allocate(bound_data(dimlength, 2_i4))
+      ! create dimension name for bounds
+      dim_bound_name  = trim(name) // "_bnds"
+      ! set the dimensions used for the bounds array
+      if (self%hasDimension("bnds")) then
+        ! add it to our bounds of ncDimensions for the current array
+        bnds_dim = self%getDimension("bnds")
+      else
+        bnds_dim = self%setDimension("bnds", 2)
+      end if
+      nc_var = self%setVariable(dim_bound_name, "f64", [setDimension, bnds_dim])
+      bound_data(:, 1) = bounds(0 : dimlength - 1)
+      bound_data(:, 2) = bounds(1 : dimlength)
+      call nc_var%setData(bound_data)
+      deallocate(bound_data)
+
+    end if
+    
+  end function setDimension
+
+  ! function setDimension_2Dbounds(self, name, length, bounds, reference, attribute_names, attribute_values)
+  !   class(NcGroup), intent(in) :: self
+  !   character(*)  , intent(in) :: name
+  !   integer(i4)   , intent(in), optional :: length
+  !   real(dp)      , intent(in), optional, dimension(:, :) :: bounds
+  !   integer(i4)   , intent(in), optional :: reference
+  !   character(64) , intent(in), optional, dimension(:) :: attribute_names
+  !   character(64) , intent(in), optional, dimension(:) :: attribute_values
+  ! 
+  !   type(NcDimension)          :: setDimension_2Dbounds, bnds_dim
+  !   type(NcVariable)           :: nc_var
+  !   integer(i4)                :: dimlength, reference_default, iAtt
+  !   character(64)              :: dim_bound_name
+  ! 
+  !   ! set the new ncDimension (integer values and name)
+  !   setDimension_2Dbounds = setDimension_(self, name, length)
+  ! 
+  !   if (present(bounds)) then
+  !     ! init
+  !     dimlength = size(bounds, 1)
+  !     print*, bounds(dimlength, 1)
+  !     stop 1
+  !     reference_default = 1_i4
+  !     if (present(reference)) then
+  !       reference_default = reference
+  !     end if
+  !     ! here we set the reference to ncDimension for labelled ncDimension which in fact is a variable
+  !     nc_var = self%setVariable(name, "f64", [setDimension_2Dbounds])
+  !     ! write the data based on the type of reference
+  !     select case(reference_default)
+  !     case(0_i4)
+  !       ! set the start values
+  !       call nc_var%setData(bounds(:, 1))
+  !     case(1_i4)
+  !       ! set the center values
+  !       call nc_var%setData((bounds(:, 1) + bounds(:, 2)) / 2.0_dp)
+  !     case(2_4)
+  !       ! set the end values
+  !       call nc_var%setData(bounds(:, 2))
+  !     case default
+  !       write(*,*) "reference id for set_Dimension is unknown"
+  !       stop 1
+  !     end select
+  !     ! set attributes
+  !     ! already set attributes
+  !     if (present(attribute_names) .and. present(attribute_values)) then
+  !       do iAtt = 1, size(attribute_names)
+  !         call nc_var%setAttribute(trim(attribute_names(iAtt)), &
+  !                 trim(attribute_values(iAtt)))
+  !       end do
+  !     end if
+  !     ! --- bounds ---
+  !     ! create dimension name for bounds
+  !     dim_bound_name  = trim(name) // "_bnds"
+  !     ! set the dimensions used for the bounds array
+  !     if (self%hasDimension("bnds")) then
+  !       ! add it to our bounds of ncDimensions for the current array
+  !       bnds_dim = self%getDimension("bnds")
+  !     else
+  !       bnds_dim = self%setDimension("bnds", 2)
+  !     end if
+  !     nc_var = self%setVariable(dim_bound_name, "f64", [setDimension_2Dbounds, bnds_dim])
+  !     call nc_var%setData(bounds)
+  ! 
+  !   end if
+  ! 
+  ! end function setDimension_2Dbounds
 
   function hasVariable(self, name)
     class(NcGroup), intent(in) :: self
