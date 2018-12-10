@@ -643,7 +643,7 @@ contains
     real(dp)      , intent(in), optional, dimension(:) :: bounds
     integer(i4)   , intent(in), optional :: reference
     character(64) , intent(in), optional, dimension(:) :: attribute_names
-    character(64) , intent(in), optional, dimension(:) :: attribute_values
+    character(1024) , intent(in), optional, dimension(:) :: attribute_values
     
     type(NcDimension)          :: setDimension, bnds_dim
     type(NcVariable)           :: nc_var
