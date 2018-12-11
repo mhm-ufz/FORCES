@@ -652,13 +652,12 @@ contains
     real(dp), allocatable, dimension(:, :) :: bound_data
 
     ! set the new ncDimension (integer values and name)
-    setDimension = setDimension_(self, name, length)
+    setDimension = self%setDimension_(name, length)
     
     if (present(bounds)) then
       ! init
-      dimlength = size(bounds) - 1
-      print*, bounds(dimlength)
-      stop 1
+      dimlength = size(bounds)
+      print*, bounds(:), bounds(1), dimlength
       reference_default = 1_i4
       if (present(reference)) then
         reference_default = reference
@@ -669,13 +668,13 @@ contains
       select case(reference_default)
       case(0_i4)
         ! set the start values
-        call nc_var%setData(bounds(0 : dimlength - 1))
+        call nc_var%setData(bounds(1:dimlength - 1))
       case(1_i4)
         ! set the center values
-        call nc_var%setData((bounds(1:dimlength) + bounds(0:dimlength-1)) / 2.0_dp)
+        call nc_var%setData((bounds(2:dimlength) + bounds(1:dimlength-1)) / 2.0_dp)
       case(2_4)
         ! set the end values
-        call nc_var%setData(bounds(1 : dimlength))
+        call nc_var%setData(bounds(2:dimlength))
       case default
         write(*,*) "reference id for set_Dimension is unknown"
         stop 1
@@ -690,7 +689,7 @@ contains
       end if
       ! --- bounds ---
       ! allocate array for data
-      allocate(bound_data(dimlength, 2_i4))
+      allocate(bound_data(dimlength-1, 2_i4))
       ! create dimension name for bounds
       dim_bound_name  = trim(name) // "_bnds"
       ! set the dimensions used for the bounds array
@@ -698,11 +697,11 @@ contains
         ! add it to our bounds of ncDimensions for the current array
         bnds_dim = self%getDimension("bnds")
       else
-        bnds_dim = self%setDimension("bnds", 2)
+        bnds_dim = self%setDimension_("bnds", 2)
       end if
       nc_var = self%setVariable(dim_bound_name, "f64", [setDimension, bnds_dim])
-      bound_data(:, 1) = bounds(0 : dimlength - 1)
-      bound_data(:, 2) = bounds(1 : dimlength)
+      bound_data(:, 1) = bounds(1 : dimlength - 1)
+      bound_data(:, 2) = bounds(2 : dimlength)
       call nc_var%setData(bound_data)
       deallocate(bound_data)
 
@@ -730,8 +729,6 @@ contains
   !   if (present(bounds)) then
   !     ! init
   !     dimlength = size(bounds, 1)
-  !     print*, bounds(dimlength, 1)
-  !     stop 1
   !     reference_default = 1_i4
   !     if (present(reference)) then
   !       reference_default = reference
@@ -2223,6 +2220,10 @@ contains
        getDtypeFromString = NF90_SHORT
     case("i4")
        getDtypeFromString = NF90_INT
+    case("f32")
+       getDtypeFromString = NF90_FLOAT
+    case("f64")
+       getDtypeFromString = NF90_DOUBLE
     case default
        write(*,*) "Datatype not understood: ", dtype
        stop 1
