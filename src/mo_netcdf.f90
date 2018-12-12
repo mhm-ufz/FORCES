@@ -33,7 +33,7 @@ module mo_netcdf
        nf90_inq_ncid, nf90_inq_grp_parent, nf90_inq_grpname, nf90_def_grp, &
        nf90_rename_dim, nf90_rename_var, nf90_rename_att, nf90_sync,       &
        NF90_OPEN, NF90_NETCDF4, NF90_CREATE, NF90_WRITE, NF90_NOWRITE,     &
-       NF90_BYTE, NF90_SHORT, NF90_INT, NF90_FLOAT, NF90_DOUBLE,           &
+       NF90_BYTE, NF90_SHORT, NF90_INT, NF90_INT64, NF90_FLOAT, NF90_DOUBLE,           &
        NF90_FILL_BYTE, NF90_FILL_SHORT, NF90_FILL_INT, NF90_FILL_FLOAT , NF90_FILL_DOUBLE, &
        NF90_NOERR, NF90_UNLIMITED, NF90_GLOBAL, NF90_SHARE, NF90_HDF5, &
        NF90_64BIT_OFFSET, NF90_CLASSIC_MODEL
@@ -2214,12 +2214,14 @@ contains
        getDtypeFromString = NF90_FLOAT
     case("dp")
        getDtypeFromString = NF90_DOUBLE
-    case("i1")
+    case("i8")
        getDtypeFromString = NF90_BYTE
-    case("i2")
+    case("i16")
        getDtypeFromString = NF90_SHORT
-    case("i4")
+    case("i32")
        getDtypeFromString = NF90_INT
+    case("i64")
+       getDtypeFromString = NF90_INT64
     case("f32")
        getDtypeFromString = NF90_FLOAT
     case("f64")
@@ -2245,6 +2247,8 @@ contains
        getDtypeFromInteger = "i16"
     case(NF90_INT)
        getDtypeFromInteger = "i32"
+    case(NF90_INT64)
+       getDtypeFromInteger = "i64"
     case default
        write(*,*) "Datatype not understood: ", dtype
        stop 1
