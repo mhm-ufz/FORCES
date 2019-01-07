@@ -2219,6 +2219,178 @@ CONTAINS
 
   END SUBROUTINE paste_dp_m_m
 
+  SUBROUTINE paste_dp_3d(mat1, mat2)
+
+    real(dp), dimension(:,:,:), allocatable, intent(inout) :: mat1
+    real(dp), dimension(:,:,:),              intent(in)    :: mat2
+
+    ! local variables
+    integer(i4)                             :: m1, m2    ! dim1 of matrixes
+    integer(i4)                             :: n1, n2    ! dim2 of matrixes
+    integer(i4)                             :: o1, o2    ! dim2 of matrixes
+    real(dp), dimension(:,:), allocatable  :: tmp
+
+    m2 = size(mat2,1)   ! rows
+    n2 = size(mat2,2)   ! columns
+    o2 = size(mat2,3)   ! 3rd
+
+    if (allocated(mat1)) then
+      m1 = size(mat1,1)   ! rows
+      n1 = size(mat1,2)   ! columns
+      o1 = size(mat1,3)   ! columns
+      if ( (m1 /= m2)) then
+        print*, 'paste: rows of array1 and array2 are unequal : (',m1,')  and  (',m2,')'
+        STOP
+      else if ( (n1 /= n2)) then
+        print*, 'paste: columns of array1 and array2 are unequal : (',n1,')  and  (',n2,')'
+        STOP
+      end if
+      ! save mat1
+      call move_alloc(mat1, tmp)
+
+      allocate(mat1(m1,n1,o1+o2))
+      mat1(:,:,1:o1)          = tmp(:,:,:)
+      mat1(:,:,o1+1_i4:o1+o2) = mat2(:,:,:)
+
+    else
+       allocate(mat1(m2,n2,o2))
+       mat1(:,:,:) = mat2(:,:,:)
+    end if
+
+  END SUBROUTINE paste_dp_3d
+
+  SUBROUTINE paste_dp_4d(mat1, mat2)
+
+    real(dp), dimension(:,:,:,:), allocatable, intent(inout) :: mat1
+    real(dp), dimension(:,:,:,:),              intent(in)    :: mat2
+
+    ! local variables
+    integer(i4)                             :: m1, m2    ! dim1 of matrixes
+    integer(i4)                             :: n1, n2    ! dim2 of matrixes
+    integer(i4)                             :: o1, o2    ! dim3 of matrixes
+    integer(i4)                             :: p1, p2    ! dim4 of matrixes
+    real(dp), dimension(:,:), allocatable  :: tmp
+
+    m2 = size(mat2,1)   ! rows
+    n2 = size(mat2,2)   ! columns
+    o2 = size(mat2,3)   ! 3rd
+    p2 = size(mat2,4)   ! 4th
+
+    if (allocated(mat1)) then
+      m1 = size(mat1,1)   ! rows
+      n1 = size(mat1,2)   ! columns
+      o1 = size(mat1,3)   ! 3rd
+      p1 = size(mat1,4)   ! 4th
+      if ( (m1 /= m2)) then
+        print*, 'paste: rows of array1 and array2 are unequal : (',m1,')  and  (',m2,')'
+        STOP
+      else if ( (n1 /= n2)) then
+        print*, 'paste: columns of array1 and array2 are unequal : (',n1,')  and  (',n2,')'
+        STOP
+      else if ( (o1 /= o2)) then
+        print*, 'paste: columns of array1 and array2 are unequal : (',o1,')  and  (',o2,')'
+        STOP
+      end if
+      ! save mat1
+      call move_alloc(mat1, tmp)
+
+      allocate(mat1(m1,n1,o1,p1+p2))
+      mat1(:,:,:,1:p1)          = tmp(:,:,:,:)
+      mat1(:,:,:,p1+1_i4:p1+p2) = mat2(:,:,:,:)
+
+    else
+       allocate(mat1(m2,n2,o2,p2))
+       mat1(:,:,:,:) = mat2(:,:,:,:)
+    end if
+
+  END SUBROUTINE paste_dp_4d
+
+  SUBROUTINE paste_i4_3d(mat1, mat2)
+
+    integer(i4), dimension(:,:,:), allocatable, intent(inout) :: mat1
+    integer(i4), dimension(:,:,:),              intent(in)    :: mat2
+
+    ! local variables
+    integer(i4)                             :: m1, m2    ! dim1 of matrixes
+    integer(i4)                             :: n1, n2    ! dim2 of matrixes
+    integer(i4)                             :: o1, o2    ! dim2 of matrixes
+    integer(i4), dimension(:,:), allocatable  :: tmp
+
+    m2 = size(mat2,1)   ! rows
+    n2 = size(mat2,2)   ! columns
+    o2 = size(mat2,3)   ! 3rd
+
+    if (allocated(mat1)) then
+      m1 = size(mat1,1)   ! rows
+      n1 = size(mat1,2)   ! columns
+      o1 = size(mat1,3)   ! columns
+      if ( (m1 /= m2)) then
+        print*, 'paste: rows of array1 and array2 are unequal : (',m1,')  and  (',m2,')'
+        STOP
+      else if ( (n1 /= n2)) then
+        print*, 'paste: columns of array1 and array2 are unequal : (',n1,')  and  (',n2,')'
+        STOP
+      end if
+      ! save mat1
+      call move_alloc(mat1, tmp)
+
+      allocate(mat1(m1,n1,o1+o2))
+      mat1(:,:,1:o1)          = tmp(:,:,:)
+      mat1(:,:,o1+1_i4:o1+o2) = mat2(:,:,:)
+
+    else
+       allocate(mat1(m2,n2,o2))
+       mat1(:,:,:) = mat2(:,:,:)
+    end if
+
+  END SUBROUTINE paste_i4_3d
+
+  SUBROUTINE paste_i4_4d(mat1, mat2)
+
+    integer(i4), dimension(:,:,:,:), allocatable, intent(inout) :: mat1
+    integer(i4), dimension(:,:,:,:),              intent(in)    :: mat2
+
+    ! local variables
+    integer(i4)                             :: m1, m2    ! dim1 of matrixes
+    integer(i4)                             :: n1, n2    ! dim2 of matrixes
+    integer(i4)                             :: o1, o2    ! dim3 of matrixes
+    integer(i4)                             :: p1, p2    ! dim4 of matrixes
+    integer(i4), dimension(:,:), allocatable  :: tmp
+
+    m2 = size(mat2,1)   ! rows
+    n2 = size(mat2,2)   ! columns
+    o2 = size(mat2,3)   ! 3rd
+    p2 = size(mat2,4)   ! 4th
+
+    if (allocated(mat1)) then
+      m1 = size(mat1,1)   ! rows
+      n1 = size(mat1,2)   ! columns
+      o1 = size(mat1,3)   ! 3rd
+      p1 = size(mat1,4)   ! 4th
+      if ( (m1 /= m2)) then
+        print*, 'paste: rows of array1 and array2 are unequal : (',m1,')  and  (',m2,')'
+        STOP
+      else if ( (n1 /= n2)) then
+        print*, 'paste: columns of array1 and array2 are unequal : (',n1,')  and  (',n2,')'
+        STOP
+      else if ( (o1 /= o2)) then
+        print*, 'paste: columns of array1 and array2 are unequal : (',o1,')  and  (',o2,')'
+        STOP
+      end if
+      ! save mat1
+      call move_alloc(mat1, tmp)
+
+      allocate(mat1(m1,n1,o1,p1+p2))
+      mat1(:,:,:,1:p1)          = tmp(:,:,:,:)
+      mat1(:,:,:,p1+1_i4:p1+p2) = mat2(:,:,:,:)
+
+    else
+       allocate(mat1(m2,n2,o2,p2))
+       mat1(:,:,:,:) = mat2(:,:,:,:)
+    end if
+
+  END SUBROUTINE paste_i4_4d
+
   SUBROUTINE paste_char_m_s(mat1, sca2)
 
     implicit none
