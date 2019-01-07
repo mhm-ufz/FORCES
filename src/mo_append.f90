@@ -198,9 +198,15 @@ MODULE mo_append
           paste_sp_m_s, paste_sp_m_v, paste_sp_m_m, &
           paste_dp_m_s, paste_dp_m_v, paste_dp_m_m, &
           paste_char_m_s, paste_char_m_v, paste_char_m_m, &
-          paste_lgt_m_s, paste_lgt_m_v, paste_lgt_m_m
+          paste_lgt_m_s, paste_lgt_m_v, paste_lgt_m_m, &
+          paste_dp_3d, paste_dp_4d, paste_i4_3d, paste_i4_4d
 
   END INTERFACE paste
+
+  interface add_nodata_slice
+    module procedure add_nodata_slice_dp_2d, add_nodata_slice_dp_3d, add_nodata_slice_dp_4d, &
+            add_nodata_slice_i4_2d, add_nodata_slice_i4_3d, add_nodata_slice_i4_4d
+  end interface add_nodata_slice
 
   ! ------------------------------------------------------------------
 
@@ -2476,6 +2482,97 @@ CONTAINS
     end if
 
   END SUBROUTINE paste_lgt_m_m
+
+  subroutine add_nodata_slice_dp_2d(array, nAdd, noDataValue)
+    real(dp), dimension(:, :), intent(inout) :: array
+    integer(i4), intent(in) :: nAdd
+    real(dp), intent(in) :: noDataValue
+
+    real(dp), dimension(size(array, 1), nAdd) :: dummy
+
+    if (nAdd > 0_i4) then
+      dummy = noDataValue
+      call paste(array, dummy)
+      deallocate(dummy)
+    end if
+
+  end subroutine add_nodata_slice_dp_2d
+
+  subroutine add_nodata_slice_dp_3d(array, nAdd, noDataValue)
+    real(dp), dimension(:, :, :), intent(inout) :: array
+    integer(i4), intent(in) :: nAdd
+    real(dp), intent(in) :: noDataValue
+
+    real(dp), dimension(size(array, 1), size(array, 2), nAdd) :: dummy
+
+    if (nAdd > 0_i4) then
+      dummy = noDataValue
+      call paste(array, dummy)
+      deallocate(dummy)
+    end if
+
+  end subroutine add_nodata_slice_dp_3d
+
+  subroutine add_nodata_slice_dp_4d(array, nAdd, noDataValue)
+    real(dp), dimension(:, :, :, :), intent(inout) :: array
+    integer(i4), intent(in) :: nAdd
+    real(dp), intent(in) :: noDataValue
+
+    real(dp), dimension(size(array, 1), size(array, 2), size(array, 3), nAdd):: dummy
+
+    if (nAdd > 0_i4) then
+      dummy = noDataValue
+      call paste(array, dummy)
+      deallocate(dummy)
+    end if
+
+  end subroutine add_nodata_slice_dp_4d
+
+  subroutine add_nodata_slice_i4_2d(array, nAdd, noDataValue)
+    integer(i4), dimension(:, :), intent(inout) :: array
+    integer(i4), intent(in) :: nAdd
+    integer(i4), intent(in) :: noDataValue
+
+    integer(i4), dimension(size(array, 1), nAdd) :: dummy
+
+    if (nAdd > 0_i4) then
+      dummy = noDataValue
+      call paste(array, dummy)
+      deallocate(dummy)
+    end if
+
+  end subroutine add_nodata_slice_i4_2d
+
+  subroutine add_nodata_slice_i4_3d(array, nAdd, noDataValue)
+    integer(i4), dimension(:, :, :), intent(inout) :: array
+    integer(i4), intent(in) :: nAdd
+    integer(i4), intent(in) :: noDataValue
+
+    integer(i4), dimension(size(array, 1), size(array, 2), nAdd) :: dummy
+
+    if (nAdd > 0_i4) then
+      dummy = noDataValue
+      call paste(array, dummy)
+      deallocate(dummy)
+    end if
+
+  end subroutine add_nodata_slice_i4_3d
+
+  subroutine add_nodata_slice_i4_4d(array, nAdd, noDataValue)
+    integer(i4), dimension(:, :, :, :), intent(inout) :: array
+    integer(i4), intent(in) :: nAdd
+    integer(i4), intent(in) :: noDataValue
+
+    integer(i4), dimension(size(array, 1), size(array, 2), size(array, 3), nAdd):: dummy
+
+    if (nAdd > 0_i4) then
+      dummy = noDataValue
+      call paste(array, dummy)
+      deallocate(dummy)
+    end if
+
+  end subroutine add_nodata_slice_i4_4d
+
 #endif
 
 
