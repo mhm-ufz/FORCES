@@ -44,8 +44,9 @@ MODULE mo_append
   IMPLICIT NONE
 
 #ifndef ABSOFT
-  PUBLIC :: append    ! Returns input1 appended (on rows) with input2.  (like Unix cat)
-  PUBLIC :: paste     ! Returns input1 pasted (on columns) with input2. (like Unix paste)
+  PUBLIC :: append    ! Returns input1 appended (on first dim) with input2.  (like Unix cat)
+  PUBLIC :: paste     ! Returns input1 pasted (on last dim) with input2. (like Unix paste)
+  PUBLIC :: add_nodata_slice     ! Returns input1 extended (on last dim) with nodata slice.
 
   ! ------------------------------------------------------------------
 
@@ -2228,7 +2229,7 @@ CONTAINS
     integer(i4)                             :: m1, m2    ! dim1 of matrixes
     integer(i4)                             :: n1, n2    ! dim2 of matrixes
     integer(i4)                             :: o1, o2    ! dim2 of matrixes
-    real(dp), dimension(:,:), allocatable  :: tmp
+    real(dp), dimension(:,:,:), allocatable  :: tmp
 
     m2 = size(mat2,1)   ! rows
     n2 = size(mat2,2)   ! columns
@@ -2269,7 +2270,7 @@ CONTAINS
     integer(i4)                             :: n1, n2    ! dim2 of matrixes
     integer(i4)                             :: o1, o2    ! dim3 of matrixes
     integer(i4)                             :: p1, p2    ! dim4 of matrixes
-    real(dp), dimension(:,:), allocatable  :: tmp
+    real(dp), dimension(:,:,:,:), allocatable  :: tmp
 
     m2 = size(mat2,1)   ! rows
     n2 = size(mat2,2)   ! columns
@@ -2314,7 +2315,7 @@ CONTAINS
     integer(i4)                             :: m1, m2    ! dim1 of matrixes
     integer(i4)                             :: n1, n2    ! dim2 of matrixes
     integer(i4)                             :: o1, o2    ! dim2 of matrixes
-    integer(i4), dimension(:,:), allocatable  :: tmp
+    integer(i4), dimension(:,:,:), allocatable  :: tmp
 
     m2 = size(mat2,1)   ! rows
     n2 = size(mat2,2)   ! columns
@@ -2355,7 +2356,7 @@ CONTAINS
     integer(i4)                             :: n1, n2    ! dim2 of matrixes
     integer(i4)                             :: o1, o2    ! dim3 of matrixes
     integer(i4)                             :: p1, p2    ! dim4 of matrixes
-    integer(i4), dimension(:,:), allocatable  :: tmp
+    integer(i4), dimension(:,:,:,:), allocatable  :: tmp
 
     m2 = size(mat2,1)   ! rows
     n2 = size(mat2,2)   ! columns
@@ -2656,7 +2657,7 @@ CONTAINS
   END SUBROUTINE paste_lgt_m_m
 
   subroutine add_nodata_slice_dp_2d(array, nAdd, noDataValue)
-    real(dp), dimension(:, :), intent(inout) :: array
+    real(dp), dimension(:, :), intent(inout), allocatable :: array
     integer(i4), intent(in) :: nAdd
     real(dp), intent(in) :: noDataValue
 
@@ -2665,13 +2666,12 @@ CONTAINS
     if (nAdd > 0_i4) then
       dummy = noDataValue
       call paste(array, dummy)
-      deallocate(dummy)
     end if
 
   end subroutine add_nodata_slice_dp_2d
 
   subroutine add_nodata_slice_dp_3d(array, nAdd, noDataValue)
-    real(dp), dimension(:, :, :), intent(inout) :: array
+    real(dp), dimension(:, :, :), intent(inout), allocatable :: array
     integer(i4), intent(in) :: nAdd
     real(dp), intent(in) :: noDataValue
 
@@ -2680,13 +2680,12 @@ CONTAINS
     if (nAdd > 0_i4) then
       dummy = noDataValue
       call paste(array, dummy)
-      deallocate(dummy)
     end if
 
   end subroutine add_nodata_slice_dp_3d
 
   subroutine add_nodata_slice_dp_4d(array, nAdd, noDataValue)
-    real(dp), dimension(:, :, :, :), intent(inout) :: array
+    real(dp), dimension(:, :, :, :), intent(inout), allocatable :: array
     integer(i4), intent(in) :: nAdd
     real(dp), intent(in) :: noDataValue
 
@@ -2695,13 +2694,12 @@ CONTAINS
     if (nAdd > 0_i4) then
       dummy = noDataValue
       call paste(array, dummy)
-      deallocate(dummy)
     end if
 
   end subroutine add_nodata_slice_dp_4d
 
   subroutine add_nodata_slice_i4_2d(array, nAdd, noDataValue)
-    integer(i4), dimension(:, :), intent(inout) :: array
+    integer(i4), dimension(:, :), intent(inout), allocatable :: array
     integer(i4), intent(in) :: nAdd
     integer(i4), intent(in) :: noDataValue
 
@@ -2710,13 +2708,12 @@ CONTAINS
     if (nAdd > 0_i4) then
       dummy = noDataValue
       call paste(array, dummy)
-      deallocate(dummy)
     end if
 
   end subroutine add_nodata_slice_i4_2d
 
   subroutine add_nodata_slice_i4_3d(array, nAdd, noDataValue)
-    integer(i4), dimension(:, :, :), intent(inout) :: array
+    integer(i4), dimension(:, :, :), intent(inout), allocatable :: array
     integer(i4), intent(in) :: nAdd
     integer(i4), intent(in) :: noDataValue
 
@@ -2725,13 +2722,12 @@ CONTAINS
     if (nAdd > 0_i4) then
       dummy = noDataValue
       call paste(array, dummy)
-      deallocate(dummy)
     end if
 
   end subroutine add_nodata_slice_i4_3d
 
   subroutine add_nodata_slice_i4_4d(array, nAdd, noDataValue)
-    integer(i4), dimension(:, :, :, :), intent(inout) :: array
+    integer(i4), dimension(:, :, :, :), intent(inout), allocatable :: array
     integer(i4), intent(in) :: nAdd
     integer(i4), intent(in) :: noDataValue
 
@@ -2740,7 +2736,6 @@ CONTAINS
     if (nAdd > 0_i4) then
       dummy = noDataValue
       call paste(array, dummy)
-      deallocate(dummy)
     end if
 
   end subroutine add_nodata_slice_i4_4d
