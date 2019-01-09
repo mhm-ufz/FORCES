@@ -657,7 +657,6 @@ contains
     if (present(bounds)) then
       ! init
       dimlength = size(bounds)
-      print*, bounds(:), bounds(1), dimlength
       reference_default = 1_i4
       if (present(reference)) then
         reference_default = reference

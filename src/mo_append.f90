@@ -235,9 +235,7 @@ CONTAINS
     if (allocated(vec1)) then
        n1 = size(vec1)
        ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -267,9 +265,7 @@ CONTAINS
     if (allocated(vec1)) then
        n1 = size(vec1)
        ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -309,9 +305,7 @@ CONTAINS
        end if
 
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( n1 == n2 ) then
           allocate(mat1(m1+m2,n1))
@@ -374,9 +368,7 @@ CONTAINS
        end if
 
        ! save mat1
-       allocate(tmp(m1,n1,j1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(m1+m2,n1,j1))
        mat1(1:m1,:,:)          = tmp(1:m1,:,:)
@@ -407,9 +399,7 @@ CONTAINS
     if (allocated(vec1)) then
        n1 = size(vec1)
        ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -439,9 +429,7 @@ CONTAINS
     if (allocated(vec1)) then
        n1 = size(vec1)
        ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -481,9 +469,7 @@ CONTAINS
        end if
 
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( n1 == n2 ) then
           allocate(mat1(m1+m2,n1))
@@ -546,9 +532,7 @@ CONTAINS
        end if
 
        ! save mat1
-       allocate(tmp(m1,n1,j1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(m1+m2,n1,j1))
        mat1(1:m1,:,:)          = tmp(1:m1,:,:)
@@ -579,9 +563,7 @@ CONTAINS
     if (allocated(vec1)) then
        n1 = size(vec1)
        ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -611,9 +593,7 @@ CONTAINS
     if (allocated(vec1)) then
        n1 = size(vec1)
        ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -653,9 +633,7 @@ CONTAINS
        end if
 
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
       if ( n1 == n2 ) then
           allocate(mat1(m1+m2,n1))
@@ -718,9 +696,7 @@ CONTAINS
        end if
 
        ! save mat1
-       allocate(tmp(m1,n1,j1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(m1+m2,n1,j1))
        mat1(1:m1,:,:)          = tmp(1:m1,:,:)
@@ -751,9 +727,7 @@ CONTAINS
     if (allocated(vec1)) then
        n1 = size(vec1)
        ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -783,9 +757,7 @@ CONTAINS
     if (allocated(vec1)) then
        n1 = size(vec1)
        ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -836,6 +808,9 @@ CONTAINS
              STOP
            end if
 
+          ! save mat1
+           call move_alloc(mat1, tmp)
+
            allocate(mat1(m1+m2,n1))
            mat1(1:m1,:)          = tmp(1:m1,:)
            mat1(m1+1_i4:m1+m2,:) = mat2(1:m2,:)
@@ -846,6 +821,9 @@ CONTAINS
              print*, 'append: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
              STOP
            end if
+
+          ! save mat1
+           call move_alloc(mat1, tmp)
 
            allocate(mat1(m1,n1 + n2))
            mat1(:,1:n1)          = tmp(:,1:n1)
@@ -861,9 +839,7 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1))
-         tmp=mat1
-         deallocate(mat1)
+         call move_alloc(mat1, tmp)
 
          if ( n1 == n2 ) then
            allocate(mat1(m1+m2,n1))
@@ -935,10 +911,8 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1))
-         tmp=mat1
-         deallocate(mat1)
-         
+         call move_alloc(mat1, tmp)
+
          allocate(mat1(m1+m2,n1,j1))
          mat1(1:m1,:,:)          = tmp(1:m1,:,:)
          mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
@@ -950,9 +924,7 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1))
-         tmp=mat1
-         deallocate(mat1)
+         call move_alloc(mat1, tmp)
          
          allocate(mat1(m1,n1 + n2,j1))
          mat1(:,1:n1,:)          = tmp(:,1:n1,:)
@@ -965,10 +937,8 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1))
-         tmp=mat1
-         deallocate(mat1)
-         
+         call move_alloc(mat1, tmp)
+
          allocate(mat1(m1,n1,j1 + j2))
          mat1(:,:,1:j1) = tmp(:,:,1:j1)
          mat1(:,:,j1+1_i4:j1+j2) = mat2(:,:,1:j2)
@@ -1028,9 +998,7 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1,i1))
-         tmp=mat1
-         deallocate(mat1)
+         call move_alloc(mat1, tmp)
          
          allocate(mat1(m1+m2,n1,j1,i1))
          mat1(1:m1,:,:,:)          = tmp(1:m1,:,:,:)
@@ -1043,10 +1011,8 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1,i1))
-         tmp=mat1
-         deallocate(mat1)
-         
+         call move_alloc(mat1, tmp)
+
          allocate(mat1(m1,n1 + n2,j1,i1))
          mat1(:,1:n1,:,:)          = tmp(:,1:n1,:,:)
          mat1(:,n1+1_i4:n1+n2,:,:) = mat2(:,1:n2,:,:)
@@ -1073,10 +1039,8 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1,i1))
-         tmp=mat1
-         deallocate(mat1)
-         
+         call move_alloc(mat1, tmp)
+
          allocate(mat1(m1,n1,j1,i1 + i2))
          mat1(:,:,:,1:i1) = tmp(:,:,:,1:i1)
          mat1(:,:,:,i1+1_i4:i1+i2) = mat2(:,:,:,1:i2)
@@ -1106,10 +1070,8 @@ CONTAINS
 
     if (allocated(vec1)) then
        n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       ! save mat1
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -1136,10 +1098,8 @@ CONTAINS
 
     if (allocated(vec1)) then
        n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       ! save mat1
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -1179,9 +1139,7 @@ CONTAINS
        end if
 
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( n1 == n2 ) then
           allocate(mat1(m1+m2,n1))
@@ -1244,9 +1202,7 @@ CONTAINS
        end if
 
        ! save mat1
-       allocate(tmp(m1,n1,j1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(m1+m2,n1,j1))
        mat1(1:m1,:,:)          = tmp(1:m1,:,:)
@@ -1276,11 +1232,9 @@ CONTAINS
 
     if (allocated(vec1)) then
        n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
-
+       ! save mat1
+       call move_alloc(vec1, tmp)
+       
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
        vec1(n1+1_i4)       = sca2
@@ -1308,10 +1262,8 @@ CONTAINS
 
     if (allocated(vec1)) then
        n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       ! save mat1
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -1361,6 +1313,9 @@ CONTAINS
             STOP
           end if
 
+         ! save mat1
+         call move_alloc(mat1, tmp)
+
           allocate(mat1(m1+m2,n1))
           mat1(1:m1,:)          = tmp(1:m1,:)
           mat1(m1+1_i4:m1+m2,:) = mat2(1:m2,:)
@@ -1371,6 +1326,9 @@ CONTAINS
             print*, 'append: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
             STOP
           end if
+
+         ! save mat1
+         call move_alloc(mat1, tmp)
 
           allocate(mat1(m1,n1 + n2))
           mat1(:,1:n1)          = tmp(:,1:n1)
@@ -1384,11 +1342,9 @@ CONTAINS
           STOP
         end if
 
-        ! save mat1
-        allocate(tmp(m1,n1))
-        tmp=mat1
-        deallocate(mat1)
-
+       ! save mat1
+       call move_alloc(mat1, tmp)
+        
         if ( n1 == n2 ) then
           allocate(mat1(m1+m2,n1))
           mat1(1:m1,:)          = tmp(1:m1,:)
@@ -1461,10 +1417,8 @@ CONTAINS
         end if
 
         ! save mat1
-        allocate(tmp(m1,n1,j1))
-        tmp=mat1
-        deallocate(mat1)
-
+        call move_alloc(mat1, tmp)
+        
         allocate(mat1(m1+m2,n1,j1))
         mat1(1:m1,:,:)          = tmp(1:m1,:,:)
         mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
@@ -1476,9 +1430,7 @@ CONTAINS
         end if
 
         ! save mat1
-        allocate(tmp(m1,n1,j1))
-        tmp=mat1
-        deallocate(mat1)
+        call move_alloc(mat1, tmp)
 
         allocate(mat1(m1,n1 + n2,j1))
         mat1(:,1:n1,:)          = tmp(:,1:n1,:)
@@ -1491,9 +1443,7 @@ CONTAINS
         end if
 
         ! save mat1
-        allocate(tmp(m1,n1,j1))
-        tmp=mat1
-        deallocate(mat1)
+        call move_alloc(mat1, tmp)
 
         allocate(mat1(m1,n1,j1 + j2))
         mat1(:,:,1:j1) = tmp(:,:,1:j1)
@@ -1554,10 +1504,8 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1,i1))
-         tmp=mat1
-         deallocate(mat1)
-         
+         call move_alloc(mat1, tmp)
+
          allocate(mat1(m1+m2,n1,j1,i1))
          mat1(1:m1,:,:,:)          = tmp(1:m1,:,:,:)
          mat1(m1+1_i4:m1+m2,:,:,:) = mat2(1:m2,:,:,:)
@@ -1569,10 +1517,8 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1,i1))
-         tmp=mat1
-         deallocate(mat1)
-         
+         call move_alloc(mat1, tmp)
+
          allocate(mat1(m1,n1 + n2,j1,i1))
          mat1(:,1:n1,:,:)          = tmp(:,1:n1,:,:)
          mat1(:,n1+1_i4:n1+n2,:,:) = mat2(:,1:n2,:,:)
@@ -1584,10 +1530,8 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1,i1))
-         tmp=mat1
-         deallocate(mat1)
-         
+         call move_alloc(mat1, tmp)
+
          allocate(mat1(m1,n1,j1 + j2,i1))
          mat1(:,:,1:j1,:) = tmp(:,:,1:j1,:)
          mat1(:,:,j1+1_i4:j1+j2,:) = mat2(:,:,1:j2,:)
@@ -1599,10 +1543,8 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1,i1))
-         tmp=mat1
-         deallocate(mat1)
-         
+         call move_alloc(mat1, tmp)
+
          allocate(mat1(m1,n1,j1,i1 + i2))
          mat1(:,:,:,1:i1) = tmp(:,:,:,1:i1)
          mat1(:,:,:,i1+1_i4:i1+i2) = mat2(:,:,:,1:i2)
@@ -1639,9 +1581,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(1_i4,n1+1_i4))
        mat1(1,1:n1)          = tmp(1,1:n1)
@@ -1677,9 +1617,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -1735,9 +1673,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -1789,9 +1725,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(1_i4,n1+1_i4))
        mat1(1,1:n1)          = tmp(1,1:n1)
@@ -1827,9 +1761,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -1885,9 +1817,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -1939,9 +1869,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(1_i4,n1+1_i4))
        mat1(1,1:n1)          = tmp(1,1:n1)
@@ -1977,9 +1905,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -2035,9 +1961,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -2090,9 +2014,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(1_i4,n1+1_i4))
        mat1(1,1:n1)          = tmp(1,1:n1)
@@ -2128,9 +2050,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -2186,9 +2106,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -2412,9 +2330,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(1_i4,n1+1_i4))
        mat1(1,1:n1)          = tmp(1,1:n1)
@@ -2450,9 +2366,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -2508,9 +2422,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -2562,9 +2474,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(1_i4,n1+1_i4))
        mat1(1,1:n1)          = tmp(1,1:n1)
@@ -2599,9 +2509,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(m1,n1+n2))
        mat1(:,1:n1)          = tmp(:,1:n1)
@@ -2639,9 +2547,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(m1,n1+n2))
        mat1(:,1:n1)          = tmp(:,1:n1)
