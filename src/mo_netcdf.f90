@@ -2190,6 +2190,7 @@ contains
 
     if (all(slcshape .eq. 1)) then
        ! return 1-element array
+      allocate(out(size(slcshape)))
        out(:) = 1
     else if (size(slcshape) .eq. outrank) then
        ! sizes fit
