@@ -2222,10 +2222,6 @@ contains
        getDtypeFromString = NF90_INT
     case("i64")
        getDtypeFromString = NF90_INT64
-    case("f32")
-       getDtypeFromString = NF90_FLOAT
-    case("f64")
-       getDtypeFromString = NF90_DOUBLE
     case default
        write(*,*) "Datatype not understood: ", dtype
        stop 1
