@@ -44,8 +44,9 @@ MODULE mo_append
   IMPLICIT NONE
 
 #ifndef ABSOFT
-  PUBLIC :: append    ! Returns input1 appended (on rows) with input2.  (like Unix cat)
-  PUBLIC :: paste     ! Returns input1 pasted (on columns) with input2. (like Unix paste)
+  PUBLIC :: append    ! Returns input1 appended (on first dim) with input2.  (like Unix cat)
+  PUBLIC :: paste     ! Returns input1 pasted (on last dim) with input2. (like Unix paste)
+  PUBLIC :: add_nodata_slice     ! Returns input1 extended (on last dim) with nodata slice.
 
   ! ------------------------------------------------------------------
 
@@ -198,9 +199,15 @@ MODULE mo_append
           paste_sp_m_s, paste_sp_m_v, paste_sp_m_m, &
           paste_dp_m_s, paste_dp_m_v, paste_dp_m_m, &
           paste_char_m_s, paste_char_m_v, paste_char_m_m, &
-          paste_lgt_m_s, paste_lgt_m_v, paste_lgt_m_m
+          paste_lgt_m_s, paste_lgt_m_v, paste_lgt_m_m, &
+          paste_dp_3d, paste_dp_4d, paste_i4_3d, paste_i4_4d
 
   END INTERFACE paste
+
+  interface add_nodata_slice
+    module procedure add_nodata_slice_dp_2d, add_nodata_slice_dp_3d, add_nodata_slice_dp_4d, &
+            add_nodata_slice_i4_2d, add_nodata_slice_i4_3d, add_nodata_slice_i4_4d
+  end interface add_nodata_slice
 
   ! ------------------------------------------------------------------
 
@@ -228,9 +235,7 @@ CONTAINS
     if (allocated(vec1)) then
        n1 = size(vec1)
        ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -260,9 +265,7 @@ CONTAINS
     if (allocated(vec1)) then
        n1 = size(vec1)
        ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -302,9 +305,7 @@ CONTAINS
        end if
 
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( n1 == n2 ) then
           allocate(mat1(m1+m2,n1))
@@ -367,9 +368,7 @@ CONTAINS
        end if
 
        ! save mat1
-       allocate(tmp(m1,n1,j1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(m1+m2,n1,j1))
        mat1(1:m1,:,:)          = tmp(1:m1,:,:)
@@ -400,9 +399,7 @@ CONTAINS
     if (allocated(vec1)) then
        n1 = size(vec1)
        ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -432,9 +429,7 @@ CONTAINS
     if (allocated(vec1)) then
        n1 = size(vec1)
        ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -474,9 +469,7 @@ CONTAINS
        end if
 
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( n1 == n2 ) then
           allocate(mat1(m1+m2,n1))
@@ -539,9 +532,7 @@ CONTAINS
        end if
 
        ! save mat1
-       allocate(tmp(m1,n1,j1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(m1+m2,n1,j1))
        mat1(1:m1,:,:)          = tmp(1:m1,:,:)
@@ -572,9 +563,7 @@ CONTAINS
     if (allocated(vec1)) then
        n1 = size(vec1)
        ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -604,9 +593,7 @@ CONTAINS
     if (allocated(vec1)) then
        n1 = size(vec1)
        ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -646,9 +633,7 @@ CONTAINS
        end if
 
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
       if ( n1 == n2 ) then
           allocate(mat1(m1+m2,n1))
@@ -711,9 +696,7 @@ CONTAINS
        end if
 
        ! save mat1
-       allocate(tmp(m1,n1,j1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(m1+m2,n1,j1))
        mat1(1:m1,:,:)          = tmp(1:m1,:,:)
@@ -744,9 +727,7 @@ CONTAINS
     if (allocated(vec1)) then
        n1 = size(vec1)
        ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -776,9 +757,7 @@ CONTAINS
     if (allocated(vec1)) then
        n1 = size(vec1)
        ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -829,6 +808,9 @@ CONTAINS
              STOP
            end if
 
+          ! save mat1
+           call move_alloc(mat1, tmp)
+
            allocate(mat1(m1+m2,n1))
            mat1(1:m1,:)          = tmp(1:m1,:)
            mat1(m1+1_i4:m1+m2,:) = mat2(1:m2,:)
@@ -839,6 +821,9 @@ CONTAINS
              print*, 'append: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
              STOP
            end if
+
+          ! save mat1
+           call move_alloc(mat1, tmp)
 
            allocate(mat1(m1,n1 + n2))
            mat1(:,1:n1)          = tmp(:,1:n1)
@@ -854,9 +839,7 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1))
-         tmp=mat1
-         deallocate(mat1)
+         call move_alloc(mat1, tmp)
 
          if ( n1 == n2 ) then
            allocate(mat1(m1+m2,n1))
@@ -928,10 +911,8 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1))
-         tmp=mat1
-         deallocate(mat1)
-         
+         call move_alloc(mat1, tmp)
+
          allocate(mat1(m1+m2,n1,j1))
          mat1(1:m1,:,:)          = tmp(1:m1,:,:)
          mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
@@ -943,9 +924,7 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1))
-         tmp=mat1
-         deallocate(mat1)
+         call move_alloc(mat1, tmp)
          
          allocate(mat1(m1,n1 + n2,j1))
          mat1(:,1:n1,:)          = tmp(:,1:n1,:)
@@ -958,10 +937,8 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1))
-         tmp=mat1
-         deallocate(mat1)
-         
+         call move_alloc(mat1, tmp)
+
          allocate(mat1(m1,n1,j1 + j2))
          mat1(:,:,1:j1) = tmp(:,:,1:j1)
          mat1(:,:,j1+1_i4:j1+j2) = mat2(:,:,1:j2)
@@ -1021,9 +998,7 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1,i1))
-         tmp=mat1
-         deallocate(mat1)
+         call move_alloc(mat1, tmp)
          
          allocate(mat1(m1+m2,n1,j1,i1))
          mat1(1:m1,:,:,:)          = tmp(1:m1,:,:,:)
@@ -1036,10 +1011,8 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1,i1))
-         tmp=mat1
-         deallocate(mat1)
-         
+         call move_alloc(mat1, tmp)
+
          allocate(mat1(m1,n1 + n2,j1,i1))
          mat1(:,1:n1,:,:)          = tmp(:,1:n1,:,:)
          mat1(:,n1+1_i4:n1+n2,:,:) = mat2(:,1:n2,:,:)
@@ -1066,10 +1039,8 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1,i1))
-         tmp=mat1
-         deallocate(mat1)
-         
+         call move_alloc(mat1, tmp)
+
          allocate(mat1(m1,n1,j1,i1 + i2))
          mat1(:,:,:,1:i1) = tmp(:,:,:,1:i1)
          mat1(:,:,:,i1+1_i4:i1+i2) = mat2(:,:,:,1:i2)
@@ -1099,10 +1070,8 @@ CONTAINS
 
     if (allocated(vec1)) then
        n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       ! save mat1
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -1129,10 +1098,8 @@ CONTAINS
 
     if (allocated(vec1)) then
        n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       ! save mat1
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -1172,9 +1139,7 @@ CONTAINS
        end if
 
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( n1 == n2 ) then
           allocate(mat1(m1+m2,n1))
@@ -1237,9 +1202,7 @@ CONTAINS
        end if
 
        ! save mat1
-       allocate(tmp(m1,n1,j1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(m1+m2,n1,j1))
        mat1(1:m1,:,:)          = tmp(1:m1,:,:)
@@ -1269,11 +1232,9 @@ CONTAINS
 
     if (allocated(vec1)) then
        n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
-
+       ! save mat1
+       call move_alloc(vec1, tmp)
+       
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
        vec1(n1+1_i4)       = sca2
@@ -1301,10 +1262,8 @@ CONTAINS
 
     if (allocated(vec1)) then
        n1 = size(vec1)
-       ! save vec1
-       allocate(tmp(n1))
-       tmp=vec1
-       deallocate(vec1)
+       ! save mat1
+       call move_alloc(vec1, tmp)
 
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
@@ -1354,6 +1313,9 @@ CONTAINS
             STOP
           end if
 
+         ! save mat1
+         call move_alloc(mat1, tmp)
+
           allocate(mat1(m1+m2,n1))
           mat1(1:m1,:)          = tmp(1:m1,:)
           mat1(m1+1_i4:m1+m2,:) = mat2(1:m2,:)
@@ -1364,6 +1326,9 @@ CONTAINS
             print*, 'append: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
             STOP
           end if
+
+         ! save mat1
+         call move_alloc(mat1, tmp)
 
           allocate(mat1(m1,n1 + n2))
           mat1(:,1:n1)          = tmp(:,1:n1)
@@ -1377,11 +1342,9 @@ CONTAINS
           STOP
         end if
 
-        ! save mat1
-        allocate(tmp(m1,n1))
-        tmp=mat1
-        deallocate(mat1)
-
+       ! save mat1
+       call move_alloc(mat1, tmp)
+        
         if ( n1 == n2 ) then
           allocate(mat1(m1+m2,n1))
           mat1(1:m1,:)          = tmp(1:m1,:)
@@ -1454,10 +1417,8 @@ CONTAINS
         end if
 
         ! save mat1
-        allocate(tmp(m1,n1,j1))
-        tmp=mat1
-        deallocate(mat1)
-
+        call move_alloc(mat1, tmp)
+        
         allocate(mat1(m1+m2,n1,j1))
         mat1(1:m1,:,:)          = tmp(1:m1,:,:)
         mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
@@ -1469,9 +1430,7 @@ CONTAINS
         end if
 
         ! save mat1
-        allocate(tmp(m1,n1,j1))
-        tmp=mat1
-        deallocate(mat1)
+        call move_alloc(mat1, tmp)
 
         allocate(mat1(m1,n1 + n2,j1))
         mat1(:,1:n1,:)          = tmp(:,1:n1,:)
@@ -1484,9 +1443,7 @@ CONTAINS
         end if
 
         ! save mat1
-        allocate(tmp(m1,n1,j1))
-        tmp=mat1
-        deallocate(mat1)
+        call move_alloc(mat1, tmp)
 
         allocate(mat1(m1,n1,j1 + j2))
         mat1(:,:,1:j1) = tmp(:,:,1:j1)
@@ -1547,10 +1504,8 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1,i1))
-         tmp=mat1
-         deallocate(mat1)
-         
+         call move_alloc(mat1, tmp)
+
          allocate(mat1(m1+m2,n1,j1,i1))
          mat1(1:m1,:,:,:)          = tmp(1:m1,:,:,:)
          mat1(m1+1_i4:m1+m2,:,:,:) = mat2(1:m2,:,:,:)
@@ -1562,10 +1517,8 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1,i1))
-         tmp=mat1
-         deallocate(mat1)
-         
+         call move_alloc(mat1, tmp)
+
          allocate(mat1(m1,n1 + n2,j1,i1))
          mat1(:,1:n1,:,:)          = tmp(:,1:n1,:,:)
          mat1(:,n1+1_i4:n1+n2,:,:) = mat2(:,1:n2,:,:)
@@ -1577,10 +1530,8 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1,i1))
-         tmp=mat1
-         deallocate(mat1)
-         
+         call move_alloc(mat1, tmp)
+
          allocate(mat1(m1,n1,j1 + j2,i1))
          mat1(:,:,1:j1,:) = tmp(:,:,1:j1,:)
          mat1(:,:,j1+1_i4:j1+j2,:) = mat2(:,:,1:j2,:)
@@ -1592,10 +1543,8 @@ CONTAINS
          end if
 
          ! save mat1
-         allocate(tmp(m1,n1,j1,i1))
-         tmp=mat1
-         deallocate(mat1)
-         
+         call move_alloc(mat1, tmp)
+
          allocate(mat1(m1,n1,j1,i1 + i2))
          mat1(:,:,:,1:i1) = tmp(:,:,:,1:i1)
          mat1(:,:,:,i1+1_i4:i1+i2) = mat2(:,:,:,1:i2)
@@ -1632,9 +1581,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(1_i4,n1+1_i4))
        mat1(1,1:n1)          = tmp(1,1:n1)
@@ -1670,9 +1617,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -1728,9 +1673,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -1782,9 +1725,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(1_i4,n1+1_i4))
        mat1(1,1:n1)          = tmp(1,1:n1)
@@ -1820,9 +1761,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -1878,9 +1817,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -1932,9 +1869,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(1_i4,n1+1_i4))
        mat1(1,1:n1)          = tmp(1,1:n1)
@@ -1970,9 +1905,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -2028,9 +1961,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -2083,9 +2014,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(1_i4,n1+1_i4))
        mat1(1,1:n1)          = tmp(1,1:n1)
@@ -2121,9 +2050,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -2179,9 +2106,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -2213,6 +2138,178 @@ CONTAINS
 
   END SUBROUTINE paste_dp_m_m
 
+  SUBROUTINE paste_dp_3d(mat1, mat2)
+
+    real(dp), dimension(:,:,:), allocatable, intent(inout) :: mat1
+    real(dp), dimension(:,:,:),              intent(in)    :: mat2
+
+    ! local variables
+    integer(i4)                             :: m1, m2    ! dim1 of matrixes
+    integer(i4)                             :: n1, n2    ! dim2 of matrixes
+    integer(i4)                             :: o1, o2    ! dim2 of matrixes
+    real(dp), dimension(:,:,:), allocatable  :: tmp
+
+    m2 = size(mat2,1)   ! rows
+    n2 = size(mat2,2)   ! columns
+    o2 = size(mat2,3)   ! 3rd
+
+    if (allocated(mat1)) then
+      m1 = size(mat1,1)   ! rows
+      n1 = size(mat1,2)   ! columns
+      o1 = size(mat1,3)   ! columns
+      if ( (m1 /= m2)) then
+        print*, 'paste: rows of array1 and array2 are unequal : (',m1,')  and  (',m2,')'
+        STOP
+      else if ( (n1 /= n2)) then
+        print*, 'paste: columns of array1 and array2 are unequal : (',n1,')  and  (',n2,')'
+        STOP
+      end if
+      ! save mat1
+      call move_alloc(mat1, tmp)
+
+      allocate(mat1(m1,n1,o1+o2))
+      mat1(:,:,1:o1)          = tmp(:,:,:)
+      mat1(:,:,o1+1_i4:o1+o2) = mat2(:,:,:)
+
+    else
+       allocate(mat1(m2,n2,o2))
+       mat1(:,:,:) = mat2(:,:,:)
+    end if
+
+  END SUBROUTINE paste_dp_3d
+
+  SUBROUTINE paste_dp_4d(mat1, mat2)
+
+    real(dp), dimension(:,:,:,:), allocatable, intent(inout) :: mat1
+    real(dp), dimension(:,:,:,:),              intent(in)    :: mat2
+
+    ! local variables
+    integer(i4)                             :: m1, m2    ! dim1 of matrixes
+    integer(i4)                             :: n1, n2    ! dim2 of matrixes
+    integer(i4)                             :: o1, o2    ! dim3 of matrixes
+    integer(i4)                             :: p1, p2    ! dim4 of matrixes
+    real(dp), dimension(:,:,:,:), allocatable  :: tmp
+
+    m2 = size(mat2,1)   ! rows
+    n2 = size(mat2,2)   ! columns
+    o2 = size(mat2,3)   ! 3rd
+    p2 = size(mat2,4)   ! 4th
+
+    if (allocated(mat1)) then
+      m1 = size(mat1,1)   ! rows
+      n1 = size(mat1,2)   ! columns
+      o1 = size(mat1,3)   ! 3rd
+      p1 = size(mat1,4)   ! 4th
+      if ( (m1 /= m2)) then
+        print*, 'paste: rows of array1 and array2 are unequal : (',m1,')  and  (',m2,')'
+        STOP
+      else if ( (n1 /= n2)) then
+        print*, 'paste: columns of array1 and array2 are unequal : (',n1,')  and  (',n2,')'
+        STOP
+      else if ( (o1 /= o2)) then
+        print*, 'paste: columns of array1 and array2 are unequal : (',o1,')  and  (',o2,')'
+        STOP
+      end if
+      ! save mat1
+      call move_alloc(mat1, tmp)
+
+      allocate(mat1(m1,n1,o1,p1+p2))
+      mat1(:,:,:,1:p1)          = tmp(:,:,:,:)
+      mat1(:,:,:,p1+1_i4:p1+p2) = mat2(:,:,:,:)
+
+    else
+       allocate(mat1(m2,n2,o2,p2))
+       mat1(:,:,:,:) = mat2(:,:,:,:)
+    end if
+
+  END SUBROUTINE paste_dp_4d
+
+  SUBROUTINE paste_i4_3d(mat1, mat2)
+
+    integer(i4), dimension(:,:,:), allocatable, intent(inout) :: mat1
+    integer(i4), dimension(:,:,:),              intent(in)    :: mat2
+
+    ! local variables
+    integer(i4)                             :: m1, m2    ! dim1 of matrixes
+    integer(i4)                             :: n1, n2    ! dim2 of matrixes
+    integer(i4)                             :: o1, o2    ! dim2 of matrixes
+    integer(i4), dimension(:,:,:), allocatable  :: tmp
+
+    m2 = size(mat2,1)   ! rows
+    n2 = size(mat2,2)   ! columns
+    o2 = size(mat2,3)   ! 3rd
+
+    if (allocated(mat1)) then
+      m1 = size(mat1,1)   ! rows
+      n1 = size(mat1,2)   ! columns
+      o1 = size(mat1,3)   ! columns
+      if ( (m1 /= m2)) then
+        print*, 'paste: rows of array1 and array2 are unequal : (',m1,')  and  (',m2,')'
+        STOP
+      else if ( (n1 /= n2)) then
+        print*, 'paste: columns of array1 and array2 are unequal : (',n1,')  and  (',n2,')'
+        STOP
+      end if
+      ! save mat1
+      call move_alloc(mat1, tmp)
+
+      allocate(mat1(m1,n1,o1+o2))
+      mat1(:,:,1:o1)          = tmp(:,:,:)
+      mat1(:,:,o1+1_i4:o1+o2) = mat2(:,:,:)
+
+    else
+       allocate(mat1(m2,n2,o2))
+       mat1(:,:,:) = mat2(:,:,:)
+    end if
+
+  END SUBROUTINE paste_i4_3d
+
+  SUBROUTINE paste_i4_4d(mat1, mat2)
+
+    integer(i4), dimension(:,:,:,:), allocatable, intent(inout) :: mat1
+    integer(i4), dimension(:,:,:,:),              intent(in)    :: mat2
+
+    ! local variables
+    integer(i4)                             :: m1, m2    ! dim1 of matrixes
+    integer(i4)                             :: n1, n2    ! dim2 of matrixes
+    integer(i4)                             :: o1, o2    ! dim3 of matrixes
+    integer(i4)                             :: p1, p2    ! dim4 of matrixes
+    integer(i4), dimension(:,:,:,:), allocatable  :: tmp
+
+    m2 = size(mat2,1)   ! rows
+    n2 = size(mat2,2)   ! columns
+    o2 = size(mat2,3)   ! 3rd
+    p2 = size(mat2,4)   ! 4th
+
+    if (allocated(mat1)) then
+      m1 = size(mat1,1)   ! rows
+      n1 = size(mat1,2)   ! columns
+      o1 = size(mat1,3)   ! 3rd
+      p1 = size(mat1,4)   ! 4th
+      if ( (m1 /= m2)) then
+        print*, 'paste: rows of array1 and array2 are unequal : (',m1,')  and  (',m2,')'
+        STOP
+      else if ( (n1 /= n2)) then
+        print*, 'paste: columns of array1 and array2 are unequal : (',n1,')  and  (',n2,')'
+        STOP
+      else if ( (o1 /= o2)) then
+        print*, 'paste: columns of array1 and array2 are unequal : (',o1,')  and  (',o2,')'
+        STOP
+      end if
+      ! save mat1
+      call move_alloc(mat1, tmp)
+
+      allocate(mat1(m1,n1,o1,p1+p2))
+      mat1(:,:,:,1:p1)          = tmp(:,:,:,:)
+      mat1(:,:,:,p1+1_i4:p1+p2) = mat2(:,:,:,:)
+
+    else
+       allocate(mat1(m2,n2,o2,p2))
+       mat1(:,:,:,:) = mat2(:,:,:,:)
+    end if
+
+  END SUBROUTINE paste_i4_4d
+
   SUBROUTINE paste_char_m_s(mat1, sca2)
 
     implicit none
@@ -2233,9 +2330,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(1_i4,n1+1_i4))
        mat1(1,1:n1)          = tmp(1,1:n1)
@@ -2271,9 +2366,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -2329,9 +2422,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        if ( m1 == m2 ) then
           allocate(mat1(m1,n1+n2))
@@ -2383,9 +2474,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(1_i4,n1+1_i4))
        mat1(1,1:n1)          = tmp(1,1:n1)
@@ -2420,9 +2509,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(m1,n1+n2))
        mat1(:,1:n1)          = tmp(:,1:n1)
@@ -2460,9 +2547,7 @@ CONTAINS
           STOP
        end if
        ! save mat1
-       allocate(tmp(m1,n1))
-       tmp=mat1
-       deallocate(mat1)
+       call move_alloc(mat1, tmp)
 
        allocate(mat1(m1,n1+n2))
        mat1(:,1:n1)          = tmp(:,1:n1)
@@ -2476,6 +2561,91 @@ CONTAINS
     end if
 
   END SUBROUTINE paste_lgt_m_m
+
+  subroutine add_nodata_slice_dp_2d(array, nAdd, noDataValue)
+    real(dp), dimension(:, :), intent(inout), allocatable :: array
+    integer(i4), intent(in) :: nAdd
+    real(dp), intent(in) :: noDataValue
+
+    real(dp), dimension(size(array, 1), nAdd) :: dummy
+
+    if (nAdd > 0_i4) then
+      dummy = noDataValue
+      call paste(array, dummy)
+    end if
+
+  end subroutine add_nodata_slice_dp_2d
+
+  subroutine add_nodata_slice_dp_3d(array, nAdd, noDataValue)
+    real(dp), dimension(:, :, :), intent(inout), allocatable :: array
+    integer(i4), intent(in) :: nAdd
+    real(dp), intent(in) :: noDataValue
+
+    real(dp), dimension(size(array, 1), size(array, 2), nAdd) :: dummy
+
+    if (nAdd > 0_i4) then
+      dummy = noDataValue
+      call paste(array, dummy)
+    end if
+
+  end subroutine add_nodata_slice_dp_3d
+
+  subroutine add_nodata_slice_dp_4d(array, nAdd, noDataValue)
+    real(dp), dimension(:, :, :, :), intent(inout), allocatable :: array
+    integer(i4), intent(in) :: nAdd
+    real(dp), intent(in) :: noDataValue
+
+    real(dp), dimension(size(array, 1), size(array, 2), size(array, 3), nAdd):: dummy
+
+    if (nAdd > 0_i4) then
+      dummy = noDataValue
+      call paste(array, dummy)
+    end if
+
+  end subroutine add_nodata_slice_dp_4d
+
+  subroutine add_nodata_slice_i4_2d(array, nAdd, noDataValue)
+    integer(i4), dimension(:, :), intent(inout), allocatable :: array
+    integer(i4), intent(in) :: nAdd
+    integer(i4), intent(in) :: noDataValue
+
+    integer(i4), dimension(size(array, 1), nAdd) :: dummy
+
+    if (nAdd > 0_i4) then
+      dummy = noDataValue
+      call paste(array, dummy)
+    end if
+
+  end subroutine add_nodata_slice_i4_2d
+
+  subroutine add_nodata_slice_i4_3d(array, nAdd, noDataValue)
+    integer(i4), dimension(:, :, :), intent(inout), allocatable :: array
+    integer(i4), intent(in) :: nAdd
+    integer(i4), intent(in) :: noDataValue
+
+    integer(i4), dimension(size(array, 1), size(array, 2), nAdd) :: dummy
+
+    if (nAdd > 0_i4) then
+      dummy = noDataValue
+      call paste(array, dummy)
+    end if
+
+  end subroutine add_nodata_slice_i4_3d
+
+  subroutine add_nodata_slice_i4_4d(array, nAdd, noDataValue)
+    integer(i4), dimension(:, :, :, :), intent(inout), allocatable :: array
+    integer(i4), intent(in) :: nAdd
+    integer(i4), intent(in) :: noDataValue
+
+    integer(i4), dimension(size(array, 1), size(array, 2), size(array, 3), nAdd):: dummy
+
+    if (nAdd > 0_i4) then
+      dummy = noDataValue
+      call paste(array, dummy)
+    end if
+
+  end subroutine add_nodata_slice_i4_4d
+
 #endif
 
 

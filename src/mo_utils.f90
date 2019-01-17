@@ -53,6 +53,12 @@ MODULE mo_utils
   PUBLIC :: swap         ! swaps arrays or elements of an array
   PUBLIC :: special_value ! Special IEEE values
 
+  public :: flip ! flips a dimension of an array
+
+  interface flip
+    procedure flip_1D_dp, flip_2D_dp, flip_3D_dp, flip_4D_dp, flip_1D_i4, flip_2D_i4, flip_3D_i4, flip_4D_i4
+  end interface
+
   ! ------------------------------------------------------------------
 
   !     NAME
@@ -1033,5 +1039,281 @@ CONTAINS
 #endif
 
   end function special_value_sp
+
+  subroutine flip_1D_dp(data, iDim)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: message
+    real(dp), dimension(:), allocatable, intent(inout) :: data
+    integer(i4), intent(in) :: iDim
+
+    real(dp), dimension(:), allocatable :: temp_data
+    integer(i4) :: iDim1
+
+    if (iDim > 1_i4) then
+      call message('Cannot flip 1D-array at dimension ', compress(trim(num2str(iDim))))
+      stop 1
+    end if
+    allocate(temp_data(size(data, 1)))
+
+    do iDim1 = 1, size(data, 1)
+      temp_data(size(data, 1) - iDim1 + 1) = data(iDim1)
+    end do
+    call move_alloc(temp_data, data)
+  end subroutine flip_1D_dp
+
+  subroutine flip_2D_dp(data, iDim)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: message
+
+    real(dp), dimension(:, :), allocatable, intent(inout) :: data
+    integer(i4), intent(in) :: iDim
+
+    real(dp), dimension(:, :), allocatable :: temp_data
+    integer(i4) :: iDim2, iDim1
+
+    if (iDim > 2_i4) then
+      call message('Cannot flip 2D-array at dimension ', compress(trim(num2str(iDim))))
+      stop 1
+    end if
+
+    allocate(temp_data(size(data, 1), size(data, 2)))
+
+    if (iDim == 1_i4) then
+      do iDim2 = 1, size(data, 2)
+        do iDim1 = 1, size(data, 1)
+          temp_data(size(data, 1) - iDim1 + 1, iDim2) = data(iDim1, iDim2)
+        end do
+      end do
+    else if (iDim == 2_i4) then
+      do iDim2 = 1, size(data, 2)
+        temp_data(:, size(data, 2) - iDim2 + 1) = data(:, iDim2)
+      end do
+    end if
+    call move_alloc(temp_data, data)
+  end subroutine flip_2D_dp
+
+  subroutine flip_3D_dp(data, iDim)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: message
+    real(dp), dimension(:, :, :), allocatable, intent(inout) :: data
+    integer(i4), intent(in) :: iDim
+
+    real(dp), dimension(:, :, :), allocatable :: temp_data
+    integer(i4) :: iDim3, iDim2, iDim1
+
+    if (iDim > 3_i4) then
+      call message('Cannot flip 3D-array at dimension ', compress(trim(num2str(iDim))))
+      stop 1
+    end if
+
+    allocate(temp_data(size(data, 1), size(data, 2), size(data, 3)))
+
+    if (iDim == 1_i4) then
+      do iDim3 = 1, size(data, 3)
+        do iDim2 = 1, size(data, 2)
+          do iDim1 = 1, size(data, 1)
+            temp_data(size(data, 1) - iDim1 + 1, iDim2, iDim3) = data(iDim1, iDim2, iDim3)
+          end do
+        end do
+      end do
+    else if (iDim == 2_i4) then
+      do iDim3 = 1, size(data, 3)
+        do iDim2 = 1, size(data, 2)
+          temp_data(:, size(data, 2) - iDim2 + 1, iDim3) = data(:, iDim2, iDim3)
+        end do
+      end do
+    else if (iDim == 3_i4) then
+      do iDim3 = 1, size(data, 3)
+        temp_data(:, :, size(data, 3) - iDim3 + 1) = data(:, :, iDim3)
+      end do
+    end if
+    call move_alloc(temp_data, data)
+  end subroutine flip_3D_dp
+
+  subroutine flip_4D_dp(data, iDim)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: message
+    real(dp), dimension(:, :, :, :), allocatable, intent(inout) :: data
+    integer(i4), intent(in) :: iDim
+
+    real(dp), dimension(:, :, :, :), allocatable :: temp_data
+    integer(i4) :: iDim4, iDim3, iDim2, iDim1
+
+    if (iDim > 4_i4) then
+      call message('Cannot flip 4D-array at dimension ', compress(trim(num2str(iDim))))
+      stop 1
+    end if
+
+    allocate(temp_data(size(data, 1), size(data, 2), size(data, 3), size(data, 4)))
+
+    if (iDim == 1_i4) then
+      do iDim4 = 1, size(data, 4)
+        do iDim3 = 1, size(data, 3)
+          do iDim2 = 1, size(data, 2)
+            do iDim1 = 1, size(data, 1)
+              temp_data(size(data, 1) - iDim1 + 1, iDim2, iDim3, iDim4) = data(iDim1, iDim2, iDim3, iDim4)
+            end do
+          end do
+        end do
+      end do
+    else if (iDim == 2_i4) then
+      do iDim4 = 1, size(data, 4)
+        do iDim3 = 1, size(data, 3)
+          do iDim2 = 1, size(data, 2)
+            temp_data(:, size(data, 2) - iDim2 + 1, iDim3, iDim4) = data(:, iDim2, iDim3, iDim4)
+          end do
+        end do
+      end do
+    else if (iDim == 3_i4) then
+      do iDim4 = 1, size(data, 4)
+        do iDim3 = 1, size(data, 3)
+          temp_data(:, :, size(data, 3) - iDim3 + 1, iDim4) = data(:, :, iDim3, iDim4)
+        end do
+      end do
+    else if (iDim == 4_i4) then
+      do iDim4 = 1, size(data, 4)
+        temp_data(:, :, :, size(data, 4) - iDim4 + 1) = data(:, :, :, iDim4)
+      end do
+    end if
+    call move_alloc(temp_data, data)
+  end subroutine flip_4D_dp
+
+  subroutine flip_1D_i4(data, iDim)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: message
+    integer(i4), dimension(:), allocatable, intent(inout) :: data
+    integer(i4), intent(in) :: iDim
+
+    integer(i4), dimension(:), allocatable :: temp_data
+    integer(i4) :: iDim1
+
+    if (iDim > 1_i4) then
+      call message('Cannot flip 1D-array at dimension ', compress(trim(num2str(iDim))))
+      stop 1
+    end if
+    allocate(temp_data(size(data, 1)))
+
+    do iDim1 = 1, size(data, 1)
+      temp_data(size(data, 1) - iDim1 + 1) = data(iDim1)
+    end do
+    call move_alloc(temp_data, data)
+  end subroutine flip_1D_i4
+
+  subroutine flip_2D_i4(data, iDim)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: message
+
+    integer(i4), dimension(:, :), allocatable, intent(inout) :: data
+    integer(i4), intent(in) :: iDim
+
+    integer(i4), dimension(:, :), allocatable :: temp_data
+    integer(i4) :: iDim2, iDim1
+
+    if (iDim > 2_i4) then
+      call message('Cannot flip 2D-array at dimension ', compress(trim(num2str(iDim))))
+      stop 1
+    end if
+
+    allocate(temp_data(size(data, 1), size(data, 2)))
+
+    if (iDim == 1_i4) then
+      do iDim2 = 1, size(data, 2)
+        do iDim1 = 1, size(data, 1)
+          temp_data(size(data, 1) - iDim1 + 1, iDim2) = data(iDim1, iDim2)
+        end do
+      end do
+    else if (iDim == 2_i4) then
+      do iDim2 = 1, size(data, 2)
+        temp_data(:, size(data, 2) - iDim2 + 1) = data(:, iDim2)
+      end do
+    end if
+    call move_alloc(temp_data, data)
+  end subroutine flip_2D_i4
+
+  subroutine flip_3D_i4(data, iDim)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: message
+    integer(i4), dimension(:, :, :), allocatable, intent(inout) :: data
+    integer(i4), intent(in) :: iDim
+
+    integer(i4), dimension(:, :, :), allocatable :: temp_data
+    integer(i4) :: iDim3, iDim2, iDim1
+
+    if (iDim > 3_i4) then
+      call message('Cannot flip 3D-array at dimension ', compress(trim(num2str(iDim))))
+      stop 1
+    end if
+
+    allocate(temp_data(size(data, 1), size(data, 2), size(data, 3)))
+
+    if (iDim == 1_i4) then
+      do iDim3 = 1, size(data, 3)
+        do iDim2 = 1, size(data, 2)
+          do iDim1 = 1, size(data, 1)
+            temp_data(size(data, 1) - iDim1 + 1, iDim2, iDim3) = data(iDim1, iDim2, iDim3)
+          end do
+        end do
+      end do
+    else if (iDim == 2_i4) then
+      do iDim3 = 1, size(data, 3)
+        do iDim2 = 1, size(data, 2)
+          temp_data(:, size(data, 2) - iDim2 + 1, iDim3) = data(:, iDim2, iDim3)
+        end do
+      end do
+    else if (iDim == 3_i4) then
+      do iDim3 = 1, size(data, 3)
+        temp_data(:, :, size(data, 3) - iDim3 + 1) = data(:, :, iDim3)
+      end do
+    end if
+    call move_alloc(temp_data, data)
+  end subroutine flip_3D_i4
+
+  subroutine flip_4D_i4(data, iDim)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: message
+    integer(i4), dimension(:, :, :, :), allocatable, intent(inout) :: data
+    integer(i4), intent(in) :: iDim
+
+    integer(i4), dimension(:, :, :, :), allocatable :: temp_data
+    integer(i4) :: iDim4, iDim3, iDim2, iDim1
+
+    if (iDim > 4_i4) then
+      call message('Cannot flip 4D-array at dimension ', compress(trim(num2str(iDim))))
+      stop 1
+    end if
+
+    allocate(temp_data(size(data, 1), size(data, 2), size(data, 3), size(data, 4)))
+
+    if (iDim == 1_i4) then
+      do iDim4 = 1, size(data, 4)
+        do iDim3 = 1, size(data, 3)
+          do iDim2 = 1, size(data, 2)
+            do iDim1 = 1, size(data, 1)
+              temp_data(size(data, 1) - iDim1 + 1, iDim2, iDim3, iDim4) = data(iDim1, iDim2, iDim3, iDim4)
+            end do
+          end do
+        end do
+      end do
+    else if (iDim == 2_i4) then
+      do iDim4 = 1, size(data, 4)
+        do iDim3 = 1, size(data, 3)
+          do iDim2 = 1, size(data, 2)
+            temp_data(:, size(data, 2) - iDim2 + 1, iDim3, iDim4) = data(:, iDim2, iDim3, iDim4)
+          end do
+        end do
+      end do
+    else if (iDim == 3_i4) then
+      do iDim4 = 1, size(data, 4)
+        do iDim3 = 1, size(data, 3)
+          temp_data(:, :, size(data, 3) - iDim3 + 1, iDim4) = data(:, :, iDim3, iDim4)
+        end do
+      end do
+    else if (iDim == 4_i4) then
+      do iDim4 = 1, size(data, 4)
+        temp_data(:, :, :, size(data, 4) - iDim4 + 1) = data(:, :, :, iDim4)
+      end do
+    end if
+    call move_alloc(temp_data, data)
+  end subroutine flip_4D_i4
 
 END MODULE mo_utils
