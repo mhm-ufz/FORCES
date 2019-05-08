@@ -282,34 +282,34 @@ CONTAINS
 
     ! replaces text
     ! e.g. replace_text('our hour', 'our', 'their') --> 'their htheir'
-    FUNCTION Replace_Text (s,text,rep)  RESULT(outs)
-      CHARACTER(*)        :: s,text,rep
-      CHARACTER(LEN(s)+100) :: outs     ! provide outs with extra 100 char len
-      INTEGER             :: i, nt, nr
-      
-      outs = s ; nt = LEN_TRIM(text) ; nr = LEN_TRIM(rep)
-      DO
-         i = INDEX(outs,text(:nt)) ; IF (i == 0) EXIT
+    function replace_text (s,text,rep)  result(outs)
+      character(*)        :: s,text,rep
+      character(len(s)+100) :: outs     ! provide outs with extra 100 char len
+      integer             :: i, nt, nr
+
+      outs = s ; nt = len_trim(text) ; nr = len_trim(rep)
+      do
+         i = index(outs,text(:nt)) ; if (i == 0) exit
          outs = outs(:i-1) // rep(:nr) // outs(i+nt:)
-      END DO
-    END FUNCTION Replace_Text
+      end do
+    end function replace_text
 
     ! replaces proper words only,
     ! e.g. replace_word('our hour', 'our', 'their') --> 'their hour'
     ! written Nov 2018 by Robert Schweppe
-    FUNCTION replace_word(s, word, rep, check_negative_number_arg)  RESULT(outs)
-      CHARACTER(*) :: s, word, rep
+    function replace_word(s, word, rep, check_negative_number_arg)  result(outs)
+      character(*) :: s, word, rep
       logical, optional  :: check_negative_number_arg
-      CHARACTER(LEN(s)+100) :: outs     ! provide outs with extra 100 char len
-      INTEGER               :: i, nt, nr
+      character(len(s)+100) :: outs     ! provide outs with extra 100 char len
+      integer               :: i, nt, nr
 
-      outs = s ; nt = LEN_TRIM(word) ; nr = LEN_TRIM(rep)
-      DO
+      outs = s ; nt = len_trim(word) ; nr = len_trim(rep)
+      do
         i = index_word(outs, word(:nt), check_negative_number_arg)
         if (i == 0) exit
         outs = outs(:i-1) // rep(:nr) // outs(i+nt:)
-      END DO
-    END FUNCTION replace_word
+      end do
+    end function replace_word
 
   ! written Nov 2018 by Robert Schweppe
   function index_word(s, text, check_negative_number_arg) result(out_index)
