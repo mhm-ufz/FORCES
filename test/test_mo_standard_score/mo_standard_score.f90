@@ -1,1 +1,0 @@
-../../src/mo_standard_score.f90
