@@ -53,3 +53,7 @@ set_target_properties ( ${LIB_NAME}
 
 target_link_libraries(${LIB_NAME} ${NETCDF_LINK_LIBRARIES})
 target_include_directories(${LIB_NAME} PUBLIC ${NETCDF_INCLUDES})
+target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+
+enable_testing()
+add_subdirectory(./tests)
