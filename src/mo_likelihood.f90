@@ -1,3 +1,4 @@
+! added for testing purposes of test_mo_mcmc
 module mo_likelihood
 
   USE mo_kind,   only: i4, dp

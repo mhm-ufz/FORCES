@@ -2,7 +2,8 @@ program main
 
   use mo_kind, only: i4, i8, dp
   use mo_dds,  only: dds, mdds
-  use mo_opt_functions, only: griewank
+  use mo_opt_functions,    only: eval_dummy, griewank_objective
+  use mo_optimization_utils, only: eval_interface, objective_interface
 
   implicit none
 
@@ -21,6 +22,9 @@ program main
   ! Output of DDS
   real(dp), dimension(np) :: dv_opt        ! Best value of decision variables
 
+  procedure(eval_interface), pointer :: eval
+  procedure(objective_interface), pointer :: obj_func
+
   ! Test
   logical :: isgood
 
@@ -37,7 +41,10 @@ program main
   nIterMax = 100000_i8
   to_max   = .False.
   seed     = 123456789_i8
-  dv_opt   = DDS(griewank, dv_ini, dv_range, r=r_val, seed=seed, maxiter=nIterMax, maxit=to_max)
+  eval => eval_dummy
+  obj_func => griewank_objective
+
+  dv_opt   = DDS(eval, obj_func, dv_ini, dv_range, r=r_val, seed=seed, maxiter=nIterMax, maxit=to_max)
 
   write(*,*) ''
   write(*,*) 'DDS'
@@ -64,7 +71,7 @@ program main
   nIterMax = 100000_i8
   to_max   = .False.
   seed     = 123456789_i8
-  dv_opt   = MDDS(griewank, dv_ini, dv_range, seed=seed, maxiter=nIterMax, maxit=to_max)
+  dv_opt   = MDDS(eval, obj_func, dv_ini, dv_range, seed=seed, maxiter=nIterMax, maxit=to_max)
 
   write(*,*) ''
   write(*,*) 'MDDS'

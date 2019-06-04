@@ -1,3 +1,4 @@
+! added for testing purposes of test_mo_sce, test_mo_dds, test_mo_mcmc
 MODULE mo_opt_functions
 
   ! This modules provides test functions for minimisation routines
@@ -137,7 +138,8 @@ MODULE mo_opt_functions
   public :: zdt4_2d    !  2-d objective function (nonconvex                            pareto front)
   public :: zdt6_2d    !  2-d objective function (nonconvex, nonuniformly disconnected pareto front)
 
-  public :: ackley_objective, eval_dummy
+  ! routines added to be compatible with testing framework
+  public :: ackley_objective, griewank_objective, eval_dummy
 
 CONTAINS
 
@@ -5663,6 +5665,43 @@ CONTAINS
 
  end function ackley_objective
 
+  function griewank_objective(parameterset, eval, arg1, arg2, arg3)
+
+    use mo_kind, only: i4, dp
+
+    implicit none
+
+    real(dp), intent(in), dimension(:) :: parameterset
+    procedure(eval_interface), INTENT(IN), pointer :: eval
+    real(dp), optional, intent(in) :: arg1
+    real(dp), optional, intent(out) :: arg2
+    real(dp), optional, intent(out) :: arg3
+    real(dp) :: griewank_objective
+
+    integer(i4) :: nopt
+    integer(i4) :: j
+    real(dp)    :: d, u1, u2
+    real(dp), dimension(:, :), allocatable :: et_opti
+
+    call eval(parameterset, et_opti=et_opti)
+    deallocate(et_opti)
+
+    nopt = size(parameterset)
+    if (nopt .eq. 2) then
+       d = 200.0_dp
+    else
+       d = 4000.0_dp
+    end if
+    u1 = sum(parameterset**2) / d
+    u2 = 1.0_dp
+    do j=1, nopt
+       u2 = u2 * cos(parameterset(j)/sqrt(real(j,dp)))
+    end do
+    griewank_objective = u1 - u2 + 1.0_dp
+    !
+  end function griewank_objective
+
+
  subroutine eval_dummy(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti, et_opti)
     use mo_kind, only : dp
 
@@ -5678,6 +5717,26 @@ CONTAINS
     if (present(et_opti)) then
       allocate(et_opti(1, 1))
       et_opti(:, :) = 0.0_dp
+    end if
+
+    if (present(neutrons_opti)) then
+      allocate(neutrons_opti(1, 1))
+      neutrons_opti(:, :) = 0.0_dp
+    end if
+
+    if (present(basin_avg_tws)) then
+      allocate(basin_avg_tws(1, 1))
+      basin_avg_tws(:, :) = 0.0_dp
+    end if
+
+    if (present(sm_opti)) then
+      allocate(sm_opti(1, 1))
+      sm_opti(:, :) = 0.0_dp
+    end if
+
+    if (present(runoff)) then
+      allocate(runoff(1, 1))
+      runoff(:, :) = 0.0_dp
     end if
 
   end subroutine eval_dummy

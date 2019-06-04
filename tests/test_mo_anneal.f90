@@ -3,8 +3,10 @@ PROGRAM anneal_test
   use mo_kind,    only: dp, i4, i8
   use mo_anneal,  only: anneal            !, anneal_valid
   use mo_anneal,  only: GetTemperature    !, GetTemperature_valid
-  use mo_cost,    only: cost_dp, range_dp !, cost_valid_dp
+  use mo_cost,    only: range_dp, cost_objective !, cost_valid_dp
   use mo_xor4096, only: get_timeseed
+  use mo_opt_functions,    only: eval_dummy
+  use mo_optimization_utils, only: eval_interface, objective_interface
 
   IMPLICIT NONE
 
@@ -21,6 +23,10 @@ PROGRAM anneal_test
   REAL(DP)                          :: Tstart, Tend
   REAL(DP), DIMENSION(:,:), ALLOCATABLE :: history
 
+  procedure(eval_interface), pointer :: eval
+  procedure(objective_interface), pointer :: obj_func
+
+
   ! time dependent seeds
   call get_timeseed(seeds)
   print*, 'time dependent seeds would be: ', seeds
@@ -32,13 +38,16 @@ PROGRAM anneal_test
   para(3) = 0.5_dp
   para(4) = 0.4_dp
 
+  eval => eval_dummy
+  obj_func => cost_objective
+
   ! Initialization
   print*, '-----------------------------------'
   print*, '   INITIALIZATION                  '
   print*, '-----------------------------------'
   print*, 'Initial parameter set:       ',para
-  print*, 'Initial cost function value: ',cost_dp(para(:))
-  costbestAll = cost_dp(para(:))
+  print*, 'Initial cost function value: ',cost_objective(para(:), eval)
+  costbestAll = cost_objective(para(:), eval)
   parabestAll = para(:)
   print*, '-----------------------------------'
   print*, '   INITIAL TEMPERATURE             '
@@ -47,7 +56,7 @@ PROGRAM anneal_test
   seeds(1) = 854_i8
   seeds(2) = seeds(1) + 1000_i8
   print*, 'seeds used:                        ', seeds(1:2)
-  temperature = GetTemperature( para, cost_dp, 0.95_dp, &
+  temperature = GetTemperature( eval, obj_func, para, 0.95_dp, &
        ! optionals
        prange_func=range_dp, &
        samplesize=500_i4, &
@@ -67,7 +76,7 @@ PROGRAM anneal_test
      print*, 'seeds used: ', seeds(1:3)
      !
      call cpu_time(Tstart)
-     parabest = anneal(cost_dp, para, &
+     parabest = anneal(eval, obj_func, para, &
           ! optionals
           prange_func=range_dp, &
           maxit=.false., &
