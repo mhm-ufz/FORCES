@@ -15,7 +15,7 @@ foreach ( UNIT_TEST ${sources} )
 	  COMPILE_FLAGS "${NETCDF_CFLAGS_OTHER} ${ADDITIONAL_GCC_FLAGS}"
 	  LINK_FLAGS "${NETCDF_LDFLAGS_OTHER}"
 	)
-	message(STATUS "Testing enabled for ${TEST_DIR}")
+	# message(STATUS "Testing enabled for ${TEST_DIR}")
 	target_link_libraries(${test_name} lightweight_fortran_lib)
 	add_test(NAME ${test_name} COMMAND ${test_name})
 	# set compiling flags for debug and relese version
