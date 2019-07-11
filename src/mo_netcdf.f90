@@ -642,13 +642,13 @@ contains
     integer(i4)   , intent(in), optional :: length
     real(dp)      , intent(in), optional, dimension(:) :: bounds
     integer(i4)   , intent(in), optional :: reference
-    character(64) , intent(in), optional, dimension(:) :: attribute_names
-    character(1024) , intent(in), optional, dimension(:) :: attribute_values
+    character(256) , intent(in), optional, dimension(:) :: attribute_names
+    character(2048) , intent(in), optional, dimension(:) :: attribute_values
     
     type(NcDimension)          :: setDimension, bnds_dim
     type(NcVariable)           :: nc_var
     integer(i4)                :: dimlength, reference_default, iAtt
-    character(64)              :: dim_bound_name
+    character(256)              :: dim_bound_name
     real(dp), allocatable, dimension(:, :) :: bound_data
 
     ! set the new ncDimension (integer values and name)
@@ -714,13 +714,13 @@ contains
   !   integer(i4)   , intent(in), optional :: length
   !   real(dp)      , intent(in), optional, dimension(:, :) :: bounds
   !   integer(i4)   , intent(in), optional :: reference
-  !   character(64) , intent(in), optional, dimension(:) :: attribute_names
-  !   character(64) , intent(in), optional, dimension(:) :: attribute_values
+  !   character(256) , intent(in), optional, dimension(:) :: attribute_names
+  !   character(2048) , intent(in), optional, dimension(:) :: attribute_values
   ! 
   !   type(NcDimension)          :: setDimension_2Dbounds, bnds_dim
   !   type(NcVariable)           :: nc_var
   !   integer(i4)                :: dimlength, reference_default, iAtt
-  !   character(64)              :: dim_bound_name
+  !   character(256)              :: dim_bound_name
   ! 
   !   ! set the new ncDimension (integer values and name)
   !   setDimension_2Dbounds = setDimension_(self, name, length)
