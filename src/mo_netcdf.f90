@@ -648,7 +648,7 @@ contains
     real(dp)      , intent(in), optional, dimension(:) :: centersDim1
     real(dp)      , intent(in), optional, dimension(:) :: centersDim2
     real(dp)      , intent(in), optional, dimension(:,:) :: cornersDim1
-    real(dp)      , intent(in), optional, dimension(:,:) :: cornersDim1
+    real(dp)      , intent(in), optional, dimension(:,:) :: cornersDim2
     integer(i4)   , intent(in), optional, dimension(:) :: subDimSizes
     character(256), intent(in), optional :: units
 
