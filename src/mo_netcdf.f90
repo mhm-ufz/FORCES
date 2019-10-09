@@ -654,7 +654,7 @@ contains
 
     type(NcDimension)          :: setDimension, bnds_dim, cornerDim, rankDim
     type(NcVariable)           :: nc_var
-    integer(i4)                :: dimlength, reference_default, iAtt
+    integer(i4)                :: dimlength, reference_default, iAtt, iBound
     character(256)              :: dim_bound_name
     real(dp), allocatable, dimension(:, :) :: bound_data
     integer(i4), allocatable, dimension(:) :: imask_data
@@ -726,9 +726,11 @@ contains
         end if
         ! --- bounds ---
         ! allocate array for data
-        allocate(bound_data(dimlength-1, 2_i4))
+        allocate(bound_data(2_i4, dimlength-1))
         ! create dimension name for bounds
-        dim_bound_name  = trim(name) // "_bnds"
+        dim_bound_name = trim(name) // "_bnds"
+        ! set the attribute
+        call nc_var%setAttribute('bounds', trim(dim_bound_name))
         ! set the dimensions used for the bounds array
         if (self%hasDimension("bnds")) then
           ! add it to our bounds of ncDimensions for the current array
@@ -736,9 +738,11 @@ contains
         else
           bnds_dim = self%setDimension_("bnds", 2)
         end if
-        nc_var = self%setVariable(dim_bound_name, "f64", [setDimension, bnds_dim])
-        bound_data(:, 1) = bounds(1 : dimlength - 1)
-        bound_data(:, 2) = bounds(2 : dimlength)
+        nc_var = self%setVariable(dim_bound_name, "f64", [bnds_dim, setDimension])
+        do iBound = 1, dimlength-1
+          bound_data(1, iBound) = bounds(iBound)
+          bound_data(2, iBound) = bounds(iBound + 1)
+        end do
         call nc_var%setData(bound_data)
         deallocate(bound_data)
 
