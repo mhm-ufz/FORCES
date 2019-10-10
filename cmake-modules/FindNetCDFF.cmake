@@ -98,6 +98,7 @@ if (NOT FOUND_NETCDFF_MODULE)
 				NAMES ${_pkg_search}
 				HINTS ${_search_paths} NO_DEFAULT_PATH)
 		endif()
+		# with NAG on Eve, this is might be added to the call: PATHS /usr/lib64)
 		find_library(pkgcfg_lib_NETCDF_${_pkg_search}
 			NAMES ${_pkg_search}
 			HINTS ENV LD_LIBRARY_PATH)

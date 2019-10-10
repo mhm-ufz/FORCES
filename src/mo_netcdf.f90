@@ -636,7 +636,8 @@ contains
 
   end function setDimension_
 
-  function setDimension(self, name, length, bounds, reference, attribute_names, attribute_values)
+  function setDimension(self, name, length, bounds, reference, attribute_names, attribute_values, &
+                        centersDim1, centersDim2, cornersDim1, cornersDim2, subDimSizes, units)
     class(NcGroup), intent(in) :: self
     character(*)  , intent(in) :: name
     integer(i4)   , intent(in), optional :: length
@@ -644,68 +645,111 @@ contains
     integer(i4)   , intent(in), optional :: reference
     character(256) , intent(in), optional, dimension(:) :: attribute_names
     character(2048) , intent(in), optional, dimension(:) :: attribute_values
-    
-    type(NcDimension)          :: setDimension, bnds_dim
+    real(dp)      , intent(in), optional, dimension(:) :: centersDim1
+    real(dp)      , intent(in), optional, dimension(:) :: centersDim2
+    real(dp)      , intent(in), optional, dimension(:,:) :: cornersDim1
+    real(dp)      , intent(in), optional, dimension(:,:) :: cornersDim2
+    integer(i4)   , intent(in), optional, dimension(:) :: subDimSizes
+    character(256), intent(in), optional :: units
+
+    type(NcDimension)          :: setDimension, bnds_dim, cornerDim, rankDim
     type(NcVariable)           :: nc_var
-    integer(i4)                :: dimlength, reference_default, iAtt
+    integer(i4)                :: dimlength, reference_default, iAtt, iBound
     character(256)              :: dim_bound_name
     real(dp), allocatable, dimension(:, :) :: bound_data
+    integer(i4), allocatable, dimension(:) :: imask_data
 
-    ! set the new ncDimension (integer values and name)
-    setDimension = self%setDimension_(name, length)
-    
-    if (present(bounds)) then
-      ! init
-      dimlength = size(bounds)
-      reference_default = 1_i4
-      if (present(reference)) then
-        reference_default = reference
-      end if
+    if (present(centersDim1) .and. present(centersDim2) .and. present(cornersDim1) .and. present(cornersDim2) &
+             .and. present(subDimSizes) .and. present(units)) then
+      ! set the new ncDimension (integer values and name)
+      setDimension = self%setDimension_('grid_size', size(centersDim1))
+      cornerDim = self%setDimension_('grid_corners', size(cornersDim1, 1))
+      rankDim = self%setDimension_('grid_rank', size(subDimSizes))
       ! here we set the reference to ncDimension for labelled ncDimension which in fact is a variable
-      nc_var = self%setVariable(name, "f64", [setDimension])
-      ! write the data based on the type of reference
-      select case(reference_default)
-      case(0_i4)
-        ! set the start values
-        call nc_var%setData(bounds(1:dimlength - 1))
-      case(1_i4)
-        ! set the center values
-        call nc_var%setData((bounds(2:dimlength) + bounds(1:dimlength-1)) / 2.0_dp)
-      case(2_4)
-        ! set the end values
-        call nc_var%setData(bounds(2:dimlength))
-      case default
-        write(*,*) "reference id for set_Dimension is unknown"
-        stop 1
-      end select
-      ! set attributes
-      ! already set attributes
-      if (present(attribute_names) .and. present(attribute_values)) then
-        do iAtt = 1, size(attribute_names)
-          call nc_var%setAttribute(trim(attribute_names(iAtt)), &
-                  trim(attribute_values(iAtt)))
+      nc_var = self%setVariable('grid_center_lon', "f64", [setDimension])
+      call nc_var%setData(centersDim1)
+      call nc_var%setAttribute('units', trim(units))
+      nc_var = self%setVariable('grid_center_lat', "f64", [setDimension])
+      call nc_var%setData(centersDim2)
+      call nc_var%setAttribute('units', trim(units))
+      nc_var = self%setVariable('grid_corner_lon', "f64", [cornerDim, setDimension])
+      call nc_var%setData(cornersDim1)
+      call nc_var%setAttribute('units', trim(units))
+      nc_var = self%setVariable('grid_corner_lat', "f64", [cornerDim, setDimension])
+      call nc_var%setData(cornersDim2)
+      call nc_var%setAttribute('units', trim(units))
+      nc_var = self%setVariable('grid_dims', "i32", [rankDim])
+      call nc_var%setData(subDimSizes)
+      ! set all values to 1 (True) for mask
+      nc_var = self%setVariable('grid_imask', "i32", [setDimension])
+      allocate(imask_data(size(centersDim1)))
+      imask_data = 1_i4
+      call nc_var%setData(imask_data)
+      deallocate(imask_data)
+      call nc_var%setAttribute('units', 'unitless')
+
+    else
+      ! set the new ncDimension (integer values and name)
+      setDimension = self%setDimension_(name, length)
+
+      if (present(bounds)) then
+        ! init
+        dimlength = size(bounds)
+        reference_default = 1_i4
+        if (present(reference)) then
+          reference_default = reference
+        end if
+        ! here we set the reference to ncDimension for labelled ncDimension which in fact is a variable
+        nc_var = self%setVariable(name, "f64", [setDimension])
+        ! write the data based on the type of reference
+        select case(reference_default)
+        case(0_i4)
+          ! set the start values
+          call nc_var%setData(bounds(1:dimlength - 1))
+        case(1_i4)
+          ! set the center values
+          call nc_var%setData((bounds(2:dimlength) + bounds(1:dimlength-1)) / 2.0_dp)
+        case(2_4)
+          ! set the end values
+          call nc_var%setData(bounds(2:dimlength))
+        case default
+          write(*,*) "reference id for set_Dimension is unknown"
+          stop 1
+        end select
+        ! set attributes
+        ! already set attributes
+        if (present(attribute_names) .and. present(attribute_values)) then
+          do iAtt = 1, size(attribute_names)
+            call nc_var%setAttribute(trim(attribute_names(iAtt)), &
+                    trim(attribute_values(iAtt)))
+          end do
+        end if
+        ! --- bounds ---
+        ! allocate array for data
+        allocate(bound_data(2_i4, dimlength-1))
+        ! create dimension name for bounds
+        dim_bound_name = trim(name) // "_bnds"
+        ! set the attribute
+        call nc_var%setAttribute('bounds', trim(dim_bound_name))
+        ! set the dimensions used for the bounds array
+        if (self%hasDimension("bnds")) then
+          ! add it to our bounds of ncDimensions for the current array
+          bnds_dim = self%getDimension("bnds")
+        else
+          bnds_dim = self%setDimension_("bnds", 2)
+        end if
+        nc_var = self%setVariable(dim_bound_name, "f64", [bnds_dim, setDimension])
+        do iBound = 1, dimlength-1
+          bound_data(1, iBound) = bounds(iBound)
+          bound_data(2, iBound) = bounds(iBound + 1)
         end do
+        call nc_var%setData(bound_data)
+        deallocate(bound_data)
+
       end if
-      ! --- bounds ---
-      ! allocate array for data
-      allocate(bound_data(dimlength-1, 2_i4))
-      ! create dimension name for bounds
-      dim_bound_name  = trim(name) // "_bnds"
-      ! set the dimensions used for the bounds array
-      if (self%hasDimension("bnds")) then
-        ! add it to our bounds of ncDimensions for the current array
-        bnds_dim = self%getDimension("bnds")
-      else
-        bnds_dim = self%setDimension_("bnds", 2)
-      end if
-      nc_var = self%setVariable(dim_bound_name, "f64", [setDimension, bnds_dim])
-      bound_data(:, 1) = bounds(1 : dimlength - 1)
-      bound_data(:, 2) = bounds(2 : dimlength)
-      call nc_var%setData(bound_data)
-      deallocate(bound_data)
 
     end if
-    
+
   end function setDimension
 
   ! function setDimension_2Dbounds(self, name, length, bounds, reference, attribute_names, attribute_values)
