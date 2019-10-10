@@ -209,7 +209,7 @@ MODULE mo_poly
   !         -> see also example in test directory
 
   !     LITERATURE
-  !         http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+  !         https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
 
   !     HISTORY
   !         Written,  Juliane Mai, July 2012
