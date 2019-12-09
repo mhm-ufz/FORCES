@@ -36,7 +36,7 @@ module mo_constants
 
   ! Copyright 2011-2014 Matthias Cuntz
 
-  use mo_kind, only : sp, dp, i4
+  use mo_kind, only : sp, dp, i4, i8
   use, intrinsic :: iso_fortran_env, only : input_unit, output_unit, error_unit
 
   implicit none
@@ -163,6 +163,7 @@ module mo_constants
   ! computational, these values need to be the same!!!
   real(dp), public, parameter :: nodata_dp = -9999.0_dp ! [-]     global no data value
   integer(i4), public, parameter :: nodata_i4 = int(nodata_dp)  ! [-]     global no data value
+  integer(i8), public, parameter :: nodata_i8 = int(nodata_dp, kind=i8)  ! [-]     global no data value
   !> epsilon(1.0) in double precision
   real(dp), public, parameter :: eps_dp = epsilon(1.0_dp)
   real(sp), public, parameter :: eps_sp = epsilon(1.0_sp)
