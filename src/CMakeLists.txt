@@ -14,6 +14,23 @@ if (CPP_FLAG)
 	set(ADDITIONAL_GCC_FLAGS "-cpp")
 endif()
 
+set(CMAKE_WITH_MPI OFF CACHE STRING "build the module with MPI, so it can be executed using mpirun")
+# if cmake provides a findLIBRARY module, this gets invoked via find_package(LIBRARY)
+if (CMAKE_WITH_MPI)
+        # find if there is an MPI setup on the system and if so, set corresponding variables
+        find_package(MPI)
+        if (NOT ${MPI_Fortran_FOUND})
+                message(FATAL_ERROR "MPI required but not found")
+        else()
+                message(STATUS "found MPI_Fortran_COMPILER ${MPI_Fortran_COMPILER}")
+                # set the preprocessor
+                target_compile_definitions(${LIB_NAME} PRIVATE "-MPI")
+				# add the link to mpi if existing
+                target_link_libraries(${LIB_NAME} ${MPI_Fortran_LIBRARIES} )
+                target_include_directories(${LIB_NAME} PUBLIC ${MPI_Fortran_INCLUDE_PATH} )
+        endif()
+endif()
+
 # set specific place where to search for the netCDF directory
 set(CMAKE_NETCDF_DIR " " CACHE STRING "set set specific place where to search for the netCDF directory")
 message(STATUS "search in additional directory ${CMAKE_NETCDF_DIR} for netCDF")
