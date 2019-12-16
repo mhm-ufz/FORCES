@@ -153,7 +153,7 @@ MODULE mo_boxcox
   !            - Modified MC: numerical recipes: brent, mnbrak, swap, shft
   !            - Modified JM: scalar version of invboxcox
   INTERFACE invboxcox
-    MODULE PROCEDURE invboxcox_0d_sp, invboxcox_0d_dp, invboxcox_1d_sp, invboxcox_1d_dp
+     MODULE PROCEDURE invboxcox_0d_sp, invboxcox_0d_dp, invboxcox_1d_sp, invboxcox_1d_dp
   END INTERFACE invboxcox
 
   ! ------------------------------------------------------------------

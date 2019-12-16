@@ -125,7 +125,6 @@ module mo_constants
   !> specific heat capacity of air [J kg^-1 K^-1] in single precision
   real(sp), parameter :: cp0_sp = 1005.0_sp
 
-  ! Numerical Recipes
   !> Pi in double precision
   real(dp), parameter :: PI_D = 3.141592653589793238462643383279502884197_dp      ! Pi
   !> Pi in single precision
