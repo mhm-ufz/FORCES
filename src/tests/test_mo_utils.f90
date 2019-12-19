@@ -4,6 +4,7 @@ program test_utils
   use mo_utils, only: eq, ge, le, ne
   use mo_utils, only: swap, locate !, cumsum, arange, linspace
   use mo_utils, only: is_finite, is_nan, is_normal, special_value
+  use mo_message, only: error_message
 
   implicit none
 
@@ -426,6 +427,7 @@ program test_utils
      write(*,*) 'mo_utils o.k.'
   else
      write(*,*) 'mo_utils failed!'
+     call error_message('TestError: mo_utils failed')
   endif
 
 end program test_utils

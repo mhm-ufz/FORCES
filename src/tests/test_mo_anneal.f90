@@ -7,6 +7,7 @@ PROGRAM anneal_test
   use mo_xor4096, only: get_timeseed
   use mo_opt_functions,    only: eval_dummy
   use mo_optimization_utils, only: eval_interface, objective_interface
+  use mo_message, only: error_message
 
   IMPLICIT NONE
 
@@ -33,7 +34,7 @@ PROGRAM anneal_test
 
   runs = 4_i4
 
-  para(1) = 2.0_dp  
+  para(1) = 2.0_dp
   para(2) = 10.0_dp
   para(3) = 0.5_dp
   para(4) = 0.4_dp
@@ -121,6 +122,7 @@ PROGRAM anneal_test
      print*, 'mo_anneal: o.k.'
   else
      print*, 'mo_anneal: failed '
+     call error_message('TestError: mo_anneal failed')
   end if
 
 END PROGRAM anneal_test

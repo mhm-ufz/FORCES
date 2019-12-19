@@ -1,16 +1,17 @@
 PROGRAM main
-  
+
   USE mo_kind, ONLY: i4
   USE mo_nml,  ONLY: open_nml, close_nml, position_nml
+  use mo_message, only: error_message
 
   IMPLICIT NONE
-  
+
   INTEGER, PARAMETER :: nnml = 100
   CHARACTER(len=*), PARAMETER :: nfile = './files/namelist.txt'
   INTEGER(i4) :: stat
 
   LOGICAL :: isgood
-  
+
   Write(*,*) ''
   Write(*,*) 'Test mo_nml.f90'
 
@@ -23,12 +24,13 @@ PROGRAM main
   if (stat /= 0) isgood =.false.
   call position_nml('name3', unit=nnml, first=.true., status=stat)
   call close_nml()
-  
+
   Write(*,*) ''
   if (isgood) then
      write(*,*) 'mo_nml o.k.'
   else
      write(*,*) 'mo_nml failed!'
+     call error_message('TestError: mo_nml failed')
   endif
 
 END PROGRAM main

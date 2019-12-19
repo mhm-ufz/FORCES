@@ -5,6 +5,7 @@ program test_mcmc
   use mo_mcmc,       only: mcmc, mcmc_stddev
   use mo_moment,     only: mean, stddev
   use mo_optimization_utils, only: eval_interface, objective_interface
+  use mo_message, only: error_message
 
   ! for running mcmc
   procedure(eval_interface), pointer :: eval_func
@@ -64,7 +65,7 @@ program test_mcmc
   write(*,*) ''
   write(*,*) 'Number of parameter sets sampled'
   ! number of samples per chain x number of chains
-  samples = size(mcmc_paras,1) 
+  samples = size(mcmc_paras,1)
   write(*,*) samples
 
   write(*,*) ''
@@ -86,7 +87,8 @@ program test_mcmc
        (nint(stddev(mcmc_paras(:,3))*10000000,i4) .eq. 1384711_i4) ) then
      write(*,*) 'mo_mcmc: mcmc o.k.'
   else
-     write(*,*) 'mo_mcmc: mcmc failed '
+   write(*,*) 'mo_mcmc: mcmc failed '
+   call error_message('TestError: mo_mcmc failed')
   end if
 
     write(*,*) ''
@@ -94,7 +96,7 @@ program test_mcmc
   write(*,*) ' (A2) "real" likelihood  (sigma is an error model_dp or given) --> e.g. loglikelihood of mo_likelihood'
   write(*,*) '      RESTART '
   write(*,*) '---------------------------------------------------------------------------------------------'
-  ! starting MCMC: 
+  ! starting MCMC:
   !     (1) starting from restart file
   call mcmc(eval_func, likelihood, parabest, rangePar, mcmc_paras, burnin_paras, &
        ParaSelectMode_in=2_i4,tmp_file='A_make_check_test_file',              &
@@ -108,7 +110,7 @@ program test_mcmc
   write(*,*) ''
   write(*,*) 'Number of parameter sets sampled'
   ! number of samples per chain x number of chains
-  samples = size(mcmc_paras,1) 
+  samples = size(mcmc_paras,1)
   write(*,*) samples
 
   write(*,*) ''
@@ -131,7 +133,8 @@ program test_mcmc
      write(*,*) 'mo_mcmc: mcmc with restart o.k.'
   else
      write(*,*) 'mo_mcmc: mcmc with restart failed '
-  end if
+     call error_message('TestError: mo_mcmc failed')
+   end if
 
   write(*,*) ''
   write(*,*) '---------------------------------------------------------------------------------------------'
@@ -156,9 +159,9 @@ program test_mcmc
   ! fixing seeds for test case:
   seed = 62001519_i8
 
-  ! starting MCMC: 
+  ! starting MCMC:
   !     (1) Burn-in will be performed to optimize settings for MCMC
-  !     (2) posterior distribution of the parameters at the minimum (best parameterset) 
+  !     (2) posterior distribution of the parameters at the minimum (best parameterset)
   !         will be sampled by MCMC
   likelihood => loglikelihood_stddev_dp
   call mcmc_stddev(eval_func, likelihood, parabest, rangePar, mcmc_paras, burnin_paras, &
@@ -172,7 +175,7 @@ program test_mcmc
   write(*,*) ''
   write(*,*) 'Number of parameter sets sampled'
   ! number of samples per chain x number of chains
-  samples = size(mcmc_paras,1) 
+  samples = size(mcmc_paras,1)
   write(*,*) samples
 
   write(*,*) ''
@@ -195,7 +198,8 @@ program test_mcmc
      write(*,*) 'mo_mcmc: mcmc_stddev o.k.'
   else
      write(*,*) 'mo_mcmc: mcmc_stddev failed '
-  end if
+     call error_message('TestError: mo_mcmc failed')
+   end if
 
   ! clean-up
   deallocate(mcmc_paras)
