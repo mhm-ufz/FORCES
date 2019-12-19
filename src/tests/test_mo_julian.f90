@@ -3,6 +3,7 @@ PROGRAM main
   USE mo_kind,   ONLY: i4, dp
   USE mo_julian, ONLY: ndays, ndyin
   USE mo_julian, ONLY: caldat, julday, date2dec, dec2date, setCalendar
+  use mo_message, only: error_message
 
   IMPLICIT NONE
 
@@ -24,10 +25,10 @@ PROGRAM main
 
   isgood = .true.
 
-  
+
   ! -----------------------
   ! standard calendar tests
-  
+
   ! julday, caldat
   do jj=1, 2524594 ! 01.01.2200
      call caldat(jj,dd,mm,yy)
@@ -122,7 +123,7 @@ PROGRAM main
      ss = int(date2dec(dd,mm,yy,12,0,0), i4)
      if (jj /= ss) isgood = .false.
   end do
-  
+
   ! ----------------------
   ! 360days calendar tests
 
@@ -215,7 +216,7 @@ PROGRAM main
   ! 365day calendar tests
 
   call setCalendar("365day")
-  
+
   ! julday365, caldat365
   do jj=0, 803000 ! 01.01.2200
      call caldat(jj,dd,mm,yy)
@@ -253,7 +254,7 @@ PROGRAM main
   if ((dd /= 1) .or. (mm /= 2) .or. (yy /= -100) .or. (hh /= 11) .or. (nn /= 11) .or. (ss /= 11)) isgood = .false.
 
   call setCalendar("julian")
-  
+
   ! date2dec365, dec2date365 - vector
   do jj=1, 803000 ! 01.01.2200
      call random_number(ff1)
@@ -308,6 +309,7 @@ PROGRAM main
      write(*,*) 'mo_julian o.k.'
   else
      write(*,*) 'mo_julian failed!'
+     call error_message('TestError: mo_julian failed')
   endif
 
   ! !  ! ! Check 59 minutes, 60 seconds problem if eps too small in dec2date

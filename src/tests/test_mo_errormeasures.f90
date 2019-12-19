@@ -1,8 +1,9 @@
 program test
 
-  ! use mo_moment   
+  ! use mo_moment
   USE mo_kind         , ONLY: i4, sp, dp
   USE mo_errorMeasures, ONLY: BIAS, KGE, LNNSE, MAE, MSE, NSE, RMSE, SAE, SSE
+  use mo_message, only: error_message
   !
   IMPLICIT NONE
   !
@@ -50,14 +51,14 @@ program test
   isgood = isgood .and. (nint(10000._sp*BIAS(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))) .EQ. &
            20813)
   isgood = isgood .and. (nint(10000._dp*BIAS(arr1(:,:,1), arr2(:,:,4), mask=mask(:,:,1))) .EQ. 20813)
-  isgood = isgood .and. (nint(10000._sp*BIAS(real(arr1, sp), real(arr2, sp), mask=mask)) .EQ. 9097) 
+  isgood = isgood .and. (nint(10000._sp*BIAS(real(arr1, sp), real(arr2, sp), mask=mask)) .EQ. 9097)
   isgood = isgood .and. (nint(10000._dp*BIAS(arr1, arr2, mask=mask)) .EQ. 9097)
   ! KGE
   isgood = isgood .and. (nint(10000._sp*KGE(real(vec1, sp), real(vec2, sp), mask=maskvec)) .EQ. 1783)
   isgood = isgood .and. (nint(10000._dp*KGE(vec1, vec2, mask=maskvec)) .EQ. 1783)
   isgood = isgood .and. (nint(10000._sp*KGE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))) .EQ. -4730)
   isgood = isgood .and. (nint(10000._dp*KGE(arr1(:,:,1), arr2(:,:,4), mask=mask(:,:,1))) .EQ. -4730)
-  isgood = isgood .and. (nint(10000._sp*KGE(real(arr1, sp), real(arr2, sp), mask=mask)) .EQ. 7631) 
+  isgood = isgood .and. (nint(10000._sp*KGE(real(arr1, sp), real(arr2, sp), mask=mask)) .EQ. 7631)
   isgood = isgood .and. (nint(10000._dp*KGE(arr1, arr2, mask=mask)) .EQ. 7631)
   ! MAE
   isgood = isgood .and. (nint(10000._sp*MAE(real(vec1, sp), real(vec2, sp), mask=maskvec)) .EQ. 16123)
@@ -65,7 +66,7 @@ program test
   isgood = isgood .and. (nint(10000._sp*MAE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))) .EQ. &
            21134)
   isgood = isgood .and. (nint(10000._dp*MAE(arr1(:,:,1), arr2(:,:,4), mask=mask(:,:,1))) .EQ. 21134)
-  isgood = isgood .and. (nint(10000._sp*MAE(real(arr1, sp), real(arr2, sp), mask=mask)) .EQ. 9097) 
+  isgood = isgood .and. (nint(10000._sp*MAE(real(arr1, sp), real(arr2, sp), mask=mask)) .EQ. 9097)
   isgood = isgood .and. (nint(10000._dp*MAE(arr1, arr2, mask=mask)) .EQ. 9097)
   ! MSE
   isgood = isgood .and. (nint(10000._sp*MSE(real(vec1, sp), real(vec2, sp), mask=maskvec)) .EQ. 42183)
@@ -73,7 +74,7 @@ program test
   isgood = isgood .and. (nint(10000._sp*MSE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))) .EQ. &
            56920)
   isgood = isgood .and. (nint(10000._dp*MSE(arr1(:,:,1), arr2(:,:,4), mask=mask(:,:,1))) .EQ. 56920)
-  isgood = isgood .and. (nint(10000._sp*MSE(real(arr1, sp), real(arr2, sp), mask=mask)) .EQ. 10287) 
+  isgood = isgood .and. (nint(10000._sp*MSE(real(arr1, sp), real(arr2, sp), mask=mask)) .EQ. 10287)
   isgood = isgood .and. (nint(10000._dp*MSE(arr1, arr2, mask=mask)) .EQ. 10287)
   ! NSE
   isgood = isgood .and. (nint(10000._sp*NSE(real(vec1, sp), real(vec2, sp), mask=maskvec)) .EQ. -23368)
@@ -81,7 +82,7 @@ program test
   isgood = isgood .and. (nint(10000._sp*NSE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))) .EQ. &
            -35026)
   isgood = isgood .and. (nint(10000._dp*NSE(arr1(:,:,1), arr2(:,:,4), mask=mask(:,:,1))) .EQ. -35026)
-  isgood = isgood .and. (nint(10000._sp*NSE(real(arr1, sp), real(arr2, sp), mask=mask)) .EQ. 8164) 
+  isgood = isgood .and. (nint(10000._sp*NSE(real(arr1, sp), real(arr2, sp), mask=mask)) .EQ. 8164)
   isgood = isgood .and. (nint(10000._dp*NSE(arr1, arr2, mask=mask)) .EQ. 8164)
   ! SAE
   isgood = isgood .and. (nint(10000._sp*SAE(real(vec1, sp), real(vec2, sp), mask=maskvec)) .EQ. 403063)
@@ -89,7 +90,7 @@ program test
   isgood = isgood .and. (nint(10000._sp*SAE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))) .EQ. &
            528359)
   isgood = isgood .and. (nint(10000._dp*SAE(arr1(:,:,1), arr2(:,:,4), mask=mask(:,:,1))) .EQ. 528359)
-  isgood = isgood .and. (nint(10000._sp*SAE(real(arr1, sp), real(arr2, sp), mask=mask)) .EQ. 2055999) 
+  isgood = isgood .and. (nint(10000._sp*SAE(real(arr1, sp), real(arr2, sp), mask=mask)) .EQ. 2055999)
   isgood = isgood .and. (nint(10000._dp*SAE(arr1, arr2, mask=mask)) .EQ. 2056000)
   ! SSE
   isgood = isgood .and. (nint(10000._sp*SSE(real(vec1, sp), real(vec2, sp), mask=maskvec)) .EQ. 1054575)
@@ -97,7 +98,7 @@ program test
   isgood = isgood .and. (nint(10000._sp*SSE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))) .EQ. &
            1423003)
   isgood = isgood .and. (nint(10000._dp*SSE(arr1(:,:,1), arr2(:,:,4), mask=mask(:,:,1))) .EQ. 1423003)
-  isgood = isgood .and. (nint(10000._sp*SSE(real(arr1, sp), real(arr2, sp), mask=mask)) .EQ. 2324799) 
+  isgood = isgood .and. (nint(10000._sp*SSE(real(arr1, sp), real(arr2, sp), mask=mask)) .EQ. 2324799)
   isgood = isgood .and. (nint(10000._dp*SSE(arr1, arr2, mask=mask)) .EQ. 2324800)
   ! RMSE
   isgood = isgood .and. (nint(10000._sp*RMSE(real(vec1, sp), real(vec2, sp), mask=maskvec)) .EQ. 20538)
@@ -105,7 +106,7 @@ program test
   isgood = isgood .and. (nint(10000._sp*RMSE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))) .EQ. &
            23858)
   isgood = isgood .and. (nint(10000._dp*RMSE(arr1(:,:,1), arr2(:,:,4), mask=mask(:,:,1))) .EQ. 23858)
-  isgood = isgood .and. (nint(10000._sp*RMSE(real(arr1, sp), real(arr2, sp), mask=mask)) .EQ. 10142) 
+  isgood = isgood .and. (nint(10000._sp*RMSE(real(arr1, sp), real(arr2, sp), mask=mask)) .EQ. 10142)
   isgood = isgood .and. (nint(10000._dp*RMSE(arr1, arr2, mask=mask)) .EQ. 10142)
   !
   ! LNNSE
@@ -116,13 +117,14 @@ program test
   isgood = isgood .and. (nint(10000._sp*LNNSE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))) .EQ. &
            -21656)
   isgood = isgood .and. (nint(10000._dp*LNNSE(arr1(:,:,1), arr2(:,:,4), mask=mask(:,:,1))) .EQ. -21656)
-  isgood = isgood .and. (nint(10000._sp*LNNSE(real(arr1, sp), real(arr2, sp), mask=mask)) .EQ. 8915) 
+  isgood = isgood .and. (nint(10000._sp*LNNSE(real(arr1, sp), real(arr2, sp), mask=mask)) .EQ. 8915)
   isgood = isgood .and. (nint(10000._dp*LNNSE(arr1, arr2, mask=mask)) .EQ. 8915)
   !
   if (isgood) then
      write(*,*) 'mo_errormeasures o.k.'
   else
      write(*,*) 'mo_errormeasures failed'
+     call error_message('TestError: mo_errormeasures failed')
   endif
   !
 end program test

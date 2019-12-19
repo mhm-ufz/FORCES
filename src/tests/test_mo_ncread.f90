@@ -15,6 +15,7 @@ use mo_NcRead, only: Get_NcVar, get_ncdim, NcOpen, NcClose
 #ifndef ABSOFT
 use mo_NcRead, only: Get_NcDimAtt, Get_NcVarAtt
 #endif
+use mo_message, only: error_message
 !
 real(sp)      , dimension(:,:,:), allocatable :: data
 real(sp)      , dimension(:,:)  , allocatable :: tmp
@@ -107,6 +108,7 @@ if (isgood) then
    write(*,*) 'mo_ncread o.k.'
 else
    write(*,*) 'mo_ncread failed!'
+   call error_message('TestError: mo_ncread failed')
 endif
 !
 deallocate(data)

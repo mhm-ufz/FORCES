@@ -3,6 +3,7 @@ PROGRAM main
   USE mo_kind,      ONLY: i4, dp, sp
   USE mo_utils,     ONLY: eq
   USE mo_orderpack, ONLY: refsor, mrgrnk, omedian, sort, sort_index
+  use mo_message, only: error_message
 
   IMPLICIT NONE
 
@@ -42,6 +43,7 @@ PROGRAM main
      write(*,*) 'mo_orderpack double precision o.k.'
   else
      write(*,*) 'mo_orderpack double precision failed!'
+     call error_message('TestError: mo_orderpack failed')
   endif
 
   ! Single precision
@@ -71,6 +73,7 @@ PROGRAM main
      write(*,*) 'mo_orderpack single precision o.k.'
   else
      write(*,*) 'mo_orderpack single precision failed!'
+     call error_message('TestError: mo_orderpack failed')
   endif
 
 END PROGRAM main

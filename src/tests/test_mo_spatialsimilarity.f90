@@ -12,6 +12,7 @@ program test
   !
   use mo_kind,              only: sp, dp
   use mo_spatialsimilarity, only: PD, NNDV
+  use mo_message, only: error_message
   !
   implicit none
   !
@@ -26,7 +27,7 @@ program test
   mat2 = reshape((/ 7.0_dp, 12.0_dp,  5.0_dp,  9.0_dp, 11.0_dp, 13.0_dp, 12.0_dp, 11.0_dp,  7.0_dp/),(/3,3/))
 
 
-  masking = .TRUE.  
+  masking = .TRUE.
   ! sp without mask
   isgood  = isgood .and. (nint(100000.0_sp * NNDV(real(mat1(:,:),sp), real(mat2(:,:),sp)              )) .EQ. 29815)
   isgood  = isgood .and. (nint(100000.0_sp *   PD(real(mat1(:,:),sp), real(mat2(:,:),sp), mask=masking)) .EQ.  8148)
@@ -55,11 +56,12 @@ program test
   isgood  = isgood .and. ( .not. validity)
   isgood  = isgood .and. (nint(1000000.0_sp *   PD(mat1(:,:), mat2(:,:), valid=validity, mask=masking)) .EQ. 0)
   isgood  = isgood .and. ( .not. validity)
-  
+
   if (isgood) then
      write(*,*) 'mo_spatialsimilarity o.k.'
   else
      write(*,*) 'mo_spatialsimilarity failed'
+     call error_message('TestError: mo_spatialsimilarity failed')
   endif
-  !  
+  !
 end program test

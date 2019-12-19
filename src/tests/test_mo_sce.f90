@@ -4,6 +4,7 @@ program test_sce
   use mo_sce,              only: sce
   use mo_opt_functions,    only: eval_dummy, ackley_objective
   use mo_optimization_utils, only: eval_interface, objective_interface
+  use mo_message, only: error_message
 
   implicit none
 
@@ -113,7 +114,8 @@ program test_sce
      write(*,*) 'mo_sce o.k.'
   else
      write(*,*) 'mo_sce failed!'
-  endif
+     call error_message('TestError: mo_sce failed')
+   endif
 
 
   ! Check restart
@@ -157,6 +159,7 @@ program test_sce
      write(*,*) 'mo_sce restart o.k.'
   else
      write(*,*) 'mo_sce restart failed!'
+     call error_message('TestError: mo_sce failed')
   endif
 
 end program test_sce

@@ -2,6 +2,7 @@ PROGRAM inpoly_test
 
 use mo_kind,   only: dp, i4
 use mo_poly, only: inpoly, areapoly, center_of_mass
+use mo_message, only: error_message
 
 implicit none
 
@@ -26,11 +27,11 @@ call inpoly( (/1.5_dp,1.5_dp/) , coord, inside)
 if (inside .ne. 1_i4) isgood=.false.
 
 select case (inside)
-case(-1)    
+case(-1)
    print*, 'THE POINT IS OUTSIDE THE POLYGON'
-case(1)     
+case(1)
    print*, 'THE POINT IS INSIDE THE POLYGON'
-case(0)     
+case(0)
    print*, 'THE POINT IS ON AN EDGE OR AT A VERTEX'
 end select
 
@@ -38,11 +39,11 @@ call inpoly( (/0.5_dp,1.5_dp/) , coord, inside)
 if (inside .ne. -1_i4) isgood=.false.
 
 select case (inside)
-case(-1)    
+case(-1)
    print*, 'THE POINT IS OUTSIDE THE POLYGON'
-case(1)     
+case(1)
    print*, 'THE POINT IS INSIDE THE POLYGON'
-case(0)     
+case(0)
    print*, 'THE POINT IS ON AN EDGE OR AT A VERTEX'
 end select
 
@@ -50,11 +51,11 @@ call inpoly( (/1.5_dp,1.0_dp/) , coord, inside)
 if (inside .ne. 0_i4) isgood=.false.
 
 select case (inside)
-case(-1)    
+case(-1)
    print*, 'THE POINT IS OUTSIDE THE POLYGON'
-case(1)     
+case(1)
    print*, 'THE POINT IS INSIDE THE POLYGON'
-case(0)     
+case(0)
    print*, 'THE POINT IS ON AN EDGE OR AT A VERTEX'
 end select
 
@@ -74,6 +75,7 @@ if (isgood) then
    write(*,*) 'mo_poly o.k.'
 else
    write(*,*) 'mo_poly failed!'
+   call error_message('TestError: mo_poly failed')
 endif
 
 END PROGRAM inpoly_test

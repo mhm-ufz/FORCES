@@ -27,7 +27,9 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
 	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fpp -colour -unsharedf95 -ideclient")
-	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -g -nan -O0 -C=all -strict95 -ieee=stop")
+	# this effectively omits the -C=intovf flag which checks for integer overflow
+	# we need to exclude that as the random number generator relies on that technique
+	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -g -nan -O0 -C -C=alias -C=dangling -strict95 -ieee=full")
 	set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O4 -ieee=full")
 endif()
 

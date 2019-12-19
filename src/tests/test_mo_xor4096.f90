@@ -8,6 +8,7 @@ program RNG
 
     use mo_kind,  only: i4, i8, SP, DP
     use mo_xor4096, only: xor4096, xor4096g, n_save_state
+    use mo_message, only: error_message
 
     implicit none
 
@@ -28,7 +29,8 @@ program RNG
     integer(i4), allocatable       :: CheckISP_D1(:,:)
 
     integer(i8)                    :: i,j
-    
+    logical                        :: isgood
+
     ! Needed for optional versions: Single
     integer(i4), dimension(n_save_state)   :: save_state_d0
     integer(i4), dimension(3, n_save_state) :: save_state_d1_3
@@ -40,6 +42,8 @@ program RNG
     allocate(DoubleIntegerRN(NumberOfStreams))
     allocate(SingleRealRN(NumberOfStreams))
     allocate(DoubleRealRN(NumberOfStreams))
+
+    isgood = .true.
 
     print*,'----------------------------------------'
     print*,'UNIFORM Single Precision (32 bit) Integer'
@@ -56,6 +60,7 @@ program RNG
         else
             CheckString = 'mo_xor4096: Uniform Single Integer (1 stream) failed'
             CheckStringShort = 'fail'
+            isgood = .false.
         end if
         print '(A8,I6,A4,I12,A4,A10)', 'xor4096(',i,') = ',SingleIntegerRN_D0,'    ',CheckStringShort
         ISeedSP_D0 = 0_i4
@@ -85,6 +90,7 @@ program RNG
             else
                 CheckString = 'mo_xor4096: Uniform Single Integer (3 streams) failed'
                 CheckStringShort = 'fail'
+                isgood = .false.
             end if
             print '(A11,I4,A4,I12,A4,A10)', '   stream #',j,'  = ',SingleIntegerRN(j),'    ',CheckStringShort
         end do
@@ -109,6 +115,7 @@ program RNG
         else
             CheckString = 'mo_xor4096: Uniform Single Integer (1st stream) failed'
             CheckStringShort = 'fail'
+            isgood = .false.
         end if
         print '(A8,I6,A4,I12,A4,A10)', 'xor4096(',i,') = ',SingleIntegerRN_D0,'    ',CheckStringShort
         ISeedSP_D0 = 0_i4
@@ -121,6 +128,7 @@ program RNG
     else
         CheckString = 'mo_xor4096: Uniform Single Integer (2nd stream) failed'
         CheckStringShort = 'fail'
+        isgood = .false.
     end if
     print '(A8,I6,A4,I12,A4,A10)', 'xor4096(',1,') = ',SingleIntegerRN_D0,'    ',CheckStringShort
     ISeedSP_D0 = 0_i4
@@ -133,6 +141,7 @@ program RNG
         else
             CheckString = 'mo_xor4096: Uniform Single Integer (restart 1st stream) failed'
             CheckStringShort = 'fail'
+            isgood = .false.
         end if
         print '(A8,I6,A4,I12,A4,A10)', 'xor4096(',i,') = ',SingleIntegerRN_D0,'    ',CheckStringShort
         ISeedSP_D0 = 0_i4
@@ -180,6 +189,10 @@ program RNG
     deallocate(DoubleIntegerRN)
     deallocate(SingleRealRN)
     deallocate(DoubleRealRN)
+
+    if (.not. isgood) then
+        call error_message('TestError: mo_xor4096 failed')
+     endif
 
 end program RNG
 
