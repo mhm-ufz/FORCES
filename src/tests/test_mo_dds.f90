@@ -4,14 +4,15 @@ program main
   use mo_dds,  only: dds, mdds
   use mo_opt_functions,    only: eval_dummy, griewank_objective
   use mo_optimization_utils, only: eval_interface, objective_interface
+  use mo_message, only: error_message
 
   implicit none
 
   integer(i4), parameter :: np = 10
 
   ! Input to DDS
-  real(dp),    dimension(np)   :: dv_ini   ! inital value of decision variables 
-  real(dp),    dimension(np,2) :: dv_range ! Min/max values of decision variables 
+  real(dp),    dimension(np)   :: dv_ini   ! inital value of decision variables
+  real(dp),    dimension(np,2) :: dv_range ! Min/max values of decision variables
 
   ! Optional Input to DDS
   real(dp)                     :: r_val    ! DDS perturbation parameter (-> 0.2 by default)
@@ -94,6 +95,7 @@ program main
      write(*,*) 'mo_dds double precision o.k.'
   else
      write(*,*) 'mo_dds double precision failed!'
+     call error_message('TestError: mo_dds failed')
   endif
 
 end program main

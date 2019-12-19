@@ -4,6 +4,7 @@ PROGRAM main
   USE mo_percentile,  ONLY: median, percentile, qmedian, n_element
   USE mo_orderpack,   ONLY: sort
   USE mo_utils,       ONLY: eq, ne
+  use mo_message, only: error_message
 
   IMPLICIT NONE
 
@@ -49,6 +50,7 @@ PROGRAM main
      write(*,*) 'mo_percentile double precision o.k.'
   else
      write(*,*) 'mo_percentile double precision failed!'
+     call error_message('TestError: mo_percentile failed')
   endif
 
   ! Single precision
@@ -69,6 +71,7 @@ PROGRAM main
      write(*,*) 'mo_percentile single precision o.k.'
   else
      write(*,*) 'mo_percentile single precision failed!'
+     call error_message('TestError: mo_percentile failed')
   endif
 
 ! Absoft gives segmentation fault on all of the following test, do not know why

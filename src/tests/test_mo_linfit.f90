@@ -1,10 +1,11 @@
 PROGRAM main
-  
+
   USE mo_kind,      ONLY: i4, dp, sp
   USE mo_linfit,    ONLY: linfit
-  
+  use mo_message, only: error_message
+
   IMPLICIT NONE
-  
+
   ! data
   INTEGER(i4), PARAMETER :: nn = 100
 
@@ -16,7 +17,7 @@ PROGRAM main
 
   LOGICAL  :: model2
   LOGICAL :: isgood
-  
+
   Write(*,*) ''
   Write(*,*) 'Test mo_linfit.f90'
 
@@ -37,7 +38,7 @@ PROGRAM main
   if (siga > 100._dp*epsilon(1.0_dp)) isgood = .false.
   if (sigb > 100._dp*epsilon(1.0_dp)) isgood = .false.
   if (chi2 > epsilon(1.0_dp)) isgood = .false.
-  
+
   ! model II
   model2 = .true.
   yout = linfit(xx, yy, a=a2, b=b2, siga=siga, sigb=sigb, chi2=chi2, model2=model2)
@@ -63,7 +64,7 @@ PROGRAM main
   if (ssiga > 100._sp*epsilon(1.0_sp)) isgood = .false.
   if (ssigb > 100._sp*epsilon(1.0_sp)) isgood = .false.
   if (schi2 > epsilon(1.0_sp)) isgood = .false.
-  
+
   ! model II
   model2 = .true.
   syout = linfit(sxx, syy, a=sa2, b=sb2, siga=ssiga, sigb=ssigb, chi2=schi2, model2=model2)
@@ -77,6 +78,7 @@ PROGRAM main
      write(*,*) 'mo_linfit o.k.'
   else
      write(*,*) 'mo_linfit failed!'
+     call error_message('TestError: mo_linfit failed')
   endif
 
 END PROGRAM main

@@ -1,13 +1,14 @@
 PROGRAM main
-  
+
   USE mo_kind,   ONLY: dp, sp
   USE mo_moment, ONLY: absdev, average, central_moment, central_moment_var, correlation, &
        covariance, kurtosis, mean, mixed_central_moment, mixed_central_moment_var, &
        moment, skewness, stddev, variance
   USE mo_utils, only: ne
-  
+  use mo_message, only: error_message
+
   IMPLICIT NONE
-  
+
   REAL(dp), DIMENSION(10) :: dat1, dat2
   REAL(dp) :: a_dp, v_dp, s_dp, k_dp, m_dp, std_dp, ad_dp
 
@@ -15,7 +16,7 @@ PROGRAM main
   REAL(sp) :: a_sp, v_sp, s_sp, k_sp, m_sp, std_sp, ad_sp
 
   LOGICAL :: isgood
-  
+
   Write(*,*) ''
   Write(*,*) 'Test mo_moment.f90'
 
@@ -80,7 +81,8 @@ PROGRAM main
      write(*,*) 'mo_moment double precision o.k.'
   else
      write(*,*) 'mo_moment double precision failed!'
-  endif
+     call error_message('TestError: mo_moment failed')
+   endif
 
   ! Single precision
   sat1 = (/ 1., 2., 3., 4., 5., 6., 7., 8., 9., 10. /)
@@ -143,6 +145,7 @@ PROGRAM main
      write(*,*) 'mo_moment single precision o.k.'
   else
      write(*,*) 'mo_moment single precision failed!'
+     call error_message('TestError: mo_moment failed')
   endif
 
 END PROGRAM main

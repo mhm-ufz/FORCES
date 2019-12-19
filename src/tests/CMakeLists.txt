@@ -12,7 +12,7 @@ foreach ( UNIT_TEST ${sources} )
 	add_executable(${test_name} ${test_name_ext})
 	set_target_properties ( ${test_name}
 	  PROPERTIES
-	  COMPILE_FLAGS " ${ADDITIONAL_GCC_FLAGS}"
+	  COMPILE_FLAGS "${ADDITIONAL_GCC_FLAGS}"
 	)
 	# message(STATUS "Testing enabled for ${TEST_DIR}")
 	target_link_libraries(${test_name} lightweight_fortran_lib)
