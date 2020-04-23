@@ -223,7 +223,7 @@ program test_utils
   compare = ge(a_sp, b_sp)
   write(*,'(E15.8,A4,E15.8,A5,L2)') a_sp,' >= ',b_sp,' --> ',compare
   isgood = isgood .and. (.not. compare)
-
+  write(*,*) 'after sp'
   ! -----------------------------------------------------
   ! Swap
 
@@ -258,7 +258,7 @@ program test_utils
   call swap(iat2, 1, nn)
   call swap(iat2, nn, 1)
   isgood = isgood .and. all(iat2 == iat3)
-
+  write(*,*) 'after random_number'
   ! -----------------------------------------------------
   ! Locate
 
@@ -283,7 +283,7 @@ program test_utils
   s5 = (/ 0.1_sp, 5.5_sp, 10.1_sp, 50.5_sp, 200.1_sp /)
   ii5 = locate(sat1, s5)
   isgood = isgood .and. all(ii5 == (/0, 5, 10, 50, 100/))
-
+  write(*,*) 'after locate'
   ! -----------------------------------------------------
   ! is_finite, is_nan, is_normal
 
@@ -322,7 +322,7 @@ program test_utils
   ! Both
   isgood = isgood .and. (.not. all(is_normal(sat1)))
   isgood = isgood .and. (.not. any(is_normal(sat1(1:2))))
-
+  write(*,*) 'after is_finite, is_nan, is_normal'
   ! -----------------------------------------------------
   ! special_value
 

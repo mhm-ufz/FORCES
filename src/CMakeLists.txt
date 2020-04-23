@@ -44,9 +44,6 @@ if(CMAKE_ABSOFT)
     # set the preprocessor
     target_compile_definitions(${LIB_NAME} PRIVATE "-DABSOFT")
 endif()
-if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
-	target_compile_options(${LIB_NAME} PUBLIC  "-kind=byte")
-endif()
 
 set_target_properties ( ${LIB_NAME}
   PROPERTIES
