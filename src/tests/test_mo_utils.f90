@@ -295,6 +295,8 @@ program test_utils
   ! NaN
   dat1(1) = 0.0_dp
   dat1(1) = dat1(1)/dat1(1)
+  print*, dat1(1)
+  write(*,*) 'after division'
   isgood = isgood .and. any(is_nan(dat1))
   isgood = isgood .and. is_nan(dat1(1))
   write(*,*) 'after NaN'
