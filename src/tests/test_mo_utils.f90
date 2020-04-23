@@ -283,7 +283,7 @@ program test_utils
   s5 = (/ 0.1_sp, 5.5_sp, 10.1_sp, 50.5_sp, 200.1_sp /)
   ii5 = locate(sat1, s5)
   isgood = isgood .and. all(ii5 == (/0, 5, 10, 50, 100/))
-  write(*,*) 'after locate'
+
   ! -----------------------------------------------------
   ! is_finite, is_nan, is_normal
 
@@ -291,47 +291,36 @@ program test_utils
   isgood = isgood .and. all(is_finite(dat1))
   isgood = isgood .and. all(.not. is_nan(dat1))
   isgood = isgood .and. all(is_normal(dat1))
-  write(*,*) 'after dat1'
   ! NaN
   dat1(1) = 0.0_dp
   dat1(1) = dat1(1)/dat1(1)
-  print*, dat1(1)
-  write(*,*) 'after division'
   isgood = isgood .and. any(is_nan(dat1))
   isgood = isgood .and. is_nan(dat1(1))
-  write(*,*) 'after NaN'
   ! Inf
   dat1(2) = huge(1.0_dp)
   dat1(2) = dat1(2)*dat1(2)
   isgood = isgood .and. any(.not. is_finite(dat1))
   isgood = isgood .and. (.not. is_finite(dat1(2)))
-  write(*,*) 'after Inf'
   ! Both
   isgood = isgood .and. (.not. all(is_normal(dat1)))
   isgood = isgood .and. (.not. any(is_normal(dat1(1:2))))
-  write(*,*) 'after Both'
-
   call random_number(sat1)
   isgood = isgood .and. all(is_finite(sat1))
   isgood = isgood .and. all(.not. is_nan(sat1))
   isgood = isgood .and. all(is_normal(sat1))
-  write(*,*) 'after sat1'
   ! NaN
   sat1(1) = 0.0_sp
   sat1(1) = sat1(1)/sat1(1)
   isgood = isgood .and. any(is_nan(sat1))
   isgood = isgood .and. is_nan(sat1(1))
-  write(*,*) 'after NaN'
   ! Inf
   sat1(2) = huge(1.0_sp)
   sat1(2) = sat1(2)*sat1(2)
   isgood = isgood .and. any(.not. is_finite(sat1))
   isgood = isgood .and. (.not. is_finite(sat1(2)))
-  write(*,*) 'after Inf'
   ! Both
   isgood = isgood .and. (.not. all(is_normal(sat1)))
   isgood = isgood .and. (.not. any(is_normal(sat1(1:2))))
-  write(*,*) 'after Both'
   ! -----------------------------------------------------
   ! special_value
 
