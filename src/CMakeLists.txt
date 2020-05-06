@@ -11,7 +11,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake-modules)
 set (NETCDF_F90 "YES")
 find_package (NetCDF REQUIRED)
 target_link_libraries(${LIB_NAME} ${NETCDF_F90_LIBRARIES})
-target_include_directories(${LIB_NAME} PUBLIC ${NETCDF_INCLUDE_DIRS})
+target_include_directories(${LIB_NAME} PUBLIC ${NETCDF_F90_INCLUDE_DIRS})
 
 # set compiling flags for debug and relese version
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
