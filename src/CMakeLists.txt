@@ -44,5 +44,6 @@ set_target_properties ( ${LIB_NAME}
 )
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
-enable_testing()
-add_subdirectory(./tests)
+if(BUILD_TESTING)
+  add_subdirectory(./tests)
+endif()
