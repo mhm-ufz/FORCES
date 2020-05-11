@@ -43,15 +43,18 @@ MODULE mo_utils
   PUBLIC :: lesserequal  ! a <= b, a .le. b
   PUBLIC :: notequal     ! a /= b, a .ne. b
   PUBLIC :: eq           ! a == b, a .eq. b
-  PUBLIC :: ge           ! a >= b, a .ge. b
+  PUBLIC :: ge, greaterequal_sp, greaterequal_dp           ! a >= b, a .ge. b
   PUBLIC :: le           ! a <= b, a .le. b
   PUBLIC :: ne           ! a /= b, a .ne. b
+  PUBLIC :: gt, greaterthan_sp, greaterthan_dp           ! a > b, a .gt. b
+  PUBLIC :: lt, lessthan_sp, lessthan_dp           ! a < b, a .lt. b
   PUBLIC :: is_finite    ! .true. if not IEEE Inf and not IEEE NaN
   PUBLIC :: is_nan       ! .true. if IEEE NaN
   PUBLIC :: is_normal    ! .true. if not IEEE Inf and not IEEE NaN
   PUBLIC :: locate       ! Find closest values in a monotonic series
   PUBLIC :: swap         ! swaps arrays or elements of an array
   PUBLIC :: special_value ! Special IEEE values
+  PUBLIC :: relational_operator_dp, relational_operator_sp ! abstract interface for relational operators
 
   public :: flip ! flips a dimension of an array
 
@@ -141,6 +144,14 @@ MODULE mo_utils
   INTERFACE le
     MODULE PROCEDURE lesserequal_sp, lesserequal_dp
   END INTERFACE le
+
+  INTERFACE gt
+    MODULE PROCEDURE greaterthan_sp, greaterthan_dp
+  END INTERFACE gt
+
+  INTERFACE lt
+    MODULE PROCEDURE lessthan_sp, lessthan_dp
+  END INTERFACE lt
 
 
   ! ------------------------------------------------------------------
@@ -412,6 +423,22 @@ MODULE mo_utils
     MODULE PROCEDURE special_value_sp, special_value_dp
   END INTERFACE special_value
 
+  abstract interface
+    function relational_operator_dp(a, b) result(boolean)
+      import dp
+      real(dp), intent(in) :: a, b
+      logical :: boolean
+    end function relational_operator_dp
+  end interface
+
+  abstract interface
+    function relational_operator_sp(a, b) result(boolean)
+      import sp
+      real(sp), intent(in) :: a, b
+      logical :: boolean
+    end function relational_operator_sp
+  end interface
+
   ! ------------------------------------------------------------------
 
   PRIVATE
@@ -422,135 +449,164 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  ELEMENTAL PURE FUNCTION equal_dp(a, b)
+  logical elemental pure function equal_dp(a, b) result(boolean)
 
-    IMPLICIT NONE
-
-    REAL(dp), INTENT(IN) :: a
-    REAL(dp), INTENT(IN) :: b
-    LOGICAL :: equal_dp
+    real(dp), intent(in) :: a
+    real(dp), intent(in) :: b
 
     if ((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) then
-      equal_dp = .false.
+      boolean = .false.
     else
-      equal_dp = .true.
+      boolean = .true.
     end if
 
-  END FUNCTION equal_dp
+  end function equal_dp
 
 
-  ELEMENTAL PURE FUNCTION equal_sp(a, b)
+  logical elemental pure function equal_sp(a, b) result(boolean)
 
-    IMPLICIT NONE
-
-    REAL(sp), INTENT(IN) :: a
-    REAL(sp), INTENT(IN) :: b
-    LOGICAL :: equal_sp
+    real(sp), intent(in) :: a
+    real(sp), intent(in) :: b
 
     if ((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) then
-      equal_sp = .false.
+      boolean = .false.
     else
-      equal_sp = .true.
+      boolean = .true.
     end if
 
-  END FUNCTION equal_sp
+  end function equal_sp
 
   ! ------------------------------------------------------------------
 
-  ELEMENTAL PURE FUNCTION greaterequal_dp(a, b)
+  logical elemental pure function greaterequal_dp(a, b) result(boolean)
 
-    IMPLICIT NONE
+    real(dp), intent(in) :: a
+    real(dp), intent(in) :: b
 
-    REAL(dp), INTENT(IN) :: a
-    REAL(dp), INTENT(IN) :: b
-    LOGICAL :: greaterequal_dp
-
-    greaterequal_dp = .true.
+    boolean = .true.
     ! 1st part is /=, 2nd part is the a<b
-    if (((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) .and. (a < b)) greaterequal_dp = .false.
+    if (((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) .and. (a < b)) boolean = .false.
 
-  END FUNCTION greaterequal_dp
+  end function greaterequal_dp
 
 
-  ELEMENTAL PURE FUNCTION greaterequal_sp(a, b)
+  logical elemental pure function greaterequal_sp(a, b) result(boolean)
 
-    IMPLICIT NONE
+    real(sp), intent(in) :: a
+    real(sp), intent(in) :: b
 
-    REAL(sp), INTENT(IN) :: a
-    REAL(sp), INTENT(IN) :: b
-    LOGICAL :: greaterequal_sp
-
-    greaterequal_sp = .true.
+    boolean = .true.
     ! 1st part is /=, 2nd part is the a<b
-    if (((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) .and. (a < b)) greaterequal_sp = .false.
+    if (((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) .and. (a < b)) boolean = .false.
 
-  END FUNCTION greaterequal_sp
-
-  ! ------------------------------------------------------------------
-
-  ELEMENTAL PURE FUNCTION lesserequal_dp(a, b)
-
-    IMPLICIT NONE
-
-    REAL(dp), INTENT(IN) :: a
-    REAL(dp), INTENT(IN) :: b
-    LOGICAL :: lesserequal_dp
-
-    lesserequal_dp = .true.
-    ! 1st part is /=, 2nd part is the a>b
-    if (((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) .and. (a > b)) lesserequal_dp = .false.
-
-  END FUNCTION lesserequal_dp
-
-
-  ELEMENTAL PURE FUNCTION lesserequal_sp(a, b)
-
-    IMPLICIT NONE
-
-    REAL(sp), INTENT(IN) :: a
-    REAL(sp), INTENT(IN) :: b
-    LOGICAL :: lesserequal_sp
-
-    lesserequal_sp = .true.
-    ! 1st part is /=, 2nd part is the a>b
-    if (((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) .and. (a > b)) lesserequal_sp = .false.
-
-  END FUNCTION lesserequal_sp
+  end function greaterequal_sp
 
   ! ------------------------------------------------------------------
 
-  ELEMENTAL PURE FUNCTION notequal_dp(a, b)
+  logical elemental pure function lesserequal_dp(a, b) result(boolean)
 
-    IMPLICIT NONE
+    real(dp), intent(in) :: a
+    real(dp), intent(in) :: b
 
-    REAL(dp), INTENT(IN) :: a
-    REAL(dp), INTENT(IN) :: b
-    LOGICAL :: notequal_dp
+    boolean = .true.
+    ! 1st part is /=, 2nd part is the a>b
+    if (((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) .and. (a > b)) boolean = .false.
+
+  end function lesserequal_dp
+
+
+  logical elemental pure function lesserequal_sp(a, b) result(boolean)
+
+    real(sp), intent(in) :: a
+    real(sp), intent(in) :: b
+
+    boolean = .true.
+    ! 1st part is /=, 2nd part is the a>b
+    if (((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) .and. (a > b)) boolean = .false.
+
+  end function lesserequal_sp
+
+  ! ------------------------------------------------------------------
+
+  logical elemental pure function notequal_dp(a, b) result(boolean)
+
+    real(dp), intent(in) :: a
+    real(dp), intent(in) :: b
 
     if ((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) then
-      notequal_dp = .true.
+      boolean = .true.
     else
-      notequal_dp = .false.
+      boolean = .false.
     end if
 
-  END FUNCTION notequal_dp
+  end function notequal_dp
 
 
-  ELEMENTAL PURE FUNCTION notequal_sp(a, b)
+  logical elemental pure function notequal_sp(a, b) result(boolean)
 
-    IMPLICIT NONE
-
-    REAL(sp), INTENT(IN) :: a
-    REAL(sp), INTENT(IN) :: b
-    LOGICAL :: notequal_sp
+    real(sp), intent(in) :: a
+    real(sp), intent(in) :: b
 
     if ((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) then
-      notequal_sp = .true.
+      boolean = .true.
     else
-      notequal_sp = .false.
+      boolean = .false.
     end if
 
-  END FUNCTION notequal_sp
+  end function notequal_sp
+
+
+  logical elemental pure function greaterthan_dp(a, b) result(boolean)
+
+    real(dp), intent(in) :: a
+    real(dp), intent(in) :: b
+
+    if (a>b) then
+      boolean = .true.
+    else
+      boolean = .false.
+    end if
+
+  end function greaterthan_dp
+
+  logical elemental pure function greaterthan_sp(a, b) result(boolean)
+
+    real(sp), intent(in) :: a
+    real(sp), intent(in) :: b
+
+    if (a>b) then
+      boolean = .true.
+    else
+      boolean = .false.
+    end if
+
+  end function greaterthan_sp
+
+  logical elemental pure function lessthan_dp(a, b) result(boolean)
+
+    real(dp), intent(in) :: a
+    real(dp), intent(in) :: b
+
+    if (a<b) then
+      boolean = .true.
+    else
+      boolean = .false.
+    end if
+
+  end function lessthan_dp
+
+  logical elemental pure function lessthan_sp(a, b) result(boolean)
+
+    real(sp), intent(in) :: a
+    real(sp), intent(in) :: b
+
+    if (a<b) then
+      boolean = .true.
+    else
+      boolean = .false.
+    end if
+
+  end function lessthan_sp
 
   ! ------------------------------------------------------------------
 
@@ -680,8 +736,6 @@ CONTAINS
 
   FUNCTION locate_0d_dp(x, y)
 
-    IMPLICIT NONE
-
     REAL(dp), DIMENSION(:), INTENT(IN) :: x
     REAL(dp), INTENT(IN) :: y
     INTEGER(i4) :: locate_0d_dp
@@ -699,8 +753,6 @@ CONTAINS
 
   FUNCTION locate_0d_sp(x, y)
 
-    IMPLICIT NONE
-
     REAL(sp), DIMENSION(:), INTENT(IN) :: x
     REAL(sp), INTENT(IN) :: y
     INTEGER(i4) :: locate_0d_sp
@@ -717,8 +769,6 @@ CONTAINS
   END FUNCTION locate_0d_sp
 
   FUNCTION locate_1d_dp(x, y)
-
-    IMPLICIT NONE
 
     REAL(dp), DIMENSION(:), INTENT(IN) :: x
     REAL(dp), DIMENSION(:), INTENT(IN) :: y
@@ -743,8 +793,6 @@ CONTAINS
   END FUNCTION locate_1d_dp
 
   FUNCTION locate_1d_sp(x, y)
-
-    IMPLICIT NONE
 
     REAL(sp), DIMENSION(:), INTENT(IN) :: x
     REAL(sp), DIMENSION(:), INTENT(IN) :: y
@@ -772,8 +820,6 @@ CONTAINS
 
   elemental pure subroutine swap_xy_dp(x, y)
 
-    implicit none
-
     real(dp), intent(inout) :: x
     real(dp), intent(inout) :: y
 
@@ -787,8 +833,6 @@ CONTAINS
 
   elemental pure subroutine swap_xy_sp(x, y)
 
-    implicit none
-
     real(sp), intent(inout) :: x
     real(sp), intent(inout) :: y
 
@@ -801,8 +845,6 @@ CONTAINS
   end subroutine swap_xy_sp
 
   elemental pure subroutine swap_xy_i4(x, y)
-
-    implicit none
 
     integer(i4), intent(inout) :: x
     integer(i4), intent(inout) :: y
@@ -818,8 +860,6 @@ CONTAINS
 
   subroutine swap_vec_dp(x, i1, i2)
 
-    implicit none
-
     real(dp), dimension(:), intent(inout) :: x
     integer(i4), intent(in) :: i1
     integer(i4), intent(in) :: i2
@@ -834,8 +874,6 @@ CONTAINS
 
   subroutine swap_vec_sp(x, i1, i2)
 
-    implicit none
-
     real(sp), dimension(:), intent(inout) :: x
     integer(i4), intent(in) :: i1
     integer(i4), intent(in) :: i2
@@ -849,8 +887,6 @@ CONTAINS
   end subroutine swap_vec_sp
 
   subroutine swap_vec_i4(x, i1, i2)
-
-    implicit none
 
     integer(i4), dimension(:), intent(inout) :: x
     integer(i4), intent(in) :: i1
