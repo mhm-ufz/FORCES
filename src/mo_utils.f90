@@ -424,18 +424,16 @@ MODULE mo_utils
   END INTERFACE special_value
 
   abstract interface
-    function relational_operator_dp(a, b) result(boolean)
+    logical pure function relational_operator_dp(a, b) result(boolean)
       import dp
       real(dp), intent(in) :: a, b
-      logical :: boolean
     end function relational_operator_dp
   end interface
 
   abstract interface
-    function relational_operator_sp(a, b) result(boolean)
+    logical pure function relational_operator_sp(a, b) result(boolean)
       import sp
       real(sp), intent(in) :: a, b
-      logical :: boolean
     end function relational_operator_sp
   end interface
 
