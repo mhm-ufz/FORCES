@@ -62,39 +62,63 @@ module mo_netcdf
      procedure, public  :: renameAttribute
 
      procedure, private :: getAttributableIds
-     procedure, private :: setAttributeChar
-     procedure, private :: setAttributeI8
-     procedure, private :: setAttributeI16
-     procedure, private :: setAttributeI32
-     procedure, private :: setAttributeI64
-     procedure, private :: setAttributeF32
-     procedure, private :: setAttributeF64
+     procedure, private :: setAttributeScalarChar
+     procedure, private :: setAttributeScalarI8
+     procedure, private :: setAttributeScalarI16
+     procedure, private :: setAttributeScalarI32
+     procedure, private :: setAttributeScalarI64
+     procedure, private :: setAttributeScalarF32
+     procedure, private :: setAttributeScalarF64
+     procedure, private :: setAttribute1dI8
+     procedure, private :: setAttribute1dI16
+     procedure, private :: setAttribute1dI32
+     procedure, private :: setAttribute1dI64
+     procedure, private :: setAttribute1dF32
+     procedure, private :: setAttribute1dF64
 
-     procedure, private :: getAttributeChar
-     procedure, private :: getAttributeI8
-     procedure, private :: getAttributeI16
-     procedure, private :: getAttributeI32
-     procedure, private :: getAttributeI64
-     procedure, private :: getAttributeF32
-     procedure, private :: getAttributeF64
+     procedure, private :: getAttributeScalarChar
+     procedure, private :: getAttributeScalarI8
+     procedure, private :: getAttributeScalarI16
+     procedure, private :: getAttributeScalarI32
+     procedure, private :: getAttributeScalarI64
+     procedure, private :: getAttributeScalarF32
+     procedure, private :: getAttributeScalarF64
+     procedure, private :: getAttribute1dI8
+     procedure, private :: getAttribute1dI16
+     procedure, private :: getAttribute1dI32
+     procedure, private :: getAttribute1dI64
+     procedure, private :: getAttribute1dF32
+     procedure, private :: getAttribute1dF64
 
      generic, public :: setAttribute => &
-          setAttributeChar,  &
-          setAttributeI8,    &
-          setAttributeI16,   &
-          setAttributeI32,   &
-          setAttributeI64,   &
-          setAttributeF32,   &
-          setAttributeF64
+          setAttributeScalarChar,  &
+          setAttributeScalarI8,    &
+          setAttributeScalarI16,   &
+          setAttributeScalarI32,   &
+          setAttributeScalarI64,   &
+          setAttributeScalarF32,   &
+          setAttributeScalarF64,   &
+          setAttribute1dI8,    &
+          setAttribute1dI16,   &
+          setAttribute1dI32,   &
+          setAttribute1dI64,   &
+          setAttribute1dF32,   &
+          setAttribute1dF64
 
      generic, public :: getAttribute => &
-          getAttributeChar,  &
-          getAttributeI8,    &
-          getAttributeI16,   &
-          getAttributeI32,   &
-          getAttributeI64,   &
-          getAttributeF32,   &
-          getAttributeF64
+          getAttributeScalarChar,  &
+          getAttributeScalarI8,    &
+          getAttributeScalarI16,   &
+          getAttributeScalarI32,   &
+          getAttributeScalarI64,   &
+          getAttributeScalarF32,   &
+          getAttributeScalarF64,   &
+          getAttribute1dI8,    &
+          getAttribute1dI16,   &
+          getAttribute1dI32,   &
+          getAttribute1dI64,   &
+          getAttribute1dF32,   &
+          getAttribute1dF64
   end type NcAttributable
 
   ! --------------------------------------------------------------------------------------
@@ -1059,7 +1083,7 @@ contains
     hasAttribute = (status .eq. NF90_NOERR)
   end function hasAttribute
 
-  subroutine setAttributeChar(self, name, data)
+  subroutine setAttributeScalarChar(self, name, data)
     class(NcAttributable), intent(in) :: self
     character(*)         , intent(in) :: name
     character(*)         , intent(in) :: data
@@ -1069,9 +1093,9 @@ contains
     call check(nf90_put_att(ids(1), ids(2), name, data), &
          "Failed to write attribute: " // name)
 
-  end subroutine setAttributeChar
+  end subroutine setAttributeScalarChar
 
-  subroutine setAttributeI8(self, name, data)
+  subroutine setAttributeScalarI8(self, name, data)
     class(NcAttributable), intent(in) :: self
     character(*)         , intent(in) :: name
     integer(i1)          , intent(in) :: data
@@ -1081,9 +1105,9 @@ contains
     call check(nf90_put_att(ids(1), ids(2), name, data), &
          "Failed to write attribute: " // name)
 
-  end subroutine setAttributeI8
+  end subroutine setAttributeScalarI8
 
-  subroutine setAttributeI16(self, name, data)
+  subroutine setAttributeScalarI16(self, name, data)
     class(NcAttributable), intent(in) :: self
     character(*)         , intent(in) :: name
     integer(i2)         , intent(in) :: data
@@ -1093,9 +1117,9 @@ contains
     call check(nf90_put_att(ids(1), ids(2), name, data), &
          "Failed to write attribute: " // name)
 
-  end subroutine setAttributeI16
+  end subroutine setAttributeScalarI16
 
-  subroutine setAttributeI32(self, name, data)
+  subroutine setAttributeScalarI32(self, name, data)
     class(NcAttributable), intent(in) :: self
     character(*)         , intent(in) :: name
     integer(i4)         , intent(in) :: data
@@ -1105,9 +1129,9 @@ contains
     call check(nf90_put_att(ids(1), ids(2), name, data), &
          "Failed to write attribute: " // name)
 
-  end subroutine setAttributeI32
+  end subroutine setAttributeScalarI32
 
-  subroutine setAttributeI64(self, name, data)
+  subroutine setAttributeScalarI64(self, name, data)
     class(NcAttributable), intent(in) :: self
     character(*)         , intent(in) :: name
     integer(i8)         , intent(in) :: data
@@ -1117,9 +1141,9 @@ contains
     call check(nf90_put_att(ids(1), ids(2), name, data), &
          "Failed to write attribute: " // name)
 
-  end subroutine setAttributeI64
+  end subroutine setAttributeScalarI64
 
-  subroutine setAttributeF32(self, name, data)
+  subroutine setAttributeScalarF32(self, name, data)
     class(NcAttributable), intent(in) :: self
     character(*)         , intent(in) :: name
     real(sp)            , intent(in) :: data
@@ -1129,9 +1153,9 @@ contains
     call check(nf90_put_att(ids(1), ids(2), name, data), &
          "Failed to write attribute: " // name)
 
-  end subroutine setAttributeF32
+  end subroutine setAttributeScalarF32
 
-  subroutine setAttributeF64(self, name, data)
+  subroutine setAttributeScalarF64(self, name, data)
     class(NcAttributable), intent(in) :: self
     character(*)         , intent(in) :: name
     real(dp)            , intent(in) :: data
@@ -1141,9 +1165,9 @@ contains
     call check(nf90_put_att(ids(1), ids(2), name, data), &
          "Failed to write attribute: " // name)
 
-  end subroutine setAttributeF64
+  end subroutine setAttributeScalarF64
 
-  subroutine getAttributeChar(self, name, avalue)
+  subroutine getAttributeScalarChar(self, name, avalue)
     class(NcAttributable), intent(in)  :: self
     character(*)         , intent(in)  :: name
     character(*)         , intent(out) :: avalue
@@ -1154,9 +1178,9 @@ contains
          "Could not inquire attribute " // name)
     call check(nf90_get_att(ids(1), ids(2), name, avalue), &
          "Could not read attribute "//name)
-  end subroutine getAttributeChar
+  end subroutine getAttributeScalarChar
 
-  subroutine getAttributeI8(self, name, avalue)
+  subroutine getAttributeScalarI8(self, name, avalue)
     class(NcAttributable) , intent(in)  :: self
     character(*)          , intent(in)  :: name
     integer(i1)           , intent(out) :: avalue
@@ -1168,9 +1192,9 @@ contains
     call check(nf90_get_att(ids(1), ids(2), name, avalue), &
          "Could not read attribute "//name)
 
-  end subroutine getAttributeI8
+  end subroutine getAttributeScalarI8
 
-  subroutine getAttributeI16(self, name, avalue)
+  subroutine getAttributeScalarI16(self, name, avalue)
     class(NcAttributable) , intent(in)  :: self
     character(*)          , intent(in)  :: name
     integer(i2)          , intent(out) :: avalue
@@ -1182,9 +1206,9 @@ contains
     call check(nf90_get_att(ids(1), ids(2), name, avalue), &
          "Could not read attribute "//name)
 
-  end subroutine getAttributeI16
+  end subroutine getAttributeScalarI16
 
-  subroutine getAttributeI32(self, name, avalue)
+  subroutine getAttributeScalarI32(self, name, avalue)
     class(NcAttributable) , intent(in)  :: self
     character(*)          , intent(in)  :: name
     integer(i4)          , intent(out) :: avalue
@@ -1196,9 +1220,9 @@ contains
     call check(nf90_get_att(ids(1), ids(2), name, avalue), &
          "Could not read attribute "//name)
 
-  end subroutine getAttributeI32
+  end subroutine getAttributeScalarI32
 
-  subroutine getAttributeI64(self, name, avalue)
+  subroutine getAttributeScalarI64(self, name, avalue)
     class(NcAttributable) , intent(in)  :: self
     character(*)          , intent(in)  :: name
     integer(i8)          , intent(out) :: avalue
@@ -1210,9 +1234,9 @@ contains
     call check(nf90_get_att(ids(1), ids(2), name, avalue), &
          "Could not read attribute "//name)
 
-  end subroutine getAttributeI64
+  end subroutine getAttributeScalarI64
 
-  subroutine getAttributeF32(self, name, avalue)
+  subroutine getAttributeScalarF32(self, name, avalue)
     class(NcAttributable) , intent(in)  :: self
     character(*)          , intent(in)  :: name
     real(sp)             , intent(out) :: avalue
@@ -1224,9 +1248,9 @@ contains
     call check(nf90_get_att(ids(1), ids(2), name, avalue), &
          "Could not read attribute "//name)
 
-  end subroutine getAttributeF32
+  end subroutine getAttributeScalarF32
 
-  subroutine getAttributeF64(self, name, avalue)
+  subroutine getAttributeScalarF64(self, name, avalue)
     class(NcAttributable) , intent(in)  :: self
     character(*)          , intent(in)  :: name
     real(dp)             , intent(out) :: avalue
@@ -1238,7 +1262,163 @@ contains
     call check(nf90_get_att(ids(1), ids(2), name, avalue), &
          "Could not read attribute "//name)
 
- end subroutine getAttributeF64
+ end subroutine getAttributeScalarF64
+
+  subroutine setAttribute1dI8(self, name, data)
+    class(NcAttributable), intent(in) :: self
+    character(*)         , intent(in) :: name
+    integer(i1)          , intent(in) :: data(:)
+    integer(i4)                      :: ids(2)
+
+    ids = self%getAttributableIds()
+    call check(nf90_put_att(ids(1), ids(2), name, data(:)), &
+         "Failed to write attribute: " // name)
+
+  end subroutine setAttribute1dI8
+
+  subroutine setAttribute1dI16(self, name, data)
+    class(NcAttributable), intent(in) :: self
+    character(*)         , intent(in) :: name
+    integer(i2)         , intent(in) :: data(:)
+    integer(i4)                      :: ids(2)
+
+    ids = self%getAttributableIds()
+    call check(nf90_put_att(ids(1), ids(2), name, data(:)), &
+         "Failed to write attribute: " // name)
+
+  end subroutine setAttribute1dI16
+
+  subroutine setAttribute1dI32(self, name, data)
+    class(NcAttributable), intent(in) :: self
+    character(*)         , intent(in) :: name
+    integer(i4)         , intent(in) :: data(:)
+    integer(i4)                      :: ids(2)
+
+    ids = self%getAttributableIds()
+    call check(nf90_put_att(ids(1), ids(2), name, data(:)), &
+         "Failed to write attribute: " // name)
+
+  end subroutine setAttribute1dI32
+
+  subroutine setAttribute1dI64(self, name, data)
+    class(NcAttributable), intent(in) :: self
+    character(*)         , intent(in) :: name
+    integer(i8)         , intent(in) :: data(:)
+    integer(i4)                      :: ids(2)
+
+    ids = self%getAttributableIds()
+    call check(nf90_put_att(ids(1), ids(2), name, data(:)), &
+         "Failed to write attribute: " // name)
+
+  end subroutine setAttribute1dI64
+
+  subroutine setAttribute1dF32(self, name, data)
+    class(NcAttributable), intent(in) :: self
+    character(*)         , intent(in) :: name
+    real(sp)            , intent(in) :: data(:)
+    integer(i4)                      :: ids(2)
+
+    ids = self%getAttributableIds()
+    call check(nf90_put_att(ids(1), ids(2), name, data(:)), &
+         "Failed to write attribute: " // name)
+
+  end subroutine setAttribute1dF32
+
+  subroutine setAttribute1dF64(self, name, data)
+    class(NcAttributable), intent(in) :: self
+    character(*)         , intent(in) :: name
+    real(dp)            , intent(in) :: data(:)
+    integer(i4)                      :: ids(2)
+
+    ids = self%getAttributableIds()
+    call check(nf90_put_att(ids(1), ids(2), name, data(:)), &
+         "Failed to write attribute: " // name)
+
+  end subroutine setAttribute1dF64
+
+  subroutine getAttribute1dI8(self, name, avalue)
+    class(NcAttributable) , intent(in)  :: self
+    character(*)          , intent(in)  :: name
+    integer(i1)           , intent(out) :: avalue(:)
+    integer(i4)                        :: length, ids(2)
+
+    ids = self%getAttributableIds()
+    call check(nf90_inquire_attribute(ids(1), ids(2), name, len=length),&
+         "Could not inquire attribute " // name)
+    call check(nf90_get_att(ids(1), ids(2), name, avalue(:)), &
+         "Could not read attribute "//name)
+
+  end subroutine getAttribute1dI8
+
+  subroutine getAttribute1dI16(self, name, avalue)
+    class(NcAttributable) , intent(in)  :: self
+    character(*)          , intent(in)  :: name
+    integer(i2)          , intent(out) :: avalue(:)
+    integer(i4)                        :: length, ids(2)
+
+    ids = self%getAttributableIds()
+    call check(nf90_inquire_attribute(ids(1), ids(2), name, len=length),&
+         "Could not inquire attribute " // name)
+    call check(nf90_get_att(ids(1), ids(2), name, avalue(:)), &
+         "Could not read attribute "//name)
+
+  end subroutine getAttribute1dI16
+
+  subroutine getAttribute1dI32(self, name, avalue)
+    class(NcAttributable) , intent(in)  :: self
+    character(*)          , intent(in)  :: name
+    integer(i4)          , intent(out) :: avalue(:)
+    integer(i4)                        :: length, ids(2)
+
+    ids = self%getAttributableIds()
+    call check(nf90_inquire_attribute(ids(1), ids(2), name, len=length),&
+         "Could not inquire attribute " // name)
+    call check(nf90_get_att(ids(1), ids(2), name, avalue(:)), &
+         "Could not read attribute "//name)
+
+  end subroutine getAttribute1dI32
+
+  subroutine getAttribute1dI64(self, name, avalue)
+    class(NcAttributable) , intent(in)  :: self
+    character(*)          , intent(in)  :: name
+    integer(i8)          , intent(out) :: avalue(:)
+    integer(i4)                        :: length, ids(2)
+
+    ids = self%getAttributableIds()
+    call check(nf90_inquire_attribute(ids(1), ids(2), name, len=length),&
+         "Could not inquire attribute " // name)
+    call check(nf90_get_att(ids(1), ids(2), name, avalue(:)), &
+         "Could not read attribute "//name)
+
+  end subroutine getAttribute1dI64
+
+  subroutine getAttribute1dF32(self, name, avalue)
+    class(NcAttributable) , intent(in)  :: self
+    character(*)          , intent(in)  :: name
+    real(sp)             , intent(out) :: avalue(:)
+    integer(i4)                        :: length, ids(2)
+
+    ids = self%getAttributableIds()
+    call check(nf90_inquire_attribute(ids(1), ids(2), name, len=length),&
+         "Could not inquire attribute " // name)
+    call check(nf90_get_att(ids(1), ids(2), name, avalue(:)), &
+         "Could not read attribute "//name)
+
+  end subroutine getAttribute1dF32
+
+  subroutine getAttribute1dF64(self, name, avalue)
+    class(NcAttributable) , intent(in)  :: self
+    character(*)          , intent(in)  :: name
+    real(dp)             , intent(out) :: avalue(:)
+    integer(i4)                        :: length, ids(2)
+
+    ids = self%getAttributableIds()
+    call check(nf90_inquire_attribute(ids(1), ids(2), name, len=length),&
+         "Could not inquire attribute " // name)
+    call check(nf90_get_att(ids(1), ids(2), name, avalue(:)), &
+         "Could not read attribute "//name)
+
+ end subroutine getAttribute1dF64
 
   function getAttributableIds(self)
     class(NcAttributable), intent(in) :: self
