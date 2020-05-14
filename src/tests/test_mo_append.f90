@@ -3,6 +3,7 @@ PROGRAM append_test
 use mo_kind,   only: i4
 #ifndef ABSOFT
 use mo_append, only: append, paste
+use mo_message, only: error_message
 
 implicit none
 
@@ -224,6 +225,7 @@ if (isgood) then
    write(*,*) 'mo_append o.k.'
 else
    write(*,*) 'mo_append failed!'
+   call error_message('TestError: mo_append failed')
 endif
 
 END PROGRAM append_test

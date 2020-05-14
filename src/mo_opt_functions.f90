@@ -5639,6 +5639,7 @@ CONTAINS
   function ackley_objective(parameterset, eval, arg1, arg2, arg3)
 
     use mo_constants, only: pi_dp
+    use mo_optimization_types, only : optidata_sim
 
     implicit none
 
@@ -5654,10 +5655,10 @@ CONTAINS
     real(dp), parameter :: b = 0.2_dp
     real(dp), parameter :: c = 2.0_dp*pi_dp
     real(dp) :: s1, s2
-    real(dp), dimension(:, :), allocatable :: et_opti
+    type(optidata_sim), dimension(:), allocatable :: et_opti
 
-    call eval(parameterset, et_opti=et_opti)
-    deallocate(et_opti)
+    call eval(parameterset, etOptiSim=et_opti)
+
     n = size(parameterset)
     s1 = sum(parameterset**2)
     s2 = sum(cos(c*parameterset))
@@ -5668,6 +5669,7 @@ CONTAINS
   function griewank_objective(parameterset, eval, arg1, arg2, arg3)
 
     use mo_kind, only: i4, dp
+    use mo_optimization_types, only : optidata_sim
 
     implicit none
 
@@ -5681,10 +5683,9 @@ CONTAINS
     integer(i4) :: nopt
     integer(i4) :: j
     real(dp)    :: d, u1, u2
-    real(dp), dimension(:, :), allocatable :: et_opti
+    type(optidata_sim), dimension(:), allocatable :: et_opti
 
-    call eval(parameterset, et_opti=et_opti)
-    deallocate(et_opti)
+    call eval(parameterset, etOptiSim=et_opti)
 
     nopt = size(parameterset)
     if (nopt .eq. 2) then
@@ -5702,36 +5703,48 @@ CONTAINS
   end function griewank_objective
 
 
- subroutine eval_dummy(parameterset, runoff, sm_opti, basin_avg_tws, neutrons_opti, et_opti)
+ subroutine eval_dummy(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
     use mo_kind, only : dp
+    use mo_optimization_types, only : optidata_sim, optidata
 
     implicit none
 
-    real(dp), dimension(:), intent(in) :: parameterset
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: runoff        ! dim1=time dim2=gauge
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: sm_opti       ! dim1=ncells, dim2=time
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: basin_avg_tws ! dim1=time dim2=nBasins
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: neutrons_opti ! dim1=ncells, dim2=time
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: et_opti       ! dim1=ncells, dim2=time
+    real(dp),    dimension(:), intent(in) :: parameterset
+    integer(i4), dimension(:),                 optional, intent(in)  :: opti_domain_indices
+    real(dp),    dimension(:, :), allocatable, optional, intent(out) :: runoff        ! dim1=time dim2=gauge
+    type(optidata_sim), dimension(:), optional, intent(inout) :: smOptiSim       ! dim1=ncells, dim2=time
+    type(optidata_sim), dimension(:), optional, intent(inout) :: neutronsOptiSim ! dim1=ncells, dim2=time
+    type(optidata_sim), dimension(:), optional, intent(inout) :: etOptiSim       ! dim1=ncells, dim2=time
+    type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim      ! dim1=ncells, dim2=time
 
-    if (present(et_opti)) then
-      allocate(et_opti(1, 1))
-      et_opti(:, :) = 0.0_dp
+    type(optidata) :: dummyData
+    integer(i4) :: i
+
+    allocate(dummyData%dataObs(1, 1))
+    dummyData%dataObs = 0.0_dp
+
+    if (present(etOptiSim)) then
+      do i=1, size(etOptiSim)
+        call etOptiSim(i)%init(dummyData)
+      end do
     end if
 
-    if (present(neutrons_opti)) then
-      allocate(neutrons_opti(1, 1))
-      neutrons_opti(:, :) = 0.0_dp
+    if (present(neutronsOptiSim)) then
+      do i=1, size(neutronsOptiSim)
+        call neutronsOptiSim(1)%init(dummyData)
+      end do
     end if
 
-    if (present(basin_avg_tws)) then
-      allocate(basin_avg_tws(1, 1))
-      basin_avg_tws(:, :) = 0.0_dp
+    if (present(twsOptiSim)) then
+      do i=1, size(twsOptiSim)
+        call twsOptiSim(1)%init(dummyData)
+      end do
     end if
 
-    if (present(sm_opti)) then
-      allocate(sm_opti(1, 1))
-      sm_opti(:, :) = 0.0_dp
+    if (present(smOptiSim)) then
+      do i=1, size(smOptiSim)
+        call smOptiSim(1)%init(dummyData)
+      end do
     end if
 
     if (present(runoff)) then

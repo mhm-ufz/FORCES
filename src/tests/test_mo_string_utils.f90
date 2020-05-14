@@ -1,14 +1,15 @@
 PROGRAM main
-  
+
   USE mo_kind,   ONLY: i4, i8, dp, sp
   USE mo_string_utils, ONLY: tolower, toupper, separator, num2str, nonull, compress
   USE mo_string_utils, ONLY: startsWith, equalStrings, splitString
 #ifndef ABSOFT
   USE mo_string_utils, ONLY: DIVIDE_STRING
 #endif
+use mo_message, only: error_message
 
   IMPLICIT NONE
-  
+
   CHARACTER(len=100)                        :: sout, sundef
 #ifndef ABSOFT
   CHARACTER(256), dimension(:), allocatable :: strArr
@@ -119,6 +120,7 @@ PROGRAM main
      write(*,*) 'mo_string_utils o.k.'
   else
      write(*,*) 'mo_string_utils failed'
+     call error_message('TestError: mo_string_utils failed')
   endif
 
 END PROGRAM main

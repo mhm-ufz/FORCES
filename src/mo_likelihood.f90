@@ -142,17 +142,19 @@ CONTAINS
   ! -------------------------------
   ! A Model: p1*x^2 + p2*x + p3
   ! -------------------------------
-  subroutine model_dp(paraset, runoff, sm_opti, basin_avg_tws, neutrons_opti, et_opti)
-    
+  subroutine model_dp(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
+
     use mo_kind, only: dp
+    use mo_optimization_types, only: optidata_sim
     !! !$ USE omp_lib,    only: OMP_GET_THREAD_NUM
     
-    REAL(DP), DIMENSION(:), INTENT(IN)     :: paraset
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: runoff        ! dim1=time dim2=gauge
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: sm_opti       ! dim1=ncells, dim2=time
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: basin_avg_tws ! dim1=time dim2=nBasins
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: neutrons_opti ! dim1=ncells, dim2=time
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: et_opti       ! dim1=ncells, dim2=time
+    real(dp),    dimension(:), intent(in) :: parameterset
+    integer(i4), dimension(:),                 optional, intent(in)  :: opti_domain_indices
+    real(dp),    dimension(:, :), allocatable, optional, intent(out) :: runoff        ! dim1=time dim2=gauge
+    type(optidata_sim), dimension(:), optional, intent(inout) :: smOptiSim       ! dim1=ncells, dim2=time
+    type(optidata_sim), dimension(:), optional, intent(inout) :: neutronsOptiSim ! dim1=ncells, dim2=time
+    type(optidata_sim), dimension(:), optional, intent(inout) :: etOptiSim       ! dim1=ncells, dim2=time
+    type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim      ! dim1=ncells, dim2=time
     integer(i4) :: i, n
     ! for OMP
     !! !$  integer(i4)                           :: n_threads, is_thread
@@ -168,7 +170,7 @@ CONTAINS
     !$OMP do
     do i=1, n
        !! !$ if (is_thread /= 0) write(*,*) '    OMP_thread-1: ', is_thread
-       runoff(i,1) = paraset(1) * meas(i,1) * meas(i,1) + paraset(2) * meas(i,1) + paraset(3)
+       runoff(i,1) = parameterset(1) * meas(i,1) * meas(i,1) + parameterset(2) * meas(i,1) + parameterset(3)
     end do
     !$OMP end do
     !$OMP end parallel
