@@ -13,6 +13,23 @@ find_package (NetCDF REQUIRED)
 target_link_libraries(${LIB_NAME} ${NETCDF_F90_LIBRARIES})
 target_include_directories(${LIB_NAME} PUBLIC ${NETCDF_F90_INCLUDE_DIRS})
 
+set(CMAKE_WITH_MPI OFF CACHE STRING "build the module with MPI, so it can be executed using mpirun")
+# if cmake provides a findLIBRARY module, this gets invoked via find_package(LIBRARY)
+if (CMAKE_WITH_MPI)
+        # find if there is an MPI setup on the system and if so, set corresponding variables
+        find_package(MPI)
+        if (NOT ${MPI_Fortran_FOUND})
+                message(FATAL_ERROR "MPI required but not found")
+        else()
+                message(STATUS "found MPI_Fortran_COMPILER ${MPI_Fortran_COMPILER}")
+                # set the preprocessor
+                target_compile_definitions(${LIB_NAME} PRIVATE "-MPI")
+				# add the link to mpi if existing
+                target_link_libraries(${LIB_NAME} ${MPI_Fortran_LIBRARIES} )
+                target_include_directories(${LIB_NAME} PUBLIC ${MPI_Fortran_INCLUDE_PATH} )
+        endif()
+endif()
+
 # set compiling flags for debug and relese version
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     # set the preprocessor
