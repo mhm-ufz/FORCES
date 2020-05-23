@@ -12,10 +12,10 @@
 
 !  Number model from which the SELECTED_REAL_KIND are requested:
 !                   4 byte REAL      8 byte REAL
-!          IEEE:    precision =  6   precision =   15
-!                   exponent  = 37   exponent  =  307
-!          CRAY:        -            precision =   13
-!                                    exponent  = 2465
+!          IEEE:    precision =>  6   precision =>   15
+!                   exponent  => 37   exponent  =>  307
+!          CRAY:        -            precision =>   13
+!                                    exponent  => 2465
 
 ! Written  Juliane Mai, Matthias Cuntz, Nov 2011
 ! Modified Matthias Cuntz, Nov 2011 - private/public
@@ -46,48 +46,29 @@
 
 MODULE mo_kind
 
-  ! Does not work with compilers intel v11 and sun v12.2
-  ! use, intrinsic :: iso_fortran_env, only: &
-  !      int8!, int16,   int32, int64,  real32,  real64
-  use, intrinsic :: iso_c_binding,   only: &
-             c_short, c_int, c_long_long, c_float, c_double, c_float_complex, c_double_complex, c_bool
+  use, intrinsic :: iso_c_binding, only: sp=>c_float
+  use, intrinsic :: iso_c_binding, only: dp=>c_double
+  use, intrinsic :: iso_c_binding, only: spc=>c_float_complex
+  use, intrinsic :: iso_c_binding, only: dpc=>c_double_complex
+  use, intrinsic :: iso_c_binding, only: qp=>c_float128
+  use, intrinsic :: iso_c_binding, only: i2=>c_short
+  use, intrinsic :: iso_c_binding, only: i4=>c_int
+  use, intrinsic :: iso_c_binding, only: i8=>c_long_long
+  ! this is defined here https://github.com/fortran-lang/stdlib/ like so
+  ! use iso_fortran_env, only: sp=>real32, dp=>real64, qp=>real128
+  ! use iso_fortran_env, only: int8, int16, int32, int64
+  !use, intrinsic :: iso_c_binding, only: int8=>c_int8_t
+  !use, intrinsic :: iso_c_binding, only: int16=>c_int16_t
+  !use, intrinsic :: iso_c_binding, only: int32=>c_int32_t
+  !use, intrinsic :: iso_c_binding, only: int64=>c_int64_t
 
-  IMPLICIT NONE
+implicit none
 
-  !> 1 Byte Integer Kind
-  INTEGER, PARAMETER :: i1  = SELECTED_INT_KIND(2)
-  ! INTEGER, PARAMETER :: i1  = int8 ! c_word does not exist; should be c_bool, probably; but see above
-  !> 2 Byte Integer Kind
-  ! INTEGER, PARAMETER :: i2  = SELECTED_INT_KIND(4)
-  ! INTEGER, PARAMETER :: i2  = int16
-  INTEGER, PARAMETER :: i2  = c_short
-  !> 4 Byte Integer Kind
-  ! INTEGER, PARAMETER :: i4  = SELECTED_INT_KIND(9)
-  ! INTEGER, PARAMETER :: i4  = int32
-  INTEGER, PARAMETER :: i4  = c_int
-  !> 8 Byte Integer Kind
-  ! INTEGER, PARAMETER :: i8  = SELECTED_INT_KIND(18)
-  ! INTEGER, PARAMETER :: i8  = int64
-  INTEGER, PARAMETER :: i8  = c_long_long
-  !> Single Precision Real Kind
-  ! INTEGER, PARAMETER :: sp  = SELECTED_REAL_KIND(6,37)
-  ! INTEGER, PARAMETER :: sp  = real32
-  INTEGER, PARAMETER :: sp  = c_float
-  !> Double Precision Real Kind
-  ! INTEGER, PARAMETER :: dp  = SELECTED_REAL_KIND(15,307)
-  ! INTEGER, PARAMETER :: dp  = real64
-  INTEGER, PARAMETER :: dp  = c_double
-  !> Single Precision Complex Kind
-  ! INTEGER, PARAMETER :: spc = KIND((1.0_sp,1.0_sp))
-  ! INTEGER, PARAMETER :: spc = sp
-  INTEGER, PARAMETER :: spc = c_float_complex
-  !> Double Precision Complex Kind
-  ! INTEGER, PARAMETER :: dpc = KIND((1.0_dp,1.0_dp))
-  ! INTEGER, PARAMETER :: dpc = dp
-  INTEGER, PARAMETER :: dpc = c_double_complex
-  !> Logical Kind
-  INTEGER, PARAMETER :: lgt = KIND(.true.)
-  !INTEGER, PARAMETER :: lgt = c_bool
-  ! Types have to be in a public section for doxygen
+  private
+  !public sp, dp, qp, int8, int16, int32, int64
+  public sp, dp, qp, i1, i2, i4, i8, lgt
+
+  integer, parameter :: i1 = selected_int_kind(2)
+  integer, parameter :: lgt = kind(.true.)
 
 END MODULE mo_kind
