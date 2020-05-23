@@ -22,7 +22,8 @@ module mo_netcdf
   ! -------
   ! GNU Lesser General Public License http://www.gnu.org/licenses/
 
-  use mo_types
+  use, intrinsic :: iso_c_binding,   only: &
+             c_short, c_int, c_long_long, c_float, c_double
   use netcdf, only : &
           nf90_open, nf90_close, nf90_strerror, nf90_def_dim, nf90_def_var, &
           nf90_put_var, nf90_get_var, nf90_put_att, nf90_get_att, &
@@ -39,6 +40,13 @@ module mo_netcdf
   implicit none
 
   ! --------------------------------------------------------------------------------------
+  ! type definitions (as in mo_types)
+  integer, parameter :: i8  = selected_int_kind(2)
+  integer, parameter :: i16  = c_short
+  integer, parameter :: i32 = c_int
+  integer, parameter :: i64  = c_long_long
+  integer, parameter :: f32  = c_float
+  integer, parameter :: f64  = c_double
 
   type, abstract :: NcBase
 
@@ -171,10 +179,12 @@ module mo_netcdf
     procedure, public :: getLength => getDimensionLength
     procedure, public :: isUnlimited => isUnlimitedDimension
   end type NcDimension
+
   interface NcDimension
     procedure newNcDimension
   end interface NcDimension
   ! --------------------------------------------------------------------------------------
+
   type, extends(NcAttributable) :: NcVariable
     type(NcGroup) :: parent   !> The variables's parent
 
