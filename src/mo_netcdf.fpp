@@ -533,7 +533,7 @@ contains
 
     call check(nf90_inquire(self%id, unlimitedDimId = dimid), &
             "Failed to inquire group " // self%getName())
-    isDatasetUnlimited = (dimid .ne. -1)
+    isDatasetUnlimited = (dimid /= -1)
   end function isDatasetUnlimited
 
   function getUnlimitedDimension(self)
@@ -544,7 +544,7 @@ contains
     call check(nf90_inquire(self%id, unlimitedDimId = dimid), &
             "Failed to inquire group " // self%getName())
 
-    if (dimid .eq. -1) then
+    if (dimid == -1) then
       write(*, *) "Dataset has no unlimited dimension"
       stop 1
     end if
@@ -556,7 +556,7 @@ contains
     class(NcBase), intent(in) :: left, right
     logical :: out
 
-    out = (left%id .eq. right%id)
+    out = (left%id == right%id)
   end function equalNcBases
 
   function isUnlimitedDimension(self)
@@ -585,7 +585,7 @@ contains
     type(NcDimension) :: setLimitedDimension
     integer(i32) :: id, dimlength
 
-    if (length .le. 0) then
+    if (length <= 0) then
       dimlength = NF90_UNLIMITED
     else
       dimlength = length
@@ -603,7 +603,7 @@ contains
     logical :: hasVariable
     integer(i32) :: tmpid
 
-    hasVariable = (nf90_inq_varid(self%id, name, tmpid) .eq. NF90_NOERR)
+    hasVariable = (nf90_inq_varid(self%id, name, tmpid) == NF90_NOERR)
   end function hasVariable
 
   function hasDimension(self, name)
@@ -612,7 +612,7 @@ contains
     logical :: hasDimension
     integer(i32) :: tmpid
 
-    hasDimension = (nf90_inq_dimid(self%id, name, tmpid) .eq. NF90_NOERR)
+    hasDimension = (nf90_inq_dimid(self%id, name, tmpid) == NF90_NOERR)
   end function hasDimension
 
   function hasGroup(self, name)
@@ -621,7 +621,7 @@ contains
     logical :: hasGroup
     integer(i32) :: tmpid
 
-    hasGroup = (nf90_inq_ncid(self%id, name, tmpid) .eq. NF90_NOERR)
+    hasGroup = (nf90_inq_ncid(self%id, name, tmpid) == NF90_NOERR)
   end function hasGroup
 
   function setVariableWithIds(self, name, dtype, dimensions, contiguous, &
@@ -835,7 +835,7 @@ contains
       status = nf90_inquire_attribute(self%parent%id, self%id, name)
     end select
 
-    hasAttribute = (status .eq. NF90_NOERR)
+    hasAttribute = (status == NF90_NOERR)
   end function hasAttribute
 
   subroutine setAttributeChar(self, name, data)
@@ -1828,16 +1828,16 @@ contains
     integer(i32) :: naxis
     integer(i32), allocatable :: out(:)
 
-    naxis = count(slcshape .gt. 1)
+    naxis = count(slcshape > 1)
 
-    if (all(slcshape .eq. 1)) then
+    if (all(slcshape == 1)) then
       ! return 1-element array
       out(:) = 1
-    else if (size(slcshape) .eq. outrank) then
+    else if (size(slcshape) == outrank) then
       ! sizes fit
       out = slcshape
-    else if (naxis .eq. outrank) then
-      out = pack(slcshape, slcshape .gt. 1)
+    else if (naxis == outrank) then
+      out = pack(slcshape, slcshape > 1)
       ! else if (naxis .lt. outrank) then
       ! would be nice...
     else
@@ -1921,7 +1921,7 @@ contains
     integer(i32), intent(in) :: status
     character(*), intent(in) :: msg
 
-    if (status .ne. NF90_NOERR) then
+    if (status /= NF90_NOERR) then
       write(*, *) msg
       write(*, *) nf90_strerror(status)
       stop 1
