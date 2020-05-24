@@ -1,11 +1,33 @@
 set (LIB_NAME lightweight_fortran_lib)
+
+# --- find preprocessor
+find_program(FYPP fypp)
+if(NOT FYPP)
+	message(WARNING "Preprocessor fypp not found!")
+else()
+	# Create a list of the files to be preprocessed
+	set(fppFiles mo_netcdf.fypp)
+
+	# Custom preprocessor flags
+	if(DEFINED CMAKE_MAXIMUM_RANK)
+	  set(fyppFlags "-DMAXRANK=${CMAKE_MAXIMUM_RANK}")
+	elseif(f03rank)
+	  set(fyppFlags)
+	else()
+	  set(fyppFlags "-DVERSION90")
+	endif()
+
+	### Pre-process: .fpp -> .f90 via Fypp
+	fypp_f90("${fyppFlags}" "${fppFiles}" fyppOutFiles)
+endif()
+
 file(GLOB sources ./mo_*.f90)
-add_library ( ${LIB_NAME} ${sources})
+add_library ( ${LIB_NAME} ${sources} ${fyppOutFiles})
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # additional cmake-modules created for the purpose of finding netCDF or other libraries ly in the source_directory in
 # a folder named cmake-modules. This command tells cmake to search there for Find<module>.cmake files
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake-modules)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 # find the netcdf and netcdf-fortran libraries, taken from wrf-cmake project
 set (NETCDF_F90 "YES")
