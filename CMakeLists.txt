@@ -5,7 +5,8 @@ cmake_minimum_required(VERSION 3.5)
 
 project(lightweight_fortran_lib Fortran)
 
-enable_testing()
+# automatically enables testing
+include(CTest)
 
 include(${CMAKE_SOURCE_DIR}/cmake/utils.cmake)
 # The variable "CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT" can be set before executing cmake via a cache command:
