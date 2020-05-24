@@ -40,7 +40,7 @@ module mo_netcdf
           nf90_inq_ncid, nf90_inq_grp_parent, nf90_inq_grpname, nf90_def_grp, &
           nf90_rename_dim, nf90_rename_var, nf90_rename_att, nf90_sync, &
           NF90_OPEN, NF90_NETCDF4, NF90_CREATE, NF90_WRITE, NF90_NOWRITE, &
-          NF90_BYTE, NF90_SHORT, NF90_INT, NF90_FLOAT, NF90_DOUBLE, &
+          NF90_BYTE, NF90_SHORT, NF90_INT, NF90_INT64, NF90_FLOAT, NF90_DOUBLE,           &
           NF90_FILL_BYTE, NF90_FILL_SHORT, NF90_FILL_INT, NF90_FILL_FLOAT, NF90_FILL_DOUBLE, &
           NF90_NOERR, NF90_UNLIMITED, NF90_GLOBAL, NF90_SHARE, NF90_HDF5, &
           NF90_64BIT_OFFSET, NF90_CLASSIC_MODEL
@@ -66,14 +66,7 @@ module mo_netcdf
 
     procedure, public :: hasAttribute
     procedure, public :: renameAttribute
-
     procedure, private :: getAttributableIds
-    procedure, private :: setAttributeChar
-    procedure, private :: setAttributeI8
-    procedure, private :: setAttributeI16
-    procedure, private :: setAttributeI32
-    procedure, private :: setAttributesp
-    procedure, private :: setAttributedp
 
     procedure, private :: getAttributeChar
     procedure, private :: getAttributeI8
@@ -84,12 +77,14 @@ module mo_netcdf
 
 #:for kind, type in REAL_KINDS_TYPES + INT_KINDS_TYPES
   #:for rank in [0, 1]
-    generic, public :: setAttribute => setattribute_${rank}$d_${kind}$
+    procedure, private :: setAttribute_${rank}$d_${kind}$
+    generic, public :: setAttribute => setAttribute_${rank}$d_${kind}$
   #:endfor
 #:endfor
 #:for kind, type in CHAR_KINDS_TYPES
   #:for rank in [0]
-    generic, public :: setAttribute => setattribute_${rank}$d_${kind}$
+    procedure, private :: setAttribute_${rank}$d_${kind}$
+    generic, public :: setAttribute => setAttribute_${rank}$d_${kind}$
   #:endfor
 #:endfor
 
@@ -854,12 +849,12 @@ contains
 
 #:def setAttribute_template(kind, type, rank)
   subroutine setAttribute_${rank}$d_${kind}$(self, name, data)
-    class(ncAttributable), intent(in) :: self
+    class(NcAttributable), intent(in) :: self
     character(len=*), intent(in) :: name
     ${type}$, intent(in) :: data${ranksuffix(rank)}$
     integer(i32) :: ids(2)
 
-    ids = self%getattributableids()
+    ids = self%getAttributableIds()
     call check(nf90_put_att(ids(1), ids(2), name, data), &
             "Failed to write attribute: " // name)
 
@@ -867,9 +862,14 @@ contains
 
 #:enddef setAttribute_template
 
-#:for _kind, _type in KINDS_TYPES
-  #:for _rank in RANKS
-    $:setAttribute_template(_kind, _type, _rank)
+#:for kind, type in REAL_KINDS_TYPES + INT_KINDS_TYPES
+  #:for rank in [0, 1]
+    $:setAttribute_template(kind, type, rank)
+  #:endfor
+#:endfor
+#:for kind, type in CHAR_KINDS_TYPES
+  #:for rank in [0]
+    $:setAttribute_template(kind, type, rank)
   #:endfor
 #:endfor
 

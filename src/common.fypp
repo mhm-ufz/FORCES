@@ -24,7 +24,8 @@
 #! SOFTWARE.
 
 #! Real kinds to be considered during templating
-#:set REAL_KINDS = ["sp", "dp", "qp"]
+#!:set REAL_KINDS = ["sp", "dp", "qp"]
+#:set REAL_KINDS = ["sp", "dp"]
 
 #! Real types to be considere during templating
 #:set REAL_TYPES = ["real({})".format(k) for k in REAL_KINDS]
@@ -42,6 +43,7 @@
 #:set CMPLX_KINDS_TYPES = list(zip(CMPLX_KINDS, CMPLX_TYPES))
 
 #! Integer kinds to be considered during templating
+#!:set INT_KINDS = ["int8", "int16", "int32", "int64"]
 #:set INT_KINDS = ["i8", "i16", "i32", "i64"]
 
 #! Integer types to be considere during templating
