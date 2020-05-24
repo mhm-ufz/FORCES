@@ -906,7 +906,7 @@ $: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+
 #:enddef getData_template
 
 #:def setData_template(kind, type, rank)
-  #! the cnt, stride and map args are valid only for 1d varities
+  #! the cnt, stride and map args are valid only for 1d varities, they were originally also not appearing in dummy args
   subroutine setData_${rank}$d_${kind}$(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     ${type}$, intent(in) :: values${ranksuffix(rank)}$
