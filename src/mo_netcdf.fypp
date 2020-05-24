@@ -28,6 +28,9 @@ module mo_netcdf
   ! GNU Lesser General Public License http://www.gnu.org/licenses/
 
   use mo_kind, only: sp, dp, qp
+  use mo_utils, only: gt, lt, ne
+  use ieee_arithmetic, only : ieee_is_nan
+
   use, intrinsic :: iso_c_binding, only: i8=>c_int8_t
   use, intrinsic :: iso_c_binding, only: i16=>c_short
   use, intrinsic :: iso_c_binding, only: i32=>c_int
@@ -48,6 +51,15 @@ module mo_netcdf
   implicit none
 
   ! --------------------------------------------------------------------------------------
+  character(10), parameter :: CF_FILL_VALUE = '_FillValue'
+  character(11), parameter :: CF_VALID_RANGE = 'valid_range'
+  character(9), parameter :: CF_VALID_MIN = 'valid_min'
+  character(9), parameter :: CF_VALID_MAX = 'valid_max'
+  integer(i32), parameter :: CF_USE_FILL_VALUE = 1_i32
+  integer(i32), parameter :: CF_USE_VALID_MIN = 2_i32
+  integer(i32), parameter :: CF_USE_VALID_MAX = 3_i32
+  integer(i32), parameter :: CF_USE_VALID_RANGE = 4_i32
+  integer(i32), parameter :: CF_USE_NAN = 5_i32
 
   type, abstract :: NcBase
 
@@ -191,19 +203,13 @@ module mo_netcdf
     procedure, private :: getData_${rank}$d_${kind}$
     generic, public :: getData => getData_${rank}$d_${kind}$
   #:endfor
+    procedure, private :: getCFAttributes_${kind}$
+    generic, public :: getCFAttributes => getCFAttributes_${kind}$
+    procedure, private :: setVariableFillValue_${kind}$
+    generic, public :: setFillValue => setVariableFillValue_${kind}$
+    procedure, private :: getVariableFillValue_${kind}$
+    generic, public :: getFillValue => getVariableFillValue_${kind}$
 #:endfor
-
-    procedure, private :: setVariableFillValueI8
-    procedure, private :: setVariableFillValueI16
-    procedure, private :: setVariableFillValueI32
-    procedure, private :: setVariableFillValuesp
-    procedure, private :: setVariableFillValuedp
-
-    procedure, private :: getVariableFillValueI8
-    procedure, private :: getVariableFillValueI16
-    procedure, private :: getVariableFillValueI32
-    procedure, private :: getVariableFillValuesp
-    procedure, private :: getVariableFillValuedp
 
     procedure, public :: getNoDimensions
 
@@ -217,20 +223,6 @@ module mo_netcdf
 
     procedure, public :: isUnlimited => isUnlimitedVariable
 
-
-    generic, public :: setFillValue => &
-            setVariableFillValueI8, &
-            setVariableFillValueI16, &
-            setVariableFillValueI32, &
-            setVariableFillValuesp, &
-            setVariableFillValuedp
-
-    generic, public :: getFillValue => &
-            getVariableFillValueI8, &
-            getVariableFillValueI16, &
-            getVariableFillValueI32, &
-            getVariableFillValuesp, &
-            getVariableFillValuedp
 
   end type NcVariable
 
@@ -707,7 +699,7 @@ contains
   end function isUnlimitedVariable
 
   logical function hasAttribute(self, name)
-    class(NcAttributable), intent(inout) :: self
+    class(NcAttributable), intent(in) :: self
     character(*), intent(in) :: name
     integer(i32) :: status
 
@@ -799,117 +791,76 @@ contains
     call check(nf90_rename_dim(self%parent%id, self%id, name), "Failed to rename dimension: " // self%getName())
   end subroutine renameDimension
 
-  subroutine setVariableFillValueI8(self, fvalue)
+#:def setFillValue_template(kind, type)
+  subroutine setVariableFillValue_${kind}$(self, fvalue)
     class(NcVariable), intent(inout) :: self
-    integer(i8), intent(in) :: fvalue
+    ${type}$, intent(in) :: fvalue
 
-    if (.not. self%hasAttribute("_FillValue")) then
-      call self%setAttribute("_FillValue", fvalue)
+    if (.not. self%hasAttribute(CF_FILL_VALUE)) then
+      call self%setAttribute(CF_FILL_VALUE, fvalue)
     end if
-  end subroutine setVariableFillValueI8
 
-  subroutine setVariableFillValueI16(self, fvalue)
-    class(NcVariable), intent(inout) :: self
-    integer(i16), intent(in) :: fvalue
+  end subroutine setVariableFillValue_${kind}$
 
-    if (.not. self%hasAttribute("_FillValue")) then
-      call self%setAttribute("_FillValue", fvalue)
-    end if
-  end subroutine setVariableFillValueI16
+#:enddef setFillValue_template
 
-  subroutine setVariableFillValueI32(self, fvalue)
-    class(NcVariable), intent(inout) :: self
-    integer(i32), intent(in) :: fvalue
+#:def getFillValue_template(kind, type)
+  subroutine getVariableFillValue_${kind}$(self, fvalue)
+    class(NcVariable), intent(in) :: self
+    ${type}$, intent(out) :: fvalue
 
-    if (.not. self%hasAttribute("_FillValue")) then
-      call self%setAttribute("_FillValue", fvalue)
-    end if
-  end subroutine setVariableFillValueI32
-
-  subroutine setVariableFillValuesp(self, fvalue)
-    class(NcVariable), intent(inout) :: self
-    real(sp), intent(in) :: fvalue
-
-    if (.not. self%hasAttribute("_FillValue")) then
-      call self%setAttribute("_FillValue", fvalue)
-    end if
-  end subroutine setVariableFillValuesp
-
-  subroutine setVariableFillValuedp(self, fvalue)
-    class(NcVariable), intent(inout) :: self
-    real(dp), intent(in) :: fvalue
-
-    if (.not. self%hasAttribute("_FillValue")) then
-      call self%setAttribute("_FillValue", fvalue)
-    end if
-  end subroutine setVariableFillValuedp
-
-  subroutine getVariableFillValueI8(self, fvalue)
-    class(NcVariable), intent(inout) :: self
-    integer(i8), intent(out) :: fvalue
-
-    if (self%hasAttribute("_FillValue")) then
-      call self%getAttribute("_FillValue", fvalue)
+    if (self%hasAttribute(CF_FILL_VALUE)) then
+      call self%getAttribute(CF_FILL_VALUE, fvalue)
     else
-      fvalue = NF90_FILL_BYTE
+      $: '      fvalue = ' + {'i8': 'NF90_FILL_BYTE', 'i16': 'NF90_FILL_SHORT', 'i32': 'NF90_FILL_INT', 'i64': 'NF90_FILL_INT', 'sp': 'NF90_FILL_FLOAT', 'dp': 'NF90_FILL_DOUBLE', }[kind]
     end if
-  end subroutine getVariableFillValueI8
 
-  subroutine getVariableFillValueI16(self, fvalue)
-    class(NcVariable), intent(inout) :: self
-    integer(i16), intent(out) :: fvalue
+  end subroutine getVariableFillValue_${kind}$
 
-    if (self%hasAttribute("_FillValue")) then
-      call self%getAttribute("_FillValue", fvalue)
-    else
-      fvalue = NF90_FILL_SHORT
+#:enddef getFillValue_template
+
+#:def getCFAttributes_template(kind, type)
+  subroutine getCFAttributes_${kind}$(self, minValue, maxValue, fillValue, flagMissing)
+    class(NcVariable), intent(in) :: self
+    ${type}$, intent(out) :: minValue, maxValue, fillValue
+    integer(i32), intent(out) :: flagMissing
+
+    ${type}$ :: valid_range(2)
+
+    flagMissing = CF_USE_FILL_VALUE
+    call self%getFillValue(fillValue)
+    if (self%hasAttribute(CF_VALID_RANGE)) then
+      flagMissing = CF_USE_VALID_RANGE
+      call self%getAttribute(CF_VALID_RANGE, valid_range)
+      minValue = valid_range(1)
+      maxValue = valid_range(2)
+    else if (self%hasAttribute(CF_VALID_MIN)) then
+      flagMissing = CF_USE_VALID_MIN
+      call self%getAttribute(CF_VALID_MIN, minValue)
+    else if (self%hasAttribute(CF_VALID_MAX)) then
+      flagMissing = CF_USE_VALID_MAX
+      call self%getAttribute(CF_VALID_MAX, maxValue)
     end if
-  end subroutine getVariableFillValueI16
 
-  subroutine getVariableFillValueI32(self, fvalue)
-    class(NcVariable), intent(inout) :: self
-    integer(i32), intent(out) :: fvalue
+  end subroutine getCFAttributes_${kind}$
 
-    if (self%hasAttribute("_FillValue")) then
-      call self%getAttribute("_FillValue", fvalue)
-    else
-      fvalue = NF90_FILL_INT
-    end if
-  end subroutine getVariableFillValueI32
-
-  subroutine getVariableFillValuesp(self, fvalue)
-    class(NcVariable), intent(inout) :: self
-    real(sp), intent(out) :: fvalue
-
-    if (self%hasAttribute("_FillValue")) then
-      call self%getAttribute("_FillValue", fvalue)
-    else
-      fvalue = NF90_FILL_FLOAT
-    end if
-  end subroutine getVariableFillValuesp
-
-  subroutine getVariableFillValuedp(self, fvalue)
-    class(NcVariable), intent(inout) :: self
-    real(dp), intent(out) :: fvalue
-
-    if (self%hasAttribute("_FillValue")) then
-      call self%getAttribute("_FillValue", fvalue)
-    else
-      fvalue = NF90_FILL_DOUBLE
-    end if
-  end subroutine getVariableFillValuedp
+#:enddef getCFAttributes_template
 
 #:def getData_template(kind, type, rank)
-  subroutine getData_${rank}$d_${kind}$(self, data, start, cnt, stride, map)
+  subroutine getData_${rank}$d_${kind}$(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     ${type}$, intent(out), allocatable :: data${ranksuffix(rank)}$
     integer(i32), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask${ranksuffix(rank)}$
+
+    integer(i32) :: flagMissing
+    ${type}$ :: fillValue, minValue, maxValue
 #: if rank > 0
     integer(i32), allocatable :: slcshape(:), datashape(:)
 
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
-$: 'allocate(data(' + ('datashape({}), '*rank).format(*list(range(1, rank+1)))[:-2] + '))'
+$: '      allocate(data(' + ('datashape({}), '*rank).format(*list(range(1, rank+1)))[:-2] + '))'
     call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
 #: else
@@ -919,6 +870,36 @@ $: 'allocate(data(' + ('datashape({}), '*rank).format(*list(range(1, rank+1)))[:
             "Could not read data from variable: " // trim(self%getName()))
     data = tmp(1)
 #: endif
+    if (present(mask)) then
+#: if rank > 0
+$: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+1)))[:-2] + '))'
+#: endif
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+#: if kind in INT_KINDS
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+#: else
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = gt(data, minValue)
+      case(CF_USE_VALID_MAX)
+        mask = lt(data, maxValue)
+      case(CF_USE_VALID_RANGE)
+        mask = lt(data, maxValue) .and. gt(data, minValue)
+#: endif
+      end select
+    end if
 
   end subroutine getData_${rank}$d_${kind}$
 
@@ -946,6 +927,9 @@ $: 'allocate(data(' + ('datashape({}), '*rank).format(*list(range(1, rank+1)))[:
     $:getData_template(kind, type, rank)
     $:setData_template(kind, type, rank)
   #:endfor
+  $:getFillValue_template(kind, type)
+  $:getCFAttributes_template(kind, type)
+  $:setFillValue_template(kind, type)
 #:endfor
 
   function getSlicingShape(self, instart, incnt, instride) result(out)
