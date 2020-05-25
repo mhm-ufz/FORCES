@@ -1881,7 +1881,6 @@ contains
       allocate(mask(datashape(1), datashape(2)))
       mask =.true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
-      print*, 'getting mask:', minValue, maxValue, fillValue, flagMissing
       select case(flagMissing)
       case(CF_USE_FILL_VALUE)
         mask = ne(data, fillValue)
