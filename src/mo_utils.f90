@@ -33,7 +33,7 @@ MODULE mo_utils
 
   ! Copyright 2014 Matthias Cuntz, Juliane Mai
 
-  USE mo_kind, only : sp, dp, i4
+  USE mo_kind, only : sp, dp, i4, i8, i1
   USE mo_string_utils, only : toupper
 
   IMPLICIT NONE
@@ -57,9 +57,14 @@ MODULE mo_utils
   PUBLIC :: relational_operator_dp, relational_operator_sp ! abstract interface for relational operators
 
   public :: flip ! flips a dimension of an array
+  public :: unpack_chunkwise ! flips a dimension of an array
 
   interface flip
     procedure flip_1D_dp, flip_2D_dp, flip_3D_dp, flip_4D_dp, flip_1D_i4, flip_2D_i4, flip_3D_i4, flip_4D_i4
+  end interface
+
+  interface unpack_chunkwise
+    procedure unpack_chunkwise_i1, unpack_chunkwise_dp
   end interface
 
   ! ------------------------------------------------------------------
@@ -1349,5 +1354,88 @@ CONTAINS
     end if
     call move_alloc(temp_data, data)
   end subroutine flip_4D_i4
+
+  function unpack_chunkwise_dp(vector, mask, field, chunksizeArg) result(unpacked)
+  !< this is a chunkwise application of the intrinsic unpack function
+  !< it became necessary as the unpack intrinsic can handle only arrays
+  !< with size smaller than huge(default_integer_kind)...
+  !< it has the following restrictions:
+  !<   - vector must be of type dp
+  !<   - mask must have rank 1
+  !<   - field must be a scalar
+    real(dp), dimension(:), intent(in) :: vector
+    logical, dimension(:), intent(in) :: mask
+    real(dp), intent(in) :: field
+    real(dp), dimension(size(mask, kind=i8)) :: unpacked
+    integer(i8), intent(in), optional :: chunksizeArg
+
+    integer(i8) :: i, chunksize, indexMin, indexMax, currentCounts, counts
+
+    if (present(chunksizeArg)) then
+      chunksize = chunksizeArg
+    else
+      chunksize = int(huge(0_i4), i8)
+    end if
+    ! init some values
+    i = 1_i8
+    indexMax = i * chunksize
+    currentCounts = 1_i8
+    do while (indexMax < size(mask, kind=i8))
+      ! get the indices for the mask
+      indexMin = (i-1) * chunksize + 1_i8
+      indexMax = minval([i * chunksize, size(mask, kind=i8)])
+      ! this is the indexer for the vector
+      counts = count(mask(indexMin: indexMax), kind=i8)
+      ! unpack slices of maximum size
+      unpacked(indexMin: indexMax) = unpack(vector(currentCounts: currentCounts + counts - 1_i8), &
+                                                mask(indexMin: indexMax), &
+                                                field)
+      ! advance the counters
+      currentCounts = currentCounts + counts
+      i = i + 1_i8
+    end do
+
+  end function unpack_chunkwise_dp
+
+  function unpack_chunkwise_i1(vector, mask, field, chunksizeArg) result(unpacked)
+  !< this is a chunkwise application of the intrinsic unpack function
+  !< it has the following restrictions:
+  !<   - vector must be of type i1
+  !<   - mask must have rank 1
+  !<   - field must be a scalar
+    integer(i1), dimension(:), intent(in) :: vector
+    logical, dimension(:), intent(in) :: mask
+    integer(i1), intent(in) :: field
+    integer(i1), dimension(size(mask, kind=i8)) :: unpacked
+    integer(i8), intent(in), optional :: chunksizeArg
+
+    integer(i8) :: i, chunksize, indexMin, indexMax, currentCounts, counts
+
+    if (present(chunksizeArg)) then
+      chunksize = chunksizeArg
+    else
+      chunksize = int(huge(0_i4), i8)
+    end if
+    ! init some values
+    i = 1_i8
+    indexMax = i * chunksize
+    currentCounts = 1_i8
+    do while (indexMax < size(mask, kind=i8))
+      ! get the indices for the mask
+      indexMin = (i-1) * chunksize + 1_i8
+      indexMax = minval([i * chunksize, size(mask, kind=i8)])
+      ! this is the indexer for the vector
+      counts = count(mask(indexMin: indexMax), kind=i8)
+      ! unpack slices of maximum size
+      unpacked(indexMin: indexMax) = unpack(vector(currentCounts: currentCounts + counts - 1_i8), &
+                                                mask(indexMin: indexMax), &
+                                                field)
+      ! advance the counters
+      currentCounts = currentCounts + counts
+      i = i + 1_i8
+    end do
+
+  end function unpack_chunkwise_i1
+
 
 END MODULE mo_utils
