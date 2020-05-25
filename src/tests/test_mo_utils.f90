@@ -27,8 +27,8 @@ program test_utils
   integer(i4) :: ii1
   integer(i4), dimension(5) :: ii5
 
-  real(dp), dimension(:), allocatable :: dalloc, ralloc
-  integer(i1), dimension(:), allocatable :: dalloc_i1, ralloc_i1
+  real(dp), dimension(:), allocatable :: dalloc
+  ! integer(i1), dimension(:), allocatable :: dalloc_i1, ralloc_i1
   logical, dimension(:), allocatable :: lalloc
 
   integer(i4) :: i
