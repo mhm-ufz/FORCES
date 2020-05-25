@@ -1752,6 +1752,9 @@ contains
 
     flagMissing = CF_USE_FILL_VALUE
     call self%getFillValue(fillValue)
+    if (ieee_is_nan(fillValue)) then
+      flagMissing = CF_USE_NAN
+    end if
     if (self%hasAttribute(CF_VALID_RANGE)) then
       flagMissing = CF_USE_VALID_RANGE
       call self%getAttribute(CF_VALID_RANGE, valid_range)
@@ -2103,6 +2106,9 @@ contains
 
     flagMissing = CF_USE_FILL_VALUE
     call self%getFillValue(fillValue)
+    if (ieee_is_nan(fillValue)) then
+      flagMissing = CF_USE_NAN
+    end if
     if (self%hasAttribute(CF_VALID_RANGE)) then
       flagMissing = CF_USE_VALID_RANGE
       call self%getAttribute(CF_VALID_RANGE, valid_range)
