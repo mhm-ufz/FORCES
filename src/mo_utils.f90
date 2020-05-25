@@ -1388,9 +1388,15 @@ CONTAINS
       counts = count(mask(indexMin: indexMax), kind=i8)
       ! unpack slices of maximum size
       print*, currentCounts, currentCounts + counts - 1_i8, indexMin, indexMax
-      unpacked(indexMin: indexMax) = unpack(vector(currentCounts: currentCounts + counts - 1_i8), &
-                                                mask(indexMin: indexMax), &
-                                                field)
+      if (counts == (indexMax - indexMin + 1_i8)) then
+        unpacked(indexMin: indexMax) = vector(currentCounts: currentCounts + counts - 1_i8)
+      else if (counts == 0_i8) then
+        unpacked(indexMin: indexMax) = field
+      else
+        unpacked(indexMin: indexMax) = unpack(vector(currentCounts: currentCounts + counts - 1_i8), &
+                                                  mask(indexMin: indexMax), &
+                                                  field)
+      end if
       ! advance the counters
       currentCounts = currentCounts + counts
       i = i + 1_i8
