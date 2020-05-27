@@ -1387,7 +1387,6 @@ CONTAINS
       ! this is the indexer for the vector
       counts = count(mask(indexMin: indexMax), kind=i8)
       ! unpack slices of maximum size
-      print*, currentCounts, currentCounts + counts - 1_i8, indexMin, indexMax
       if (counts == (indexMax - indexMin + 1_i8)) then
         unpacked(indexMin: indexMax) = vector(currentCounts: currentCounts + counts - 1_i8)
       else if (counts == 0_i8) then
