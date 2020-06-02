@@ -1,6 +1,7 @@
 set (LIB_NAME lightweight_fortran_lib)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/utils.cmake)
+file(GLOB sources ./mo_*.f90)
 # --- find preprocessor
 find_program(FYPP fypp)
 if(NOT FYPP)
@@ -20,9 +21,9 @@ else()
 
 	### Pre-process: .fpp -> .f90 via Fypp
 	fypp_f90("${fyppFlags}" "${fppFiles}" fyppOutFiles)
+	list(FILTER sources EXCLUDE REGEX ".*mo_netcdf.f90$")
 endif()
 
-file(GLOB sources ./mo_*.f90)
 add_library ( ${LIB_NAME} ${sources} ${fyppOutFiles})
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
