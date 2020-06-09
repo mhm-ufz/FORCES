@@ -61,7 +61,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
     # set the preprocessor
-    target_compile_definitions(${LIB_NAME} PRIVATE "-DpgiFortran")
+    target_compile_definitions(${LIB_NAME} PRIVATE "-DPGI")
 endif()
 if(CMAKE_ABSOFT)
     # set the preprocessor
