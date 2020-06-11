@@ -44,7 +44,7 @@
 
 #! Integer kinds to be considered during templating
 #!:set INT_KINDS = ["int8", "int16", "int32", "int64"]
-#:set INT_KINDS = ["i8", "i16", "i32", "i64"]
+#:set INT_KINDS = ["i1", "i2", "i4", "i8"]
 
 #! Integer types to be considere during templating
 #:set INT_TYPES = ["integer({})".format(k) for k in INT_KINDS]
