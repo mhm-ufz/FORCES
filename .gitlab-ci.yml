@@ -1,0 +1,129 @@
+# to use the env-var "GIT_CLONE_PATH", set the following in
+# ./gitlab-runner/config.toml under [[runners]]:
+#   [runners.custom_build_dir]
+#     enabled = true
+# This will prevent git clone conflicts for jobs ran in parallel
+
+stages:
+  - info
+  - test
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_REF_NAME =~ /-wip$/
+      when: never
+    - when: always
+
+variables:
+  GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+  MAKE_FLAGS: -j 4
+
+show-env-vars:
+  stage: info
+  variables:
+    SEP: "##################################################################"
+    S00: "commit date - "
+    S01: "project: ${CI_PROJECT_PATH}"
+    S02: "branch: ${CI_COMMIT_REF_NAME}"
+    S03: "commit: ${CI_COMMIT_SHA}"
+    S04: "commit msg: ${CI_COMMIT_MESSAGE}"
+    S05: "clone base path: "
+    S06: "runner token: ${CI_RUNNER_SHORT_TOKEN}"
+  script:
+    - echo -e "${SEP}\n${S00}$(date)\n${SEP}\n${S01}\n${S02}\n${S03}\n${S04}\n${SEP}\n${S05}${GIT_CLONE_PATH}\n${S06}\n${SEP}"
+
+# how the job build directory is erected
+.setup_build: &setup_build_dir
+  - mkdir -p $BUILD_DIR
+  - cd $BUILD_DIR
+
+# make command
+.make: &make
+  - make $MAKE_FLAGS
+
+# make test command
+.make_test: &make_test
+  - make $MAKE_FLAGS test
+
+# cleanup after scripts
+.cleanup: &cleanup
+  - cd -
+
+# waiting on https://gitlab.com/groups/gitlab-org/-/epics/3589
+# until this is fixed, we need to additionally set the CMAKE_FLAGS in the jobs as the expansion does not work
+# debug variables
+.debug_vars: &debug_vars
+  BUILD_DIR: build_debug
+  CMAKE_FLAGS: '$CMAKE_FLAGS -DCMAKE_BUILD_TYPE=Debug'
+
+# release variables
+.release_vars: &release_vars
+  BUILD_DIR: build_release
+  CMAKE_FLAGS: '$CMAKE_FLAGS -DCMAKE_BUILD_TYPE=Release'
+
+# #################
+# ### TEMPLATES ###
+# #################
+
+# template for test jobs
+.test_template: &test_template
+  stage: test
+  script:
+    - source $MODULE_LOAD_SCRIPT
+    - *setup_build_dir
+    - cmake $CMAKE_FLAGS ..
+    - *make
+    - *make_test
+    - *cleanup
+  artifacts:
+    when: always
+    paths:
+    - $BUILD_DIR/Testing/Temporary
+
+# ##################
+# ### BUILD JOBS ###
+# ##################
+
+# ######################
+# ### ANALYTICS JOBS ###
+# #####################
+
+# #################
+# ### TEST JOBS ###
+# #################
+
+# # NAG fails on lightweight_lib
+# test-nag62-debug:
+#   needs:
+#     - job: build-nag62-debug
+#       artifacts: true
+#   variables:
+#     <<: *debug_vars
+#     MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.nagfor62
+#     CMAKE_FLAGS: '-DCMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX=64 -DCMAKE_BUILD_TYPE=Debug'
+#   <<: *test_template
+
+test-nag62-release:
+  variables:
+    <<: *release_vars
+    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.nagfor62
+    CMAKE_FLAGS: '-DCMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX=64 -DCMAKE_BUILD_TYPE=Release'
+  <<: *test_template
+
+test-gfortran83MPI-release:
+  variables:
+    <<: *release_vars
+    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.gfortran83MPI
+    CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Release'
+  <<: *test_template
+
+test-gfortran83MPI-debug:
+  variables:
+    <<: *debug_vars
+    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.gfortran83MPI
+    CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Debug'
+  <<: *test_template
+
+# ###################
+# ### DEPLOY JOBS ###
+# ###################
