@@ -50,7 +50,7 @@ MODULE mo_kind
   use, intrinsic :: iso_c_binding, only: dp=>c_double
   use, intrinsic :: iso_c_binding, only: spc=>c_float_complex
   use, intrinsic :: iso_c_binding, only: dpc=>c_double_complex
-  use, intrinsic :: iso_c_binding, only: qp=>c_float128
+  ! use, intrinsic :: iso_c_binding, only: qp=>c_float128
   use, intrinsic :: iso_c_binding, only: i2=>c_short
   use, intrinsic :: iso_c_binding, only: i4=>c_int
   use, intrinsic :: iso_c_binding, only: i8=>c_long_long
@@ -66,7 +66,7 @@ implicit none
 
   private
   !public sp, dp, qp, int8, int16, int32, int64
-  public sp, dp, qp, i1, i2, i4, i8, lgt
+  public sp, dp, i1, i2, i4, i8, lgt
 
   integer, parameter :: i1 = selected_int_kind(2)
   integer, parameter :: lgt = kind(.true.)
