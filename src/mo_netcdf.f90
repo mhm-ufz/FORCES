@@ -24,7 +24,7 @@ module mo_netcdf
   ! -------
   ! GNU Lesser General Public License http://www.gnu.org/licenses/
 
-  use mo_kind, only: sp, dp, qp, i1, i2, i4, i8
+  use mo_kind, only: sp, dp, i1, i2, i4, i8
   use mo_utils, only: gt, lt, ne
   use ieee_arithmetic, only : ieee_is_nan
 

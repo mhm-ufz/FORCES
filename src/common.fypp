@@ -34,7 +34,7 @@
 #:set REAL_KINDS_TYPES = list(zip(REAL_KINDS, REAL_TYPES))
 
 #! Complex kinds to be considered during templating
-#:set CMPLX_KINDS = ["sp", "dp", "qp"]
+#:set CMPLX_KINDS = ["spc", "dpc"]
 
 #! Complex types to be considere during templating
 #:set CMPLX_TYPES = ["complex({})".format(k) for k in CMPLX_KINDS]
