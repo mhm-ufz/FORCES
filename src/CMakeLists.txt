@@ -77,3 +77,4 @@ target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 enable_testing()
 add_subdirectory(./tests)
+add_subdirectory(./pf_tests)
