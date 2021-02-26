@@ -8,7 +8,7 @@ project(lightweight_fortran_lib Fortran)
 # automatically enables testing
 include(CTest)
 
-include(${CMAKE_SOURCE_DIR}/cmake/utils.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/utils.cmake)
 # The variable "CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT" can be set before executing cmake via a cache command:
 # $cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT:STRING=ON ..
 # or cache file:
@@ -43,7 +43,7 @@ add_subdirectory(./src)
 # Get version (semantic versioning)
 # C.F. semver.org
 #----------------------------------
-file ( STRINGS "${CMAKE_SOURCE_DIR}/.VERSION" VERSION )
+file ( STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/.VERSION" VERSION )
 string( REPLACE "." ";" VERSION_LIST ${VERSION} )
 list(GET VERSION_LIST 0 VERSION_MAJOR)
 list(GET VERSION_LIST 1 VERSION_MINOR)
