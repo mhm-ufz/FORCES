@@ -24,14 +24,10 @@ module mo_netcdf
   ! -------
   ! GNU Lesser General Public License http://www.gnu.org/licenses/
 
-  use mo_kind, only: sp, dp, qp, i1, i2, i4, i8
-  use mo_utils, only: gt, lt, ne
+  use mo_kind, only: sp, dp, i1, i2, i4, i8
+  use mo_utils, only: ne
   use ieee_arithmetic, only : ieee_is_nan
 
-  ! use, intrinsic :: iso_c_binding, only: i1=>c_int8_t
-  ! use, intrinsic :: iso_c_binding, only: i16=>c_short
-  ! use, intrinsic :: iso_c_binding, only: i32=>c_int
-  ! use, intrinsic :: iso_c_binding, only: i64=>c_long_long
   use netcdf, only : &
           nf90_open, nf90_close, nf90_strerror, nf90_def_dim, nf90_def_var, &
           nf90_put_var, nf90_get_var, nf90_put_att, nf90_get_att, &
@@ -163,10 +159,10 @@ module mo_netcdf
 
     ! setter
     procedure, public  :: setGroup
-    !procedure, private :: setDimension_1Dbounds
-    !procedure, private :: setDimension_2Dbounds
-    procedure, private :: setDimension_ => setDimension_i4_
-    procedure, public :: setDimension => setDimension_i4
+    procedure, public  :: setDimension
+    procedure, public  :: setCoordinate
+    procedure, private :: set_scrip_dimension
+    procedure, private :: set_1d_coordinate_variable
     procedure, private :: setVariableWithTypes
     procedure, private :: setVariableWithNames
     procedure, private :: setVariableWithIds
@@ -256,6 +252,38 @@ module mo_netcdf
     generic, public :: setData => setData_6d_sp
     procedure, private :: getData_6d_sp
     generic, public :: getData => getData_6d_sp
+    procedure, private :: setData_7d_sp
+    generic, public :: setData => setData_7d_sp
+    procedure, private :: getData_7d_sp
+    generic, public :: getData => getData_7d_sp
+    procedure, private :: setData_8d_sp
+    generic, public :: setData => setData_8d_sp
+    procedure, private :: getData_8d_sp
+    generic, public :: getData => getData_8d_sp
+    procedure, private :: setData_9d_sp
+    generic, public :: setData => setData_9d_sp
+    procedure, private :: getData_9d_sp
+    generic, public :: getData => getData_9d_sp
+    procedure, private :: setData_10d_sp
+    generic, public :: setData => setData_10d_sp
+    procedure, private :: getData_10d_sp
+    generic, public :: getData => getData_10d_sp
+    procedure, private :: setData_11d_sp
+    generic, public :: setData => setData_11d_sp
+    procedure, private :: getData_11d_sp
+    generic, public :: getData => getData_11d_sp
+    procedure, private :: setData_12d_sp
+    generic, public :: setData => setData_12d_sp
+    procedure, private :: getData_12d_sp
+    generic, public :: getData => getData_12d_sp
+    procedure, private :: setData_13d_sp
+    generic, public :: setData => setData_13d_sp
+    procedure, private :: getData_13d_sp
+    generic, public :: getData => getData_13d_sp
+    procedure, private :: setData_14d_sp
+    generic, public :: setData => setData_14d_sp
+    procedure, private :: getData_14d_sp
+    generic, public :: getData => getData_14d_sp
     procedure, private :: getCFAttributes_sp
     generic, public :: getCFAttributes => getCFAttributes_sp
     procedure, private :: setVariableFillValue_sp
@@ -290,6 +318,38 @@ module mo_netcdf
     generic, public :: setData => setData_6d_dp
     procedure, private :: getData_6d_dp
     generic, public :: getData => getData_6d_dp
+    procedure, private :: setData_7d_dp
+    generic, public :: setData => setData_7d_dp
+    procedure, private :: getData_7d_dp
+    generic, public :: getData => getData_7d_dp
+    procedure, private :: setData_8d_dp
+    generic, public :: setData => setData_8d_dp
+    procedure, private :: getData_8d_dp
+    generic, public :: getData => getData_8d_dp
+    procedure, private :: setData_9d_dp
+    generic, public :: setData => setData_9d_dp
+    procedure, private :: getData_9d_dp
+    generic, public :: getData => getData_9d_dp
+    procedure, private :: setData_10d_dp
+    generic, public :: setData => setData_10d_dp
+    procedure, private :: getData_10d_dp
+    generic, public :: getData => getData_10d_dp
+    procedure, private :: setData_11d_dp
+    generic, public :: setData => setData_11d_dp
+    procedure, private :: getData_11d_dp
+    generic, public :: getData => getData_11d_dp
+    procedure, private :: setData_12d_dp
+    generic, public :: setData => setData_12d_dp
+    procedure, private :: getData_12d_dp
+    generic, public :: getData => getData_12d_dp
+    procedure, private :: setData_13d_dp
+    generic, public :: setData => setData_13d_dp
+    procedure, private :: getData_13d_dp
+    generic, public :: getData => getData_13d_dp
+    procedure, private :: setData_14d_dp
+    generic, public :: setData => setData_14d_dp
+    procedure, private :: getData_14d_dp
+    generic, public :: getData => getData_14d_dp
     procedure, private :: getCFAttributes_dp
     generic, public :: getCFAttributes => getCFAttributes_dp
     procedure, private :: setVariableFillValue_dp
@@ -324,6 +384,38 @@ module mo_netcdf
     generic, public :: setData => setData_6d_i1
     procedure, private :: getData_6d_i1
     generic, public :: getData => getData_6d_i1
+    procedure, private :: setData_7d_i1
+    generic, public :: setData => setData_7d_i1
+    procedure, private :: getData_7d_i1
+    generic, public :: getData => getData_7d_i1
+    procedure, private :: setData_8d_i1
+    generic, public :: setData => setData_8d_i1
+    procedure, private :: getData_8d_i1
+    generic, public :: getData => getData_8d_i1
+    procedure, private :: setData_9d_i1
+    generic, public :: setData => setData_9d_i1
+    procedure, private :: getData_9d_i1
+    generic, public :: getData => getData_9d_i1
+    procedure, private :: setData_10d_i1
+    generic, public :: setData => setData_10d_i1
+    procedure, private :: getData_10d_i1
+    generic, public :: getData => getData_10d_i1
+    procedure, private :: setData_11d_i1
+    generic, public :: setData => setData_11d_i1
+    procedure, private :: getData_11d_i1
+    generic, public :: getData => getData_11d_i1
+    procedure, private :: setData_12d_i1
+    generic, public :: setData => setData_12d_i1
+    procedure, private :: getData_12d_i1
+    generic, public :: getData => getData_12d_i1
+    procedure, private :: setData_13d_i1
+    generic, public :: setData => setData_13d_i1
+    procedure, private :: getData_13d_i1
+    generic, public :: getData => getData_13d_i1
+    procedure, private :: setData_14d_i1
+    generic, public :: setData => setData_14d_i1
+    procedure, private :: getData_14d_i1
+    generic, public :: getData => getData_14d_i1
     procedure, private :: getCFAttributes_i1
     generic, public :: getCFAttributes => getCFAttributes_i1
     procedure, private :: setVariableFillValue_i1
@@ -358,6 +450,38 @@ module mo_netcdf
     generic, public :: setData => setData_6d_i2
     procedure, private :: getData_6d_i2
     generic, public :: getData => getData_6d_i2
+    procedure, private :: setData_7d_i2
+    generic, public :: setData => setData_7d_i2
+    procedure, private :: getData_7d_i2
+    generic, public :: getData => getData_7d_i2
+    procedure, private :: setData_8d_i2
+    generic, public :: setData => setData_8d_i2
+    procedure, private :: getData_8d_i2
+    generic, public :: getData => getData_8d_i2
+    procedure, private :: setData_9d_i2
+    generic, public :: setData => setData_9d_i2
+    procedure, private :: getData_9d_i2
+    generic, public :: getData => getData_9d_i2
+    procedure, private :: setData_10d_i2
+    generic, public :: setData => setData_10d_i2
+    procedure, private :: getData_10d_i2
+    generic, public :: getData => getData_10d_i2
+    procedure, private :: setData_11d_i2
+    generic, public :: setData => setData_11d_i2
+    procedure, private :: getData_11d_i2
+    generic, public :: getData => getData_11d_i2
+    procedure, private :: setData_12d_i2
+    generic, public :: setData => setData_12d_i2
+    procedure, private :: getData_12d_i2
+    generic, public :: getData => getData_12d_i2
+    procedure, private :: setData_13d_i2
+    generic, public :: setData => setData_13d_i2
+    procedure, private :: getData_13d_i2
+    generic, public :: getData => getData_13d_i2
+    procedure, private :: setData_14d_i2
+    generic, public :: setData => setData_14d_i2
+    procedure, private :: getData_14d_i2
+    generic, public :: getData => getData_14d_i2
     procedure, private :: getCFAttributes_i2
     generic, public :: getCFAttributes => getCFAttributes_i2
     procedure, private :: setVariableFillValue_i2
@@ -392,6 +516,38 @@ module mo_netcdf
     generic, public :: setData => setData_6d_i4
     procedure, private :: getData_6d_i4
     generic, public :: getData => getData_6d_i4
+    procedure, private :: setData_7d_i4
+    generic, public :: setData => setData_7d_i4
+    procedure, private :: getData_7d_i4
+    generic, public :: getData => getData_7d_i4
+    procedure, private :: setData_8d_i4
+    generic, public :: setData => setData_8d_i4
+    procedure, private :: getData_8d_i4
+    generic, public :: getData => getData_8d_i4
+    procedure, private :: setData_9d_i4
+    generic, public :: setData => setData_9d_i4
+    procedure, private :: getData_9d_i4
+    generic, public :: getData => getData_9d_i4
+    procedure, private :: setData_10d_i4
+    generic, public :: setData => setData_10d_i4
+    procedure, private :: getData_10d_i4
+    generic, public :: getData => getData_10d_i4
+    procedure, private :: setData_11d_i4
+    generic, public :: setData => setData_11d_i4
+    procedure, private :: getData_11d_i4
+    generic, public :: getData => getData_11d_i4
+    procedure, private :: setData_12d_i4
+    generic, public :: setData => setData_12d_i4
+    procedure, private :: getData_12d_i4
+    generic, public :: getData => getData_12d_i4
+    procedure, private :: setData_13d_i4
+    generic, public :: setData => setData_13d_i4
+    procedure, private :: getData_13d_i4
+    generic, public :: getData => getData_13d_i4
+    procedure, private :: setData_14d_i4
+    generic, public :: setData => setData_14d_i4
+    procedure, private :: getData_14d_i4
+    generic, public :: getData => getData_14d_i4
     procedure, private :: getCFAttributes_i4
     generic, public :: getCFAttributes => getCFAttributes_i4
     procedure, private :: setVariableFillValue_i4
@@ -426,6 +582,38 @@ module mo_netcdf
     generic, public :: setData => setData_6d_i8
     procedure, private :: getData_6d_i8
     generic, public :: getData => getData_6d_i8
+    procedure, private :: setData_7d_i8
+    generic, public :: setData => setData_7d_i8
+    procedure, private :: getData_7d_i8
+    generic, public :: getData => getData_7d_i8
+    procedure, private :: setData_8d_i8
+    generic, public :: setData => setData_8d_i8
+    procedure, private :: getData_8d_i8
+    generic, public :: getData => getData_8d_i8
+    procedure, private :: setData_9d_i8
+    generic, public :: setData => setData_9d_i8
+    procedure, private :: getData_9d_i8
+    generic, public :: getData => getData_9d_i8
+    procedure, private :: setData_10d_i8
+    generic, public :: setData => setData_10d_i8
+    procedure, private :: getData_10d_i8
+    generic, public :: getData => getData_10d_i8
+    procedure, private :: setData_11d_i8
+    generic, public :: setData => setData_11d_i8
+    procedure, private :: getData_11d_i8
+    generic, public :: getData => getData_11d_i8
+    procedure, private :: setData_12d_i8
+    generic, public :: setData => setData_12d_i8
+    procedure, private :: getData_12d_i8
+    generic, public :: getData => getData_12d_i8
+    procedure, private :: setData_13d_i8
+    generic, public :: setData => setData_13d_i8
+    procedure, private :: getData_13d_i8
+    generic, public :: getData => getData_13d_i8
+    procedure, private :: setData_14d_i8
+    generic, public :: setData => setData_14d_i8
+    procedure, private :: getData_14d_i8
+    generic, public :: getData => getData_14d_i8
     procedure, private :: getCFAttributes_i8
     generic, public :: getCFAttributes => getCFAttributes_i8
     procedure, private :: setVariableFillValue_i8
@@ -666,145 +854,177 @@ contains
     end if
   end function isUnlimitedDimension
 
-  function setDimension_i4_(self, name, length)
+  function set_scrip_dimension(self, centersDim1, centersDim2, cornersDim1, cornersDim2, subDimSizes, units) &
+          result(ncDim)
+    class(NcGroup), intent(in) :: self
+    real(dp)      , intent(in), dimension(:) :: centersDim1
+    real(dp)      , intent(in), dimension(:) :: centersDim2
+    real(dp)      , intent(in), dimension(:,:) :: cornersDim1
+    real(dp)      , intent(in), dimension(:,:) :: cornersDim2
+    integer(i4)   , intent(in), dimension(:) :: subDimSizes
+    character(256), intent(in) :: units
+    type(NcDimension) :: ncDim
+
+    type(NcDimension)          :: cornerDim, rankDim
+    type(NcVariable)           :: ncVar
+    integer(i4), allocatable, dimension(:) :: imask_data
+
+    ! set the new ncDimension (integer values and name)
+    ncDim = self%setDimension('grid_size', size(centersDim1))
+    cornerDim = self%setDimension('grid_corners', size(cornersDim1, 1))
+    rankDim = self%setDimension('grid_rank', size(subDimSizes))
+    ! here we set the reference to ncDimension for labelled ncDimension which in fact is a variable
+    ncVar = self%setVariable('grid_center_lon', "f64", [ncDim])
+    call ncVar%setData(centersDim1)
+    call ncVar%setAttribute('units', trim(units))
+    ncVar = self%setVariable('grid_center_lat', "f64", [ncDim])
+    call ncVar%setData(centersDim2)
+    call ncVar%setAttribute('units', trim(units))
+    ncVar = self%setVariable('grid_corner_lon', "f64", [cornerDim, ncDim])
+    call ncVar%setData(cornersDim1)
+    call ncVar%setAttribute('units', trim(units))
+    ncVar = self%setVariable('grid_corner_lat', "f64", [cornerDim, ncDim])
+    call ncVar%setData(cornersDim2)
+    call ncVar%setAttribute('units', trim(units))
+    ncVar = self%setVariable('grid_dims', "i32", [rankDim])
+    call ncVar%setData(subDimSizes)
+    ! set all values to 1 (True) for mask
+    ncVar = self%setVariable('grid_imask', "i32", [ncDim])
+    allocate(imask_data(size(centersDim1)))
+    imask_data = 1_i4
+    call ncVar%setData(imask_data)
+    deallocate(imask_data)
+    call ncVar%setAttribute('units', 'unitless')
+
+  end function set_scrip_dimension
+
+  subroutine set_1D_coordinate_variable(self, name, ncDim, bounds, referenceArg, ncVar)
     class(NcGroup), intent(in) :: self
     character(*)  , intent(in) :: name
-    integer(i4)   , intent(in), optional :: length
+    type(NcDimension), intent(in) :: ncDim
+    real(dp)      , intent(in), dimension(:) :: bounds
+    integer(i4)   , intent(in), optional :: referenceArg
+    type(NcVariable):: ncVar
 
-    type(NcDimension)          :: setDimension_i4_
-    integer(i4)                :: id, dimlength
+    type(NcDimension) :: bndsDim
+    integer(i8) :: dimLength, iBound
+    integer(i4) :: reference, iAtt
+    character(256) :: dimBoundName
+    real(dp), allocatable, dimension(:, :) :: boundData
 
-    dimlength = NF90_UNLIMITED
+    ! init
+    dimLength = size(bounds, kind=i8)
+    reference = 1_i4
+    if (present(referenceArg)) then
+      reference = referenceArg
+    end if
+    ! here we set the reference to ncDimension for labelled ncDimension which in fact is a variable
+    ncVar = self%setVariable(name, "f64", [ncDim])
+    ! write the data based on the type of reference
+    select case(reference)
+    case(0_i4)
+      ! set the start values
+      call ncVar%setData(bounds(1_i8:dimLength - 1_i8))
+    case(1_i4)
+      ! set the center values
+      call ncVar%setData((bounds(2_i8:dimLength) + bounds(1_i8:dimLength-1_i8)) / 2.0_dp)
+    case(2_4)
+      ! set the end values
+      call ncVar%setData(bounds(2_i8:dimLength))
+    case default
+      write(*,*) "reference id for set_Dimension is ", reference, ", must be 0, 1 or 2."
+      stop 1
+    end select
+
+    ! --- bounds ---
+    ! create dimension name for bounds
+    dimBoundName = trim(name) // "_bnds"
+    ! set the attribute
+    call ncVar%setAttribute('bounds', trim(dimBoundName))
+    ! set the dimensions used for the bounds array
+    if (self%hasDimension("bnds")) then
+      ! add it to our bounds of ncDimensions for the current array
+      bndsDim = self%getDimension("bnds")
+    else
+      bndsDim = self%setDimension("bnds", 2_i4)
+    end if
+    ncVar = self%setVariable(dimBoundName, "f64", [bndsDim, ncDim])
+
+    ! allocate array for data
+    allocate(boundData(2_i8, dimLength-1_i8))
+    do iBound = 1_i8, dimLength-1_i8
+      boundData(1_i8, iBound) = bounds(iBound)
+      boundData(2_i8, iBound) = bounds(iBound + 1_i8)
+    end do
+    call ncVar%setData(boundData)
+    deallocate(boundData)
+
+  end subroutine set_1D_coordinate_variable
+
+  function setDimension(self, name, length) result(ncDim)
+    class(NcGroup), intent(in) :: self
+    character(*)  , intent(in) :: name
+    integer(i4), intent(in), optional :: length
+
+    type(NcDimension) :: ncDim
+    integer(i4) :: dimLength
+    integer(i4) :: id
+
+    dimLength = NF90_UNLIMITED
     if (present(length)) then
-      if (length <= 0) then
-       dimlength = NF90_UNLIMITED
-      else
-        dimlength = length
+      if (length > 0_i4) then
+        dimLength = length
       end if
     end if
 
-    call check(nf90_def_dim(self%id, name, dimlength, id), &
+    call check(nf90_def_dim(self%id, name, dimLength, id), &
          "Failed to create dimension: " // name)
 
-    setDimension_i4_ = NcDimension(id, self)
+    ncDim = NcDimension(id, self)
 
-  end function setDimension_i4_
+  end function setDimension
 
-  function setDimension_i4(self, name, length, bounds, reference, attribute_names, attribute_values, &
-                        centersDim1, centersDim2, cornersDim1, cornersDim2, subDimSizes, units)
+  function setCoordinate(self, name, length, bounds, reference, attribute_names, attribute_values, &
+                        centersDim1, centersDim2, cornersDim1, cornersDim2, subDimSizes, units) result(ncDim)
     class(NcGroup), intent(in) :: self
     character(*)  , intent(in) :: name
-    integer(i4)   , intent(in), optional :: length
+    integer(i4), intent(in), optional :: length
     real(dp)      , intent(in), optional, dimension(:) :: bounds
     integer(i4)   , intent(in), optional :: reference
-    character(256) , intent(in), optional, dimension(:) :: attribute_names
-    character(2048) , intent(in), optional, dimension(:) :: attribute_values
+    character(*) , intent(in), optional, dimension(:) :: attribute_names
+    character(*) , intent(in), optional, dimension(:) :: attribute_values
     real(dp)      , intent(in), optional, dimension(:) :: centersDim1
     real(dp)      , intent(in), optional, dimension(:) :: centersDim2
     real(dp)      , intent(in), optional, dimension(:,:) :: cornersDim1
     real(dp)      , intent(in), optional, dimension(:,:) :: cornersDim2
     integer(i4)   , intent(in), optional, dimension(:) :: subDimSizes
-    character(256), intent(in), optional :: units
+    character(*), intent(in), optional :: units
 
-    type(NcDimension)          :: setDimension_i4, bnds_dim, cornerDim, rankDim
-    type(NcVariable)           :: nc_var
-    integer(i4)                :: dimlength, reference_default, iAtt, iBound
-    character(256)              :: dim_bound_name
-    real(dp), allocatable, dimension(:, :) :: bound_data
-    integer(i4), allocatable, dimension(:) :: imask_data
+    type(NcDimension) :: ncDim
+    type(NcVariable) :: ncVar
+    integer(i4) :: iAtt
 
     if (present(centersDim1) .and. present(centersDim2) .and. present(cornersDim1) .and. present(cornersDim2) &
              .and. present(subDimSizes) .and. present(units)) then
-      ! set the new ncDimension (integer values and name)
-      setDimension_i4 = self%setDimension_('grid_size', size(centersDim1))
-      cornerDim = self%setDimension_('grid_corners', size(cornersDim1, 1))
-      rankDim = self%setDimension_('grid_rank', size(subDimSizes))
-      ! here we set the reference to ncDimension for labelled ncDimension which in fact is a variable
-      nc_var = self%setVariable('grid_center_lon', "f64", [setDimension_i4])
-      call nc_var%setData(centersDim1)
-      call nc_var%setAttribute('units', trim(units))
-      nc_var = self%setVariable('grid_center_lat', "f64", [setDimension_i4])
-      call nc_var%setData(centersDim2)
-      call nc_var%setAttribute('units', trim(units))
-      nc_var = self%setVariable('grid_corner_lon', "f64", [cornerDim, setDimension_i4])
-      call nc_var%setData(cornersDim1)
-      call nc_var%setAttribute('units', trim(units))
-      nc_var = self%setVariable('grid_corner_lat', "f64", [cornerDim, setDimension_i4])
-      call nc_var%setData(cornersDim2)
-      call nc_var%setAttribute('units', trim(units))
-      nc_var = self%setVariable('grid_dims', "i32", [rankDim])
-      call nc_var%setData(subDimSizes)
-      ! set all values to 1 (True) for mask
-      nc_var = self%setVariable('grid_imask', "i32", [setDimension_i4])
-      allocate(imask_data(size(centersDim1)))
-      imask_data = 1_i4
-      call nc_var%setData(imask_data)
-      deallocate(imask_data)
-      call nc_var%setAttribute('units', 'unitless')
-
+      ncDim = self%set_scrip_dimension(centersDim1, centersDim2, cornersDim1, cornersDim2, subDimSizes, units)
     else
       ! set the new ncDimension (integer values and name)
-      setDimension_i4 = self%setDimension_(name, length)
+      ncDim = self%setDimension(name, length)
 
       if (present(bounds)) then
-        ! init
-        dimlength = size(bounds)
-        reference_default = 1_i4
-        if (present(reference)) then
-          reference_default = reference
-        end if
-        ! here we set the reference to ncDimension for labelled ncDimension which in fact is a variable
-        nc_var = self%setVariable(name, "f64", [setDimension_i4])
-        ! write the data based on the type of reference
-        select case(reference_default)
-        case(0_i4)
-          ! set the start values
-          call nc_var%setData(bounds(1:dimlength - 1))
-        case(1_i4)
-          ! set the center values
-          call nc_var%setData((bounds(2:dimlength) + bounds(1:dimlength-1)) / 2.0_dp)
-        case(2_4)
-          ! set the end values
-          call nc_var%setData(bounds(2:dimlength))
-        case default
-          write(*,*) "reference id for set_Dimension is unknown"
-          stop 1
-        end select
+        call self%set_1D_coordinate_variable(name, ncDim, bounds, reference, ncVar)
         ! set attributes
         ! already set attributes
         if (present(attribute_names) .and. present(attribute_values)) then
           do iAtt = 1, size(attribute_names)
-            call nc_var%setAttribute(trim(attribute_names(iAtt)), &
+            call ncVar%setAttribute(trim(attribute_names(iAtt)), &
                     trim(attribute_values(iAtt)))
           end do
         end if
-        ! --- bounds ---
-        ! allocate array for data
-        allocate(bound_data(2_i4, dimlength-1))
-        ! create dimension name for bounds
-        dim_bound_name = trim(name) // "_bnds"
-        ! set the attribute
-        call nc_var%setAttribute('bounds', trim(dim_bound_name))
-        ! set the dimensions used for the bounds array
-        if (self%hasDimension("bnds")) then
-          ! add it to our bounds of ncDimensions for the current array
-          bnds_dim = self%getDimension("bnds")
-        else
-          bnds_dim = self%setDimension_("bnds", 2)
-        end if
-        nc_var = self%setVariable(dim_bound_name, "f64", [bnds_dim, setDimension_i4])
-        do iBound = 1, dimlength-1
-          bound_data(1, iBound) = bounds(iBound)
-          bound_data(2, iBound) = bounds(iBound + 1)
-        end do
-        call nc_var%setData(bound_data)
-        deallocate(bound_data)
-
       end if
-
     end if
 
-  end function setDimension_i4
+  end function setCoordinate
 
   function hasVariable(self, name)
     class(NcGroup), intent(in) :: self
@@ -1448,11 +1668,11 @@ contains
       case(CF_USE_NAN)
         mask = .not. ieee_is_nan(data)
       case(CF_USE_VALID_MIN)
-        mask = gt(data, minValue)
+        mask = data > minValue
       case(CF_USE_VALID_MAX)
-        mask = lt(data, maxValue)
+        mask = data < maxValue
       case(CF_USE_VALID_RANGE)
-        mask = lt(data, maxValue) .and. gt(data, minValue)
+        mask = (data < maxValue) .and. (data > minValue)
       end select
     end if
 
@@ -1492,11 +1712,11 @@ contains
       case(CF_USE_NAN)
         mask = .not. ieee_is_nan(data)
       case(CF_USE_VALID_MIN)
-        mask = gt(data, minValue)
+        mask = data > minValue
       case(CF_USE_VALID_MAX)
-        mask = lt(data, maxValue)
+        mask = data < maxValue
       case(CF_USE_VALID_RANGE)
-        mask = lt(data, maxValue) .and. gt(data, minValue)
+        mask = (data < maxValue) .and. (data > minValue)
       end select
     end if
 
@@ -1536,11 +1756,11 @@ contains
       case(CF_USE_NAN)
         mask = .not. ieee_is_nan(data)
       case(CF_USE_VALID_MIN)
-        mask = gt(data, minValue)
+        mask = data > minValue
       case(CF_USE_VALID_MAX)
-        mask = lt(data, maxValue)
+        mask = data < maxValue
       case(CF_USE_VALID_RANGE)
-        mask = lt(data, maxValue) .and. gt(data, minValue)
+        mask = (data < maxValue) .and. (data > minValue)
       end select
     end if
 
@@ -1580,11 +1800,11 @@ contains
       case(CF_USE_NAN)
         mask = .not. ieee_is_nan(data)
       case(CF_USE_VALID_MIN)
-        mask = gt(data, minValue)
+        mask = data > minValue
       case(CF_USE_VALID_MAX)
-        mask = lt(data, maxValue)
+        mask = data < maxValue
       case(CF_USE_VALID_RANGE)
-        mask = lt(data, maxValue) .and. gt(data, minValue)
+        mask = (data < maxValue) .and. (data > minValue)
       end select
     end if
 
@@ -1624,11 +1844,11 @@ contains
       case(CF_USE_NAN)
         mask = .not. ieee_is_nan(data)
       case(CF_USE_VALID_MIN)
-        mask = gt(data, minValue)
+        mask = data > minValue
       case(CF_USE_VALID_MAX)
-        mask = lt(data, maxValue)
+        mask = data < maxValue
       case(CF_USE_VALID_RANGE)
-        mask = lt(data, maxValue) .and. gt(data, minValue)
+        mask = (data < maxValue) .and. (data > minValue)
       end select
     end if
 
@@ -1668,11 +1888,11 @@ contains
       case(CF_USE_NAN)
         mask = .not. ieee_is_nan(data)
       case(CF_USE_VALID_MIN)
-        mask = gt(data, minValue)
+        mask = data > minValue
       case(CF_USE_VALID_MAX)
-        mask = lt(data, maxValue)
+        mask = data < maxValue
       case(CF_USE_VALID_RANGE)
-        mask = lt(data, maxValue) .and. gt(data, minValue)
+        mask = (data < maxValue) .and. (data > minValue)
       end select
     end if
 
@@ -1712,11 +1932,11 @@ contains
       case(CF_USE_NAN)
         mask = .not. ieee_is_nan(data)
       case(CF_USE_VALID_MIN)
-        mask = gt(data, minValue)
+        mask = data > minValue
       case(CF_USE_VALID_MAX)
-        mask = lt(data, maxValue)
+        mask = data < maxValue
       case(CF_USE_VALID_RANGE)
-        mask = lt(data, maxValue) .and. gt(data, minValue)
+        mask = (data < maxValue) .and. (data > minValue)
       end select
     end if
 
@@ -1730,6 +1950,370 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_6d_sp
+
+  subroutine getData_7d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out), allocatable :: data(:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData_7d_sp
+
+  subroutine setData_7d_sp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(in) :: values(:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_7d_sp
+
+  subroutine getData_8d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out), allocatable :: data(:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7), datashape(8)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7), datashape(8)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData_8d_sp
+
+  subroutine setData_8d_sp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(in) :: values(:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_8d_sp
+
+  subroutine getData_9d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData_9d_sp
+
+  subroutine setData_9d_sp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(in) :: values(:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_9d_sp
+
+  subroutine getData_10d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData_10d_sp
+
+  subroutine setData_10d_sp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(in) :: values(:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_10d_sp
+
+  subroutine getData_11d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData_11d_sp
+
+  subroutine setData_11d_sp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_11d_sp
+
+  subroutine getData_12d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData_12d_sp
+
+  subroutine setData_12d_sp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_12d_sp
+
+  subroutine getData_13d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData_13d_sp
+
+  subroutine setData_13d_sp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_13d_sp
+
+  subroutine getData_14d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13), datashape(14)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13), datashape(14)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData_14d_sp
+
+  subroutine setData_14d_sp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_14d_sp
 
   subroutine getVariableFillValue_sp(self, fvalue)
     class(NcVariable), intent(in) :: self
@@ -1752,6 +2336,9 @@ contains
 
     flagMissing = CF_USE_FILL_VALUE
     call self%getFillValue(fillValue)
+    if (ieee_is_nan(fillValue)) then
+      flagMissing = CF_USE_NAN
+    end if
     if (self%hasAttribute(CF_VALID_RANGE)) then
       flagMissing = CF_USE_VALID_RANGE
       call self%getAttribute(CF_VALID_RANGE, valid_range)
@@ -1799,11 +2386,11 @@ contains
       case(CF_USE_NAN)
         mask = .not. ieee_is_nan(data)
       case(CF_USE_VALID_MIN)
-        mask = gt(data, minValue)
+        mask = data > minValue
       case(CF_USE_VALID_MAX)
-        mask = lt(data, maxValue)
+        mask = data < maxValue
       case(CF_USE_VALID_RANGE)
-        mask = lt(data, maxValue) .and. gt(data, minValue)
+        mask = (data < maxValue) .and. (data > minValue)
       end select
     end if
 
@@ -1843,11 +2430,11 @@ contains
       case(CF_USE_NAN)
         mask = .not. ieee_is_nan(data)
       case(CF_USE_VALID_MIN)
-        mask = gt(data, minValue)
+        mask = data > minValue
       case(CF_USE_VALID_MAX)
-        mask = lt(data, maxValue)
+        mask = data < maxValue
       case(CF_USE_VALID_RANGE)
-        mask = lt(data, maxValue) .and. gt(data, minValue)
+        mask = (data < maxValue) .and. (data > minValue)
       end select
     end if
 
@@ -1887,11 +2474,11 @@ contains
       case(CF_USE_NAN)
         mask = .not. ieee_is_nan(data)
       case(CF_USE_VALID_MIN)
-        mask = gt(data, minValue)
+        mask = data > minValue
       case(CF_USE_VALID_MAX)
-        mask = lt(data, maxValue)
+        mask = data < maxValue
       case(CF_USE_VALID_RANGE)
-        mask = lt(data, maxValue) .and. gt(data, minValue)
+        mask = (data < maxValue) .and. (data > minValue)
       end select
     end if
 
@@ -1931,11 +2518,11 @@ contains
       case(CF_USE_NAN)
         mask = .not. ieee_is_nan(data)
       case(CF_USE_VALID_MIN)
-        mask = gt(data, minValue)
+        mask = data > minValue
       case(CF_USE_VALID_MAX)
-        mask = lt(data, maxValue)
+        mask = data < maxValue
       case(CF_USE_VALID_RANGE)
-        mask = lt(data, maxValue) .and. gt(data, minValue)
+        mask = (data < maxValue) .and. (data > minValue)
       end select
     end if
 
@@ -1975,11 +2562,11 @@ contains
       case(CF_USE_NAN)
         mask = .not. ieee_is_nan(data)
       case(CF_USE_VALID_MIN)
-        mask = gt(data, minValue)
+        mask = data > minValue
       case(CF_USE_VALID_MAX)
-        mask = lt(data, maxValue)
+        mask = data < maxValue
       case(CF_USE_VALID_RANGE)
-        mask = lt(data, maxValue) .and. gt(data, minValue)
+        mask = (data < maxValue) .and. (data > minValue)
       end select
     end if
 
@@ -2019,11 +2606,11 @@ contains
       case(CF_USE_NAN)
         mask = .not. ieee_is_nan(data)
       case(CF_USE_VALID_MIN)
-        mask = gt(data, minValue)
+        mask = data > minValue
       case(CF_USE_VALID_MAX)
-        mask = lt(data, maxValue)
+        mask = data < maxValue
       case(CF_USE_VALID_RANGE)
-        mask = lt(data, maxValue) .and. gt(data, minValue)
+        mask = (data < maxValue) .and. (data > minValue)
       end select
     end if
 
@@ -2063,11 +2650,11 @@ contains
       case(CF_USE_NAN)
         mask = .not. ieee_is_nan(data)
       case(CF_USE_VALID_MIN)
-        mask = gt(data, minValue)
+        mask = data > minValue
       case(CF_USE_VALID_MAX)
-        mask = lt(data, maxValue)
+        mask = data < maxValue
       case(CF_USE_VALID_RANGE)
-        mask = lt(data, maxValue) .and. gt(data, minValue)
+        mask = (data < maxValue) .and. (data > minValue)
       end select
     end if
 
@@ -2081,6 +2668,370 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_6d_dp
+
+  subroutine getData_7d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out), allocatable :: data(:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData_7d_dp
+
+  subroutine setData_7d_dp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(in) :: values(:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_7d_dp
+
+  subroutine getData_8d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out), allocatable :: data(:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7), datashape(8)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7), datashape(8)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData_8d_dp
+
+  subroutine setData_8d_dp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(in) :: values(:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_8d_dp
+
+  subroutine getData_9d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData_9d_dp
+
+  subroutine setData_9d_dp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(in) :: values(:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_9d_dp
+
+  subroutine getData_10d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData_10d_dp
+
+  subroutine setData_10d_dp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(in) :: values(:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_10d_dp
+
+  subroutine getData_11d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData_11d_dp
+
+  subroutine setData_11d_dp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_11d_dp
+
+  subroutine getData_12d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData_12d_dp
+
+  subroutine setData_12d_dp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_12d_dp
+
+  subroutine getData_13d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData_13d_dp
+
+  subroutine setData_13d_dp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_13d_dp
+
+  subroutine getData_14d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13), datashape(14)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13), datashape(14)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData_14d_dp
+
+  subroutine setData_14d_dp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_14d_dp
 
   subroutine getVariableFillValue_dp(self, fvalue)
     class(NcVariable), intent(in) :: self
@@ -2103,6 +3054,9 @@ contains
 
     flagMissing = CF_USE_FILL_VALUE
     call self%getFillValue(fillValue)
+    if (ieee_is_nan(fillValue)) then
+      flagMissing = CF_USE_NAN
+    end if
     if (self%hasAttribute(CF_VALID_RANGE)) then
       flagMissing = CF_USE_VALID_RANGE
       call self%getAttribute(CF_VALID_RANGE, valid_range)
@@ -2418,6 +3372,354 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_6d_i1
+
+  subroutine getData_7d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out), allocatable :: data(:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_7d_i1
+
+  subroutine setData_7d_i1(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(in) :: values(:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_7d_i1
+
+  subroutine getData_8d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out), allocatable :: data(:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7), datashape(8)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7), datashape(8)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_8d_i1
+
+  subroutine setData_8d_i1(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(in) :: values(:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_8d_i1
+
+  subroutine getData_9d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_9d_i1
+
+  subroutine setData_9d_i1(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(in) :: values(:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_9d_i1
+
+  subroutine getData_10d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_10d_i1
+
+  subroutine setData_10d_i1(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(in) :: values(:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_10d_i1
+
+  subroutine getData_11d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_11d_i1
+
+  subroutine setData_11d_i1(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_11d_i1
+
+  subroutine getData_12d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_12d_i1
+
+  subroutine setData_12d_i1(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_12d_i1
+
+  subroutine getData_13d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_13d_i1
+
+  subroutine setData_13d_i1(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_13d_i1
+
+  subroutine getData_14d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13), datashape(14)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13), datashape(14)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_14d_i1
+
+  subroutine setData_14d_i1(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_14d_i1
 
   subroutine getVariableFillValue_i1(self, fvalue)
     class(NcVariable), intent(in) :: self
@@ -2756,6 +4058,354 @@ contains
 
   end subroutine setData_6d_i2
 
+  subroutine getData_7d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out), allocatable :: data(:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_7d_i2
+
+  subroutine setData_7d_i2(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(in) :: values(:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_7d_i2
+
+  subroutine getData_8d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out), allocatable :: data(:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7), datashape(8)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7), datashape(8)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_8d_i2
+
+  subroutine setData_8d_i2(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(in) :: values(:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_8d_i2
+
+  subroutine getData_9d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_9d_i2
+
+  subroutine setData_9d_i2(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(in) :: values(:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_9d_i2
+
+  subroutine getData_10d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_10d_i2
+
+  subroutine setData_10d_i2(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(in) :: values(:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_10d_i2
+
+  subroutine getData_11d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_11d_i2
+
+  subroutine setData_11d_i2(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_11d_i2
+
+  subroutine getData_12d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_12d_i2
+
+  subroutine setData_12d_i2(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_12d_i2
+
+  subroutine getData_13d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_13d_i2
+
+  subroutine setData_13d_i2(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_13d_i2
+
+  subroutine getData_14d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13), datashape(14)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13), datashape(14)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_14d_i2
+
+  subroutine setData_14d_i2(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_14d_i2
+
   subroutine getVariableFillValue_i2(self, fvalue)
     class(NcVariable), intent(in) :: self
     integer(i2), intent(out) :: fvalue
@@ -3093,6 +4743,354 @@ contains
 
   end subroutine setData_6d_i4
 
+  subroutine getData_7d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out), allocatable :: data(:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_7d_i4
+
+  subroutine setData_7d_i4(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(in) :: values(:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_7d_i4
+
+  subroutine getData_8d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out), allocatable :: data(:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7), datashape(8)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7), datashape(8)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_8d_i4
+
+  subroutine setData_8d_i4(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(in) :: values(:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_8d_i4
+
+  subroutine getData_9d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_9d_i4
+
+  subroutine setData_9d_i4(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(in) :: values(:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_9d_i4
+
+  subroutine getData_10d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_10d_i4
+
+  subroutine setData_10d_i4(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(in) :: values(:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_10d_i4
+
+  subroutine getData_11d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_11d_i4
+
+  subroutine setData_11d_i4(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_11d_i4
+
+  subroutine getData_12d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_12d_i4
+
+  subroutine setData_12d_i4(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_12d_i4
+
+  subroutine getData_13d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_13d_i4
+
+  subroutine setData_13d_i4(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_13d_i4
+
+  subroutine getData_14d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13), datashape(14)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13), datashape(14)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_14d_i4
+
+  subroutine setData_14d_i4(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_14d_i4
+
   subroutine getVariableFillValue_i4(self, fvalue)
     class(NcVariable), intent(in) :: self
     integer(i4), intent(out) :: fvalue
@@ -3429,6 +5427,354 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_6d_i8
+
+  subroutine getData_7d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out), allocatable :: data(:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_7d_i8
+
+  subroutine setData_7d_i8(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(in) :: values(:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_7d_i8
+
+  subroutine getData_8d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out), allocatable :: data(:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7), datashape(8)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7), datashape(8)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_8d_i8
+
+  subroutine setData_8d_i8(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(in) :: values(:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_8d_i8
+
+  subroutine getData_9d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_9d_i8
+
+  subroutine setData_9d_i8(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(in) :: values(:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_9d_i8
+
+  subroutine getData_10d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_10d_i8
+
+  subroutine setData_10d_i8(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(in) :: values(:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_10d_i8
+
+  subroutine getData_11d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_11d_i8
+
+  subroutine setData_11d_i8(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_11d_i8
+
+  subroutine getData_12d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_12d_i8
+
+  subroutine setData_12d_i8(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_12d_i8
+
+  subroutine getData_13d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_13d_i8
+
+  subroutine setData_13d_i8(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_13d_i8
+
+  subroutine getData_14d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out), allocatable :: data(:,:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:,:,:,:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    datashape = getReadShape(slcshape, size(shape(data)))
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13), datashape(14)))
+    call check (nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6), datashape(7),&
+          & datashape(8), datashape(9), datashape(10), datashape(11), datashape(12), datashape(13), datashape(14)))
+      mask =.true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData_14d_i8
+
+  subroutine setData_14d_i8(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(in) :: values(:,:,:,:,:,:,:,:,:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData_14d_i8
 
   subroutine getVariableFillValue_i8(self, fvalue)
     class(NcVariable), intent(in) :: self
