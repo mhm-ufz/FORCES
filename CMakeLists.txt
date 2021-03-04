@@ -7,6 +7,10 @@ project(lightweight_fortran_lib Fortran)
 
 # automatically enables testing
 include(CTest)
+# turn off testing in case the Project is not the main
+if(NOT CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    set(BUILD_TESTING OFF)
+endif()
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/utils.cmake)
 # The variable "CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT" can be set before executing cmake via a cache command:
@@ -49,5 +53,5 @@ list(GET VERSION_LIST 0 VERSION_MAJOR)
 list(GET VERSION_LIST 1 VERSION_MINOR)
 list(GET VERSION_LIST 2 VERSION_PATCH)
 set(PROJECT_VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
-message ( STATUS "CMake build configuration for ${CMAKE_PROJECT_NAME} ${PROJECT_VERSION}" )
+message ( STATUS "CMake build configuration for ${PROJECT_NAME} ${PROJECT_VERSION}" )
 
