@@ -33,7 +33,7 @@ MODULE mo_utils
 
   ! Copyright 2014 Matthias Cuntz, Juliane Mai
 
-  USE mo_kind, only : sp, dp, i4
+  USE mo_kind, only : sp, dp, i1, i4, i8
   USE mo_string_utils, only : toupper
 
   IMPLICIT NONE
@@ -43,11 +43,9 @@ MODULE mo_utils
   PUBLIC :: lesserequal  ! a <= b, a .le. b
   PUBLIC :: notequal     ! a /= b, a .ne. b
   PUBLIC :: eq           ! a == b, a .eq. b
-  PUBLIC :: ge, greaterequal_sp, greaterequal_dp           ! a >= b, a .ge. b
+  PUBLIC :: ge           ! a >= b, a .ge. b
   PUBLIC :: le           ! a <= b, a .le. b
   PUBLIC :: ne           ! a /= b, a .ne. b
-  PUBLIC :: gt, greaterthan_sp, greaterthan_dp           ! a > b, a .gt. b
-  PUBLIC :: lt, lessthan_sp, lessthan_dp           ! a < b, a .lt. b
   PUBLIC :: is_finite    ! .true. if not IEEE Inf and not IEEE NaN
   PUBLIC :: is_nan       ! .true. if IEEE NaN
   PUBLIC :: is_normal    ! .true. if not IEEE Inf and not IEEE NaN
@@ -57,9 +55,14 @@ MODULE mo_utils
   PUBLIC :: relational_operator_dp, relational_operator_sp ! abstract interface for relational operators
 
   public :: flip ! flips a dimension of an array
+  public :: unpack_chunkwise ! flips a dimension of an array
 
   interface flip
     procedure flip_1D_dp, flip_2D_dp, flip_3D_dp, flip_4D_dp, flip_1D_i4, flip_2D_i4, flip_3D_i4, flip_4D_i4
+  end interface
+
+  interface unpack_chunkwise
+    procedure unpack_chunkwise_i1, unpack_chunkwise_dp
   end interface
 
   ! ------------------------------------------------------------------
@@ -144,14 +147,6 @@ MODULE mo_utils
   INTERFACE le
     MODULE PROCEDURE lesserequal_sp, lesserequal_dp
   END INTERFACE le
-
-  INTERFACE gt
-    MODULE PROCEDURE greaterthan_sp, greaterthan_dp
-  END INTERFACE gt
-
-  INTERFACE lt
-    MODULE PROCEDURE lessthan_sp, lessthan_dp
-  END INTERFACE lt
 
 
   ! ------------------------------------------------------------------
@@ -552,59 +547,6 @@ CONTAINS
     end if
 
   end function notequal_sp
-
-
-  logical elemental pure function greaterthan_dp(a, b) result(boolean)
-
-    real(dp), intent(in) :: a
-    real(dp), intent(in) :: b
-
-    if (a>b) then
-      boolean = .true.
-    else
-      boolean = .false.
-    end if
-
-  end function greaterthan_dp
-
-  logical elemental pure function greaterthan_sp(a, b) result(boolean)
-
-    real(sp), intent(in) :: a
-    real(sp), intent(in) :: b
-
-    if (a>b) then
-      boolean = .true.
-    else
-      boolean = .false.
-    end if
-
-  end function greaterthan_sp
-
-  logical elemental pure function lessthan_dp(a, b) result(boolean)
-
-    real(dp), intent(in) :: a
-    real(dp), intent(in) :: b
-
-    if (a<b) then
-      boolean = .true.
-    else
-      boolean = .false.
-    end if
-
-  end function lessthan_dp
-
-  logical elemental pure function lessthan_sp(a, b) result(boolean)
-
-    real(sp), intent(in) :: a
-    real(sp), intent(in) :: b
-
-    if (a<b) then
-      boolean = .true.
-    else
-      boolean = .false.
-    end if
-
-  end function lessthan_sp
 
   ! ------------------------------------------------------------------
 
@@ -1349,5 +1291,94 @@ CONTAINS
     end if
     call move_alloc(temp_data, data)
   end subroutine flip_4D_i4
+
+  function unpack_chunkwise_dp(vector, mask, field, chunksizeArg) result(unpacked)
+  !< this is a chunkwise application of the intrinsic unpack function
+  !< it became necessary as the unpack intrinsic can handle only arrays
+  !< with size smaller than huge(default_integer_kind)...
+  !< it has the following restrictions:
+  !<   - vector must be of type dp
+  !<   - mask must have rank 1
+  !<   - field must be a scalar
+    real(dp), dimension(:), intent(in) :: vector
+    logical, dimension(:), intent(in) :: mask
+    real(dp), intent(in) :: field
+    real(dp), dimension(size(mask, kind=i8)) :: unpacked
+    integer(i8), intent(in), optional :: chunksizeArg
+
+    integer(i8) :: i, chunksize, indexMin, indexMax, currentCounts, counts
+
+    if (present(chunksizeArg)) then
+      chunksize = chunksizeArg
+    else
+      chunksize = int(huge(0_i4), i8)
+    end if
+    ! init some values
+    i = 1_i8
+    indexMax = i * chunksize
+    currentCounts = 1_i8
+    do while (indexMax < size(mask, kind=i8))
+      ! get the indices for the mask
+      indexMin = (i-1) * chunksize + 1_i8
+      indexMax = minval([i * chunksize, size(mask, kind=i8)])
+      ! this is the indexer for the vector
+      counts = count(mask(indexMin: indexMax), kind=i8)
+      ! unpack slices of maximum size
+      if (counts == (indexMax - indexMin + 1_i8)) then
+        unpacked(indexMin: indexMax) = vector(currentCounts: currentCounts + counts - 1_i8)
+      else if (counts == 0_i8) then
+        unpacked(indexMin: indexMax) = field
+      else
+        unpacked(indexMin: indexMax) = unpack(vector(currentCounts: currentCounts + counts - 1_i8), &
+                                                  mask(indexMin: indexMax), &
+                                                  field)
+      end if
+      ! advance the counters
+      currentCounts = currentCounts + counts
+      i = i + 1_i8
+    end do
+
+  end function unpack_chunkwise_dp
+
+  function unpack_chunkwise_i1(vector, mask, field, chunksizeArg) result(unpacked)
+  !< this is a chunkwise application of the intrinsic unpack function
+  !< it has the following restrictions:
+  !<   - vector must be of type i1
+  !<   - mask must have rank 1
+  !<   - field must be a scalar
+    integer(i1), dimension(:), intent(in) :: vector
+    logical, dimension(:), intent(in) :: mask
+    integer(i1), intent(in) :: field
+    integer(i1), dimension(size(mask, kind=i8)) :: unpacked
+    integer(i8), intent(in), optional :: chunksizeArg
+
+    integer(i8) :: i, chunksize, indexMin, indexMax, currentCounts, counts
+
+    if (present(chunksizeArg)) then
+      chunksize = chunksizeArg
+    else
+      chunksize = int(huge(0_i4), i8)
+    end if
+    ! init some values
+    i = 1_i8
+    indexMax = i * chunksize
+    currentCounts = 1_i8
+    do while (indexMax < size(mask, kind=i8))
+      ! get the indices for the mask
+      indexMin = (i-1) * chunksize + 1_i8
+      indexMax = minval([i * chunksize, size(mask, kind=i8)])
+      ! this is the indexer for the vector
+      counts = count(mask(indexMin: indexMax), kind=i8)
+      ! unpack slices of maximum size
+      unpacked(indexMin: indexMax) = unpack(vector(currentCounts: currentCounts + counts - 1_i8), &
+                                                mask(indexMin: indexMax), &
+                                                field)
+      ! advance the counters
+      currentCounts = currentCounts + counts
+      i = i + 1_i8
+    end do
+
+  end function unpack_chunkwise_i1
+
 
 END MODULE mo_utils

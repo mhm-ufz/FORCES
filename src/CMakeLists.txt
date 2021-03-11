@@ -1,5 +1,7 @@
 set (LIB_NAME lightweight_fortran_lib)
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/utils.cmake)
+file(GLOB sources ./mo_*.f90)
 # --- find preprocessor
 find_program(FYPP fypp)
 if(NOT FYPP)
@@ -19,15 +21,15 @@ else()
 
 	### Pre-process: .fpp -> .f90 via Fypp
 	fypp_f90("${fyppFlags}" "${fppFiles}" fyppOutFiles)
+	list(FILTER sources EXCLUDE REGEX ".*mo_netcdf.f90$")
 endif()
 
-file(GLOB sources ./mo_*.f90)
 add_library ( ${LIB_NAME} ${sources} ${fyppOutFiles})
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # additional cmake-modules created for the purpose of finding netCDF or other libraries ly in the source_directory in
 # a folder named cmake-modules. This command tells cmake to search there for Find<module>.cmake files
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake)
 
 # find the netcdf and netcdf-fortran libraries, taken from wrf-cmake project
 set (NETCDF_F90 "YES")
@@ -59,7 +61,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
     # set the preprocessor
-    target_compile_definitions(${LIB_NAME} PRIVATE "-DpgiFortran")
+    target_compile_definitions(${LIB_NAME} PRIVATE "-DPGI")
 endif()
 if(CMAKE_ABSOFT)
     # set the preprocessor
@@ -85,4 +87,5 @@ target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 if(BUILD_TESTING)
   add_subdirectory(./tests)
+  add_subdirectory(./pf_tests)
 endif()
