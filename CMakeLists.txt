@@ -7,7 +7,12 @@ project(lightweight_fortran_lib Fortran)
 
 # automatically enables testing
 include(CTest)
+# turn off testing in case the Project is not the main
+if(NOT CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    set(BUILD_TESTING OFF)
+endif()
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/utils.cmake)
 # The variable "CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT" can be set before executing cmake via a cache command:
 # $cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT:STRING=ON ..
 # or cache file:
@@ -26,6 +31,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
 	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -assume byterecl -fp-model=source -m64 -assume realloc_lhs")
 	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -warn all -g -debug -traceback -fp-stack-check -O0 -check all -fstack-protector-all -fstack-security-check")
 	set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3 -qoverride-limits")
+	cpp_definitions("-DINTEL" "CMAKE_INTEL" "ON" "Code exchange for intel compiler dependent issues")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
 	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fpp -colour -unsharedf95 -ideclient")
@@ -42,11 +48,11 @@ add_subdirectory(./src)
 # Get version (semantic versioning)
 # C.F. semver.org
 #----------------------------------
-file ( STRINGS "${CMAKE_SOURCE_DIR}/.VERSION" VERSION )
+file ( STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/.VERSION" VERSION )
 string( REPLACE "." ";" VERSION_LIST ${VERSION} )
 list(GET VERSION_LIST 0 VERSION_MAJOR)
 list(GET VERSION_LIST 1 VERSION_MINOR)
 list(GET VERSION_LIST 2 VERSION_PATCH)
 set(PROJECT_VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
-message ( STATUS "CMake build configuration for ${CMAKE_PROJECT_NAME} ${PROJECT_VERSION}" )
+message ( STATUS "CMake build configuration for ${PROJECT_NAME} ${PROJECT_VERSION}" )
 

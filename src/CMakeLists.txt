@@ -87,4 +87,5 @@ target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 if(BUILD_TESTING)
   add_subdirectory(./tests)
+  add_subdirectory(./pf_tests)
 endif()

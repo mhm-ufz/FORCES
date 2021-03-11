@@ -282,7 +282,7 @@ MODULE mo_orderpack
 
   ! aliases/wrapper
   interface sort
-    module procedure d_refsor, r_refsor, i_refsor
+    module procedure d_refsor, r_refsor, i_refsor, c_refsor
   end interface sort
   interface sort_index
     module procedure sort_index_dp, sort_index_sp, sort_index_i4
@@ -304,7 +304,7 @@ MODULE mo_orderpack
     module procedure d_inspar, r_inspar, i_inspar
   end interface inspar
   interface inssor
-    module procedure d_inssor, r_inssor, i_inssor
+    module procedure d_inssor, r_inssor, i_inssor, c_inssor
   end interface inssor
   interface omedian
     module procedure d_median, r_median, i_median
@@ -313,7 +313,7 @@ MODULE mo_orderpack
     module procedure d_mrgref, r_mrgref, i_mrgref
   end interface mrgref
   interface mrgrnk
-    module procedure D_mrgrnk, R_mrgrnk, I_mrgrnk
+    module procedure D_mrgrnk, R_mrgrnk, I_mrgrnk, C_mrgrnk
   end interface mrgrnk
   interface mulcnt
     module procedure d_mulcnt, r_mulcnt, i_mulcnt
@@ -325,7 +325,7 @@ MODULE mo_orderpack
     module procedure d_refpar, r_refpar, i_refpar
   end interface refpar
   interface refsor
-    module procedure d_refsor, r_refsor, i_refsor
+    module procedure d_refsor, r_refsor, i_refsor, c_refsor
   end interface refsor
   interface rinpar
     module procedure d_rinpar, r_rinpar, i_rinpar
@@ -360,7 +360,7 @@ MODULE mo_orderpack
   private :: R_indmed, I_indmed, D_indmed
   private :: R_indnth, I_indnth, D_indnth
   private :: R_inspar, I_inspar, D_inspar
-  private :: R_inssor, I_inssor, D_inssor
+  private :: R_inssor, I_inssor, D_inssor, C_inssor
   private :: R_median, I_median, D_median
   private :: R_mrgref, I_mrgref, D_mrgref
   private :: R_mrgrnk, I_mrgrnk, D_mrgrnk
@@ -368,10 +368,10 @@ MODULE mo_orderpack
   private :: R_nearless, I_nearless, D_nearless, nearless
   private :: R_rapknr, I_rapknr, D_rapknr
   private :: R_refpar, I_refpar, D_refpar
-  private :: R_refsor, I_refsor, D_refsor
+  private :: R_refsor, I_refsor, D_refsor, C_refsor
   private :: R_rinpar, I_rinpar, D_rinpar
   private :: R_rnkpar, I_rnkpar, D_rnkpar
-  private :: R_subsor, I_subsor, D_subsor
+  private :: R_subsor, I_subsor, D_subsor, C_subsor
   private :: R_uniinv, I_uniinv, D_uniinv
   private :: R_unipar, I_unipar, D_unipar
   private :: R_unirnk, I_unirnk, D_unirnk
@@ -3718,6 +3718,70 @@ CONTAINS
     !
   End Subroutine I_inssor
 
+  Subroutine C_inssor (XDONT)
+    !  Sorts XDONT into increasing order (Insertion sort)
+    ! __________________________________________________________
+    !  This subroutine uses insertion sort. It does not use any
+    !  work array and is faster when XDONT is of very small size
+    !  (< 20), or already almost sorted, but worst case behavior
+    !  can happen fairly probably (initially inverse sorted).
+    !  In many cases, the quicksort or merge sort method is faster.
+    !  Michel Olagnon - Apr. 2000
+    ! __________________________________________________________
+    ! __________________________________________________________
+    ! __________________________________________________________
+    character(*), Dimension (:), Intent (InOut) :: XDONT
+    ! __________________________________________________________
+    character(len(XDONT)) :: XWRK, XMIN
+    !
+    ! __________________________________________________________
+    !
+    Integer(kind = i4) :: ICRS, IDCR, NDON
+    !
+    NDON = Size (XDONT)
+    !
+    ! We first bring the minimum to the first location in the array.
+    ! That way, we will have a "guard", and when looking for the
+    ! right place to insert a value, no loop test is necessary.
+    !
+    If (XDONT (1) < XDONT (NDON)) Then
+      XMIN = XDONT (1)
+    Else
+      XMIN = XDONT (NDON)
+      XDONT (NDON) = XDONT (1)
+    end if
+    Do IDCR = NDON - 1, 2, -1
+      XWRK = XDONT(IDCR)
+      IF (XWRK < XMIN) Then
+        XDONT (IDCR) = XMIN
+        XMIN = XWRK
+      End If
+    End Do
+    XDONT (1) = XMIN
+    !
+    ! The first value is now the minimum
+    ! Loop over the array, and when a value is smaller than
+    ! the previous one, loop down to insert it at its right place.
+    !
+    Do ICRS = 3, NDON
+      XWRK = XDONT (ICRS)
+      IDCR = ICRS - 1
+      If (XWRK < XDONT(IDCR)) Then
+        XDONT (ICRS) = XDONT (IDCR)
+        IDCR = IDCR - 1
+        Do
+          If (XWRK >= XDONT(IDCR)) Exit
+          XDONT (IDCR + 1) = XDONT (IDCR)
+          IDCR = IDCR - 1
+        End Do
+        XDONT (IDCR + 1) = XWRK
+      End If
+    End Do
+    !
+    Return
+    !
+  End Subroutine C_inssor
+
   Function D_median (XDONT) Result (median)
     !  Return median value of XDONT
     !  If even number of data, average of the two "medians".
@@ -6212,6 +6276,206 @@ CONTAINS
     !
   End Subroutine I_mrgrnk
 
+  Subroutine C_mrgrnk (XDONT, IRNGT)
+    ! __________________________________________________________
+    !   MRGRNK = Merge-sort ranking of an array
+    !   For performance reasons, the first 2 passes are taken
+    !   out of the standard loop, and use dedicated coding.
+    ! __________________________________________________________
+    ! __________________________________________________________
+    character(*), Dimension (:), Intent (In) :: XDONT
+    Integer(kind = i4), Dimension (:), Intent (Out) :: IRNGT
+    ! __________________________________________________________
+    character(len(XDONT)) :: XVALA, XVALB
+    !
+    Integer(kind = i4), Dimension (SIZE(IRNGT)) :: JWRKT
+    Integer(kind = i4) :: LMTNA, LMTNC, IRNG1, IRNG2
+    Integer(kind = i4) :: NVAL, IIND, IWRKD, IWRK, IWRKF, JINDA, IINDA, IINDB
+    !
+    NVAL = Min (SIZE(XDONT), SIZE(IRNGT))
+    Select Case (NVAL)
+    Case (: 0)
+      Return
+    Case (1)
+      IRNGT (1) = 1
+      Return
+    Case Default
+
+    End Select
+    !
+    !  Fill-in the index array, creating ordered couples
+    !
+    Do IIND = 2, NVAL, 2
+      If (XDONT(IIND - 1) <= XDONT(IIND)) Then
+        IRNGT (IIND - 1) = IIND - 1
+        IRNGT (IIND) = IIND
+      Else
+        IRNGT (IIND - 1) = IIND
+        IRNGT (IIND) = IIND - 1
+      End If
+    End Do
+    If (Modulo(NVAL, 2) /= 0) Then
+      IRNGT (NVAL) = NVAL
+    End If
+    !
+    !  We will now have ordered subsets A - B - A - B - ...
+    !  and merge A and B couples into     C   -   C   - ...
+    !
+    LMTNA = 2
+    LMTNC = 4
+    !
+    !  First iteration. The length of the ordered subsets goes from 2 to 4
+    !
+    Do
+      If (NVAL <= 2) Exit
+      !
+      !   Loop on merges of A and B into C
+      !
+      Do IWRKD = 0, NVAL - 1, 4
+        If ((IWRKD + 4) > NVAL) Then
+          If ((IWRKD + 2) >= NVAL) Exit
+          !
+          !   1 2 3
+          !
+          If (XDONT(IRNGT(IWRKD + 2)) <= XDONT(IRNGT(IWRKD + 3))) Exit
+          !
+          !   1 3 2
+          !
+          If (XDONT(IRNGT(IWRKD + 1)) <= XDONT(IRNGT(IWRKD + 3))) Then
+            IRNG2 = IRNGT (IWRKD + 2)
+            IRNGT (IWRKD + 2) = IRNGT (IWRKD + 3)
+            IRNGT (IWRKD + 3) = IRNG2
+            !
+            !   3 1 2
+            !
+          Else
+            IRNG1 = IRNGT (IWRKD + 1)
+            IRNGT (IWRKD + 1) = IRNGT (IWRKD + 3)
+            IRNGT (IWRKD + 3) = IRNGT (IWRKD + 2)
+            IRNGT (IWRKD + 2) = IRNG1
+          End If
+          If (.true.) Exit   ! Exit ! JM
+        End If
+        !
+        !   1 2 3 4
+        !
+        If (XDONT(IRNGT(IWRKD + 2)) <= XDONT(IRNGT(IWRKD + 3))) Cycle
+        !
+        !   1 3 x x
+        !
+        If (XDONT(IRNGT(IWRKD + 1)) <= XDONT(IRNGT(IWRKD + 3))) Then
+          IRNG2 = IRNGT (IWRKD + 2)
+          IRNGT (IWRKD + 2) = IRNGT (IWRKD + 3)
+          If (XDONT(IRNG2) <= XDONT(IRNGT(IWRKD + 4))) Then
+            !   1 3 2 4
+            IRNGT (IWRKD + 3) = IRNG2
+          Else
+            !   1 3 4 2
+            IRNGT (IWRKD + 3) = IRNGT (IWRKD + 4)
+            IRNGT (IWRKD + 4) = IRNG2
+          End If
+          !
+          !   3 x x x
+          !
+        Else
+          IRNG1 = IRNGT (IWRKD + 1)
+          IRNG2 = IRNGT (IWRKD + 2)
+          IRNGT (IWRKD + 1) = IRNGT (IWRKD + 3)
+          If (XDONT(IRNG1) <= XDONT(IRNGT(IWRKD + 4))) Then
+            IRNGT (IWRKD + 2) = IRNG1
+            If (XDONT(IRNG2) <= XDONT(IRNGT(IWRKD + 4))) Then
+              !   3 1 2 4
+              IRNGT (IWRKD + 3) = IRNG2
+            Else
+              !   3 1 4 2
+              IRNGT (IWRKD + 3) = IRNGT (IWRKD + 4)
+              IRNGT (IWRKD + 4) = IRNG2
+            End If
+          Else
+            !   3 4 1 2
+            IRNGT (IWRKD + 2) = IRNGT (IWRKD + 4)
+            IRNGT (IWRKD + 3) = IRNG1
+            IRNGT (IWRKD + 4) = IRNG2
+          End If
+        End If
+      End Do
+      !
+      !  The Cs become As and Bs
+      !
+      LMTNA = 4
+      If (.true.) Exit   ! Exit ! JM
+    End Do
+    !
+    !  Iteration loop. Each time, the length of the ordered subsets
+    !  is doubled.
+    !
+    Do
+      If (LMTNA >= NVAL) Exit
+      IWRKF = 0
+      LMTNC = 2 * LMTNC
+      !
+      !   Loop on merges of A and B into C
+      !
+      Do
+        IWRK = IWRKF
+        IWRKD = IWRKF + 1
+        JINDA = IWRKF + LMTNA
+        IWRKF = IWRKF + LMTNC
+        If (IWRKF >= NVAL) Then
+          If (JINDA >= NVAL) Exit
+          IWRKF = NVAL
+        End If
+        IINDA = 1
+        IINDB = JINDA + 1
+        !
+        !   Shortcut for the case when the max of A is smaller
+        !   than the min of B. This line may be activated when the
+        !   initial set is already close to sorted.
+        !
+        !          IF (XDONT(IRNGT(JINDA)) <= XDONT(IRNGT(IINDB))) CYCLE
+        !
+        !  One steps in the C subset, that we build in the final rank array
+        !
+        !  Make a copy of the rank array for the merge iteration
+        !
+        JWRKT (1 : LMTNA) = IRNGT (IWRKD : JINDA)
+        !
+        XVALA = XDONT (JWRKT(IINDA))
+        XVALB = XDONT (IRNGT(IINDB))
+        !
+        Do
+          IWRK = IWRK + 1
+          !
+          !  We still have unprocessed values in both A and B
+          !
+          If (XVALA > XVALB) Then
+            IRNGT (IWRK) = IRNGT (IINDB)
+            IINDB = IINDB + 1
+            If (IINDB > IWRKF) Then
+              !  Only A still with unprocessed values
+              IRNGT (IWRK + 1 : IWRKF) = JWRKT (IINDA : LMTNA)
+              Exit
+            End If
+            XVALB = XDONT (IRNGT(IINDB))
+          Else
+            IRNGT (IWRK) = JWRKT (IINDA)
+            IINDA = IINDA + 1
+            If (IINDA > LMTNA) Exit! Only B still with unprocessed values
+            XVALA = XDONT (JWRKT(IINDA))
+          End If
+          !
+        End Do
+      End Do
+      !
+      !  The Cs become As and Bs
+      !
+      LMTNA = 2 * LMTNA
+    End Do
+    !
+    Return
+    !
+  End Subroutine C_mrgrnk
+
   Subroutine D_mulcnt (XDONT, IMULT)
     !   MULCNT = Give for each array value its multiplicity
     !            (number of times that it appears in the array)
@@ -8532,6 +8796,114 @@ CONTAINS
     Return
   End Subroutine I_subsor
 
+  Subroutine C_refsor (XDONT)
+    !  Sorts XDONT into ascending order - Quicksort
+    ! __________________________________________________________
+    !  Quicksort chooses a "pivot" in the set, and explores the
+    !  array from both ends, looking for a value > pivot with the
+    !  increasing index, for a value <= pivot with the decreasing
+    !  index, and swapping them when it has found one of each.
+    !  The array is then subdivided in 2 ([3]) subsets:
+    !  { values <= pivot} {pivot} {values > pivot}
+    !  One then call recursively the program to sort each subset.
+    !  When the size of the subarray is small enough, one uses an
+    !  insertion sort that is faster for very small sets.
+    !  Michel Olagnon - Apr. 2000
+    ! __________________________________________________________
+    ! __________________________________________________________
+    character(*), Dimension (:), Intent (InOut) :: XDONT
+    ! __________________________________________________________
+    !
+    !
+    Call C_subsor (XDONT, 1, Size (XDONT))
+    Call C_inssor (XDONT)
+    Return
+  End Subroutine C_refsor
+
+  Recursive Subroutine C_subsor (XDONT, IDEB1, IFIN1)
+    !  Sorts XDONT from IDEB1 to IFIN1
+    ! __________________________________________________________
+    character(*), dimension (:), Intent (InOut) :: XDONT
+    Integer(kind = i4), Intent (In) :: IDEB1, IFIN1
+    ! __________________________________________________________
+    Integer(kind = i4), Parameter :: NINS = 16 ! Max for insertion sort
+    Integer(kind = i4) :: ICRS, IDEB, IDCR, IFIN, IMIL
+    character(len(XDONT)) :: XPIV, XWRK
+    !
+    IDEB = IDEB1
+    IFIN = IFIN1
+    !
+    !  If we don't have enough values to make it worth while, we leave
+    !  them unsorted, and the final insertion sort will take care of them
+    !
+    If ((IFIN - IDEB) > NINS) Then
+      IMIL = (IDEB + IFIN) / 2
+      !
+      !  One chooses a pivot, median of 1st, last, and middle values
+      !
+      If (XDONT(IMIL) < XDONT(IDEB)) Then
+        XWRK = XDONT (IDEB)
+        XDONT (IDEB) = XDONT (IMIL)
+        XDONT (IMIL) = XWRK
+      End If
+      If (XDONT(IMIL) > XDONT(IFIN)) Then
+        XWRK = XDONT (IFIN)
+        XDONT (IFIN) = XDONT (IMIL)
+        XDONT (IMIL) = XWRK
+        If (XDONT(IMIL) < XDONT(IDEB)) Then
+          XWRK = XDONT (IDEB)
+          XDONT (IDEB) = XDONT (IMIL)
+          XDONT (IMIL) = XWRK
+        End If
+      End If
+      XPIV = XDONT (IMIL)
+      !
+      !  One exchanges values to put those > pivot in the end and
+      !  those <= pivot at the beginning
+      !
+      ICRS = IDEB
+      IDCR = IFIN
+      ECH2 : Do
+        Do
+          ICRS = ICRS + 1
+          If (ICRS >= IDCR) Then
+            !
+            !  the first  >  pivot is IDCR
+            !  the last   <= pivot is ICRS-1
+            !  Note: If one arrives here on the first iteration, then
+            !        the pivot is the maximum of the set, the last value is equal
+            !        to it, and one can reduce by one the size of the set to process,
+            !        as if XDONT (IFIN) > XPIV
+            !
+            Exit ECH2
+            !
+          End If
+          If (XDONT(ICRS) > XPIV) Exit
+        End Do
+        Do
+          If (XDONT(IDCR) <= XPIV) Exit
+          IDCR = IDCR - 1
+          If (ICRS >= IDCR) Then
+            !
+            !  The last value < pivot is always ICRS-1
+            !
+            Exit ECH2
+          End If
+        End Do
+        !
+        XWRK = XDONT (IDCR)
+        XDONT (IDCR) = XDONT (ICRS)
+        XDONT (ICRS) = XWRK
+      End Do ECH2
+      !
+      !  One now sorts each of the two sub-intervals
+      !
+      Call C_subsor (XDONT, IDEB1, ICRS - 1)
+      Call C_subsor (XDONT, IDCR, IFIN1)
+    End If
+    Return
+  End Subroutine C_subsor
+  !
   Subroutine D_rinpar (XDONT, IRNGT, NORD)
     !  Ranks partially XDONT by IRNGT, up to order NORD = size (IRNGT)
     ! __________________________________________________________
