@@ -46,21 +46,9 @@
 
 MODULE mo_kind
 
-  use, intrinsic :: iso_c_binding, only: sp=>c_float
-  use, intrinsic :: iso_c_binding, only: dp=>c_double
-  use, intrinsic :: iso_c_binding, only: spc=>c_float_complex
-  use, intrinsic :: iso_c_binding, only: dpc=>c_double_complex
-  use, intrinsic :: iso_c_binding, only: qp=>c_float128
-  use, intrinsic :: iso_c_binding, only: i2=>c_short
-  use, intrinsic :: iso_c_binding, only: i4=>c_int
-  use, intrinsic :: iso_c_binding, only: i8=>c_long_long
   ! this is defined here https://github.com/fortran-lang/stdlib/ like so
-  ! use iso_fortran_env, only: sp=>real32, dp=>real64, qp=>real128
-  ! use iso_fortran_env, only: int8, int16, int32, int64
-  !use, intrinsic :: iso_c_binding, only: int8=>c_int8_t
-  !use, intrinsic :: iso_c_binding, only: int16=>c_int16_t
-  !use, intrinsic :: iso_c_binding, only: int32=>c_int32_t
-  !use, intrinsic :: iso_c_binding, only: int64=>c_int64_t
+  use iso_fortran_env, only: sp=>real32, dp=>real64, qp=>real128
+  use iso_fortran_env, only: i1=>int8, i2=>int16, i4=>int32, i8=>int64
 
 implicit none
 
@@ -68,7 +56,6 @@ implicit none
   !public sp, dp, qp, int8, int16, int32, int64
   public sp, dp, qp, i1, i2, i4, i8, lgt
 
-  integer, parameter :: i1 = selected_int_kind(2)
   integer, parameter :: lgt = kind(.true.)
 
 END MODULE mo_kind
