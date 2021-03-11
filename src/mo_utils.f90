@@ -33,7 +33,7 @@ MODULE mo_utils
 
   ! Copyright 2014 Matthias Cuntz, Juliane Mai
 
-  USE mo_kind, only : sp, dp, i4
+  USE mo_kind, only : sp, dp, i1, i4, i8
   USE mo_string_utils, only : toupper
 
   IMPLICIT NONE
