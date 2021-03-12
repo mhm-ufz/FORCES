@@ -4,7 +4,7 @@ find_package(PFUNIT)
 set (LIB_NAME lightweight_fortran_lib)
 
 file ( COPY ./files
-DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+DESTINATION ${CMAKE_BINARY_DIR})
 
 
 if(PFUNIT_FOUND)
