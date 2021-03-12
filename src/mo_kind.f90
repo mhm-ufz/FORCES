@@ -56,14 +56,13 @@ MODULE mo_kind
           sp=>c_float, &
           dp=>c_double, &
           spc=>c_float_complex, &
-          dpc=>c_double_complex, &
-          qp=>c_float128
+          dpc=>c_double_complex
 
 implicit none
 
   private
   !public sp, dp, qp, int8, int16, int32, int64
-  public sp, dp, qp, i2, i4, i8
+  public sp, dp, i2, i4, i8
 
   integer, parameter, public :: lgt = kind(.true.)
   integer, parameter, public :: i1 = selected_int_kind(2)

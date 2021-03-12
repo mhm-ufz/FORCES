@@ -45,7 +45,7 @@ show-env-vars:
 .make_test: &make_test
   - make $MAKE_FLAGS test
 
-# make test command
+# make coverage command
 .make_coverage: &make_coverage
   - make $MAKE_FLAGS FORCES_unit_coverage_CI
   - make $MAKE_FLAGS FORCES_coverage_CI
@@ -102,8 +102,10 @@ show-env-vars:
   artifacts:
     when: always
     paths:
-    - $BUILD_DIR/MPR_coverage_CI.info
-    - $BUILD_DIR/MPR_coverage_CI
+    - $BUILD_DIR/FORCES_coverage_CI.info
+    - $BUILD_DIR/FORCES_coverage_CI.info
+    - $BUILD_DIR/forces_unit_coverage_ci.info
+    - $BUILD_DIR/FORCES_unit_coverage_CI
 
 # ##################
 # ### BUILD JOBS ###
@@ -149,6 +151,20 @@ test-gfortran83MPI-debug:
     CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Debug'
   <<: *test_template
 
+test-gfortran102MPI-release:
+  variables:
+    <<: *release_vars
+    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.gfortran102MPI
+    CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Release'
+  <<: *test_template
+
+test-gfortran102MPI-debug:
+  variables:
+    <<: *debug_vars
+    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.gfortran102MPI
+    CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Debug'
+  <<: *test_template
+
 test-gfortran73MPI-release:
   variables:
     <<: *release_vars
@@ -177,17 +193,17 @@ test-intel18-debug:
     CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Debug'
   <<: *test_template
 
-test-intel20-release:
+test-intel19-release:
   variables:
     <<: *release_vars
-    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.intel20
+    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.intel19
     CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Release'
   <<: *test_template
 
-test-intel20MPI-release:
+test-intel19MPI-release:
   variables:
     <<: *release_vars
-    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.intel20MPI
+    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.intel19MPI
     CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Release'
   <<: *test_template
 
