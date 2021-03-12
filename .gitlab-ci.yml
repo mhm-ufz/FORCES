@@ -47,7 +47,6 @@ show-env-vars:
 
 # make coverage command
 .make_coverage: &make_coverage
-  - make $MAKE_FLAGS FORCES_unit_coverage_CI
   - make $MAKE_FLAGS FORCES_coverage_CI
 
 # cleanup after scripts
