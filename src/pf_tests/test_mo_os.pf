@@ -34,7 +34,7 @@ contains
   @test
   subroutine test_isfile()
 
-    logical :: r1, r2, r3, r4, r5, r6
+    logical :: r1, r3, r4, r5, r6
 
     call path_isfile('./files/empty.txt', result_=r1)
     !call path_isfile('../Makefile', result_=r2)
@@ -59,14 +59,14 @@ contains
 
     call path_isdir('./files/.', result_=r1)
     call path_isdir('./files/', result_=r2)
-    ! call path_isdir('../files', result_=r3)
+    call path_isdir('./files', result_=r3)
     call path_isdir('../../README', quiet_=.true., result_=r4)
     call path_isdir('./files/empty.txt', quiet_=.true., result_=r5)
     call path_isdir('./pf_tests', quiet_=.true., result_=r6)
    
     @assertTrue(r1)
     @assertTrue(r2)
-    ! @assertTrue(r3)
+    @assertTrue(r3)
     @assertFalse(r4)
     @assertFalse(r5)
     @assertFalse(r6)
