@@ -104,8 +104,6 @@ show-env-vars:
     paths:
     - $BUILD_DIR/FORCES_coverage_CI.info
     - $BUILD_DIR/FORCES_coverage_CI
-    - $BUILD_DIR/FORCES_unit_coverage_CI.info
-    - $BUILD_DIR/FORCES_unit_coverage_CI
 
 # ##################
 # ### BUILD JOBS ###
