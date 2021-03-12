@@ -3,6 +3,10 @@ enable_testing()
 find_package(PFUNIT)
 set (LIB_NAME lightweight_fortran_lib)
 
+file ( COPY ./files
+DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+
 if(PFUNIT_FOUND)
 	# find if there is an OpenMP setup on the system and if so, set corresponding variables
 	find_package(OpenMP)
