@@ -33,3 +33,12 @@ foreach ( UNIT_TEST ${sources} )
   list(APPEND testnames ${testname})
 endforeach()
 
+if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
+  if (CMAKE_WITH_COVERAGE)
+    include(CodeCoverage)
+    APPEND_COVERAGE_COMPILER_FLAGS()
+    SETUP_TARGET_FOR_COVERAGE_LCOV(NAME FORCES_coverage_CI
+      EXECUTABLE ${testnames}
+      GENHTML_ARGS -t "${LIB_NAME} coverage" --html-prolog ${CMAKE_CURRENT_SOURCE_DIR}/../doc/html_files/cov_header.prolog)
+  endif()
+endif()

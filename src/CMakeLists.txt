@@ -86,17 +86,6 @@ set_target_properties ( ${LIB_NAME}
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 if(BUILD_TESTING)
-  add_subdirectory(./tests)
   add_subdirectory(./pf_tests)
-
-  if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-  if (CMAKE_WITH_COVERAGE)
-    include(CodeCoverage)
-    APPEND_COVERAGE_COMPILER_FLAGS()
-    SETUP_TARGET_FOR_COVERAGE_LCOV(NAME FORCES_coverage_CI
-      EXECUTABLE ${testnames}
-      GENHTML_ARGS -t "${LIB_NAME} coverage" --html-prolog ${CMAKE_CURRENT_SOURCE_DIR}/../doc/html_files/cov_header.prolog)
-  endif()
-endif()
-
+  add_subdirectory(./tests)
 endif()
