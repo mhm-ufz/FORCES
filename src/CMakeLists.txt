@@ -110,6 +110,11 @@ set_target_properties ( ${LIB_NAME}
 )
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
+# turn off testing in case the Project is not the main
+if(NOT CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    set(BUILD_TESTING OFF)
+endif()
+
 if(BUILD_TESTING)
   add_subdirectory(./pf_tests)
   add_subdirectory(./tests)

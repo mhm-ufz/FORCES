@@ -59,10 +59,6 @@ message("FORCES DATE:    ${FORCESDATE}")
 
 # automatically enables testing
 include(CTest)
-# turn off testing in case the Project is not the main
-if(NOT CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
-    set(BUILD_TESTING OFF)
-endif()
 
 # add version to pre-processor flags (qoutes need in before hand)
 add_compile_definitions(FORCESVERSION='${FORCESVERSION}')
@@ -79,7 +75,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/utils.cmake)
 # or cache file:
 # $cmake -C ../CMakeCacheFiles/eve ..
 # or after executing CMake editing the CMakeCache.txt, preferably with a corresponding cmake editor i.e ccmake
-set(CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT OFF CACHE STRING "build the module INDEPENDENT of the module system, so the build in the build tree works even after a module purge")
+option(CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT "build the module INDEPENDENT of the module system, so the build in the build tree works even after a module purge")
 message(STATUS "build INDEPENDENT of module system ${CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT}")
 
 # library module specific settings
