@@ -4,7 +4,7 @@ module load netCDF-Fortran
 module load CMake
 module use /global/apps/modulefiles
 module load python_env_mpr
-module load pFUnit/4.2.0_foss_2018b
+module load pFUnit/4.2.0_foss2018b
 export NETCDF_DIR="$EBROOTNETCDF"
 export NETCDF_FORTRAN_DIR="$EBROOTNETCDFMINFORTRAN"
 export FC=mpifort
