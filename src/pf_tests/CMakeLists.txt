@@ -1,6 +1,11 @@
 enable_testing()
 
 find_package(PFUNIT)
+set (LIB_NAME lightweight_fortran_lib)
+
+file ( COPY ./files
+DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
 
 if(PFUNIT_FOUND)
 	# find if there is an OpenMP setup on the system and if so, set corresponding variables
@@ -9,10 +14,18 @@ if(PFUNIT_FOUND)
 		message(FATAL_ERROR "OpenMP required but not found")
 	endif()
 
-	add_pfunit_ctest (test_mo_os
-	  TEST_SOURCES test_mo_os.pf
-	  LINK_LIBRARIES lightweight_fortran_lib
-	  )
+  set (pfunit_suffix ".pf")
+  file( GLOB testsourcefiles RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *${pfunit_suffix} )
+  foreach( testsourcefile ${testsourcefiles} )
+    # I used a simple string replace, to cut off .pf
+    string( REPLACE ${pfunit_suffix} "" testname ${testsourcefile} )
+    add_pfunit_ctest (${testname}
+      TEST_SOURCES ${testsourcefile}
+      LINK_LIBRARIES ${LIB_NAME}
+      )
+    list(APPEND testnames ${testname})
+  endforeach()
+
 else()
     message(STATUS "No test program found, install PFUNIT")
 endif()
