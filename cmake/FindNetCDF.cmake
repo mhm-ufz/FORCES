@@ -123,8 +123,66 @@ macro (NetCDF_check_interface lang header libs)
       list (APPEND NetCDF_libs ${NETCDF_${lang}_LIBRARY})
       list (APPEND NetCDF_includes ${NETCDF_${lang}_INCLUDE_DIR})
     else ()
-      set (NETCDF_HAS_INTERFACES "NO")
-      message (STATUS "Failed to find NetCDF interface for ${lang}")
+      if ( ${lang} STREQUAL "F90")
+      	find_program(NETCDFF_CONFIG nf-config
+          HINTS ${CMAKE_NETCDF_DIR})
+        message(STATUS "found ${NETCDFF_CONFIG}")
+        execute_process(COMMAND ${NETCDFF_CONFIG} --includedir OUTPUT_VARIABLE NETCDF_${lang}_INCLUDE_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+        message(STATUS "netcdff includes ${NETCDF_INCLUDES}")
+        execute_process(COMMAND ${NETCDFF_CONFIG} --fflags OUTPUT_VARIABLE NETCDF_CFLAGS_OTHER OUTPUT_STRIP_TRAILING_WHITESPACE)
+        message(STATUS "netcdff netcdf link flags ${NETCDF_CFLAGS_OTHER}")
+        execute_process(COMMAND ${NETCDFF_CONFIG} --flibs OUTPUT_VARIABLE NETCDF_LDFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
+        message(STATUS "netcdff netcdf library link flags ${NETCDF_LDFLAGS}")
+
+        if (CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT)
+          find_program(NETCDF_CONFIG nc-config
+            HINTS ${CMAKE_NETCDF_DIR})
+          execute_process(COMMAND ${NETCDF_CONFIG} --libs OUTPUT_VARIABLE NETCDF_LIBS OUTPUT_STRIP_TRAILING_WHITESPACE)
+          message(STATUS "netcdf library link flags ${NETCDF_LIBS}")
+        endif()
+
+        # In a clean cmake setup the libraries are included via the target_link_libraries and not
+        # via flags. Cmake creates system dependend flags and rpaths using the libraries itself.
+        # nf-config on the other hand gives us a list of flags, linking with -l and -L.
+        # we cut the flag string into seperated flags and create libraries and other flags from it
+        string(REPLACE " " ";" NETCDF_LDFLAGS_LIST "${NETCDF_LDFLAGS} ${NETCDF_LIBS}")
+        foreach(flag ${NETCDF_LDFLAGS_LIST})
+          # message(STATUS "${flag}")
+          if (flag MATCHES "^-L(.*)")
+            list(APPEND _search_paths ${CMAKE_MATCH_1})
+            continue()
+          endif()
+          if (flag MATCHES "^-l(.*)")
+            set(_pkg_search "${CMAKE_MATCH_1}")
+          else()
+            string(CONCAT _link_flags "${_link_flags}" " " "${flag}")
+            continue()
+          endif()
+
+          if(_search_paths)
+            # Firstly search in -L paths
+            find_library(pkgcfg_lib_NETCDF_${_pkg_search}
+              NAMES ${_pkg_search}
+              HINTS ${_search_paths} NO_DEFAULT_PATH)
+          endif()
+          find_library(pkgcfg_lib_NETCDF_${_pkg_search}
+            NAMES ${_pkg_search}
+            HINTS ENV LD_LIBRARY_PATH)
+          message(STATUS "found ${pkgcfg_lib_NETCDF_${_pkg_search}}")
+          list(APPEND _libs "${pkgcfg_lib_NETCDF_${_pkg_search}}")
+        endforeach()
+
+        # those are set one level up
+        set(NETCDF_LDFLAGS_OTHER "${_link_flags}")
+        message(STATUS "found netcdf other flags ${NETCDF_LDFLAGS_OTHER}")
+
+        list (APPEND NETCDF_LINK_LIBRARIES "${_libs}")
+        message(STATUS "found netcdf libraries ${NETCDF_LINK_LIBRARIES}")
+        list (APPEND NetCDF_includes ${NETCDF_${lang}_INCLUDE_DIR})
+      else ()
+        set (NETCDF_HAS_INTERFACES "NO")
+        message (STATUS "Failed to find NetCDF interface for ${lang}")
+      endif ()
     endif ()
   endif ()
 endmacro ()
