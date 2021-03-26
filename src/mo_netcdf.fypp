@@ -10,6 +10,7 @@
 #:include "common.fypp"
 
 #:set KINDS_TYPES = REAL_KINDS_TYPES + INT_KINDS_TYPES + CHAR_KINDS_TYPES
+#:set KINDS = REAL_KINDS + INT_KINDS
 #:set RANKS = range(0, MAXRANK)
 
 module mo_netcdf
@@ -27,14 +28,10 @@ module mo_netcdf
   ! -------
   ! GNU Lesser General Public License http://www.gnu.org/licenses/
 
-  use mo_kind, only: sp, dp, qp
-  use mo_utils, only: gt, lt, ne
+  use mo_kind, only: ${', '.join(KINDS)}$
+  use mo_utils, only: ne
   use ieee_arithmetic, only : ieee_is_nan
 
-  use, intrinsic :: iso_c_binding, only: i8=>c_int8_t
-  use, intrinsic :: iso_c_binding, only: i16=>c_short
-  use, intrinsic :: iso_c_binding, only: i32=>c_int
-  use, intrinsic :: iso_c_binding, only: i64=>c_long_long
   use netcdf, only : &
           nf90_open, nf90_close, nf90_strerror, nf90_def_dim, nf90_def_var, &
           nf90_put_var, nf90_get_var, nf90_put_att, nf90_get_att, &
@@ -55,15 +52,15 @@ module mo_netcdf
   character(11), parameter :: CF_VALID_RANGE = 'valid_range'
   character(9), parameter :: CF_VALID_MIN = 'valid_min'
   character(9), parameter :: CF_VALID_MAX = 'valid_max'
-  integer(i32), parameter :: CF_USE_FILL_VALUE = 1_i32
-  integer(i32), parameter :: CF_USE_VALID_MIN = 2_i32
-  integer(i32), parameter :: CF_USE_VALID_MAX = 3_i32
-  integer(i32), parameter :: CF_USE_VALID_RANGE = 4_i32
-  integer(i32), parameter :: CF_USE_NAN = 5_i32
+  integer(i4), parameter :: CF_USE_FILL_VALUE = 1_i4
+  integer(i4), parameter :: CF_USE_VALID_MIN = 2_i4
+  integer(i4), parameter :: CF_USE_VALID_MAX = 3_i4
+  integer(i4), parameter :: CF_USE_VALID_RANGE = 4_i4
+  integer(i4), parameter :: CF_USE_NAN = 5_i4
 
   type, abstract :: NcBase
 
-    integer(i32) :: id
+    integer(i4) :: id
 
   contains
 
@@ -255,7 +252,7 @@ contains
     character(*), intent(in) :: fname
     character(1), intent(in) :: fmode
     character(*), intent(inout), optional :: cmode
-    integer(i32) :: status
+    integer(i4) :: status
     type(NcDataset) :: out
 
     select case(fmode)
@@ -276,7 +273,7 @@ contains
   end function newNcDataset
 
   function newNcVariable(id, parent) result(out)
-    integer(i32), intent(in) :: id
+    integer(i4), intent(in) :: id
     type(NcGroup), intent(in) :: parent
     type(NcVariable) :: out
 
@@ -285,7 +282,7 @@ contains
   end function newNcVariable
 
   function newNcDimension(id, parent) result(out)
-    integer(i32), intent(in) :: id
+    integer(i4), intent(in) :: id
     type(NcGroup), intent(in) :: parent
     type(NcDimension) :: out
 
@@ -294,7 +291,7 @@ contains
   end function newNcDimension
 
   function newNcGroup(id) result(out)
-    integer(i32), intent(in) :: id
+    integer(i4), intent(in) :: id
     type(NcGroup) :: out
 
     out%id = id
@@ -315,7 +312,7 @@ contains
   function setGroup(self, name)
     class(NcGroup), intent(inout) :: self
     character(*), intent(in) :: name
-    integer(i32) :: id
+    integer(i4) :: id
     type(NcGroup) :: setGroup
 
     call check(nf90_def_grp(self%id, name, id), "Failed to create new group: " // name)
@@ -324,7 +321,7 @@ contains
 
   function getGroupParent(self)
     class(NcGroup), intent(in) :: self
-    integer(i32) :: id
+    integer(i4) :: id
     type(NcGroup) :: getGroupParent
 
     call check(nf90_inq_grp_parent(self%id, id), "Failed to get parent group of: " // self%getName())
@@ -340,7 +337,7 @@ contains
 
   function getNoVariables(self)
     class(NcGroup), intent(in) :: self
-    integer(i32) :: getNoVariables
+    integer(i4) :: getNoVariables
 
     call check(nf90_inquire(self%id, nvariables = getNoVariables), "Failed inquire number of variables")
   end function getNoVariables
@@ -361,8 +358,8 @@ contains
 
   function getVariableIds(self)
     class(NcGroup), intent(in) :: self
-    integer(i32), dimension(:), allocatable :: getVariableIds
-    integer(i32) :: tmp
+    integer(i4), dimension(:), allocatable :: getVariableIds
+    integer(i4) :: tmp
 
     allocate(getVariableIds(self%getNoVariables()))
     call check(nf90_inq_varids(self%id, tmp, getVariableIds), "Failed to inquire variable ids")
@@ -371,8 +368,8 @@ contains
   function getVariables(self)
     class(NcGroup), intent(in) :: self
     type(NcVariable), dimension(:), allocatable :: getVariables
-    integer(i32), dimension(:), allocatable :: varids
-    integer(i32) :: i, nvars
+    integer(i4), dimension(:), allocatable :: varids
+    integer(i4) :: i, nvars
 
     nvars = self%getNoVariables()
     allocate(getVariables(nvars), varids(nvars))
@@ -394,7 +391,7 @@ contains
 
   function getDimensionLength(self)
     class(NcDimension), intent(in) :: self
-    integer(i32) :: getDimensionLength
+    integer(i4) :: getDimensionLength
 
     call check(nf90_inquire_dimension(self%parent%id, self%id, len = getDimensionLength), &
             "Failed to inquire dimension: " // self%getName())
@@ -403,7 +400,7 @@ contains
   function isDatasetUnlimited(self)
     class(NcGroup), intent(in) :: self
     logical :: isDatasetUnlimited
-    integer(i32) :: dimid
+    integer(i4) :: dimid
 
     call check(nf90_inquire(self%id, unlimitedDimId = dimid), &
             "Failed to inquire group " // self%getName())
@@ -413,7 +410,7 @@ contains
   function getUnlimitedDimension(self)
     class(NcGroup), intent(in) :: self
     type(NcDimension) :: getUnlimitedDimension
-    integer(i32) :: dimid
+    integer(i4) :: dimid
 
     call check(nf90_inquire(self%id, unlimitedDimId = dimid), &
             "Failed to inquire group " // self%getName())
@@ -450,13 +447,13 @@ contains
     real(dp)      , intent(in), dimension(:) :: centersDim2
     real(dp)      , intent(in), dimension(:,:) :: cornersDim1
     real(dp)      , intent(in), dimension(:,:) :: cornersDim2
-    integer(i32)   , intent(in), dimension(:) :: subDimSizes
+    integer(i4)   , intent(in), dimension(:) :: subDimSizes
     character(256), intent(in) :: units
     type(NcDimension) :: ncDim
 
     type(NcDimension)          :: cornerDim, rankDim
     type(NcVariable)           :: ncVar
-    integer(i32), allocatable, dimension(:) :: imask_data
+    integer(i4), allocatable, dimension(:) :: imask_data
 
     ! set the new ncDimension (integer values and name)
     ncDim = self%setDimension('grid_size', size(centersDim1))
@@ -480,7 +477,7 @@ contains
     ! set all values to 1 (True) for mask
     ncVar = self%setVariable('grid_imask', "i32", [ncDim])
     allocate(imask_data(size(centersDim1)))
-    imask_data = 1_i32
+    imask_data = 1_i4
     call ncVar%setData(imask_data)
     deallocate(imask_data)
     call ncVar%setAttribute('units', 'unitless')
@@ -492,18 +489,18 @@ contains
     character(*)  , intent(in) :: name
     type(NcDimension), intent(in) :: ncDim
     real(dp)      , intent(in), dimension(:) :: bounds
-    integer(i32)   , intent(in), optional :: referenceArg
+    integer(i4)   , intent(in), optional :: referenceArg
     type(NcVariable):: ncVar
 
     type(NcDimension) :: bndsDim
-    integer(i64) :: dimLength, iBound
-    integer(i32) :: reference, iAtt
+    integer(i8) :: dimLength, iBound
+    integer(i4) :: reference, iAtt
     character(256) :: dimBoundName
     real(dp), allocatable, dimension(:, :) :: boundData
 
     ! init
-    dimLength = size(bounds, kind=i64)
-    reference = 1_i32
+    dimLength = size(bounds, kind=i8)
+    reference = 1_i4
     if (present(referenceArg)) then
       reference = referenceArg
     end if
@@ -511,15 +508,15 @@ contains
     ncVar = self%setVariable(name, "f64", [ncDim])
     ! write the data based on the type of reference
     select case(reference)
-    case(0_i32)
+    case(0_i4)
       ! set the start values
-      call ncVar%setData(bounds(1_i64:dimLength - 1_i64))
-    case(1_i32)
+      call ncVar%setData(bounds(1_i8:dimLength - 1_i8))
+    case(1_i4)
       ! set the center values
-      call ncVar%setData((bounds(2_i64:dimLength) + bounds(1_i64:dimLength-1_i64)) / 2.0_dp)
+      call ncVar%setData((bounds(2_i8:dimLength) + bounds(1_i8:dimLength-1_i8)) / 2.0_dp)
     case(2_4)
       ! set the end values
-      call ncVar%setData(bounds(2_i64:dimLength))
+      call ncVar%setData(bounds(2_i8:dimLength))
     case default
       write(*,*) "reference id for set_Dimension is ", reference, ", must be 0, 1 or 2."
       stop 1
@@ -535,15 +532,15 @@ contains
       ! add it to our bounds of ncDimensions for the current array
       bndsDim = self%getDimension("bnds")
     else
-      bndsDim = self%setDimension("bnds", 2_i32)
+      bndsDim = self%setDimension("bnds", 2_i4)
     end if
     ncVar = self%setVariable(dimBoundName, "f64", [bndsDim, ncDim])
 
     ! allocate array for data
-    allocate(boundData(2_i64, dimLength-1_i64))
-    do iBound = 1_i64, dimLength-1_i64
-      boundData(1_i64, iBound) = bounds(iBound)
-      boundData(2_i64, iBound) = bounds(iBound + 1_i64)
+    allocate(boundData(2_i8, dimLength-1_i8))
+    do iBound = 1_i8, dimLength-1_i8
+      boundData(1_i8, iBound) = bounds(iBound)
+      boundData(2_i8, iBound) = bounds(iBound + 1_i8)
     end do
     call ncVar%setData(boundData)
     deallocate(boundData)
@@ -553,15 +550,15 @@ contains
   function setDimension(self, name, length) result(ncDim)
     class(NcGroup), intent(in) :: self
     character(*)  , intent(in) :: name
-    integer(i32), intent(in), optional :: length
+    integer(i4), intent(in), optional :: length
 
     type(NcDimension) :: ncDim
-    integer(i32) :: dimLength
-    integer(i32) :: id
+    integer(i4) :: dimLength
+    integer(i4) :: id
 
     dimLength = NF90_UNLIMITED
     if (present(length)) then
-      if (length > 0_i32) then
+      if (length > 0_i4) then
         dimLength = length
       end if
     end if
@@ -577,21 +574,21 @@ contains
                         centersDim1, centersDim2, cornersDim1, cornersDim2, subDimSizes, units) result(ncDim)
     class(NcGroup), intent(in) :: self
     character(*)  , intent(in) :: name
-    integer(i32), intent(in), optional :: length
+    integer(i4), intent(in), optional :: length
     real(dp)      , intent(in), optional, dimension(:) :: bounds
-    integer(i32)   , intent(in), optional :: reference
-    character(256) , intent(in), optional, dimension(:) :: attribute_names
-    character(2048) , intent(in), optional, dimension(:) :: attribute_values
+    integer(i4)   , intent(in), optional :: reference
+    character(*) , intent(in), optional, dimension(:) :: attribute_names
+    character(*) , intent(in), optional, dimension(:) :: attribute_values
     real(dp)      , intent(in), optional, dimension(:) :: centersDim1
     real(dp)      , intent(in), optional, dimension(:) :: centersDim2
     real(dp)      , intent(in), optional, dimension(:,:) :: cornersDim1
     real(dp)      , intent(in), optional, dimension(:,:) :: cornersDim2
-    integer(i32)   , intent(in), optional, dimension(:) :: subDimSizes
-    character(256), intent(in), optional :: units
+    integer(i4)   , intent(in), optional, dimension(:) :: subDimSizes
+    character(*), intent(in), optional :: units
 
     type(NcDimension) :: ncDim
     type(NcVariable) :: ncVar
-    integer(i32) :: iAtt
+    integer(i4) :: iAtt
 
     if (present(centersDim1) .and. present(centersDim2) .and. present(cornersDim1) .and. present(cornersDim2) &
              .and. present(subDimSizes) .and. present(units)) then
@@ -619,7 +616,7 @@ contains
     class(NcGroup), intent(in) :: self
     character(*), intent(in) :: name
     logical :: hasVariable
-    integer(i32) :: tmpid
+    integer(i4) :: tmpid
 
     hasVariable = (nf90_inq_varid(self%id, name, tmpid) == NF90_NOERR)
   end function hasVariable
@@ -628,7 +625,7 @@ contains
     class(NcGroup), intent(in) :: self
     character(*), intent(in) :: name
     logical :: hasDimension
-    integer(i32) :: tmpid
+    integer(i4) :: tmpid
 
     hasDimension = (nf90_inq_dimid(self%id, name, tmpid) == NF90_NOERR)
   end function hasDimension
@@ -637,7 +634,7 @@ contains
     class(NcGroup), intent(in) :: self
     character(*), intent(in) :: name
     logical :: hasGroup
-    integer(i32) :: tmpid
+    integer(i4) :: tmpid
 
     hasGroup = (nf90_inq_ncid(self%id, name, tmpid) == NF90_NOERR)
   end function hasGroup
@@ -648,12 +645,12 @@ contains
     class(NcGroup), intent(in) :: self
     character(*), intent(in) :: name
     character(*), intent(in) :: dtype
-    integer(i32), intent(in) :: dimensions(:)
+    integer(i4), intent(in) :: dimensions(:)
     logical, intent(in), optional :: contiguous, shuffle, fletcher32
-    integer(i32), intent(in), optional :: endianness, deflate_level, cache_size, &
+    integer(i4), intent(in), optional :: endianness, deflate_level, cache_size, &
             cache_nelems, cache_preemption, chunksizes(:)
     type(NcVariable) :: setVariableWithIds
-    integer(i32) :: varid, status
+    integer(i4) :: varid, status
 
     status = nf90_def_var(self%id, name, getDtypeFromString(dtype), dimensions, varid, contiguous, &
             chunksizes, deflate_level, shuffle, fletcher32, endianness, &
@@ -671,11 +668,11 @@ contains
     character(*), intent(in) :: dtype
     character(*), intent(in) :: dimensions(:)
     logical, intent(in), optional :: contiguous, shuffle, fletcher32
-    integer(i32), intent(in), optional :: endianness, deflate_level, cache_size, &
+    integer(i4), intent(in), optional :: endianness, deflate_level, cache_size, &
             cache_nelems, cache_preemption, chunksizes(:)
     type(NcVariable) :: setVariableWithNames
     type(NcDimension) :: dim
-    integer(i32) :: i, dimids(size(dimensions))
+    integer(i4) :: i, dimids(size(dimensions))
 
     do i = 1, size(dimensions)
       dim = self%getDimension(dimensions(i))
@@ -695,11 +692,11 @@ contains
     character(*), intent(in) :: dtype
     type(NcDimension), intent(in) :: dimensions(:)
     logical, intent(in), optional :: contiguous, shuffle, fletcher32
-    integer(i32), intent(in), optional :: endianness, deflate_level, cache_size, &
+    integer(i4), intent(in), optional :: endianness, deflate_level, cache_size, &
             cache_nelems, cache_preemption, chunksizes(:)
     type(NcVariable) :: setVariableWithTypes
     type(NcDimension) :: dim
-    integer(i32) :: i, dimids(size(dimensions))
+    integer(i4) :: i, dimids(size(dimensions))
 
     do i = 1, size(dimensions)
       dim = dimensions(i)
@@ -713,7 +710,7 @@ contains
 
   function getDimensionById(self, id)
     class(NcGroup), intent(in) :: self
-    integer(i32) :: id
+    integer(i4) :: id
     type(NcDimension) :: getDimensionById
     character(32) :: msg, name
 
@@ -727,7 +724,7 @@ contains
     class(NcGroup), intent(in) :: self
     character(*) :: name
     type(NcDimension) :: getDimensionByName
-    integer(i32) :: id
+    integer(i4) :: id
 
     call check(nf90_inq_dimid(self%id, name, id), &
             "Could not inquire dimension: " // name)
@@ -738,7 +735,7 @@ contains
     class(NcGroup), intent(in) :: self
     character(*), intent(in) :: name
     type(NcGroup) :: getGroupByName
-    integer(i32) :: id
+    integer(i4) :: id
 
     call check(nf90_inq_ncid(self%id, name, id), &
             "Could not inquire variable: " // name)
@@ -749,7 +746,7 @@ contains
     class(NcGroup), intent(in) :: self
     character(*), intent(in) :: name
     type(NcVariable) :: getVariableByName
-    integer(i32) :: id
+    integer(i4) :: id
 
     call check(nf90_inq_varid(self%id, name, id), &
             "Could not inquire variable: " // name)
@@ -767,7 +764,7 @@ contains
 
   function getNoDimensions(self)
     class(NcVariable), intent(in) :: self
-    integer(i32) :: getNoDimensions
+    integer(i4) :: getNoDimensions
 
     call check(nf90_inquire_variable(self%parent%id, self%id, ndims = getNoDimensions), &
             "Could not inquire variable: " // self%getName())
@@ -776,8 +773,8 @@ contains
   function getVariableDimensions(self)
     class(NcVariable), intent(in) :: self
     type(NcDimension), allocatable :: getVariableDimensions(:)
-    integer(i32), allocatable :: dimids(:)
-    integer(i32) :: ii, ndims
+    integer(i4), allocatable :: dimids(:)
+    integer(i4) :: ii, ndims
 
     ndims = self%getNoDimensions()
     allocate(dimids(ndims), getVariableDimensions(ndims))
@@ -791,9 +788,9 @@ contains
 
   function getVariableShape(self)
     class(NcVariable), intent(in) :: self
-    integer(i32), allocatable :: getVariableShape(:)
+    integer(i4), allocatable :: getVariableShape(:)
     type(NcDimension), allocatable :: dims(:)
-    integer(i32) :: ii, ndims
+    integer(i4) :: ii, ndims
 
     ndims = self%getNoDimensions()
     allocate(getVariableShape(ndims), dims(ndims))
@@ -806,14 +803,14 @@ contains
 
   function getVariableRank(self)
     class(NcVariable), intent(in) :: self
-    integer(i32) :: getVariableRank
+    integer(i4) :: getVariableRank
 
     getVariableRank = size(self%getDimensions())
   end function getVariableRank
 
   function getVariableDtype(self)
     class(NcVariable), intent(in) :: self
-    integer(i32) :: dtype
+    integer(i4) :: dtype
     character(3) :: getVariableDtype
 
     call check(nf90_inquire_variable(self%parent%id, self%id, xtype = dtype), &
@@ -826,7 +823,7 @@ contains
     logical :: isUnlimitedVariable
     type(NcDimension), allocatable :: dims(:)
     type(NcDimension) :: dim
-    integer(i32) :: ii
+    integer(i4) :: ii
 
     allocate(dims(self%getNoDimensions()))
 
@@ -844,7 +841,7 @@ contains
   logical function hasAttribute(self, name)
     class(NcAttributable), intent(in) :: self
     character(*), intent(in) :: name
-    integer(i32) :: status
+    integer(i4) :: status
 
     select type (self)
     class is (NcGroup)
@@ -861,7 +858,7 @@ contains
     class(NcAttributable), intent(in) :: self
     character(len=*), intent(in) :: name
     ${type}$, intent(in) :: data${ranksuffix(rank)}$
-    integer(i32) :: ids(2)
+    integer(i4) :: ids(2)
 
     ids = self%getAttributableIds()
     call check(nf90_put_att(ids(1), ids(2), name, data), &
@@ -876,7 +873,7 @@ contains
     class(NcAttributable), intent(in) :: self
     character(len=*), intent(in) :: name
     ${type}$, intent(out) :: avalue${ranksuffix(rank)}$
-    integer(i32) :: length, ids(2)
+    integer(i4) :: length, ids(2)
 
     ids = self%getAttributableIds()
     call check(nf90_inquire_attribute(ids(1), ids(2), name, len = length), &
@@ -903,7 +900,7 @@ contains
 
   function getAttributableIds(self)
     class(NcAttributable), intent(in) :: self
-    integer(i32) :: getAttributableIds(2)
+    integer(i4) :: getAttributableIds(2)
     select type(self)
     class is (NcGroup)
       getAttributableIds(1) = self%id
@@ -917,7 +914,7 @@ contains
   subroutine renameAttribute(self, oldname, newname)
     class(NcAttributable), intent(inout) :: self
     character(len = *), intent(in) :: oldname, newname
-    integer(i32) :: ids(2)
+    integer(i4) :: ids(2)
     ids = self%getAttributableIds()
     call check(nf90_rename_att(ids(1), ids(2), oldname, newname), "Failed to rename attribute: " // oldname)
   end subroutine renameAttribute
@@ -955,7 +952,7 @@ contains
     if (self%hasAttribute(CF_FILL_VALUE)) then
       call self%getAttribute(CF_FILL_VALUE, fvalue)
     else
-      $: '      fvalue = ' + {'i8': 'NF90_FILL_BYTE', 'i16': 'NF90_FILL_SHORT', 'i32': 'NF90_FILL_INT', 'i64': 'NF90_FILL_INT', 'sp': 'NF90_FILL_FLOAT', 'dp': 'NF90_FILL_DOUBLE', }[kind]
+      $: '      fvalue = ' + {'i1': 'NF90_FILL_BYTE', 'i2': 'NF90_FILL_SHORT', 'i4': 'NF90_FILL_INT', 'i8': 'NF90_FILL_INT', 'sp': 'NF90_FILL_FLOAT', 'dp': 'NF90_FILL_DOUBLE', }[kind]
     end if
 
   end subroutine getVariableFillValue_${kind}$
@@ -966,7 +963,7 @@ contains
   subroutine getCFAttributes_${kind}$(self, minValue, maxValue, fillValue, flagMissing)
     class(NcVariable), intent(in) :: self
     ${type}$, intent(out) :: minValue, maxValue, fillValue
-    integer(i32), intent(out) :: flagMissing
+    integer(i4), intent(out) :: flagMissing
 
     ${type}$ :: valid_range(2)
 
@@ -998,13 +995,13 @@ contains
   subroutine getData_${rank}$d_${kind}$(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     ${type}$, intent(out), allocatable :: data${ranksuffix(rank)}$
-    integer(i32), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     logical, intent(out), allocatable, optional :: mask${ranksuffix(rank)}$
 
-    integer(i32) :: flagMissing
+    integer(i4) :: flagMissing
     ${type}$ :: fillValue, minValue, maxValue
 #: if rank > 0
-    integer(i32), allocatable :: slcshape(:), datashape(:)
+    integer(i4), allocatable :: slcshape(:), datashape(:)
 
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
@@ -1040,11 +1037,11 @@ $: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+
       case(CF_USE_NAN)
         mask = .not. ieee_is_nan(data)
       case(CF_USE_VALID_MIN)
-        mask = gt(data, minValue)
+        mask = data > minValue
       case(CF_USE_VALID_MAX)
-        mask = lt(data, maxValue)
+        mask = data < maxValue
       case(CF_USE_VALID_RANGE)
-        mask = lt(data, maxValue) .and. gt(data, minValue)
+        mask = (data < maxValue) .and. (data > minValue)
 #: endif
       end select
     end if
@@ -1058,7 +1055,7 @@ $: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+
   subroutine setData_${rank}$d_${kind}$(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     ${type}$, intent(in) :: values${ranksuffix(rank)}$
-    integer(i32), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
 #: if rank > 0
     call check(nf90_put_var(self%parent%id, self%id, values, start, cnt, stride, map), &
 #: else
@@ -1082,8 +1079,8 @@ $: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+
 
   function getSlicingShape(self, instart, incnt, instride) result(out)
     class(NcVariable), intent(in) :: self
-    integer(i32), intent(in), optional :: instart(:), incnt(:), instride(:)
-    integer(i32), allocatable :: out(:)
+    integer(i4), intent(in), optional :: instart(:), incnt(:), instride(:)
+    integer(i4), allocatable :: out(:)
 
     out = self%getShape()
 
@@ -1102,10 +1099,10 @@ $: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+
   end function getSlicingShape
 
   function getReadShape(slcshape, outrank) result(out)
-    integer(i32), intent(in) :: slcshape(:)
-    integer(i32), intent(in) :: outrank
-    integer(i32) :: naxis
-    integer(i32), allocatable :: out(:)
+    integer(i4), intent(in) :: slcshape(:)
+    integer(i4), intent(in) :: outrank
+    integer(i4) :: naxis
+    integer(i4), allocatable :: out(:)
 
     naxis = count(slcshape > 1)
 
@@ -1127,7 +1124,7 @@ $: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+
   end function getReadShape
 
   function getDtypeFromString(dtype)
-    integer(i32) :: getDtypeFromString
+    integer(i4) :: getDtypeFromString
     character(*)         :: dtype
 
     select case(dtype)
@@ -1151,7 +1148,7 @@ $: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+
 
   function getDtypeFromInteger(dtype)
     character(3) :: getDtypeFromInteger
-    integer(i32) :: dtype
+    integer(i4) :: dtype
 
     select case(dtype)
     case(NF90_FLOAT)
@@ -1174,7 +1171,7 @@ $: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+
 
   function getCreationMode(cmode)
     character(*), intent(in), optional :: cmode
-    integer(i32) :: getCreationMode
+    integer(i4) :: getCreationMode
     character(256) :: mode
 
     if (.not. (present(cmode))) then
@@ -1202,7 +1199,7 @@ $: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+
   end function getCreationMode
 
   subroutine check(status, msg)
-    integer(i32), intent(in) :: status
+    integer(i4), intent(in) :: status
     character(*), intent(in) :: msg
 
     if (status /= NF90_NOERR) then

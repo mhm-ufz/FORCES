@@ -36,36 +36,64 @@ set (NETCDF_F90 "YES")
 find_package (NetCDF REQUIRED)
 target_link_libraries(${LIB_NAME} ${NETCDF_F90_LIBRARIES})
 target_include_directories(${LIB_NAME} PUBLIC ${NETCDF_F90_INCLUDE_DIRS})
+# all compile and link options are PUBLIC in order to be forwared to 'mhm' exe
+# target_link_options only available in cmake 3.13 (but NETCDF_LDFLAGS_OTHER not working)
+set_property(TARGET ${LIB_NAME} PROPERTY LINK_FLAGS "${NETCDF_LDFLAGS_OTHER}")
 
-set(CMAKE_WITH_MPI OFF CACHE STRING "build the module with MPI, so it can be executed using mpirun")
+option(CMAKE_WITH_MPI "build the module with MPI, so it can be executed using mpirun")
 # if cmake provides a findLIBRARY module, this gets invoked via find_package(LIBRARY)
 if (CMAKE_WITH_MPI)
-        # find if there is an MPI setup on the system and if so, set corresponding variables
-        find_package(MPI)
-        if (NOT ${MPI_Fortran_FOUND})
-                message(FATAL_ERROR "MPI required but not found")
-        else()
-                message(STATUS "found MPI_Fortran_COMPILER ${MPI_Fortran_COMPILER}")
-                # set the preprocessor
-                target_compile_definitions(${LIB_NAME} PRIVATE "-MPI")
-				# add the link to mpi if existing
-                target_link_libraries(${LIB_NAME} ${MPI_Fortran_LIBRARIES} )
-                target_include_directories(${LIB_NAME} PUBLIC ${MPI_Fortran_INCLUDE_PATH} )
-        endif()
+  # find if there is an MPI setup on the system and if so, set corresponding variables
+  find_package(MPI)
+  if (NOT ${MPI_Fortran_FOUND})
+    message(FATAL_ERROR "MPI required but not found")
+  else()
+    message(STATUS "found MPI_Fortran_COMPILER ${MPI_Fortran_COMPILER}")
+    # set the preprocessor
+    target_compile_definitions(${LIB_NAME} PRIVATE "MPI")
+    # add the link to mpi if existing
+    target_link_libraries(${LIB_NAME} ${MPI_Fortran_LIBRARIES} )
+    target_include_directories(${LIB_NAME} PUBLIC ${MPI_Fortran_INCLUDE_PATH} )
+  endif()
 endif()
 
 # set compiling flags for debug and relese version
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-    # set the preprocessor
-    target_compile_definitions(${LIB_NAME} PRIVATE "-DGFORTRAN")
+  # set the preprocessor
+  target_compile_definitions(${LIB_NAME} PRIVATE "GFORTRAN")
+  target_compile_options(${LIB_NAME} PUBLIC
+    -ffree-form -ffixed-line-length-132
+    $<$<CONFIG:DEBUG>:-pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
+    $<$<CONFIG:RELEASE>:-O3>
+    #$<$<BOOL:${CMAKE_WITH_COVERAGE}>:-g -fprofile-arcs -ftest-coverage>
+  )
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
-    # set the preprocessor
-    target_compile_definitions(${LIB_NAME} PRIVATE "-DPGI")
+  # set the preprocessor
+  target_compile_definitions(${LIB_NAME} PRIVATE "PGI")
+endif()
+if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
+	target_compile_definitions(${LIB_NAME} PRIVATE "INTEL")
+  target_compile_options(${LIB_NAME} PUBLIC
+    -nofixed "SHELL:-assume byterecl" "SHELL:-fp-model source" -m64 "SHELL:-assume realloc-lhs"
+    # -fstack-protector-all -fstack-security-check were previously on in debug mode, still needed?
+    $<$<CONFIG:DEBUG>:-g "SHELL:-warn all" "SHELL:-check all" -debug -traceback -fp-stack-check -O0>
+    $<$<CONFIG:RELEASE>:-O3 -qoverride-limits>
+  )
+endif()
+if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
+  target_compile_options(${LIB_NAME} PUBLIC
+    -fpp -colour -unsharedf95 -ideclient
+    # "-C=all" is not set, only "-C -C=alias -C=dangling" and "-ieee=full" instead of "-ieee=stop" because
+    # this effectively omits the -C=intovf flag which checks for integer overflow
+    # we need to exclude that as the random number generator relies on that technique
+    $<$<CONFIG:DEBUG>:-g -nan -O0 -C=all -C -C=alias -C=dangling -strict95 -ieee=full>
+    $<$<CONFIG:RELEASE>:-O4 -ieee=full>
+  )
 endif()
 if(CMAKE_ABSOFT)
     # set the preprocessor
-    target_compile_definitions(${LIB_NAME} PRIVATE "-DABSOFT")
+    target_compile_definitions(${LIB_NAME} PRIVATE "ABSOFT")
 endif()
 
 # ifort and gfortran need the flag -cpp to interpret definitions like -DMRM2MHM
@@ -85,6 +113,12 @@ set_target_properties ( ${LIB_NAME}
 )
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
+# turn off testing in case the Project is not the main
+if(NOT CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    set(BUILD_TESTING OFF)
+endif()
+
 if(BUILD_TESTING)
+  add_subdirectory(./pf_tests)
   add_subdirectory(./tests)
 endif()

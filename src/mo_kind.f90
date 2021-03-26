@@ -46,16 +46,25 @@
 
 MODULE mo_kind
 
-  ! this is defined here https://github.com/fortran-lang/stdlib/ like so
-  use iso_fortran_env, only: sp=>real32, dp=>real64, qp=>real128
-  use iso_fortran_env, only: i1=>int8, i2=>int16, i4=>int32, i8=>int64
+  ! ! this is defined here https://github.com/fortran-lang/stdlib/ like so
+  ! use iso_fortran_env, only: sp=>real32, dp=>real64, qp=>real128
+  ! use iso_fortran_env, only: i1=>int8, i2=>int16, i4=>int32, i8=>int64
+  use, intrinsic :: iso_c_binding,   only: &
+          i2=>c_short, &
+          i4=>c_int, &
+          i8=>c_long_long, &
+          sp=>c_float, &
+          dp=>c_double, &
+          spc=>c_float_complex, &
+          dpc=>c_double_complex
 
 implicit none
 
   private
   !public sp, dp, qp, int8, int16, int32, int64
-  public sp, dp, qp, i1, i2, i4, i8, lgt
+  public sp, dp, i2, i4, i8
 
-  integer, parameter :: lgt = kind(.true.)
+  integer, parameter, public :: lgt = kind(.true.)
+  integer, parameter, public :: i1 = selected_int_kind(2)
 
 END MODULE mo_kind

@@ -34,7 +34,7 @@
 #:set REAL_KINDS_TYPES = list(zip(REAL_KINDS, REAL_TYPES))
 
 #! Complex kinds to be considered during templating
-#:set CMPLX_KINDS = ["sp", "dp", "qp"]
+#:set CMPLX_KINDS = ["spc", "dpc"]
 
 #! Complex types to be considere during templating
 #:set CMPLX_TYPES = ["complex({})".format(k) for k in CMPLX_KINDS]
@@ -44,7 +44,7 @@
 
 #! Integer kinds to be considered during templating
 #!:set INT_KINDS = ["int8", "int16", "int32", "int64"]
-#:set INT_KINDS = ["i8", "i16", "i32", "i64"]
+#:set INT_KINDS = ["i1", "i2", "i4", "i8"]
 
 #! Integer types to be considere during templating
 #:set INT_TYPES = ["integer({})".format(k) for k in INT_KINDS]
@@ -170,6 +170,22 @@ ${prefix + joinstr.join([line.strip() for line in txt.split("\n")]) + suffix}$
       $:seldict.get(i, ":")
     #:endfor
   #:endcall
+#:enddef
+
+#! Generates a type conversion of an argument
+#!
+#! Args:
+#!   gname (str): Generic name
+#!   type (str): Type of the input
+#!   kind (str): kind of inputs variable
+#!
+#! Returns:
+#!   A string with a new name
+#!
+#:def typeconv(gname, _type, kind)
+  #:set type_mod = _type.split('(')[0]
+  #:set type_mod = dict(integer='int').get(type_mod, type_mod)
+  $:"{0}({1}, {2})".format(type_mod, gname, kind)
 #:enddef
 
 #:endmute

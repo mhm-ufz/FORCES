@@ -288,6 +288,7 @@ CONTAINS
       integer             :: i, nt, nr
 
       outs = s ; nt = len_trim(text) ; nr = len_trim(rep)
+      if (text == rep) return
       do
          i = index(outs,text(:nt)) ; if (i == 0) exit
          outs = outs(:i-1) // rep(:nr) // outs(i+nt:)
@@ -304,6 +305,7 @@ CONTAINS
       integer               :: i, nt, nr
 
       outs = s ; nt = len_trim(word) ; nr = len_trim(rep)
+      if (word == rep) return
       do
         i = index_word(outs, word(:nt), check_negative_number_arg)
         if (i == 0) exit

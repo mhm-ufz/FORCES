@@ -33,7 +33,7 @@ MODULE mo_utils
 
   ! Copyright 2014 Matthias Cuntz, Juliane Mai
 
-  USE mo_kind, only : sp, dp, i4, i8, i1
+  USE mo_kind, only : sp, dp, i1, i4, i8
   USE mo_string_utils, only : toupper
 
   IMPLICIT NONE
@@ -43,11 +43,9 @@ MODULE mo_utils
   PUBLIC :: lesserequal  ! a <= b, a .le. b
   PUBLIC :: notequal     ! a /= b, a .ne. b
   PUBLIC :: eq           ! a == b, a .eq. b
-  PUBLIC :: ge, greaterequal_sp, greaterequal_dp           ! a >= b, a .ge. b
+  PUBLIC :: ge           ! a >= b, a .ge. b
   PUBLIC :: le           ! a <= b, a .le. b
   PUBLIC :: ne           ! a /= b, a .ne. b
-  PUBLIC :: gt, greaterthan_sp, greaterthan_dp           ! a > b, a .gt. b
-  PUBLIC :: lt, lessthan_sp, lessthan_dp           ! a < b, a .lt. b
   PUBLIC :: is_finite    ! .true. if not IEEE Inf and not IEEE NaN
   PUBLIC :: is_nan       ! .true. if IEEE NaN
   PUBLIC :: is_normal    ! .true. if not IEEE Inf and not IEEE NaN
@@ -149,14 +147,6 @@ MODULE mo_utils
   INTERFACE le
     MODULE PROCEDURE lesserequal_sp, lesserequal_dp
   END INTERFACE le
-
-  INTERFACE gt
-    MODULE PROCEDURE greaterthan_sp, greaterthan_dp
-  END INTERFACE gt
-
-  INTERFACE lt
-    MODULE PROCEDURE lessthan_sp, lessthan_dp
-  END INTERFACE lt
 
 
   ! ------------------------------------------------------------------
@@ -557,59 +547,6 @@ CONTAINS
     end if
 
   end function notequal_sp
-
-
-  logical elemental pure function greaterthan_dp(a, b) result(boolean)
-
-    real(dp), intent(in) :: a
-    real(dp), intent(in) :: b
-
-    if (a>b) then
-      boolean = .true.
-    else
-      boolean = .false.
-    end if
-
-  end function greaterthan_dp
-
-  logical elemental pure function greaterthan_sp(a, b) result(boolean)
-
-    real(sp), intent(in) :: a
-    real(sp), intent(in) :: b
-
-    if (a>b) then
-      boolean = .true.
-    else
-      boolean = .false.
-    end if
-
-  end function greaterthan_sp
-
-  logical elemental pure function lessthan_dp(a, b) result(boolean)
-
-    real(dp), intent(in) :: a
-    real(dp), intent(in) :: b
-
-    if (a<b) then
-      boolean = .true.
-    else
-      boolean = .false.
-    end if
-
-  end function lessthan_dp
-
-  logical elemental pure function lessthan_sp(a, b) result(boolean)
-
-    real(sp), intent(in) :: a
-    real(sp), intent(in) :: b
-
-    if (a<b) then
-      boolean = .true.
-    else
-      boolean = .false.
-    end if
-
-  end function lessthan_sp
 
   ! ------------------------------------------------------------------
 
