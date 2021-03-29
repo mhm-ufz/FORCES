@@ -177,6 +177,7 @@ macro (NetCDF_check_interface lang header libs)
         message(STATUS "found netcdf other flags ${NETCDF_LDFLAGS_OTHER}")
 
         list (APPEND NETCDF_LINK_LIBRARIES "${_libs}")
+        list (APPEND NetCDF_libs "${_libs}")
         message(STATUS "found netcdf libraries ${NETCDF_LINK_LIBRARIES}")
         list (APPEND NetCDF_includes ${NETCDF_${lang}_INCLUDE_DIR})
       else ()
