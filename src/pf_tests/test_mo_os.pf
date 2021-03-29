@@ -89,7 +89,7 @@ contains
     @assertEqual(trim(ext2), '')
     @assertEqual(trim(root3), '../../README')
     @assertEqual(trim(ext3), '')
-      
+
   end subroutine test_splitext
 
   @test
