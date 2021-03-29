@@ -21,6 +21,15 @@ Please do not commit these files because it will break the Library everywhere el
 Created 11.11.2011 by Juliane Mai and Matthias Cuntz
 Contact Matthias Cuntz - mc (at) macu.de
 
+Dependencies
+______
+NetCDF-Fortran
+
+Recent versions can be downloaded from [here](ftp://ftp.unidata.ucar.edu/pub/netcdf/).
+Instructions can be found [here](https://www.unidata.ucar.edu/software/netcdf/docs/building_netcdf_fortran.html).
+It is recommended to have a clean installation at a custom location
+for a C compiler, a Fortran compiler, the NetCDF C library and the
+NetCDF Fortran library with consistent compilers.
 
 License
 -------

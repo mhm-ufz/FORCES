@@ -1,9 +1,9 @@
 program test_utils
 
-  use mo_kind,  only: sp, dp, i4
+  use mo_kind,  only: sp, dp, i4, i8, i1
   use mo_utils, only: eq, ge, le, ne
   use mo_utils, only: swap, locate !, cumsum, arange, linspace
-  use mo_utils, only: is_finite, is_nan, is_normal, special_value
+  use mo_utils, only: is_finite, is_nan, is_normal, special_value, unpack_chunkwise
   use mo_message, only: error_message
 
   implicit none
@@ -26,6 +26,10 @@ program test_utils
   real(sp), dimension(5) :: s5
   integer(i4) :: ii1
   integer(i4), dimension(5) :: ii5
+
+  real(dp), dimension(:), allocatable :: dalloc
+  ! integer(i1), dimension(:), allocatable :: dalloc_i1, ralloc_i1
+  logical, dimension(:), allocatable :: lalloc
 
   integer(i4) :: i
   logical  :: isgood
@@ -92,6 +96,7 @@ program test_utils
   write(*,'(E24.17,A4,E24.17,A5,L2)') a_dp,' <= ',b_dp,' --> ',compare
   isgood = isgood .and. (compare)
 
+  ! TODO: fix this, it fails in gfortran debug
   ! tiny <= 2*tiny  --> .True.
   a_dp = tiny(1.0_dp)
   b_dp = 2.0_dp*a_dp
@@ -122,6 +127,7 @@ program test_utils
   write(*,'(E24.17,A4,E24.17,A5,L2)') a_dp,' >= ',b_dp,' --> ',compare
   isgood = isgood .and. (.not. compare)
 
+  ! TODO: fix this, it fails in gfortran debug
   ! tiny >= 2*tiny  --> .False.
   a_dp = tiny(1.0_dp)
   b_dp = 2.0_dp*a_dp
@@ -188,6 +194,7 @@ program test_utils
   write(*,'(E15.8,A4,E15.8,A5,L2)') a_sp,' <= ',b_sp,' --> ',compare
   isgood = isgood .and. (compare)
 
+  ! TODO: fix this, it fails in gfortran debug
   ! tiny <= 2*tiny  --> .True.
   a_sp = tiny(1.0_sp)
   b_sp = 2.0_sp*a_sp
@@ -218,6 +225,7 @@ program test_utils
   write(*,'(E15.8,A4,E15.8,A5,L2)') a_sp,' >= ',b_sp,' --> ',compare
   isgood = isgood .and. (.not. compare)
 
+  ! TODO: fix this, it fails in gfortran debug
   ! tiny >= 2*tiny  --> .False.
   a_sp = tiny(1.0_sp)
   b_sp = 2.0_sp*a_sp
@@ -228,6 +236,8 @@ program test_utils
   ! -----------------------------------------------------
   ! Swap
 
+  write(*,*) ''
+  write(*,*) 'Test: swap'
   call random_number(dat1)
   call random_number(dat2)
   dat3 = dat1
@@ -263,6 +273,9 @@ program test_utils
   ! -----------------------------------------------------
   ! Locate
 
+  write(*,*) ''
+  write(*,*) 'Test: locate'
+
   ! double precision
   forall(i=1:nn) dat1(i) = real(i,dp)
   ! 0d
@@ -288,10 +301,14 @@ program test_utils
   ! -----------------------------------------------------
   ! is_finite, is_nan, is_normal
 
+  write(*,*) ''
+  write(*,*) 'Test: is_finite, is_nan, is_normal'
+
   call random_number(dat1)
   isgood = isgood .and. all(is_finite(dat1))
   isgood = isgood .and. all(.not. is_nan(dat1))
   isgood = isgood .and. all(is_normal(dat1))
+  ! TODO: fix this whole block, it fails in gfortran debug (option "-ffpe-trap=zero,overflow,underflow")
   ! NaN
   dat1(1) = 0.0_dp
   dat1(1) = dat1(1)/dat1(1)
@@ -305,7 +322,6 @@ program test_utils
   ! Both
   isgood = isgood .and. (.not. all(is_normal(dat1)))
   isgood = isgood .and. (.not. any(is_normal(dat1(1:2))))
-
   call random_number(sat1)
   isgood = isgood .and. all(is_finite(sat1))
   isgood = isgood .and. all(.not. is_nan(sat1))
@@ -323,13 +339,18 @@ program test_utils
   ! Both
   isgood = isgood .and. (.not. all(is_normal(sat1)))
   isgood = isgood .and. (.not. any(is_normal(sat1(1:2))))
-
   ! -----------------------------------------------------
   ! special_value
 
+  write(*,*) ''
+  write(*,*) 'Test: special_value dp'
+  ! TODO: fix this, it fails in gfortran debug (option "-ffpe-trap=zero,overflow,underflow")
   isgood = isgood .and. is_nan(special_value(1.0_dp, 'IEEE_SIGNALING_NAN'))
+  ! TODO: fix this, it fails in gfortran debug (option "-ffpe-trap=zero,overflow,underflow")
   isgood = isgood .and. is_nan(special_value(1.0_dp, 'IEEE_QUIET_NAN'))
+  ! TODO: fix this, it fails in gfortran debug (option "-ffpe-trap=zero,overflow,underflow")
   isgood = isgood .and. (.not. is_finite(special_value(1.0_dp, 'IEEE_POSITIVE_INF')))
+  ! TODO: fix this, it fails in gfortran debug (option "-ffpe-trap=zero,overflow,underflow")
   isgood = isgood .and. (.not. is_finite(special_value(1.0_dp, 'IEEE_NEGATIVE_INF')))
   isgood = isgood .and. is_finite(special_value(1.0_dp, 'IEEE_POSITIVE_DENORMAL'))
   isgood = isgood .and. is_finite(special_value(1.0_dp, 'IEEE_NEGATIVE_DENORMAL'))
@@ -337,6 +358,7 @@ program test_utils
   isgood = isgood .and. is_finite(special_value(1.0_dp, 'IEEE_NEGATIVE_NORMAL'))
   isgood = isgood .and. is_finite(special_value(1.0_dp, 'IEEE_POSITIVE_ZERO'))
   isgood = isgood .and. is_finite(special_value(1.0_dp, 'IEEE_NEGATIVE_ZERO'))
+  ! TODO: fix this, it fails in gfortran debug (option "-ffpe-trap=zero,overflow,underflow")
   isgood = isgood .and. eq(special_value(1.0_dp, 'IEEE_NEGATIVE_INF'), -special_value(1.0_dp, 'IEEE_POSITIVE_INF'))
   isgood = isgood .and. eq(special_value(1.0_dp, 'IEEE_NEGATIVE_DENORMAL'), -special_value(1.0_dp, 'IEEE_POSITIVE_DENORMAL'))
   isgood = isgood .and. eq(special_value(1.0_dp, 'IEEE_NEGATIVE_NORMAL'), -special_value(1.0_dp, 'IEEE_POSITIVE_NORMAL'))
@@ -344,9 +366,14 @@ program test_utils
   isgood = isgood .and. eq(abs(special_value(1.0_dp, 'IEEE_POSITIVE_ZERO')), 0.0_dp)
   isgood = isgood .and. eq(abs(special_value(1.0_dp, 'IEEE_NEGATIVE_ZERO')), 0.0_dp)
 
+  write(*,*) 'Test: special_value sp'
+  ! TODO: fix this, it fails in gfortran debug (option "-ffpe-trap=zero,overflow,underflow")
   isgood = isgood .and. is_nan(special_value(1.0_sp, 'IEEE_SIGNALING_NAN'))
+  ! TODO: fix this, it fails in gfortran debug (option "-ffpe-trap=zero,overflow,underflow")
   isgood = isgood .and. is_nan(special_value(1.0_sp, 'IEEE_QUIET_NAN'))
+  ! TODO: fix this, it fails in gfortran debug (option "-ffpe-trap=zero,overflow,underflow")
   isgood = isgood .and. (.not. is_finite(special_value(1.0_sp, 'IEEE_POSITIVE_INF')))
+  ! TODO: fix this, it fails in gfortran debug (option "-ffpe-trap=zero,overflow,underflow")
   isgood = isgood .and. (.not. is_finite(special_value(1.0_sp, 'IEEE_NEGATIVE_INF')))
   isgood = isgood .and. is_finite(special_value(1.0_sp, 'IEEE_POSITIVE_DENORMAL'))
   isgood = isgood .and. is_finite(special_value(1.0_sp, 'IEEE_NEGATIVE_DENORMAL'))
@@ -354,6 +381,7 @@ program test_utils
   isgood = isgood .and. is_finite(special_value(1.0_sp, 'IEEE_NEGATIVE_NORMAL'))
   isgood = isgood .and. is_finite(special_value(1.0_sp, 'IEEE_POSITIVE_ZERO'))
   isgood = isgood .and. is_finite(special_value(1.0_sp, 'IEEE_NEGATIVE_ZERO'))
+  ! TODO: fix this, it fails in gfortran debug (option "-ffpe-trap=zero,overflow,underflow")
   isgood = isgood .and. eq(special_value(1.0_sp, 'IEEE_NEGATIVE_INF'), -special_value(1.0_sp, 'IEEE_POSITIVE_INF'))
   isgood = isgood .and. eq(special_value(1.0_sp, 'IEEE_NEGATIVE_DENORMAL'), -special_value(1.0_sp, 'IEEE_POSITIVE_DENORMAL'))
   isgood = isgood .and. eq(special_value(1.0_sp, 'IEEE_NEGATIVE_NORMAL'), -special_value(1.0_sp, 'IEEE_POSITIVE_NORMAL'))
@@ -421,6 +449,30 @@ program test_utils
   ! iat1    = linspace(3,3*nn,nn)
   ! isgood  = isgood .and. all(iat1==iat2)
 
+  ! -----------------------------------------------------
+  ! unpack_chunkwise
+  ! -----------------------------------------------------
+
+  write(*,*) ''
+  write(*,*) 'Test: unpack_chunkwise'
+  a_dp = -9999.0_dp
+  allocate(dalloc(5), lalloc(10))
+  dalloc = [ 0.1_dp, 5.5_dp, 10.1_dp, 50.5_dp, 200.1_dp ]
+  lalloc = [ .false., .true., .false., .false., .false., .false., .true., .true., .true., .true. ]
+  compare = all(eq(unpack_chunkwise(dalloc, lalloc, a_dp, 2_i8), unpack(dalloc, lalloc, a_dp)))
+  isgood = isgood .and. (compare)
+  deallocate(lalloc, dalloc)
+
+  ! TODO: this is commented as it takes really long to test, any ideas?
+  ! allocate(lalloc(int(huge(0_i4), i8) * 2 + 3_i8), ralloc_i1(int(huge(0_i4), i8) * 2 + 3_i8), dalloc_i1(5))
+  ! dalloc_i1 = [ 1_i1, 3_i1, 4_i1, 0_i1, 5_i1 ]
+  ! lalloc = .false.
+  ! ralloc_i1 = 0_i1
+  ! lalloc(int(huge(0_i4), i8) - 3_i8: int(huge(0_i4), i8) + 1_i8) = .true.
+  ! ralloc_i1(int(huge(0_i4), i8) - 3_i8: int(huge(0_i4), i8) + 1_i8) = dalloc_i1
+  ! compare = all(unpack_chunkwise(dalloc_i1, lalloc, 0_i1) == ralloc_i1)
+  ! deallocate(dalloc_i1, lalloc, ralloc_i1)
+  ! isgood = isgood .and. (compare)
 
   write(*,*) ''
   if (isgood) then
