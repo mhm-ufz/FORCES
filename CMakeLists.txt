@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 # check version file
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake-modules)
 # get version and date from files (version.txt and version_date.txt)
 include(version)
 get_version(FORCES_VER FORCES_VER_DEV FORCES_DATE)
