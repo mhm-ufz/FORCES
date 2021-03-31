@@ -1,6 +1,6 @@
 set (LIB_NAME lightweight_fortran_lib)
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/utils.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cmake-modules/utils.cmake)
 file(GLOB sources ./mo_*.f90)
 # --- find preprocessor
 find_program(FYPP fypp)
@@ -29,7 +29,7 @@ target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # additional cmake-modules created for the purpose of finding netCDF or other libraries ly in the source_directory in
 # a folder named cmake-modules. This command tells cmake to search there for Find<module>.cmake files
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cmake-modules)
 
 # find the netcdf and netcdf-fortran libraries, taken from wrf-cmake project
 set (NETCDF_F90 "YES")

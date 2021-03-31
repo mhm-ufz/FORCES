@@ -123,84 +123,84 @@ show-env-vars:
 #       artifacts: true
 #   variables:
 #     <<: *debug_vars
-#     MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.nagfor62
+#     MODULE_LOAD_SCRIPT: hpc-module-loads/eve.nagfor62
 #     CMAKE_FLAGS: '-DCMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX=64 -DCMAKE_BUILD_TYPE=Debug'
 #   <<: *test_template
 
 test-nag62-release:
   variables:
     <<: *release_vars
-    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.nagfor62
+    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.nagfor62
     CMAKE_FLAGS: '-DCMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX=64 -DCMAKE_BUILD_TYPE=Release'
   <<: *test_template
 
 test-gfortran83MPI-release:
   variables:
     <<: *release_vars
-    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.gfortran83MPI
+    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran83MPI
     CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Release'
   <<: *test_template
 
 test-gfortran83MPI-debug:
   variables:
     <<: *debug_vars
-    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.gfortran83MPI
+    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran83MPI
     CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Debug'
   <<: *test_template
 
 test-gfortran102MPI-release:
   variables:
     <<: *release_vars
-    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.gfortran102MPI
+    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran102MPI
     CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Release'
   <<: *test_template
 
 test-gfortran102MPI-debug:
   variables:
     <<: *debug_vars
-    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.gfortran102MPI
+    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran102MPI
     CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Debug'
   <<: *test_template
 
 test-gfortran73MPI-release:
   variables:
     <<: *release_vars
-    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.gfortran73MPI
+    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran73MPI
     CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Release'
   <<: *test_template
 
 test-gfortran73MPI-debug:
   variables:
     <<: *debug_vars
-    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.gfortran73MPI
+    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran73MPI
     CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Debug'
   <<: *test_template
 
 test-intel18-release:
   variables:
     <<: *release_vars
-    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.intel18
+    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.intel18
     CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Release'
   <<: *test_template
 
 test-intel18-debug:
   variables:
     <<: *debug_vars
-    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.intel18
+    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.intel18
     CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Debug'
   <<: *test_template
 
 test-intel19-release:
   variables:
     <<: *release_vars
-    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.intel19
+    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.intel19
     CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Release'
   <<: *test_template
 
 test-intel19MPI-release:
   variables:
     <<: *release_vars
-    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.intel19MPI
+    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.intel19MPI
     CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Release'
   <<: *test_template
 
@@ -208,7 +208,7 @@ coverage-gcc73:
   variables:
     <<: *debug_vars
     <<: *coverage_vars
-    MODULE_LOAD_SCRIPT: moduleLoadScripts/eve.gfortran73MPI
+    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran73MPI
     CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON'
   <<: *coverage_template
 
