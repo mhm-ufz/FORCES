@@ -114,7 +114,7 @@ set_target_properties ( ${LIB_NAME}
 )
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
-if(BUILD_TESTING)
+if((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OR ${LIB_NAME}_BUILD_TESTING) AND BUILD_TESTING)
   add_subdirectory(./pf_tests)
   add_subdirectory(./tests)
 endif()
