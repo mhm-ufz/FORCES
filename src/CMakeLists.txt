@@ -61,7 +61,7 @@ endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   # set the preprocessor
   target_compile_definitions(${LIB_NAME} PRIVATE "GFORTRAN")
-  target_compile_options(${LIB_NAME} PUBLIC
+  target_compile_options(${LIB_NAME} PRIVATE
     -ffree-form -ffixed-line-length-132
     $<$<CONFIG:DEBUG>:-pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
     $<$<CONFIG:RELEASE>:-O3>
@@ -74,7 +74,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
 	target_compile_definitions(${LIB_NAME} PRIVATE "INTEL")
-  target_compile_options(${LIB_NAME} PUBLIC
+  target_compile_options(${LIB_NAME} PRIVATE
     -nofixed "SHELL:-assume byterecl" "SHELL:-fp-model source" -m64 "SHELL:-assume realloc-lhs"
     # -fstack-protector-all -fstack-security-check were previously on in debug mode, still needed?
     $<$<CONFIG:DEBUG>:-g "SHELL:-warn all" "SHELL:-check all" -debug -traceback -fp-stack-check -O0>
@@ -82,12 +82,13 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   )
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
-  target_compile_options(${LIB_NAME} PUBLIC
+  target_compile_options(${LIB_NAME} PRIVATE
     -fpp -colour -unsharedf95 -ideclient
     # "-C=all" is not set, only "-C -C=alias -C=dangling" and "-ieee=full" instead of "-ieee=stop" because
     # this effectively omits the -C=intovf flag which checks for integer overflow
     # we need to exclude that as the random number generator relies on that technique
-    $<$<CONFIG:DEBUG>:-g -nan -O0 -C=all -C -C=alias -C=dangling -strict95 -ieee=full>
+    # -ieee=full is needed for mo_utils (is_nan, is_finite etc. fails with -ieee=stop)
+    $<$<CONFIG:DEBUG>:-g -nan -O0 -C -C=alias -C=dangling -strict95 -ieee=full>
     $<$<CONFIG:RELEASE>:-O4 -ieee=full>
   )
 endif()
