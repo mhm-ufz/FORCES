@@ -33,6 +33,7 @@ target_compile_options(${LIB_NAME} PUBLIC ${XPP_FLAG})
 
 # find the netcdf and netcdf-fortran libraries, taken from ecmwf project
 find_package(NetCDF COMPONENTS Fortran)
+message(STATUS "NetCDF-Fortran found: ${NetCDF_Fortran_FOUND}")
 target_link_libraries(${LIB_NAME} PUBLIC NetCDF::NetCDF_Fortran)
 # target_include_directories(${LIB_NAME} PUBLIC ${NetCDF_Fortran_INCLUDE_DIRS})
 
