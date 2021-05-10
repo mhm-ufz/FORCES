@@ -1,0 +1,63 @@
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/Debian) (preloaded format=pdflatex 2021.4.15)  10 MAY 2021 15:08
+entering extended mode
+ restricted \write18 enabled.
+ file:line:error style messages enabled.
+ %&-line parsing enabled.
+**/home/muellese/AtWork/Cloud/GIT/UFZ/CHS/forces/doc/header_doxygen.tex
+(/home/muellese/AtWork/Cloud/GIT/UFZ/CHS/forces/doc/header_doxygen.tex
+LaTeX2e <2017-04-15>
+Babel <3.18> and hyphenation patterns for 21 language(s) loaded.
+(/usr/share/texlive/texmf-dist/tex/latex/base/book.cls
+Document Class: book 2014/09/29 v1.4h Standard LaTeX document class
+(/usr/share/texlive/texmf-dist/tex/latex/base/bk10.clo
+File: bk10.clo 2014/09/29 v1.4h Standard LaTeX file (size option)
+)
+\c@part=\count79
+\c@chapter=\count80
+\c@section=\count81
+\c@subsection=\count82
+\c@subsubsection=\count83
+\c@paragraph=\count84
+\c@subparagraph=\count85
+\c@figure=\count86
+\c@table=\count87
+\abovecaptionskip=\skip41
+\belowcaptionskip=\skip42
+\bibindent=\dimen102
+) (/usr/share/texlive/texmf-dist/tex/latex/tools/calc.sty
+Package: calc 2014/10/28 v4.3 Infix arithmetic (KKT,FJ)
+\calc@Acount=\count88
+\calc@Bcount=\count89
+\calc@Adimen=\dimen103
+\calc@Bdimen=\dimen104
+\calc@Askip=\skip43
+\calc@Bskip=\skip44
+LaTeX Info: Redefining \setlength on input line 80.
+LaTeX Info: Redefining \addtolength on input line 81.
+\calc@Ccount=\count90
+\calc@Cskip=\skip45
+)
+
+! LaTeX Error: File `doxygen.sty' not found.
+
+Type X to quit or <RETURN> to proceed,
+or enter new name. (Default extension: sty)
+
+Enter file name: 
+/home/muellese/AtWork/Cloud/GIT/UFZ/CHS/forces/doc/header_doxygen.tex:6: Emergency stop.
+<read *> 
+         
+l.6 \usepackage
+               {graphicx}^^M
+*** (cannot \read from terminal in nonstop modes)
+
+ 
+Here is how much of TeX's memory you used:
+ 300 strings out of 494278
+ 3705 string characters out of 6168567
+ 50772 words of memory out of 5000000
+ 3735 multiletter control sequences out of 15000+600000
+ 3640 words of font info for 14 fonts, out of 8000000 for 9000
+ 475 hyphenation exceptions out of 8191
+ 23i,0n,19p,173b,36s stack positions out of 5000i,500n,10000p,200000b,80000s
+/home/muellese/AtWork/Cloud/GIT/UFZ/CHS/forces/doc/header_doxygen.tex:6:  ==> Fatal error occurred, no output PDF file produced!
