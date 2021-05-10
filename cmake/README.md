@@ -38,7 +38,6 @@ SETUP_TARGET_FOR_COVERAGE_LCOV(
 ### `compileoptions.cmake`
 Adds cmake compile options
 - `CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT`: setting r_path
-- `CMAKE_NETCDF_DIR`: separate netcdf path
 - `CMAKE_WITH_MPI`: use MPI
 - `CMAKE_WITH_OpenMP`: use OpenMP
 - `CMAKE_WITH_LAPACK`: use LAPACK bindings
