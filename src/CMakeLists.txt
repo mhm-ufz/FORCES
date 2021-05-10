@@ -32,9 +32,9 @@ target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_compile_options(${LIB_NAME} PUBLIC ${XPP_FLAG})
 
 # find the netcdf and netcdf-fortran libraries, taken from ecmwf project
-find_package (NetCDF COMPONENTS Fortran REQUIRED)
+find_package(NetCDF COMPONENTS Fortran)
 target_link_libraries(${LIB_NAME} PUBLIC NetCDF::NetCDF_Fortran)
-target_include_directories(${LIB_NAME} PUBLIC ${NetCDF_Fortran_INCLUDE_DIRS})
+# target_include_directories(${LIB_NAME} PUBLIC ${NetCDF_Fortran_INCLUDE_DIRS})
 
 # add all compile options (MPI, OpenMP, Lapack, Coverage)
 include(compileoptions)
