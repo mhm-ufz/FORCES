@@ -1,3 +1,4 @@
+set (LIB_NAME forces)
 
 enable_testing()
 
@@ -15,7 +16,7 @@ foreach ( UNIT_TEST ${sources} )
 	  COMPILE_FLAGS "${ADDITIONAL_GCC_FLAGS}"
 	)
 	# message(STATUS "Testing enabled for ${TEST_DIR}")
-	target_link_libraries(${test_name} lightweight_fortran_lib)
+	target_link_libraries(${test_name} ${LIB_NAME})
 	add_test(NAME ${test_name} COMMAND ${test_name})
 	# set compiling flags for debug and relese version
 	# set compiling flags for debug and relese version

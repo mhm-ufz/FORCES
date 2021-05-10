@@ -1,7 +1,8 @@
+set (LIB_NAME forces)
+
 enable_testing()
 
 find_package(PFUNIT)
-set (LIB_NAME lightweight_fortran_lib)
 
 file ( COPY ./files
 DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

@@ -9,7 +9,7 @@ get_version(FORCES_VER FORCES_VER_DEV FORCES_DATE)
 project(FORCES
         VERSION ${FORCES_VER}
         DESCRIPTION "FORtran library for Computational Environmental Systems"
-        HOMEPAGE_URL "https://git.ufz.de/chs/lightweight_fortran_lib/"
+        HOMEPAGE_URL "https://git.ufz.de/chs/forces/"
         LANGUAGES Fortran)
 
 # add full version and date to pre-processor flags (qoutes need in before hand)

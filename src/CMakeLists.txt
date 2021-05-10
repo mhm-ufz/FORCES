@@ -1,4 +1,4 @@
-set (LIB_NAME lightweight_fortran_lib)
+set (LIB_NAME forces)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cmake-modules/utils.cmake)
 file(GLOB sources ./mo_*.f90)
