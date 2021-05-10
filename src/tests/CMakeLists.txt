@@ -30,7 +30,7 @@ foreach ( UNIT_TEST ${sources} )
     )
   endif()
   if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
-    target_compile_definitions(${LIB_NAME} PRIVATE "NAG")
+    target_compile_definitions(${test_name} PRIVATE "NAG")
     target_compile_options(${test_name} PRIVATE
       -fpp -colour -unsharedf95 -ideclient
       # "-C=all" is not set, only "-C -C=alias -C=dangling" and "-ieee=full" instead of "-ieee=stop" because
