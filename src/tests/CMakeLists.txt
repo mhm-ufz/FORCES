@@ -9,16 +9,16 @@ foreach ( UNIT_TEST ${sources} )
   # get the filename and use it for variable name
   get_filename_component ( test_name_ext ${UNIT_TEST} NAME )
   get_filename_component ( test_name ${UNIT_TEST} NAME_WE )
-	add_executable(${test_name} ${test_name_ext})
-	# set_target_properties ( ${test_name}
-	#   PROPERTIES
-	#   COMPILE_FLAGS "${ADDITIONAL_GCC_FLAGS}"
-	# )
-	# message(STATUS "Testing enabled for ${TEST_DIR}")
-	target_link_libraries(${test_name} ${LIB_NAME})
-	add_test(NAME ${test_name} COMMAND ${test_name})
-	# set compiling flags for debug and relese version
-	# set compiling flags for debug and relese version
+  add_executable(${test_name} ${test_name_ext})
+  # set_target_properties ( ${test_name}
+  #   PROPERTIES
+  #   COMPILE_FLAGS "${ADDITIONAL_GCC_FLAGS}"
+  # )
+  # message(STATUS "Testing enabled for ${TEST_DIR}")
+  target_link_libraries(${test_name} ${LIB_NAME})
+  add_test(NAME ${test_name} COMMAND ${test_name})
+  # set compiling flags for debug and relese version
+  # set compiling flags for debug and relese version
 
   if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
     target_compile_definitions(${test_name} PRIVATE "INTEL")
@@ -41,16 +41,16 @@ foreach ( UNIT_TEST ${sources} )
       $<$<CONFIG:RELEASE>:-O4 -ieee=full>
     )
   endif()
-	if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-	    # set the preprocessor
-	    target_compile_definitions(${test_name} PRIVATE "GFORTRAN")
+  if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
+      # set the preprocessor
+      target_compile_definitions(${test_name} PRIVATE "GFORTRAN")
       target_compile_options(${test_name} PRIVATE
       -ffree-form -ffixed-line-length-132
       $<$<CONFIG:DEBUG>:-pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
       $<$<CONFIG:RELEASE>:-O3>
       $<$<BOOL:${CMAKE_WITH_COVERAGE}>:-g -fprofile-arcs -ftest-coverage>
     )
-	endif()
+  endif()
   list(APPEND testnames ${testname})
 endforeach()
 

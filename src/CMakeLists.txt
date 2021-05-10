@@ -8,21 +8,21 @@ include(fortranpreprocessor)
 get_preproc_flag(XPP_FLAG)
 find_program(FYPP fypp)
 if(NOT FYPP)
-	message(WARNING "Preprocessor fypp not found!")
+  message(WARNING "Preprocessor fypp not found!")
 else()
-	# Create a list of the files to be preprocessed
-	set(fppFiles mo_netcdf.fypp)
-	# Custom preprocessor flags
-	if(DEFINED CMAKE_MAXIMUM_RANK)
-	  set(fyppFlags "-DMAXRANK=${CMAKE_MAXIMUM_RANK}")
-	elseif(f03rank)
-	  set(fyppFlags)
-	else()
-	  set(fyppFlags "-DVERSION90")
-	endif()
-	# Pre-process: .fpp -> .f90 via Fypp
-	fypp_f90("${fyppFlags}" "${fppFiles}" fyppOutFiles)
-	list(FILTER sources EXCLUDE REGEX ".*mo_netcdf.f90$")
+  # Create a list of the files to be preprocessed
+  set(fppFiles mo_netcdf.fypp)
+  # Custom preprocessor flags
+  if(DEFINED CMAKE_MAXIMUM_RANK)
+    set(fyppFlags "-DMAXRANK=${CMAKE_MAXIMUM_RANK}")
+  elseif(f03rank)
+    set(fyppFlags)
+  else()
+    set(fyppFlags "-DVERSION90")
+  endif()
+  # Pre-process: .fpp -> .f90 via Fypp
+  fypp_f90("${fyppFlags}" "${fppFiles}" fyppOutFiles)
+  list(FILTER sources EXCLUDE REGEX ".*mo_netcdf.f90$")
 endif()
 
 # add sources
@@ -66,7 +66,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   )
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
-	target_compile_definitions(${LIB_NAME} PRIVATE "INTEL")
+  target_compile_definitions(${LIB_NAME} PRIVATE "INTEL")
   target_compile_options(${LIB_NAME} PRIVATE
     -nofixed "SHELL:-assume byterecl" "SHELL:-fp-model source" -m64 "SHELL:-assume realloc-lhs"
     # -fstack-protector-all -fstack-security-check were previously on in debug mode, still needed?
