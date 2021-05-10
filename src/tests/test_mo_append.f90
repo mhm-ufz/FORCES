@@ -1,7 +1,6 @@
 PROGRAM append_test
 
 use mo_kind,   only: i4
-#ifndef ABSOFT
 use mo_append, only: append, paste
 use mo_message, only: error_message
 
@@ -15,13 +14,11 @@ integer(i4), dimension(:,:), allocatable  :: matrix1_i4, matrix2_i4, matrix3_i4,
 character(256), dimension(:),   allocatable :: vector1_c, vector2_c
 character(256), dimension(2)                :: vector3_c
 character(256), dimension(:,:), allocatable :: matrix1_c, matrix2_c, matrix3_c, matrix4_c
-#endif
 
 logical :: isgood
 
 isgood = .true.
 
-#ifndef ABSOFT
 ! ---------------------------------------------------------------------------
 !                           TEST APPEND
 ! ---------------------------------------------------------------------------
@@ -219,7 +216,6 @@ print*, ' '
 if (trim(matrix4_c(1,4)) /= 'E') isgood=.false.
 
 deallocate(matrix1_c, matrix2_c, matrix3_c, matrix4_c)
-#endif
 
 if (isgood) then
    write(*,*) 'mo_append o.k.'

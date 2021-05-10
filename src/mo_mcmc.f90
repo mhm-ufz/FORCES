@@ -48,12 +48,12 @@ MODULE mo_mcmc
   !         mcmc
   !
   ! PURPOSE
-  !>        \brief This module is Monte Carlo Markov Chain sampling of a posterior parameter distribution 
+  !>        \brief This module is Monte Carlo Markov Chain sampling of a posterior parameter distribution
   !>               (measurement errors are either known or modeled).
   !
   !>        \details Sample posterior parameter distribution with Metropolis Algorithm.\n
-  !>                 This sampling is performed in two steps, i.e. the burn-in phase for adjusting 
-  !>                 model dependent parameters for the second step which is the proper 
+  !>                 This sampling is performed in two steps, i.e. the burn-in phase for adjusting
+  !>                 model dependent parameters for the second step which is the proper
   !>                 sampling using the Metropolis Hastings Algorithm.\n\n
   !>
   !>                 This sampler does not change the best parameter set, i.e.
@@ -68,15 +68,15 @@ MODULE mo_mcmc
   !>
   !>          <b><i>Important variables:</i></b>\n
   !>
-  !>            <b> Variable           |  Description                                                     </b> 
+  !>            <b> Variable           |  Description                                                     </b>
   !>            ---------------------- | -----------------------------------------------------------------------
   !>            burnin_iter            | length of markov chain performed to calculate acceptance ratio\n
   !>            acceptance ratio       | ratio between accepted jumps and all trials (LEN)\n
-  !>            acceptance multiplier  | stepsize of a parameter is multiplied with this value when jump is 
+  !>            acceptance multiplier  | stepsize of a parameter is multiplied with this value when jump is
   !>                                     accepted (initial : 1.01)
-  !>            rejection multiplier   | stepsize of a parameter is multiplied with this value when jump is rejected 
+  !>            rejection multiplier   | stepsize of a parameter is multiplied with this value when jump is rejected
   !>                                     (initial : 0.99 and will never be changed)
-  !>            stepsize               | a new parameter value is chosen based on a uniform distribution 
+  !>            stepsize               | a new parameter value is chosen based on a uniform distribution
   !>                                     pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) (initial : stepsize_i = 1.0 for all i)
   !
   !>          \n
@@ -125,10 +125,10 @@ MODULE mo_mcmc
   !>            the accepted parameter sets show the posterior distribution of parameters\n
   !>
   !>          <b><i>Important variables:</i></b>\n
-  !>            <b> Variable           |  Description                                                     </b> 
+  !>            <b> Variable           |  Description                                                     </b>
   !>            ---------------------- | -----------------------------------------------------------------------
   !>            iter_mcmc              | length of the markov chain (>> iter_burnin)\n
-  !>            stepsize               | a new parameter value is chosen based on a uniform distribution 
+  !>            stepsize               | a new parameter value is chosen based on a uniform distribution
   !>                                     pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) use stepsizes of the burn-in (1)\n
   !
   !>          \n
@@ -158,10 +158,10 @@ MODULE mo_mcmc
   !                     chains_in=chains, stepsize_in=stepsize)
 
   !     INTENT(IN)
-  !>        \param[in]  "real(dp) :: likelihood(x)"                    Interface Function which calculates likelihood 
+  !>        \param[in]  "real(dp) :: likelihood(x)"                    Interface Function which calculates likelihood
   !>                                                                   of given parameter set x
 
-  !>        \param[in]  "real(dp) :: para(:)"                          Inital parameter set (should be GOOD approximation 
+  !>        \param[in]  "real(dp) :: para(:)"                          Inital parameter set (should be GOOD approximation
   !>                                                                   of best parameter set)
 
   !>        \param[in]  "real(dp) :: rangePar(size(para),2)"           Min/max range of parameters
@@ -180,22 +180,22 @@ MODULE mo_mcmc
   !>        \param[in]  "logical,          optional :: printflag_in"   Print of output on command line \n
   !>                                                                   (default: .False.)
 
-  !>        \param[in]  "logical,          optional :: maskpara_in(size(para))"   
+  !>        \param[in]  "logical,          optional :: maskpara_in(size(para))"
   !>                                                                   Parameter will be sampled (.True.) or not (.False.) \n
   !>                                                                   (default: .True.)
 
   !>        \param[in]  "character(len=*), optional :: tmp_file"       filename for temporal data saving: \n
-  !>                                                                   every iter_mcmc_in iterations parameter sets are 
+  !>                                                                   every iter_mcmc_in iterations parameter sets are
   !>                                                                   appended to this file \n
   !>                                                                   the number of the chain will be prepended to filename \n
   !>                                                                   output format: netcdf \n
   !>                                                                   (default: no file writing)
 
-  !>        \param[in]  "logical,          optional :: loglike_in"     true if loglikelihood function is given instead of 
+  !>        \param[in]  "logical,          optional :: loglike_in"     true if loglikelihood function is given instead of
   !>                                                                   likelihood function \n
   !>                                                                   (default: .false.)
 
-  !>        \param[in]  "integer(i4),      optional :: ParaSelectMode_in"  
+  !>        \param[in]  "integer(i4),      optional :: ParaSelectMode_in"
   !>                                                                   How many parameters will be changed at once?
   !>                                                                   - half of the parameter  --> 1_i4
   !>                                                                   - only one parameter     --> 2_i4
@@ -224,7 +224,7 @@ MODULE mo_mcmc
 
   !     RESTRICTIONS
   !>        \note Likelihood has to be defined as a function interface\n
-  !>              The maximal number of parameters is 1000.              
+  !>              The maximal number of parameters is 1000.
   !         -> see also example in test directory
 
   !     EXAMPLE
@@ -254,12 +254,12 @@ MODULE mo_mcmc
   !         mcmc_stddev
   !
   ! PURPOSE
-  !>        \brief This module is Monte Carlo Markov Chain sampling of a posterior parameter distribution 
+  !>        \brief This module is Monte Carlo Markov Chain sampling of a posterior parameter distribution
   !>               (measurement errors are neither known nor modeled).
   !
   !>        \details Sample posterior parameter distribution with Metropolis Algorithm.\n
-  !>                 This sampling is performed in two steps, i.e. the burn-in phase for adjusting 
-  !>                 model dependent parameters for the second step which is the proper 
+  !>                 This sampling is performed in two steps, i.e. the burn-in phase for adjusting
+  !>                 model dependent parameters for the second step which is the proper
   !>                 sampling using the Metropolis Hastings Algorithm.\n\n
   !
   !>     <b>1. BURN IN PHASE: FIND THE OPTIMAL STEP SIZE </b>\n\n
@@ -270,15 +270,15 @@ MODULE mo_mcmc
   !>
   !>          <b><i>Important variables:</i></b>\n
   !>
-  !>            <b> Variable           |  Description                                                     </b> 
+  !>            <b> Variable           |  Description                                                     </b>
   !>            ---------------------- | -----------------------------------------------------------------------
   !>            burnin_iter            | length of markov chain performed to calculate acceptance ratio\n
   !>            acceptance ratio       | ratio between accepted jumps and all trials (LEN)\n
-  !>            acceptance multiplier  | stepsize of a parameter is multiplied with this value when jump is 
+  !>            acceptance multiplier  | stepsize of a parameter is multiplied with this value when jump is
   !>                                     accepted (initial : 1.01)
-  !>            rejection multiplier   | stepsize of a parameter is multiplied with this value when jump is rejected 
+  !>            rejection multiplier   | stepsize of a parameter is multiplied with this value when jump is rejected
   !>                                     (initial : 0.99 and will never be changed)
-  !>            stepsize               | a new parameter value is chosen based on a uniform distribution 
+  !>            stepsize               | a new parameter value is chosen based on a uniform distribution
   !>                                     pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) (initial : stepsize_i = 1.0 for all i)
   !
   !>          \n
@@ -327,10 +327,10 @@ MODULE mo_mcmc
   !>            the accepted parameter sets show the posterior distribution of parameters\n
   !>
   !>          <b><i>Important variables:</i></b>\n
-  !>            <b> Variable           |  Description                                                     </b> 
+  !>            <b> Variable           |  Description                                                     </b>
   !>            ---------------------- | -----------------------------------------------------------------------
   !>            iter_mcmc              | length of the markov chain (>> iter_burnin)\n
-  !>            stepsize               | a new parameter value is chosen based on a uniform distribution 
+  !>            stepsize               | a new parameter value is chosen based on a uniform distribution
   !>                                     pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) use stepsizes of the burn-in (1)\n
   !
   !>          \n
@@ -360,14 +360,14 @@ MODULE mo_mcmc
   !                     chains_in=chains, stepsize_in=stepsize)
 
   !     INTENT(IN)
-  !>        \param[in]  "real(dp) :: likelihood(x,sigma,stddev_new,likeli_new)"              
-  !>                                                                   Interface Function which calculates likelihood 
-  !>                                                                   of given parameter set x and given standard deviation sigma 
+  !>        \param[in]  "real(dp) :: likelihood(x,sigma,stddev_new,likeli_new)"
+  !>                                                                   Interface Function which calculates likelihood
+  !>                                                                   of given parameter set x and given standard deviation sigma
   !>                                                                   and returns optionally the standard deviation stddev_new
-  !>                                                                   of the errors using x and 
+  !>                                                                   of the errors using x and
   !>                                                                   likelihood likeli_new using stddev_new
 
-  !>        \param[in]  "real(dp) :: para(:)"                          Inital parameter set (should be GOOD approximation 
+  !>        \param[in]  "real(dp) :: para(:)"                          Inital parameter set (should be GOOD approximation
   !>                                                                   of best parameter set)
 
   !>        \param[in]  "real(dp) :: rangePar(size(para),2)"           Min/max range of parameters
@@ -386,22 +386,22 @@ MODULE mo_mcmc
   !>        \param[in]  "logical,          optional :: printflag_in"   Print of output on command line \n
   !>                                                                   (default: .False.)
 
-  !>        \param[in]  "logical,          optional :: maskpara_in(size(para))"   
+  !>        \param[in]  "logical,          optional :: maskpara_in(size(para))"
   !>                                                                   Parameter will be sampled (.True.) or not (.False.) \n
   !>                                                                   (default: .True.)
 
   !>        \param[in]  "character(len=*), optional :: tmp_file"       filename for temporal data saving: \n
-  !>                                                                   every iter_mcmc_in iterations parameter sets are 
+  !>                                                                   every iter_mcmc_in iterations parameter sets are
   !>                                                                   appended to this file \n
   !>                                                                   the number of the chain will be prepended to filename \n
   !>                                                                   output format: netcdf \n
   !>                                                                   (default: no file writing)
 
-  !>        \param[in]  "logical,          optional :: loglike_in"     true if loglikelihood function is given instead of 
+  !>        \param[in]  "logical,          optional :: loglike_in"     true if loglikelihood function is given instead of
   !>                                                                   likelihood function \n
   !>                                                                   (default: .false.)
 
-  !>        \param[in]  "integer(i4),      optional :: ParaSelectMode_in"  
+  !>        \param[in]  "integer(i4),      optional :: ParaSelectMode_in"
   !>                                                                   How many parameters will be changed at once?
   !>                                                                   - half of the parameter  --> 1_i4
   !>                                                                   - only one parameter     --> 2_i4
@@ -547,11 +547,7 @@ CONTAINS
     LOGICAL :: loglike              ! if loglikelihood is given
     LOGICAL :: skip_burnin          ! if stepsize is given --> burnin is skipped
     logical :: itmp_file            ! if temporal results wanted
-#ifdef PGI
-    character(len = 299) :: istmp_file           ! local copy of file for temporal results output
-#else
     character(len = 1024) :: istmp_file           ! local copy of file for temporal results output
-#endif
     logical :: irestart             ! if restart wanted
     character(len = 1024) :: isrestart_file       ! local copy of restart file name
 
