@@ -97,7 +97,7 @@ program test_sce
      ! compiled without OpenMP
      isgood = .true.
      isgood = isgood .and. (neval .eq. 4455_i4)
-     isgood = isgood .and. (nint(bestf*10000000_dp) .eq. 104439)
+     isgood = isgood .and. (nint(bestf*10000000.0_dp) .eq. 104439)
 
      ! compiled with OpenMP
      !$ isgood = .true.
@@ -107,7 +107,7 @@ program test_sce
      ! no matter if compiler with or without OpenMP
      isgood = .true.
      isgood = isgood .and. (neval .eq. 4455_i4)
-     isgood = isgood .and. (nint(bestf*10000000_dp) .eq. 104439)
+     isgood = isgood .and. (nint(bestf*10000000.0_dp) .eq. 104439)
   end if
 
   if (isgood) then
@@ -144,7 +144,7 @@ program test_sce
      ! compiled without OpenMP
      isgood = .true.
      isgood = isgood .and. (neval .eq. 4455_i4)
-     isgood = isgood .and. (nint(bestf*10000000_dp) .eq. 104439)
+     isgood = isgood .and. (nint(bestf*10000000.0_dp) .eq. 104439)
      ! compiled with OpenMP
      !$ isgood = .true.
      !$ write(*,*) 'mo_sce: It is not possible to check if sce runs properly with OpenMP.'
@@ -152,7 +152,7 @@ program test_sce
      ! no matter if compiler with or without OpenMP
      isgood = .true.
      isgood = isgood .and. (neval .eq. 4455_i4)
-     isgood = isgood .and. (nint(bestf*10000000_dp) .eq. 104439)
+     isgood = isgood .and. (nint(bestf*10000000.0_dp) .eq. 104439)
   end if
 
   if (isgood) then

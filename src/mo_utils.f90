@@ -33,7 +33,7 @@ MODULE mo_utils
 
   ! Copyright 2014 Matthias Cuntz, Juliane Mai
 
-  USE mo_kind, only : sp, dp, i4
+  USE mo_kind, only : sp, dp, i1, i4, i8
   USE mo_string_utils, only : toupper
 
   IMPLICIT NONE
@@ -52,11 +52,17 @@ MODULE mo_utils
   PUBLIC :: locate       ! Find closest values in a monotonic series
   PUBLIC :: swap         ! swaps arrays or elements of an array
   PUBLIC :: special_value ! Special IEEE values
+  PUBLIC :: relational_operator_dp, relational_operator_sp ! abstract interface for relational operators
 
   public :: flip ! flips a dimension of an array
+  public :: unpack_chunkwise ! flips a dimension of an array
 
   interface flip
     procedure flip_1D_dp, flip_2D_dp, flip_3D_dp, flip_4D_dp, flip_1D_i4, flip_2D_i4, flip_3D_i4, flip_4D_i4
+  end interface
+
+  interface unpack_chunkwise
+    procedure unpack_chunkwise_i1, unpack_chunkwise_dp
   end interface
 
   ! ------------------------------------------------------------------
@@ -412,6 +418,20 @@ MODULE mo_utils
     MODULE PROCEDURE special_value_sp, special_value_dp
   END INTERFACE special_value
 
+  abstract interface
+    logical pure function relational_operator_dp(a, b) result(boolean)
+      import dp
+      real(dp), intent(in) :: a, b
+    end function relational_operator_dp
+  end interface
+
+  abstract interface
+    logical pure function relational_operator_sp(a, b) result(boolean)
+      import sp
+      real(sp), intent(in) :: a, b
+    end function relational_operator_sp
+  end interface
+
   ! ------------------------------------------------------------------
 
   PRIVATE
@@ -422,135 +442,111 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  ELEMENTAL PURE FUNCTION equal_dp(a, b)
+  logical elemental pure function equal_dp(a, b) result(boolean)
 
-    IMPLICIT NONE
-
-    REAL(dp), INTENT(IN) :: a
-    REAL(dp), INTENT(IN) :: b
-    LOGICAL :: equal_dp
+    real(dp), intent(in) :: a
+    real(dp), intent(in) :: b
 
     if ((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) then
-      equal_dp = .false.
+      boolean = .false.
     else
-      equal_dp = .true.
+      boolean = .true.
     end if
 
-  END FUNCTION equal_dp
+  end function equal_dp
 
 
-  ELEMENTAL PURE FUNCTION equal_sp(a, b)
+  logical elemental pure function equal_sp(a, b) result(boolean)
 
-    IMPLICIT NONE
-
-    REAL(sp), INTENT(IN) :: a
-    REAL(sp), INTENT(IN) :: b
-    LOGICAL :: equal_sp
+    real(sp), intent(in) :: a
+    real(sp), intent(in) :: b
 
     if ((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) then
-      equal_sp = .false.
+      boolean = .false.
     else
-      equal_sp = .true.
+      boolean = .true.
     end if
 
-  END FUNCTION equal_sp
+  end function equal_sp
 
   ! ------------------------------------------------------------------
 
-  ELEMENTAL PURE FUNCTION greaterequal_dp(a, b)
+  logical elemental pure function greaterequal_dp(a, b) result(boolean)
 
-    IMPLICIT NONE
+    real(dp), intent(in) :: a
+    real(dp), intent(in) :: b
 
-    REAL(dp), INTENT(IN) :: a
-    REAL(dp), INTENT(IN) :: b
-    LOGICAL :: greaterequal_dp
-
-    greaterequal_dp = .true.
+    boolean = .true.
     ! 1st part is /=, 2nd part is the a<b
-    if (((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) .and. (a < b)) greaterequal_dp = .false.
+    if (((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) .and. (a < b)) boolean = .false.
 
-  END FUNCTION greaterequal_dp
+  end function greaterequal_dp
 
 
-  ELEMENTAL PURE FUNCTION greaterequal_sp(a, b)
+  logical elemental pure function greaterequal_sp(a, b) result(boolean)
 
-    IMPLICIT NONE
+    real(sp), intent(in) :: a
+    real(sp), intent(in) :: b
 
-    REAL(sp), INTENT(IN) :: a
-    REAL(sp), INTENT(IN) :: b
-    LOGICAL :: greaterequal_sp
-
-    greaterequal_sp = .true.
+    boolean = .true.
     ! 1st part is /=, 2nd part is the a<b
-    if (((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) .and. (a < b)) greaterequal_sp = .false.
+    if (((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) .and. (a < b)) boolean = .false.
 
-  END FUNCTION greaterequal_sp
-
-  ! ------------------------------------------------------------------
-
-  ELEMENTAL PURE FUNCTION lesserequal_dp(a, b)
-
-    IMPLICIT NONE
-
-    REAL(dp), INTENT(IN) :: a
-    REAL(dp), INTENT(IN) :: b
-    LOGICAL :: lesserequal_dp
-
-    lesserequal_dp = .true.
-    ! 1st part is /=, 2nd part is the a>b
-    if (((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) .and. (a > b)) lesserequal_dp = .false.
-
-  END FUNCTION lesserequal_dp
-
-
-  ELEMENTAL PURE FUNCTION lesserequal_sp(a, b)
-
-    IMPLICIT NONE
-
-    REAL(sp), INTENT(IN) :: a
-    REAL(sp), INTENT(IN) :: b
-    LOGICAL :: lesserequal_sp
-
-    lesserequal_sp = .true.
-    ! 1st part is /=, 2nd part is the a>b
-    if (((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) .and. (a > b)) lesserequal_sp = .false.
-
-  END FUNCTION lesserequal_sp
+  end function greaterequal_sp
 
   ! ------------------------------------------------------------------
 
-  ELEMENTAL PURE FUNCTION notequal_dp(a, b)
+  logical elemental pure function lesserequal_dp(a, b) result(boolean)
 
-    IMPLICIT NONE
+    real(dp), intent(in) :: a
+    real(dp), intent(in) :: b
 
-    REAL(dp), INTENT(IN) :: a
-    REAL(dp), INTENT(IN) :: b
-    LOGICAL :: notequal_dp
+    boolean = .true.
+    ! 1st part is /=, 2nd part is the a>b
+    if (((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) .and. (a > b)) boolean = .false.
+
+  end function lesserequal_dp
+
+
+  logical elemental pure function lesserequal_sp(a, b) result(boolean)
+
+    real(sp), intent(in) :: a
+    real(sp), intent(in) :: b
+
+    boolean = .true.
+    ! 1st part is /=, 2nd part is the a>b
+    if (((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) .and. (a > b)) boolean = .false.
+
+  end function lesserequal_sp
+
+  ! ------------------------------------------------------------------
+
+  logical elemental pure function notequal_dp(a, b) result(boolean)
+
+    real(dp), intent(in) :: a
+    real(dp), intent(in) :: b
 
     if ((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) then
-      notequal_dp = .true.
+      boolean = .true.
     else
-      notequal_dp = .false.
+      boolean = .false.
     end if
 
-  END FUNCTION notequal_dp
+  end function notequal_dp
 
 
-  ELEMENTAL PURE FUNCTION notequal_sp(a, b)
+  logical elemental pure function notequal_sp(a, b) result(boolean)
 
-    IMPLICIT NONE
-
-    REAL(sp), INTENT(IN) :: a
-    REAL(sp), INTENT(IN) :: b
-    LOGICAL :: notequal_sp
+    real(sp), intent(in) :: a
+    real(sp), intent(in) :: b
 
     if ((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) then
-      notequal_sp = .true.
+      boolean = .true.
     else
-      notequal_sp = .false.
+      boolean = .false.
     end if
 
-  END FUNCTION notequal_sp
+  end function notequal_sp
 
   ! ------------------------------------------------------------------
 
@@ -680,8 +676,6 @@ CONTAINS
 
   FUNCTION locate_0d_dp(x, y)
 
-    IMPLICIT NONE
-
     REAL(dp), DIMENSION(:), INTENT(IN) :: x
     REAL(dp), INTENT(IN) :: y
     INTEGER(i4) :: locate_0d_dp
@@ -699,8 +693,6 @@ CONTAINS
 
   FUNCTION locate_0d_sp(x, y)
 
-    IMPLICIT NONE
-
     REAL(sp), DIMENSION(:), INTENT(IN) :: x
     REAL(sp), INTENT(IN) :: y
     INTEGER(i4) :: locate_0d_sp
@@ -717,8 +709,6 @@ CONTAINS
   END FUNCTION locate_0d_sp
 
   FUNCTION locate_1d_dp(x, y)
-
-    IMPLICIT NONE
 
     REAL(dp), DIMENSION(:), INTENT(IN) :: x
     REAL(dp), DIMENSION(:), INTENT(IN) :: y
@@ -743,8 +733,6 @@ CONTAINS
   END FUNCTION locate_1d_dp
 
   FUNCTION locate_1d_sp(x, y)
-
-    IMPLICIT NONE
 
     REAL(sp), DIMENSION(:), INTENT(IN) :: x
     REAL(sp), DIMENSION(:), INTENT(IN) :: y
@@ -772,8 +760,6 @@ CONTAINS
 
   elemental pure subroutine swap_xy_dp(x, y)
 
-    implicit none
-
     real(dp), intent(inout) :: x
     real(dp), intent(inout) :: y
 
@@ -787,8 +773,6 @@ CONTAINS
 
   elemental pure subroutine swap_xy_sp(x, y)
 
-    implicit none
-
     real(sp), intent(inout) :: x
     real(sp), intent(inout) :: y
 
@@ -801,8 +785,6 @@ CONTAINS
   end subroutine swap_xy_sp
 
   elemental pure subroutine swap_xy_i4(x, y)
-
-    implicit none
 
     integer(i4), intent(inout) :: x
     integer(i4), intent(inout) :: y
@@ -818,8 +800,6 @@ CONTAINS
 
   subroutine swap_vec_dp(x, i1, i2)
 
-    implicit none
-
     real(dp), dimension(:), intent(inout) :: x
     integer(i4), intent(in) :: i1
     integer(i4), intent(in) :: i2
@@ -834,8 +814,6 @@ CONTAINS
 
   subroutine swap_vec_sp(x, i1, i2)
 
-    implicit none
-
     real(sp), dimension(:), intent(inout) :: x
     integer(i4), intent(in) :: i1
     integer(i4), intent(in) :: i2
@@ -849,8 +827,6 @@ CONTAINS
   end subroutine swap_vec_sp
 
   subroutine swap_vec_i4(x, i1, i2)
-
-    implicit none
 
     integer(i4), dimension(:), intent(inout) :: x
     integer(i4), intent(in) :: i1
@@ -1315,5 +1291,94 @@ CONTAINS
     end if
     call move_alloc(temp_data, data)
   end subroutine flip_4D_i4
+
+  function unpack_chunkwise_dp(vector, mask, field, chunksizeArg) result(unpacked)
+  !< this is a chunkwise application of the intrinsic unpack function
+  !< it became necessary as the unpack intrinsic can handle only arrays
+  !< with size smaller than huge(default_integer_kind)...
+  !< it has the following restrictions:
+  !<   - vector must be of type dp
+  !<   - mask must have rank 1
+  !<   - field must be a scalar
+    real(dp), dimension(:), intent(in) :: vector
+    logical, dimension(:), intent(in) :: mask
+    real(dp), intent(in) :: field
+    real(dp), dimension(size(mask, kind=i8)) :: unpacked
+    integer(i8), intent(in), optional :: chunksizeArg
+
+    integer(i8) :: i, chunksize, indexMin, indexMax, currentCounts, counts
+
+    if (present(chunksizeArg)) then
+      chunksize = chunksizeArg
+    else
+      chunksize = int(huge(0_i4), i8)
+    end if
+    ! init some values
+    i = 1_i8
+    indexMax = i * chunksize
+    currentCounts = 1_i8
+    do while (indexMax < size(mask, kind=i8))
+      ! get the indices for the mask
+      indexMin = (i-1) * chunksize + 1_i8
+      indexMax = minval([i * chunksize, size(mask, kind=i8)])
+      ! this is the indexer for the vector
+      counts = count(mask(indexMin: indexMax), kind=i8)
+      ! unpack slices of maximum size
+      if (counts == (indexMax - indexMin + 1_i8)) then
+        unpacked(indexMin: indexMax) = vector(currentCounts: currentCounts + counts - 1_i8)
+      else if (counts == 0_i8) then
+        unpacked(indexMin: indexMax) = field
+      else
+        unpacked(indexMin: indexMax) = unpack(vector(currentCounts: currentCounts + counts - 1_i8), &
+                                                  mask(indexMin: indexMax), &
+                                                  field)
+      end if
+      ! advance the counters
+      currentCounts = currentCounts + counts
+      i = i + 1_i8
+    end do
+
+  end function unpack_chunkwise_dp
+
+  function unpack_chunkwise_i1(vector, mask, field, chunksizeArg) result(unpacked)
+  !< this is a chunkwise application of the intrinsic unpack function
+  !< it has the following restrictions:
+  !<   - vector must be of type i1
+  !<   - mask must have rank 1
+  !<   - field must be a scalar
+    integer(i1), dimension(:), intent(in) :: vector
+    logical, dimension(:), intent(in) :: mask
+    integer(i1), intent(in) :: field
+    integer(i1), dimension(size(mask, kind=i8)) :: unpacked
+    integer(i8), intent(in), optional :: chunksizeArg
+
+    integer(i8) :: i, chunksize, indexMin, indexMax, currentCounts, counts
+
+    if (present(chunksizeArg)) then
+      chunksize = chunksizeArg
+    else
+      chunksize = int(huge(0_i4), i8)
+    end if
+    ! init some values
+    i = 1_i8
+    indexMax = i * chunksize
+    currentCounts = 1_i8
+    do while (indexMax < size(mask, kind=i8))
+      ! get the indices for the mask
+      indexMin = (i-1) * chunksize + 1_i8
+      indexMax = minval([i * chunksize, size(mask, kind=i8)])
+      ! this is the indexer for the vector
+      counts = count(mask(indexMin: indexMax), kind=i8)
+      ! unpack slices of maximum size
+      unpacked(indexMin: indexMax) = unpack(vector(currentCounts: currentCounts + counts - 1_i8), &
+                                                mask(indexMin: indexMax), &
+                                                field)
+      ! advance the counters
+      currentCounts = currentCounts + counts
+      i = i + 1_i8
+    end do
+
+  end function unpack_chunkwise_i1
+
 
 END MODULE mo_utils

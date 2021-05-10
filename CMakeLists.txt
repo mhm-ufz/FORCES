@@ -1,50 +1,40 @@
-# This cmake file is not meant to be edited for a special setup.
-# For special setups use cache line files or command line options, as described a few
-# lines ahead concerning module INDEPENDENT builds
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.14)
+# check version file
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake-modules)
+# get version and date from files (version.txt and version_date.txt)
+include(version)
+get_version(FORCES_VER FORCES_VER_DEV FORCES_DATE)
 
-project(lightweight_fortran_lib Fortran)
+# create the project
+project(FORCES
+        VERSION ${FORCES_VER}
+        DESCRIPTION "FORtran library for Computational Environmental Systems"
+        HOMEPAGE_URL "https://git.ufz.de/chs/forces/"
+        LANGUAGES Fortran)
 
-enable_testing()
+# add full version and date to pre-processor flags (qoutes need in before hand)
+add_compile_definitions(FORCESVERSION='${FORCES_VER_DEV}' FORCESDATE='${FORCES_DATE}')
+
+# common (default) options to cmake
+# -DCMAKE_BUILD_TYPE=Release     - compile in debug or release mode
+# -DBUILD_TESTING=ON             - whether to compile tests
+# -DCMAKE_VERBOSE_MAKEFILE=OFF   - see all the commands
+# -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT=OFF   - build the library INDEPENDENT of the module system,
+# -DCMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX=64     - find extra library paths on some systems (eve.nag62)
+#         so the build in the build tree works even after a module purge
+
+# automatically enables testing
+include(CTest)
+
+# same with coverage
+option(CMAKE_WITH_COVERAGE "build the module with gcov coverage support")
+
 # The variable "CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT" can be set before executing cmake via a cache command:
 # $cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT:STRING=ON ..
 # or cache file:
 # $cmake -C ../CMakeCacheFiles/eve ..
 # or after executing CMake editing the CMakeCache.txt, preferably with a corresponding cmake editor i.e ccmake
-set(CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT OFF CACHE STRING "build the module INDEPENDENT of the module system, so the build in the build tree works even after a module purge")
-message(STATUS "build INDEPENDENT of module system ${CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT}")
-
-# set compiling flags for debug and relese version
-if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-form -ffixed-line-length-132")
-	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized")
-	set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3")
-endif()
-if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
-	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -assume byterecl -fp-model=source -m64 -assume realloc_lhs")
-	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -warn all -g -debug -traceback -fp-stack-check -O0 -check all -fstack-protector-all -fstack-security-check")
-	set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3 -qoverride-limits")
-endif()
-if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
-	set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fpp -colour -unsharedf95 -ideclient")
-	# this effectively omits the -C=intovf flag which checks for integer overflow
-	# we need to exclude that as the random number generator relies on that technique
-	set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -g -nan -O0 -C -C=alias -C=dangling -strict95 -ieee=full")
-	set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O4 -ieee=full")
-endif()
+option(CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT "build the module INDEPENDENT of the module system, so the build in the build tree works even after a module purge")
 
 # library module specific settings
 add_subdirectory(./src)
-
-#----------------------------------
-# Get version (semantic versioning)
-# C.F. semver.org
-#----------------------------------
-file ( STRINGS "${CMAKE_SOURCE_DIR}/.VERSION" VERSION )
-string( REPLACE "." ";" VERSION_LIST ${VERSION} )
-list(GET VERSION_LIST 0 VERSION_MAJOR)
-list(GET VERSION_LIST 1 VERSION_MINOR)
-list(GET VERSION_LIST 2 VERSION_PATCH)
-set(PROJECT_VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
-message ( STATUS "CMake build configuration for ${CMAKE_PROJECT_NAME} ${PROJECT_VERSION}" )
-
