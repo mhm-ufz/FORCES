@@ -31,14 +31,9 @@ target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # a folder named cmake-modules. This command tells cmake to search there for Find<module>.cmake files
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cmake-modules)
 
-# find the netcdf and netcdf-fortran libraries, taken from wrf-cmake project
-set (NETCDF_F90 "YES")
-find_package (NetCDF REQUIRED)
-target_link_libraries(${LIB_NAME} ${NETCDF_F90_LIBRARIES})
-target_include_directories(${LIB_NAME} PUBLIC ${NETCDF_F90_INCLUDE_DIRS})
-# all compile and link options are PUBLIC in order to be forwared to 'mhm' exe
-# target_link_options only available in cmake 3.13 (but NETCDF_LDFLAGS_OTHER not working)
-set_property(TARGET ${LIB_NAME} PROPERTY LINK_FLAGS "${NETCDF_LDFLAGS_OTHER}")
+# find the netcdf and netcdf-fortran libraries, taken from ecmwf project
+find_package (NetCDF COMPONENTS Fortran REQUIRED)
+target_link_libraries(${LIB_NAME} PUBLIC NetCDF::NetCDF_Fortran)
 
 option(CMAKE_WITH_MPI "build the module with MPI, so it can be executed using mpirun")
 # if cmake provides a findLIBRARY module, this gets invoked via find_package(LIBRARY)

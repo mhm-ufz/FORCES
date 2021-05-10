@@ -49,15 +49,6 @@ foreach ( UNIT_TEST ${sources} )
       $<$<CONFIG:RELEASE>:-O3>
       #$<$<BOOL:${CMAKE_WITH_COVERAGE}>:-g -fprofile-arcs -ftest-coverage>
     )
-
-	endif()
-	if(CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
-	    # set the preprocessor
-	    target_compile_definitions(${test_name} PRIVATE "PGI")
-	endif()
-	if(CMAKE_ABSOFT)
-	    # set the preprocessor
-	    target_compile_definitions(${test_name} PRIVATE "ABSOFT")
 	endif()
   list(APPEND testnames ${testname})
 endforeach()
