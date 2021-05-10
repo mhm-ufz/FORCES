@@ -1,8 +1,8 @@
 # FORCES - FORtran library for Computational Environmental Systems
 
-<p align="center">
+<div align="center">
 <img src="https://git.ufz.de/chs/logos/-/raw/master/Forces.png" alt="Forces-LOGO" width="251px" style="width:251px;"/>
-</p>
+</div>
 
 This is the FORTRAN library of the
 
