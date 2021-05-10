@@ -21,8 +21,8 @@ foreach ( UNIT_TEST ${sources} )
 	# set compiling flags for debug and relese version
 
   if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
-    target_compile_definitions(${LIB_NAME} PRIVATE "INTEL")
-    target_compile_options(${LIB_NAME} PRIVATE
+    target_compile_definitions(${test_name} PRIVATE "INTEL")
+    target_compile_options(${test_name} PRIVATE
       -nofixed "SHELL:-assume byterecl" "SHELL:-fp-model source" -m64 "SHELL:-assume realloc-lhs"
       # -fstack-protector-all -fstack-security-check were previously on in debug mode, still needed?
       $<$<CONFIG:DEBUG>:-g "SHELL:-warn all" "SHELL:-check all" -debug -traceback -fp-stack-check -O0>
