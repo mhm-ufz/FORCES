@@ -10,11 +10,7 @@ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 if(PFUNIT_FOUND)
 	# find if there is an OpenMP setup on the system and if so, set corresponding variables
-	find_package(OpenMP)
-	if (NOT ${OpenMP_Fortran_FOUND})
-		message(FATAL_ERROR "OpenMP required but not found")
-	endif()
-
+	find_package(OpenMP REQUIRED COMPONENTS Fortran)
   set (pfunit_suffix ".pf")
   file( GLOB testsourcefiles RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *${pfunit_suffix} )
   foreach( testsourcefile ${testsourcefiles} )
@@ -30,4 +26,3 @@ if(PFUNIT_FOUND)
 else()
     message(STATUS "No test program found, install PFUNIT")
 endif()
-

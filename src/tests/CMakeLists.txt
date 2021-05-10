@@ -2,14 +2,13 @@ set (LIB_NAME forces)
 
 enable_testing()
 
-file ( COPY ./files
-DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file ( COPY ./files DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 file ( GLOB sources ./test_*.f90)
 foreach ( UNIT_TEST ${sources} )
-    # get the filename and use it for variable name
-    get_filename_component ( test_name_ext ${UNIT_TEST} NAME )
-    get_filename_component ( test_name ${UNIT_TEST} NAME_WE )
+  # get the filename and use it for variable name
+  get_filename_component ( test_name_ext ${UNIT_TEST} NAME )
+  get_filename_component ( test_name ${UNIT_TEST} NAME_WE )
 	add_executable(${test_name} ${test_name_ext})
 	set_target_properties ( ${test_name}
 	  PROPERTIES
@@ -48,7 +47,7 @@ foreach ( UNIT_TEST ${sources} )
       -ffree-form -ffixed-line-length-132
       $<$<CONFIG:DEBUG>:-pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
       $<$<CONFIG:RELEASE>:-O3>
-      #$<$<BOOL:${CMAKE_WITH_COVERAGE}>:-g -fprofile-arcs -ftest-coverage>
+      # $<$<BOOL:${CMAKE_WITH_COVERAGE}>:-g -fprofile-arcs -ftest-coverage>
     )
 	endif()
   list(APPEND testnames ${testname})

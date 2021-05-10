@@ -24,10 +24,12 @@ add_compile_definitions(FORCESVERSION='${FORCES_VER_DEV}' FORCESDATE='${FORCES_D
 #         so the build in the build tree works even after a module purge
 
 # automatically enables testing
+option(BUILD_TESTING "Build with pfUnit tests." OFF)
 include(CTest)
-
-# same with coverage
-option(CMAKE_WITH_COVERAGE "build the module with gcov coverage support")
+if((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OR ${LIB_NAME}_BUILD_TESTING) AND BUILD_TESTING)
+  add_subdirectory(./src/pf_tests)
+  add_subdirectory(./src/tests)
+endif()
 
 # The variable "CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT" can be set before executing cmake via a cache command:
 # $cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT:STRING=ON ..
