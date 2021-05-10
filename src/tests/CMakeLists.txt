@@ -1,7 +1,6 @@
-set (LIB_NAME forces)
-
 enable_testing()
 
+set (LIB_NAME forces)
 file ( COPY ./files DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 file ( GLOB sources ./test_*.f90)
@@ -10,16 +9,10 @@ foreach ( UNIT_TEST ${sources} )
   get_filename_component ( test_name_ext ${UNIT_TEST} NAME )
   get_filename_component ( test_name ${UNIT_TEST} NAME_WE )
   add_executable(${test_name} ${test_name_ext})
-  # set_target_properties ( ${test_name}
-  #   PROPERTIES
-  #   COMPILE_FLAGS "${ADDITIONAL_GCC_FLAGS}"
-  # )
-  # message(STATUS "Testing enabled for ${TEST_DIR}")
   target_link_libraries(${test_name} ${LIB_NAME})
   add_test(NAME ${test_name} COMMAND ${test_name})
-  # set compiling flags for debug and relese version
-  # set compiling flags for debug and relese version
 
+  # set compiling flags for debug and relese version
   if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
     target_compile_definitions(${test_name} PRIVATE "INTEL")
     target_compile_options(${test_name} PRIVATE
@@ -53,7 +46,7 @@ foreach ( UNIT_TEST ${sources} )
   endif()
   list(APPEND testnames ${testname})
 endforeach()
-
+# TODO: fix coverage
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   if (CMAKE_WITH_COVERAGE)
     include(CodeCoverage)

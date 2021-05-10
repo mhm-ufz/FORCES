@@ -1,6 +1,6 @@
-set (LIB_NAME forces)
-
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cmake-modules)
+
+set (LIB_NAME forces)
 
 file(GLOB sources ./mo_*.f90)
 # --- find preprocessor (cpp/fpp and fypp)
@@ -45,12 +45,10 @@ target_link_libraries(${LIB_NAME} PUBLIC NetCDF::NetCDF_Fortran)
 include(compileoptions)
 
 if (CMAKE_WITH_MPI)
-  message(STATUS "FORCES: use MPI")
   target_compile_definitions(${LIB_NAME} PRIVATE MPI)
   target_link_libraries(${LIB_NAME} PUBLIC MPI::MPI_Fortran)
 endif()
 if (CMAKE_WITH_OpenMP)
-  message(STATUS "FORCES: use OpenMP")
   target_link_libraries(${LIB_NAME} PUBLIC OpenMP::OpenMP_Fortran)
 endif()
 

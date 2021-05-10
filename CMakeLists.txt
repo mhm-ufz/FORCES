@@ -1,20 +1,3 @@
-cmake_minimum_required(VERSION 3.14)
-# check version file
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake-modules)
-# get version and date from files (version.txt and version_date.txt)
-include(version)
-get_version(FORCES_VER FORCES_VER_DEV FORCES_DATE)
-
-# create the project
-project(FORCES
-        VERSION ${FORCES_VER}
-        DESCRIPTION "FORtran library for Computational Environmental Systems"
-        HOMEPAGE_URL "https://git.ufz.de/chs/forces/"
-        LANGUAGES Fortran)
-
-# add full version and date to pre-processor flags (qoutes need in before hand)
-add_compile_definitions(FORCESVERSION='${FORCES_VER_DEV}' FORCESDATE='${FORCES_DATE}')
-
 # common (default) options to cmake
 # -DCMAKE_BUILD_TYPE=Release     - compile in debug or release mode
 # -DBUILD_TESTING=ON             - whether to compile tests
@@ -22,21 +5,29 @@ add_compile_definitions(FORCESVERSION='${FORCES_VER_DEV}' FORCESDATE='${FORCES_D
 # -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT=OFF   - build the library INDEPENDENT of the module system,
 # -DCMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX=64     - find extra library paths on some systems (eve.nag62)
 #         so the build in the build tree works even after a module purge
+cmake_minimum_required(VERSION 3.14)
+# additional cmake-modules
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake-modules)
+# get version and date from files (version.txt and version_date.txt)
+include(version)
+get_version(FORCES_VER FORCES_VER_DEV FORCES_DATE)
+
+# create the project
+project(FORCES
+  VERSION ${FORCES_VER}
+  DESCRIPTION "FORtran library for Computational Environmental Systems"
+  HOMEPAGE_URL "https://git.ufz.de/chs/forces/"
+  LANGUAGES Fortran
+)
+# add full version and date to pre-processor flags (qoutes need in before hand)
+add_compile_definitions(FORCESVERSION='${FORCES_VER_DEV}' FORCESDATE='${FORCES_DATE}')
+# library module specific settings
+add_subdirectory(./src)
 
 # automatically enables testing
-option(BUILD_TESTING "Build with pfUnit tests." OFF)
+option(BUILD_TESTING "Build with (pfUnit) tests." OFF)
 include(CTest)
 if((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OR ${LIB_NAME}_BUILD_TESTING) AND BUILD_TESTING)
   add_subdirectory(./src/pf_tests)
   add_subdirectory(./src/tests)
 endif()
-
-# The variable "CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT" can be set before executing cmake via a cache command:
-# $cmake -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT:STRING=ON ..
-# or cache file:
-# $cmake -C ../CMakeCacheFiles/eve ..
-# or after executing CMake editing the CMakeCache.txt, preferably with a corresponding cmake editor i.e ccmake
-option(CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT "build the module INDEPENDENT of the module system, so the build in the build tree works even after a module purge")
-
-# library module specific settings
-add_subdirectory(./src)
