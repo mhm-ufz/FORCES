@@ -12,7 +12,6 @@ if(NOT FYPP)
 else()
 	# Create a list of the files to be preprocessed
 	set(fppFiles mo_netcdf.fypp)
-
 	# Custom preprocessor flags
 	if(DEFINED CMAKE_MAXIMUM_RANK)
 	  set(fyppFlags "-DMAXRANK=${CMAKE_MAXIMUM_RANK}")
@@ -21,33 +20,38 @@ else()
 	else()
 	  set(fyppFlags "-DVERSION90")
 	endif()
-
-	### Pre-process: .fpp -> .f90 via Fypp
+	# Pre-process: .fpp -> .f90 via Fypp
 	fypp_f90("${fyppFlags}" "${fppFiles}" fyppOutFiles)
 	list(FILTER sources EXCLUDE REGEX ".*mo_netcdf.f90$")
 endif()
 
+# add sources
 add_library(${LIB_NAME} ${sources} ${fyppOutFiles})
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+# add pre-processor flag (-cpp or -fpp)
 target_compile_options(${LIB_NAME} PUBLIC ${XPP_FLAG})
 
-# find the netcdf and netcdf-fortran libraries, taken from ecmwf project
-find_package(NetCDF COMPONENTS Fortran)
-message(STATUS "NetCDF-Fortran found: ${NetCDF_Fortran_FOUND}")
+# find the netcdf and netcdf-fortran libraries quietly, taken from ecmwf project
+find_package(NetCDF COMPONENTS Fortran QUIET)
+# Sometimes NetCDF_INCLUDE_DIRS can't be found but NetCDF_Fortran is still usable
+if(NOT NetCDF_Fortran_FOUND)
+  message(FATAL_ERROR "FORCES: NetCDF-Fortran not usable")
+else()
+  message(STATUS "FORCES: NetCDF-Fortran usable")
+endif()
 target_link_libraries(${LIB_NAME} PUBLIC NetCDF::NetCDF_Fortran)
-# target_include_directories(${LIB_NAME} PUBLIC ${NetCDF_Fortran_INCLUDE_DIRS})
 
 # add all compile options (MPI, OpenMP, Lapack, Coverage)
 include(compileoptions)
 
 if (CMAKE_WITH_MPI)
+  message(STATUS "FORCES: use MPI")
   target_compile_definitions(${LIB_NAME} PRIVATE MPI)
   target_link_libraries(${LIB_NAME} PUBLIC MPI::MPI_Fortran)
-  # target_include_directories(${LIB_NAME} PUBLIC ${MPI_Fortran_INCLUDE_DIRS})
 endif()
 if (CMAKE_WITH_OpenMP)
+  message(STATUS "FORCES: use OpenMP")
   target_link_libraries(${LIB_NAME} PUBLIC OpenMP::OpenMP_Fortran)
-  # target_include_directories(${LIB_NAME} PUBLIC ${OpenMP_Fortran_INCLUDE_DIRS})
 endif()
 
 # set compiling flags for debug and relese version
@@ -71,6 +75,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   )
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
+  target_compile_definitions(${LIB_NAME} PRIVATE "NAG")
   target_compile_options(${LIB_NAME} PRIVATE
     -fpp -colour -unsharedf95 -ideclient
     # "-C=all" is not set, only "-C -C=alias -C=dangling" and "-ieee=full" instead of "-ieee=stop" because
