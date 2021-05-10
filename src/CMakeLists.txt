@@ -59,7 +59,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   target_compile_options(${LIB_NAME} PRIVATE
     -ffree-form -ffixed-line-length-132
     $<$<CONFIG:DEBUG>:-pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
-    $<$<CONFIG:RELEASE>:-O3>
+    $<$<CONFIG:RELEASE>:-O3 -fno-peel-loops>
     #$<$<BOOL:${CMAKE_WITH_COVERAGE}>:-g -fprofile-arcs -ftest-coverage>
   )
 endif()
