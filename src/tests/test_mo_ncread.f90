@@ -12,9 +12,7 @@ program ReadNc
 !
 use mo_kind,   only: i4, sp, dp
 use mo_NcRead, only: Get_NcVar, get_ncdim, NcOpen, NcClose
-#ifndef ABSOFT
 use mo_NcRead, only: Get_NcDimAtt, Get_NcVarAtt
-#endif
 use mo_message, only: error_message
 !
 real(sp)      , dimension(:,:,:), allocatable :: data
@@ -24,10 +22,8 @@ integer(i4)   , dimension(:)    , allocatable :: DimLen
 real(dp)      , dimension(:)    , allocatable :: DimData
 character(256)                                :: Filename
 character(256)                                :: Varname
-#ifndef ABSOFT
 character(256)                                :: Attname
 character(256)                                :: AttValues
-#endif
 integer(i4)                                   :: ncid
 integer(i4)                                   :: NoDims
 integer(i4)                                   :: i
@@ -45,7 +41,6 @@ dl = get_ncdim(Filename, Varname, ndims=NoDims)
 !
 allocate(data(dl(1),dl(2),dl(3)))
 
-#ifndef ABSOFT
 ! get Dimesnion information - name & lenght (size)
 call Get_NcDimAtt(Filename, Varname, DimNames, DimLen)
 !
@@ -56,16 +51,6 @@ isgood = isgood .and. (DimNames(3) == 'time')
 isgood = isgood .and. (DimLen(1) == 28)
 isgood = isgood .and. (DimLen(2) == 36)
 isgood = isgood .and. (DimLen(3) == 2)
-#else
-allocate(DimNames(3))
-allocate(DimLen(3))
-DimNames(1) = 'x'
-DimNames(2) = 'y'
-DimNames(3) = 'time'
-DimLen(1) = 28
-DimLen(2) = 36
-DimLen(3) = 2
-#endif
 !
 ! read data corresponding to dimesnion 3 ('time')
 allocate(DimData(DimLen(3)))
@@ -94,7 +79,6 @@ call NcClose(ncid)            ! close file
 !
 isgood = isgood .and. (nint(1e6_sp*sum(data)) == 117431_i4)
 !
-#ifndef ABSOFT
 ! retrieving variables attributes
 AttName='units'
 call Get_NcVarAtt(FileName, trim(DimNames(3)), AttName, AttValues)
@@ -102,7 +86,6 @@ isgood = isgood .and. (AttValues == 'days since 1950-01-01 00:00:00')
 !
 call Get_NcVarAtt(FileName, 'pr', '_FillValue', AttValues)
 isgood = isgood .and. (AttValues == '0.1000000E+31')
-#endif
 !
 if (isgood) then
    write(*,*) 'mo_ncread o.k.'

@@ -2,7 +2,7 @@
 
 !> \brief Append values on existing arrays.
 
-!> \details Provides routines to append (rows) and paste (columns) scalars, vectors, 
+!> \details Provides routines to append (rows) and paste (columns) scalars, vectors,
 !>          and matrixes onto existing arrays.
 
 !> \author Juliane Mai
@@ -43,7 +43,6 @@ MODULE mo_append
 
   IMPLICIT NONE
 
-#ifndef ABSOFT
   PUBLIC :: append    ! Returns input1 appended (on first dim) with input2.  (like Unix cat)
   PUBLIC :: paste     ! Returns input1 pasted (on last dim) with input2. (like Unix paste)
   PUBLIC :: add_nodata_slice     ! Returns input1 extended (on last dim) with nodata slice.
@@ -55,7 +54,7 @@ MODULE mo_append
 
   !     PURPOSE
   !>        \brief Append (rows) scalars, vectors, and matrixes onto existing array.
-  
+
   !>        \details Appends one input to the rows of another, i.e. append
   !>        on the first dimension.\n
   !>        The input might be a scalar, a vector or a matrix.\n
@@ -115,7 +114,7 @@ MODULE mo_append
   !        Modified Stephan Thober, Jan 2017 - added 3d version for append
   !        Modified Stephan thober, Jul 2018 - added optional iDim argument for arrays larger equal 2d
 
-  
+
   INTERFACE append
      MODULE PROCEDURE append_i4_v_s, append_i4_v_v, append_i4_m_m, &
           append_i8_v_s, append_i8_v_v, append_i8_m_m, &
@@ -137,7 +136,7 @@ MODULE mo_append
 
   !     PURPOSE
   !>        \brief Paste (columns) scalars, vectors, and matrixes onto existing array.
-  
+
   !>        \details Pastes one input to the columns of another, i.e. append
   !>        on the second dimension.\n
   !>        The input might be a scalar, a vector or a matrix.\n
@@ -326,7 +325,7 @@ CONTAINS
           mat1(      1:m1,   n1+1:n2) = fill_value
           mat1(m1+1_i4:m1+m2,    :  ) = mat2(1:m2,:)
        end if
-          
+
    else
        n1 = 0_i4
 
@@ -351,7 +350,7 @@ CONTAINS
     integer(i4), dimension(:,:,:), allocatable :: tmp
 
     if (present(fill_value)) print*, '***warning: fill_value is ignored in append_i4_3d'
-    
+
     m2 = size(mat2,1)    ! rows
     n2 = size(mat2,2)    ! columns
     j2 = size(mat2,3)    ! something else
@@ -378,7 +377,7 @@ CONTAINS
 
        allocate(mat1(m2,n2,j2))
        mat1 = mat2
-       
+
     end if
 
   END SUBROUTINE append_i4_3d
@@ -450,7 +449,7 @@ CONTAINS
     integer(i8), dimension(:,:), allocatable, intent(inout)   :: mat1
     integer(i8), dimension(:,:), intent(in)                   :: mat2
     integer(i8), optional,       intent(in)                   :: fill_value
-    
+
     ! local variables
     integer(i4)                               :: m1, m2    ! dim1 of matrixes: rows
     integer(i4)                               :: n1, n2    ! dim2 of matrixes: columns
@@ -515,7 +514,7 @@ CONTAINS
     integer(i8), dimension(:,:,:), allocatable :: tmp
 
     if (present(fill_value)) print*, '***warning: fill_value is ignored in append_i8_3d'
-    
+
     m2 = size(mat2,1)    ! rows
     n2 = size(mat2,2)    ! columns
     j2 = size(mat2,3)    ! something else
@@ -542,7 +541,7 @@ CONTAINS
 
        allocate(mat1(m2,n2,j2))
        mat1 = mat2
-       
+
     end if
 
   END SUBROUTINE append_i8_3d
@@ -679,7 +678,7 @@ CONTAINS
     real(sp), dimension(:,:,:), allocatable   :: tmp
 
     if (present(fill_value)) print*, '***warning: fill_value is ignored in append_sp_3d'
-    
+
     m2 = size(mat2,1)    ! rows
     n2 = size(mat2,2)    ! columns
     j2 = size(mat2,3)    ! something else
@@ -706,7 +705,7 @@ CONTAINS
 
        allocate(mat1(m2,n2,j2))
        mat1 = mat2
-       
+
     end if
 
   END SUBROUTINE append_sp_3d
@@ -792,8 +791,8 @@ CONTAINS
       print*, 'append: dd is : (',dd,')  and greater than number of dimensions : 2'
       STOP
     end if
-      
-    
+
+
     m2 = size(mat2,1)    ! rows
     n2 = size(mat2,2)    ! columns
 
@@ -814,9 +813,9 @@ CONTAINS
            allocate(mat1(m1+m2,n1))
            mat1(1:m1,:)          = tmp(1:m1,:)
            mat1(m1+1_i4:m1+m2,:) = mat2(1:m2,:)
-           
+
          else if (dd == 2) then
-           
+
            if (m1 /= m2) then
              print*, 'append: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
              STOP
@@ -828,7 +827,7 @@ CONTAINS
            allocate(mat1(m1,n1 + n2))
            mat1(:,1:n1)          = tmp(:,1:n1)
            mat1(:,n1+1_i4:n1+n2) = mat2(:,1:n2)
-          
+
          end if
 
        else
@@ -893,7 +892,7 @@ CONTAINS
       print*, 'append: dd is : (',dd,')  and greater than number of dimensions : 3'
       STOP
     end if
-    
+
     m2 = size(mat2,1)    ! rows
     n2 = size(mat2,2)    ! columns
     j2 = size(mat2,3)    ! something else
@@ -925,7 +924,7 @@ CONTAINS
 
          ! save mat1
          call move_alloc(mat1, tmp)
-         
+
          allocate(mat1(m1,n1 + n2,j1))
          mat1(:,1:n1,:)          = tmp(:,1:n1,:)
          mat1(:,n1+1_i4:n1+n2,:) = mat2(:,1:n2,:)
@@ -948,7 +947,7 @@ CONTAINS
 
        allocate(mat1(m2,n2,j2))
        mat1 = mat2
-       
+
     end if
 
   END SUBROUTINE append_dp_3d
@@ -978,7 +977,7 @@ CONTAINS
       print*, 'append: dd is : (',dd,')  and greater than number of dimensions : 4'
       STOP
     end if
-    
+
     m2 = size(mat2,1)    ! rows
     n2 = size(mat2,2)    ! columns
     j2 = size(mat2,3)    ! something else
@@ -999,7 +998,7 @@ CONTAINS
 
          ! save mat1
          call move_alloc(mat1, tmp)
-         
+
          allocate(mat1(m1+m2,n1,j1,i1))
          mat1(1:m1,:,:,:)          = tmp(1:m1,:,:,:)
          mat1(m1+1_i4:m1+m2,:,:,:) = mat2(1:m2,:,:,:)
@@ -1027,7 +1026,7 @@ CONTAINS
          allocate(tmp(m1,n1,j1,i1))
          tmp=mat1
          deallocate(mat1)
-         
+
          allocate(mat1(m1,n1,j1 + j2,i1))
          mat1(:,:,1:j1,:) = tmp(:,:,1:j1,:)
          mat1(:,:,j1+1_i4:j1+j2,:) = mat2(:,:,1:j2,:)
@@ -1050,7 +1049,7 @@ CONTAINS
 
        allocate(mat1(m2,n2,j2,i2))
        mat1 = mat2
-       
+
     end if
 
   END SUBROUTINE append_dp_4d
@@ -1185,7 +1184,7 @@ CONTAINS
     character(len(mat1)), dimension(:,:,:), allocatable :: tmp
 
     if (present(fill_value)) print*, '***warning: fill_value is ignored in append_i8_3d'
-    
+
     m2 = size(mat2,1)    ! rows
     n2 = size(mat2,2)    ! columns
     j2 = size(mat2,3)    ! something else
@@ -1212,7 +1211,7 @@ CONTAINS
 
        allocate(mat1(m2,n2,j2))
        mat1 = mat2
-       
+
     end if
 
   END SUBROUTINE append_char_3d
@@ -1234,7 +1233,7 @@ CONTAINS
        n1 = size(vec1)
        ! save mat1
        call move_alloc(vec1, tmp)
-       
+
        allocate(vec1(n1+n2))
        vec1(1:n1)          = tmp(1:n1)
        vec1(n1+1_i4)       = sca2
@@ -1285,7 +1284,7 @@ CONTAINS
     logical, dimension(:,:), intent(in)                   :: mat2
     logical, optional,       intent(in)                   :: fill_value
     integer(i4), optional,   intent(in)                   :: idim
-    
+
     ! local variables
     integer(i4)                           :: m1, m2    ! dim1 of matrixes: rows
     integer(i4)                           :: n1, n2    ! dim2 of matrixes: columns
@@ -1344,7 +1343,7 @@ CONTAINS
 
        ! save mat1
        call move_alloc(mat1, tmp)
-        
+
         if ( n1 == n2 ) then
           allocate(mat1(m1+m2,n1))
           mat1(1:m1,:)          = tmp(1:m1,:)
@@ -1399,7 +1398,7 @@ CONTAINS
       print*, 'append: dd is : (',dd,')  and greater than number of dimensions : 3'
       STOP
     end if
-    
+
     m2 = size(mat2,1)    ! rows
     n2 = size(mat2,2)    ! columns
     j2 = size(mat2,3)    ! something else
@@ -1418,7 +1417,7 @@ CONTAINS
 
         ! save mat1
         call move_alloc(mat1, tmp)
-        
+
         allocate(mat1(m1+m2,n1,j1))
         mat1(1:m1,:,:)          = tmp(1:m1,:,:)
         mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
@@ -1484,7 +1483,7 @@ CONTAINS
       print*, 'append: dd is : (',dd,')  and greater than number of dimensions : 4'
       STOP
     end if
-    
+
     m2 = size(mat2,1)    ! rows
     n2 = size(mat2,2)    ! columns
     j2 = size(mat2,3)    ! something else
@@ -1554,7 +1553,7 @@ CONTAINS
 
        allocate(mat1(m2,n2,j2,i2))
        mat1 = mat2
-       
+
     end if
 
   END SUBROUTINE append_lgt_4d
@@ -1624,7 +1623,7 @@ CONTAINS
           mat1(1:m1,1:n1)       = tmp(:,1:n1)
           mat1(1:m2,n1+n2)      = vec2(1:m2)
        end if
-       
+
        if ( m1 > m2 ) then
           allocate(mat1(m1,n1+n2))
           mat1(   1:m1,1:n1)    = tmp(:,1:n1)
@@ -1687,14 +1686,14 @@ CONTAINS
           mat1(   1:m2,n1+1_i4:n1+n2) = mat2(:,1:n2)
           mat1(m2+1:m1,n1+1_i4:n1+n2) = fill_value
        end if
-       
+
        if ( m1 < m2 ) then
           allocate(mat1(m2,n1+n2))
           mat1(   1:m1,      1:n1   ) = tmp(:,1:n1)
           mat1(m1+1:m2,      1:n1   ) = fill_value
           mat1(    :  ,n1+1_i4:n1+n2) = mat2(:,1:n2)
        end if
-          
+
     else
        n1 = 0_i4
        m1 = m2
@@ -1768,7 +1767,7 @@ CONTAINS
           mat1(1:m1,1:n1)       = tmp(:,1:n1)
           mat1(1:m2,n1+n2)      = vec2(1:m2)
        end if
-       
+
        if ( m1 > m2 ) then
           allocate(mat1(m1,n1+n2))
           mat1(   1:m1,1:n1)    = tmp(:,1:n1)
@@ -1831,14 +1830,14 @@ CONTAINS
           mat1(   1:m2,n1+1_i4:n1+n2) = mat2(:,1:n2)
           mat1(m2+1:m1,n1+1_i4:n1+n2) = fill_value
        end if
-       
+
        if ( m1 < m2 ) then
           allocate(mat1(m2,n1+n2))
           mat1(   1:m1,      1:n1   ) = tmp(:,1:n1)
           mat1(m1+1:m2,      1:n1   ) = fill_value
           mat1(    :  ,n1+1_i4:n1+n2) = mat2(:,1:n2)
        end if
-          
+
    else
        n1 = 0_i4
        m1 = m2
@@ -1912,7 +1911,7 @@ CONTAINS
           mat1(1:m1,1:n1)       = tmp(:,1:n1)
           mat1(1:m2,n1+n2)      = vec2(1:m2)
        end if
-       
+
        if ( m1 > m2 ) then
           allocate(mat1(m1,n1+n2))
           mat1(   1:m1,1:n1)    = tmp(:,1:n1)
@@ -1975,7 +1974,7 @@ CONTAINS
           mat1(   1:m2,n1+1_i4:n1+n2) = mat2(:,1:n2)
           mat1(m2+1:m1,n1+1_i4:n1+n2) = fill_value
        end if
-       
+
        if ( m1 < m2 ) then
           allocate(mat1(m2,n1+n2))
           mat1(   1:m1,      1:n1   ) = tmp(:,1:n1)
@@ -2057,7 +2056,7 @@ CONTAINS
           mat1(1:m1,1:n1)       = tmp(:,1:n1)
           mat1(1:m2,n1+n2)      = vec2(1:m2)
        end if
-       
+
        if ( m1 > m2 ) then
           allocate(mat1(m1,n1+n2))
           mat1(   1:m1,1:n1)    = tmp(:,1:n1)
@@ -2120,7 +2119,7 @@ CONTAINS
           mat1(   1:m2,n1+1_i4:n1+n2) = mat2(:,1:n2)
           mat1(m2+1:m1,n1+1_i4:n1+n2) = fill_value
        end if
-       
+
        if ( m1 < m2 ) then
           allocate(mat1(m2,n1+n2))
           mat1(   1:m1,      1:n1   ) = tmp(:,1:n1)
@@ -2373,7 +2372,7 @@ CONTAINS
           mat1(1:m1,1:n1)       = tmp(:,1:n1)
           mat1(1:m2,n1+n2)      = vec2(1:m2)
        end if
-       
+
        if ( m1 > m2 ) then
           allocate(mat1(m1,n1+n2))
           mat1(   1:m1,1:n1)    = tmp(:,1:n1)
@@ -2436,7 +2435,7 @@ CONTAINS
           mat1(   1:m2,n1+1_i4:n1+n2) = mat2(:,1:n2)
           mat1(m2+1:m1,n1+1_i4:n1+n2) = fill_value
        end if
-       
+
        if ( m1 < m2 ) then
           allocate(mat1(m2,n1+n2))
           mat1(   1:m1,      1:n1   ) = tmp(:,1:n1)
@@ -2645,8 +2644,5 @@ CONTAINS
     end if
 
   end subroutine add_nodata_slice_i4_4d
-
-#endif
-
 
 END MODULE mo_append

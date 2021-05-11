@@ -36,9 +36,7 @@ MODULE mo_string_utils
   IMPLICIT NONE
 
   PUBLIC :: compress      ! Conversion   : 'A b C x Y z' -> 'AbCxYz'
-#ifndef ABSOFT
   PUBLIC :: divide_string ! split string in substring with the help of delimiter
-#endif
   PUBLIC :: equalStrings  ! compares two strings
   PUBLIC :: nonull        ! Check if string is still NULL
   PUBLIC :: num2str       ! Convert a number to a string
@@ -148,7 +146,7 @@ MODULE mo_string_utils
 
   !     INTENT(IN), OPTIONAL
   !         None
-  
+
   !     INTENT(INOUT), OPTIONAL
   !         None
 
@@ -375,7 +373,7 @@ CONTAINS
     END DO scan_loop
 
   end function index_word
-#ifndef ABSOFT
+
   ! ------------------------------------------------------------------
 
   !     NAME
@@ -470,7 +468,6 @@ CONTAINS
     deallocate(strDummyArr)
 
   END SUBROUTINE divide_string
-#endif
 
     ! ------------------------------------------------------------------
 
@@ -537,7 +534,7 @@ CONTAINS
        do i=1, size(array1)
           if (array1(i) /= array2(i)) then
              equalStrings = .false.
-             exit 
+             exit
           end if
        end do
     end if
@@ -656,10 +653,10 @@ CONTAINS
   !         \date Mar 2015
 
   function splitString(string,delim) result(out)
-    
-    use mo_append, only : append    
+
+    use mo_append, only : append
     implicit none
-    
+
     character(len=*),   intent(in)        :: string
     character(len=*),   intent(in)        :: delim
     character(len=256), allocatable       :: out(:)
@@ -729,7 +726,7 @@ CONTAINS
   !         \date Mar 2015
 
   function startsWith(string, start)
-    
+
     implicit none
 
     character(len=*), intent(in)     :: string, start
@@ -1036,12 +1033,12 @@ CONTAINS
   !         \date Mar 2015
 
   function str2num(string) result(out)
-  
+
     implicit none
 
     character(len=*), intent(in)       :: string
     integer(i4), allocatable           :: out(:)
-    integer(i4)                        :: i  
+    integer(i4)                        :: i
 
     if (allocated(out)) deallocate(out)
     allocate(out(len(string)))

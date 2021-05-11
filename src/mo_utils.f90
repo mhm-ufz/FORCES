@@ -600,12 +600,7 @@ CONTAINS
   REAL(dp), INTENT(IN) :: a
   LOGICAL :: is_nan_dp
 
-  ! isnan introduced in gfortran rev 4.2
-#ifdef GFORTRAN41
-    is_nan_dp = a /= a
-#else
     is_nan_dp = isnan(a)
-#endif
 
   END FUNCTION is_nan_dp
 
@@ -620,12 +615,7 @@ CONTAINS
   REAL(sp), INTENT(IN) :: a
   LOGICAL :: is_nan_sp
 
-  ! isnan introduced in gfortran rev 4.2
-#ifdef GFORTRAN41
-    is_nan_sp = a /= a
-#else
     is_nan_sp = isnan(a)
-#endif
 
   END FUNCTION is_nan_sp
 

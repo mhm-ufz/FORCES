@@ -13,12 +13,10 @@ PROGRAM main
   REAL(sp), DIMENSION(10) :: sat
   REAL(sp), DIMENSION(2)  :: squa
 
-#ifndef ABSOFT
   integer,  parameter :: nele = 10000000
   real(dp), dimension(nele) :: big, buf
   real(dp) :: med
   integer  :: i, istart, istop
-#endif
 
   LOGICAL :: isgood
 
@@ -74,8 +72,6 @@ PROGRAM main
      call error_message('TestError: mo_percentile failed')
   endif
 
-! Absoft gives segmentation fault on all of the following test, do not know why
-#ifndef ABSOFT
   ! Test speed
   do i = 1, nele
      call random_number(big(i))
@@ -113,6 +109,5 @@ PROGRAM main
   med = buf(nele/2+1)
   call system_clock(istop)
   write(*,*) "sort: ", med, istop - istart
-#endif
 
 END PROGRAM main
