@@ -56,13 +56,12 @@ documentation:
     - mv doxygen_warn.txt doxygen_warn_dev.txt
     - rm -rf latex
     # same for master
-    # - git checkout master
-    # - doxygen doc/doxygen.config > doxygen_log_mas.txt
-    # - cd latex/ && make > ../doxygen_latex_mas.txt
-    # - cp refman.pdf ../html/forces_doc.pdf
-    # - cp refman.pdf ../forces_doc_mas.pdf
-    # - cd .. && mv html html_mas
-    # TODO: care about warnings file (maybe missing on master)
+    - git checkout master
+    - doxygen doc/doxygen.config > doxygen_log_mas.txt
+    - cd latex/ && make > ../doxygen_latex_mas.txt
+    - cp refman.pdf ../html/forces_doc.pdf
+    - cp refman.pdf ../forces_doc_mas.pdf
+    - cd .. && mv html html_mas
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
     paths:
@@ -71,11 +70,11 @@ documentation:
       - doxygen_log_dev.txt
       - doxygen_latex_dev.txt
       - doxygen_warn_dev.txt
-      # - html_mas
-      # - forces_doc_mas.pdf
-      # - doxygen_log_mas.txt
-      # - doxygen_latex_mas.txt
-      # - doxygen_warn_mas.txt
+      - html_mas
+      - forces_doc_mas.pdf
+      - doxygen_log_mas.txt
+      - doxygen_latex_mas.txt
+      - doxygen_warn_mas.txt
   when: always
 
 # how the job build directory is erected
@@ -279,9 +278,7 @@ pages:
     - mkdir public/stable/
     - mkdir public/latest/
     # copy the doxygen generated html page to the public site
-    # TODO: use master again here when available
-    # - cp html_mas/* public/stable/ -R
-    - cp html_dev/* public/stable/ -R
+    - cp html_mas/* public/stable/ -R
     - cp html_dev/* public/latest/ -R
     # create an index.html that redirects to the master documentation (in master folder)
     - cp doc/html_files/index.html public/
