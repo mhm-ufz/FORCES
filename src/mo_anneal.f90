@@ -646,24 +646,24 @@ CONTAINS
     else
       if (present(prange_func)) then
         if (present(undef_funcval)) then
-          T_in = GetTemperature(para, cost, eval, 0.95_dp, prange_func = prange_func, &
+          T_in = GetTemperature(eval, cost, para, 0.95_dp, prange_func = prange_func, &
                   maskpara = maskpara_in, samplesize = 2_i4 * LEN_IN, &
                   seeds = seeds_in(1 : 2), printflag = printflag_in, &
                   maxit = ldummy, undef_funcval = undef_funcval)
         else
-          T_in = GetTemperature(para, cost, eval, 0.95_dp, prange_func = prange_func, &
+          T_in = GetTemperature(eval, cost, para, 0.95_dp, prange_func = prange_func, &
                   maskpara = maskpara_in, samplesize = 2_i4 * LEN_IN, &
                   seeds = seeds_in(1 : 2), printflag = printflag_in, &
                   maxit = ldummy)
         end if
       else
         if (present(undef_funcval)) then
-          T_in = GetTemperature(para, cost, eval, 0.95_dp, prange = prange, &
+          T_in = GetTemperature(eval, cost, para, 0.95_dp, prange = prange, &
                   maskpara = maskpara_in, samplesize = 2_i4 * LEN_IN, &
                   seeds = seeds_in(1 : 2), printflag = printflag_in, &
                   maxit = ldummy, undef_funcval = undef_funcval)
         else
-          T_in = GetTemperature(para, cost, eval, 0.95_dp, prange = prange, &
+          T_in = GetTemperature(eval, cost, para, 0.95_dp, prange = prange, &
                   maskpara = maskpara_in, samplesize = 2_i4 * LEN_IN, &
                   seeds = seeds_in(1 : 2), printflag = printflag_in, &
                   maxit = ldummy)
@@ -1092,7 +1092,7 @@ CONTAINS
 
   END FUNCTION anneal_dp
 
-  real(DP) function GetTemperature_dp(paraset, cost, eval, acc_goal, &    ! obligatory
+  real(DP) function GetTemperature_dp(eval, cost, paraset, acc_goal, &    ! obligatory
           prange, prange_func, &    ! optional IN: exactly one of both
           samplesize, maskpara, seeds, printflag, &    ! optional IN
           weight, maxit, undef_funcval                             &    ! optional IN
@@ -1100,6 +1100,8 @@ CONTAINS
     use mo_kind, only : dp, i4, i8
     implicit none
 
+    procedure(eval_interface), INTENT(IN), POINTER :: eval
+    procedure(objective_interface), intent(in), pointer :: cost
     real(dp), dimension(:), intent(in) :: paraset
     !                                                                      ! a valid parameter set of the model
     real(dp), intent(in) :: acc_goal
@@ -1137,8 +1139,6 @@ CONTAINS
     !                                                                      ! if parameter set leads to
     !                                                                      ! invalid model results, e.g. -999.0_dp
     !                                                                      ! DEFAULT: not present
-    procedure(eval_interface), INTENT(IN), POINTER :: eval
-    procedure(objective_interface), intent(in), pointer :: cost
 
     INTERFACE
       SUBROUTINE prange_func(paraset, iPar, rangePar)

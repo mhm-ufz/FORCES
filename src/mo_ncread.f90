@@ -33,10 +33,8 @@ module mo_NcRead
   implicit none
 
   public :: Get_NcDim    ! get the dimensions of a Variable
-#ifndef ABSOFT
   public :: Get_NcDimAtt ! get the attributes of the dimensions
   public :: Get_NcVarAtt ! get attributes of a variable
-#endif
   public :: Get_NcVar    ! get the data of a Variable in a nc file
   public :: NcOpen       ! Open a file and get a handle back
   public :: NcClose      ! Close a file
@@ -46,7 +44,7 @@ module mo_NcRead
   !    NAME
   !        Get_NcVar
 
-  !    PURPOSE 
+  !    PURPOSE
   !        Reads a 2 - 5 dimensional array from a nc file given
   !        the variable name EXACTLY as specified in the file.  If the
   !        array is not allocated when calling, Get_NcVar will
@@ -183,7 +181,6 @@ contains
     !
   end function Get_NcDim
 
-#ifndef ABSOFT
   ! ------------------------------------------------------------------
 
   !     NAME
@@ -391,7 +388,6 @@ contains
     if (.not. present(fid)) call check(nf90_close(ncid))
     !
   end subroutine Get_NcVarAtt
-#endif
 
   ! ------------------------------------------------------------------------------
 

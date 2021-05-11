@@ -36,7 +36,7 @@ module mo_constants
 
   ! Copyright 2011-2014 Matthias Cuntz
 
-  use mo_kind, only : sp, dp, i4
+  use mo_kind, only : sp, dp, i4, i8
   use, intrinsic :: iso_fortran_env, only : input_unit, output_unit, error_unit
 
   implicit none
@@ -124,8 +124,11 @@ module mo_constants
   real(dp), parameter :: cp0_dp = 1005.0_dp                   ! Standard specific heat of air
   !> specific heat capacity of air [J kg^-1 K^-1] in single precision
   real(sp), parameter :: cp0_sp = 1005.0_sp
+  !> specific heat capacity of water [J kg^-1 K^-1] in double precision
+  real(dp), parameter :: cp_w_dp = 4.19_dp
+  !> specific heat capacity of water [J kg^-1 K^-1] in single precision
+  real(sp), parameter :: cp_w_sp = 4.19_sp
 
-  ! Numerical Recipes
   !> Pi in double precision
   real(dp), parameter :: PI_D = 3.141592653589793238462643383279502884197_dp      ! Pi
   !> Pi in single precision
@@ -163,6 +166,7 @@ module mo_constants
   ! computational, these values need to be the same!!!
   real(dp), public, parameter :: nodata_dp = -9999.0_dp ! [-]     global no data value
   integer(i4), public, parameter :: nodata_i4 = int(nodata_dp)  ! [-]     global no data value
+  integer(i8), public, parameter :: nodata_i8 = int(nodata_dp, kind=i8)  ! [-]     global no data value
   !> epsilon(1.0) in double precision
   real(dp), public, parameter :: eps_dp = epsilon(1.0_dp)
   real(sp), public, parameter :: eps_sp = epsilon(1.0_sp)
