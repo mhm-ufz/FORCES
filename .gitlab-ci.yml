@@ -62,6 +62,7 @@ documentation:
     - cp refman.pdf ../html/forces_doc.pdf
     - cp refman.pdf ../forces_doc_mas.pdf
     - cd .. && mv html html_mas
+    - mv doxygen_warn.txt doxygen_warn_mas.txt
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
     paths:
