@@ -45,7 +45,7 @@ MODULE mo_julian
   ! GNU Lesser General Public License for more details.
 
   ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! along with the UFZ Fortran library (LICENSE).
   ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2011-2014 Matthias Cuntz
@@ -461,7 +461,7 @@ CONTAINS
   !         -> see example in test directory
 
   !     HISTORY
-  !>        \author Written, David Schaefer 
+  !>        \author Written, David Schaefer
   !>        \date Jan 2015
   elemental function julday(dd, mm, yy, calendar)
 
@@ -1145,7 +1145,7 @@ CONTAINS
   !>        and the routine outputs dd, mm, and yy as the day, month, and year on which the specified
   !>        Julian Day started at noon.
 
-  !>        The zeroth Julian Day here is 01.01.0000 
+  !>        The zeroth Julian Day here is 01.01.0000
 
   !     CALLING SEQUENCE
   !         call caldat360(julday, dd, mm, yy)
@@ -1203,7 +1203,7 @@ CONTAINS
   !>        \details In this routine julday360 returns the Julian Day Number that begins at noon of the calendar
   !>        date specified by month mm, day dd, and year yy, all integer variables.
 
-  !>        The zeroth Julian Day is 01.01.0000 
+  !>        The zeroth Julian Day is 01.01.0000
 
   !     CALLING SEQUENCE
   !         julian = julday360(dd, mm, yy)
@@ -1235,7 +1235,7 @@ CONTAINS
   !         -> see example in test directory
 
   !     HISTORY
-  !>        \author Written, David Schaefer 
+  !>        \author Written, David Schaefer
   !>        \date Oct 2015
   elemental function julday360(dd, mm, yy)
 
@@ -1436,7 +1436,7 @@ CONTAINS
   !>        and the routine outputs dd, mm, and yy as the day, month, and year on which the specified
   !>        Julian Day started at noon.
 
-  !>        The zeroth Julian Day here is 01.01.0000 
+  !>        The zeroth Julian Day here is 01.01.0000
 
   !     CALLING SEQUENCE
   !         call caldat365(julday, dd, mm, yy)
@@ -1502,7 +1502,7 @@ CONTAINS
   !>        \details In this routine julday365 returns the Julian Day Number that begins at noon of the calendar
   !>        date specified by month mm, day dd, and year yy, all integer variables.
 
-  !>        The zeroth Julian Day is 01.01.0000 
+  !>        The zeroth Julian Day is 01.01.0000
 
   !     CALLING SEQUENCE
   !         julian = julday365(dd, mm, yy)
@@ -1534,7 +1534,7 @@ CONTAINS
   !         -> see example in test directory
 
   !     HISTORY
-  !>        \author Written, David Schaefer 
+  !>        \author Written, David Schaefer
   !>        \date Dec 2015
   elemental function julday365(dd, mm, yy)
 

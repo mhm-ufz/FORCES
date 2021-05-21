@@ -40,7 +40,7 @@ MODULE mo_anneal
   ! GNU Lesser General Public License for more details.
 
   ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! along with the UFZ Fortran library (LICENSE).
   ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2012-13 Juliane Mai
@@ -124,12 +124,12 @@ MODULE mo_anneal
   !>                                                                         acc    <= 0.1_dp \n
   !>                                                                         DEFAULT: 0.1_dp
 
-  !>        \param[in]  "INTEGER(I4/I8), DIMENSION(3), optional      :: seeds" 
+  !>        \param[in]  "INTEGER(I4/I8), DIMENSION(3), optional      :: seeds"
   !>                                                                         Seeds of random numbers used for random parameter
   !>                                                                         set generation \n
   !>                                                                         DEFAULT: dependent on current time
 
-  !>        \param[in]  "LOGICAL, optional                           :: printflag" 
+  !>        \param[in]  "LOGICAL, optional                           :: printflag"
   !>                                                                         If .true. detailed command line output is written \n
   !>                                                                         DEFAULT: .false.
 
@@ -139,7 +139,7 @@ MODULE mo_anneal
   !>                                                                                                   from optimiztaion \n
   !>                                                                         DEFAULT: .true.
 
-  !>        \param[in]  "REAL(DP), DIMENSION(size(para)), optional :: weight" 
+  !>        \param[in]  "REAL(DP), DIMENSION(size(para)), optional :: weight"
   !>                                                                         vector of weights per parameter: \n
   !>                                                                         gives the frequency of parameter to be chosen for
   !>                                                                         optimization (will be scaled to a CDF internally) \n
@@ -153,14 +153,14 @@ MODULE mo_anneal
   !>                                                                         3 = neighborhood parameter \n
   !>                                                                         DEFAULT: 1_i4
 
-  !>        \param[in]  "LOGICAL, optional               :: reflectionFlag"  if new parameter values are Gaussian 
+  !>        \param[in]  "LOGICAL, optional               :: reflectionFlag"  if new parameter values are Gaussian
   !>                                                                         distributed and reflected (.true.) or
   !>                                                                         uniform in range (.false.) \n
   !>                                                                         DEFAULT: .false.
 
-  !>        \param[in]  "LOGICAL, optional               :: pertubFlexFlag"  if pertubation of Gaussian distributed 
-  !>                                                                         parameter values is constant 
-  !>                                                                         at 0.2 (.false.) or 
+  !>        \param[in]  "LOGICAL, optional               :: pertubFlexFlag"  if pertubation of Gaussian distributed
+  !>                                                                         parameter values is constant
+  !>                                                                         at 0.2 (.false.) or
   !>                                                                         depends on dR (.true.) \n
   !>                                                                         DEFAULT: .true.
 
@@ -183,7 +183,7 @@ MODULE mo_anneal
   !>                                                     :: history"         returns a vector of achieved objective
   !                                                                          after ith model evaluation
 
-  !     RETURN                                                            
+  !     RETURN
   !>        \return real(dp) :: parabest(size(para))  &mdash;  Parameter set minimizing the cost function.
 
   !     RESTRICTIONS
@@ -192,7 +192,7 @@ MODULE mo_anneal
   !>              Only double precision version available. \n
   !>              If single precision is needed not only DP has to be replaced by SP
   !>              but also I8 of save_state (random number variables) has to be replaced by I4. \n
-  !>              ParaChangeMode > 1 is not applied in GetTemperature. 
+  !>              ParaChangeMode > 1 is not applied in GetTemperature.
   !>              For Temperature estimation always only one single parameter is changed (ParaChangeMode=1)
   !>              which should give theoretically always the best estimate. \n
   !>              Cost and prange_func are user defined functions. See interface definition.
@@ -296,12 +296,12 @@ MODULE mo_anneal
   !>                                                                                         often as parameter 1 and 2 \n
   !                                                                          DEFAULT: weight = 1.0_dp
 
-  !>        \param[in] "LOGICAL, optional                :: maxit"            minimizing (.false.) or maximizing (.true.) 
+  !>        \param[in] "LOGICAL, optional                :: maxit"            minimizing (.false.) or maximizing (.true.)
   !>                                                                          a function \n
   !>                                                                          DEFAULT: .false. (minimization)
 
   !>        \param[in] "REAL(DP), optional               :: undef_funcval"    objective function value defining invalid
-  !>                                                                          model output, e.g. -999.0_dp 
+  !>                                                                          model output, e.g. -999.0_dp
 
   !     INTENT(INOUT), OPTIONAL
   !         None

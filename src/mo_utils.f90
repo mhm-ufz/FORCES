@@ -28,7 +28,7 @@ MODULE mo_utils
   ! GNU Lesser General Public License for more details.
 
   ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! along with the UFZ Fortran library (LICENSE).
   ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2014 Matthias Cuntz, Juliane Mai
