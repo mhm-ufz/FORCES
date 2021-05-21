@@ -5,7 +5,7 @@
 !> \details This module provides routines to open, close and position namelist files.
 
 !> \authors Matthias Cuntz
-!> \date Jan 2011 
+!> \date Jan 2011
 
 MODULE mo_nml
 
@@ -36,7 +36,7 @@ MODULE mo_nml
   ! GNU Lesser General Public License for more details.
 
   ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! along with the UFZ Fortran library (LICENSE).
   ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2001-2011 Luis Kornblueh, Matthias Cuntz
@@ -267,7 +267,7 @@ CONTAINS
   !     HISTORY
   !>        \author Matthias Cuntz - modified from Echam5, (C) MPI-MET, Hamburg, Germany
   !>        \date Dec 2011
-  !         Modified, Matthias Cuntz, Jan 2013 - swap first and status in call list 
+  !         Modified, Matthias Cuntz, Jan 2013 - swap first and status in call list
 
   SUBROUTINE position_nml(name, unit, status, first)
 

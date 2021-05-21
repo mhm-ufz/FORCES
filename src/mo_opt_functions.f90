@@ -20,7 +20,7 @@ MODULE mo_opt_functions
   ! GNU Lesser General Public License for more details.
 
   ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! along with the UFZ Fortran library (LICENSE).
   ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2012 Matthias Cuntz
@@ -4769,7 +4769,7 @@ CONTAINS
     !  Parameters:
     !    real(dp), intent(in)  :: X(:)      -  the argument of the objective function.
     !    real(dp), intent(out) :: obj       -  returns 3d objective function.
-    
+
     implicit none
 
     real(dp), dimension(:),              intent(in)  :: paraset
@@ -4817,9 +4817,9 @@ CONTAINS
   end subroutine dtlz2_3d
 
   subroutine dtlz2_5d(paraset,obj)
-    
+
     ! Has to be a subroutine because not all compilers can handle allocatable returns of functions, e.g. gnu v4.6
-    
+
     !  dimensions:
     !      x    is usually used with 10 dimensions
     !      f(x) is 5-dimensional
@@ -4855,7 +4855,7 @@ CONTAINS
     !  Parameters:
     !    real(dp), intent(in)  :: X(:)      -  the argument of the objective function.
     !    real(dp), intent(out) :: obj       -  returns 5d objective function.
-    
+
     implicit none
 
     real(dp), dimension(:),              intent(in)  :: paraset
@@ -4902,9 +4902,9 @@ CONTAINS
   end subroutine dtlz2_5d
 
   subroutine dtlz2_10d(paraset,obj)
-    
+
     ! Has to be a subroutine because not all compilers can handle allocatable returns of functions, e.g. gnu v4.6
-    
+
     !  dimensions:
     !      x    is usually used with 10 dimensions
     !      f(x) is 10-dimensional
@@ -4940,7 +4940,7 @@ CONTAINS
     !  Parameters:
     !    real(dp), intent(in)  :: X(:)      -  the argument of the objective function.
     !    real(dp), intent(out) :: obj       -  returns 10d objective function.
-    
+
     implicit none
 
     real(dp), dimension(:),              intent(in)  :: paraset
@@ -4989,7 +4989,7 @@ CONTAINS
   subroutine fon_2d(paraset,obj)
 
     ! Has to be a subroutine because not all compilers can handle allocatable returns of functions, e.g. gnu v4.6
-    
+
     !  dimensions:
     !      x    is 3 dimensional
     !      f(x) is 2-dimensional
@@ -4999,14 +4999,14 @@ CONTAINS
     !      x1 = x2 = x3 \in [-1/sqrt(3), 1/sqrt(3)]
     !  comments:
     !      nonconvex pareto front
-    
+
     !  Licensing:
     !
     !    This code is distributed under the GNU LGPL license.
     !
     !  Author:
     !    Juliane Mai Sep 2015   - function, dp, etc.
-    !    Modified 
+    !    Modified
     !
     !  Reference:
     !    C. M. Fonseca and P. J. Fleming (1993)
@@ -5032,7 +5032,7 @@ CONTAINS
 
     npara = size(paraset)
     if (npara .ne. 3) stop ('mo_objective: fon_2d: This function requires 3-dimensional parameter sets')
-    
+
     nobj  = 2
     allocate(obj(nobj))
 
@@ -5055,7 +5055,7 @@ CONTAINS
   subroutine kur_2d(paraset,obj)
 
     ! Has to be a subroutine because not all compilers can handle allocatable returns of functions, e.g. gnu v4.6
-    
+
     !  dimensions:
     !      x    is usually used with 3 dimensions
     !      f(x) is 2-dimensional
@@ -5068,7 +5068,7 @@ CONTAINS
     !              Chichester, U.K.: Wiley.
     !  comments:
     !      nonconvex pareto front
-    
+
     !  Licensing:
     !    This original MATLAB code was covered by the following BSD License.
     !    Copyright (c) 2011, Song Lin
@@ -5131,7 +5131,7 @@ CONTAINS
   subroutine pol_2d(paraset,obj)
 
     ! Has to be a subroutine because not all compilers can handle allocatable returns of functions, e.g. gnu v4.6
-    
+
     !  dimensions:
     !      x    is 2 dimensional
     !      f(x) is 2-dimensional
@@ -5144,14 +5144,14 @@ CONTAINS
     !              Chichester, U.K.: Wiley
     !  comments:
     !      nonconvex, disconnected pareto front
-    
+
     !  Licensing:
     !
     !    This code is distributed under the GNU LGPL license.
     !
     !  Author:
     !    Juliane Mai Sep 2015   - function, dp, etc.
-    !    Modified 
+    !    Modified
     !
     !  Reference:
     !    Poloni, C. (1997)
@@ -5181,7 +5181,7 @@ CONTAINS
 
     npara = size(paraset)
     if (npara .ne. 2) stop ('mo_objective: pol_2d: This function requires 2-dimensional parameter sets')
-    
+
     nobj  = 2
     allocate(obj(nobj))
 
@@ -5201,7 +5201,7 @@ CONTAINS
   subroutine sch_2d(paraset,obj)
 
     ! Has to be a subroutine because not all compilers can handle allocatable returns of functions, e.g. gnu v4.6
-    
+
     !  dimensions:
     !      x    is 1-dimensional
     !      f(x) is 2-dimensional
@@ -5211,14 +5211,14 @@ CONTAINS
     !      x \in [0,2]
     !  comments:
     !      convex pareto front
-    
+
     !  Licensing:
     !
     !    This code is distributed under the GNU LGPL license.
     !
     !  Author:
     !    Juliane Mai Sep 2015   - function, dp, etc.
-    !    Modified 
+    !    Modified
     !
     !  Reference:
     !    Schaffer J.D. (1987)
@@ -5243,7 +5243,7 @@ CONTAINS
 
     npara = size(paraset)
     if (npara .ne. 1) stop ('mo_objective: sch_2d: This function requires 1-dimensional parameter sets')
-    
+
     nobj  = 2
     allocate(obj(nobj))
 
@@ -5258,7 +5258,7 @@ CONTAINS
   subroutine zdt1_2d(paraset, obj)
 
     ! Has to be a subroutine because not all compilers can handle allocatable returns of functions, e.g. gnu v4.6
-    
+
     !  dimensions:
     !      x    is usually used with 30 dimensions
     !      f(x) is 2-dimensional
@@ -5274,17 +5274,17 @@ CONTAINS
     ! The schematic tradoff looks like this
     !   /\
     !    |
-    !  1 . 
+    !  1 .
     !    |
-    !    |  
+    !    |
     !    | .
     !    |
     !    |   .
     !    |
     !    |      .
-    !    |        
+    !    |
     !    |           .
-    !    |               
+    !    |
     !    |                 .
     !    |                        .
     !    |                                 .
@@ -5341,12 +5341,12 @@ CONTAINS
        gg = gg + paraset(ii)
     end do
     gg = 1.0_dp + 9.0_dp * gg / real(npara-1,dp)
-    obj(2) = gg * (1.0_dp - sqrt(paraset(1) / gg)) 
+    obj(2) = gg * (1.0_dp - sqrt(paraset(1) / gg))
 
   end subroutine zdt1_2d
 
   subroutine zdt2_2d(paraset,obj)
-    
+
     ! Has to be a subroutine because not all compilers can handle allocatable returns of functions, e.g. gnu v4.6
 
     !  dimensions:
@@ -5412,9 +5412,9 @@ CONTAINS
   end subroutine zdt2_2d
 
   subroutine zdt3_2d(paraset,obj)
-    
+
     ! Has to be a subroutine because not all compilers can handle allocatable returns of functions, e.g. gnu v4.6
-    
+
     !  dimensions:
     !      x    is usually used with 30 dimensions
     !      f(x) is 2-dimensional

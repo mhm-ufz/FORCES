@@ -4,9 +4,9 @@
 ; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
 ;
 [subrepo]
-	remote = https://git.ufz.de/chs/HPC-Fortran-module-loads.git
-	branch = v1.2
-	commit = d0c99c3686409792f6d90b65343a4016b8de9c32
-	parent = 38bea75c13209ad0451955b06b706c065810e8bd
+	remote = https://github.com/jothepro/doxygen-awesome-css.git
+	branch = v1.4.0
+	commit = 148d88909630670c3ec5ecef3dc3952ebc665df2
+	parent = 73f6afe3d1dd956f6320cf8d0b6a377a0a71552c
 	method = merge
 	cmdver = 0.4.3

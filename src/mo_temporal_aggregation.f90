@@ -28,7 +28,7 @@ MODULE mo_temporal_aggregation
   ! GNU Lesser General Public License for more details.
 
   ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! along with the UFZ Fortran library (LICENSE).
   ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2015 Oldrich Rakovec, Rohini Kumar
@@ -40,7 +40,7 @@ MODULE mo_temporal_aggregation
   IMPLICIT NONE
 
   PUBLIC :: day2mon_average    ! converts daily time series to monthly
-  PUBLIC :: hour2day_average   ! converts hourly time series to daily 
+  PUBLIC :: hour2day_average   ! converts hourly time series to daily
 
   ! ------------------------------------------------------------------
   !     NAME
@@ -68,7 +68,7 @@ MODULE mo_temporal_aggregation
   !
   !     INTENT(IN), OPTIONAL
   !>        \param[in] "real(sp/dp) :: misval"          missing value definition
-  !>        \param[in] "logical     :: rm_misval"       switch to exclude missing values 
+  !>        \param[in] "logical     :: rm_misval"       switch to exclude missing values
   !
   !
   !     INTENT(INOUT), OPTIONAL
@@ -125,7 +125,7 @@ MODULE mo_temporal_aggregation
   !
   !     INTENT(IN), OPTIONAL
   !>        \param[in] "real(sp/dp) :: misval"          missing value definition
-  !>        \param[in] "logical     :: rm_misval"       switch to exclude missing values 
+  !>        \param[in] "logical     :: rm_misval"       switch to exclude missing values
   !
   !
   !     INTENT(INOUT), OPTIONAL
@@ -177,7 +177,7 @@ CONTAINS
     REAL(dp), optional, INTENT(IN) :: misval          ! missing value definition
     logical, optional, INTENT(IN) :: rm_misval       ! switch to remove missing values
 
-    ! local variables 
+    ! local variables
     INTEGER(i4) :: ndays, tt, kk      ! number of days, indices
     INTEGER(i4) :: start_day, end_day ! size of input array, size of days
     INTEGER(i4) :: y, m
@@ -205,7 +205,7 @@ CONTAINS
       remove = .FALSE.
     end if
 
-    ! get total number of days 
+    ! get total number of days
     ndays = SIZE(daily_data)
 
     ! assign initial julian day
@@ -285,7 +285,7 @@ CONTAINS
     REAL(dp), optional, INTENT(IN) :: misval          ! missing value definition
     logical, optional, INTENT(IN) :: rm_misval       ! switch to remove missing values
 
-    ! local variables 
+    ! local variables
     INTEGER(i4) :: nhours, ndays_dummy, tt, dd, kk
     REAL(dp) :: start_day, end_day   ! assign julian values
     INTEGER(i4) :: yearE, monthE, dayE, hourE, hourEd ! End dates, incl. Dummy
@@ -309,7 +309,7 @@ CONTAINS
       remove = .FALSE.
     end if
 
-    ! get total number of hours 
+    ! get total number of hours
     nhours = SIZE(hourly_data)
     ! assign initial julian day
     start_day = julday(dayS, monthS, yearS) - 0.5_dp + real(hourS, dp) / 24._dp
@@ -317,7 +317,7 @@ CONTAINS
     ! calculate last julian day
     end_day = start_day + real(nhours - 1._dp, dp) / 24._dp
 
-    ! get year, month and day of the end date 
+    ! get year, month and day of the end date
     call dec2date(end_day, yy = yearE, mm = monthE, dd = dayE, hh = hourE)
 
     ! get largerst possible number of calendar days

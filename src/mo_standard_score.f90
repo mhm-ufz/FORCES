@@ -1,6 +1,6 @@
 !> \file mo_standard_score.f90
 
-!> \brief Routines for calculating the normalization (anomaly)/standard score/z score and the 
+!> \brief Routines for calculating the normalization (anomaly)/standard score/z score and the
 !>        deseasonalized (standard score on monthly basis) values of a time series.
 
 !> \details In environmental research often the centralization and standardization are estimated
@@ -33,7 +33,7 @@ MODULE mo_standard_score
   ! GNU Lesser General Public License for more details.
 
   ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! along with the UFZ Fortran library (LICENSE).
   ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2014 Matthias Zink
@@ -53,9 +53,9 @@ MODULE mo_standard_score
   !     PURPOSE
   !>         \brief    Calculates the standard score / normalization (anomaly) / z-score.
   !>         \details  In statistics, the standard score is the (signed) number of standard deviations an observation
-  !>           or datum is above the mean. Thus, a positive standard score indicates a datum above the mean,        
+  !>           or datum is above the mean. Thus, a positive standard score indicates a datum above the mean,
   !>           while a negative standard score indicates a datum below the mean.
-  !>           It is a dimensionless quantity obtained by subtracting the population mean from 
+  !>           It is a dimensionless quantity obtained by subtracting the population mean from
   !>           an individual raw score and then dividing the difference by the population standard deviation.
   !>           This conversion process is called standardizing or normalizing (however, "normalizing" can
   !>           refer to many types of ratios).\n
@@ -105,7 +105,7 @@ MODULE mo_standard_score
 
   !     LITERATURE
   !>         \note Richard J. Larsen and Morris L. Marx (2000) An Introduction to Mathematical Statistics and Its
-  !>            Applications, Third Edition, ISBN 0-13-922303-7. p. 282. 
+  !>            Applications, Third Edition, ISBN 0-13-922303-7. p. 282.
 
   !     HISTORY
   !>         \author Matthias Zink
@@ -123,9 +123,9 @@ MODULE mo_standard_score
   !     PURPOSE
   !>         \brief    Calculates the  classified standard score (e.g. classes are months).
   !>         \details  In statistics, the standard score is the (signed) number of standard deviations an observation
-  !>           or datum is above the mean. Thus, a positive standard score indicates a datum above the mean,        
+  !>           or datum is above the mean. Thus, a positive standard score indicates a datum above the mean,
   !>           while a negative standard score indicates a datum below the mean.
-  !>           It is a dimensionless quantity obtained by subtracting the population mean from 
+  !>           It is a dimensionless quantity obtained by subtracting the population mean from
   !>           an individual raw score and then dividing the difference by the population standard deviation.
   !>           This conversion process is called standardizing or normalizing (however, "normalizing" can
   !>           refer to many types of ratios).\n
@@ -135,7 +135,7 @@ MODULE mo_standard_score
   !>           normality (Wikipedia, May 2015).\n
   !>           In this particular case the standard score is calculated for means and standard deviations derived from
   !>           classes of the time series. Such classes could be for example months. Thus, the output would be a
-  !>           deseasonalized time series. 
+  !>           deseasonalized time series.
   !>
   !>          \f[ classified\_standard\_score = \frac{x_i - \mu_{c_{x_i}}}{\sigma_{c_{x_i}}} \f]
   !>           where \f$ x_i \f$ is an element of class \f$ c_{x_i} \f$. \f$ x \f$ is a population, \f$ \mu_{c_{x_i}} \f$
@@ -299,7 +299,7 @@ CONTAINS
 
     ! write classes to new array for getting unique array elements
     unique_classes = classes
-    call unista(unique_classes, number_of_classes) ! (unique arry elements in the 1:number_of_classes 
+    call unista(unique_classes, number_of_classes) ! (unique arry elements in the 1:number_of_classes
     !                                              ! indexes of array unique_classes)
 
     ! loop over classes
@@ -355,7 +355,7 @@ CONTAINS
 
     ! write classes to new array for getting unique array elements
     unique_classes = classes
-    call unista(unique_classes, number_of_classes) ! (unique arry elements in the 1:number_of_classes 
+    call unista(unique_classes, number_of_classes) ! (unique arry elements in the 1:number_of_classes
     !                                              ! indexes of array unique_classes)
 
     ! loop over classes

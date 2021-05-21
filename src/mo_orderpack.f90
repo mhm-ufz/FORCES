@@ -3,7 +3,7 @@
 !> \brief Sort and ranking routines
 
 !> \details This module is the Orderpack 2.0 from Michel Olagnon.
-!>          It provides order and unconditional, unique, and partial 
+!>          It provides order and unconditional, unique, and partial
 !>         ranking, sorting, and permutation.
 
 !> \authors Michel Olagnon
@@ -31,7 +31,7 @@ MODULE mo_orderpack
   ! GNU Lesser General Public License for more details.
 
   ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! along with the UFZ Fortran library (LICENSE).
   ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2014 Matthias Cuntz
