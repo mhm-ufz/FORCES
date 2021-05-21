@@ -113,6 +113,7 @@ documentation:
 
 # coverage variables
 .coverage_vars: &coverage_vars
+  BUILD_DIR: build_debug
   CMAKE_FLAGS: '$CMAKE_FLAGS -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON'
 
 # #################
@@ -249,7 +250,7 @@ test-intel19MPI-release:
     CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
   <<: *test_template
 
-coverage-gcc83:
+coverage:
   variables:
     <<: *debug_vars
     <<: *coverage_vars
@@ -269,6 +270,8 @@ pages:
   needs:
     - job: documentation
       artifacts: true
+    - job: coverage
+      artifacts: true
   script:
     # create public dir (remove if already present)
     - test -d public && rm -rf public
@@ -281,6 +284,9 @@ pages:
     - cp html_dev/* public/latest/ -R
     # create an index.html that redirects to the master documentation (in master folder)
     - cp doc/html_files/index.html public/
+    # create the coverage site
+    - mkdir -p public/coverage
+    - cp  build_debug/coverage/* public/coverage/ -R
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
     paths:
