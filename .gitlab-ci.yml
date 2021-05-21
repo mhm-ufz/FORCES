@@ -135,19 +135,19 @@ documentation:
     - $BUILD_DIR/Testing/Temporary
 
 # template for coverage jobs
-# .coverage_template: &coverage_template
-#   stage: test
-#   script:
-#     - source $MODULE_LOAD_SCRIPT
-#     - *setup_build_dir
-#     - cmake $CMAKE_FLAGS ..
-#     - *make
-#     - *make_coverage
-#     - *cleanup
-#   artifacts:
-#     when: always
-#     paths:
-#     - $BUILD_DIR/coverage
+.coverage_template: &coverage_template
+  stage: test
+  script:
+    - source $MODULE_LOAD_SCRIPT
+    - *setup_build_dir
+    - cmake $CMAKE_FLAGS ..
+    - *make
+    - *make_coverage
+    - *cleanup
+  artifacts:
+    when: always
+    paths:
+    - $BUILD_DIR/coverage
 
 # ##################
 # ### BUILD JOBS ###
@@ -249,7 +249,6 @@ test-intel19MPI-release:
     CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
   <<: *test_template
 
-Coverage fails due to a gcov complication
 coverage-gcc73:
   variables:
     <<: *debug_vars
