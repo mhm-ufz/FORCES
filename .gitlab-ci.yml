@@ -249,11 +249,11 @@ test-intel19MPI-release:
     CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
   <<: *test_template
 
-coverage-gcc73:
+coverage-gcc102:
   variables:
     <<: *debug_vars
     <<: *coverage_vars
-    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran73MPI
+    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran102MPI
     CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON'
   <<: *coverage_template
 
