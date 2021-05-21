@@ -19,15 +19,37 @@ project(FORCES
   HOMEPAGE_URL "https://git.ufz.de/chs/forces/"
   LANGUAGES Fortran
 )
+set (LIB_NAME forces)
 # add full version and date to pre-processor flags (qoutes need in before hand)
 add_compile_definitions(FORCESVERSION='${FORCES_VER_DEV}' FORCESDATE='${FORCES_DATE}')
-# library module specific settings
+
+# prepare testing
+option(BUILD_TESTING "Build with (pfUnit) tests." OFF)
+set(BUILD_FORCES_TESTS OFF)
+if((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OR ${LIB_NAME}_BUILD_TESTING) AND BUILD_TESTING)
+  set(BUILD_FORCES_TESTS ON)
+endif()
+include(CTest)
+
+# prepare coverage
+if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE AND BUILD_FORCES_TESTS)
+  include(CodeCoverage)
+  append_coverage_compiler_flags()
+  SETUP_TARGET_FOR_COVERAGE_LCOV(
+    NAME coverage
+    EXECUTABLE ctest
+    DEPENDENCIES ${LIB_NAME}
+    EXCLUDE "src/pf_tests/*" "src/tests/*" "${CMAKE_CURRENT_BINARY_DIR}/*"
+    LCOV_ARGS --no-external
+    GENHTML_ARGS -t "${LIB_NAME} coverage" --html-prolog ../doc/html_files/cov_header.prolog
+  )
+endif()
+
+# library module specific settings (defined after coverage definition)
 add_subdirectory(./src)
 
-# automatically enables testing
-option(BUILD_TESTING "Build with (pfUnit) tests." OFF)
-include(CTest)
-if((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OR ${LIB_NAME}_BUILD_TESTING) AND BUILD_TESTING)
+if(BUILD_FORCES_TESTS)
+  # add test directories (defined after coverage definition)
   add_subdirectory(./src/pf_tests)
   add_subdirectory(./src/tests)
 endif()

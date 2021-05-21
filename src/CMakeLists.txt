@@ -37,7 +37,7 @@ find_package(NetCDF COMPONENTS Fortran QUIET)
 if(NOT NetCDF_Fortran_FOUND)
   message(FATAL_ERROR "FORCES: NetCDF-Fortran not usable")
 else()
-  message(STATUS "FORCES: NetCDF-Fortran usable")
+  message(STATUS "FORCES: NetCDF-Fortran usable: ${NetCDF_Fortran_LIBRARY}")
 endif()
 target_link_libraries(${LIB_NAME} PUBLIC NetCDF::NetCDF_Fortran)
 
@@ -60,7 +60,6 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     -ffree-form -ffixed-line-length-132
     $<$<CONFIG:DEBUG>:-pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
     $<$<CONFIG:RELEASE>:-O3 -fno-peel-loops>
-    $<$<BOOL:${CMAKE_WITH_COVERAGE}>:-g -fprofile-arcs -ftest-coverage>
   )
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
