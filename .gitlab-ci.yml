@@ -93,7 +93,7 @@ documentation:
 
 # make coverage command
 .make_coverage: &make_coverage
-  - make $MAKE_FLAGS FORCES_coverage_CI
+  - make $MAKE_FLAGS coverage
 
 # cleanup after scripts
 .cleanup: &cleanup
@@ -113,7 +113,7 @@ documentation:
 
 # coverage variables
 .coverage_vars: &coverage_vars
-  CMAKE_FLAGS: '$CMAKE_FLAGS -DBUILD_TESTING=ON -DCMAKE_WITH_COVERAGE=ON'
+  CMAKE_FLAGS: '$CMAKE_FLAGS -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON'
 
 # #################
 # ### TEMPLATES ###
@@ -147,8 +147,7 @@ documentation:
 #   artifacts:
 #     when: always
 #     paths:
-#     - $BUILD_DIR/FORCES_coverage_CI.info
-#     - $BUILD_DIR/FORCES_coverage_CI
+#     - $BUILD_DIR/coverage
 
 # ##################
 # ### BUILD JOBS ###
@@ -250,14 +249,14 @@ test-intel19MPI-release:
     CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
   <<: *test_template
 
-# Coverage fails due to a gcov complication
-# coverage-gcc73:
-#   variables:
-#     <<: *debug_vars
-#     <<: *coverage_vars
-#     MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran73MPI
-#     CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON'
-#   <<: *coverage_template
+Coverage fails due to a gcov complication
+coverage-gcc73:
+  variables:
+    <<: *debug_vars
+    <<: *coverage_vars
+    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran73MPI
+    CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON'
+  <<: *coverage_template
 
 # ###################
 # ### DEPLOY JOBS ###

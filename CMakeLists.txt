@@ -21,13 +21,27 @@ project(FORCES
 )
 # add full version and date to pre-processor flags (qoutes need in before hand)
 add_compile_definitions(FORCESVERSION='${FORCES_VER_DEV}' FORCESDATE='${FORCES_DATE}')
-# library module specific settings
-add_subdirectory(./src)
 
 # automatically enables testing
 option(BUILD_TESTING "Build with (pfUnit) tests." OFF)
 include(CTest)
 if((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OR ${LIB_NAME}_BUILD_TESTING) AND BUILD_TESTING)
+  if(CMAKE_WITH_COVERAGE)
+    include(CodeCoverage)
+    append_coverage_compiler_flags()
+    SETUP_TARGET_FOR_COVERAGE_LCOV(
+      NAME coverage
+      EXECUTABLE ctest -j
+      DEPENDENCIES ${LIB_NAME}
+      BASE_DIRECTORY "${PROJECT_SOURCE_DIR}/src/"
+      EXCLUDE "pf_tests/*" "tests/*" "../build/*"
+      GENHTML_ARGS -t "FORCES coverage" --html-prolog ../doc/html_files/cov_header.prolog
+    )
+  endif()
+  # add test directories (defined after coverage definition)
   add_subdirectory(./src/pf_tests)
   add_subdirectory(./src/tests)
 endif()
+
+# library module specific settings (defined after coverage definition)
+add_subdirectory(./src)
