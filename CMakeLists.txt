@@ -33,8 +33,7 @@ if((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OR ${LIB_NAME}_BUILD_TESTING) AND B
       NAME coverage
       EXECUTABLE ctest -j
       DEPENDENCIES ${LIB_NAME}
-      BASE_DIRECTORY "${PROJECT_SOURCE_DIR}/src/"
-      EXCLUDE "pf_tests/*" "tests/*" "../build/*"
+      EXCLUDE "src/pf_tests/*" "src/tests/*" "${CMAKE_CURRENT_BINARY_DIR}/*"
       GENHTML_ARGS -t "FORCES coverage" --html-prolog ../doc/html_files/cov_header.prolog
     )
   endif()
