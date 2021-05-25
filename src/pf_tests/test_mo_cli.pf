@@ -1,0 +1,63 @@
+module test_mo_cli
+  use funit
+  use mo_cli, only: cli_parser
+  use mo_kind, only: i4
+
+  implicit none
+
+  private
+
+  public :: test_cli_parser
+
+contains
+
+  @test
+  subroutine test_cli_parser()
+
+    implicit none
+    type(cli_parser) :: parser
+    integer(i4) :: i
+
+    parser = cli_parser( &
+      description="This program has a CLI.", &
+      add_help_option=.true., &
+      add_version_option=.true., &
+      version="1.3")
+    call parser%add_option( &
+      name="test", &
+      s_name="t", &
+      has_value=.false., &
+      required=.false., &
+      help="A beautiful option")
+    call parser%add_option("opt")
+    call parser%add_option("blank", blank=.true., default="none")
+    call parser%parse()
+
+    @assertTrue(parser%has_help)
+    @assertTrue(parser%has_version)
+    @assertTrue(parser%has_blank_option)
+
+    @assertTrue(trim(parser%options(1)%name) == "help")
+    @assertTrue(trim(parser%options(1)%s_name) == "h")
+    @assertTrue(trim(parser%options(2)%name) == "version")
+    @assertTrue(trim(parser%options(2)%s_name) == "v")
+    @assertTrue(trim(parser%options(3)%name) == "test")
+    @assertTrue(trim(parser%options(3)%s_name) == "t")
+
+    @assertTrue(parser%options(3)%has_s_name)
+    @assertFalse(parser%options(4)%has_s_name)
+
+    @assertFalse(parser%option_was_read("t"))
+    @assertFalse(parser%option_was_read("opt"))
+    ! options with default value marked as "read"
+    @assertTrue(parser%option_was_read("blank"))
+
+    @assertEqual(parser%get_blank_option_index(), 5)
+
+    do i=1_i4, parser%cnt_options()
+      @assertFalse(parser%options(i)%required)
+    end do
+
+  end subroutine test_cli_parser
+
+end module test_mo_cli
