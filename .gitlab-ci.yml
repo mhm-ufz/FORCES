@@ -80,6 +80,7 @@ documentation:
 
 # how the job build directory is erected
 .setup_build: &setup_build_dir
+  - rm -rf $BUILD_DIR
   - mkdir -p $BUILD_DIR
   - cd $BUILD_DIR
 
