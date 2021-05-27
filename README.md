@@ -6,9 +6,9 @@
 
 This is the FORTRAN library of the
 
-> Department Computational Hydrosystems
-> Helmholtz Centre for Environmental Research - UFZ
-> Permoserstr. 15
+> Department Computational Hydrosystems<br/>
+> Helmholtz Centre for Environmental Research - UFZ<br/>
+> Permoserstr. 15<br/>
 > 04318 Leipzig, Germany
 
 It is a lightweight fork of the `jams_fortran` library maintained by Matthias Cuntz et al: https://github.com/mcuntz/jams_fortran
