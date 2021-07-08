@@ -1,3 +1,8 @@
+# ignore FORCES specific files
+html
+latex
+doxygen_warn.txt
+
 # Created by .ignore support plugin (hsz.mobi)
 ### Fortran template
 # Prerequisites
