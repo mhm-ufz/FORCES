@@ -56,7 +56,7 @@ Copied from [NOAA-EMC/CMakeModules](https://github.com/NOAA-EMC/CMakeModules/blo
 Can be used like:
 ```cmake
 find_package(NetCDF COMPONENTS Fortran)
-target_link_libraries(<lib_name> PUBLIC NetCDF::NetCDF_Fortran)
+target_link_libraries(<target> PUBLIC NetCDF::NetCDF_Fortran)
 ```
 
 ### `version.cmake`
