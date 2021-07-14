@@ -99,7 +99,7 @@ module mo_cli
     character(:), allocatable :: version !< Program version
     logical :: has_help = .true. !< whether the parser cares about the help text (--help / -h)
     logical :: has_version = .false. !< whether the parser cares about the version text (--version / -v)
-    logical :: has_blank_option = .false. !> whether the parser has a blank option.
+    logical :: has_blank_option = .false. !< whether the parser has a blank option.
     type(option), dimension(:), allocatable :: options !< defined options
   contains
     !> \copydoc mo_cli::add_option
@@ -320,7 +320,10 @@ contains
     class(cli_parser), intent(inout) :: self
     character(*), intent(in) :: name !< name of the desired option
 
-    get_option = self%options(self%get_option_index(name))
+    integer(i4) :: i
+
+    i = self%get_option_index(name)
+    get_option = self%options(i)
 
   end function get_option
 
