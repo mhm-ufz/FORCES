@@ -27,6 +27,17 @@ It is recommended to have a clean installation at a custom location
 for a C compiler, a Fortran compiler, the NetCDF C library and the
 NetCDF Fortran library with consistent compilers.
 
+You can also use a conda environment to get all dependencies:
+
+```bash
+conda create -y --prefix ./forces_env
+conda activate ./forces_env
+conda config --add channels conda-forge
+conda config --set channel_priority strict
+conda install -y cmake make fortran-compiler netcdf-fortran fypp
+cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
+cmake --build build --parallel
+```
 
 ## License
 
