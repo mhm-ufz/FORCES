@@ -2,15 +2,15 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cmake-modules
 
 set (LIB_NAME forces)
 
-file(GLOB sources ./mo_*.f90)
-# --- find preprocessor (cpp/fpp and fypp)
+file(GLOB sources ./mo_*.f90 ./mo_*.F90)
+# --- find preprocessor (fypp)
 include(fortranpreprocessor)
-get_preproc_flag(XPP_FLAG)
 find_program(FYPP fypp)
 if(NOT FYPP)
   message(WARNING "Preprocessor fypp not found!")
 else()
-  # Create a list of the files to be preprocessed
+  message(STATUS "Preprocessor fypp found!")
+# Create a list of the files to be preprocessed
   set(fppFiles mo_netcdf.fypp)
   # Custom preprocessor flags
   if(DEFINED CMAKE_MAXIMUM_RANK)
@@ -29,7 +29,6 @@ endif()
 add_library(${LIB_NAME} ${sources} ${fyppOutFiles})
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 # add pre-processor flag (-cpp or -fpp)
-target_compile_options(${LIB_NAME} PUBLIC ${XPP_FLAG})
 
 # find the netcdf and netcdf-fortran libraries quietly, taken from ecmwf project
 find_package(NetCDF COMPONENTS Fortran QUIET)
