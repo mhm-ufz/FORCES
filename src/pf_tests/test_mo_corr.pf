@@ -1,0 +1,38 @@
+module test_mo_corr
+
+  use funit
+  use mo_kind,   only: dp, sp
+  use mo_corr,   only: autocorr
+  
+  implicit none
+
+  integer, parameter :: n=1500
+  integer :: i
+
+contains
+
+  @test
+  subroutine test_coor_dp()
+      real(dp), dimension(n)  ::  dat1, dat2
+      real(dp)                ::  t = epsilon(1.0_dp)
+
+      forall(i=1:n) dat1(i) = real(i, dp)
+      dat2 = dat1 + sin(dat1)
+
+      @assertEqual(autocorr(dat2, 0), 1.0_dp, tolerance=t, message='coor double precision')
+  
+  end subroutine test_coor_dp
+  
+  @test
+  subroutine test_coor_sp()
+      real(sp), dimension(n)  ::  sat1, sat2
+      real(sp)                ::  t = epsilon(1.0_sp)
+
+      forall(i=1:n) sat1(i) = real(i, sp)
+      sat2 = sat1 + sin(sat1)
+
+      @assertEqual(autocorr(sat2, 0), 1.0_sp, tolerance=t, message='coor double precision')
+  
+  end subroutine test_coor_sp
+  
+end module test_mo_corr
