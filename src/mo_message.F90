@@ -22,7 +22,7 @@ MODULE mo_message
 
 CONTAINS
 
-  function _process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10) result(outString)
+  function process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10) result(outString)
 
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t01
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t02
@@ -88,7 +88,7 @@ CONTAINS
     end if
 #endif
 
-  end function _process_arguments
+  end function process_arguments
 
 
   !> \brief Write out an error message to stdout
@@ -106,13 +106,26 @@ CONTAINS
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t08  !< optional string arguments
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t09  !< optional string arguments
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t10  !< optional string arguments
-    INTEGER, INTENT(IN), OPTIONAL :: uni = nout  !< Unit to write to (default: stdout)
-    CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance = 'yes'  !< 'add linebreak after message, default: 'yes', elso 'no'
+    INTEGER, INTENT(IN), OPTIONAL :: uni  !< Unit to write to (default: stdout)
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< 'add linebreak after message, default: 'yes', elso 'no'
 
     CHARACTER(len = 32000) :: outString
+    INTEGER :: uniArg
+    CHARACTER(len = 3) :: advanceArg
 
-    outString = _process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10)
-    write(uni, '(a)', advance = advance) trim(outString)
+    if (present(uni)) then
+      uniArg = uni
+    else
+      uniArg = nout
+    end if
+    if (present(advance)) then
+      advanceArg = advance
+    else
+      advanceArg = 'yes'
+    end if
+
+    outString = process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10)
+    write(uniArg, '(a)', advance = advanceArg) trim(outString)
 
   END SUBROUTINE message
 
@@ -129,10 +142,17 @@ CONTAINS
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t08  !< optional string arguments
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t09  !< optional string arguments
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t10  !< optional string arguments
-    INTEGER, INTENT(IN), OPTIONAL :: uni = nerr  !< Unit to write to (default: stderr)
+    INTEGER, INTENT(IN), OPTIONAL :: uni  !< Unit to write to (default: stderr)
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< 'add linebreak after message, default: 'yes', elso 'no'
 
-    call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uni, advance)
+    INTEGER :: uniArg
+
+    if (present(uni)) then
+      uniArg = uni
+    else
+      uniArg = nerr
+    end if
+    call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uniArg, advance)
     stop 1
 
   END SUBROUTINE error_message
