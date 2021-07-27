@@ -43,7 +43,7 @@ MODULE mo_nml
 
   USE mo_kind, ONLY : i4
   USE mo_string_utils, ONLY : tolower
-  USE mo_message, ONLY : message, message_text
+  USE mo_message, ONLY : message
   USE mo_finish, ONLY : finish
 
   IMPLICIT NONE
@@ -139,8 +139,7 @@ CONTAINS
     OPEN (nunitnml, file = file, iostat = istat, status = 'old', action = 'read', delim = 'apostrophe')
 
     IF (istat .ne. 0) THEN
-      write(message_text, '(A,A)') 'Could not open namelist file ', trim(file)
-      CALL finish('OPEN_NML', trim(message_text))
+      CALL finish('OPEN_NML', 'Could not open namelist file '//trim(file))
     END IF
 
   END SUBROUTINE open_nml
@@ -359,9 +358,7 @@ CONTAINS
     END SELECT
 
     ! Error if it reaches here
-    !message_text = 'namelist /'//TRIM(name)//'/ '//code
-    write(message_text, '(A,A,A,A)') 'namelist /', trim(name), '/ ', trim(code)
-    CALL finish('POSITION_NML', message_text)
+    CALL finish('POSITION_NML', 'namelist /'//trim(name)//'/ '//trim(code))
 
   END SUBROUTINE position_nml
 

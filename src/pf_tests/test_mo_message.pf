@@ -1,0 +1,50 @@
+module test_mo_message
+  use funit
+  use mo_message, only: message, error_message
+  use mo_kind, only: i4
+
+  implicit none
+
+  private
+
+  public :: test_message, test_error_message
+
+contains
+
+  @test
+  subroutine test_message()
+
+    call message('mo_message')
+    call message('mo_message', advance='no')
+    call message('mo_message', advance='NO')
+    call message('mo_message', advance='YES')
+    call message('mo_message', advance='yes')
+    call message('mo_message', uni=1_i4)
+    call message('mo_message', uni=6_i4)
+    call message('mo_message', advance='no', uni=1_i4)
+    call message('')
+    call message(' ')
+    call message('1', '2', '3', '4', '5', '6', '7', '8', '9', '10')
+    ! this will fail
+    ! call message('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11')
+
+    ! template tests
+    ! @assertTrue(.true.)
+    ! @assertEqual(val, ref)
+
+  end subroutine test_message
+
+  subroutine test_error_message()
+
+    ! call error_message('')
+    ! @assertExceptionRaised('')
+    ! call error_message(' ')
+    ! @assertExceptionRaised(' ')
+    ! call error_message('1', '2', '3', '4', '5', '6', '7', '8', '9', '0')
+    ! @assertExceptionRaised('1234567890')
+    ! this will fail
+    ! call error_message('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11')
+
+  end subroutine test_error_message
+
+end module test_mo_message
