@@ -32,7 +32,6 @@ module test_mo_anneal
       procedure(eval_interface), pointer      :: eval
       procedure(objective_interface), pointer :: obj_func
 
-
       ! time dependent seeds
       call get_timeseed(seeds)
       print*, 'time dependent seeds would be: ', seeds
