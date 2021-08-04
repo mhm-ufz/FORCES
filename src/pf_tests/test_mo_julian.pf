@@ -1,0 +1,523 @@
+module test_mo_julian
+  
+  use funit
+  use mo_kind,    only: i4, dp
+  use mo_julian,  only: ndays, ndyin
+  use mo_julian,  only: caldat, julday, date2dec, dec2date, setCalendar
+  use mo_message, only: error_message
+
+  implicit none
+  
+  integer(i4) :: dd, mm, yy
+  integer(i4) :: hh, nn, ss
+  integer(i4) :: dd2, mm2, yy2
+  integer(i4) :: hh2, nn2, ss2
+  real(dp)    :: ff, rr, gg
+  integer(i4), dimension(3) :: dd1, mm1, yy1, hh1, nn1, ss1
+  integer(i4), dimension(3) :: dd12, mm12, yy12, hh12, nn12, ss12
+  real(dp),    dimension(3) :: dec1
+  real(dp),    dimension(3) :: rr1, ff1, gg1
+  integer(i4) :: jj
+
+  ! -----------------------
+  ! standard calendar tests
+
+contains
+
+  ! Test julday, caldat
+  @test
+  subroutine test_julday_caldat()
+  
+    do jj=1, 2524594 ! 01.01.2200
+      call caldat(jj, dd, mm, yy)
+      ss = julday(dd, mm, yy)
+      @assertEqual(ss, jj)
+    end do
+    @assertEqual(julday(01, 01, 1900), 2415021)
+    call caldat(2415021, dd, mm, yy)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 1)
+    @assertEqual(yy, 1900)
+
+  end subroutine test_julday_caldat
+
+  ! Test ndays, ndyin
+  @test
+  subroutine test_ndays_ndyin()
+
+    do jj=0, 109573 ! 01.01.2200
+      call ndyin(jj,dd,mm,yy)
+      ss = ndays(dd,mm,yy)
+      @assertEqual(ss, jj)
+    end do
+    @assertEqual(ndays(01, 01, 1900), 0)
+    call ndyin(0, dd, mm, yy)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 1)
+    @assertEqual(yy, 1900)
+    @assertEqual(ndays(1,1,-4712),-2415021)
+    call ndyin(-2415021, dd, mm, yy)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 1)
+    @assertEqual(yy, -4712)
+
+  end subroutine test_ndays_ndyin
+
+  ! Test date2dec
+  @test
+  subroutine test_date2dec()
+  
+    @assertGreaterThanOrEqual(epsilon(1.0_dp)*2415021._dp*10.0_dp, abs(date2dec(01,01,1900,12,0)-2415021.0_dp))
+    @assertGreaterThanOrEqual(epsilon(1.0_dp)*2415020._dp*10.0_dp, abs(date2dec(01,01,1900)-2415020.5_dp))
+
+  end subroutine test_date2dec
+
+  ! Test date2dec with dec2date
+  @test
+  subroutine test_date2dec_dec2date()
+  
+    ! Scalar test date2dec-dec2date
+    do jj=1, 2524594 ! 01.01.2200
+      call random_number(ff)
+      rr = real(jj) + ff
+      call dec2date(rr,dd,mm,yy,hh,nn,ss)
+      gg = date2dec(dd,mm,yy,hh,nn,ss)
+      call dec2date(gg,dd2,mm2,yy2,hh2,nn2,ss2)
+      @assertEqual(dd, dd2)
+      @assertEqual(mm, mm2)
+      @assertEqual(yy, yy2)
+      @assertEqual(hh, hh2)
+      @assertEqual(nn, nn2)
+      @assertEqual(ss, ss2)
+    end do
+    call dec2date(date2dec(01,01,1900,12,01,02), dd, mm, yy, hh, nn, ss)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 1)
+    @assertEqual(yy, 1900)
+    @assertEqual(hh, 12)
+    @assertEqual(nn, 01)
+    @assertEqual(ss, 02)
+    call dec2date(date2dec(01,01,1900), dd, mm, yy, hh, nn, ss)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 1)
+    @assertEqual(yy, 1900)
+    @assertEqual(hh, 00)
+    @assertEqual(nn, 00)
+    @assertEqual(ss, 00)
+    call dec2date(date2dec(01,01,1900,23,59,59), dd, mm, yy, hh, nn, ss)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 1)
+    @assertEqual(yy, 1900)
+    @assertEqual(hh, 23)
+    @assertEqual(nn, 59)
+    @assertEqual(ss, 59)
+    call dec2date(date2dec(01,01,01,12,12,12), dd, mm, yy, hh, nn, ss)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 1)
+    @assertEqual(yy, 01)
+    @assertEqual(hh, 12)
+    @assertEqual(nn, 12)
+    @assertEqual(ss, 12)
+    call dec2date(date2dec(01,02,-100,11,11,11), dd, mm, yy, hh, nn, ss)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 2)
+    @assertEqual(yy, -100)
+    @assertEqual(hh, 11)
+    @assertEqual(nn, 11)
+    @assertEqual(ss, 11)
+
+    ! Vector test date2dec-dec2date
+    do jj=1, 2524594 ! 01.01.2200
+      call random_number(ff1)
+      rr1 = real(jj) + ff1
+      call dec2date(rr1,dd1,mm1,yy1,hh1,nn1,ss1)
+      gg1 = date2dec(dd1,mm1,yy1,hh1,nn1,ss1)
+      call dec2date(gg1,dd12,mm12,yy12,hh12,nn12,ss12)
+      @assertEqual(dd1, dd12)
+      @assertEqual(mm1, mm12)
+      @assertEqual(yy1, yy12)
+      @assertEqual(hh1, hh12)
+      @assertEqual(nn1, nn12)
+      @assertEqual(ss1, ss12)
+    end do
+    dd12 = (/ 01, 10, 27 /)
+    mm12 = (/ 02, 12, 03 /)
+    yy12 = (/ -100, 1, 2000 /)
+    hh12 = (/ 11, 23, 00 /)
+    nn12 = (/ 11, 57, 47 /)
+    ss12 = (/ 11, 12, 59 /)
+    call dec2date(date2dec(dd12, mm12, yy12, hh12, nn12, ss12), dd1, mm1, yy1, hh1, nn1, ss1)
+    @assertEqual(dd1, dd12)
+    @assertEqual(mm1, mm12)
+    @assertEqual(yy1, yy12)
+    @assertEqual(hh1, hh12)
+    @assertEqual(nn1, nn12)
+    @assertEqual(ss1, ss12)
+
+    ! Vector/scalar mix date2dec-dec2date
+    ! This does not work with NAG compiler, have to have temporary array
+    ! call dec2date(date2dec(01,12,2000,(/11,12,13/),11,59), &
+    !      dd1, mm1, yy1, hh1, nn1, ss1)
+    do jj=1, 2524594 ! 01.01.2200
+      call random_number(ff1)
+      rr1 = real(jj) + ff1
+      call dec2date(rr1,dd1,mm1,yy1,hh1,nn1,ss1)
+      gg1 = date2dec(dd1(1),mm1(1),yy1(1),hh1,nn1,ss1)
+      call dec2date(gg1,dd12,mm12,yy12,hh12,nn12,ss12)
+      @assertEqual(dd1(1), dd12)
+      @assertEqual(mm1(1), mm12)
+      @assertEqual(yy1(1), yy12)
+      @assertEqual(hh1, hh12)
+      @assertEqual(nn1, nn12)
+      @assertEqual(ss1, ss12)
+    end do
+    dd12 = 01
+    mm12 = 12
+    yy12 = 2000
+    hh12 = (/ 11, 12, 13 /)
+    nn12 = 11
+    ss12 = 59
+    dec1 = date2dec(01,12,2000,(/11,12,13/),11,59)
+    call dec2date(dec1, dd1, mm1, yy1, hh1, nn1, ss1)
+    @assertEqual(dd1, dd12)
+    @assertEqual(mm1, mm12)
+    @assertEqual(yy1, yy12)
+    @assertEqual(hh1, hh12)
+    @assertEqual(nn1, nn12)
+    @assertEqual(ss1, ss12)
+ 
+  end subroutine test_date2dec_dec2date
+
+  ! Test mix date2dec caldat
+  @test
+  subroutine test_mix()
+  
+    do jj=1, 2524594 ! 01.01.2200
+      call caldat(jj, dd, mm, yy)
+      ss = int(date2dec(dd, mm, yy, 12, 0, 0), i4)
+      @assertEqual(jj, ss)
+    end do
+
+  end subroutine test_mix
+
+  ! -----------------------
+  ! 360days calendar tests
+
+  ! julday360, caldat360
+  @test
+  subroutine test_julday_caldat_360()
+
+    call setCalendar("360day")
+
+    do jj=0, 792000 ! 01.01.2200
+      call caldat(jj, dd, mm, yy)
+      ss = julday(dd, mm, yy)
+      @assertEqual(jj, ss)
+    end do
+    @assertEqual(julday(01, 01, 1900), 684000)
+    call caldat(684000, dd, mm, yy)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 1)
+    @assertEqual(yy, 1900)
+
+  end subroutine test_julday_caldat_360
+
+  ! date2dec360
+  @test
+  subroutine test_date2dec_360()
+
+    @assertGreaterThanOrEqual(epsilon(1.0_dp)*684000.0_dp*10.0_dp, abs(date2dec(01,01,1900,12,0)-684000.0_dp))
+    @assertGreaterThanOrEqual(epsilon(1.0_dp)*683999._dp*10.0_dp, abs(date2dec(01,01,1900)-683999.5_dp))    
+
+  end subroutine test_date2dec_360
+
+  ! Test date2dec with dec2date 360
+  @test
+  subroutine test_date2dec_dec2date_360()
+  
+    ! Scalar test date2dec-dec2date 360
+    do jj=1, 109573 ! 01.01.2200
+      call random_number(ff)
+      rr = real(jj) + ff
+      call dec2date(rr,dd,mm,yy,hh,nn,ss)
+      gg = date2dec(dd,mm,yy,hh,nn,ss)
+      call dec2date(gg,dd2,mm2,yy2,hh2,nn2,ss2)
+      @assertEqual(dd, dd2)
+      @assertEqual(mm, mm2)
+      @assertEqual(yy, yy2)
+      @assertEqual(hh, hh2)
+      @assertEqual(nn, nn2)
+      @assertEqual(ss, ss2)
+    end do
+
+    call dec2date(date2dec(01, 01, 1900, 12, 01, 02), dd, mm, yy, hh, nn, ss)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 1)
+    @assertEqual(yy, 1900)
+    @assertEqual(hh, 12)
+    @assertEqual(nn, 01)
+    @assertEqual(ss, 02)
+    call dec2date(date2dec(01, 01, 1900), dd, mm, yy, hh, nn, ss)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 1)
+    @assertEqual(yy, 1900)
+    @assertEqual(hh, 00)
+    @assertEqual(nn, 00)
+    @assertEqual(ss, 00)
+    call dec2date(date2dec(01, 01, 1900, 23, 59, 59), dd, mm, yy, hh, nn, ss)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 1)
+    @assertEqual(yy, 1900)
+    @assertEqual(hh, 23)
+    @assertEqual(nn, 59)
+    @assertEqual(ss, 59)
+    call dec2date(date2dec(01, 01, 01, 12, 12, 12), dd, mm, yy, hh, nn, ss)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 1)
+    @assertEqual(yy, 01)
+    @assertEqual(hh, 12)
+    @assertEqual(nn, 12)
+    @assertEqual(ss, 12)
+    call dec2date(date2dec(01, 02, -100, 11, 11, 11), dd, mm, yy, hh, nn, ss)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 2)
+    @assertEqual(yy, -100)
+    @assertEqual(hh, 11)
+    @assertEqual(nn, 11)
+    @assertEqual(ss, 11)
+
+    ! Vector test date2dec-dec2date 360
+    do jj=1, 2524594 ! 01.01.2200
+      call random_number(ff1)
+      rr1 = real(jj) + ff1
+      call dec2date(rr1,dd1,mm1,yy1,hh1,nn1,ss1)
+      gg1 = date2dec(dd1,mm1,yy1,hh1,nn1,ss1)
+      call dec2date(gg1,dd12,mm12,yy12,hh12,nn12,ss12)
+      @assertEqual(dd1, dd12)
+      @assertEqual(mm1, mm12)
+      @assertEqual(yy1, yy12)
+      @assertEqual(hh1, hh12)
+      @assertEqual(nn1, nn12)
+      @assertEqual(ss1, ss12)
+    end do
+    dd12 = (/ 01, 10, 27 /)
+    mm12 = (/ 02, 12, 03 /)
+    yy12 = (/ -100, 1, 2000 /)
+    hh12 = (/ 11, 23, 00 /)
+    nn12 = (/ 11, 57, 47 /)
+    ss12 = (/ 11, 12, 59 /)
+    call dec2date(date2dec(dd12, mm12, yy12, hh12, nn12, ss12), dd1, mm1, yy1, hh1, nn1, ss1)
+    @assertEqual(dd1, dd12)
+    @assertEqual(mm1, mm12)
+    @assertEqual(yy1, yy12)
+    @assertEqual(hh1, hh12)
+    @assertEqual(nn1, nn12)
+    @assertEqual(ss1, ss12)
+
+    ! Vector/scalar mix date2dec-dec2date 360
+    ! This does not work with NAG compiler, have to have temporary array
+    ! call dec2date360(date2dec360(01,12,2000,(/11,12,13/),11,59), &
+    !      dd1, mm1, yy1, hh1, nn1, ss1)
+    do jj=1, 2524594 ! 01.01.2200
+      call random_number(ff1)
+      rr1 = real(jj) + ff1
+      call dec2date(rr1,dd1,mm1,yy1,hh1,nn1,ss1)
+      gg1 = date2dec(dd1(1),mm1(1),yy1(1),hh1,nn1,ss1)
+      call dec2date(gg1,dd12,mm12,yy12,hh12,nn12,ss12)
+      @assertEqual(dd1(1), dd12)
+      @assertEqual(mm1(1), mm12)
+      @assertEqual(yy1(1), yy12)
+      @assertEqual(hh1, hh12)
+      @assertEqual(nn1, nn12)
+      @assertEqual(ss1, ss12)
+    end do
+    dd12 = 01
+    mm12 = 12
+    yy12 = 2000
+    hh12 = (/ 11, 12, 13 /)
+    nn12 = 11
+    ss12 = 59
+    dec1 = date2dec(01,12,2000,(/11,12,13/),11,59)
+    call dec2date(dec1, dd1, mm1, yy1, hh1, nn1, ss1)
+    @assertEqual(dd1, dd12)
+    @assertEqual(mm1, mm12)
+    @assertEqual(yy1, yy12)
+    @assertEqual(hh1, hh12)
+    @assertEqual(nn1, nn12)
+    @assertEqual(ss1, ss12)
+
+  end subroutine test_date2dec_dec2date_360
+
+  ! Test mix date2dec caldat 360
+  @test
+  subroutine test_mix_360()
+  
+    do jj=1, 79200 ! 01.01.2200
+      call caldat(jj, dd, mm, yy)
+      ss = int(date2dec(dd, mm, yy, 12, 0, 0), i4)
+      @assertEqual(jj, ss)
+    end do
+
+  end subroutine test_mix_360
+
+  ! ---------------------
+  ! 365day calendar tests
+
+  ! julday365, caldat365
+  @test
+  subroutine test_julday_caldat_365()
+  
+    call setCalendar("365day")
+
+    do jj=0, 803000 ! 01.01.2200
+      call caldat(jj,dd,mm,yy)
+      ss = julday(dd,mm,yy)
+      @assertEqual(jj, ss)
+    end do
+    @assertEqual(julday(01, 01, 1900), 693500)
+    call caldat(693500, dd, mm, yy)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 1)
+    @assertEqual(yy, 1900)
+
+  end subroutine test_julday_caldat_365
+
+  ! date2dec365
+  @test
+  subroutine test_date2dec_365()
+    
+    @assertGreaterThanOrEqual(epsilon(1.0_dp)*693500.0_dp*10.0_dp, abs(date2dec(01,01,1900,12,0)-693500.0_dp))
+    @assertGreaterThanOrEqual(epsilon(1.0_dp)*693499._dp*10.0_dp, abs(date2dec(01,01,1900)-693499.5_dp))     
+
+  end subroutine test_date2dec_365
+
+  ! date2dec with dec2date
+  @test
+  subroutine test_date2dec_dec2date_365()
+  
+    ! Scalar test date2dec-dec2date 365
+    do jj=1, 803000 ! 01.01.2200
+      call random_number(ff)
+      rr = real(jj) + ff
+      call dec2date(rr,dd,mm,yy,hh,nn,ss)
+      gg = date2dec(dd,mm,yy,hh,nn,ss)
+      call dec2date(gg,dd2,mm2,yy2,hh2,nn2,ss2)
+      @assertEqual(dd, dd2)
+      @assertEqual(mm, mm2)
+      @assertEqual(yy, yy2)
+      @assertEqual(hh, hh2)
+      @assertEqual(nn, nn2)
+      @assertEqual(ss, ss2)
+    end do
+
+    call dec2date(date2dec(01, 01, 1900, 12, 01, 02), dd, mm, yy, hh, nn, ss)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 1)
+    @assertEqual(yy, 1900)
+    @assertEqual(hh, 12)
+    @assertEqual(nn, 01)
+    @assertEqual(ss, 02)
+    call dec2date(date2dec(01, 01, 1900), dd, mm, yy, hh, nn, ss)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 1)
+    @assertEqual(yy, 1900)
+    @assertEqual(hh, 00)
+    @assertEqual(nn, 00)
+    @assertEqual(ss, 00)
+    call dec2date(date2dec(01, 01, 1900, 23, 59, 59), dd, mm, yy, hh, nn, ss)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 1)
+    @assertEqual(yy, 1900)
+    @assertEqual(hh, 23)
+    @assertEqual(nn, 59)
+    @assertEqual(ss, 59)
+    call dec2date(date2dec(01, 01, 01, 12, 12, 12), dd, mm, yy, hh, nn, ss)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 1)
+    @assertEqual(yy, 01)
+    @assertEqual(hh, 12)
+    @assertEqual(nn, 12)
+    @assertEqual(ss, 12)
+    call dec2date(date2dec(01, 02, -100, 11, 11, 11), dd, mm, yy, hh, nn, ss)
+    @assertEqual(dd, 1)
+    @assertEqual(mm, 2)
+    @assertEqual(yy, -100)
+    @assertEqual(hh, 11)
+    @assertEqual(nn, 11)
+    @assertEqual(ss, 11)
+
+    ! Vector test date2dec-dec2date 365
+    do jj=1, 803000 ! 01.01.2200
+      call random_number(ff1)
+      rr1 = real(jj) + ff1
+      call dec2date(rr1,dd1,mm1,yy1,hh1,nn1,ss1)
+      gg1 = date2dec(dd1,mm1,yy1,hh1,nn1,ss1)
+      call dec2date(gg1,dd12,mm12,yy12,hh12,nn12,ss12)
+      @assertEqual(dd1, dd12)
+      @assertEqual(mm1, mm12)
+      @assertEqual(yy1, yy12)
+      @assertEqual(hh1, hh12)
+      @assertEqual(nn1, nn12)
+      @assertEqual(ss1, ss12)
+    end do
+    dd12 = (/ 01, 10, 27 /)
+    mm12 = (/ 02, 12, 03 /)
+    yy12 = (/ -100, 1, 2000 /)
+    hh12 = (/ 11, 23, 00 /)
+    nn12 = (/ 11, 57, 47 /)
+    ss12 = (/ 11, 12, 59 /)
+    call dec2date(date2dec(dd12, mm12, yy12, hh12, nn12, ss12), dd1, mm1, yy1, hh1, nn1, ss1)
+    @assertEqual(dd1, dd12)
+    @assertEqual(mm1, mm12)
+    @assertEqual(yy1, yy12)
+    @assertEqual(hh1, hh12)
+    @assertEqual(nn1, nn12)
+    @assertEqual(ss1, ss12)
+
+    ! Vector/scalar mix date2dec-dec2date 365
+    ! This does not work with NAG compiler, have to have temporary array
+    ! call dec2date365(date2dec365(01,12,2000,(/11,12,13/),11,59), &
+    !      dd1, mm1, yy1, hh1, nn1, ss1)
+    do jj=1, 803000 ! 01.01.2200
+      call random_number(ff1)
+      rr1 = real(jj) + ff1
+      call dec2date(rr1,dd1,mm1,yy1,hh1,nn1,ss1)
+      gg1 = date2dec(dd1(1),mm1(1),yy1(1),hh1,nn1,ss1)
+      call dec2date(gg1,dd12,mm12,yy12,hh12,nn12,ss12)
+      @assertEqual(dd1(1), dd12)
+      @assertEqual(mm1(1), mm12)
+      @assertEqual(yy1(1), yy12)
+      @assertEqual(hh1, hh12)
+      @assertEqual(nn1, nn12)
+      @assertEqual(ss1, ss12)
+    end do
+    dd12 = 01
+    mm12 = 12
+    yy12 = 2000
+    hh12 = (/ 11, 12, 13 /)
+    nn12 = 11
+    ss12 = 59
+    dec1 = date2dec(01, 12, 2000, (/ 11, 12, 13 /), 11, 59)
+    call dec2date(dec1, dd1, mm1, yy1, hh1, nn1, ss1)
+    @assertEqual(dd1, dd12)
+    @assertEqual(mm1, mm12)
+    @assertEqual(yy1, yy12)
+    @assertEqual(hh1, hh12)
+    @assertEqual(nn1, nn12)
+    @assertEqual(ss1, ss12)
+
+  end subroutine test_date2dec_dec2date_365
+
+  ! Test mix date2dec caldat 365
+  @test
+  subroutine test_mix_365()
+  
+    do jj=1, 803000 ! 01.01.2200
+      call caldat(jj, dd, mm, yy)
+      ss = int(date2dec(dd, mm, yy, 12, 0, 0), i4)
+      @assertEqual(jj, ss)
+    end do
+
+  end subroutine test_mix_365
+
+end module test_mo_julian
