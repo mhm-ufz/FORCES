@@ -1,0 +1,84 @@
+module test_mo_linfit
+  
+  use funit
+  use mo_kind,      only: i4, dp, sp
+  use mo_linfit,    only: linfit
+  use mo_message,   only: error_message
+
+  implicit none
+ 
+  integer(i4), parameter :: nn = 100
+
+contains
+
+  ! Double precision
+  @test
+  subroutine test_linfit_dp()
+  
+    real(dp), dimension(nn) :: xx, yy, yout
+    real(dp)  :: a, b, a2, b2, siga, sigb, chi2
+    logical   :: model2
+
+    a = 2._dp
+    b = 3._dp
+    call random_number(xx)
+    yy = a + b*xx
+
+    ! model I
+    model2 = .false.
+  
+    ! fit should be perfect
+    yout = linfit(xx, yy, a=a2, b=b2, siga=siga, sigb=sigb, chi2=chi2, model2=model2)
+    yout = yout
+    @assertGreaterThanOrEqual(100._dp*epsilon(1.0_dp), abs(a-a2), message= "a difference dp model1")
+    @assertGreaterThanOrEqual(100._dp*epsilon(1.0_dp), siga, message= "sigma a dp model1")
+    @assertGreaterThanOrEqual(100._dp*epsilon(1.0_dp), sigb, message= "sigma b dp model1")
+    @assertGreaterThanOrEqual(epsilon(1.0_dp), chi2, message= "chi-square dp model1")
+
+    ! model II
+    model2 = .true.
+    yout = linfit(xx, yy, a=a2, b=b2, siga=siga, sigb=sigb, chi2=chi2, model2=model2)
+    yout = yout
+    @assertGreaterThanOrEqual(100._dp*epsilon(1.0_dp), abs(a-a2), message= "a difference dp model2")
+    @assertGreaterThanOrEqual(1.0e-4*a, siga, message= "sigma a dp model2")
+    @assertGreaterThanOrEqual(1.0e-4*b, sigb, message= "sigma b dp model2")
+    @assertGreaterThanOrEqual(epsilon(1.0_dp), chi2, message= "chi-square dp model2")
+
+  end subroutine test_linfit_dp
+
+    ! Single precision
+  @test
+  subroutine test_linfit_sp()
+  
+    real(sp), dimension(nn) :: sxx, syy, syout
+    real(sp)  :: sa, sb, sa2, sb2, ssiga, ssigb, schi2
+    logical   :: model2
+
+    sa = 2._sp
+    sb = 3._sp
+    call random_number(sxx)
+    syy = sa + sb*sxx
+
+    ! model I
+    model2 = .false.
+  
+    ! fit should be perfect
+    syout = linfit(sxx, syy, a=sa2, b=sb2, siga=ssiga, sigb=ssigb, chi2=schi2, model2=model2)
+    syout = syout
+    @assertGreaterThanOrEqual(100._sp*epsilon(1.0_sp), abs(sa-sa2), message= "diff a sp model1")
+    @assertGreaterThanOrEqual(100._sp*epsilon(1.0_sp), ssiga, message= "sigma a sp model1")
+    @assertGreaterThanOrEqual(100._sp*epsilon(1.0_sp), ssigb, message= "sigma b sp model1")
+    @assertGreaterThanOrEqual(epsilon(1.0_sp), schi2, message= "chi-square sp model1")
+
+    ! model II
+    model2 = .true.
+    syout = linfit(sxx, syy, a=sa2, b=sb2, siga=ssiga, sigb=ssigb, chi2=schi2, model2=model2)
+    syout = syout
+    @assertGreaterThanOrEqual(100._sp*epsilon(1.0_sp), abs(sa-sa2), message= "doff a sp model2")
+    @assertGreaterThanOrEqual(1.0e-4*sa, ssiga, message= "sigma a sp model2")
+    @assertGreaterThanOrEqual(1.0e-4*sb, ssigb, message= "sigma b sp model2")
+    @assertGreaterThanOrEqual(epsilon(1.0_sp), schi2, message= "chi-square sp model2")
+
+  end subroutine test_linfit_sp
+
+end module test_mo_linfit
