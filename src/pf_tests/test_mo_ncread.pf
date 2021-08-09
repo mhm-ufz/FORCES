@@ -1,0 +1,90 @@
+module test_mo_ncread
+
+  use funit
+  use mo_kind,   only: i4, sp, dp
+  use mo_NcRead, only: Get_NcVar, get_ncdim, NcOpen, NcClose
+  use mo_NcRead, only: Get_NcDimAtt, Get_NcVarAtt
+  use mo_message, only: error_message
+
+  implicit none
+
+  real(sp)      , dimension(:,:,:), allocatable :: data
+  real(sp)      , dimension(:,:)  , allocatable :: tmp
+  character(256), dimension(:)    , allocatable :: dimnames
+  integer(i4)   , dimension(:)    , allocatable :: dimlen
+  real(dp)      , dimension(:)    , allocatable :: dimdata
+  character(256)                                :: filename
+  character(256)                                :: varname
+  character(256)                                :: attname
+  character(256)                                :: attvalues
+  integer(i4)                                   :: ncid
+  integer(i4)                                   :: nodims
+  integer(i4)                                   :: i
+  integer(i4)   , dimension(5)                  :: dl
+  
+contains
+  
+  @test
+  subroutine test_ncread()
+  
+    !
+    filename = '../FORTRAN_chs_lib/test/test_mo_ncread/pr_1961-2000.nc'
+    !
+    ! Variable name can be retrieved by a "ncdump -h <filename>"
+    varname  = 'pr'
+    !
+    dl = get_ncdim(filename, varname, ndims=nodims)
+    !
+    allocate(data(dl(1),dl(2),dl(3)))
+
+    ! get Dimension information - name & length (size)
+    call Get_NcDimAtt(filename, varname, dimnames, dimlen)
+    !
+    @assertEqual(dimnames(1), 'x')
+    @assertEqual(dimnames(2), 'y')
+    @assertEqual(dimnames(3), 'time')
+    !
+    @assertEqual(dimlen(1), 28)
+    @assertEqual(dimlen(2), 36)
+    @assertEqual(dimlen(3), 2)
+    !
+    ! read data corresponding to dimension 3 ('time')
+    allocate(dimdata(dimlen(3)))
+    call Get_NcVar(filename, dimnames(3) ,dimdata)
+    @assertEqual(nint(sum(dimdata)), 8100_i4)
+    deallocate(dimdata)
+    !
+    call Get_NcVar(filename, varname, data)
+    !
+    ! The sum of the data should be 0.1174308 in single precision
+    ! sun with aggresive optimisation calculates 0.117430955
+    @assertEqual(nint(1e6_sp*sum(data)), 117431_i4)
+    data = -9999._sp
+    !
+    ! check dynamic read
+    ncid = NcOpen(trim(filename)) ! open file and get file handle
+    !
+    do i = 1, size(data,3)
+      ! tmp is allocated within Get_NcVar
+      call Get_NcVar(filename, varname, tmp, (/1,1,i/),(/dl(1),dl(2),1/), ncid)
+      data(:,:,i) = tmp
+      if ( allocated( tmp ) ) deallocate( tmp )
+    end do
+    !
+    call NcClose(ncid)            ! close file
+    !
+    @assertEqual(nint(1e6_sp*sum(data)), 117431_i4)
+    !
+    ! retrieving variables attributes
+    attname='units'
+    call Get_NcVarAtt(filename, trim(dimnames(3)), attname, attvalues)
+    @assertEqual(attvalues, 'days since 1950-01-01 00:00:00')
+    !
+    call Get_NcVarAtt(filename, 'pr', '_FillValue', attvalues)
+    @assertEqual(attvalues, '0.1000000E+31')
+    !
+    deallocate(data)
+
+  end subroutine test_ncread
+
+end module test_mo_ncread
