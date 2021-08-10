@@ -1,0 +1,30 @@
+module test_mo_nml
+  
+  use funit
+  use mo_kind, only: i4
+  use mo_nml,  only: open_nml, close_nml, position_nml
+  use mo_message, only: error_message
+
+  implicit none
+  
+  integer, parameter :: nnml = 100
+  character(len=*), parameter :: nfile = './files/namelist.txt'
+  integer(i4) :: stat
+
+contains
+
+  @test
+  subroutine test_nml()
+  
+    call open_nml(nfile, nnml)
+    call position_nml('name1', unit=nnml, first=.true., status=stat)
+    @assertEqual(stat, 0)
+    call position_nml('name2', unit=nnml, status=stat)
+    !call position_nml('kkkk', unit=nnml)
+    @assertEqual(stat, 0)
+    call position_nml('name3', unit=nnml, first=.true., status=stat)
+    call close_nml()
+
+  end subroutine test_nml
+  
+end module test_mo_nml
