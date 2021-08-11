@@ -1,0 +1,67 @@
+module test_mo_spatialsimilarity
+  
+  use funit
+  use mo_kind,              only: sp, dp
+  use mo_spatialsimilarity, only: PD, NNDV
+  use mo_message, only: error_message
+  
+  implicit none
+
+  real(dp), dimension(3,3)  :: mat1, mat2 ! data arrays
+  logical,  dimension(3,3)  :: masking    ! mask for excluding nodata values
+  logical                   :: validity   ! number of valid cells
+
+contains
+
+  ! Double precision
+  @test
+  subroutine test_spatialsim_dp()
+
+    mat1 = reshape((/12.0_dp,  4.0_dp, 15.0_dp, 17.0_dp, 10.0_dp,  2.0_dp,  1.0_dp, 11.0_dp, 20.0_dp/),(/3,3/))
+    mat2 = reshape((/ 7.0_dp, 12.0_dp,  5.0_dp,  9.0_dp, 11.0_dp, 13.0_dp, 12.0_dp, 11.0_dp,  7.0_dp/),(/3,3/))  
+  
+    ! dp without mask
+    masking = .true.
+    @assertEqual(nint(100000.0_dp * NNDV(mat1(:,:), mat2(:,:),               valid=validity)), 29815)
+    @assertTrue(validity)
+    @assertEqual(nint(100000.0_dp *   PD(mat1(:,:), mat2(:,:), mask=masking, valid=validity)), 8148)
+    @assertTrue(validity)
+
+    ! dp with mask
+    masking = reshape((/.TRUE., .TRUE., .FALSE., .FALSE., .TRUE., .TRUE., .TRUE., .TRUE., .FALSE./),(/3,3/))
+    @assertEqual(nint(1000000.0_dp * NNDV(mat1(:,:), mat2(:,:), mask=masking, valid=validity)), 300000)
+    @assertTrue(validity)
+    @assertEqual(nint(1000000.0_dp *   PD(mat1(:,:), mat2(:,:), mask=masking, valid=validity)), 55556)
+    @assertTrue(validity)
+
+  end subroutine test_spatialsim_dp
+
+  ! Single precision
+  @test
+  subroutine test_spatialsim_sp()
+  
+    ! sp without mask
+    masking = .true.
+    @assertEqual(nint(100000.0_sp * NNDV(real(mat1(:,:), sp), real(mat2(:,:), sp)              )), 29815)
+    @assertEqual(nint(100000.0_sp *   PD(real(mat1(:,:), sp), real(mat2(:,:), sp), mask=masking)), 8148)
+
+    ! sp with mask
+    masking = reshape((/.TRUE., .TRUE., .FALSE., .FALSE., .TRUE., .TRUE., .TRUE., .TRUE., .FALSE./),(/3,3/))
+    @assertEqual(nint(1000000.0_sp * NNDV(real(mat1(:,:), sp), real(mat2(:,:), sp), mask=masking)), 300000)
+    @assertEqual(nint(1000000.0_sp *   PD(real(mat1(:,:), sp), real(mat2(:,:), sp), mask=masking)), 55556)
+
+  end subroutine test_spatialsim_sp
+
+  ! Entire mask false
+  @test
+  subroutine test_spatialsim_masked()
+  
+    masking = .false.
+    @assertEqual(nint(1000000.0_sp * NNDV(mat1(:,:), mat2(:,:), valid=validity, mask=masking)), 0)
+    @assertFalse(validity)
+    @assertEqual(nint(1000000.0_sp *   PD(mat1(:,:), mat2(:,:), valid=validity, mask=masking)), 0)
+    @assertFalse(validity)
+
+  end subroutine test_spatialsim_masked
+  
+end module test_mo_spatialsimilarity
