@@ -1,0 +1,85 @@
+module test_mo_poly
+  
+  use funit
+  use mo_kind,   only: dp, i4
+  use mo_poly, only: inpoly, areapoly, center_of_mass
+  use mo_message, only: error_message
+
+  implicit none
+
+  integer(i4)                             :: N=4
+  real(dp), dimension(:,:), allocatable   :: coord
+  integer(i4)                             :: inside
+  real(dp)                                :: area
+  real(dp),dimension(2)                   :: com
+  
+contains
+
+! Test coordinate of a point compared to polygon
+  @test
+  subroutine test_poly_in()
+
+    allocate (coord(N,2))
+    coord(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
+    coord(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
+
+    call inpoly( (/1.5_dp,1.5_dp/) , coord, inside)
+    @assertEqual(inside, 1_i4)
+
+    select case (inside)
+    case(-1)
+       print*, 'THE POINT IS OUTSIDE THE POLYGON'
+    case(1)
+       print*, 'THE POINT IS INSIDE THE POLYGON'
+    case(0)
+       print*, 'THE POINT IS ON AN EDGE OR AT A VERTEX'
+    end select
+
+    call inpoly( (/0.5_dp,1.5_dp/) , coord, inside)
+    @assertEqual(inside, -1_i4)
+
+    select case (inside)
+    case(-1)
+       print*, 'THE POINT IS OUTSIDE THE POLYGON'
+    case(1)
+       print*, 'THE POINT IS INSIDE THE POLYGON'
+    case(0)
+       print*, 'THE POINT IS ON AN EDGE OR AT A VERTEX'
+    end select
+
+    call inpoly( (/1.5_dp,1.0_dp/) , coord, inside)
+    @assertEqual(inside, 0_i4)
+
+    select case (inside)
+    case(-1)
+       print*, 'THE POINT IS OUTSIDE THE POLYGON'
+    case(1)
+       print*, 'THE POINT IS INSIDE THE POLYGON'
+    case(0)
+       print*, 'THE POINT IS ON AN EDGE OR AT A VERTEX'
+    end select
+
+  end subroutine test_poly_in
+
+! Calculate area of polygon
+  @test
+  subroutine test_poly_area()
+  
+    area = areapoly(coord)
+    @assertLessThanOrEqual(abs(area - 1.0_dp), tiny(1.0_dp))
+    print*, 'AREA OF POLYGON IS ', area
+
+  end subroutine test_poly_area
+
+! Calculate center of mass of polygon
+  @test
+  subroutine test_poly_com()
+  
+    com = center_of_mass(coord)
+    @assertLessThanOrEqual(abs(com(1)- 1.5_dp), tiny(1.0_dp))
+    @assertLessThanOrEqual(abs(com(2)- 1.5_dp), tiny(1.0_dp))
+    print*, 'CENTER OF MASS FOR POLYGON IS ', com
+
+  end subroutine test_poly_com
+  
+end module test_mo_poly
