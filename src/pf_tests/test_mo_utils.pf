@@ -313,7 +313,7 @@ contains
   ! -----------------------------------------------------
   ! is_finite, is_nan, is_normal
   @test
-  subroutine test_utils_fin_nan_norm()
+  subroutine test_utils_logic()
   
     write(*,*) ''
     write(*,*) 'Test: is_finite, is_nan, is_normal'
@@ -324,16 +324,19 @@ contains
     @assertAll(is_normal(dat1))
     ! TODO: fix this whole block, it fails in gfortran debug (option "-ffpe-trap=zero,overflow,underflow")
     ! NaN
+    write(*,*) '.'
     dat1(1) = 0.0_dp
     dat1(1) = dat1(1)/dat1(1)
     @assertAny(is_nan(dat1))
     @assertTrue(is_nan(dat1(1)))
     ! Inf
+    write(*,*) '.'
     dat1(2) = huge(1.0_dp)
     dat1(2) = dat1(2)*dat1(2)
     @assertAny(.not. is_finite(dat1))
     @assertFalse(is_finite(dat1(2)))
     ! Both
+    write(*,*) '.'
     @assertFalse((all(is_normal(dat1))))
     @assertFalse((any(is_normal(dat1(1:2)))))
     call random_number(sat1)
@@ -341,20 +344,23 @@ contains
     @assertAll(.not. is_nan(sat1))
     @assertAll(is_normal(sat1))
     ! NaN
+    write(*,*) '.'
     sat1(1) = 0.0_sp
     sat1(1) = sat1(1)/sat1(1)
     @assertAny(is_nan(sat1))
     @assertTrue(is_nan(sat1(1)))
     ! Inf
+    write(*,*) '.'
     sat1(2) = huge(1.0_sp)
     sat1(2) = sat1(2)*sat1(2)
     @assertAny(.not. is_finite(sat1))
     @assertFalse(is_finite(sat1(2)))
     ! Both
+    write(*,*) '.'
     @assertFalse((all(is_normal(sat1))))
     @assertFalse((any(is_normal(sat1(1:2)))))
 
-  end subroutine test_utils_fin_nan_norm
+  end subroutine test_utils_logic
 
   ! -----------------------------------------------------
   ! special_value
