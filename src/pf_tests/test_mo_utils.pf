@@ -326,7 +326,7 @@ contains
     ! NaN
     write(*,*) '.'
     dat1(1) = 0.0_dp
-    ! dat1(1) = dat1(1)/dat1(1)
+    dat1(1) = dat1(1)/dat1(1)
     ! @assertAny(is_nan(dat1))
     ! @assertTrue(is_nan(dat1(1)))
     ! Inf
