@@ -7,10 +7,12 @@ module test_mo_append
 
   implicit none
   
-  integer(i4), dimension(:),   allocatable  :: vector1_i4, vector2_i4
-  integer(i4), dimension(2)                 :: vector3_i4
+  integer(i4), dimension(:),   allocatable  :: vector1_i4, vector2_i4, vector3_i4
+  integer(i4), dimension(2)                 :: vector4_i4
 
-  integer(i4), dimension(:,:), allocatable  :: matrix1_i4, matrix2_i4, matrix3_i4, matrix4_i4
+  integer(i4), dimension(:,:), allocatable  :: matrix1_i4, matrix2_i4, matrix3_i4, matrix4_i4, matrix5_i4
+
+  integer(i4), dimension(:,:), allocatable  :: matrixplaceholder_i4 
 
   character(256), dimension(:),   allocatable :: vector1_c, vector2_c
   character(256), dimension(2)                :: vector3_c
@@ -23,36 +25,60 @@ contains
   @test
   subroutine test_append_i4()
     
-    character(256) :: message1, message2, message3, message4
+    character(256) :: message
 
     allocate(vector2_i4(4))
-    allocate(matrix1_i4(2,2), matrix2_i4(3,2))
+    allocate(matrix1_i4(2,2), matrix2_i4(3,2), matrix3_i4(2,3), matrix5_i4(2,2))
   
     vector2_i4 = 2_i4
-    vector3_i4 = 3_i4
+    vector4_i4 = 3_i4
   
     matrix1_i4 = 5_i4
     matrix2_i4 = 3_i4
+    matrix3_i4 = 4_i4
+    matrix5_i4 = 6_i4
 
-    message1='Test append i4 A: non-allocated vector1 appended by vector2'
+    message='Test append i4 A: non-allocated vector1 appended by vector2'
     call append(vector1_i4, vector2_i4)
-    @assertEqual(vector1_i4, (/ 2_i4,2_i4,2_i4,2_i4 /), message= message1)
+    @assertEqual(vector1_i4, (/ 2_i4,2_i4,2_i4,2_i4 /), message= message)
 
-    message2='Test append i4 B: vector1 appended by vector3'
-    call append(vector1_i4, vector3_i4)
-    @assertEqual(vector1_i4, (/ 2_i4,2_i4,2_i4,2_i4, 3_i4,3_i4 /), message= message2)
+    message='Test append i4 B: vector1 appended by vector3'
+    call append(vector1_i4, vector4_i4)
+    @assertEqual(vector1_i4, (/ 2_i4,2_i4,2_i4,2_i4, 3_i4,3_i4 /), message= message)
 
-    message3='Test append i4 C: vector1 appended by scalar 5_i4'
+    message='Test append i4 C: vector1 appended by scalar 5_i4'
     call append(vector1_i4, 5_i4)
-    @assertEqual(vector1_i4, (/ 2_i4,2_i4,2_i4,2_i4, 3_i4,3_i4, 5_i4 /), message= message3)
+    @assertEqual(vector1_i4, (/ 2_i4,2_i4,2_i4,2_i4, 3_i4,3_i4, 5_i4 /), message= message)
 
-    message4='Test append i4 D: matrix1 appended by matrix2'
+    message='Test append i4 D: matrix1 appended by matrix2'
     call append(matrix1_i4, matrix2_i4)
-    @assertEqual(matrix1_i4, reshape((/ 5_i4,5_i4,3_i4,3_i4,3_i4, 5_i4,5_i4,3_i4,3_i4,3_i4 /),(/ 5,2 /)), message= message4)
-  
+    @assertEqual(matrix1_i4, reshape((/ 5_i4,5_i4,3_i4,3_i4,3_i4, 5_i4,5_i4,3_i4,3_i4,3_i4 /),(/ 5,2 /)), message= message)
+
+    message='Test append i4 E: non-allocated vector3 appended by scalar 5_i4'
+    call append(vector3_i4, 5_i4)
+    @assertEqual(vector3_i4, (/ 5_i4 /), message= message)
+
+    message='Test append i4 F: non-allocated matrix4 appended by matrix3'
+    call append(matrix4_i4, matrix3_i4)
+    @assertEqual(matrix4_i4, reshape((/ 4_i4,4_i4, 4_i4,4_i4, 4_i4,4_i4 /), (/ 2,3 /)), message= message)
+
+    message='Test append i4 G: matrix2 (less columns) appended by matrix3 (more columns). Columns maintained with scalar fill 7_i4'
+    call append(matrix2_i4, matrix3_i4, 7_i4)
+    allocate(matrixplaceholder_i4(5,3))
+    matrixplaceholder_i4 = reshape((/ 3_i4,3_i4,3_i4,4_i4,4_i4, 3_i4,3_i4,3_i4,4_i4,4_i4, 7_i4,7_i4,7_i4,4_i4,4_i4 /), (/ 5,3 /))
+    @assertEqual(matrix2_i4, matrixplaceholder_i4, message= message)
+    deallocate(matrixplaceholder_i4)
+
+    message='Test append i4 G: matrix4 (more columns) appended by matrix5 (less columns). Columns maintained with scalar fill 7_i4'
+    call append(matrix4_i4, matrix5_i4, 7_i4)
+    allocate(matrixplaceholder_i4(4,3))
+    matrixplaceholder_i4 = reshape((/ 4_i4,4_i4,6_i4,6_i4, 4_i4,4_i4,6_i4,6_i4, 4_i4,4_i4,7_i4,7_i4 /), (/ 4,3 /))
+    @assertEqual(matrix4_i4, matrixplaceholder_i4, message= message)
+    deallocate(matrixplaceholder_i4)
+
     deallocate(vector1_i4)
     deallocate(vector2_i4)
-    deallocate(matrix1_i4, matrix2_i4)
+    deallocate(vector3_i4)
 
   end subroutine test_append_i4
 
@@ -90,10 +116,6 @@ contains
     call append(matrix1_c, matrix2_c(:,:1), fill_value= 'X')
     @assertEqual(trim(matrix1_c(7,2)), 'X', message= message5)
   
-    deallocate(vector1_c)
-    deallocate(vector2_c)
-    deallocate(matrix1_c, matrix2_c)
-
   end subroutine test_append_c
 
   ! Test paste
@@ -102,6 +124,8 @@ contains
   subroutine test_paste_i4()
 
     character(256) :: message1, message2, message3, message4
+
+    deallocate(matrix1_i4, matrix2_i4, matrix3_i4, matrix4_i4, matrix5_i4)
   
     allocate(matrix2_i4(2,2), matrix3_i4(2,3), matrix4_i4(1,3))
 
@@ -138,6 +162,10 @@ contains
   subroutine test_paste_c()
 
     character(256) :: message1, message2, message3, message4
+
+    deallocate(vector1_c)
+    deallocate(vector2_c)
+    deallocate(matrix1_c, matrix2_c)
   
     allocate(matrix2_c(2,2), matrix3_c(2,3), matrix4_c(1,3))
 
