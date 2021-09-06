@@ -319,7 +319,7 @@ contains
     !@assertAny(is_nan(dat1))
     !@assertTrue(is_nan(dat1(1)/dat1(1)))
     ! Inf
-    !dat1(2) = huge(1.0_dp)
+    dat1(2) = huge(1.0_dp)
     !dat1(2) = dat1(2)*dat1(2)
     !@assertAny(.not. is_finite(dat1))
     !@assertFalse((is_finite(dat1(2))))
