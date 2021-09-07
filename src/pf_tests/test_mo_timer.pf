@@ -49,27 +49,27 @@ contains
     call timer_clear(1)
     @assertEqual(timer_get(1), 0.0_sp)
     !
-    ! Time complexity comparison
-    call timer_start(1)
-    r=1.0_dp
-    do i=1, 100
-      r = r*(real(i,dp))
-    end do
-    call timer_check(1)
-    call timer_print(1)
-    call timer_stop(1)
-    timer1 = timer_get(1)
-    call timer_clear(2)
-    call timer_start(2)
-    r=0.0_dp
-    do i=1, 100
-      r = r+(real(i,dp))
-    end do
-    call timer_check(2)
-    call timer_print(2)
-    call timer_stop(2)
-    timer2 = timer_get(2)
-    @assertGreaterThan(timer1, timer2, message = 'Time complexity comparison')
+    ! ! Time complexity comparison
+    ! call timer_start(1)
+    ! r=1.0_dp
+    ! do i=1, 100
+    !   r = r*(real(i,dp))
+    ! end do
+    ! call timer_check(1)
+    ! call timer_print(1)
+    ! call timer_stop(1)
+    ! timer1 = timer_get(1)
+    ! call timer_clear(2)
+    ! call timer_start(2)
+    ! r=0.0_dp
+    ! do i=1, 100
+    !   r = r+(real(i,dp))
+    ! end do
+    ! call timer_check(2)
+    ! call timer_print(2)
+    ! call timer_stop(2)
+    ! timer2 = timer_get(2)
+    ! @assertGreaterThan(timer1, timer2, message = 'Time complexity comparison')
     
   end subroutine test_timer
   
