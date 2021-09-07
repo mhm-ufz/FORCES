@@ -20,12 +20,12 @@ module test_mo_append
 
 contains
 
-  ! Test Append
-
   @test
   subroutine test_append_i4()
     
     character(256) :: message
+
+    ! Test append i4
 
     allocate(vector2_i4(4))
     allocate(matrix1_i4(2,2), matrix2_i4(3,2), matrix3_i4(2,3), matrix5_i4(2,2))
@@ -62,6 +62,9 @@ contains
     call append(matrix4_i4, matrix3_i4)
     @assertEqual(matrix4_i4, reshape((/ 4_i4,4_i4, 4_i4,4_i4, 4_i4,4_i4 /), (/ 2,3 /)), message= message)
 
+    ! To do
+    ! Test append for unequal columns without filler given. Can't use this since it immediately stops subroutine.
+    
     message='Test append i4 G: matrix2 (less columns) appended by matrix3 (more columns). Columns maintained with scalar fill 7_i4'
     call append(matrix2_i4, matrix3_i4, 7_i4)
     allocate(matrixplaceholder_i4(5,3))
@@ -69,7 +72,7 @@ contains
     @assertEqual(matrix2_i4, matrixplaceholder_i4, message= message)
     deallocate(matrixplaceholder_i4)
 
-    message='Test append i4 G: matrix4 (more columns) appended by matrix5 (less columns). Columns maintained with scalar fill 7_i4'
+    message='Test append i4 H: matrix4 (more columns) appended by matrix5 (less columns). Columns maintained with scalar fill 7_i4'
     call append(matrix4_i4, matrix5_i4, 7_i4)
     allocate(matrixplaceholder_i4(4,3))
     matrixplaceholder_i4 = reshape((/ 4_i4,4_i4,6_i4,6_i4, 4_i4,4_i4,6_i4,6_i4, 4_i4,4_i4,7_i4,7_i4 /), (/ 4,3 /))
@@ -80,12 +83,47 @@ contains
     deallocate(vector2_i4)
     deallocate(vector3_i4)
 
+    deallocate(matrix1_i4, matrix2_i4, matrix3_i4, matrix4_i4, matrix5_i4)
+
+    ! Test paste i4
+  
+    allocate(matrix2_i4(2,2), matrix3_i4(2,3), matrix4_i4(1,3))
+
+    matrix2_i4 = 5_i4
+    matrix3_i4 = 3_i4
+    matrix4_i4 = 2_i4
+
+    message= 'Test paste i4 A: non-allocated matrix1 pasted by matrix2'
+    call paste(matrix1_i4, matrix2_i4)
+    @assertEqual(matrix1_i4,reshape((/ 5_i4,5_i4, 5_i4,5_i4 /),(/ 2,2 /)), message= message)
+
+    message= 'Test paste i4 B: matrix1 pasted by matrix3'
+    call paste(matrix1_i4, matrix3_i4)
+    @assertEqual(matrix1_i4, reshape((/ 5_i4,5_i4,5_i4,5_i4, 3_i4,3_i4,3_i4,3_i4,3_i4,3_i4 /),(/ 2,5 /)), message= message)
+
+    message= 'Test paste i4 C: matrix4 pasted by 5_i4'
+    call paste(matrix4_i4, 5_i4)
+    @assertEqual(matrix4_i4(1,:), (/ 2_i4,2_i4,2_i4, 5_i4 /), message= message)
+
+    deallocate( matrix2_i4, matrix3_i4 )
+    allocate(matrix2_i4(2,2), matrix3_i4(2,3) )
+    matrix2_i4 = 5_i4
+    matrix3_i4 = 3_i4
+
+    message= 'Test paste i4 D: matrix2 pasted by first row of matrix3'
+    call paste(matrix2_i4, matrix3_i4(:1,:), fill_value= -9999_i4)
+    @assertEqual(matrix2_i4(2,3), -9999_i4, message= message)
+
+    deallocate(matrix1_i4, matrix2_i4, matrix3_i4, matrix4_i4)
+
   end subroutine test_append_i4
 
   @test
   subroutine test_append_c()
 
-    character(256) :: message1, message2, message3, message4, message5
+    character(256) :: message
+
+    ! Taste append char
   
     allocate(vector2_c(4))
     allocate(matrix1_c(2,2), matrix2_c(3,2))
@@ -96,101 +134,56 @@ contains
     matrix1_c = 'E'
     matrix2_c = 'C'
 
-    message1= 'Test append c A: non-allocated vector1 appended by vector2'
+    message= 'Test append c A: non-allocated vector1 appended by vector2'
     call append(vector1_c, vector2_c)
-    @assertEqual(trim(vector1_c(1)), 'B', message= message1)
+    @assertEqual(trim(vector1_c(1)), 'B', message= message)
 
-    message2= 'Test append c B: vector1 appended by vector3'
+    message= 'Test append c B: vector1 appended by vector3'
     call append(vector1_c, vector3_c)
-    @assertEqual(trim(vector1_c(5)), 'C', message= message2)
+    @assertEqual(trim(vector1_c(5)), 'C', message= message)
 
-    message3= 'Test append c C: vector1 appended by scalar E'
+    message= 'Test append c C: vector1 appended by scalar E'
     call append(vector1_c, 'E')
-    @assertEqual(trim(vector1_c(7)), 'E', message= message3)
+    @assertEqual(trim(vector1_c(7)), 'E', message= message)
 
-    message4= 'Test append c D: matrix1 appended by matrix2'
+    message= 'Test append c D: matrix1 appended by matrix2'
     call append(matrix1_c, matrix2_c)
-    @assertEqual(trim(matrix1_c(3,2)), 'C', message= message4)
+    @assertEqual(trim(matrix1_c(3,2)), 'C', message= message)
 
-    message5= 'Test append c E: matrix1 appended by first column of matrix 2, with character X'
+    message= 'Test append c E: matrix1 appended by first column of matrix 2, with character X'
     call append(matrix1_c, matrix2_c(:,:1), fill_value= 'X')
-    @assertEqual(trim(matrix1_c(7,2)), 'X', message= message5)
-  
-  end subroutine test_append_c
-
-  ! Test paste
-
-  @test
-  subroutine test_paste_i4()
-
-    character(256) :: message1, message2, message3, message4
-
-    deallocate(matrix1_i4, matrix2_i4, matrix3_i4, matrix4_i4, matrix5_i4)
-  
-    allocate(matrix2_i4(2,2), matrix3_i4(2,3), matrix4_i4(1,3))
-
-    matrix2_i4 = 5_i4
-    matrix3_i4 = 3_i4
-    matrix4_i4 = 2_i4
-
-    message1= 'Test paste i4 A: non-allocated matrix1 pasted by matrix2'
-    call paste(matrix1_i4, matrix2_i4)
-    @assertEqual(matrix1_i4,reshape((/ 5_i4,5_i4, 5_i4,5_i4 /),(/ 2,2 /)), message= message1)
-
-    message2= 'Test paste i4 B: matrix1 pasted by matrix3'
-    call paste(matrix1_i4, matrix3_i4)
-    @assertEqual(matrix1_i4, reshape((/ 5_i4,5_i4,5_i4,5_i4, 3_i4,3_i4,3_i4,3_i4,3_i4,3_i4 /),(/ 2,5 /)), message= message2)
-
-    message3= 'Test paste i4 C: matrix4 pasted by 5_i4'
-    call paste(matrix4_i4, 5_i4)
-    @assertEqual(matrix4_i4(1,:), (/ 2_i4,2_i4,2_i4, 5_i4 /), message= message3)
-
-    deallocate( matrix2_i4, matrix3_i4 )
-    allocate(matrix2_i4(2,2), matrix3_i4(2,3) )
-    matrix2_i4 = 5_i4
-    matrix3_i4 = 3_i4
-
-    message4= 'Test paste i4 D: matrix2 pasted by first row of matrix3'
-    call paste(matrix2_i4, matrix3_i4(:1,:), fill_value= -9999_i4)
-    @assertEqual(matrix2_i4(2,3), -9999_i4, message= message4)
-
-    deallocate(matrix1_i4, matrix2_i4, matrix3_i4, matrix4_i4)
-  
-  end subroutine test_paste_i4
-
-  @test
-  subroutine test_paste_c()
-
-    character(256) :: message1, message2, message3, message4
+    @assertEqual(trim(matrix1_c(7,2)), 'X', message= message)
 
     deallocate(vector1_c)
     deallocate(vector2_c)
     deallocate(matrix1_c, matrix2_c)
   
+    ! Test paste char
+
     allocate(matrix2_c(2,2), matrix3_c(2,3), matrix4_c(1,3))
 
     matrix2_c = 'E'
     matrix3_c = 'C'
     matrix4_c = 'B'
 
-    message1= 'Test paste c A: non-allocated matrix1 pasted by matrix2'
+    message= 'Test paste c A: non-allocated matrix1 pasted by matrix2'
     call paste(matrix1_c, matrix2_c)
-    @assertEqual(trim(matrix1_c(1,1)), 'E', message= message1)
+    @assertEqual(trim(matrix1_c(1,1)), 'E', message= message)
 
-    message2= 'Test paste c B: matrix1 pasted by matrix3'
+    message= 'Test paste c B: matrix1 pasted by matrix3'
     call paste(matrix1_c, matrix3_c)
-    @assertEqual(trim(matrix1_c(2,3)), 'C', message= message2)
+    @assertEqual(trim(matrix1_c(2,3)), 'C', message= message)
 
-    message3= 'Test paste c C: matrix4 pasted by E'
+    message= 'Test paste c C: matrix4 pasted by E'
     call paste(matrix4_c, 'E')
-    @assertEqual(trim(matrix4_c(1,4)), 'E', message= message3)
+    @assertEqual(trim(matrix4_c(1,4)), 'E', message= message)
 
-    message4= 'Test paste c D: matrix2 pasted by first row of matrix3, with character X'
+    message= 'Test paste c D: matrix2 pasted by first row of matrix3, with character X'
     call paste(matrix2_c, matrix3_c(:1,:), fill_value= 'X')
-    @assertEqual(trim(matrix2_c(2,3)), 'X', message= message4)
+    @assertEqual(trim(matrix2_c(2,3)), 'X', message= message)
 
     deallocate(matrix1_c, matrix2_c, matrix3_c, matrix4_c)
   
-  end subroutine test_paste_c
+  end subroutine test_append_c
 
 end module test_mo_append
