@@ -119,6 +119,15 @@ contains
     allocate(mplaceholder_3d_i4(2,2,2))
     mplaceholder_3d_i4 = reshape((/ 2_i4,2_i4, 2_i4,2_i4,  2_i4,2_i4, 2_i4,2_i4 /), (/ 2,2,2 /))
     @assertEqual(matrix1_3d_i4, mplaceholder_3d_i4, message= message)
+    deallocate(mplaceholder_3d_i4)
+
+    message='Test append i4: matrix2_3d appended by matrix3_3d'
+    call append(matrix2_3d_i4, matrix3_3d_i4)
+    allocate(mplaceholder_3d_i4(3,2,2))
+    mplaceholder_3d_i4 = reshape((/ 2_i4,2_i4,3_i4, 2_i4,2_i4,3_i4,  2_i4,2_i4,3_i4, 2_i4,2_i4,3_i4 /), (/ 3,2,2 /))
+    @assertEqual(matrix2_3d_i4, mplaceholder_3d_i4, message= message)
+    deallocate(mplaceholder_3d_i4)
+
 
     ! ---------------------------------
     ! TEST PASTE i4
