@@ -1,20 +1,11 @@
 module test_mo_append
   
   use funit
-  use mo_kind,   only: i4
+  use mo_kind,   only: i4, i8, sp
   use mo_append, only: append, paste
   use mo_message, only: error_message
 
   implicit none
-  
-  integer(i4), dimension(:),   allocatable  :: vector1_i4, vector2_i4, vector3_i4
-  integer(i4), dimension(2)                 :: vector4_i4
-
-  integer(i4), dimension(:,:), allocatable  :: matrix1_i4, matrix2_i4, matrix3_i4, matrix4_i4, matrix5_i4
-  integer(i4), dimension(:,:), allocatable  :: mplaceholder_i4 
-
-  integer(i4), dimension(:,:,:), allocatable  :: matrix1_3d_i4, matrix2_3d_i4, matrix3_3d_i4
-  integer(i4), dimension(:,:,:), allocatable  :: matrixplaceholder_3d_i4 
 
   character(256), dimension(:),   allocatable :: vector1_c, vector2_c
   character(256), dimension(2)                :: vector3_c
@@ -162,6 +153,236 @@ contains
     deallocate(matrix1_i4, matrix2_i4, matrix3_i4, matrix4_i4)
 
   end subroutine test_append_i4
+
+  ! TEST APPEND INTEGER(i8)
+  @test
+  subroutine test_append_i8()
+    
+    integer(i8), dimension(:),   allocatable  :: vector1_i8, vector2_i8, vector3_i8
+    integer(i8), dimension(2)                 :: vector4_i8
+  
+    integer(i8), dimension(:,:), allocatable  :: matrix1_i8, matrix2_i8, matrix3_i8, matrix4_i8, matrix5_i8
+    integer(i8), dimension(:,:), allocatable  :: mplaceholder_i8 
+  
+    integer(i8), dimension(:,:,:), allocatable  :: matrix1_3d_i8, matrix2_3d_i8, matrix3_3d_i8
+    integer(i8), dimension(:,:,:), allocatable  :: mplaceholder_3d_i8 
+  
+    character(256) :: message
+
+    ! ---------------------------------
+    ! TEST APPEND
+    ! ---------------------------------
+
+    ! ---------------------------------
+    ! TEST APPEND VECTOR i8
+
+    allocate(vector2_i8(4))
+  
+    vector2_i8 = 2_i8
+    vector4_i8 = 3_i8
+  
+    message='Test append i8: non-allocated vector1 appended by vector2'
+    call append(vector1_i8, vector2_i8)
+    @assertEqual(vector1_i8, (/ 2_i8,2_i8,2_i8,2_i8 /), message= message)
+
+    message='Test append i8: vector1 appended by vector3'
+    call append(vector1_i8, vector4_i8)
+    @assertEqual(vector1_i8, (/ 2_i8,2_i8,2_i8,2_i8, 3_i8,3_i8 /), message= message)
+
+    message='Test append i8: vector1 appended by scalar 5_i8'
+    call append(vector1_i8, 5_i8)
+    @assertEqual(vector1_i8, (/ 2_i8,2_i8,2_i8,2_i8, 3_i8,3_i8, 5_i8 /), message= message)
+
+    message='Test append i8: non-allocated vector3 appended by scalar 5_i8'
+    call append(vector3_i8, 5_i8)
+    @assertEqual(vector3_i8, (/ 5_i8 /), message= message)
+
+    deallocate(vector1_i8)
+    deallocate(vector2_i8)
+    deallocate(vector3_i8)
+
+    ! ---------------------------------
+    ! TEST APPEND MATRIX i8
+
+    allocate(matrix1_i8(2,2), matrix2_i8(3,2), matrix3_i8(2,3), matrix5_i8(2,2))
+
+    matrix1_i8 = 5_i8
+    matrix2_i8 = 3_i8
+    matrix3_i8 = 4_i8
+    matrix5_i8 = 6_i8
+
+    message='Test append i8: matrix1 appended by matrix2'
+    call append(matrix1_i8, matrix2_i8)
+    @assertEqual(matrix1_i8, reshape((/ 5_i8,5_i8,3_i8,3_i8,3_i8, 5_i8,5_i8,3_i8,3_i8,3_i8 /),(/ 5,2 /)), message= message)
+
+    message='Test append i8: non-allocated matrix4 appended by matrix3'
+    call append(matrix4_i8, matrix3_i8)
+    @assertEqual(matrix4_i8, reshape((/ 4_i8,4_i8, 4_i8,4_i8, 4_i8,4_i8 /), (/ 2,3 /)), message= message)
+
+    message='Test append i8: matrix2 (less columns) appended by matrix3 (more columns). Columns maintained with scalar fill 7_i8'
+    call append(matrix2_i8, matrix3_i8, 7_i8)
+    allocate(mplaceholder_i8(5,3))
+    mplaceholder_i8 = reshape((/ 3_i8,3_i8,3_i8,4_i8,4_i8, 3_i8,3_i8,3_i8,4_i8,4_i8, 7_i8,7_i8,7_i8,4_i8,4_i8 /), (/ 5,3 /))
+    @assertEqual(matrix2_i8, mplaceholder_i8, message= message)
+    deallocate(mplaceholder_i8)
+
+    message='Test append i8: matrix4 (more columns) appended by matrix5 (less columns). Columns maintained with scalar fill 7_i8'
+    call append(matrix4_i8, matrix5_i8, 7_i8)
+    allocate(mplaceholder_i8(4,3))
+    mplaceholder_i8 = reshape((/ 4_i8,4_i8,6_i8,6_i8, 4_i8,4_i8,6_i8,6_i8, 4_i8,4_i8,7_i8,7_i8 /), (/ 4,3 /))
+    @assertEqual(matrix4_i8, mplaceholder_i8, message= message)
+    deallocate(mplaceholder_i8)
+
+    ! To do
+    ! Test append for unequal columns without filler given. Can't use this since it immediately stops subroutine.
+    
+    deallocate(matrix1_i8, matrix2_i8, matrix3_i8, matrix4_i8, matrix5_i8)
+
+    ! ---------------------------------
+    ! TEST APPEND 3D MATRIX i8
+
+    allocate(matrix2_3d_i8(2,2,2), matrix3_3d_i8(1,2,2))
+
+    matrix2_3d_i8 = 2_i8
+    matrix3_3d_i8 = 3_i8
+
+    message='Test append i8: non-allocated matrix1_3d appended by matrix2_3d with filler'
+    call append(matrix1_3d_i8, matrix2_3d_i8, 7_i8)
+    allocate(mplaceholder_3d_i8(2,2,2))
+    mplaceholder_3d_i8 = reshape((/ 2_i8,2_i8, 2_i8,2_i8,  2_i8,2_i8, 2_i8,2_i8 /), (/ 2,2,2 /))
+    @assertEqual(matrix1_3d_i8, mplaceholder_3d_i8, message= message)
+    deallocate(mplaceholder_3d_i8)
+
+    message='Test append i8: matrix2_3d appended by matrix3_3d'
+    call append(matrix2_3d_i8, matrix3_3d_i8)
+    allocate(mplaceholder_3d_i8(3,2,2))
+    mplaceholder_3d_i8 = reshape((/ 2_i8,2_i8,3_i8, 2_i8,2_i8,3_i8,  2_i8,2_i8,3_i8, 2_i8,2_i8,3_i8 /), (/ 3,2,2 /))
+    @assertEqual(matrix2_3d_i8, mplaceholder_3d_i8, message= message)
+    deallocate(mplaceholder_3d_i8)
+
+  end subroutine test_append_i8
+
+  ! TEST APPEND SINGLE PRECISION
+  @test
+  subroutine test_append_sp()
+    
+    real(sp), dimension(:),   allocatable  :: vector1_sp, vector2_sp, vector3_sp
+    real(sp), dimension(2)                 :: vector4_sp
+  
+    real(sp), dimension(:,:), allocatable  :: matrix1_sp, matrix2_sp, matrix3_sp, matrix4_sp, matrix5_sp
+    real(sp), dimension(:,:), allocatable  :: mplaceholder_sp 
+  
+    real(sp), dimension(:,:,:), allocatable  :: matrix1_3d_sp, matrix2_3d_sp, matrix3_3d_sp
+    real(sp), dimension(:,:,:), allocatable  :: mplaceholder_3d_sp 
+  
+    character(256) :: message
+
+    ! ---------------------------------
+    ! TEST APPEND
+    ! ---------------------------------
+
+    ! ---------------------------------
+    ! TEST APPEND VECTOR SINGLE PRECISION
+
+    allocate(vector2_sp(4))
+  
+    vector2_sp = 2.0_sp
+    vector4_sp = 3.0_sp
+  
+    message='Test append sp: non-allocated vector1 appended by vector2'
+    call append(vector1_sp, vector2_sp)
+    @assertEqual(vector1_sp, (/ 2.0_sp,2.0_sp,2.0_sp,2.0_sp /), message= message)
+
+    message='Test append sp: vector1 appended by vector3'
+    call append(vector1_sp, vector4_sp)
+    @assertEqual(vector1_sp, (/ 2.0_sp,2.0_sp,2.0_sp,2.0_sp, 3.0_sp,3.0_sp /), message= message)
+
+    message='Test append sp: vector1 appended by scalar 5_sp'
+    call append(vector1_sp, 5.0_sp)
+    @assertEqual(vector1_sp, (/ 2.0_sp,2.0_sp,2.0_sp,2.0_sp, 3.0_sp,3.0_sp, 5.0_sp /), message= message)
+
+    message='Test append sp: non-allocated vector3 appended by scalar 5_sp'
+    call append(vector3_sp, 5.0_sp)
+    @assertEqual(vector3_sp, (/ 5.0_sp /), message= message)
+
+    deallocate(vector1_sp)
+    deallocate(vector2_sp)
+    deallocate(vector3_sp)
+
+    ! ---------------------------------
+    ! TEST APPEND MATRIX SINGLE PRECISION
+
+    allocate(matrix1_sp(2,2), matrix2_sp(3,2), matrix3_sp(2,3), matrix5_sp(2,2))
+
+    matrix1_sp = 5.0_sp
+    matrix2_sp = 3.0_sp
+    matrix3_sp = 4.0_sp
+    matrix5_sp = 6.0_sp
+
+    message='Test append sp: matrix1 appended by matrix2'
+    call append(matrix1_sp, matrix2_sp)
+    allocate(mplaceholder_sp(5,2))
+    mplaceholder_sp = reshape((/ 5.0_sp,5.0_sp,3.0_sp,3.0_sp,3.0_sp, &
+                                5.0_sp,5.0_sp,3.0_sp,3.0_sp,3.0_sp /),(/ 5,2 /))
+    @assertEqual(matrix1_sp, mplaceholder_sp, message= message)
+    deallocate(mplaceholder_sp)
+
+    message='Test append sp: non-allocated matrix4 appended by matrix3'
+    call append(matrix4_sp, matrix3_sp)
+    allocate(mplaceholder_sp(2,3))
+    mplaceholder_sp = reshape((/ 4.0_sp,4.0_sp, 4.0_sp,4.0_sp, 4.0_sp,&
+                                4.0_sp /), (/ 2,3 /))
+    @assertEqual(matrix4_sp, mplaceholder_sp, message= message)
+    deallocate(mplaceholder_sp)
+
+    message='Test append sp: matrix2 (less columns) appended by matrix3 (more columns). Columns maintained with scalar fill 7_sp'
+    call append(matrix2_sp, matrix3_sp, 7.0_sp)
+    allocate(mplaceholder_sp(5,3))
+    mplaceholder_sp = reshape((/ 3.0_sp,3.0_sp,3.0_sp,4.0_sp,4.0_sp, &
+                                3.0_sp,3.0_sp,3.0_sp,4.0_sp,4.0_sp, &
+                                7.0_sp,7.0_sp,7.0_sp,4.0_sp,4.0_sp /), (/ 5,3 /))
+    @assertEqual(matrix2_sp, mplaceholder_sp, message= message)
+    deallocate(mplaceholder_sp)
+
+    message='Test append sp: matrix4 (more columns) appended by matrix5 (less columns). Columns maintained with scalar fill 7_sp'
+    call append(matrix4_sp, matrix5_sp, 7.0_sp)
+    allocate(mplaceholder_sp(4,3))
+    mplaceholder_sp = reshape((/ 4.0_sp,4.0_sp,6.0_sp,6.0_sp, &
+                                4.0_sp,4.0_sp,6.0_sp,6.0_sp, &
+                                4.0_sp,4.0_sp,7.0_sp,7.0_sp /), (/ 4,3 /))
+    @assertEqual(matrix4_sp, mplaceholder_sp, message= message)
+    deallocate(mplaceholder_sp)
+
+    ! To do
+    ! Test append for unequal columns without filler given. Can't use this since it immediately stops subroutine.
+    
+    deallocate(matrix1_sp, matrix2_sp, matrix3_sp, matrix4_sp, matrix5_sp)
+
+    ! ---------------------------------
+    ! TEST APPEND 3D MATRIX SINGLE PRECISION
+
+    allocate(matrix2_3d_sp(2,2,2), matrix3_3d_sp(1,2,2))
+
+    matrix2_3d_sp = 2.0_sp
+    matrix3_3d_sp = 3.0_sp
+
+    message='Test append sp: non-allocated matrix1_3d appended by matrix2_3d with filler'
+    call append(matrix1_3d_sp, matrix2_3d_sp, 7.0_sp)
+    allocate(mplaceholder_3d_sp(2,2,2))
+    mplaceholder_3d_sp = reshape((/ 2.0_sp,2.0_sp, 2.0_sp,2.0_sp,  &
+                                    2.0_sp,2.0_sp, 2.0_sp,2.0_sp /), (/ 2,2,2 /))
+    @assertEqual(matrix1_3d_sp, mplaceholder_3d_sp, message= message)
+    deallocate(mplaceholder_3d_sp)
+
+    message='Test append sp: matrix2_3d appended by matrix3_3d'
+    call append(matrix2_3d_sp, matrix3_3d_sp)
+    allocate(mplaceholder_3d_sp(3,2,2))
+    mplaceholder_3d_sp = reshape((/ 2.0_sp,2.0_sp,3.0_sp, 2.0_sp,2.0_sp,3.0_sp,  &
+                                    2.0_sp,2.0_sp,3.0_sp, 2.0_sp,2.0_sp,3.0_sp /), (/ 3,2,2 /))
+    @assertEqual(matrix2_3d_sp, mplaceholder_3d_sp, message= message)
+    deallocate(mplaceholder_3d_sp)
+
+  end subroutine test_append_sp
 
   @test
   subroutine test_append_c()
