@@ -605,7 +605,7 @@ contains
     deallocate(mplaceholder_4d_dp)
 
     message='Test append dp: matrix1_4d appended by matrix6_4d, idim=4'
-    call append(matrix1_4d_dp, matrix5_4d_dp, idim=4)
+    call append(matrix1_4d_dp, matrix6_4d_dp, idim=4)
     allocate(mplaceholder_4d_dp(2,2,3,2))
     mplaceholder_4d_dp = reshape((/ 2.0_dp,3.0_dp, 2.0_dp,3.0_dp, &
                                     2.0_dp,3.0_dp, 2.0_dp,3.0_dp, &
