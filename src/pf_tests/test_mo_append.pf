@@ -407,6 +407,10 @@ contains
     real(dp), dimension(:,:,:), allocatable  :: matrix1_3d_dp, matrix2_3d_dp, matrix3_3d_dp, matrix4_3d_dp
     real(dp), dimension(:,:,:), allocatable  :: matrix5_3d_dp
     real(dp), dimension(:,:,:), allocatable  :: mplaceholder_3d_dp 
+
+    real(dp), dimension(:,:,:,:), allocatable  :: matrix1_4d_dp, matrix2_4d_dp, matrix3_4d_dp, matrix4_4d_dp
+    real(dp), dimension(:,:,:,:), allocatable  :: matrix5_4d_dp, matrix6_4d_dp
+    real(dp), dimension(:,:,:,:), allocatable  :: mplaceholder_4d_dp 
   
     character(256) :: message
 
@@ -558,8 +562,65 @@ contains
     ! ---------------------------------
     ! TEST APPEND 4D MATRIX DOUBLE PRECISION
 
+    allocate(matrix2_4d_dp(1,2,2,1), matrix3_4d_dp(1,2,2,1), matrix4_4d_dp(2,1,2,1), matrix5_4d_dp(2,2,1,1), matrix6_4d_dp(2,2,3,1))
+
+    matrix2_4d_dp = 2.0_dp
+    matrix3_4d_dp = 3.0_dp
+    matrix4_4d_dp = 4.0_dp
+    matrix5_4d_dp = 5.0_dp
+    matrix6_4d_dp = 6.0_dp
+
+    message='Test append dp: non-allocated matrix1_4d appended by matrix2_4d with filler'
+    call append(matrix1_4d_dp, matrix2_4d_dp, fill_value= 7.0_dp)
+    allocate(mplaceholder_4d_dp(1,2,2,1))
+    mplaceholder_4d_dp = reshape((/ 2.0_dp, 2.0_dp,  &
+                                    2.0_dp, 2.0_dp /), (/ 1,2,2,1 /))
+    @assertEqual(matrix1_4d_dp, mplaceholder_4d_dp, message= message)
+    deallocate(mplaceholder_4d_dp)
+
+    message='Test append dp: matrix2_4d appended by matrix3_4d, idim=1'
+    call append(matrix2_4d_dp, matrix3_4d_dp, idim=1)
+    allocate(mplaceholder_4d_dp(2,2,2,1))
+    mplaceholder_4d_dp = reshape((/ 2.0_dp,3.0_dp, 2.0_dp,3.0_dp,  &
+                                    2.0_dp,3.0_dp, 2.0_dp,3.0_dp /), (/ 2,2,2,1 /))
+    @assertEqual(matrix2_4d_dp, mplaceholder_4d_dp, message= message)
+    deallocate(mplaceholder_4d_dp)
+
+    message='Test append dp: matrix2_4d appended by matrix4_4d, idim=2'
+    call append(matrix2_4d_dp, matrix4_4d_dp, idim=2)
+    allocate(mplaceholder_4d_dp(2,3,2,1))
+    mplaceholder_4d_dp = reshape((/ 2.0_dp,3.0_dp, 2.0_dp,3.0_dp, 4.0_dp,4.0_dp,  &
+                                    2.0_dp,3.0_dp, 2.0_dp,3.0_dp, 4.0_dp,4.0_dp /), (/ 2,3,2,1 /))
+    @assertEqual(matrix2_4d_dp, mplaceholder_4d_dp, message= message)
+    deallocate(mplaceholder_4d_dp)
+
+    message='Test append dp: matrix1_4d appended by matrix3_4d appended by matrix5_4d, idim=3'
+    call append(matrix1_4d_dp, matrix3_4d_dp, idim=1)
+    call append(matrix1_4d_dp, matrix5_4d_dp, idim=3)
+    allocate(mplaceholder_4d_dp(2,2,3,1))
+    mplaceholder_4d_dp = reshape((/ 2.0_dp,3.0_dp, 2.0_dp,3.0_dp, &
+                                    2.0_dp,3.0_dp, 2.0_dp,3.0_dp, &
+                                    5.0_dp,5.0_dp, 5.0_dp,5.0_dp /), (/ 2,2,3,1 /))
+    @assertEqual(matrix1_4d_dp, mplaceholder_4d_dp, message= message)
+    deallocate(mplaceholder_4d_dp)
+
+    message='Test append dp: matrix1_4d appended by matrix6_4d, idim=4'
+    call append(matrix1_4d_dp, matrix5_4d_dp, idim=4)
+    allocate(mplaceholder_4d_dp(2,2,3,2))
+    mplaceholder_4d_dp = reshape((/ 2.0_dp,3.0_dp, 2.0_dp,3.0_dp, &
+                                    2.0_dp,3.0_dp, 2.0_dp,3.0_dp, &
+                                    5.0_dp,5.0_dp, 5.0_dp,5.0_dp, &
+                                    6.0_dp,6.0_dp, 6.0_dp,6.0_dp, &
+                                    6.0_dp,6.0_dp, 6.0_dp,6.0_dp, &
+                                    6.0_dp,6.0_dp, 6.0_dp,6.0_dp /), (/ 2,2,3,2 /))
+    @assertEqual(matrix1_4d_dp, mplaceholder_4d_dp, message= message)
+    deallocate(mplaceholder_4d_dp)
+
+    deallocate(matrix1_4d_dp, matrix2_4d_dp, matrix3_4d_dp, matrix4_4d_dp, matrix5_4d_dp, matrix6_4d_dp)
+
   end subroutine test_append_dp
 
+  ! TEST APPEND CHARACTER
   @test
   subroutine test_append_c()
 
@@ -673,5 +734,173 @@ contains
     deallocate(matrix1_c, matrix2_c, matrix3_c, matrix4_c)
   
   end subroutine test_append_c
+
+  ! TEST APPEND LOGICAL
+  @test
+  subroutine test_append_lgt()
+    
+    logical, dimension(:),   allocatable  :: vector1_lgt, vector2_lgt, vector3_lgt
+    logical, dimension(2)                 :: vector4_lgt
+  
+    logical, dimension(:,:), allocatable  :: matrix1_lgt, matrix2_lgt, matrix3_lgt, matrix4_lgt, matrix5_lgt
+    logical, dimension(:,:), allocatable  :: mplaceholder_lgt 
+  
+    logical, dimension(:,:,:), allocatable  :: matrix1_3d_lgt, matrix2_3d_lgt, matrix3_3d_lgt, matrix4_3d_lgt
+    logical, dimension(:,:,:), allocatable  :: matrix5_3d_lgt, matrix6_3d_lgt
+
+    logical, dimension(:,:,:,:), allocatable  :: matrix1_4d_lgt, matrix2_4d_lgt, matrix3_4d_lgt, matrix4_4d_lgt
+    logical, dimension(:,:,:,:), allocatable  :: matrix5_4d_lgt, matrix6_4d_lgt
+
+    character(256) :: message
+
+    ! ---------------------------------
+    ! TEST APPEND
+    ! ---------------------------------
+
+    ! ---------------------------------
+    ! TEST APPEND VECTOR LOGICAL
+
+    allocate(vector2_lgt(4))
+  
+    vector2_lgt = .true.
+    vector4_lgt = .false.
+  
+    message='Test append lgt: non-allocated vector1 appended by vector2'
+    call append(vector1_lgt, vector2_lgt)
+    @assertAll(vector1_lgt(1:4), message= message)
+
+    message='Test append lgt: vector1 appended by vector3'
+    call append(vector1_lgt, vector4_lgt)
+    @assertAll(vector1_lgt(1:4), message= message)
+    @assertNone(vector1_lgt(5:6), message= message)
+
+    message='Test append lgt: vector1 appended by .true.'
+    call append(vector1_lgt, .true.)
+    @assertTrue(vector1_lgt(7), message= message)
+
+    message='Test append lgt: non-allocated vector3 appended by scalar .true.'
+    call append(vector3_lgt, .true.)
+    @assertAll(vector3_lgt, message= message)
+
+    deallocate(vector1_lgt)
+    deallocate(vector2_lgt)
+    deallocate(vector3_lgt)
+
+    ! ---------------------------------
+    ! TEST APPEND MATRIX LOGICAL
+
+    allocate(matrix1_lgt(2,2), matrix2_lgt(3,2), matrix3_lgt(2,3), matrix5_lgt(2,2))
+
+    matrix1_lgt = .true.
+    matrix2_lgt = .false.
+    matrix3_lgt = .true.
+    matrix5_lgt = .false.
+
+    message='Test append lgt: matrix1 appended by matrix2'
+    call append(matrix1_lgt, matrix2_lgt)
+    @assertAll(reshape(matrix1_lgt(1:2,:), (/4/)), message= message)
+    @assertNone(reshape(matrix1_lgt(3:5,:), (/6/)), message= message)
+
+    message='Test append lgt: non-allocated matrix4 appended by matrix3'
+    call append(matrix4_lgt, matrix3_lgt)
+    @assertAll(reshape(matrix4_lgt, (/6/)), message= message)
+    @assertSameShape(shape(matrix4_lgt), shape(matrix3_lgt), message= message)
+
+    message='Test append lgt: matrix2 (less columns) appended by matrix3 (more columns). Columns maintained with scalar fill 7_lgt'
+    call append(matrix2_lgt, matrix3_lgt, fill_value= .true.)
+    @assertNone(reshape(matrix2_lgt(:3,:2), (/6/)), message= message)
+    @assertAll(reshape(matrix2_lgt(:3,3), (/3/)), message= message)
+    @assertAll(reshape(matrix2_lgt(4:5,:), (/6/)), message= message)
+
+    message='Test append lgt: matrix4 (more columns) appended by matrix5 (less columns). Columns maintained with scalar fill 7_lgt'
+    call append(matrix4_lgt, matrix5_lgt, fill_value= .true.)
+    @assertAll(reshape(matrix4_lgt(:2,:3), (/6/)), message= message)
+    @assertNone(reshape(matrix4_lgt(3:4,:2), (/4/)), message= message)
+    @assertAll(reshape(matrix4_lgt(3:4,3), (/2/)), message= message)
+
+    message='Test append lgt: matrix4 appended by matrix3 along the rows, idim=1'
+    call append(matrix4_lgt, matrix3_lgt, .true., 1)
+    @assertAll(reshape(matrix4_lgt(5:6,3), (/2/)), message= message)
+
+    message='Test append lgt: matrix3 appended by matrix5 along the columns, idim=2'
+    call append(matrix3_lgt, matrix5_lgt, .true., 2)
+    @assertAll(reshape(matrix3_lgt(:,:3), (/6/)), message= message)
+    @assertNone(reshape(matrix3_lgt(:,4:5), (/4/)), message= message)
+
+    ! To do
+    ! Test append for unequal columns without filler given. Can't use this since it immediately stops subroutine.
+    
+    deallocate(matrix1_lgt, matrix2_lgt, matrix3_lgt, matrix4_lgt, matrix5_lgt)
+
+    ! ---------------------------------
+    ! TEST APPEND 3D MATRIX LOGICAL
+
+    allocate(matrix2_3d_lgt(1,2,2), matrix3_3d_lgt(1,2,2), matrix4_3d_lgt(2,1,2), matrix5_3d_lgt(2,2,1))
+
+    matrix2_3d_lgt = .true.
+    matrix3_3d_lgt = .false.
+    matrix4_3d_lgt = .true.
+    matrix5_3d_lgt = .false.
+
+    message='Test append lgt: non-allocated matrix1_3d appended by matrix2_3d with filler'
+    call append(matrix1_3d_lgt, matrix2_3d_lgt, fill_value= .true.)
+    @assertAll(reshape(matrix1_3d_lgt, (/4/)), message= message)
+    @assertSameShape(shape(matrix1_3d_lgt), shape(matrix2_3d_lgt), message= message)
+
+    message='Test append lgt: matrix2_3d appended by matrix3_3d, idim=1'
+    call append(matrix2_3d_lgt, matrix3_3d_lgt, idim=1)
+    @assertAll(reshape(matrix2_3d_lgt(1,:,:), (/4/)), message= message)
+    @assertNone(reshape(matrix2_3d_lgt(2,:,:), (/4/)), message= message)
+
+    message='Test append lgt: matrix2_3d appended by matrix4_3d, idim=2'
+    call append(matrix2_3d_lgt, matrix4_3d_lgt, idim=2)
+    @assertAll(reshape(matrix2_3d_lgt(:,3,:), (/4/)), message= message)
+
+    message='Test append lgt: matrix1_3d appended by matrix3_3d appended by matrix5_3d, idim=3'
+    call append(matrix1_3d_lgt, matrix3_3d_lgt, idim=1)
+    call append(matrix1_3d_lgt, matrix5_3d_lgt, idim=3)
+    @assertNone(reshape(matrix1_3d_lgt(:,:,3), (/4/)), message= message)
+
+    deallocate(matrix1_3d_lgt, matrix2_3d_lgt, matrix3_3d_lgt, matrix4_3d_lgt, matrix5_3d_lgt)
+
+    ! ---------------------------------
+    ! TEST APPEND 4D MATRIX LOGICAL
+
+    allocate(matrix2_4d_lgt(1,2,2,1), matrix3_4d_lgt(1,2,2,1), matrix4_4d_lgt(2,1,2,1), matrix5_4d_lgt(2,2,1,1)) 
+    allocate(matrix6_4d_lgt(2,2,3,1))
+
+    matrix2_4d_lgt = .true.
+    matrix3_4d_lgt = .false.
+    matrix4_4d_lgt = .true.
+    matrix5_4d_lgt = .false.
+    matrix6_4d_lgt = .true.
+
+    message='Test append lgt: non-allocated matrix1_4d appended by matrix2_4d with filler'
+    call append(matrix1_4d_lgt, matrix2_4d_lgt, fill_value= .true.)
+    @assertAll(reshape(matrix1_4d_lgt, (/4/)), message= message)
+    @assertSameShape(shape(matrix1_4d_lgt), shape(matrix2_4d_lgt), message= message)
+
+    message='Test append lgt: matrix2_4d appended by matrix3_4d, idim=1'
+    call append(matrix2_4d_lgt, matrix3_4d_lgt, idim=1)
+    @assertAll(reshape(matrix2_4d_lgt(1,:,:,1), (/4/)), message= message)
+    @assertNone(reshape(matrix2_4d_lgt(2,:,:,1), (/4/)), message= message)
+
+    message='Test append lgt: matrix2_4d appended by matrix4_4d, idim=2'
+    call append(matrix2_4d_lgt, matrix4_4d_lgt, idim=2)
+    @assertAll(reshape(matrix2_4d_lgt(:,3,:,1), (/4/)), message= message)
+
+    message='Test append lgt: matrix1_4d appended by matrix3_4d appended by matrix5_4d, idim=3'
+    call append(matrix1_4d_lgt, matrix3_4d_lgt, idim=1)
+    call append(matrix1_4d_lgt, matrix5_4d_lgt, idim=3)
+    @assertNone(reshape(matrix1_4d_lgt(:,:,3,1), (/4/)), message= message)
+
+    message='Test append lgt: matrix1_4d appended by matrix6_4d, idim=4'
+    call append(matrix1_4d_lgt, matrix6_4d_lgt, idim=4)
+    @assertAll(reshape(matrix1_4d_lgt(:,:,:,2), (/12/)), message= message)
+
+    deallocate(matrix1_4d_lgt, matrix2_4d_lgt, matrix3_4d_lgt, matrix4_4d_lgt, matrix5_4d_lgt) 
+    deallocate(matrix6_4d_lgt)
+
+  end subroutine test_append_lgt
 
 end module test_mo_append
