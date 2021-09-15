@@ -2,7 +2,7 @@ module test_mo_append
   
   use funit
   use mo_kind,   only: i4, i8, sp, dp
-  use mo_append, only: append, paste
+  use mo_append, only: append, paste, add_nodata_slice
   use mo_message, only: error_message
 
   implicit none
@@ -171,11 +171,10 @@ contains
       ! ---------------------------------
       ! TEST PASTE MATRIX-MATRIX i4
 
-        allocate(matrix2_i4(2,2), matrix3_i4(2,3), matrix4_i4(1,3))
+        allocate(matrix2_i4(2,2), matrix3_i4(2,3))
 
         matrix2_i4 = 5_i4
         matrix3_i4 = 3_i4
-        matrix4_i4 = 2_i4
 
         message= 'Test paste i4: non-allocated matrix1 pasted by matrix2'
         call paste(matrix1_i4, matrix2_i4)
@@ -185,9 +184,9 @@ contains
         call paste(matrix1_i4, matrix3_i4)
         @assertEqual(matrix1_i4, reshape((/ 5_i4,5_i4,5_i4,5_i4, 3_i4,3_i4,3_i4,3_i4,3_i4,3_i4 /),(/ 2,5 /)), message= message)
 
-        message= 'Test paste i4: matrix4 pasted by 5_i4'
-        call paste(matrix4_i4, 5_i4)
-        @assertEqual(matrix4_i4(1,:), (/ 2_i4,2_i4,2_i4, 5_i4 /), message= message)
+        message= 'Test nodata i4: matrix1 pasted by entire matrix of 5.0 in 2nd component'
+        call add_nodata_slice(matrix1_i4, 2, 5_i4)
+        @assertEqual(matrix1_i4(2,7), 5_i4, message= message)
 
         deallocate(matrix2_i4, matrix3_i4)
         
@@ -206,7 +205,7 @@ contains
         @assertEqual(matrix2_i4(3,5), 9999_i4, message= message)
         @assertEqual(matrix2_i4(3,6), 3_i4, message= message)
 
-        deallocate(matrix1_i4, matrix2_i4, matrix3_i4, matrix4_i4)
+        deallocate(matrix1_i4, matrix2_i4, matrix3_i4)
 
       ! ---------------------------------
       ! TEST PASTE MATRIX 3D i4
@@ -223,6 +222,10 @@ contains
         message= 'Test paste i4: matrix1 pasted by matrix3'
         call paste(matrix1_3d_i4, matrix3_3d_i4)
         @assertEqual(matrix1_3d_i4(2,2,3), 3_i4, message= message)
+
+        message= 'Test nodata i4: 3d matrix1 pasted by entire matrix of 5.0 in 3rd component'
+        call add_nodata_slice(matrix1_3d_i4, 2, 5_i4)
+        @assertEqual(matrix1_3d_i4(2,2,5), 5_i4, message= message)
 
         deallocate(matrix1_3d_i4, matrix2_3d_i4, matrix3_3d_i4)
 
@@ -241,6 +244,10 @@ contains
         message= 'Test paste i4: matrix1 pasted by matrix3'
         call paste(matrix1_4d_i4, matrix3_4d_i4)
         @assertEqual(matrix1_4d_i4(2,2,2,3), 3_i4, message= message)
+
+        message= 'Test nodata i4: 4d matrix1 pasted by entire matrix of 5.0 in 4th component'
+        call add_nodata_slice(matrix1_4d_i4, 2, 5_i4)
+        @assertEqual(matrix1_4d_i4(2,2,2,5), 5_i4, message= message)
 
         deallocate(matrix1_4d_i4, matrix2_4d_i4, matrix3_4d_i4)
 
@@ -956,6 +963,10 @@ contains
         @assertEqual(matrix1_dp, mplaceholder_dp, message= message)
         deallocate(mplaceholder_dp)
 
+        message= 'Test nodata dp: matrix1 pasted by entire matrix of 5.0 in 2nd component'
+        call add_nodata_slice(matrix1_dp, 2, 5.0_dp)
+        @assertEqual(matrix1_dp(2,6), 5.0_dp, message= message)
+
         deallocate(matrix2_dp, matrix3_dp)
         
         allocate(matrix2_dp(2,2), matrix3_dp(3,3) )
@@ -991,6 +1002,10 @@ contains
         call paste(matrix1_3d_dp, matrix3_3d_dp)
         @assertEqual(matrix1_3d_dp(2,2,3), 3.0_dp, message= message)
 
+        message= 'Test nodata dp: 3d matrix1 pasted by entire matrix of 5.0 in 3rd component'
+        call add_nodata_slice(matrix1_3d_dp, 2, 5.0_dp)
+        @assertEqual(matrix1_3d_dp(2,2,4), 5.0_dp, message= message)
+
         deallocate(matrix1_3d_dp, matrix2_3d_dp, matrix3_3d_dp)
 
       ! ---------------------------------
@@ -1008,6 +1023,10 @@ contains
         message= 'Test paste dp: matrix1 pasted by matrix3'
         call paste(matrix1_4d_dp, matrix3_4d_dp)
         @assertEqual(matrix1_4d_dp(2,2,2,3), 3.0_dp, message= message)
+
+        message= 'Test nodata dp: 4d matrix1 pasted by entire matrix of 5.0 in 4th component'
+        call add_nodata_slice(matrix1_4d_dp, 2, 5.0_dp)
+        @assertEqual(matrix1_4d_dp(2,2,2,4), 5.0_dp, message= message)
 
         deallocate(matrix1_4d_dp, matrix2_4d_dp, matrix3_4d_dp)
 
