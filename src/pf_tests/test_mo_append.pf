@@ -24,130 +24,225 @@ contains
     integer(i4), dimension(:,:,:), allocatable  :: matrix1_3d_i4, matrix2_3d_i4, matrix3_3d_i4
     integer(i4), dimension(:,:,:), allocatable  :: mplaceholder_3d_i4 
 
-    ! ---------------------------------
-    ! TEST APPEND
-    ! ---------------------------------
+    integer(i4), dimension(:,:,:,:), allocatable  :: matrix1_4d_i4, matrix2_4d_i4, matrix3_4d_i4
 
     ! ---------------------------------
-    ! TEST APPEND VECTOR i4
-
-    allocate(vector2_i4(4))
-  
-    vector2_i4 = 2_i4
-    vector4_i4 = 3_i4
-  
-    message='Test append i4: non-allocated vector1 appended by vector2'
-    call append(vector1_i4, vector2_i4)
-    @assertEqual(vector1_i4, (/ 2_i4,2_i4,2_i4,2_i4 /), message= message)
-
-    message='Test append i4: vector1 appended by vector3'
-    call append(vector1_i4, vector4_i4)
-    @assertEqual(vector1_i4, (/ 2_i4,2_i4,2_i4,2_i4, 3_i4,3_i4 /), message= message)
-
-    message='Test append i4: vector1 appended by scalar 5_i4'
-    call append(vector1_i4, 5_i4)
-    @assertEqual(vector1_i4, (/ 2_i4,2_i4,2_i4,2_i4, 3_i4,3_i4, 5_i4 /), message= message)
-
-    message='Test append i4: non-allocated vector3 appended by scalar 5_i4'
-    call append(vector3_i4, 5_i4)
-    @assertEqual(vector3_i4, (/ 5_i4 /), message= message)
-
-    deallocate(vector1_i4)
-    deallocate(vector2_i4)
-    deallocate(vector3_i4)
-
+    ! TEST APPEND i4
     ! ---------------------------------
-    ! TEST APPEND MATRIX i4
 
-    allocate(matrix1_i4(2,2), matrix2_i4(3,2), matrix3_i4(2,3), matrix5_i4(2,2))
+      ! ---------------------------------
+      ! TEST APPEND VECTOR i4
 
-    matrix1_i4 = 5_i4
-    matrix2_i4 = 3_i4
-    matrix3_i4 = 4_i4
-    matrix5_i4 = 6_i4
+        allocate(vector2_i4(4))
+      
+        vector2_i4 = 2_i4
+        vector4_i4 = 3_i4
+      
+        message='Test append i4: non-allocated vector1 appended by vector2'
+        call append(vector1_i4, vector2_i4)
+        @assertEqual(vector1_i4, (/ 2_i4,2_i4,2_i4,2_i4 /), message= message)
 
-    message='Test append i4: matrix1 appended by matrix2'
-    call append(matrix1_i4, matrix2_i4)
-    @assertEqual(matrix1_i4, reshape((/ 5_i4,5_i4,3_i4,3_i4,3_i4, 5_i4,5_i4,3_i4,3_i4,3_i4 /),(/ 5,2 /)), message= message)
+        message='Test append i4: vector1 appended by vector3'
+        call append(vector1_i4, vector4_i4)
+        @assertEqual(vector1_i4, (/ 2_i4,2_i4,2_i4,2_i4, 3_i4,3_i4 /), message= message)
 
-    message='Test append i4: non-allocated matrix4 appended by matrix3'
-    call append(matrix4_i4, matrix3_i4)
-    @assertEqual(matrix4_i4, reshape((/ 4_i4,4_i4, 4_i4,4_i4, 4_i4,4_i4 /), (/ 2,3 /)), message= message)
+        message='Test append i4: vector1 appended by scalar 5_i4'
+        call append(vector1_i4, 5_i4)
+        @assertEqual(vector1_i4, (/ 2_i4,2_i4,2_i4,2_i4, 3_i4,3_i4, 5_i4 /), message= message)
 
-    message='Test append i4: matrix2 (less columns) appended by matrix3 (more columns). Columns maintained with scalar fill 7_i4'
-    call append(matrix2_i4, matrix3_i4, fill_value= 7_i4)
-    allocate(mplaceholder_i4(5,3))
-    mplaceholder_i4 = reshape((/ 3_i4,3_i4,3_i4,4_i4,4_i4, 3_i4,3_i4,3_i4,4_i4,4_i4, 7_i4,7_i4,7_i4,4_i4,4_i4 /), (/ 5,3 /))
-    @assertEqual(matrix2_i4, mplaceholder_i4, message= message)
-    deallocate(mplaceholder_i4)
+        message='Test append i4: non-allocated vector3 appended by scalar 5_i4'
+        call append(vector3_i4, 5_i4)
+        @assertEqual(vector3_i4, (/ 5_i4 /), message= message)
 
-    message='Test append i4: matrix4 (more columns) appended by matrix5 (less columns). Columns maintained with scalar fill 7_i4'
-    call append(matrix4_i4, matrix5_i4, fill_value= 7_i4)
-    allocate(mplaceholder_i4(4,3))
-    mplaceholder_i4 = reshape((/ 4_i4,4_i4,6_i4,6_i4, 4_i4,4_i4,6_i4,6_i4, 4_i4,4_i4,7_i4,7_i4 /), (/ 4,3 /))
-    @assertEqual(matrix4_i4, mplaceholder_i4, message= message)
-    deallocate(mplaceholder_i4)
+        deallocate(vector1_i4)
+        deallocate(vector2_i4)
+        deallocate(vector3_i4)
 
-    ! To do
-    ! Test append for unequal columns without filler given. Can't use this since it immediately stops subroutine.
-    
-    deallocate(matrix1_i4, matrix2_i4, matrix3_i4, matrix4_i4, matrix5_i4)
+      ! ---------------------------------
+      ! TEST APPEND MATRIX i4
 
-    ! ---------------------------------
-    ! TEST APPEND 3D MATRIX i4
+        allocate(matrix1_i4(2,2), matrix2_i4(3,2), matrix3_i4(2,3), matrix5_i4(2,2))
 
-    allocate(matrix2_3d_i4(2,2,2), matrix3_3d_i4(1,2,2))
+        matrix1_i4 = 5_i4
+        matrix2_i4 = 3_i4
+        matrix3_i4 = 4_i4
+        matrix5_i4 = 6_i4
 
-    matrix2_3d_i4 = 2_i4
-    matrix3_3d_i4 = 3_i4
+        message='Test append i4: matrix1 appended by matrix2'
+        call append(matrix1_i4, matrix2_i4)
+        @assertEqual(matrix1_i4, reshape((/ 5_i4,5_i4,3_i4,3_i4,3_i4, 5_i4,5_i4,3_i4,3_i4,3_i4 /),(/ 5,2 /)), message= message)
 
-    message='Test append i4: non-allocated matrix1_3d appended by matrix2_3d with filler'
-    call append(matrix1_3d_i4, matrix2_3d_i4, fill_value=7_i4)
-    allocate(mplaceholder_3d_i4(2,2,2))
-    mplaceholder_3d_i4 = reshape((/ 2_i4,2_i4, 2_i4,2_i4,  2_i4,2_i4, 2_i4,2_i4 /), (/ 2,2,2 /))
-    @assertEqual(matrix1_3d_i4, mplaceholder_3d_i4, message= message)
-    deallocate(mplaceholder_3d_i4)
+        message='Test append i4: non-allocated matrix4 appended by matrix3'
+        call append(matrix4_i4, matrix3_i4)
+        @assertEqual(matrix4_i4, reshape((/ 4_i4,4_i4, 4_i4,4_i4, 4_i4,4_i4 /), (/ 2,3 /)), message= message)
 
-    message='Test append i4: matrix2_3d appended by matrix3_3d'
-    call append(matrix2_3d_i4, matrix3_3d_i4)
-    allocate(mplaceholder_3d_i4(3,2,2))
-    mplaceholder_3d_i4 = reshape((/ 2_i4,2_i4,3_i4, 2_i4,2_i4,3_i4,  2_i4,2_i4,3_i4, 2_i4,2_i4,3_i4 /), (/ 3,2,2 /))
-    @assertEqual(matrix2_3d_i4, mplaceholder_3d_i4, message= message)
-    deallocate(mplaceholder_3d_i4)
+        message='Test append i4: matrix2 (less columns) appended by matrix3 (more columns).&
+                 Columns maintained with scalar fill 7_i4'
+        call append(matrix2_i4, matrix3_i4, fill_value= 7_i4)
+        allocate(mplaceholder_i4(5,3))
+        mplaceholder_i4 = reshape((/ 3_i4,3_i4,3_i4,4_i4,4_i4, 3_i4,3_i4,3_i4,4_i4,4_i4, 7_i4,7_i4,7_i4,4_i4,4_i4 /), (/ 5,3 /))
+        @assertEqual(matrix2_i4, mplaceholder_i4, message= message)
+        deallocate(mplaceholder_i4)
 
-    deallocate(matrix1_3d_i4, matrix2_3d_i4, matrix3_3d_i4)
+        message='Test append i4: matrix4 (more columns) appended by matrix5 (less columns).& 
+                 Columns maintained with scalar fill 7_i4'
+        call append(matrix4_i4, matrix5_i4, fill_value= 7_i4)
+        allocate(mplaceholder_i4(4,3))
+        mplaceholder_i4 = reshape((/ 4_i4,4_i4,6_i4,6_i4, 4_i4,4_i4,6_i4,6_i4, 4_i4,4_i4,7_i4,7_i4 /), (/ 4,3 /))
+        @assertEqual(matrix4_i4, mplaceholder_i4, message= message)
+        deallocate(mplaceholder_i4)
+
+        ! To do
+        ! Test append for unequal columns without filler given. Can't use this since it immediately stops subroutine.
+        
+        deallocate(matrix1_i4, matrix2_i4, matrix3_i4, matrix4_i4, matrix5_i4)
+
+      ! ---------------------------------
+      ! TEST APPEND 3D MATRIX i4
+
+        allocate(matrix2_3d_i4(2,2,2), matrix3_3d_i4(1,2,2))
+
+        matrix2_3d_i4 = 2_i4
+        matrix3_3d_i4 = 3_i4
+
+        message='Test append i4: non-allocated matrix1_3d appended by matrix2_3d with filler'
+        call append(matrix1_3d_i4, matrix2_3d_i4, fill_value=7_i4)
+        allocate(mplaceholder_3d_i4(2,2,2))
+        mplaceholder_3d_i4 = reshape((/ 2_i4,2_i4, 2_i4,2_i4,  2_i4,2_i4, 2_i4,2_i4 /), (/ 2,2,2 /))
+        @assertEqual(matrix1_3d_i4, mplaceholder_3d_i4, message= message)
+        deallocate(mplaceholder_3d_i4)
+
+        message='Test append i4: matrix2_3d appended by matrix3_3d'
+        call append(matrix2_3d_i4, matrix3_3d_i4)
+        allocate(mplaceholder_3d_i4(3,2,2))
+        mplaceholder_3d_i4 = reshape((/ 2_i4,2_i4,3_i4, 2_i4,2_i4,3_i4,  2_i4,2_i4,3_i4, 2_i4,2_i4,3_i4 /), (/ 3,2,2 /))
+        @assertEqual(matrix2_3d_i4, mplaceholder_3d_i4, message= message)
+        deallocate(mplaceholder_3d_i4)
+
+        deallocate(matrix1_3d_i4, matrix2_3d_i4, matrix3_3d_i4)
 
     ! ---------------------------------
     ! TEST PASTE i4
-  
-    allocate(matrix2_i4(2,2), matrix3_i4(2,3), matrix4_i4(1,3))
+    ! ---------------------------------
 
-    matrix2_i4 = 5_i4
-    matrix3_i4 = 3_i4
-    matrix4_i4 = 2_i4
+      ! ---------------------------------
+      ! TEST PASTE MATRIX-SCALAR i4
 
-    message= 'Test paste i4: non-allocated matrix1 pasted by matrix2'
-    call paste(matrix1_i4, matrix2_i4)
-    @assertEqual(matrix1_i4,reshape((/ 5_i4,5_i4, 5_i4,5_i4 /),(/ 2,2 /)), message= message)
+        message= 'Test paste i4: non-allocated matrix1 pasted by 5_i4'
+        call paste(matrix1_i4, 5_i4)
+        @assertEqual(matrix1_i4, reshape((/ 5_i4 /), (/ 1,1 /)), message= message)
 
-    message= 'Test paste i4: matrix1 pasted by matrix3'
-    call paste(matrix1_i4, matrix3_i4)
-    @assertEqual(matrix1_i4, reshape((/ 5_i4,5_i4,5_i4,5_i4, 3_i4,3_i4,3_i4,3_i4,3_i4,3_i4 /),(/ 2,5 /)), message= message)
+        message= 'Test paste i4: matrix1 pasted by 6_i4'
+        call paste(matrix1_i4, 6_i4)
+        @assertEqual(matrix1_i4, reshape((/ 5_i4, 6_i4 /), (/ 1,2 /)), message= message)
 
-    message= 'Test paste i4: matrix4 pasted by 5_i4'
-    call paste(matrix4_i4, 5_i4)
-    @assertEqual(matrix4_i4(1,:), (/ 2_i4,2_i4,2_i4, 5_i4 /), message= message)
+        deallocate(matrix1_i4)
 
-    deallocate( matrix2_i4, matrix3_i4 )
-    allocate(matrix2_i4(2,2), matrix3_i4(2,3) )
-    matrix2_i4 = 5_i4
-    matrix3_i4 = 3_i4
+      ! ---------------------------------
+      ! TEST PASTE MATRIX-VECTOR i4
 
-    message= 'Test paste i4: matrix2 pasted by first row of matrix3'
-    call paste(matrix2_i4, matrix3_i4(:1,:), fill_value= -9999_i4)
-    @assertEqual(matrix2_i4(2,3), -9999_i4, message= message)
+        allocate(vector1_i4(1), vector2_i4(3), vector3_i4(2))
 
-    deallocate(matrix1_i4, matrix2_i4, matrix3_i4, matrix4_i4)
+        vector1_i4 = 1_i4
+        vector2_i4 = 2_i4
+        vector3_i4 = 3_i4
+
+        message= 'Test paste i4: non-allocated matrix1 pasted by vector1'
+        call paste(matrix1_i4, vector1_i4)
+        @assertEqual(matrix1_i4, reshape((/ 1_i4 /), (/ 1,1 /)), message= message)
+
+        message= 'Test paste i4: matrix1 pasted by vector1'
+        call paste(matrix1_i4, vector1_i4)
+        @assertEqual(matrix1_i4, reshape((/ 1_i4, 1_i4 /), (/ 1,2 /)), message= message)
+
+        message= 'Test paste i4: matrix1 pasted by vector2'
+        call paste(matrix1_i4, vector2_i4, fill_value= 4_i4)
+        @assertEqual(matrix1_i4(2:3,:2), reshape((/ 4_i4,4_i4,4_i4,4_i4 /), (/ 2,2 /)), message= message)
+        @assertEqual(matrix1_i4(:,3), vector2_i4, message= message)
+
+        message= 'Test paste i4: matrix1 pasted by vector3'
+        call paste(matrix1_i4, vector3_i4, fill_value= 4_i4)
+        @assertEqual(matrix1_i4(:2,4), vector3_i4, message= message)
+        @assertEqual(matrix1_i4(3,4), 4_i4, message= message)
+
+        deallocate(vector1_i4, vector2_i4, vector3_i4)
+        deallocate(matrix1_i4)
+
+      ! ---------------------------------
+      ! TEST PASTE MATRIX-MATRIX i4
+
+        allocate(matrix2_i4(2,2), matrix3_i4(2,3), matrix4_i4(1,3))
+
+        matrix2_i4 = 5_i4
+        matrix3_i4 = 3_i4
+        matrix4_i4 = 2_i4
+
+        message= 'Test paste i4: non-allocated matrix1 pasted by matrix2'
+        call paste(matrix1_i4, matrix2_i4)
+        @assertEqual(matrix1_i4,reshape((/ 5_i4,5_i4, 5_i4,5_i4 /),(/ 2,2 /)), message= message)
+
+        message= 'Test paste i4: matrix1 pasted by matrix3'
+        call paste(matrix1_i4, matrix3_i4)
+        @assertEqual(matrix1_i4, reshape((/ 5_i4,5_i4,5_i4,5_i4, 3_i4,3_i4,3_i4,3_i4,3_i4,3_i4 /),(/ 2,5 /)), message= message)
+
+        message= 'Test paste i4: matrix4 pasted by 5_i4'
+        call paste(matrix4_i4, 5_i4)
+        @assertEqual(matrix4_i4(1,:), (/ 2_i4,2_i4,2_i4, 5_i4 /), message= message)
+
+        deallocate(matrix2_i4, matrix3_i4)
+        
+        allocate(matrix2_i4(2,2), matrix3_i4(3,3) )
+        
+        matrix2_i4 = 5_i4
+        matrix3_i4 = 3_i4
+
+        message= 'Test paste i4: matrix2 pasted by first row of matrix3'
+        call paste(matrix2_i4, matrix3_i4(:1,:), fill_value= -9999_i4)
+        @assertEqual(matrix2_i4(2,3), -9999_i4, message= message)
+        @assertEqual(matrix2_i4(1,3), 3_i4, message= message)
+
+        message= 'Test paste i4: matrix2 pasted by first row of matrix3'
+        call paste(matrix2_i4, matrix3_i4, fill_value= 9999_i4)
+        @assertEqual(matrix2_i4(3,5), 9999_i4, message= message)
+        @assertEqual(matrix2_i4(3,6), 3_i4, message= message)
+
+        deallocate(matrix1_i4, matrix2_i4, matrix3_i4, matrix4_i4)
+
+      ! ---------------------------------
+      ! TEST PASTE MATRIX 3D i4
+
+        allocate(matrix2_3d_i4(2,2,2), matrix3_3d_i4(2,2,1))
+
+        matrix2_3d_i4 = 2_i4
+        matrix3_3d_i4 = 3_i4
+
+        message= 'Test paste i4: unallocated matrix1 pasted by matrix2'
+        call paste(matrix1_3d_i4, matrix2_3d_i4)
+        @assertEqual(matrix1_3d_i4, matrix2_3d_i4, message= message)
+
+        message= 'Test paste i4: matrix1 pasted by matrix3'
+        call paste(matrix1_3d_i4, matrix3_3d_i4)
+        @assertEqual(matrix1_3d_i4(2,2,3), 3_i4, message= message)
+
+        deallocate(matrix1_3d_i4, matrix2_3d_i4, matrix3_3d_i4)
+
+      ! ---------------------------------
+      ! TEST PASTE MATRIX 4D i4
+
+        allocate(matrix2_4d_i4(2,2,2,2), matrix3_4d_i4(2,2,2,1))
+
+        matrix2_4d_i4 = 2_i4
+        matrix3_4d_i4 = 3_i4
+
+        message= 'Test paste i4: unallocated matrix1 pasted by matrix2'
+        call paste(matrix1_4d_i4, matrix2_4d_i4)
+        @assertEqual(matrix1_4d_i4, matrix2_4d_i4, message= message)
+
+        message= 'Test paste i4: matrix1 pasted by matrix3'
+        call paste(matrix1_4d_i4, matrix3_4d_i4)
+        @assertEqual(matrix1_4d_i4(2,2,2,3), 3_i4, message= message)
+
+        deallocate(matrix1_4d_i4, matrix2_4d_i4, matrix3_4d_i4)
 
   end subroutine test_append_i4
 
