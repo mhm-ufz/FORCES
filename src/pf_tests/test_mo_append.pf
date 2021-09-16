@@ -526,9 +526,9 @@ contains
     deallocate(mplaceholder_sp)
 
     ! message='Test append sp: matrix2 (less columns) appended by matrix3 (more columns). Fill not given, exception raised.'
-    ! call append(matrix3_sp, matrix2_sp)
+    !call append(matrix3_sp, matrix2_sp)
     ! allocate(mplaceholder_sp(2,3))
-    ! @assertExceptionRaised('Test')
+    !@assertExceptionRaised('Exception was raised for append')
     ! mplaceholder_sp = reshape((/ 4.0_sp,4.0_sp, 4.0_sp,4.0_sp, 4.0_sp,&
     !                             4.0_sp /), (/ 2,3 /))
     ! @assertEqual(matrix3_sp, mplaceholder_sp, message= message)
