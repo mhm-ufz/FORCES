@@ -49,20 +49,29 @@ contains
 
   end subroutine errormeasures_initial
 
-  ! Test bias
+  ! Test Bias (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_bias()
 
+    ! With mask
     @assertEqual(nint(10000._sp*BIAS(real(vec1, sp), real(vec2, sp), mask=maskvec)), 14353)
     @assertEqual(nint(10000._dp*BIAS(vec1, vec2, mask=maskvec)), 14353)
     @assertEqual(nint(10000._sp*BIAS(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))), 20813)
     @assertEqual(nint(10000._dp*BIAS(arr1(:,:,1), arr2(:,:,4), mask=mask(:,:,1))), 20813)
     @assertEqual(nint(10000._sp*BIAS(real(arr1, sp), real(arr2, sp), mask=mask)), 9097)
     @assertEqual(nint(10000._dp*BIAS(arr1, arr2, mask=mask)), 9097)
+
+    ! Without mask
+    @assertEqual(nint(10000._sp*BIAS(real(vec1, sp), real(vec2, sp))), -14040)
+    @assertEqual(nint(10000._dp*BIAS(vec1, vec2)), -14040)
+    @assertEqual(nint(10000._sp*BIAS(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp))), -5995)
+    @assertEqual(nint(10000._dp*BIAS(arr1(:,:,1), arr2(:,:,4))), -5995)
+    @assertEqual(nint(10000._sp*BIAS(real(arr1, sp), real(arr2, sp))), 9000)
+    @assertEqual(nint(10000._dp*BIAS(arr1, arr2)), 9000)
     
   end subroutine test_error_bias
 
-  ! Test KGE
+  ! Test KGE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_kge()
   
@@ -75,10 +84,11 @@ contains
 
   end subroutine test_error_kge
 
-  ! Test KGEnocorr
+  ! Test KGEnocorr (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_kgenocorr()
   
+    ! With mask
     @assertEqual(nint(10000._sp*KGEnocorr(real(vec1, sp), real(vec2, sp), mask=maskvec)), 3867)
     @assertEqual(nint(10000._dp*KGEnocorr(vec1, vec2, mask=maskvec)), 3867)
     @assertEqual(nint(10000._sp*KGEnocorr(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))), -224)
@@ -86,12 +96,22 @@ contains
     @assertEqual(nint(10000._sp*KGEnocorr(real(arr1, sp), real(arr2, sp), mask=mask)), 7631)
     @assertEqual(nint(10000._dp*KGEnocorr(arr1, arr2, mask=mask)), 7631)
 
+    ! Without mask
+    @assertEqual(nint(10000._sp*KGEnocorr(real(vec1, sp), real(vec2, sp))), 5066)
+    @assertEqual(nint(10000._dp*KGEnocorr(vec1, vec2)), 5066)
+    @assertEqual(nint(10000._sp*KGEnocorr(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp))), 887)
+    @assertEqual(nint(10000._dp*KGEnocorr(arr1(:,:,1), arr2(:,:,4))), 887)
+    @assertEqual(nint(10000._sp*KGEnocorr(real(arr1, sp), real(arr2, sp))), 8307)
+    @assertEqual(nint(10000._dp*KGEnocorr(arr1, arr2)), 8307)
+
+
   end subroutine test_error_kgenocorr
 
-  ! Test MAE
+  ! Test MAE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_mae()
   
+    ! With mask
     @assertEqual(nint(10000._sp*MAE(real(vec1, sp), real(vec2, sp), mask=maskvec)), 16123)
     @assertEqual(nint(10000._dp*MAE(vec1, vec2, mask=maskvec)), 16123)
     @assertEqual(nint(10000._sp*MAE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))), 21134)
@@ -101,6 +121,7 @@ contains
 
   end subroutine test_error_mae
 
+  ! Test MSE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_mse()
   
@@ -113,6 +134,7 @@ contains
 
   end subroutine test_error_mse
 
+  ! Test NSE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_nse()
   
@@ -125,9 +147,11 @@ contains
 
   end subroutine test_error_nse
 
+  ! Test weighted NSE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_wnse()
   
+    ! With mask
     @assertEqual(nint(10000._sp*wNSE(real(vec1, sp), real(vec2, sp), mask=maskvec)), -18952)
     @assertEqual(nint(10000._dp*wNSE(vec1, vec2, mask=maskvec)), -18952)
     @assertEqual(nint(10000._sp*wNSE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))), -20760)
@@ -135,8 +159,17 @@ contains
     @assertEqual(nint(10000._sp*wNSE(real(arr1, sp), real(arr2, sp), mask=mask)), 7876)
     @assertEqual(nint(10000._dp*wNSE(arr1, arr2, mask=mask)), 7876)
 
+    ! Without mask
+    @assertEqual(nint(10000._sp*wNSE(real(vec1, sp), real(vec2, sp))), -12210)
+    @assertEqual(nint(10000._dp*wNSE(vec1, vec2)), -12210)
+    @assertEqual(nint(10000._sp*wNSE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp))), -3059)
+    @assertEqual(nint(10000._dp*wNSE(arr1(:,:,1), arr2(:,:,4))), -3058)
+    @assertEqual(nint(10000._sp*wNSE(real(arr1, sp), real(arr2, sp))), 8919)
+    @assertEqual(nint(10000._dp*wNSE(arr1, arr2)), 8919)
+
   end subroutine test_error_wnse
 
+  ! Test SAE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_sae()
   
@@ -149,6 +182,7 @@ contains
 
   end subroutine test_error_sae
 
+  ! Test SSE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_sse()
   
@@ -161,6 +195,7 @@ contains
 
   end subroutine test_error_sse
 
+  ! Test RMSE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_rmse()
   
@@ -173,6 +208,7 @@ contains
 
   end subroutine test_error_rmse
 
+  ! Test LNNSE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_lnnse()
   
