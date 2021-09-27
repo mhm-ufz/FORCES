@@ -75,6 +75,7 @@ contains
   @test
   subroutine test_error_kge()
   
+    ! With mask
     @assertEqual(nint(10000._sp*KGE(real(vec1, sp), real(vec2, sp), mask=maskvec)), 1783)
     @assertEqual(nint(10000._dp*KGE(vec1, vec2, mask=maskvec)), 1783)
     @assertEqual(nint(10000._sp*KGE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))), -4730)
@@ -82,6 +83,14 @@ contains
     @assertEqual(nint(10000._sp*KGE(real(arr1, sp), real(arr2, sp), mask=mask)), 7631)
     @assertEqual(nint(10000._dp*KGE(arr1, arr2, mask=mask)), 7631)
 
+    ! Without mask
+    @assertEqual(nint(10000._sp*KGE(real(vec1, sp), real(vec2, sp))), -1305)
+    @assertEqual(nint(10000._dp*KGE(vec1, vec2)), -1305)
+    @assertEqual(nint(10000._sp*KGE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp))), -4589)
+    @assertEqual(nint(10000._dp*KGE(arr1(:,:,1), arr2(:,:,4))), -4589)
+    @assertEqual(nint(10000._sp*KGE(real(arr1, sp), real(arr2, sp))), 8306)
+    @assertEqual(nint(10000._dp*KGE(arr1, arr2)), 8306)
+    
   end subroutine test_error_kge
 
   ! Test KGEnocorr (order: sp-dp, 1D-2D-3D)
@@ -104,7 +113,6 @@ contains
     @assertEqual(nint(10000._sp*KGEnocorr(real(arr1, sp), real(arr2, sp))), 8307)
     @assertEqual(nint(10000._dp*KGEnocorr(arr1, arr2)), 8307)
 
-
   end subroutine test_error_kgenocorr
 
   ! Test MAE (order: sp-dp, 1D-2D-3D)
@@ -118,6 +126,9 @@ contains
     @assertEqual(nint(10000._dp*MAE(arr1(:,:,1), arr2(:,:,4), mask=mask(:,:,1))), 21134)
     @assertEqual(nint(10000._sp*MAE(real(arr1, sp), real(arr2, sp), mask=mask)), 9097)
     @assertEqual(nint(10000._dp*MAE(arr1, arr2, mask=mask)), 9097)
+
+    ! Without mask
+    
 
   end subroutine test_error_mae
 
