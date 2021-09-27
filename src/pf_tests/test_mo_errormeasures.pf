@@ -128,7 +128,12 @@ contains
     @assertEqual(nint(10000._dp*MAE(arr1, arr2, mask=mask)), 9097)
 
     ! Without mask
-    
+    @assertEqual(nint(10000._sp*MAE(real(vec1, sp), real(vec2, sp))), 28149)
+    @assertEqual(nint(10000._dp*MAE(vec1, vec2)), 28149)
+    @assertEqual(nint(10000._sp*MAE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp))), 25415)
+    @assertEqual(nint(10000._dp*MAE(arr1(:,:,1), arr2(:,:,4))), 25415)
+    @assertEqual(nint(10000._sp*MAE(real(arr1, sp), real(arr2, sp))), 9000)
+    @assertEqual(nint(10000._dp*MAE(arr1, arr2)), 9000)
 
   end subroutine test_error_mae
 
@@ -136,6 +141,7 @@ contains
   @test
   subroutine test_error_mse()
   
+    ! With mask
     @assertEqual(nint(10000._sp*MSE(real(vec1, sp), real(vec2, sp), mask=maskvec)), 42183)
     @assertEqual(nint(10000._dp*MSE(vec1, vec2, mask=maskvec)), 42183)
     @assertEqual(nint(10000._sp*MSE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))), 56920)
@@ -143,18 +149,35 @@ contains
     @assertEqual(nint(10000._sp*MSE(real(arr1, sp), real(arr2, sp), mask=mask)), 10287)
     @assertEqual(nint(10000._dp*MSE(arr1, arr2, mask=mask)), 10287)
 
+    ! Without mask
+    @assertEqual(nint(10000._sp*MSE(real(vec1, sp), real(vec2, sp))), 121489)
+    @assertEqual(nint(10000._dp*MSE(vec1, vec2)), 121489)
+    @assertEqual(nint(10000._sp*MSE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp))), 81955)
+    @assertEqual(nint(10000._dp*MSE(arr1(:,:,1), arr2(:,:,4))), 81955)
+    @assertEqual(nint(10000._sp*MSE(real(arr1, sp), real(arr2, sp))), 10200)
+    @assertEqual(nint(10000._dp*MSE(arr1, arr2)), 10200)
+
   end subroutine test_error_mse
 
   ! Test NSE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_nse()
   
+    ! With mask
     @assertEqual(nint(10000._sp*NSE(real(vec1, sp), real(vec2, sp), mask=maskvec)), -23368)
     @assertEqual(nint(10000._dp*NSE(vec1, vec2, mask=maskvec)), -23368)
     @assertEqual(nint(10000._sp*NSE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))), -35026)
     @assertEqual(nint(10000._dp*NSE(arr1(:,:,1), arr2(:,:,4), mask=mask(:,:,1))), -35026)
     @assertEqual(nint(10000._sp*NSE(real(arr1, sp), real(arr2, sp), mask=mask)), 8164)
     @assertEqual(nint(10000._dp*NSE(arr1, arr2, mask=mask)), 8164)
+
+    ! Without mask
+    @assertEqual(nint(10000._sp*NSE(real(vec1, sp), real(vec2, sp))), -6051)
+    @assertEqual(nint(10000._dp*NSE(vec1, vec2)), -6051)
+    @assertEqual(nint(10000._sp*NSE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp))), -828)
+    @assertEqual(nint(10000._dp*NSE(arr1(:,:,1), arr2(:,:,4))), -828)
+    @assertEqual(nint(10000._sp*NSE(real(arr1, sp), real(arr2, sp))), 8905)
+    @assertEqual(nint(10000._dp*NSE(arr1, arr2)), 8905)
 
   end subroutine test_error_nse
 
@@ -184,6 +207,7 @@ contains
   @test
   subroutine test_error_sae()
   
+    ! With mask
     @assertEqual(nint(10000._sp*SAE(real(vec1, sp), real(vec2, sp), mask=maskvec)), 403063)
     @assertEqual(nint(10000._dp*SAE(vec1, vec2, mask=maskvec)), 403063)
     @assertEqual(nint(10000._sp*SAE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))), 528359)
@@ -191,12 +215,21 @@ contains
     @assertEqual(nint(10000._sp*SAE(real(arr1, sp), real(arr2, sp), mask=mask)), 2055999)
     @assertEqual(nint(10000._dp*SAE(arr1, arr2, mask=mask)), 2056000)
 
+    ! Without mask
+    @assertEqual(nint(10000._sp*SAE(real(vec1, sp), real(vec2, sp))), 1520071)
+    @assertEqual(nint(10000._dp*SAE(vec1, vec2)), 1520070)
+    @assertEqual(nint(10000._sp*SAE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp))), 1372392)
+    @assertEqual(nint(10000._dp*SAE(arr1(:,:,1), arr2(:,:,4))), 1372392)
+    @assertEqual(nint(10000._sp*SAE(real(arr1, sp), real(arr2, sp))), 3887999)
+    @assertEqual(nint(10000._dp*SAE(arr1, arr2)), 3888000)
+
   end subroutine test_error_sae
 
   ! Test SSE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_sse()
   
+    ! With mask
     @assertEqual(nint(10000._sp*SSE(real(vec1, sp), real(vec2, sp), mask=maskvec)), 1054575)
     @assertEqual(nint(10000._dp*SSE(vec1, vec2, mask=maskvec)), 1054575)
     @assertEqual(nint(10000._sp*SSE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))), 1423003)
@@ -204,12 +237,21 @@ contains
     @assertEqual(nint(10000._sp*SSE(real(arr1, sp), real(arr2, sp), mask=mask)), 2324799)
     @assertEqual(nint(10000._dp*SSE(arr1, arr2, mask=mask)), 2324800)
 
+    ! Without mask
+    @assertEqual(nint(10000._sp*SSE(real(vec1, sp), real(vec2, sp))), 6560394)
+    @assertEqual(nint(10000._dp*SSE(vec1, vec2)), 6560395)
+    @assertEqual(nint(10000._sp*SSE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp))), 4425580)
+    @assertEqual(nint(10000._dp*SSE(arr1(:,:,1), arr2(:,:,4))), 4425579)
+    @assertEqual(nint(10000._sp*SSE(real(arr1, sp), real(arr2, sp))), 4406398)
+    @assertEqual(nint(10000._dp*SSE(arr1, arr2)), 4406400)
+
   end subroutine test_error_sse
 
   ! Test RMSE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_rmse()
   
+    ! With mask
     @assertEqual(nint(10000._sp*RMSE(real(vec1, sp), real(vec2, sp), mask=maskvec)), 20538)
     @assertEqual(nint(10000._dp*RMSE(vec1, vec2, mask=maskvec)), 20538)
     @assertEqual(nint(10000._sp*RMSE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))), 23858)
@@ -217,18 +259,35 @@ contains
     @assertEqual(nint(10000._sp*RMSE(real(arr1, sp), real(arr2, sp), mask=mask)), 10142)
     @assertEqual(nint(10000._dp*RMSE(arr1, arr2, mask=mask)), 10142)
 
+    ! Without mask
+    @assertEqual(nint(10000._sp*RMSE(real(vec1, sp), real(vec2, sp))), 34855)
+    @assertEqual(nint(10000._dp*RMSE(vec1, vec2)), 34855)
+    @assertEqual(nint(10000._sp*RMSE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp))), 28628)
+    @assertEqual(nint(10000._dp*RMSE(arr1(:,:,1), arr2(:,:,4))), 28628)
+    @assertEqual(nint(10000._sp*RMSE(real(arr1, sp), real(arr2, sp))), 10100)
+    @assertEqual(nint(10000._dp*RMSE(arr1, arr2)), 10100)
+
   end subroutine test_error_rmse
 
   ! Test LNNSE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_lnnse()
   
+    ! With mask
     @assertEqual(nint(10000._sp*LNNSE(real(vec1, sp), real(vec2, sp), mask=maskvec)), -8993)
     @assertEqual(nint(10000._dp*LNNSE(vec1, vec2, mask=maskvec)), -8993)
     @assertEqual(nint(10000._sp*LNNSE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1))), -21656)
     @assertEqual(nint(10000._dp*LNNSE(arr1(:,:,1), arr2(:,:,4), mask=mask(:,:,1))), -21656)
     @assertEqual(nint(10000._sp*LNNSE(real(arr1, sp), real(arr2, sp), mask=mask)), 8915)
     @assertEqual(nint(10000._dp*LNNSE(arr1, arr2, mask=mask)), 8915)
+
+    ! Without mask
+    @assertEqual(nint(10000._sp*LNNSE(real(vec1, sp), real(vec2, sp))), -4641)
+    @assertEqual(nint(10000._dp*LNNSE(vec1, vec2)), -4641)
+    @assertEqual(nint(10000._sp*LNNSE(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp))), -335)
+    @assertEqual(nint(10000._dp*LNNSE(arr1(:,:,1), arr2(:,:,4))), -335)
+    @assertEqual(nint(10000._sp*LNNSE(real(arr1, sp), real(arr2, sp))), 9164)
+    @assertEqual(nint(10000._dp*LNNSE(arr1, arr2)), 9164)
 
   end subroutine test_error_lnnse
 
