@@ -112,11 +112,7 @@ contains
       @assertEqual(nint(bestf*10000000.0_dp), 104439)
     end if
 
-  end subroutine test_sce_ackley
-
     ! Check restart
-  @test
-  subroutine test_sce_ackley_restart()
   
     bestf   = 0.
     neval   = 0
@@ -153,7 +149,7 @@ contains
 
     deallocate(pini, prange, opt, mask)
 
-  end subroutine test_sce_ackley_restart
+  end subroutine test_sce_ackley
 
   @test
   subroutine test_sce_griewank()
@@ -227,19 +223,56 @@ contains
     write(*,*) 'global minimal function value:  optf  = ', 0.0_dp
     write(*,*) ''
 
-    ! if (parallel) then
-    !   ! compiled without OpenMP
-    !   @assertEqual(neval, 4455_i8)
-    !   @assertEqual(nint(bestf*10000000.0_dp), 104439)
+    if (parallel) then
+      ! compiled without OpenMP
+      @assertEqual(neval, 372_i8)
+      @assertEqual(nint(bestf*10000000.0_dp), 308758)
 
-    !   ! compiled with OpenMP
-    !   !$ write(*,*) 'mo_sce: It is not possible to check if sce runs properly with OpenMP.'
+      ! compiled with OpenMP
+      !$ write(*,*) 'mo_sce: It is not possible to check if sce runs properly with OpenMP.'
 
-    ! else
-    !   ! no matter if compiler with or without OpenMP
-    !   @assertEqual(neval, 4455_i8)
-    !   @assertEqual(nint(bestf*10000000.0_dp), 104439)
-    ! end if
+    else
+      ! no matter if compiler with or without OpenMP
+      @assertEqual(neval, 372_i8)
+      @assertEqual(nint(bestf*10000000.0_dp), 308758)
+    end if
+
+    ! Check restart
+  
+    bestf   = 0.
+    neval   = 0
+    history = 0.
+
+    opt = sce(eval,       & ! Mandatory IN  : Objective function
+            obj_func,             & ! Mandatory IN: Objective function
+        pini,               & ! Mandatory IN  : initial guess
+        prange,             & ! Mandatory IN  : range for each parameter (min, max)
+        restart=.true.,     & ! Do the restart
+        restart_file='restart_make_check_test_file', & ! Optional IN: restart file name
+        bestf=bestf,        & ! Optional  OUT : objective function value of best parameter set
+        neval=neval,        & ! Optional  OUT : number of function evaluations needed
+        history=history     & ! Optional  OUT : history(k) = best objective after k function evaluations
+        )
+
+    write(*,*) ''
+    write(*,*) 'number of function evaluations: neval = ', neval
+    write(*,*) 'best function value found:      bestf = ', obj_func(opt, eval)
+    write(*,*) 'global minimal function value:  optf  = ', 0.0_dp
+    write(*,*) ''
+
+    if (parallel) then
+      ! compiled without OpenMP
+      @assertEqual(neval, 372_i8)
+      @assertEqual(nint(bestf*10000000.0_dp), 308758)
+      ! compiled with OpenMP
+      !'mo_sce: It is not possible to check if sce runs properly with OpenMP.'
+    else
+      ! no matter if compiler with or without OpenMP
+      @assertEqual(neval, 372_i8)
+      @assertEqual(nint(bestf*10000000.0_dp), 308758)
+    end if
+
+    deallocate(pini, prange, opt, mask)
 
   end subroutine test_sce_griewank
   

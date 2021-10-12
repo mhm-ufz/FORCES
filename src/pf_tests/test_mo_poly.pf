@@ -62,6 +62,30 @@ contains
        print*, 'THE POINT IS ON AN EDGE OR AT A VERTEX'
     end select
 
+    call inpoly( (/1.0_dp,1.5_dp/) , coord_dp, inside)
+    @assertEqual(inside, 0_i4)
+
+    select case (inside)
+    case(-1)
+       print*, 'THE POINT IS OUTSIDE THE POLYGON'
+    case(1)
+       print*, 'THE POINT IS INSIDE THE POLYGON'
+    case(0)
+       print*, 'THE POINT IS ON AN EDGE OR AT A VERTEX'
+    end select
+
+    call inpoly( (/1.0_dp,1.0_dp/) , coord_dp, inside)
+    @assertEqual(inside, 0_i4)
+
+    select case (inside)
+    case(-1)
+       print*, 'THE POINT IS OUTSIDE THE POLYGON'
+    case(1)
+       print*, 'THE POINT IS INSIDE THE POLYGON'
+    case(0)
+       print*, 'THE POINT IS ON AN EDGE OR AT A VERTEX'
+    end select
+
   end subroutine test_poly_inpoly_dp
   
   @test
@@ -96,6 +120,30 @@ contains
     end select
 
     call inpoly( (/1.5_sp,1.0_sp/) , coord_sp, inside)
+    @assertEqual(inside, 0_i4)
+
+    select case (inside)
+    case(-1)
+       print*, 'THE POINT IS OUTSIDE THE POLYGON'
+    case(1)
+       print*, 'THE POINT IS INSIDE THE POLYGON'
+    case(0)
+       print*, 'THE POINT IS ON AN EDGE OR AT A VERTEX'
+    end select
+
+    call inpoly( (/1.0_sp,1.5_sp/) , coord_sp, inside)
+    @assertEqual(inside, 0_i4)
+
+    select case (inside)
+    case(-1)
+       print*, 'THE POINT IS OUTSIDE THE POLYGON'
+    case(1)
+       print*, 'THE POINT IS INSIDE THE POLYGON'
+    case(0)
+       print*, 'THE POINT IS ON AN EDGE OR AT A VERTEX'
+    end select
+
+    call inpoly( (/1.0_sp,1.0_sp/) , coord_sp, inside)
     @assertEqual(inside, 0_i4)
 
     select case (inside)
