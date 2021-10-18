@@ -22,6 +22,8 @@ contains
 
     ! standard _score
     control(:) = (/26518, -92813, 71267, 101100, -3315, -122645, -137562, 11602, 145849/)
+    masking = .true.
+
     @assertEqual(nint(100000.0_sp * standard_score(real(vec1(:),sp)              )), control)
     @assertEqual(nint(100000.0_sp * standard_score(real(vec1(:),sp), mask=masking)), control)
 
