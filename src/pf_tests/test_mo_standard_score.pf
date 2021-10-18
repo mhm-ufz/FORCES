@@ -8,7 +8,7 @@ module test_mo_standard_score
   implicit none
   
   real(dp),     dimension(9)    :: vec1       ! data array
-  integer(i4),  dimension(9)    :: control    ! array with contral values
+  integer(i4),  dimension(9)    :: control, control2    ! array with contral values
   integer(i4),  dimension(9)    :: classes    ! classes for classified_standard_score
   logical,      dimension(9)    :: masking    ! mask for excluding nodata values
 
@@ -31,6 +31,7 @@ contains
     classes =(/3,2,3,2,2,3,1,1,3/)
     control(:) = (/-3295, -97340, 36240, 102463, -5123, -135075, -70711, 70711, 102130/)
     @assertEqual(nint(100000.0_sp * classified_standard_score(real(vec1(:),sp), classes) ), control)
+    @assertEqual(nint(100000.0_sp * classified_standard_score(real(vec1(:),sp), classes, mask=masking) ), control)
   
   end subroutine test_sp_wo_mask
 
@@ -41,11 +42,15 @@ contains
     masking(:) = (/.TRUE., .TRUE., .FALSE., .FALSE., .TRUE., .TRUE., .TRUE., .TRUE., .FALSE./)
 
     ! standard_score
+    control2(:) = (/26518, -92813, 71267, 101100, -3315, -122645, -137562, 11602, 145849/)
     control(:) = (/109170, -54585, 170578, 211517, 68231, -95524, -115993, 88701, 272925/)
+    @assertEqual(nint(100000.0_dp *            standard_score(     vec1(:))), control2)
     @assertEqual(nint(100000.0_dp *            standard_score(     vec1(:),  mask=masking)), control)
 
     ! classified_standard_score
-    control = (/70711, -70711, 0, 0, 70711, -70711, -70711, 70711, 0/)
+    control2(:) = (/-3295, -97340, 36240, 102463, -5123, -135075, -70711, 70711, 102130/)
+    control(:) = (/70711, -70711, 0, 0, 70711, -70711, -70711, 70711, 0/)
+    @assertEqual(nint(100000.0_dp * classified_standard_score(vec1, classes)), control2)
     @assertEqual(nint(100000.0_dp * classified_standard_score(vec1, classes, mask=masking)), control)
 
   end subroutine test_dp_w_mask
