@@ -16,7 +16,7 @@ contains
   @test
   subroutine test_coor_dp()
     real(dp), dimension(n)  ::  dat1, dat2
-    real(dp), dimension(2)  ::  acf_dp
+    real(dp), dimension(2)  ::  acfm_dp, acf_dp
     real(dp)                ::  t = epsilon(1.0_dp)
 
     forall(i=1:n) dat1(i) = real(i, dp)
@@ -24,8 +24,10 @@ contains
 
     @assertEqual(autocorr(dat2, 0, mask), 1.0_dp, tolerance=t, message='coor double precision')
     
-    acf_dp = autocorr(dat2, (/ 0, 5 /), mask)
+    acfm_dp = autocorr(dat2, (/ 0, 5 /), mask)
+    acf_dp = autocorr(dat2, (/ 0, 5 /))
 
+    @assertEqual(acfm_dp, acf_dp)
     @assertEqual(nint(acf_dp(2)*10000.0_dp), 9933_i4)
 
   end subroutine test_coor_dp
@@ -33,7 +35,7 @@ contains
   @test
   subroutine test_coor_sp()
     real(sp), dimension(n)  ::  sat1, sat2
-    real(dp), dimension(2)  ::  acf_sp
+    real(dp), dimension(2)  ::  acfm_sp, acf_sp
     real(sp)                ::  t = epsilon(1.0_sp)
 
     forall(i=1:n) sat1(i) = real(i, sp)
@@ -41,8 +43,10 @@ contains
 
     @assertEqual(autocorr(sat2, 0, mask), 1.0_sp, tolerance=t, message='coor single precision')
 
-    acf_sp = autocorr(sat2, (/ 0, 5 /), mask)
+    acfm_sp = autocorr(sat2, (/ 0, 5 /), mask)
+    acf_sp = autocorr(sat2, (/ 0, 5 /))
 
+    @assertEqual(acfm_sp, acf_sp)
     @assertEqual(nint(acf_sp(2)*10000.0_sp), 9933_i4)
   
   end subroutine test_coor_sp
