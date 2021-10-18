@@ -8,30 +8,42 @@ module test_mo_corr
 
   integer(i4), parameter :: n=1500
   integer(i4) :: i
+  logical, dimension(n) :: mask=.true.
+  
 
 contains
 
   @test
   subroutine test_coor_dp()
     real(dp), dimension(n)  ::  dat1, dat2
+    real(dp), dimension(2)  ::  acf_dp
     real(dp)                ::  t = epsilon(1.0_dp)
 
     forall(i=1:n) dat1(i) = real(i, dp)
     dat2 = dat1 + sin(dat1)
 
-    @assertEqual(autocorr(dat2, 0), 1.0_dp, tolerance=t, message='coor double precision')
-  
+    @assertEqual(autocorr(dat2, 0, mask), 1.0_dp, tolerance=t, message='coor double precision')
+    
+    acf_dp = autocorr(dat2, (/ 0, 5 /), mask)
+
+    @assertEqual(nint(acf_dp(2)*10000.0_dp), 9933_i4)
+
   end subroutine test_coor_dp
   
   @test
   subroutine test_coor_sp()
     real(sp), dimension(n)  ::  sat1, sat2
+    real(dp), dimension(2)  ::  acf_sp
     real(sp)                ::  t = epsilon(1.0_sp)
 
     forall(i=1:n) sat1(i) = real(i, sp)
     sat2 = sat1 + sin(sat1)
 
-    @assertEqual(autocorr(sat2, 0), 1.0_sp, tolerance=t, message='coor single precision')
+    @assertEqual(autocorr(sat2, 0, mask), 1.0_sp, tolerance=t, message='coor single precision')
+
+    acf_sp = autocorr(sat2, (/ 0, 5 /), mask)
+
+    @assertEqual(nint(acf_sp(2)*10000.0_sp), 9933_i4)
   
   end subroutine test_coor_sp
   
