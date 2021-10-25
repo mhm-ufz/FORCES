@@ -6,6 +6,12 @@ module test_mo_boxcox
 
   implicit none
 
+  logical, dimension(20) :: masking = [ &
+    .true., .true., .false., .true., .false., &
+    .true., .false., .false., .true., .false., &
+    .true., .true., .false., .true., .false., &
+    .true., .false., .false., .true., .false.]
+
 contains
 
   @test
@@ -23,6 +29,19 @@ contains
 
     @assertEqual(dx, dyx, tolerance=t, message='boxcox double precision')
 
+    dy  = boxcox(dx, dl, mask= masking)
+    dyx = invboxcox(dy, dl, mask= masking)
+
+    @assertEqual(dx, dyx, tolerance=t, message='boxcox double precision masked')
+    @assertEqual(dx(1), invboxcox(dy(1), dl), tolerance=t, message='boxcox 0d double precision masked')
+
+    dl = 0.5_dp*tiny(0.0_dp)
+    dy  = boxcox(dx, dl, mask= masking)
+    dyx = invboxcox(dy, dl, mask= masking)
+
+    @assertEqual(dx, dyx, tolerance=t, message='boxcox double precision masked small lambda')
+    @assertEqual(dx(1), invboxcox(dy(1), dl), tolerance=t, message='boxcox 0d double precision small lambda')
+
   end subroutine test_boxcox_dp
 
   @test
@@ -39,6 +58,19 @@ contains
     dyx = invboxcox(dy, dl)
 
     @assertEqual(dx, dyx, tolerance=t, message='boxcox single precision')
+
+    dy  = boxcox(dx, dl, mask= masking)
+    dyx = invboxcox(dy, dl, mask= masking)
+
+    @assertEqual(dx, dyx, tolerance=t, message='boxcox single precision masked')
+    @assertEqual(dx(1), invboxcox(dy(1), dl), tolerance=t, message='boxcox 0d single precision masked')
+
+    dl = 0.5_sp*tiny(0.0_sp)
+    dy  = boxcox(dx, dl, mask= masking)
+    dyx = invboxcox(dy, dl, mask= masking)
+
+    @assertEqual(dx, dyx, tolerance=t, message='boxcox single precision masked small lambda')
+    @assertEqual(dx(1), invboxcox(dy(1), dl), tolerance=t, message='boxcox 0d single precision small lambda')
 
   end subroutine test_boxcox_sp
 
