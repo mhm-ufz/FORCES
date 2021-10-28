@@ -394,7 +394,7 @@ CONTAINS
     if (n < 1)  stop 'n_element_dp: n < 1'
     if (n > nn) stop 'n_element_dp: n > size(pack(dat,mask))'
 
-    dat = idat
+    !dat = idat
     nn = size(dat)
     k = n !nn/2 + 1
     l = 1
@@ -469,7 +469,7 @@ CONTAINS
     if (n < 1)  stop 'n_element_sp: n < 1'
     if (n > nn) stop 'n_element_sp: n > size(pack(dat,mask))'
 
-    dat = idat
+    !dat = idat
     nn = size(dat)
     k = n !nn/2 + 1
     l = 1
