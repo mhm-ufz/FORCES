@@ -19,7 +19,7 @@ MODULE mo_mad
   ! GNU Lesser General Public License for more details.
 
   ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! along with the UFZ Fortran library (LICENSE).
   ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2011 Matthias Cuntz
@@ -45,7 +45,7 @@ MODULE mo_mad
   !         to true values in the mask.
   !
   !         If tout is given mad returns the array with the enteries exceeding the treshold
-  !         being set to the threshold. With this setting arrays are accepted. 
+  !         being set to the threshold. With this setting arrays are accepted.
   !         tout accepts: u. upper values are cut at the threshold,
   !         l. lower values are cut at the threshold, b. upper and lower values are cut at the threshold
   !         With this setting only the variant 0 is available (no argument implemented).
@@ -67,7 +67,7 @@ MODULE mo_mad
   !         logical :: out            mask with true everywhere except where input deviates more
   !                                   than z standard deviations from median
   !
-  !         arr     :: out            Array with values exceeding the threshold being trimmed. 
+  !         arr     :: out            Array with values exceeding the threshold being trimmed.
 
   !     INTENT(IN), OPTIONAL
   !         real(sp/dp) :: z          Input is allowed to deviate maximum z standard deviations from the median (default: 7)

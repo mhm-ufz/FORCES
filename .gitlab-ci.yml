@@ -4,16 +4,13 @@
 #     enabled = true
 # This will prevent git clone conflicts for jobs ran in parallel
 
+variables:
+  GIT_DEPTH: 10
+
 stages:
   - info
   - test
   - deploy
-
-workflow:
-  rules:
-    - if: $CI_COMMIT_REF_NAME =~ /-wip$/
-      when: never
-    - when: always
 
 variables:
   GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME/$CI_CONCURRENT_ID
@@ -39,7 +36,7 @@ documentation:
   stage: test
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
-    GIT_FETCH_EXTRA_FLAGS: --all --prune --quiet
+    GIT_FETCH_EXTRA_FLAGS: --all --no-tags --prune --quiet
   script:
     - module load foss/2019b
     - module load texlive/2019
@@ -62,6 +59,7 @@ documentation:
     - cp refman.pdf ../html/forces_doc.pdf
     - cp refman.pdf ../forces_doc_mas.pdf
     - cd .. && mv html html_mas
+    - mv doxygen_warn.txt doxygen_warn_mas.txt
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
     paths:
@@ -79,6 +77,7 @@ documentation:
 
 # how the job build directory is erected
 .setup_build: &setup_build_dir
+  - rm -rf $BUILD_DIR
   - mkdir -p $BUILD_DIR
   - cd $BUILD_DIR
 
@@ -92,7 +91,7 @@ documentation:
 
 # make coverage command
 .make_coverage: &make_coverage
-  - make $MAKE_FLAGS FORCES_coverage_CI
+  - make $MAKE_FLAGS coverage
 
 # cleanup after scripts
 .cleanup: &cleanup
@@ -112,7 +111,8 @@ documentation:
 
 # coverage variables
 .coverage_vars: &coverage_vars
-  CMAKE_FLAGS: '$CMAKE_FLAGS -DBUILD_TESTING=ON -DCMAKE_WITH_COVERAGE=ON'
+  BUILD_DIR: build_debug
+  CMAKE_FLAGS: '$CMAKE_FLAGS -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON'
 
 # #################
 # ### TEMPLATES ###
@@ -134,20 +134,19 @@ documentation:
     - $BUILD_DIR/Testing/Temporary
 
 # template for coverage jobs
-# .coverage_template: &coverage_template
-#   stage: test
-#   script:
-#     - source $MODULE_LOAD_SCRIPT
-#     - *setup_build_dir
-#     - cmake $CMAKE_FLAGS ..
-#     - *make
-#     - *make_coverage
-#     - *cleanup
-#   artifacts:
-#     when: always
-#     paths:
-#     - $BUILD_DIR/FORCES_coverage_CI.info
-#     - $BUILD_DIR/FORCES_coverage_CI
+.coverage_template: &coverage_template
+  stage: test
+  script:
+    - source $MODULE_LOAD_SCRIPT
+    - *setup_build_dir
+    - cmake $CMAKE_FLAGS ..
+    - *make
+    - *make_coverage
+    - *cleanup
+  artifacts:
+    when: always
+    paths:
+    - $BUILD_DIR/coverage
 
 # ##################
 # ### BUILD JOBS ###
@@ -249,14 +248,13 @@ test-intel19MPI-release:
     CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
   <<: *test_template
 
-# Coverage fails due to a gcov complication
-# coverage-gcc73:
-#   variables:
-#     <<: *debug_vars
-#     <<: *coverage_vars
-#     MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran73MPI
-#     CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON'
-#   <<: *coverage_template
+coverage:
+  variables:
+    <<: *debug_vars
+    <<: *coverage_vars
+    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran83MPI
+    CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON'
+  <<: *coverage_template
 
 # ###################
 # ### DEPLOY JOBS ###
@@ -270,6 +268,8 @@ pages:
   needs:
     - job: documentation
       artifacts: true
+    - job: coverage
+      artifacts: true
   script:
     # create public dir (remove if already present)
     - test -d public && rm -rf public
@@ -282,6 +282,9 @@ pages:
     - cp html_dev/* public/latest/ -R
     # create an index.html that redirects to the master documentation (in master folder)
     - cp doc/html_files/index.html public/
+    # create the coverage site
+    - mkdir -p public/coverage
+    - cp  build_debug/coverage/* public/coverage/ -R
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
     paths:

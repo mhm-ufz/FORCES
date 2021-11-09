@@ -33,7 +33,7 @@ module mo_dds
   ! GNU Lesser General Public License for more details.
 
   ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! along with the UFZ Fortran library (LICENSE).
   ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2012 Matthias Cuntz
@@ -93,7 +93,7 @@ CONTAINS
   !>                                                                       (default: None)
   !>        \param[in] "integer(i8), optional        :: maxiter"           Maximum number of iteration or function evaluation
   !>                                                                       (default: 1000)
-  !>        \param[in] "logical, optional            :: maxit"             Maximization (.True.) or 
+  !>        \param[in] "logical, optional            :: maxit"             Maximization (.True.) or
   !>                                                                       minimization (.False.) of function
   !>                                                                       (default: .False.)
   !>        \param[in] "logical, optional            :: mask(size(pini))"  parameter to be optimized (true or false)
@@ -406,7 +406,7 @@ CONTAINS
   !>                                                                       (default: None)
   !>        \param[in] "integer(i8), optional        :: maxiter"           Maximum number of iteration or function evaluation
   !>                                                                       (default: 1000)
-  !>        \param[in] "logical, optional            :: maxit"             Maximization (.True.) or 
+  !>        \param[in] "logical, optional            :: maxit"             Maximization (.True.) or
   !>                                                                       minimization (.False.) of function
   !>                                                                       (default: .False.)
   !>        \param[in] "logical, optional            :: mask(size(pini))"  parameter to be optimized (true or false)

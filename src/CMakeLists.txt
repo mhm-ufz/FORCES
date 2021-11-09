@@ -2,15 +2,15 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cmake-modules
 
 set (LIB_NAME forces)
 
-file(GLOB sources ./mo_*.f90)
-# --- find preprocessor (cpp/fpp and fypp)
+file(GLOB sources ./mo_*.f90 ./mo_*.F90)
+# --- find preprocessor (fypp)
 include(fortranpreprocessor)
-get_preproc_flag(XPP_FLAG)
 find_program(FYPP fypp)
 if(NOT FYPP)
   message(WARNING "Preprocessor fypp not found!")
 else()
-  # Create a list of the files to be preprocessed
+  message(STATUS "Preprocessor fypp found!")
+# Create a list of the files to be preprocessed
   set(fppFiles mo_netcdf.fypp)
   # Custom preprocessor flags
   if(DEFINED CMAKE_MAXIMUM_RANK)
@@ -29,7 +29,6 @@ endif()
 add_library(${LIB_NAME} ${sources} ${fyppOutFiles})
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 # add pre-processor flag (-cpp or -fpp)
-target_compile_options(${LIB_NAME} PUBLIC ${XPP_FLAG})
 
 # find the netcdf and netcdf-fortran libraries quietly, taken from ecmwf project
 find_package(NetCDF COMPONENTS Fortran QUIET)
@@ -37,7 +36,7 @@ find_package(NetCDF COMPONENTS Fortran QUIET)
 if(NOT NetCDF_Fortran_FOUND)
   message(FATAL_ERROR "FORCES: NetCDF-Fortran not usable")
 else()
-  message(STATUS "FORCES: NetCDF-Fortran usable")
+  message(STATUS "FORCES: NetCDF-Fortran usable: ${NetCDF_Fortran_LIBRARY}")
 endif()
 target_link_libraries(${LIB_NAME} PUBLIC NetCDF::NetCDF_Fortran)
 
@@ -58,9 +57,8 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   target_compile_definitions(${LIB_NAME} PRIVATE "GFORTRAN")
   target_compile_options(${LIB_NAME} PRIVATE
     -ffree-form -ffixed-line-length-132
-    $<$<CONFIG:DEBUG>:-pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
+    $<$<CONFIG:DEBUG>:-fbacktrace -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
     $<$<CONFIG:RELEASE>:-O3 -fno-peel-loops>
-    $<$<BOOL:${CMAKE_WITH_COVERAGE}>:-g -fprofile-arcs -ftest-coverage>
   )
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
@@ -80,7 +78,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
     # this effectively omits the -C=intovf flag which checks for integer overflow
     # we need to exclude that as the random number generator relies on that technique
     # -ieee=full is needed for mo_utils (is_nan, is_finite etc. fails with -ieee=stop)
-    $<$<CONFIG:DEBUG>:-g -nan -O0 -C -C=alias -C=dangling -strict95 -ieee=full>
+    $<$<CONFIG:DEBUG>:-gline -g -nan -O0 -C -C=alias -C=dangling -strict95 -ieee=full>
     $<$<CONFIG:RELEASE>:-O4 -ieee=full>
   )
 endif()

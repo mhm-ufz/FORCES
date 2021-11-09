@@ -13,6 +13,15 @@ foreach ( UNIT_TEST ${sources} )
   add_test(NAME ${test_name} COMMAND ${test_name})
 
   # set compiling flags for debug and relese version
+  if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
+      # set the preprocessor
+      target_compile_definitions(${test_name} PRIVATE "GFORTRAN")
+      target_compile_options(${test_name} PRIVATE
+      -ffree-form -ffixed-line-length-132
+      $<$<CONFIG:DEBUG>:-pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
+      $<$<CONFIG:RELEASE>:-O3 -fno-peel-loops>
+    )
+  endif()
   if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
     target_compile_definitions(${test_name} PRIVATE "INTEL")
     target_compile_options(${test_name} PRIVATE
@@ -34,25 +43,5 @@ foreach ( UNIT_TEST ${sources} )
       $<$<CONFIG:RELEASE>:-O4 -ieee=full>
     )
   endif()
-  if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-      # set the preprocessor
-      target_compile_definitions(${test_name} PRIVATE "GFORTRAN")
-      target_compile_options(${test_name} PRIVATE
-      -ffree-form -ffixed-line-length-132
-      $<$<CONFIG:DEBUG>:-pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
-      $<$<CONFIG:RELEASE>:-O3>
-      $<$<BOOL:${CMAKE_WITH_COVERAGE}>:-g -fprofile-arcs -ftest-coverage>
-    )
-  endif()
   list(APPEND testnames ${testname})
 endforeach()
-# TODO: fix coverage
-if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-  if (CMAKE_WITH_COVERAGE)
-    include(CodeCoverage)
-    APPEND_COVERAGE_COMPILER_FLAGS()
-    SETUP_TARGET_FOR_COVERAGE_LCOV(NAME FORCES_coverage_CI
-      EXECUTABLE ${testnames}
-      GENHTML_ARGS -t "${LIB_NAME} coverage" --html-prolog ${CMAKE_CURRENT_SOURCE_DIR}/../doc/html_files/cov_header.prolog)
-  endif()
-endif()

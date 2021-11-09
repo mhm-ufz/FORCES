@@ -30,7 +30,7 @@ module mo_xor4096
   ! GNU Lesser General Public License for more details.
 
   ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! along with the UFZ Fortran library (LICENSE).
   ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2011-13 Juliane Mai
@@ -39,7 +39,7 @@ module mo_xor4096
 
   Implicit NONE
 
-  PUBLIC :: n_save_state    ! dimension of vector keeping the state of a stream 
+  PUBLIC :: n_save_state    ! dimension of vector keeping the state of a stream
 
   PUBLIC :: get_timeseed    ! Returns a seed dependend on time
   PUBLIC :: xor4096         ! Generates uniform distributed random number
@@ -207,7 +207,7 @@ module mo_xor4096
   !         I4 seeds are generating I4 or SP random numbers
   !         I8 seeds are generating I8 or DP random numbers
   !
-  !         ! Initializing 
+  !         ! Initializing
   !         real(SP) :: RN(3)
   !         seed = (/ 1_I4, 100_I4, 2_I4 /)
   !         call xor4096(seed,RN)
@@ -318,7 +318,7 @@ module mo_xor4096
   !         I4 seeds are generating I4 or SP random numbers
   !         I8 seeds are generating I8 or DP random numbers
   !
-  !         ! Initializing 
+  !         ! Initializing
   !         real(SP) :: RN(3)
   !         seed = (/ 1_I4, 100_I4, 2_I4 /)
   !         call xor4096(seed,RN)

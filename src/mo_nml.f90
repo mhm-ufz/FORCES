@@ -5,7 +5,7 @@
 !> \details This module provides routines to open, close and position namelist files.
 
 !> \authors Matthias Cuntz
-!> \date Jan 2011 
+!> \date Jan 2011
 
 MODULE mo_nml
 
@@ -36,14 +36,14 @@ MODULE mo_nml
   ! GNU Lesser General Public License for more details.
 
   ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
+  ! along with the UFZ Fortran library (LICENSE).
   ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2001-2011 Luis Kornblueh, Matthias Cuntz
 
   USE mo_kind, ONLY : i4
   USE mo_string_utils, ONLY : tolower
-  USE mo_message, ONLY : message, message_text
+  USE mo_message, ONLY : message
   USE mo_finish, ONLY : finish
 
   IMPLICIT NONE
@@ -139,8 +139,7 @@ CONTAINS
     OPEN (nunitnml, file = file, iostat = istat, status = 'old', action = 'read', delim = 'apostrophe')
 
     IF (istat .ne. 0) THEN
-      write(message_text, '(A,A)') 'Could not open namelist file ', trim(file)
-      CALL finish('OPEN_NML', trim(message_text))
+      CALL finish('OPEN_NML', 'Could not open namelist file '//trim(file))
     END IF
 
   END SUBROUTINE open_nml
@@ -267,7 +266,7 @@ CONTAINS
   !     HISTORY
   !>        \author Matthias Cuntz - modified from Echam5, (C) MPI-MET, Hamburg, Germany
   !>        \date Dec 2011
-  !         Modified, Matthias Cuntz, Jan 2013 - swap first and status in call list 
+  !         Modified, Matthias Cuntz, Jan 2013 - swap first and status in call list
 
   SUBROUTINE position_nml(name, unit, status, first)
 
@@ -359,9 +358,7 @@ CONTAINS
     END SELECT
 
     ! Error if it reaches here
-    !message_text = 'namelist /'//TRIM(name)//'/ '//code
-    write(message_text, '(A,A,A,A)') 'namelist /', trim(name), '/ ', trim(code)
-    CALL finish('POSITION_NML', message_text)
+    CALL finish('POSITION_NML', 'namelist /'//trim(name)//'/ '//trim(code))
 
   END SUBROUTINE position_nml
 
