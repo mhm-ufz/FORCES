@@ -57,7 +57,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   target_compile_definitions(${LIB_NAME} PRIVATE "GFORTRAN")
   target_compile_options(${LIB_NAME} PRIVATE
     -ffree-form -ffixed-line-length-132
-    $<$<CONFIG:DEBUG>:-pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
+    $<$<CONFIG:DEBUG>:-fbacktrace -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
     $<$<CONFIG:RELEASE>:-O3 -fno-peel-loops>
   )
 endif()
@@ -78,7 +78,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
     # this effectively omits the -C=intovf flag which checks for integer overflow
     # we need to exclude that as the random number generator relies on that technique
     # -ieee=full is needed for mo_utils (is_nan, is_finite etc. fails with -ieee=stop)
-    $<$<CONFIG:DEBUG>:-g -nan -O0 -C -C=alias -C=dangling -strict95 -ieee=full>
+    $<$<CONFIG:DEBUG>:-gline -g -nan -O0 -C -C=alias -C=dangling -strict95 -ieee=full>
     $<$<CONFIG:RELEASE>:-O4 -ieee=full>
   )
 endif()
