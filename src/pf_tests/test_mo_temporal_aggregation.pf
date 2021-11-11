@@ -1,0 +1,90 @@
+module test_mo_temporal_aggregation
+  
+  use funit
+  use mo_kind,   only: i4, dp
+  use mo_temporal_aggregation, only: day2mon_average, hour2day_average
+  
+  implicit none
+
+  integer(i4)                 :: i
+  
+contains
+
+  @test
+  subroutine test_day2mon_average()
+  
+  real(dp), dimension(365)            :: daily_data
+  real(dp), dimension(366)            :: daily_data_leap
+  real(dp), dimension(:), allocatable :: monthly_ave_calc
+  
+  integer(i4), dimension(12)  :: monthly_ave_exp
+
+  integer(i4)                 :: year_start, month_start, day_start      
+
+  ! Common year
+  open(unit=20, file='./files/year.dat', action='read', status='old')
+  read(20,*) (daily_data(i), i=1, size(daily_data))
+  close(20)
+
+  day_start   = 1
+  month_start = 1
+  year_start  = 2021
+
+  monthly_ave_exp = (/ 939, 4979, 9040, 9217, 5144, 926, 815, 4979, 9137, 9124, 4979, 855 /)
+
+  call day2mon_average(daily_data, year_start, month_start, day_start, monthly_ave_calc)
+  
+  @assertEqual(nint(monthly_ave_calc*10000._dp), monthly_ave_exp)
+
+  deallocate(monthly_ave_calc)
+
+  ! Leap year
+  open(unit=20, file='./files/year_leap.dat', action='read', status='old')
+  read(20,*) (daily_data_leap(i), i=1, size(daily_data_leap))
+  close(20)
+
+  day_start   = 1
+  month_start = 1
+  year_start  = 2020
+
+  monthly_ave_exp = (/ 934, 5041, 9108, 9162, 5041, 879, 851, 5041, 9162, 9108, 4959, 851 /)
+
+  call day2mon_average(daily_data_leap, year_start, month_start, day_start, monthly_ave_calc)
+  
+  @assertEqual(nint(monthly_ave_calc*10000._dp), monthly_ave_exp)
+  
+  deallocate(monthly_ave_calc)
+
+  end subroutine test_day2mon_average
+
+  @test
+  subroutine test_hour2day_average()
+  
+  real(dp), dimension(240)            :: hourly_data
+  real(dp), dimension(:), allocatable :: daily_ave_calc
+  
+  integer(i4), dimension(10)  :: daily_ave_exp
+
+  integer(i4)                 :: year_start, month_start, day_start, hour_start  
+
+  ! Daily average of 10 day hourly data
+  open(unit=20, file='./files/period10day.dat', action='read', status='old')
+  read(20,*) (hourly_data(i), i=1, size(hourly_data))
+  close(20)
+
+  day_start   = 1
+  month_start = 1
+  year_start  = 2021
+  hour_start = 0
+
+  daily_ave_exp = (/ 1289, 6562, 9676, 6329, 1145, 1289, 6562, 9676, 6329, 1145 /)
+
+  call hour2day_average(hourly_data, year_start, month_start, day_start, hour_start, daily_ave_calc)
+  
+  @assertEqual(nint(daily_ave_calc*10000._dp), daily_ave_exp)
+
+  deallocate(daily_ave_calc)
+
+  end subroutine test_hour2day_average
+  
+end module test_mo_temporal_aggregation
