@@ -80,13 +80,13 @@ contains
     character(len=100) :: root1, root2, root3
     character(len=100) :: ext1, ext2, ext3
       
-    call path_splitext('../tests/files/namelist.txt',root1,ext1)
-    call path_splitext('../tests/.',root2,ext2)
+    call path_splitext('./files/namelist.txt',root1,ext1)
+    call path_splitext('./.',root2,ext2)
     call path_splitext('../../README',root3,ext3)
 
-    @assertEqual(trim(root1), '../tests/files/namelist')
+    @assertEqual(trim(root1), './files/namelist')
     @assertEqual(trim(ext1), '.txt')
-    @assertEqual(trim(root2), '../tests/.')
+    @assertEqual(trim(root2), './.')
     @assertEqual(trim(ext2), '')
     @assertEqual(trim(root3), '../../README')
     @assertEqual(trim(ext3), '')
