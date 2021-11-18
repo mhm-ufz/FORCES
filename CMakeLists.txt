@@ -39,7 +39,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE AND BUILD_FOR
     NAME coverage
     EXECUTABLE ctest
     DEPENDENCIES ${LIB_NAME}
-    EXCLUDE "src/pf_tests/*" "src/tests/*" "${CMAKE_CURRENT_BINARY_DIR}/*"
+    EXCLUDE "src/pf_tests/*" "${CMAKE_CURRENT_BINARY_DIR}/*"
     LCOV_ARGS --no-external
     GENHTML_ARGS -t "${LIB_NAME} coverage" --html-prolog ../doc/html_files/cov_header.prolog
   )
@@ -51,5 +51,4 @@ add_subdirectory(./src)
 if(BUILD_FORCES_TESTS)
   # add test directories (defined after coverage definition)
   add_subdirectory(./src/pf_tests)
-  add_subdirectory(./src/tests)
 endif()
