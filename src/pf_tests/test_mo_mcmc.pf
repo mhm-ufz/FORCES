@@ -32,6 +32,8 @@ contains
   @test
   subroutine test_mcmc()
 
+    real(dp)     :: t = 1.e-7_dp
+
     ! loading the data points observed
     call setmeas()
 
@@ -91,15 +93,17 @@ contains
     ! para # 3  =    2.8306538403277148 +/-   0.1384711293432960
     write(*,*) ''
     write(*,*) '-----------------------------------'
-    @assertEqual(nint(stddev(mcmc_paras(:,1))*10000000, i4), 583_i4)
-    @assertEqual(nint(stddev(mcmc_paras(:,2))*10000000, i4), 60238_i4)
-    @assertEqual(nint(stddev(mcmc_paras(:,3))*10000000, i4), 1384711_i4)
+    @assertEqual(stddev(mcmc_paras(:,1)), 5.8265791202762377E-05_dp, tolerance = t)
+    @assertEqual(stddev(mcmc_paras(:,2)), 6.0238019468712668E-03_dp, tolerance = t)
+    @assertEqual(stddev(mcmc_paras(:,3)), 0.1384711293432960_dp, tolerance = t)
 
   end subroutine test_mcmc
 
   ! Test MCMC with restart
   @test
   subroutine test_mcmc_restart()
+
+    real(dp)     :: t = 1.e-7_dp
 
     write(*,*) ''
     write(*,*) '---------------------------------------------------------------------------------------------'
@@ -137,15 +141,17 @@ contains
     ! para # 3  =    2.8306538403277148 +/-   0.1384711293432960
     write(*,*) ''
     write(*,*) '-----------------------------------'
-    @assertEqual(nint(stddev(mcmc_paras(:,1))*10000000,i4), 583_i4)
-    @assertEqual(nint(stddev(mcmc_paras(:,2))*10000000,i4), 60238_i4)
-    @assertEqual(nint(stddev(mcmc_paras(:,3))*10000000,i4), 1384711_i4)
+    @assertEqual(stddev(mcmc_paras(:,1)), 5.8265791202762377E-05_dp, tolerance = t)
+    @assertEqual(stddev(mcmc_paras(:,2)), 6.0238019468712668E-03_dp, tolerance = t)
+    @assertEqual(stddev(mcmc_paras(:,3)), 0.1384711293432960_dp, tolerance = t)
 
   end subroutine test_mcmc_restart
 
   ! Test MCMC with stddev new
   @test
   subroutine test_mcmc_stddev()
+
+    real(dp)     :: t = 1.e-7_dp
 
     write(*,*) ''
     write(*,*) '---------------------------------------------------------------------------------------------'
@@ -203,9 +209,9 @@ contains
     ! para # 3  =    2.8654065450088502 +/-   0.1498533843248984
     write(*,*) ''
     write(*,*) '-----------------------------------'
-    @assertEqual(nint(stddev(mcmc_paras(:,1))*10000000,i4), 632_i4)
-    @assertEqual(nint(stddev(mcmc_paras(:,2))*10000000,i4), 66281_i4)
-    @assertEqual(nint(stddev(mcmc_paras(:,3))*10000000,i4), 1498534_i4)
+    @assertEqual(stddev(mcmc_paras(:,1)), 6.3209436919767900E-05_dp, tolerance = t)
+    @assertEqual(stddev(mcmc_paras(:,2)), 6.6280930370445947E-03_dp, tolerance = t)
+    @assertEqual(stddev(mcmc_paras(:,3)), 0.1498533843248984_dp, tolerance = t)
 
     !clean up
     deallocate(mcmc_paras)

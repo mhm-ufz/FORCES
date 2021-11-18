@@ -28,6 +28,8 @@ contains
 
   @test
   subroutine test_sce_ackley()
+
+    real(dp)                ::  t = 1.e-7_dp
   
     ! Dimension of test function = number of parameters
     n = 30
@@ -101,7 +103,7 @@ contains
     if (parallel) then
       ! compiled without OpenMP
       @assertEqual(neval, 4455_i8)
-      @assertEqual(nint(bestf*10000000.0_dp), 104439)
+      @assertEqual(bestf, 0.0104439_dp, tolerance = t)
 
       ! compiled with OpenMP
       !$ write(*,*) 'mo_sce: It is not possible to check if sce runs properly with OpenMP.'
@@ -109,7 +111,7 @@ contains
     else
       ! no matter if compiler with or without OpenMP
       @assertEqual(neval, 4455_i8)
-      @assertEqual(nint(bestf*10000000.0_dp), 104439)
+      @assertEqual(bestf, 0.0104439_dp, tolerance = t)
     end if
 
     ! Check restart
@@ -138,13 +140,13 @@ contains
     if (parallel) then
       ! compiled without OpenMP
       @assertEqual(neval, 4455_i8)
-      @assertEqual(nint(bestf*10000000.0_dp), 104439)
+      @assertEqual(bestf, 0.0104439_dp, tolerance = t)
       ! compiled with OpenMP
       !'mo_sce: It is not possible to check if sce runs properly with OpenMP.'
     else
       ! no matter if compiler with or without OpenMP
       @assertEqual(neval, 4455_i8)
-      @assertEqual(nint(bestf*10000000.0_dp), 104439)
+      @assertEqual(bestf, 0.0104439_dp, tolerance = t)
     end if
 
     deallocate(pini, prange, opt, mask)
@@ -153,6 +155,8 @@ contains
 
   @test
   subroutine test_sce_griewank()
+
+    real(dp)                ::  t = 1.e-7_dp
   
     ! Dimension of test function = number of parameters
     n = 3
@@ -226,7 +230,7 @@ contains
     if (parallel) then
       ! compiled without OpenMP
       @assertEqual(neval, 372_i8)
-      @assertEqual(nint(bestf*10000000.0_dp), 308758)
+      @assertEqual(bestf, 0.0308758_dp, tolerance = t)
 
       ! compiled with OpenMP
       !$ write(*,*) 'mo_sce: It is not possible to check if sce runs properly with OpenMP.'
@@ -234,7 +238,7 @@ contains
     else
       ! no matter if compiler with or without OpenMP
       @assertEqual(neval, 372_i8)
-      @assertEqual(nint(bestf*10000000.0_dp), 308758)
+      @assertEqual(bestf, 0.0308758_dp, tolerance = t)
     end if
 
     ! Check restart
@@ -263,13 +267,13 @@ contains
     if (parallel) then
       ! compiled without OpenMP
       @assertEqual(neval, 372_i8)
-      @assertEqual(nint(bestf*10000000.0_dp), 308758)
+      @assertEqual(bestf, 0.0308758_dp, tolerance = t)
       ! compiled with OpenMP
       !'mo_sce: It is not possible to check if sce runs properly with OpenMP.'
     else
       ! no matter if compiler with or without OpenMP
       @assertEqual(neval, 372_i8)
-      @assertEqual(nint(bestf*10000000.0_dp), 308758)
+      @assertEqual(bestf, 0.0308758_dp, tolerance = t)
     end if
 
     deallocate(pini, prange, opt, mask)

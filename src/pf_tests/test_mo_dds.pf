@@ -32,7 +32,8 @@ contains
   @test
   subroutine test_dds()
 
-    integer(i4), dimension(10) :: dds_should
+    real(dp), dimension(10) :: dds_should
+    real(dp)                :: t = 1.E-4
     integer :: n 
   
     write(*,*) '--------------------------------------------------'
@@ -58,18 +59,17 @@ contains
     write(*,'(A,10F9.4)') 'Should be    3.0825   0.0629   0.0362  -0.0063   0.0026  -7.6358   0.0718  -0.0528  -0.1008   0.0037'
     write(*,'(A,10F9.4)') 'Output is ', dv_opt
 
-    dds_should = (/ 30825, 629, 362, -63, 26, -76358, 718, -528, -1008, 37 /)
+    dds_should = (/ 3.0825, 0.0629, 0.0362, -0.0063, 0.0026, -7.6358, 0.0718, -0.0528, -0.1008, 0.0037 /)
 
-    do n = 1, 10
-      @assertEqual(nint(10000._dp*dv_opt(n)), dds_should(n))
-    end do
+    @assertEqual(dv_opt, dds_should, tolerance = t)
       
   end subroutine test_dds
 
   @test
   subroutine test_mdds()
   
-    integer(i4), dimension(10) :: mdds_should
+    real(dp), dimension(10) :: mdds_should
+    real(dp)                :: t = 1.E-4
     integer :: n 
 
     dv_ini        = (/ -.226265E+01, -.130187E+01, -.151219E+01, 0.133983E+00, 0.988159E+00, &
@@ -87,11 +87,9 @@ contains
     write(*,'(A,10F9.4)') 'Should be    3.1209   0.0577  -0.0168  -6.3592  -0.0393   0.0191  -8.2359   0.0158  -9.4605  -0.0736'
     write(*,'(A,10F9.4)') 'Output is ', dv_opt
 
-    mdds_should = (/ 31209, 577, -168, -63592, -393, 191, -82359, 158, -94605, -736 /)
+    mdds_should = (/ 3.1209, 0.0577, -0.0168, -6.3592, -0.0393, 0.0191, -8.2359, 0.0158, -9.4605, -0.0736 /)
 
-    do n = 1, 10
-      @assertEqual(nint(10000._dp*dv_opt(n)), mdds_should(n))
-    end do
+    @assertEqual(dv_opt, mdds_should, tolerance = t)
    
   end subroutine test_mdds
   
