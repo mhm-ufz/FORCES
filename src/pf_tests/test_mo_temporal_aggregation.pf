@@ -1,0 +1,97 @@
+module test_mo_temporal_aggregation
+  
+  use funit
+  use mo_kind,   only: i4, dp
+  use mo_temporal_aggregation, only: day2mon_average, hour2day_average
+  
+  implicit none
+
+  integer(i4)                 :: i
+  
+contains
+
+  @test
+  subroutine test_day2mon_average()
+  
+  real(dp), dimension(365)            :: daily_data
+  real(dp), dimension(366)            :: daily_data_leap
+  real(dp), dimension(:), allocatable :: monthly_ave_calc
+  real(dp), dimension(12)             :: monthly_ave_exp
+  real(dp)                            :: t = 1.e-7_dp
+
+  integer(i4)                 :: year_start, month_start, day_start      
+
+
+  ! Common year
+  open(unit=20, file='./files/year.dat', action='read', status='old')
+  read(20,*) (daily_data(i), i=1, size(daily_data))
+  close(20)
+
+  day_start   = 1
+  month_start = 1
+  year_start  = 2021
+
+  monthly_ave_exp = (/ 9.3875869e-02, 4.9793048e-01, 9.0396186e-01, 9.2170137e-01,& 
+                      5.1435619e-01, 9.2627335e-02, 8.1539511e-02, 4.9794881e-01,& 
+                      9.1369771e-01, 9.1242979e-01, 4.9794251e-01, 8.5529220e-02 /)
+
+  call day2mon_average(daily_data, year_start, month_start, day_start, monthly_ave_calc)
+  
+  @assertEqual(monthly_ave_calc, monthly_ave_exp, tolerance = t)
+
+  deallocate(monthly_ave_calc)
+
+  ! Leap year
+  open(unit=20, file='./files/year_leap.dat', action='read', status='old')
+  read(20,*) (daily_data_leap(i), i=1, size(daily_data_leap))
+  close(20)
+
+  day_start   = 1
+  month_start = 1
+  year_start  = 2020
+
+  monthly_ave_exp = (/ 9.3393616e-02, 5.0411684e-01, 9.1081966e-01, 9.1618032e-01,& 
+                      5.0409221e-01, 8.7924401e-02, 8.5088130e-02, 5.0409221e-01,& 
+                      9.1618032e-01, 9.1081966e-01, 4.9589528e-01, 8.5088130e-02 /)
+
+  call day2mon_average(daily_data_leap, year_start, month_start, day_start, monthly_ave_calc)
+  
+  @assertEqual(monthly_ave_calc, monthly_ave_exp, tolerance = t)
+  
+  deallocate(monthly_ave_calc)
+
+  end subroutine test_day2mon_average
+
+  @test
+  subroutine test_hour2day_average()
+  
+  real(dp), dimension(240)            :: hourly_data
+  real(dp), dimension(:), allocatable :: daily_ave_calc
+  real(dp), dimension(10)             :: daily_ave_exp
+  real(dp)                            :: t = 1.e-7_dp
+
+  integer(i4)                 :: year_start, month_start, day_start, hour_start  
+
+  ! Daily average of 10 day hourly data
+  open(unit=20, file='./files/period10day.dat', action='read', status='old')
+  read(20,*) (hourly_data(i), i=1, size(hourly_data))
+  close(20)
+
+  day_start   = 1
+  month_start = 1
+  year_start  = 2021
+  hour_start = 0
+
+  daily_ave_exp = (/ 1.2887083e-01, 6.5615421e-01, 9.6763777e-01, 6.3286183e-01,& 
+                     1.1447535e-01, 1.2887083e-01, 6.5615421e-01, 9.6763777e-01,&
+                     6.3286183e-01, 1.1447535e-01 /)
+
+  call hour2day_average(hourly_data, year_start, month_start, day_start, hour_start, daily_ave_calc)
+  
+  @assertEqual(daily_ave_calc, daily_ave_exp, tolerance = t)
+
+  deallocate(daily_ave_calc)
+
+  end subroutine test_hour2day_average
+  
+end module test_mo_temporal_aggregation

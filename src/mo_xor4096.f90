@@ -450,7 +450,7 @@ CONTAINS
     integer(i4), save :: w
     integer(i4), save :: x(0 : 127)                 ! x(0) ... x(r-1)
     integer(i4) :: weyl = 1640531527_i4     !Z'61C88647'       ! Hexadecimal notation
-    integer(i4) :: t, v
+    integer(i4) :: t, v, tmp
     integer(i4), save :: i = -1                   ! i<0 indicates first call
     integer(i4) :: k
 
@@ -485,7 +485,15 @@ CONTAINS
       ! Initialize circular array
       w = v
       do k = 0, r - 1
-        w = w + weyl
+        ! w = w + weyl
+        if (w < 0_i4) then
+          w = w + weyl
+        else if ((huge(1_i4) - w) > weyl) then
+          w = w + weyl
+        else
+          tmp = -(huge(1_i4) - w - weyl)
+          w =  tmp - huge(1_i4) - 2_i4
+        endif
         v = IEOR(v, ISHFT(v, 13))
         v = IEOR(v, ISHFT(v, -17))
         v = IEOR(v, ISHFT(v, 5))
@@ -541,7 +549,7 @@ CONTAINS
     integer(i4) :: m
     integer(i4) :: wlen, r, s, a, b, c, d
     integer(i4) :: weyl = 1640531527_i4    !Z'61C88647'       ! Hexadecimal notation
-    integer(i4) :: k, j
+    integer(i4) :: k, j, tmp
     integer(i4), dimension(size(seed, 1)) :: t, v
     integer(i4), dimension(:, :), allocatable, save :: x               ! x(0) ... x(r-1)
     integer(i4), dimension(:), allocatable, save :: i, w             ! i<0 indicates first call
@@ -612,7 +620,15 @@ CONTAINS
         ! Initialize circular array
         w(j) = v(j)
         do k = 0, r - 1
-          w(j) = w(j) + weyl
+          ! w(j) = w(j) + weyl
+          if (w(j) < 0_i4) then
+            w(j) = w(j) + weyl
+          else if ((huge(1_i4) - w(j)) > weyl) then
+            w(j) = w(j) + weyl
+          else
+            tmp = -(huge(1_i4) - w(j) - weyl)
+            w(j) = tmp - huge(1_i4) - 2_i4
+          endif
           v(j) = IEOR(v(j), ISHFT(v(j), 13))
           v(j) = IEOR(v(j), ISHFT(v(j), -17))
           v(j) = IEOR(v(j), ISHFT(v(j), 5))
@@ -674,7 +690,7 @@ CONTAINS
     integer(i4), save :: w
     integer(i4), save :: x(0 : 127)                 ! x(0) ... x(r-1)
     integer(i4) :: weyl = 1640531527_i4    !Z'61C88647'       ! Hexadecimal notation
-    integer(i4) :: t, v
+    integer(i4) :: t, v, tmp
     integer(i4), save :: i = -1                   ! i<0 indicates first call
     integer(i4) :: k
 
@@ -716,7 +732,15 @@ CONTAINS
       ! Initialize circular array
       w = v
       do k = 0, r - 1
-        w = w + weyl
+        ! w = w + weyl
+        if (w < 0_i4) then
+          w = w + weyl
+        else if ((huge(1_i4) - w) > weyl) then
+          w = w + weyl
+        else
+          tmp = -(huge(1_i4) - w - weyl)
+          w = tmp - huge(1_i4) - 2_i4
+        endif
         v = IEOR(v, ISHFT(v, 13))
         v = IEOR(v, ISHFT(v, -17))
         v = IEOR(v, ISHFT(v, 5))
@@ -777,7 +801,7 @@ CONTAINS
     integer(i4) :: m
     integer(i4) :: wlen, r, s, a, b, c, d
     integer(i4) :: weyl = 1640531527_i4              !Z'61C88647' = Hexadecimal notation
-    integer(i4) :: k, j
+    integer(i4) :: k, j, tmp
     real(SP), save :: t24 = 1.0_SP / 16777216.0_SP      ! = 0.5^24 = 1/2^24
     integer(i4), dimension(size(seed)) :: t, v
     integer(i4), dimension(:, :), allocatable, save :: x                   ! x(0) ... x(r-1)
@@ -854,7 +878,15 @@ CONTAINS
         ! Initialize circular array
         w(j) = v(j)
         do k = 0, r - 1
-          w(j) = w(j) + weyl
+          ! w(j) = w(j) + weyl
+          if (w(j) < 0_i4) then
+            w(j) = w(j) + weyl
+          else if ((huge(1_i4) - w(j)) > weyl) then
+            w(j) = w(j) + weyl
+          else
+            tmp = -(huge(1_i4) - w(j) - weyl)
+            w(j) = tmp - huge(1_i4) - 2_i4
+          endif
           v(j) = IEOR(v(j), ISHFT(v(j), 13))
           v(j) = IEOR(v(j), ISHFT(v(j), -17))
           v(j) = IEOR(v(j), ISHFT(v(j), 5))
@@ -919,7 +951,7 @@ CONTAINS
     integer(i8), save :: w
     integer(i8), save :: x(0 : 63)                  ! x(0) ... x(r-1)
     integer(i8) :: weyl = 7046029254386353131_i8
-    integer(i8) :: t, v
+    integer(i8) :: t, v, tmp
     integer(i8), save :: i = -1                   ! i<0 indicates first call
     integer(i8) :: k
 
@@ -955,7 +987,15 @@ CONTAINS
       ! Initialize circular array
       w = v
       do k = 0, r - 1
-        w = w + weyl
+        ! w = w + weyl
+        if (w < 0_i8) then
+          w = w + weyl
+        else if ((huge(1_i8) - w) > weyl) then
+          w = w + weyl
+        else
+          tmp = -(huge(1_i8) - w - weyl)
+          w = tmp - huge(1_i8) - 2_i8
+        endif
         v = IEOR(v, ISHFT(v, 7))
         v = IEOR(v, ISHFT(v, -9))
         x(k) = v + w
@@ -1011,7 +1051,7 @@ CONTAINS
     integer(i4) :: m
     integer(i8) :: wlen, r, s, a, b, c, d
     integer(i8) :: weyl = 7046029254386353131_i8
-    integer(i8) :: k, j
+    integer(i8) :: k, j, tmp
     integer(i8), dimension(size(seed)) :: t, v
     integer(i8), dimension(:, :), allocatable, save :: x                  ! x(0) ... x(r-1)
     integer(i8), dimension(:), allocatable, save :: i, w                ! i<0 indicates first call
@@ -1083,7 +1123,15 @@ CONTAINS
         ! Initialize circular array
         w(j) = v(j)
         do k = 0, r - 1
-          w(j) = w(j) + weyl
+          ! w(j) = w(j) + weyl
+          if (w(j) < 0_i8) then
+            w(j) = w(j) + weyl
+          else if ((huge(1_i8) - w(j)) > weyl) then
+            w(j) = w(j) + weyl
+          else
+            tmp = -(huge(1_i8) - w(j) - weyl)
+            w(j) = tmp - huge(1_i8) - 2_i8
+          endif
           v(j) = IEOR(v(j), ISHFT(v(j), 7))
           v(j) = IEOR(v(j), ISHFT(v(j), -9))
           x(j, k) = v(j) + w(j)
@@ -1144,7 +1192,7 @@ CONTAINS
     integer(i8), save :: w
     integer(i8), save :: x(0 : 63)                  ! x(0) ... x(r-1)
     integer(i8) :: weyl = 7046029254386353131_i8
-    integer(i8) :: t, v
+    integer(i8) :: t, v, tmp
     integer(i8), save :: i = -1                   ! i<0 indicates first call
     integer(i8) :: k
 
@@ -1185,7 +1233,15 @@ CONTAINS
       ! Initialize circular array
       w = v
       do k = 0, r - 1
-        w = w + weyl
+        ! w = w + weyl
+        if (w < 0_i8) then
+          w = w + weyl
+        else if ((huge(1_i8) - w) > weyl) then
+          w = w + weyl
+        else
+          tmp = -(huge(1_i8) - w - weyl)
+          w = tmp - huge(1_i8) - 2_i8
+        endif
         v = IEOR(v, ISHFT(v, 7))
         v = IEOR(v, ISHFT(v, -9))
         x(k) = v + w
@@ -1239,14 +1295,14 @@ CONTAINS
     implicit none
 
     integer(i8), dimension(:), intent(in) :: seed
-    real(DP), dimension(size(seed, 1)), intent(out) :: DoubleRealRN
+    real(dp), dimension(size(seed, 1)), intent(out) :: DoubleRealRN
     integer(i8), optional, dimension(size(seed, 1), n_save_state), intent(inout) :: save_state
 
     integer(i4) :: m
     integer(i8) :: wlen, r, s, a, b, c, d
     integer(i8) :: weyl = 7046029254386353131_i8
-    real(DP) :: t53 = 1.0_DP / 9007199254740992.0_DP  ! = 0.5^53 = 1/2^53
-    integer(i8) :: k, j
+    real(dp) :: t53 = 1.0_dp / 9007199254740992.0_dp  ! = 0.5^53 = 1/2^53
+    integer(i8) :: k, j, tmp
     integer(i8), dimension(size(seed)) :: t, v
     integer(i8), dimension(:, :), allocatable, save :: x       ! x(0) ... x(r-1)
     integer(i8), dimension(:), allocatable, save :: w
@@ -1322,7 +1378,15 @@ CONTAINS
         ! Initialize circular array
         w(j) = v(j)
         do k = 0, r - 1
-          w(j) = w(j) + weyl
+          ! w(j) = w(j) + weyl
+          if (w(j) < 0_i8) then
+            w(j) = w(j) + weyl
+          else if ((huge(1_i8) - w(j)) > weyl) then
+            w(j) = w(j) + weyl
+          else
+            tmp = -(huge(1_i8) - w(j) - weyl)
+            w(j) = tmp - huge(1_i8) - 2_i8
+          endif
           v(j) = IEOR(v(j), ISHFT(v(j), 7))
           v(j) = IEOR(v(j), ISHFT(v(j), -9))
           x(j, k) = v(j) + w(j)
@@ -1386,7 +1450,7 @@ CONTAINS
     integer(i4), save :: w
     integer(i4), save :: x(0 : 127)                 ! x(0) ... x(r-1)
     integer(i4) :: weyl = 1640531527_i4
-    integer(i4) :: t, v
+    integer(i4) :: t, v, tmp
     integer(i4), save :: i = -1                   ! i<0 indicates first call
     integer(i4) :: k
     real(SP) :: t24 = 1.0_SP / 16777216.0_SP     ! = 0.5^24 = 1/2^24
@@ -1435,7 +1499,15 @@ CONTAINS
       ! Initialize circular array
       w = v
       do k = 0, r - 1
-        w = w + weyl
+        ! w = w + weyl
+        if (w < 0_i4) then
+          w = w + weyl
+        else if ((huge(1_i4) - w) > weyl) then
+          w = w + weyl
+        else
+          tmp = -(huge(1_i4) - w - weyl)
+          w =  tmp - huge(1_i4) - 2_i4
+        endif
         v = IEOR(v, ISHFT(v, 13))
         v = IEOR(v, ISHFT(v, -17))
         v = IEOR(v, ISHFT(v, 5))
@@ -1541,7 +1613,7 @@ CONTAINS
     integer(i4) :: m
     integer(i4) :: wlen, r, s, a, b, c, d
     integer(i4) :: weyl = 1640531527_i4
-    integer(i4) :: k, j
+    integer(i4) :: k, j, tmp
     real(SP) :: t24 = 1.0_SP / 16777216.0_SP      ! = 0.5^24 = 1/2^24
     integer(i4), dimension(size(seed)) :: t, v
     integer(i4), dimension(:, :), allocatable, save :: x                   ! x(0) ... x(r-1)
@@ -1639,7 +1711,15 @@ CONTAINS
         ! Initialize circular array
         w(j) = v(j)
         do k = 0, r - 1
-          w(j) = w(j) + weyl
+          ! w(j) = w(j) + weyl
+          if (w(j) < 0_i4) then
+            w(j) = w(j) + weyl
+          else if ((huge(1_i4) - w(j)) > weyl) then
+            w(j) = w(j) + weyl
+          else
+            tmp = -(huge(1_i4) - w(j) - weyl)
+            w(j) = tmp - huge(1_i4) - 2_i4
+          endif
           v(j) = IEOR(v(j), ISHFT(v(j), 13))
           v(j) = IEOR(v(j), ISHFT(v(j), -17))
           v(j) = IEOR(v(j), ISHFT(v(j), 5))
@@ -1752,7 +1832,7 @@ CONTAINS
     integer(i8), save :: w
     integer(i8), save :: x(0 : 63)                  ! x(0) ... x(r-1)
     integer(i8) :: weyl = 7046029254386353131_i8
-    integer(i8) :: t, v
+    integer(i8) :: t, v, tmp
     integer(i8), save :: i = -1_i8                ! i<0 indicates first call
     integer(i8) :: k
 
@@ -1801,7 +1881,15 @@ CONTAINS
       ! Initialize circular array
       w = v
       do k = 0, r - 1
-        w = w + weyl
+        ! w = w + weyl
+        if (w < 0_i8) then
+          w = w + weyl
+        else if ((huge(1_i8) - w) > weyl) then
+          w = w + weyl
+        else
+          tmp = -(huge(1_i8) - w - weyl)
+          w = tmp - huge(1_i8) - 2_i8
+        endif
         v = IEOR(v, ISHFT(v, 7))
         v = IEOR(v, ISHFT(v, -9))
         x(k) = v + w
@@ -1905,7 +1993,7 @@ CONTAINS
     integer(i4) :: m
     integer(i8) :: wlen, r, s, a, b, c, d
     integer(i8) :: weyl = 7046029254386353131_i8              !Z'61C88647' = Hexadecimal notation
-    integer(i8) :: k, j
+    integer(i8) :: k, j, tmp
     real(DP) :: t53 = 1.0_DP / 9007199254740992.0_DP      ! = 0.5^24 = 1/2^24
     integer(i8), dimension(size(seed)) :: t, v
     integer(i8), dimension(:, :), allocatable, save :: x                   ! x(0) ... x(r-1)
@@ -2002,7 +2090,15 @@ CONTAINS
         ! Initialize circular array
         w(j) = v(j)
         do k = 0, r - 1
-          w(j) = w(j) + weyl
+          ! w(j) = w(j) + weyl
+          if (w(j) < 0_i8) then
+            w(j) = w(j) + weyl
+          else if ((huge(1_i8) - w(j)) > weyl) then
+            w(j) = w(j) + weyl
+          else
+            tmp = -(huge(1_i8) - w(j) - weyl)
+            w(j) = tmp - huge(1_i8) - 2_i8
+          endif
           v(j) = IEOR(v(j), ISHFT(v(j), 7))
           v(j) = IEOR(v(j), ISHFT(v(j), -9))
           x(j, k) = v(j) + w(j)

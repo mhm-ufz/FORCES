@@ -1,0 +1,54 @@
+module test_mo_timer
+  
+  use funit
+  use mo_kind,  only: i4, dp, sp
+  use mo_timer, only: max_timers, timers_init, timer_clear, timer_start, timer_stop, timer_get, &
+       max_timers, cycles_max, clock_rate, cycles1, cycles2, cputime, status, timer_check, timer_print
+  
+  implicit none
+
+  integer(i4) :: i
+  real(dp), dimension(1000000) :: r
+  real(sp)    :: timer1, timer2
+  
+contains
+
+  @test
+  subroutine test_timer()
+
+    ! Initialise timers
+    call timers_init
+    do i=1, max_timers
+      call timer_clear(i)
+      @assertEqual(timer_get(i), 0.0_sp, message = 'Sanity test: Timer reset to 0')
+    end do
+    !
+    ! Do something
+    call timer_start(1)
+    ! r = huge(1.0_dp)
+    r = 1.0_dp/epsilon(1.0_dp)
+    do i=1, 10
+      r = r**(1.0_dp/real(i,dp))
+    end do
+    call timer_stop(1)
+    timer1 = timer_get(1)
+    @assertGreaterThan(timer1, 0.0_sp, message = 'Sanity test: Timer start after computation')
+    !
+    ! Do it again
+    call timer_start(1)
+    ! r = huge(1.0_dp)
+    r = 1.0_dp/epsilon(1.0_dp)
+    do i=1, 10
+      r = r**(1.0_dp/real(i,dp))
+    end do
+    call timer_stop(1)
+    timer2 = timer_get(1)
+    @assertGreaterThan(timer2, timer1, message = 'Sanity test: Timer comparison after additional computation')
+    !
+    ! Reset timer
+    call timer_clear(1)
+    @assertEqual(timer_get(1), 0.0_sp)
+    
+  end subroutine test_timer
+  
+end module test_mo_timer

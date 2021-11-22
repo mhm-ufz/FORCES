@@ -1,0 +1,96 @@
+module test_mo_dds
+  
+  use funit
+  use mo_kind, only: i4, i8, dp
+  use mo_dds,  only: dds, mdds
+  use mo_opt_functions,    only: eval_dummy, griewank_objective
+  use mo_optimization_utils, only: eval_interface, objective_interface
+  use mo_message, only: error_message
+  
+  implicit none
+
+  integer(i4), parameter :: np = 10
+
+  ! Input to DDS
+  real(dp),    dimension(np)   :: dv_ini   ! inital value of decision variables
+  real(dp),    dimension(np,2) :: dv_range ! Min/max values of decision variables
+
+  ! Optional Input to DDS
+  real(dp)                     :: r_val    ! DDS perturbation parameter (-> 0.2 by default)
+  integer(i8) :: seed                      ! User seed to initialise the random number generator
+  integer(i8) :: nIterMax                  ! Maximum number of iteration or function evaluation
+  logical     :: to_max                    ! Maximization or minimization of function
+
+  ! Output of DDS
+  real(dp), dimension(np) :: dv_opt        ! Best value of decision variables
+
+  procedure(eval_interface), pointer :: eval
+  procedure(objective_interface), pointer :: obj_func
+  
+contains
+
+  @test
+  subroutine test_dds()
+
+    real(dp), dimension(10) :: dds_should
+    real(dp)                :: t = 1.E-4
+    integer :: n 
+  
+    write(*,*) '--------------------------------------------------'
+    write(*,*) '  Dynamically Dimensioned Search (DDS) Algorithm  '
+    write(*,*) '         version 1.1 - by Bryan Tolson            '
+    write(*,*) '--------------------------------------------------'
+
+    dv_ini        = (/ -.226265E+01, -.130187E+01, -.151219E+01, 0.133983E+00, 0.988159E+00, &
+                      -.495074E+01, -.126574E+02, 0.572684E+00, 0.303864E+01, 0.343031E+01 /)
+    dv_range(:,1) = (/ -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0 /)
+    dv_range(:,2) = (/ 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0 /)
+    r_val    = 0.20_dp
+    nIterMax = 100000_i8
+    to_max   = .False.
+    seed     = 123456789_i8
+    eval => eval_dummy
+    obj_func => griewank_objective
+
+    dv_opt   = DDS(eval, obj_func, dv_ini, dv_range, r=r_val, seed=seed, maxiter=nIterMax, maxit=to_max)
+
+    write(*,*) ''
+    write(*,*) 'DDS'
+    write(*,'(A,10F9.4)') 'Should be    3.0825   0.0629   0.0362  -0.0063   0.0026  -7.6358   0.0718  -0.0528  -0.1008   0.0037'
+    write(*,'(A,10F9.4)') 'Output is ', dv_opt
+
+    dds_should = (/ 3.0825, 0.0629, 0.0362, -0.0063, 0.0026, -7.6358, 0.0718, -0.0528, -0.1008, 0.0037 /)
+
+    @assertEqual(dv_opt, dds_should, tolerance = t)
+      
+  end subroutine test_dds
+
+  @test
+  subroutine test_mdds()
+  
+    real(dp), dimension(10) :: mdds_should
+    real(dp)                :: t = 1.E-4
+    integer :: n 
+
+    dv_ini        = (/ -.226265E+01, -.130187E+01, -.151219E+01, 0.133983E+00, 0.988159E+00, &
+                     -.495074E+01, -.126574E+02, 0.572684E+00, 0.303864E+01, 0.343031E+01 /)
+    dv_range(:,1) = (/ -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0 /)
+    dv_range(:,2) = (/ 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0 /)
+    r_val    = 0.20_dp
+    nIterMax = 100000_i8
+    to_max   = .False.
+    seed     = 123456789_i8
+    dv_opt   = MDDS(eval, obj_func, dv_ini, dv_range, seed=seed, maxiter=nIterMax, maxit=to_max)
+
+    write(*,*) ''
+    write(*,*) 'MDDS'
+    write(*,'(A,10F9.4)') 'Should be    3.1209   0.0577  -0.0168  -6.3592  -0.0393   0.0191  -8.2359   0.0158  -9.4605  -0.0736'
+    write(*,'(A,10F9.4)') 'Output is ', dv_opt
+
+    mdds_should = (/ 3.1209, 0.0577, -0.0168, -6.3592, -0.0393, 0.0191, -8.2359, 0.0158, -9.4605, -0.0736 /)
+
+    @assertEqual(dv_opt, mdds_should, tolerance = t)
+   
+  end subroutine test_mdds
+  
+end module test_mo_dds

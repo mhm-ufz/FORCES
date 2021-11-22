@@ -1,0 +1,101 @@
+module test_mo_string_utils
+  
+  use funit
+  USE mo_kind,   ONLY: i4, i8, dp, sp
+  USE mo_string_utils, ONLY: tolower, toupper, separator, num2str, nonull, compress
+  USE mo_string_utils, ONLY: startsWith, equalStrings, splitString
+  USE mo_string_utils, ONLY: DIVIDE_STRING
+  
+  implicit none
+  
+  character(len=100)                        :: sout, sundef
+  character(256), dimension(:), allocatable :: strArr
+
+contains
+
+  @test
+  subroutine test_string_utils()
+  
+    Write(*,*) ''
+    Write(*,*) 'Test mo_string_utils.f90'
+
+    ! tolower
+    sout = tolower('Hallo ')
+    @assertEqual('hallo', sout)
+    ! toupper
+    sout = toupper('Hallo')
+    @assertEqual('HALLO', sout)
+    ! num2str
+    sout = separator
+    @assertEqual('---', sout(1:3))
+    sout = num2str(3.141592653589793238462643383279502884197_dp, '(F5.3)')
+    @assertEqual('3.142', sout)
+    sout = num2str(3.141592653589793238462643383279502884197_sp, '(F5.3)')
+    @assertEqual('3.142', sout)
+    sout = num2str(101_i4, '(I3)')
+    @assertEqual('101', sout)
+    sout = num2str(101_i8, '(I3)')
+    @assertEqual('101', sout)
+    sout = num2str(.true., '(L1)')
+    @assertEqual('T', sout)
+    ! nonull
+    @assertTrue(nonull(sout))
+    @assertFalse(nonull(sundef))
+    ! compress
+    sout = compress('H a      l l o       ')
+    @assertEqual('Hallo', sout)
+    ! startsWith
+    @assertTrue(startsWith("Thisisatest","T") .and. startsWith("Thisisatest","This"))
+    @assertFalse(startsWith("Thisisatest","t") .or. startsWith("Thisisatest","test_*"))
+    ! equalStrings
+    @assertTrue(equalStrings("Thisis","Thisis") .and. equalStrings("test*_<","test*_<"))
+    @assertFalse(equalStrings("Thisis","THISIS") .or. equalStrings("test*_<","est*_<"))
+    ! splitString
+    strArr = splitString('I want to test this routine!', ' ')
+    @assertEqual(strArr(1), 'I')
+    @assertEqual(strArr(2), 'want')
+    @assertEqual(strArr(3), 'to')
+    @assertEqual(strArr(4), 'test')
+    @assertEqual(strArr(5), 'this')
+    @assertEqual(strArr(6), 'routine!')
+    strArr = splitString('I,want,to,test,this,routine!', ',')
+    @assertEqual(strArr(1), 'I')
+    @assertEqual(strArr(2), 'want')
+    @assertEqual(strArr(3), 'to')
+    @assertEqual(strArr(4), 'test')
+    @assertEqual(strArr(5), 'this')
+    @assertEqual(strArr(6), 'routine!')
+    strArr = splitString('w!hat_s-a+bout=-sp.eci,al-chara<cte>rs?', '-')
+    @assertEqual(strArr(1), 'w!hat_s')
+    @assertEqual(strArr(2), 'a+bout=')
+    @assertEqual(strArr(3), 'sp.eci,al')
+    @assertEqual(strArr(4), 'chara<cte>rs?')
+    strArr = splitString('multi_+character_*splits_+should work_+', '_+')
+    @assertEqual(strArr(1), 'multi')
+    @assertEqual(strArr(2), 'character_*splits')
+    @assertEqual(strArr(3), 'should work')
+    @assertEqual(strArr(4), '')
+
+    call DIVIDE_STRING('I want to test this routine!', ' ', strArr)
+    @assertEqual(strArr(1), 'I')
+    @assertEqual(strArr(2), 'want')
+    @assertEqual(strArr(3), 'to')
+    @assertEqual(strArr(4), 'test')
+    @assertEqual(strArr(5), 'this')
+    @assertEqual(strArr(6), 'routine!')
+    call DIVIDE_STRING('I,want,to,test,this,routine!', ',', strArr)
+    @assertEqual(strArr(1), 'I')
+    @assertEqual(strArr(2), 'want')
+    @assertEqual(strArr(3), 'to')
+    @assertEqual(strArr(4), 'test')
+    @assertEqual(strArr(5), 'this')
+    @assertEqual(strArr(6), 'routine!')
+    call DIVIDE_STRING("w!hat_s-a+bout=-sp.eci,al-chara<cte>rs?", '-', strArr)
+    @assertEqual(strArr(1), 'w!hat_s')
+    @assertEqual(strArr(2), 'a+bout=')
+    @assertEqual(strArr(3), 'sp.eci,al')
+    @assertEqual(strArr(4), 'chara<cte>rs?')
+
+  end subroutine test_string_utils
+  
+end module test_mo_string_utils

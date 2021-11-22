@@ -1,0 +1,71 @@
+module test_mo_orderpack
+  
+  use funit
+  use mo_kind,      only: i4, dp, sp
+  use mo_utils,     only: eq
+  use mo_orderpack, only: refsor, mrgrnk, omedian, sort, sort_index
+  use mo_message, only: error_message
+  
+  implicit none
+
+  integer(i4), dimension(10) :: ii
+  
+contains
+  
+  ! Double precision
+  @test
+  subroutine test_orderpack_dp()
+
+    real(dp),    dimension(10) :: dat1, dat2
+
+    ! sort
+    dat1 = (/ 1., 2., 3., 4., 5., 6., 7., 8., 9., 10. /)
+    dat2 = dat1(10:1:-1)
+    call refsor(dat2)
+    @assertEqual(dat1, dat2)
+    dat2 = dat1(10:1:-1)
+    call mrgrnk(dat2, ii)
+    @assertEqual(dat1, dat2(ii))
+    ! sort aliases
+    dat1 = (/ 1., 2., 3., 4., 5., 6., 7., 8., 9., 10. /)
+    dat2 = dat1(10:1:-1)
+    call sort(dat2)
+    @assertEqual(dat1, dat2)
+    dat2 = dat1(10:1:-1)
+    ii = sort_index(dat2)
+    @assertEqual(dat1, dat2(ii))
+ 
+    ! median
+    @assertEqual(omedian(dat1), 5.5_dp)
+
+  end subroutine test_orderpack_dp
+
+  ! Single precision
+  @test
+  subroutine test_orderpack_sp()
+
+    real(sp),    dimension(10) :: sat1, sat2
+  
+    ! sort
+    sat1 = (/ 1., 2., 3., 4., 5., 6., 7., 8., 9., 10. /)
+    sat2 = sat1(10:1:-1)
+    call refsor(sat2)
+    @assertEqual(sat1, sat2)
+    sat2 = sat1(10:1:-1)
+    call mrgrnk(sat2, ii)
+    @assertEqual(sat1, sat2(ii))
+    ! sort aliases
+    sat1 = (/ 1., 2., 3., 4., 5., 6., 7., 8., 9., 10. /)
+    sat2 = sat1(10:1:-1)
+    call sort(sat2)
+    @assertEqual(sat1, sat2)
+    sat2 = sat1(10:1:-1)
+    ii = sort_index(sat2)
+    @assertEqual(sat1, sat2(ii))
+
+    ! median
+    @assertEqual(omedian(sat1), 5.5_sp)
+
+  end subroutine test_orderpack_sp
+
+end module test_mo_orderpack

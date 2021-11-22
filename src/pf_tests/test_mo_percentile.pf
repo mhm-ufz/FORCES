@@ -1,0 +1,189 @@
+module test_mo_percentile
+  
+  use funit
+  use mo_kind,        only: dp, sp, i4
+  use mo_percentile,  only: median, percentile, qmedian, n_element
+  use mo_orderpack,   only: sort
+  USE mo_utils,       only: eq, ne, le, ge
+
+  implicit none
+
+contains
+
+  ! Double precision
+  @test
+  subroutine test_percentile_dp()
+
+    real(dp), dimension(10) :: dat
+    real(dp), dimension(2)  :: dqua
+  
+    dat = (/ 1., 2., 3., 4., 5., 6., 7., 8., 9., 10. /)
+    
+    ! Median dp
+    @assertEqual(median(dat), 5.5_dp, message= 'median dp even n')
+    @assertEqual(median(dat(:9)), 5._dp, message= 'median dp odd n')
+    @assertEqual(median(dat,mask=ne(dat,10._dp)), 5._dp, message= 'median dp masked odd n')
+    @assertEqual(median(dat,mask=le(dat,8._dp)), 4.5_dp, message= 'median dp masked even n')
+    @assertEqual(qmedian(dat), 5.5_dp, message= 'quick median dp even n')
+    @assertEqual(qmedian(dat(:9)), 5._dp, message= 'quick median dp odd n')
+
+    ! N Elements dp
+    @assertEqual(n_element(dat,4), 4._dp, message= 'nth smallest element dp')
+    @assertEqual(n_element(dat,1, mask= ge(dat,2._dp)), 2._dp, message= 'nth smallest element dp masked')
+
+    ! Percentile 0d dp
+    @assertEqual(percentile(dat, 95._dp), 10._dp, message= 'percentile 0d dp default')
+    @assertEqual(percentile(dat, 75._dp, mode_in=1_i4), 8._dp, message= 'percentile 0d dp mode 1')
+    @assertEqual(percentile(dat, 75._dp, mode_in=2_i4), 7.5_dp, message= 'percentile 0d dp mode 2')
+    @assertEqual(percentile(dat, 75._dp, mode_in=3_i4), 8._dp, message= 'percentile 0d dp mode 3')
+    @assertEqual(percentile(dat, 75._dp, mode_in=4_i4), 8._dp, message= 'percentile 0d dp mode 4')
+    @assertEqual(percentile(dat, 75._dp, mode_in=5_i4), 8.25_dp, message= 'percentile 0d dp mode 5')
+    @assertEqual(percentile(dat, 75._dp, mode_in=6_i4), 7.75_dp, message= 'percentile 0d dp mode 6')
+    @assertEqual(nint(percentile(dat, 75._dp, mode_in=7_i4)*10000._dp), 80833_i4, message= 'percentile 0d dp mode 7')
+    @assertEqual(percentile(dat, 75._dp, mode_in=8_i4), 8.0625_dp, message= 'percentile 0d dp mode 8')
+    @assertEqual(percentile(dat, 75._dp, mask= ne(dat, 10._dp)), 7._dp, message= 'percentile 0d dp masked')
+
+    ! Percentile 1d dp
+    dqua = percentile(dat,(/50._dp, 95._dp/))
+    @assertEqual(dqua(1), 5._dp, message= 'percentile 1d dp default')
+    @assertEqual(dqua(2), 10._dp, message= 'percentile 1d dp default')
+    dqua = percentile(dat,(/50._dp,75._dp/), mode_in=1_i4)
+    @assertEqual(dqua(1), 5._dp, message= 'percentile 1d dp mode 1')
+    @assertEqual(dqua(2), 8._dp, message= 'percentile 1d dp mode 1')
+    dqua = percentile(dat,(/50._dp,75._dp/), mode_in=2_i4)
+    @assertEqual(dqua(1), 5._dp, message= 'percentile 1d dp mode 2')
+    @assertEqual(dqua(2), 7.5_dp, message= 'percentile 1d dp mode 2')
+    dqua = percentile(dat,(/50._dp,75._dp/), mode_in=3_i4)
+    @assertEqual(dqua(1), 5._dp, message= 'percentile 1d dp mode 3')
+    @assertEqual(dqua(2), 8._dp, message= 'percentile 1d dp mode 3')
+    dqua = percentile(dat,(/50._dp,75._dp/), mode_in=4_i4)
+    @assertEqual(dqua(1), 5.5_dp, message= 'percentile 1d dp mode 4')
+    @assertEqual(dqua(2), 8._dp, message= 'percentile 1d dp mode 4')
+    dqua = percentile(dat,(/50._dp,75._dp/), mode_in=5_i4)
+    @assertEqual(dqua(1), 5.5_dp, message= 'percentile 1d dp mode 5')
+    @assertEqual(dqua(2), 8.25_dp, message= 'percentile 1d dp mode 5')
+    dqua = percentile(dat,(/50._dp,75._dp/), mode_in=6_i4)
+    @assertEqual(dqua(1), 5.5_dp, message= 'percentile 1d dp mode 6')
+    @assertEqual(dqua(2), 7.75_dp, message= 'percentile 1d dp mode 6')
+    dqua = percentile(dat,(/50._dp,75._dp/), mode_in=7_i4)
+    @assertEqual(dqua(1), 5.5_dp, message= 'percentile 1d dp mode 7')
+    @assertEqual(nint(dqua(2)*10000._dp), 80833_i4, message= 'percentile 1d dp mode 7')
+    dqua = percentile(dat,(/50._dp,75._dp/), mode_in=8_i4)
+    @assertEqual(dqua(1), 5.5_dp, message= 'percentile 1d dp mode 8')
+    @assertEqual(dqua(2), 8.0625_dp, message= 'percentile 1d dp mode 8')
+
+  end subroutine test_percentile_dp
+
+  ! Single precision
+  @test
+  subroutine test_percentile_sp()
+
+    real(sp), dimension(10) :: sat
+    real(sp), dimension(2)  :: squa
+  
+    sat = (/ 1., 2., 3., 4., 5., 6., 7., 8., 9., 10. /)
+    
+    ! Median sp
+    @assertEqual(median(sat), 5.5_sp, message= 'median sp even n')
+    @assertEqual(median(sat(:9)), 5._sp, message= 'median sp odd n')
+    @assertEqual(median(sat,mask=ne(sat,10._sp)), 5._sp, message= 'median sp masked odd n')
+    @assertEqual(median(sat,mask=le(sat,8._sp)), 4.5_sp, message= 'median sp masked even n')
+    @assertEqual(qmedian(sat), 5.5_sp, message= 'quick median sp even n')
+    @assertEqual(qmedian(sat(:9)), 5._sp, message= 'quick median sp odd n')
+
+    ! N Elements sp
+    @assertEqual(n_element(sat,4), 4._sp, message= 'nth smallest element sp')
+    @assertEqual(n_element(sat,1, mask= ge(sat,2._sp)), 2._sp, message= 'nth smallest element sp masked')
+
+    ! Percentile 0d sp
+    @assertEqual(percentile(sat, 95._sp), 10._sp, message= 'percentile 0d sp default')
+    @assertEqual(percentile(sat, 75._sp, mode_in=1_i4), 8._sp, message= 'percentile 0d sp mode 1')
+    @assertEqual(percentile(sat, 75._sp, mode_in=2_i4), 7.5_sp, message= 'percentile 0d sp mode 2')
+    @assertEqual(percentile(sat, 75._sp, mode_in=3_i4), 8._sp, message= 'percentile 0d sp mode 3')
+    @assertEqual(percentile(sat, 75._sp, mode_in=4_i4), 8._sp, message= 'percentile 0d sp mode 4')
+    @assertEqual(percentile(sat, 75._sp, mode_in=5_i4), 8.25_sp, message= 'percentile 0d sp mode 5')
+    @assertEqual(percentile(sat, 75._sp, mode_in=6_i4), 7.75_sp, message= 'percentile 0d sp mode 6')
+    @assertEqual(nint(percentile(sat, 75._sp, mode_in=7_i4)*10000._sp), 80833_i4, message= 'percentile 0d sp mode 7')
+    @assertEqual(percentile(sat, 75._sp, mode_in=8_i4), 8.0625_sp, message= 'percentile 0d sp mode 8')
+    @assertEqual(percentile(sat, 75._sp, mask= ne(sat, 10._sp)), 7._sp, message= 'percentile 0d sp masked')
+
+    ! Percentile 1d sp
+    squa = percentile(sat,(/50._sp, 95._sp/))
+    @assertEqual(squa(1), 5._sp, message= 'percentile 1d sp default')
+    @assertEqual(squa(2), 10._sp, message= 'percentile 1d sp default')
+    squa = percentile(sat,(/50._sp,75._sp/), mode_in=1_i4)
+    @assertEqual(squa(1), 5._sp, message= 'percentile 1d sp mode 1')
+    @assertEqual(squa(2), 8._sp, message= 'percentile 1d sp mode 1')
+    squa = percentile(sat,(/50._sp,75._sp/), mode_in=2_i4)
+    @assertEqual(squa(1), 5._sp, message= 'percentile 1d sp mode 2')
+    @assertEqual(squa(2), 7.5_sp, message= 'percentile 1d sp mode 2')
+    squa = percentile(sat,(/50._sp,75._sp/), mode_in=3_i4)
+    @assertEqual(squa(1), 5._sp, message= 'percentile 1d sp mode 3')
+    @assertEqual(squa(2), 8._sp, message= 'percentile 1d sp mode 3')
+    squa = percentile(sat,(/50._sp,75._sp/), mode_in=4_i4)
+    @assertEqual(squa(1), 5.5_sp, message= 'percentile 1d sp mode 4')
+    @assertEqual(squa(2), 8._sp, message= 'percentile 1d sp mode 4')
+    squa = percentile(sat,(/50._sp,75._sp/), mode_in=5_i4)
+    @assertEqual(squa(1), 5.5_sp, message= 'percentile 1d sp mode 5')
+    @assertEqual(squa(2), 8.25_sp, message= 'percentile 1d sp mode 5')
+    squa = percentile(sat,(/50._sp,75._sp/), mode_in=6_i4)
+    @assertEqual(squa(1), 5.5_sp, message= 'percentile 1d sp mode 6')
+    @assertEqual(squa(2), 7.75_sp, message= 'percentile 1d sp mode 6')
+    squa = percentile(sat,(/50._sp,75._sp/), mode_in=7_i4)
+    @assertEqual(squa(1), 5.5_sp, message= 'percentile 1d sp mode 7')
+    @assertEqual(nint(squa(2)*10000._sp), 80833_i4, message= 'percentile 1d sp mode 7')
+    squa = percentile(sat,(/50._sp,75._sp/), mode_in=8_i4)
+    @assertEqual(squa(1), 5.5_sp, message= 'percentile 1d sp mode 8')
+    @assertEqual(squa(2), 8.0625_sp, message= 'percentile 1d sp mode 8')
+
+  end subroutine test_percentile_sp
+
+  ! Test speed
+  ! @test
+  ! subroutine test_percentile_speed()
+  
+  !   integer,  parameter :: nele = 10000000
+  !   real(dp), dimension(nele) :: big, buf
+  !   real(dp) :: med
+  !   integer  :: i, istart, istop
+
+  !   do i = 1, nele
+  !     call random_number(big(i))
+  !   end do
+  !   ! forall(i=1:nele) big(i) = real(i,dp)
+  !   ! forall(i=1:nele/2) big(2*i) = real(i,dp)
+  
+  !   buf = big
+  !   call system_clock(istart)
+  !   med =  median(buf)
+  !   call system_clock(istop)
+  !   write(*,*) "median: ", med, istop - istart
+  
+  !   buf = big
+  !   call system_clock(istart)
+  !   med =  n_element(buf,nele/2+1)
+  !   call system_clock(istop)
+  !   write(*,*) "n_element: ", med, istop - istart
+  
+  !   buf = big
+  !   call system_clock(istart)
+  !   med =  median(buf)
+  !   call system_clock(istop)
+  !   write(*,*) "median: ", med, istop - istart
+  
+  !   buf = big
+  !   call system_clock(istart)
+  !   med = qmedian(buf)
+  !   call system_clock(istop)
+  !   write(*,*) "qmedian: ", med, istop - istart
+  
+  !   buf = big
+  !   call system_clock(istart)
+  !   call sort(buf)
+  !   med = buf(nele/2+1)
+  !   call system_clock(istop)
+  !   write(*,*) "sort: ", med, istop - istart
+
+  ! end subroutine test_percentile_speed
+  
+end module test_mo_percentile

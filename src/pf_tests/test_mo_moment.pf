@@ -1,0 +1,150 @@
+module test_mo_moment
+  
+  use funit
+  use mo_kind,   only: dp, sp
+  use mo_moment, only: absdev, average, central_moment, central_moment_var, correlation, &
+       covariance, kurtosis, mean, mixed_central_moment, mixed_central_moment_var, &
+       moment, skewness, stddev, variance
+  use mo_utils, only: ne
+  use mo_message, only: error_message
+  
+  implicit none
+  
+contains
+
+  ! test moment double precision
+  @test
+  subroutine test_moment_dp()
+     
+    real(dp), dimension(10) :: dat1, dat2
+    real(dp) :: a_dp, v_dp, s_dp, k_dp, m_dp, std_dp, ad_dp
+    real(dp) :: t = 1.e-1_dp
+
+    Write(*,*) ''
+    Write(*,*) 'Test mo_moment.f90'
+
+    dat1 = (/ 1., 2., 3., 4., 5., 6., 7., 8., 9., 10. /)
+
+    ! Test standard
+    @assertEqual(mean(dat1), 5.5_dp, tolerance = t)
+    @assertEqual(average(dat1), 5.5_dp, tolerance = t)
+    @assertEqual(variance(dat1), 9.2_dp, tolerance = t)
+    @assertEqual(stddev(dat1), 3.0_dp, tolerance = t)
+    @assertEqual(skewness(dat1), 0.0_dp, tolerance = t)
+    @assertEqual(kurtosis(dat1), -1.6_dp, tolerance = t)
+    @assertEqual(absdev(dat1), 2.5_dp, tolerance = t)
+    @assertEqual(central_moment(dat1,2), 8.25_dp, tolerance = t*1.e-1_dp)
+    @assertEqual(central_moment_var(dat1,2), 5.3_dp, tolerance = t)
+    ! Test the mask
+    @assertEqual(mean(dat1(1:9)), 5.0_dp, tolerance = t)
+    @assertEqual(average(dat1(1:9)), 5.0_dp, tolerance = t)
+    @assertEqual(variance(dat1(1:9)), 7.5_dp, tolerance = t)
+    @assertEqual(stddev(dat1(1:9)), 2.7_dp, tolerance = t)
+    @assertEqual(skewness(dat1(1:9)), 0.0_dp, tolerance = t)
+    @assertEqual(kurtosis(dat1(1:9)), -1.6_dp, tolerance = t)
+    @assertEqual(absdev(dat1(1:9)), 2.2_dp, tolerance = t)
+    @assertEqual(central_moment(dat1(1:9),2), 6.7_dp, tolerance = t)
+    @assertEqual(central_moment_var(dat1(1:9),2), 3.8_dp, tolerance = t)
+    @assertEqual(mean(dat1, mask=ne(dat1,10._dp)), 5.0_dp, tolerance = t)
+    @assertEqual(average(dat1, mask=ne(dat1,10._dp)), 5.0_dp, tolerance = t)
+    @assertEqual(variance(dat1, mask=ne(dat1,10._dp)), 7.5_dp, tolerance = t)
+    @assertEqual(stddev(dat1, mask=ne(dat1,10._dp)), 2.7_dp, tolerance = t)
+    @assertEqual(skewness(dat1, mask=ne(dat1,10._dp)), 0.0_dp, tolerance = t)
+    @assertEqual(kurtosis(dat1, mask=ne(dat1,10._dp)), -1.6_dp, tolerance = t)
+    @assertEqual(absdev(dat1, mask=ne(dat1,10._dp)), 2.2_dp, tolerance = t)
+    @assertEqual(central_moment(dat1, 2, mask=ne(dat1,10._dp)), 6.7_dp, tolerance = t)
+    @assertEqual(central_moment_var(dat1, 2, mask=ne(dat1,10._dp)), 3.8_dp, tolerance = t)
+    ! Test moment
+    call moment(dat1, average=a_dp, variance=v_dp, skewness=s_dp, kurtosis=k_dp, mean=m_dp, &
+         stddev=std_dp, absdev=ad_dp, mask=ne(dat1,10._dp))
+    @assertEqual(m_dp, 5.0_dp, tolerance = t)
+    @assertEqual(a_dp, 5.0_dp, tolerance = t)
+    @assertEqual(v_dp, 7.5_dp, tolerance = t)
+    @assertEqual(std_dp, 2.7_dp, tolerance = t)
+    @assertEqual(s_dp, 0.0_dp, tolerance = t)
+    @assertEqual(k_dp, -1.6_dp, tolerance = t)
+    @assertEqual(ad_dp, 2.2_dp, tolerance = t)
+    ! Test the double input functions
+    dat2 = (/ 1.3, 2.7, 3.9, 5.5, 7., 8.8, 11., 13., 15., 16. /)
+    @assertEqual(correlation(dat1,dat2), 0.9_dp, tolerance = t)
+    @assertEqual(covariance(dat1,dat2), 14.1_dp, tolerance = t)
+    @assertEqual(mixed_central_moment(dat1,dat2,1,1), 14.1_dp, tolerance = t)
+    @assertEqual(mixed_central_moment_var(dat1,dat2,1,1), 14.2_dp, tolerance = t)
+    @assertEqual(correlation(dat1(1:9),dat2(1:9)), 0.9_dp, tolerance = t)
+    @assertEqual(covariance(dat1(1:9),dat2(1:9)), 11.5_dp, tolerance = t)
+    @assertEqual(mixed_central_moment(dat1(1:9),dat2(1:9),1,1), 11.5_dp, tolerance = t)
+    @assertEqual(mixed_central_moment_var(dat1(1:9),dat2(1:9),1,1), 11.3_dp, tolerance = t)
+    @assertEqual(correlation(dat1,dat2, mask=(ne(dat1,10._dp).and.ne(dat2,10._dp))), 0.9_dp, tolerance = t)
+    @assertEqual(covariance(dat1,dat2, mask=(ne(dat1,10._dp).and.ne(dat2,10._dp))), 11.5_dp, tolerance = t)
+    @assertEqual(mixed_central_moment(dat1,dat2,1,1, mask=(ne(dat1,10._dp).and.ne(dat2,10._dp))), 11.5_dp, tolerance = t)
+    @assertEqual(mixed_central_moment_var(dat1,dat2,1,1, mask=(ne(dat1,10._dp).and.ne(dat2,10._dp))), 11.3_dp, tolerance = t)
+
+  end subroutine test_moment_dp
+
+  ! test moment single precision
+  @test
+  subroutine test_moment_sp()
+
+    real(sp), dimension(10) :: sat1, sat2
+    real(sp) :: a_sp, v_sp, s_sp, k_sp, m_sp, std_sp, ad_sp
+    real(sp) :: t = 1.e-1_sp
+
+    sat1 = (/ 1., 2., 3., 4., 5., 6., 7., 8., 9., 10. /)
+
+    ! Test standard
+    @assertEqual(mean(sat1), 5.5_sp, tolerance = t)
+    @assertEqual(average(sat1), 5.5_sp, tolerance = t)
+    @assertEqual(variance(sat1), 9.2_sp, tolerance = t)
+    @assertEqual(stddev(sat1), 3._sp, tolerance = t)
+    @assertEqual(skewness(sat1), 0._sp, tolerance = t)
+    @assertEqual(kurtosis(sat1), -1.6_sp, tolerance = t)
+    @assertEqual(absdev(sat1), 2.5_sp, tolerance = t)
+    @assertEqual(central_moment(sat1,2), 8.25_sp, tolerance = t*1.e-1_sp)
+    @assertEqual(central_moment_var(sat1,2), 5.3_sp, tolerance = t)
+    ! Test the mask
+    @assertEqual(mean(sat1(1:9)), 5._sp, tolerance = t)
+    @assertEqual(average(sat1(1:9)), 5._sp, tolerance = t)
+    @assertEqual(variance(sat1(1:9)), 7.5_sp, tolerance = t)
+    @assertEqual(stddev(sat1(1:9)), 2.7_sp, tolerance = t)
+    @assertEqual(skewness(sat1(1:9)), 0._sp, tolerance = t)
+    @assertEqual(kurtosis(sat1(1:9)), -1.6_sp, tolerance = t)
+    @assertEqual(absdev(sat1(1:9)), 2.2_sp, tolerance = t)
+    @assertEqual(central_moment(sat1(1:9),2), 6.7_sp, tolerance = t)
+    @assertEqual(central_moment_var(sat1(1:9),2), 3.8_sp, tolerance = t)
+    @assertEqual(mean(sat1, mask=ne(sat1,10._sp)), 5._sp, tolerance = t)
+    @assertEqual(average(sat1, mask=ne(sat1,10._sp)), 5._sp, tolerance = t)
+    @assertEqual(variance(sat1, mask=ne(sat1,10._sp)), 7.5_sp, tolerance = t)
+    @assertEqual(stddev(sat1, mask=ne(sat1,10._sp)), 2.7_sp, tolerance = t)
+    @assertEqual(skewness(sat1, mask=ne(sat1,10._sp)), 0._sp, tolerance = t)
+    @assertEqual(kurtosis(sat1, mask=ne(sat1,10._sp)), -1.6_sp, tolerance = t)
+    @assertEqual(absdev(sat1, mask=ne(sat1,10._sp)), 2.2_sp, tolerance = t)
+    @assertEqual(central_moment(sat1, 2, mask=ne(sat1,10._sp)), 6.7_sp, tolerance = t)
+    @assertEqual(central_moment_var(sat1, 2, mask=ne(sat1,10._sp)), 3.8_sp, tolerance = t)
+    ! Test moment
+    call moment(sat1, average=a_sp, variance=v_sp, skewness=s_sp, kurtosis=k_sp, mean=m_sp, &
+        stddev=std_sp, absdev=ad_sp, mask=ne(sat1,10._sp))
+    @assertEqual(m_sp, 5._sp, tolerance = t)
+    @assertEqual(a_sp, 5._sp, tolerance = t)
+    @assertEqual(v_sp, 7.5_sp, tolerance = t)
+    @assertEqual(std_sp, 2.7_sp, tolerance = t)
+    @assertEqual(s_sp, 0._sp, tolerance = t)
+    @assertEqual(k_sp, -1.6_sp, tolerance = t)
+    @assertEqual(ad_sp, 2.2_sp, tolerance = t)
+    ! Test the double input functions
+    sat2 = (/ 1.3, 2.7, 3.9, 5.5, 7., 8.8, 11., 13., 15., 16. /)
+    @assertEqual(correlation(sat1,sat2), 0.9_sp, tolerance = t)
+    @assertEqual(covariance(sat1,sat2), 14.1_sp, tolerance = t)
+    @assertEqual(mixed_central_moment(sat1,sat2,1,1), 14.1_sp, tolerance = t)
+    @assertEqual(mixed_central_moment_var(sat1,sat2,1,1), 14.2_sp, tolerance = t)
+    @assertEqual(correlation(sat1(1:9),sat2(1:9)), 0.9_sp, tolerance = t)
+    @assertEqual(covariance(sat1(1:9),sat2(1:9)), 11.5_sp, tolerance = t)
+    @assertEqual(mixed_central_moment(sat1(1:9),sat2(1:9),1,1), 11.5_sp, tolerance = t)
+    @assertEqual(mixed_central_moment_var(sat1(1:9),sat2(1:9),1,1), 11.3_sp, tolerance = t)
+    @assertEqual(correlation(sat1,sat2, mask=(ne(sat1,10._sp).and.ne(sat2,10._sp))), 0.9_sp, tolerance = t)
+    @assertEqual(covariance(sat1,sat2, mask=(ne(sat1,10._sp).and.ne(sat2,10._sp))), 11.5_sp, tolerance = t)
+    @assertEqual(mixed_central_moment(sat1,sat2,1,1, mask=(ne(sat1,10._sp).and.ne(sat2,10._sp))), 11.5_sp, tolerance = t)
+    @assertEqual(mixed_central_moment_var(sat1,sat2,1,1, mask=(ne(sat1,10._sp).and.ne(sat2,10._sp))), 11.3_sp, tolerance = t)
+
+  end subroutine test_moment_sp
+  
+end module test_mo_moment

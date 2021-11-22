@@ -117,8 +117,8 @@ MODULE mo_append
 
   INTERFACE append
      MODULE PROCEDURE append_i4_v_s, append_i4_v_v, append_i4_m_m, &
-          append_i8_v_s, append_i8_v_v, append_i8_m_m, &
-          append_i8_3d, &
+          append_i4_3d, append_i8_v_s, append_i8_v_v, &
+          append_i8_m_m, append_i8_3d, &
           append_sp_v_s, append_sp_v_v, append_sp_m_m, &
           append_sp_3d, &
           append_dp_v_s, append_dp_v_v, append_dp_m_m, &

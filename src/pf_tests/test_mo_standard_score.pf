@@ -1,0 +1,70 @@
+module test_mo_standard_score
+  
+  use funit
+  use mo_kind,           only: i4, sp, dp
+  use mo_standard_score, only: standard_score, classified_standard_score
+  use mo_message, only: error_message
+
+  implicit none
+  
+  real(dp),     dimension(9)    :: vec1       ! data array
+  integer(i4),  dimension(9)    :: classes    ! classes for classified_standard_score
+  logical,      dimension(9)    :: masking    ! mask for excluding nodata values
+
+contains
+
+  ! sp without mask
+  @test
+  subroutine test_sp_wo_mask()
+
+    real(sp),  dimension(9)     :: control         ! array with control values
+    real(sp)                    :: t = 1.e-5_sp
+
+    vec1(:)    = (/12.0_dp,  4.0_dp, 15.0_dp, 17.0_dp, 10.0_dp,  2.0_dp,  1.0_dp, 11.0_dp, 20.0_dp/)
+
+    ! standard _score
+    control(:) = (/0.26518_sp, -0.92813_sp, 0.71267_sp, 1.01100_sp, -0.03315_sp,& 
+                    -1.22645_sp, -1.37562_sp, 0.11602_sp, 1.45849_sp/)
+    masking = .true.
+
+    @assertEqual(standard_score(real(vec1(:),sp)              ), control, tolerance = t)
+    @assertEqual(standard_score(real(vec1(:),sp), mask=masking), control, tolerance = t)
+
+    ! classified_standard_score
+    classes =(/3,2,3,2,2,3,1,1,3/)
+    control(:) = (/-0.03295_sp, -0.97340_sp, 0.36240_sp, 1.02463_sp, -0.05123_sp,& 
+                    -1.35075_sp, -0.70711_sp, 0.70711_sp, 1.02130_sp/)
+
+    @assertEqual(classified_standard_score(real(vec1(:),sp), classes), control, tolerance = t)
+    @assertEqual(classified_standard_score(real(vec1(:),sp), classes, mask=masking), control, tolerance = t)
+  
+  end subroutine test_sp_wo_mask
+
+  ! dp with mask
+  @test
+  subroutine test_dp_w_mask()
+
+    real(dp),  dimension(9)     :: control, control2  ! array with control values
+    real(dp)                    :: t = 1.e-5_dp
+
+    masking(:) = (/.TRUE., .TRUE., .FALSE., .FALSE., .TRUE., .TRUE., .TRUE., .TRUE., .FALSE./)
+
+    ! standard_score
+    control2(:) = (/0.26518_dp, -0.92813_dp, 0.71267_dp, 1.01100_dp, -0.03315_dp,& 
+                    -1.22645_dp, -1.37562_dp, 0.11602_dp, 1.45849_dp/)
+    control(:) = (/1.09170_dp, -0.54585_dp, 1.70578_dp, 2.11517_dp, 0.68231_dp,& 
+                    -0.95524_dp, -1.15993_dp, 0.88701_dp, 2.72925_dp/)
+    @assertEqual(standard_score(     vec1(:)), control2, tolerance = t)
+    @assertEqual(standard_score(     vec1(:),  mask=masking), control, tolerance = t)
+
+    ! classified_standard_score
+    control2(:) = (/-0.03295_dp, -0.97340_dp, 0.36240_dp, 1.02463_dp, -0.05123_dp,&
+                    -1.35075_dp, -0.70711_dp, 0.70711_dp, 1.02130_dp/)
+    control(:) = (/0.70711_dp, -0.70711_dp, 0._dp, 0._dp, 0.70711_dp, -0.70711_dp,& 
+                   -0.70711_dp, 0.70711_dp, 0._dp/)
+    @assertEqual(classified_standard_score(vec1, classes), control2, tolerance = t)
+    @assertEqual(classified_standard_score(vec1, classes, mask=masking), control, tolerance = t)
+
+  end subroutine test_dp_w_mask
+  
+end module test_mo_standard_score

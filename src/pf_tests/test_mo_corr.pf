@@ -1,0 +1,56 @@
+module test_mo_corr
+
+  use funit
+  use mo_kind,   only: dp, sp, i4
+  use mo_corr,   only: autocorr
+  
+  implicit none
+
+  integer(i4), parameter :: n=1500
+  integer(i4) :: i
+  logical, dimension(n) :: mask=.true.
+
+contains
+
+  @test
+  subroutine test_coor_dp()
+    real(dp), dimension(n)  ::  dat1, dat2
+    real(dp), dimension(2)  ::  acfm_dp, acf_dp
+    real(dp)                ::  t = epsilon(1.0_dp)
+
+    forall(i=1:n) dat1(i) = real(i, dp)
+    dat2 = dat1 + sin(dat1)
+
+    @assertEqual(autocorr(dat2, 0, mask), 1.0_dp, tolerance=t, message='coor double precision')
+    
+    acfm_dp = autocorr(dat2, (/ 0, 5 /), mask)
+    acf_dp = autocorr(dat2, (/ 0, 5 /))
+
+
+    @assertEqual(acfm_dp, acf_dp, tolerance = t, message='coor double precision acf array')
+    @assertEqual(acf_dp(2), 0.99330793041485155_dp, tolerance = t, message='coor double precision with lag')
+
+  end subroutine test_coor_dp
+  
+  @test
+  subroutine test_coor_sp()
+    real(sp), dimension(n)  ::  sat1, sat2
+    real(sp), dimension(2)  ::  acfm_sp, acf_sp
+    real(sp)                ::  t = epsilon(1.0_sp)
+
+    forall(i=1:n) sat1(i) = real(i, sp)
+    sat2 = sat1 + sin(sat1)
+
+    @assertEqual(autocorr(sat2, 0, mask), 1.0_sp, tolerance = t, message='coor single precision')
+
+    acfm_sp = autocorr(sat2, (/ 0, 5 /), mask)
+    acf_sp = autocorr(sat2, (/ 0, 5 /))
+
+    write(*,*) acf_sp
+
+    @assertEqual(acfm_sp, acf_sp, tolerance = t, message='coor single precision acf array')
+    @assertEqual(acf_sp(2), 0.993306875_sp, message='coor single precision with lag')
+  
+  end subroutine test_coor_sp
+  
+end module test_mo_corr
