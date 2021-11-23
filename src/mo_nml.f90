@@ -138,7 +138,7 @@ CONTAINS
     OPEN (nunitnml, file = file, iostat = istat, status = 'old', action = 'read', delim = 'apostrophe')
 
     IF (istat .ne. 0) THEN
-      CALL error_message('OPEN_NML', 'Could not open namelist file '//trim(file))
+      CALL error_message('OPEN_NML: Could not open namelist file ', trim(file))
     END IF
 
   END SUBROUTINE open_nml
@@ -201,11 +201,11 @@ CONTAINS
     nnml = nunitnml
     if (present(unit)) nnml = unit
 
-    IF (nnml .lt. 0) CALL error_message('CLOSE_NML', 'No namelist file opened.')
+    IF (nnml .lt. 0) CALL error_message('CLOSE_NML: No namelist file opened.')
 
     CLOSE(nnml, IOSTAT = istat)
 
-    IF (istat .ne. 0) CALL error_message('CLOSE_NML', 'Could not close namelist file.')
+    IF (istat .ne. 0) CALL error_message('CLOSE_NML: Could not close namelist file.')
 
     if (.not. present(unit)) nunitnml = -1
 
@@ -357,7 +357,7 @@ CONTAINS
     END SELECT
 
     ! Error if it reaches here
-    CALL error_message('POSITION_NML', 'namelist /'//trim(name)//'/ '//trim(code))
+    CALL error_message('POSITION_NML: namelist /', trim(name) , '/ ', trim(code))
 
   END SUBROUTINE position_nml
 
