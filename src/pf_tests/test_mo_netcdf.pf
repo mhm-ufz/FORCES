@@ -14,11 +14,14 @@ module test_mo_netcdf
   character(*), parameter  :: fname="netcdf_make_check_test_file"
   character(*), parameter  :: vname_time="time", vname_lat="lat", vname_lon="lon", vname_data="data"
   character(64), dimension(2), parameter  :: waglobalnames = [character(64) :: 'Author', 'Year']
-  integer(i4), dimension(2), parameter  :: waglobaltype = [1_i4, 1_i4]
-  integer(i4), dimension(2), parameter  :: wagloballen = [1_i4, 1_i4]
+  ! see netcdf-fortran repo: /fortran/netcdf_constants.f90
+  integer(i4), dimension(2), parameter  :: waglobaltype = [2_i4, 4_i4]
+  integer(i4), dimension(2), parameter  :: wagloballen = [14_i4, 1_i4]
   logical, dimension(2), parameter  :: wahasatt = [.true., .true.]
   character(64), dimension(2), parameter  :: wavarnames = [character(64) :: 'units', 'scaling']
   character(64), dimension(:), allocatable  :: raglobalnames, ravarnames
+  integer(i4), dimension(:), allocatable  :: raglobaltype, ragloballen
+  logical, dimension(:), allocatable  :: rahasatt
   character(64)            :: wavalue, ravalue
 
   type(NcDataset)          :: nc
@@ -119,17 +122,17 @@ contains
     call var_lat%getData(rlat)
     call var_lon%getData(rlon)
     call var_data%getData(rdata)
-    wavarnames = var_data%getAttributeNames()
+    ravarnames = var_data%getAttributeNames()
 
     ! read the fill value
     call var_data%getFillValue(rfvalue)
 
     ! read a global attribute
-    waglobalnames = nc%getAttributeNames()
-    wahasatt(1) = nc%hasAttribute(raglobalnames(1), waglobaltype(1), wagloballen(1))
-    wahasatt(2) = nc%hasAttribute(raglobalnames(2), waglobaltype(2), wagloballen(2))
+    raglobalnames = nc%getAttributeNames()
+    rahasatt(1) = nc%hasAttribute(waglobalnames(1), raglobaltype(1), ragloballen(1))
+    rahasatt(2) = nc%hasAttribute(waglobalnames(2), raglobaltype(2), ragloballen(2))
 
-    call nc%getAttribute(trim(raglobalnames(1)), ravalue)
+    call nc%getAttribute(trim(waglobalnames(1)), ravalue)
 
     ! close dataset
     call nc%close()
