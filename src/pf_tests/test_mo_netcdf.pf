@@ -14,6 +14,9 @@ module test_mo_netcdf
   character(*), parameter  :: fname="netcdf_make_check_test_file"
   character(*), parameter  :: vname_time="time", vname_lat="lat", vname_lon="lon", vname_data="data"
   character(64), dimension(2), parameter  :: waglobalnames = [character(64) :: 'Author', 'Year']
+  integer(i4), dimension(2), parameter  :: waglobaltype = [1_i4, 1_i4]
+  integer(i4), dimension(2), parameter  :: wagloballen = [1_i4, 1_i4]
+  logical, dimension(2), parameter  :: wahasatt = [.true., .true.]
   character(64), dimension(2), parameter  :: wavarnames = [character(64) :: 'units', 'scaling']
   character(64), dimension(:), allocatable  :: raglobalnames, ravarnames
   character(64)            :: wavalue, ravalue
@@ -116,13 +119,16 @@ contains
     call var_lat%getData(rlat)
     call var_lon%getData(rlon)
     call var_data%getData(rdata)
-    call var_data%getAttributeNames(wavarnames)
+    wavarnames = var_data%getAttributeNames()
 
     ! read the fill value
     call var_data%getFillValue(rfvalue)
 
     ! read a global attribute
-    call nc%getAttributeNames(waglobalnames)
+    waglobalnames = nc%getAttributeNames()
+    wahasatt(1) = nc%hasAttribute(raglobalnames(1), waglobaltype(1), wagloballen(1))
+    wahasatt(2) = nc%hasAttribute(raglobalnames(2), waglobaltype(2), wagloballen(2))
+
     call nc%getAttribute(trim(raglobalnames(1)), ravalue)
 
     ! close dataset
@@ -136,8 +142,15 @@ contains
     @assertEqual(rdata, wdata(:,:,1:ntime)) 
     @assertEqual(rfvalue, rfvalue)
     @assertEqual(ravalue, wavalue)
-    @assertEqual(ravarnames, wavarnames)
-    @assertEqual(raglobalnames, waglobalnames)
+    do i=1, size(wavarnames)
+      @assertEqual(ravarnames(i), wavarnames(i))
+    end do
+    do i=1, size(waglobalnames)
+      @assertEqual(raglobalnames(i), waglobalnames(i))
+      @assertEqual(rahasatt(i), wahasatt(i))
+      @assertEqual(raglobaltype(i), waglobaltype(i))
+      @assertEqual(ragloballen(i), wagloballen(i))
+    end do
 
   end subroutine test_netcdf_create_new
 

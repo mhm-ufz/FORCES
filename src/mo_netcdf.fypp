@@ -40,7 +40,7 @@ module mo_netcdf
           nf90_inq_ncid, nf90_inq_grp_parent, nf90_inq_grpname, nf90_def_grp, &
           nf90_rename_dim, nf90_rename_var, nf90_rename_att, nf90_sync, &
           NF90_OPEN, NF90_NETCDF4, NF90_CREATE, NF90_WRITE, NF90_NOWRITE, &
-          NF90_BYTE, NF90_SHORT, NF90_INT, NF90_INT64, NF90_FLOAT, NF90_DOUBLE,           &
+          NF90_BYTE, NF90_SHORT, NF90_INT, NF90_INT64, NF90_FLOAT, NF90_DOUBLE, NF90_CHAR, &
           NF90_FILL_BYTE, NF90_FILL_SHORT, NF90_FILL_INT, NF90_FILL_FLOAT, NF90_FILL_DOUBLE, &
           NF90_NOERR, NF90_UNLIMITED, NF90_GLOBAL, NF90_SHARE, NF90_HDF5, &
           NF90_64BIT_OFFSET, NF90_CLASSIC_MODEL
@@ -839,16 +839,19 @@ contains
     end do
   end function isUnlimitedVariable
 
-  logical function hasAttribute(self, name)
+  logical function hasAttribute(self, name, xtype, len, attnum)
     class(NcAttributable), intent(in) :: self
     character(*), intent(in) :: name
+    integer(i4), intent(out), optional :: xtype
+    integer(i4), intent(out), optional :: len
+    integer(i4), intent(out), optional :: attnum
     integer(i4) :: status
 
     select type (self)
     class is (NcGroup)
-      status = nf90_inquire_attribute(self%id, NF90_GLOBAL, name)
+      status = nf90_inquire_attribute(self%id, NF90_GLOBAL, name, xtype, len, attnum)
     class is (NcVariable)
-      status = nf90_inquire_attribute(self%parent%id, self%id, name)
+      status = nf90_inquire_attribute(self%parent%id, self%id, name, xtype, len, attnum)
     end select
 
     hasAttribute = (status == NF90_NOERR)
@@ -1172,6 +1175,8 @@ $: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+
        getDtypeFromString = NF90_INT
     case("i64")
        getDtypeFromString = NF90_INT64
+    case("char")
+       getDtypeFromString = NF90_CHAR
     case default
        write(*,*) "Datatype not understood: ", dtype
        stop 1
@@ -1195,6 +1200,8 @@ $: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+
        getDtypeFromInteger = "i32"
     case(NF90_INT64)
        getDtypeFromInteger = "i64"
+    case(NF90_CHAR)
+       getDtypeFromInteger = "char"
     case default
        write(*,*) "Datatype not understood: ", dtype
        stop 1
