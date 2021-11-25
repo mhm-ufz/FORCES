@@ -122,19 +122,29 @@ contains
     call var_lat%getData(rlat)
     call var_lon%getData(rlon)
     call var_data%getData(rdata)
-    ravarnames = var_data%getAttributeNames()
-    print*, 'data var', size(ravarnames), ravarnames
 
+    print*, 'getting var_data attributes...'
+    ravarnames = var_data%getAttributeNames()
+    do i=1, size(ravarnames)
+      print*, 'got attribute ', i, ' named', trim(ravarnames(i))
+    end do
+
+    print*, 'getting var_data fillvalue...'
     ! read the fill value
     call var_data%getFillValue(rfvalue)
 
+    print*, 'getting global attributes...'
     ! read a global attribute
     raglobalnames = nc%getAttributeNames()
-    print*, 'time var', var_time%getAttributeNames()
+    do i=1, size(raglobalnames)
+      print*, 'got attribute ', i, ' named', trim(raglobalnames(i))
+    end do
+
+    print*, 'checking global attributes...'
     rahasatt(1) = nc%hasAttribute(name=waglobalnames(1), xtype=raglobaltype(1), len=ragloballen(1), attnum=raglobalnum(1))
     rahasatt(2) = nc%hasAttribute(name=waglobalnames(2), xtype=raglobaltype(2), len=ragloballen(2), attnum=raglobalnum(2))
     rahasatt(3) = nc%hasAttribute(name=waglobalnames(3), xtype=raglobaltype(3), len=ragloballen(3), attnum=raglobalnum(3))
-    print*, 'extracted global names ',raglobalnames
+
     do i=1, 3
       print*, 'hasAttribute ', i, trim(waglobalnames(i)), raglobaltype(i), ragloballen(i), raglobalnum(i)
     end do
