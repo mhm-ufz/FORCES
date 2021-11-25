@@ -863,7 +863,7 @@ contains
     character(256) :: attName
 
     ! assume a maximum number of 100 attributes that are checked
-    allocate(attributeNames(nAtts))
+    allocate(attributeNames(maxNames))
     do while (nAtts < maxNames)
       select type (self)
       class is (NcGroup)

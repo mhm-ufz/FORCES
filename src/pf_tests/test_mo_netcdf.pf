@@ -115,14 +115,14 @@ contains
     call var_lat%getData(rlat)
     call var_lon%getData(rlon)
     call var_data%getData(rdata)
-    call var_data%getAttributeNames(ravarnames)
+    call var_data%getAttributeNames(wavarnames)
 
     ! read the fill value
     call var_data%getFillValue(rfvalue)
 
     ! read a global attribute
-    call nc%getAttributeNames(raglobalnames)
-    call nc%getAttribute(trim(waglobalnames(1)), ravalue)
+    call nc%getAttributeNames(waglobalnames)
+    call nc%getAttribute(trim(raglobalnames(1)), ravalue)
 
     ! close dataset
     call nc%close()
