@@ -13,7 +13,8 @@ module test_mo_netcdf
 
   character(*), parameter  :: fname="netcdf_make_check_test_file"
   character(*), parameter  :: vname_time="time", vname_lat="lat", vname_lon="lon", vname_data="data"
-  character(64), dimension(2), parameter  :: waglobalnames('Author', 'Year'), wavarnames('units', 'scaling')
+  character(64), dimension(2), parameter  :: waglobalnames = [character(64) :: 'Author', 'Year']
+  character(64), dimension(2), parameter  :: wavarnames = [character(64) :: 'units', 'scaling']
   character(64), dimension(:), allocatable  :: raglobalnames, ravarnames
   character(64)            :: wavalue, ravalue
 
