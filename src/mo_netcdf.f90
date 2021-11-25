@@ -1084,12 +1084,12 @@ contains
     character(256), dimension(:), allocatable :: attributeNames
 
     integer(i4), parameter :: maxNames = 100_i4
-    integer(i4) :: nAtts = 0_i4
-    character(256) :: attName
+    integer(i4) :: nAtts
     integer(i4) :: status
 
     ! assume a maximum number of 100 attributes that are checked
     allocate(attributeNames(maxNames))
+    nAtts = 0_i4
     do while (nAtts < maxNames)
       select type (self)
       class is (NcGroup)

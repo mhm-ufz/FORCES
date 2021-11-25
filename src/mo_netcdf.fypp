@@ -849,10 +849,8 @@ contains
 
     select type (self)
     class is (NcGroup)
-      print*, 'hasAttribute group'
       status = nf90_inquire_attribute(self%id, NF90_GLOBAL, name, xtype=xtype, len=len, attnum=attnum)
     class is (NcVariable)
-      print*, 'hasAttribute var'
       status = nf90_inquire_attribute(self%parent%id, self%id, name, xtype=xtype, len=len, attnum=attnum)
     end select
 
@@ -873,10 +871,8 @@ contains
     do while (nAtts < maxNames)
       select type (self)
       class is (NcGroup)
-        print*, 'is group', nAtts + 1_i4
         status = nf90_inq_attname(self%id, NF90_GLOBAL, nAtts + 1_i4, attributeNames(nAtts + 1_i4))
       class is (NcVariable)
-        print*, 'is variable', nAtts + 1_i4
         status = nf90_inq_attname(self%parent%id, self%id, nAtts + 1_i4, attributeNames(nAtts + 1_i4))
       end select
       ! if the status is negative, exit loop, else increase counter
