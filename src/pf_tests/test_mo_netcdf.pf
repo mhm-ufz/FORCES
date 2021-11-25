@@ -129,8 +129,9 @@ contains
 
     ! read a global attribute
     raglobalnames = nc%getAttributeNames()
-    rahasatt(1) = nc%hasAttribute(waglobalnames(1), raglobaltype(1), ragloballen(1))
-    rahasatt(2) = nc%hasAttribute(waglobalnames(2), raglobaltype(2), ragloballen(2))
+    rahasatt(1) = nc%hasAttribute(name=waglobalnames(1), xtype=raglobaltype(1), len=ragloballen(1))
+    rahasatt(2) = nc%hasAttribute(name=waglobalnames(2), xtype=raglobaltype(2), len=ragloballen(2))
+    rahasatt(3) = nc%hasAttribute(name=waglobalnames(3), xtype=raglobaltype(3), len=ragloballen(3))
 
     call nc%getAttribute(trim(waglobalnames(1)), ravalue)
 

@@ -849,9 +849,9 @@ contains
 
     select type (self)
     class is (NcGroup)
-      status = nf90_inquire_attribute(self%id, NF90_GLOBAL, name, xtype, len, attnum)
+      status = nf90_inquire_attribute(self%id, NF90_GLOBAL, name, xtype=xtype, len=len, attnum=attnum)
     class is (NcVariable)
-      status = nf90_inquire_attribute(self%parent%id, self%id, name, xtype, len, attnum)
+      status = nf90_inquire_attribute(self%parent%id, self%id, name, xtype=xtype, len=len, attnum=attnum)
     end select
 
     hasAttribute = (status == NF90_NOERR)
