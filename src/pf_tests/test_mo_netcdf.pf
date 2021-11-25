@@ -13,11 +13,11 @@ module test_mo_netcdf
 
   character(*), parameter  :: fname="netcdf_make_check_test_file"
   character(*), parameter  :: vname_time="time", vname_lat="lat", vname_lon="lon", vname_data="data"
-  character(64), dimension(2), parameter  :: waglobalnames = [character(64) :: 'Author', 'Year']
+  character(64), dimension(3), parameter  :: waglobalnames = [character(64) :: 'Author', 'Year', 'intentionally_fail']
   ! see netcdf-fortran repo: /fortran/netcdf_constants.f90
-  integer(i4), dimension(2), parameter  :: waglobaltype = [2_i4, 4_i4]
-  integer(i4), dimension(2), parameter  :: wagloballen = [14_i4, 1_i4]
-  logical, dimension(2), parameter  :: wahasatt = [.true., .true.]
+  integer(i4), dimension(3), parameter  :: waglobaltype = [2_i4, 4_i4, -1_i4]
+  integer(i4), dimension(3), parameter  :: wagloballen = [14_i4, 1_i4, -1_i4]
+  logical, dimension(3), parameter  :: wahasatt = [.true., .true., .false.]
   character(64), dimension(2), parameter  :: wavarnames = [character(64) :: 'units', 'scaling']
   character(64), dimension(:), allocatable  :: raglobalnames, ravarnames
   integer(i4), dimension(:), allocatable  :: raglobaltype, ragloballen
@@ -149,10 +149,12 @@ contains
       @assertEqual(ravarnames(i), wavarnames(i))
     end do
     do i=1, size(waglobalnames)
-      @assertEqual(raglobalnames(i), waglobalnames(i))
       @assertEqual(rahasatt(i), wahasatt(i))
-      @assertEqual(raglobaltype(i), waglobaltype(i))
-      @assertEqual(ragloballen(i), wagloballen(i))
+      if (rahasatt(i)) then
+        @assertEqual(raglobalnames(i), waglobalnames(i))
+        @assertEqual(raglobaltype(i), waglobaltype(i))
+        @assertEqual(ragloballen(i), wagloballen(i))
+      end if
     end do
 
   end subroutine test_netcdf_create_new

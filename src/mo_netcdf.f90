@@ -1086,20 +1086,19 @@ contains
     integer(i4), parameter :: maxNames = 100_i4
     integer(i4) :: nAtts = 0_i4
     character(256) :: attName
+    integer(i4) :: status
 
     ! assume a maximum number of 100 attributes that are checked
-    allocate(attributeNames(nAtts))
+    allocate(attributeNames(maxNames))
     do while (nAtts < maxNames)
       select type (self)
       class is (NcGroup)
-        call check(nf90_inq_attname(self%id, NF90_GLOBAL, nAtts + 1_i4, attributeNames(nAtts + 1_i4)), &
-          "Could not inquire attributes for NcGroup: " // self%getName())
+        status = nf90_inq_attname(self%id, NF90_GLOBAL, nAtts + 1_i4, attributeNames(nAtts + 1_i4))
       class is (NcVariable)
-        call check(nf90_inq_attname(self%parent%id, self%id, nAtts + 1_i4, attributeNames(nAtts + 1_i4)), &
-          "Could not inquire attributes for NcVariable: " // self%getName())
+        status = nf90_inq_attname(self%parent%id, self%id, nAtts + 1_i4, attributeNames(nAtts + 1_i4))
       end select
-      ! if the attribute name is not defined, exit loop, else increase counter
-      if (len_trim(attName) == 0_i4) then
+      ! if the status is negative, exit loop, else increase counter
+      if (status /= NF90_NOERR) then
         exit
       else
         nAtts = nAtts + 1_i4
