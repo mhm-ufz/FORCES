@@ -13,6 +13,8 @@ module test_mo_netcdf
 
   character(*), parameter  :: fname="netcdf_make_check_test_file"
   character(*), parameter  :: vname_time="time", vname_lat="lat", vname_lon="lon", vname_data="data"
+  character(64), dimension(2), parameter  :: waglobalnames('Author', 'Year'), wavarnames('units', 'scaling')
+  character(64), dimension(:), allocatable  :: raglobalnames, ravarnames
   character(64)            :: wavalue, ravalue
 
   type(NcDataset)          :: nc
@@ -86,12 +88,12 @@ contains
     end do
 
     ! add some more variable attributes
-    call var_data%setAttribute("units",   "mm/d")
-    call var_data%setAttribute("scaling", 0.1_dp)
+    call var_data%setAttribute(trim(wavarnames(1)),   "mm/d")
+    call var_data%setAttribute(trim(wavarnames(2)), 0.1_dp)
 
     ! add global attributes
-    call nc%setAttribute("Author", wavalue)
-    call nc%setAttribute("Year",   2099_i4)
+    call nc%setAttribute(trim(waglobalnames(1)), wavalue)
+    call nc%setAttribute(trim(waglobalnames(2)),   2099_i4)
 
     ! close the file
     call nc%close()
@@ -113,12 +115,14 @@ contains
     call var_lat%getData(rlat)
     call var_lon%getData(rlon)
     call var_data%getData(rdata)
+    call var_data%getAttributeNames(ravarnames)
 
     ! read the fill value
     call var_data%getFillValue(rfvalue)
 
     ! read a global attribute
-    call nc%getAttribute("Author", ravalue)
+    call nc%getAttributeNames(raglobalnames)
+    call nc%getAttribute(trim(waglobalnames(1)), ravalue)
 
     ! close dataset
     call nc%close()
@@ -131,6 +135,8 @@ contains
     @assertEqual(rdata, wdata(:,:,1:ntime)) 
     @assertEqual(rfvalue, rfvalue)
     @assertEqual(ravalue, wavalue)
+    @assertEqual(ravarnames, wavarnames)
+    @assertEqual(raglobalnames, waglobalnames)
 
   end subroutine test_netcdf_create_new
 
