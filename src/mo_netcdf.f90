@@ -30,7 +30,7 @@ module mo_netcdf
 
   use netcdf, only : &
           nf90_open, nf90_close, nf90_strerror, nf90_def_dim, nf90_def_var, &
-          nf90_put_var, nf90_get_var, nf90_put_att, nf90_get_att, &
+          nf90_put_var, nf90_get_var, nf90_put_att, nf90_get_att, nf90_inq_attname, &
           nf90_inquire, nf90_inq_dimid, nf90_inquire_dimension, &
           nf90_inq_varid, nf90_inq_varids, nf90_inquire_variable, nf90_inquire_attribute, &
           nf90_inq_ncid, nf90_inq_grp_parent, nf90_inq_grpname, nf90_def_grp, &
@@ -72,6 +72,7 @@ module mo_netcdf
     procedure, public :: hasAttribute
     procedure, public :: renameAttribute
     procedure, private :: getAttributableIds
+    procedure, public :: getAttributeNames
 
     procedure, private :: setAttribute_0d_sp
     generic, public :: setAttribute => setAttribute_0d_sp
@@ -1074,6 +1075,37 @@ contains
 
     hasAttribute = (status == NF90_NOERR)
   end function hasAttribute
+
+  function getAttributeNames(self) result(attributeNames)
+    class(NcAttributable), intent(in) :: self
+    character(256), dimension(:), allocatable :: attributeNames
+
+    integer(i4), parameter :: maxNames = 100_i4
+    integer(i4) :: nAtts = 0_i4
+    character(256) :: attName
+
+    ! assume a maximum number of 100 attributes that are checked
+    allocate(attributeNames(nAtts))
+    do while (nAtts < maxNames)
+      select type (self)
+      class is (NcGroup)
+        call check(nf90_inq_attname(self%id, NF90_GLOBAL, nAtts + 1_i4, attributeNames(nAtts + 1_i4)), &
+          "Could not inquire attributes for NcGroup: " // self%getName())
+      class is (NcVariable)
+        call check(nf90_inq_attname(self%parent%id, self%id, nAtts + 1_i4, attributeNames(nAtts + 1_i4)), &
+          "Could not inquire attributes for NcVariable: " // self%getName())
+      end select
+      ! if the attribute name is not defined, exit loop, else increase counter
+      if (len_trim(attName) == 0_i4) then
+        exit
+      else
+        nAtts = nAtts + 1_i4
+      end if
+    end do
+    ! select only valid names
+    attributeNames = attributeNames(1:nAtts)
+
+  end function getAttributeNames
 
 
 
