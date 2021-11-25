@@ -81,6 +81,10 @@ contains
     ! add some variable attributes
     call var_time%setAttribute("units", "days since 1989-12-31 12:00:00")
 
+    ! add some variable attributes
+    call var_data%setAttribute(trim(wavarnames(1)),   "mm/d")
+    call var_data%setAttribute(trim(wavarnames(2)), 0.1_dp)
+
     ! set fill value before any data is written
     call var_data%setFillValue(wfvalue)
 
@@ -93,10 +97,6 @@ contains
       call var_time%setData(wtime(i),     start=(/i/))
       call var_data%setData(wdata(:,:,i), start=(/1,1,i/))
     end do
-
-    ! add some more variable attributes
-    call var_data%setAttribute(trim(wavarnames(1)),   "mm/d")
-    call var_data%setAttribute(trim(wavarnames(2)), 0.1_dp)
 
     ! add global attributes
     call nc%setAttribute(trim(waglobalnames(1)), wavalue)
