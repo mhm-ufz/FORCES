@@ -152,20 +152,19 @@ MODULE mo_utils
   ! ------------------------------------------------------------------
 
   !     NAME
-  !         is_finite / is_nan / is_normal
+  !         is_finite
 
   !     PURPOSE
   !         Elemental inquiry functions returning .true. if the argument has a value
   !         implied by the name of the function.
   !
-  !>        \brief .true. if not IEEE Inf, IEEE NaN, nor IEEE Inf nor IEEE NaN, respectively.
+  !>        \brief .true. if not IEEE Inf.
   !
-  !>        \details Checks for IEEE Inf and IEEE NaN, i.e. Infinity and Not-a-Number.\n
-  !>                 Wraps to functions of the intrinsic module ieee_arithmetic
-  !>                 but gives alternatives for gfortran, which does not provide ieee_arithmetic.
+  !>        \details Checks for IEEE Inf, i.e. Infinity.\n
+  !>                 Wraps to functions of the intrinsic module ieee_arithmetic.
   !
   !     INTENT(IN)
-  !>        \param[in] "real(sp/dp) :: x"        Number to check
+  !>        \param[in] "real(sp/dp) :: a"        Number to be evaluated.
   !
   !     INTENT(INOUT)
   !         None
@@ -183,8 +182,8 @@ MODULE mo_utils
   !         None
   !
   !     RETURN
-  !>       \return logical :: is_finite/is_nan/is_normal &mdash; \f$ a /= Inf, a == NaN, a /= Inf and a == NaN \f$,
-  !>                                                             logically true or false
+  !>       \return logical :: is_finite &mdash; \f$ a \neq \infty \f$,
+  !>                                                             logically true or false.
   !
   !     RESTRICTIONS
   !         None
@@ -206,9 +205,37 @@ MODULE mo_utils
     MODULE PROCEDURE is_finite_sp, is_finite_dp
   END INTERFACE is_finite
 
+  !     NAME
+  !         is_nan
+  !
+  !>        \brief .true. if IEEE NaN.
+  !
+  !>        \details Checks for IEEE NaN, i.e. Not-a-Number.\n
+  !>                 Wraps to functions of the intrinsic module ieee_arithmetic.
+  !
+  !     INTENT(IN)
+  !>        \param[in] "real(sp/dp) :: a"        Number to be evaluated.
+  !
+  !     RETURN
+  !>       \return logical :: is_nan &mdash; \f$ a = NaN \f$, logically true or false.
+
   INTERFACE is_nan
     MODULE PROCEDURE is_nan_sp, is_nan_dp
   END INTERFACE is_nan
+
+  !     NAME
+  !         is_normal
+  !
+  !>        \brief .true. if nor IEEE Inf nor IEEE NaN.
+  !
+  !>        \details Checks if IEEE Inf and IEEE NaN, i.e. Infinity and Not-a-Number.\n
+  !>                 Wraps to functions of the intrinsic module ieee_arithmetic.
+  !
+  !     INTENT(IN)
+  !>        \param[in] "real(sp/dp) :: a"        Number to be evaluated.
+  !
+  !     RETURN
+  !>       \return logical :: is_normal &mdash; \f$ a \neq \infty \land a = NaN \f$, logically true or false.
 
   INTERFACE is_normal
     MODULE PROCEDURE is_normal_sp, is_normal_dp
@@ -351,10 +378,7 @@ MODULE mo_utils
   !>        \brief Special IEEE values.
   !
   !>        \details Returns special IEEE values such as Infinity or Not-a-Number.\n
-  !>                 Wraps to function ieee_value of the intrinsic module ieee_arithmetic
-  !>                 but gives alternatives for gfortran, which does not provide ieee_arithmetic.\n
-  !>                 Quiet and signaling NaN are the same in case of gfortran;\n
-  !>                 also denormal values are the same as inf.
+  !>                 Wraps to function ieee_value of the intrinsic module ieee_arithmetic.
   !>
   !>                 Current special values are:\n
   !>                 IEEE_SIGNALING_NAN\n
@@ -370,7 +394,7 @@ MODULE mo_utils
   !
   !     INTENT(IN)
   !>        \param[in] "real(sp/dp) :: x"         dummy for kind of output
-  !>        \param[in] "character(le=*) :: name   ieee signal nanme
+  !>        \param[in] "character(le=*) :: ieee"   ieee signal nanme
   !
   !     INTENT(INOUT)
   !         None
@@ -552,53 +576,40 @@ CONTAINS
 
   ELEMENTAL PURE FUNCTION is_finite_dp(a)
 
-#ifndef GFORTRAN
+
   use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
-#endif
 
   IMPLICIT NONE
 
-  REAL(dp), INTENT(IN) :: a
-  LOGICAL :: is_finite_dp
+  REAL(dp), INTENT(IN) :: a !< Number to be evaluated.
+  LOGICAL :: is_finite_dp !< logical :: is_finite &mdash; \f$ a \neq \infty \f$, logically true or false.
 
-#ifndef GFORTRAN
     is_finite_dp = ieee_is_finite(a)
-#else
-    is_finite_dp = (.not. ((a > huge(a)) .or. (a < -huge(a)))) .and. (.not. is_nan(a))
-#endif
 
   END FUNCTION is_finite_dp
 
   ELEMENTAL PURE FUNCTION is_finite_sp(a)
 
-#ifndef GFORTRAN
   use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
-#endif
 
   IMPLICIT NONE
 
-  REAL(sp), INTENT(IN) :: a
-  LOGICAL :: is_finite_sp
+  REAL(sp), INTENT(IN) :: a !< Number to be evaluated.
+  LOGICAL :: is_finite_sp !< logical :: is_finite &mdash; \f$ a \neq \infty \f$, logically true or false.
 
-#ifndef GFORTRAN
     is_finite_sp = ieee_is_finite(a)
-#else
-    is_finite_sp = (.not. ((a > huge(a)) .or. (a < -huge(a)))) .and. (.not. is_nan(a))
-#endif
 
   END FUNCTION is_finite_sp
 
 
   ELEMENTAL PURE FUNCTION is_nan_dp(a)
 
-#ifndef GFORTRAN
   use, intrinsic :: ieee_arithmetic, only : isnan => ieee_is_nan
-#endif
 
   IMPLICIT NONE
 
-  REAL(dp), INTENT(IN) :: a
-  LOGICAL :: is_nan_dp
+  REAL(dp), INTENT(IN) :: a !< Number to be evaluated.
+  LOGICAL :: is_nan_dp !< logical :: is_nan &mdash; \f$ a = NaN \f$, logically true or false.
 
     is_nan_dp = isnan(a)
 
@@ -606,14 +617,12 @@ CONTAINS
 
   ELEMENTAL PURE FUNCTION is_nan_sp(a)
 
-#ifndef GFORTRAN
   use, intrinsic :: ieee_arithmetic, only : isnan => ieee_is_nan
-#endif
 
   IMPLICIT NONE
 
-  REAL(sp), INTENT(IN) :: a
-  LOGICAL :: is_nan_sp
+  REAL(sp), INTENT(IN) :: a !< Number to be evaluated.
+  LOGICAL :: is_nan_sp !< logical :: is_nan &mdash; \f$ a = NaN \f$, logically true or false.
 
     is_nan_sp = isnan(a)
 
@@ -622,39 +631,27 @@ CONTAINS
 
   ELEMENTAL PURE FUNCTION is_normal_dp(a)
 
-#ifndef GFORTRAN
   use, intrinsic :: ieee_arithmetic, only : ieee_is_normal
-#endif
 
   IMPLICIT NONE
 
-  REAL(dp), INTENT(IN) :: a
-  LOGICAL :: is_normal_dp
+  REAL(dp), INTENT(IN) :: a !< Number to be evaluated.
+  LOGICAL :: is_normal_dp !< logical :: is_normal &mdash; \f$ a \neq \infty \land a = NaN \f$, logically true or false.
 
-#ifndef GFORTRAN
     is_normal_dp = ieee_is_normal(a)
-#else
-    is_normal_dp = is_finite(a)
-#endif
 
   END FUNCTION is_normal_dp
 
   ELEMENTAL PURE FUNCTION is_normal_sp(a)
 
-#ifndef GFORTRAN
   use, intrinsic :: ieee_arithmetic, only : ieee_is_normal
-#endif
 
   IMPLICIT NONE
 
-  REAL(sp), INTENT(IN) :: a
-  LOGICAL :: is_normal_sp
+  REAL(sp), INTENT(IN) :: a !< Number to be evaluated.
+  LOGICAL :: is_normal_sp !< logical :: is_normal &mdash; \f$ a \neq \infty \land a = NaN \f$, logically true or false.
 
-#ifndef GFORTRAN
     is_normal_sp = ieee_is_normal(a)
-#else
-    is_normal_sp = is_finite(a)
-#endif
 
   END FUNCTION is_normal_sp
 
@@ -834,7 +831,6 @@ CONTAINS
 
   function special_value_dp(x, ieee)
 
-#ifndef GFORTRAN
     use, intrinsic :: ieee_arithmetic, only : ieee_value, &
           IEEE_SIGNALING_NAN, &
           IEEE_QUIET_NAN, &
@@ -846,22 +842,28 @@ CONTAINS
           IEEE_POSITIVE_NORMAL, &
           IEEE_NEGATIVE_ZERO, &
           IEEE_POSITIVE_ZERO
-#endif
 
   implicit none
 
-  real(dp), intent(in) :: x
-  character(len = *), intent(in) :: ieee
-  real(dp) :: special_value_dp
+  real(dp), intent(in) :: x !< dummy for kind of output.
+  character(len = *), intent(in) :: ieee !< ieee signal name.
+  real(dp) :: special_value_dp !< real(dp) :: special_value &mdash; IEEE special value\n
+  !<                 IEEE_SIGNALING_NAN\n
+  !<                 IEEE_QUIET_NAN\n
+  !<                 IEEE_NEGATIVE_INF\n
+  !<                 IEEE_POSITIVE_INF\n
+  !<                 IEEE_NEGATIVE_DENORMAL\n
+  !<                 IEEE_POSITIVE_DENORMAL\n
+  !<                 IEEE_NEGATIVE_NORMAL\n
+  !<                 IEEE_POSITIVE_NORMAL\n
+  !<                 IEEE_NEGATIVE_ZERO\n
+  !<                 IEEE_POSITIVE_ZERO\n
 
   ! local
   character(len = 21) :: ieee_up
-#ifdef GFORTRAN
-    real(dp) :: tmp
-#endif
+  real(dp) :: tmp
 
   ieee_up = toupper(ieee)
-#ifndef GFORTRAN
     select case(trim(ieee_up))
   case('IEEE_SIGNALING_NAN')
     special_value_dp = ieee_value(x, IEEE_SIGNALING_NAN)
@@ -886,42 +888,11 @@ CONTAINS
   case default
     special_value_dp = 0.0_dp
   end select
-#else
-    select case(ieee_up)
-  case('IEEE_SIGNALING_NAN')
-    tmp = 0.0_dp
-    special_value_dp = tmp / tmp
-  case('IEEE_QUIET_NAN')
-    tmp = 0.0_dp
-    special_value_dp = tmp / tmp
-  case('IEEE_NEGATIVE_INF')
-    tmp = huge(x)
-    special_value_dp = -tmp * tmp
-  case('IEEE_POSITIVE_INF')
-    tmp = huge(x)
-    special_value_dp = tmp * tmp
-  case('IEEE_NEGATIVE_DENORMAL')
-    special_value_dp = -0.0_dp
-  case('IEEE_POSITIVE_DENORMAL')
-    special_value_dp = 0.0_dp
-  case('IEEE_NEGATIVE_NORMAL')
-    special_value_dp = -1.0_dp
-  case('IEEE_POSITIVE_NORMAL')
-    special_value_dp = 1.0_dp
-  case('IEEE_NEGATIVE_ZERO')
-    special_value_dp = -0.0_dp
-  case('IEEE_POSITIVE_ZERO')
-    special_value_dp = 0.0_dp
-  case default
-    special_value_dp = 0.0_dp
-  end select
-#endif
 
   end function special_value_dp
 
   function special_value_sp(x, ieee)
 
-#ifndef GFORTRAN
     use, intrinsic :: ieee_arithmetic, only : ieee_value, &
           IEEE_SIGNALING_NAN, &
           IEEE_QUIET_NAN, &
@@ -933,22 +904,28 @@ CONTAINS
           IEEE_POSITIVE_NORMAL, &
           IEEE_NEGATIVE_ZERO, &
           IEEE_POSITIVE_ZERO
-#endif
 
   implicit none
 
-  real(sp), intent(in) :: x
-  character(len = *), intent(in) :: ieee
-  real(sp) :: special_value_sp
+  real(sp), intent(in) :: x !< dummy for kind of output.
+  character(len = *), intent(in) :: ieee !< ieee signal name.
+  real(sp) :: special_value_sp !< real(sp) :: special_value &mdash; IEEE special value\n
+  !<                 IEEE_SIGNALING_NAN\n
+  !<                 IEEE_QUIET_NAN\n
+  !<                 IEEE_NEGATIVE_INF\n
+  !<                 IEEE_POSITIVE_INF\n
+  !<                 IEEE_NEGATIVE_DENORMAL\n
+  !<                 IEEE_POSITIVE_DENORMAL\n
+  !<                 IEEE_NEGATIVE_NORMAL\n
+  !<                 IEEE_POSITIVE_NORMAL\n
+  !<                 IEEE_NEGATIVE_ZERO\n
+  !<                 IEEE_POSITIVE_ZERO\n
 
   ! local
   character(len = 21) :: ieee_up
-#ifdef GFORTRAN
     real(sp) :: tmp
-#endif
 
   ieee_up = toupper(ieee)
-#ifndef GFORTRAN
     select case(trim(ieee_up))
   case('IEEE_SIGNALING_NAN')
     special_value_sp = ieee_value(x, IEEE_SIGNALING_NAN)
@@ -973,36 +950,6 @@ CONTAINS
   case default
     special_value_sp = 0.0_sp
   end select
-#else
-    select case(ieee_up)
-  case('IEEE_SIGNALING_NAN')
-    tmp = 0.0_sp
-    special_value_sp = tmp / tmp
-  case('IEEE_QUIET_NAN')
-    tmp = 0.0_sp
-    special_value_sp = tmp / tmp
-  case('IEEE_NEGATIVE_INF')
-    tmp = huge(x)
-    special_value_sp = -tmp * tmp
-  case('IEEE_POSITIVE_INF')
-    tmp = huge(x)
-    special_value_sp = tmp * tmp
-  case('IEEE_NEGATIVE_DENORMAL')
-    special_value_sp = -0.0_sp
-  case('IEEE_POSITIVE_DENORMAL')
-    special_value_sp = 0.0_sp
-  case('IEEE_NEGATIVE_NORMAL')
-    special_value_sp = -1.0_sp
-  case('IEEE_POSITIVE_NORMAL')
-    special_value_sp = 1.0_sp
-  case('IEEE_NEGATIVE_ZERO')
-    special_value_sp = -0.0_sp
-  case('IEEE_POSITIVE_ZERO')
-    special_value_sp = 0.0_sp
-  case default
-    special_value_sp = 0.0_sp
-  end select
-#endif
 
   end function special_value_sp
 
