@@ -30,13 +30,13 @@ module mo_netcdf
 
   use netcdf, only : &
           nf90_open, nf90_close, nf90_strerror, nf90_def_dim, nf90_def_var, &
-          nf90_put_var, nf90_get_var, nf90_put_att, nf90_get_att, &
+          nf90_put_var, nf90_get_var, nf90_put_att, nf90_get_att, nf90_inq_attname, &
           nf90_inquire, nf90_inq_dimid, nf90_inquire_dimension, &
           nf90_inq_varid, nf90_inq_varids, nf90_inquire_variable, nf90_inquire_attribute, &
           nf90_inq_ncid, nf90_inq_grp_parent, nf90_inq_grpname, nf90_def_grp, &
           nf90_rename_dim, nf90_rename_var, nf90_rename_att, nf90_sync, &
           NF90_OPEN, NF90_NETCDF4, NF90_CREATE, NF90_WRITE, NF90_NOWRITE, &
-          NF90_BYTE, NF90_SHORT, NF90_INT, NF90_INT64, NF90_FLOAT, NF90_DOUBLE,           &
+          NF90_BYTE, NF90_SHORT, NF90_INT, NF90_INT64, NF90_FLOAT, NF90_DOUBLE, NF90_CHAR, &
           NF90_FILL_BYTE, NF90_FILL_SHORT, NF90_FILL_INT, NF90_FILL_FLOAT, NF90_FILL_DOUBLE, &
           NF90_NOERR, NF90_UNLIMITED, NF90_GLOBAL, NF90_SHARE, NF90_HDF5, &
           NF90_64BIT_OFFSET, NF90_CLASSIC_MODEL
@@ -72,6 +72,7 @@ module mo_netcdf
     procedure, public :: hasAttribute
     procedure, public :: renameAttribute
     procedure, private :: getAttributableIds
+    procedure, public :: getAttributeNames
 
     procedure, private :: setAttribute_0d_sp
     generic, public :: setAttribute => setAttribute_0d_sp
@@ -1060,20 +1061,53 @@ contains
     end do
   end function isUnlimitedVariable
 
-  logical function hasAttribute(self, name)
+  logical function hasAttribute(self, name, xtype, len, attnum)
     class(NcAttributable), intent(in) :: self
     character(*), intent(in) :: name
+    integer(i4), intent(out), optional :: xtype
+    integer(i4), intent(out), optional :: len
+    integer(i4), intent(out), optional :: attnum
     integer(i4) :: status
 
     select type (self)
     class is (NcGroup)
-      status = nf90_inquire_attribute(self%id, NF90_GLOBAL, name)
+      status = nf90_inquire_attribute(self%id, NF90_GLOBAL, name, xtype=xtype, len=len, attnum=attnum)
     class is (NcVariable)
-      status = nf90_inquire_attribute(self%parent%id, self%id, name)
+      status = nf90_inquire_attribute(self%parent%id, self%id, name, xtype=xtype, len=len, attnum=attnum)
     end select
 
     hasAttribute = (status == NF90_NOERR)
   end function hasAttribute
+
+  function getAttributeNames(self) result(attributeNames)
+    class(NcAttributable), intent(in) :: self
+    character(256), dimension(:), allocatable :: attributeNames
+
+    integer(i4), parameter :: maxNames = 100_i4
+    integer(i4) :: nAtts
+    integer(i4) :: status
+
+    ! assume a maximum number of 100 attributes that are checked
+    allocate(attributeNames(maxNames))
+    nAtts = 0_i4
+    do while (nAtts < maxNames)
+      select type (self)
+      class is (NcGroup)
+        status = nf90_inq_attname(self%id, NF90_GLOBAL, nAtts + 1_i4, attributeNames(nAtts + 1_i4))
+      class is (NcVariable)
+        status = nf90_inq_attname(self%parent%id, self%id, nAtts + 1_i4, attributeNames(nAtts + 1_i4))
+      end select
+      ! if the status is negative, exit loop, else increase counter
+      if (status /= NF90_NOERR) then
+        exit
+      else
+        nAtts = nAtts + 1_i4
+      end if
+    end do
+    ! select only valid names
+    attributeNames = attributeNames(1:nAtts)
+
+  end function getAttributeNames
 
 
 
@@ -3574,6 +3608,8 @@ contains
        getDtypeFromString = NF90_INT
     case("i64")
        getDtypeFromString = NF90_INT64
+    case("char")
+       getDtypeFromString = NF90_CHAR
     case default
        write(*,*) "Datatype not understood: ", dtype
        stop 1
@@ -3597,6 +3633,8 @@ contains
        getDtypeFromInteger = "i32"
     case(NF90_INT64)
        getDtypeFromInteger = "i64"
+    case(NF90_CHAR)
+       getDtypeFromInteger = "char"
     case default
        write(*,*) "Datatype not understood: ", dtype
        stop 1

@@ -13,6 +13,15 @@ module test_mo_netcdf
 
   character(*), parameter  :: fname="netcdf_make_check_test_file"
   character(*), parameter  :: vname_time="time", vname_lat="lat", vname_lon="lon", vname_data="data"
+  character(64), dimension(3), parameter  :: waglobalnames = [character(64) :: 'Author', 'Year', 'intentionally_fail']
+  ! see netcdf-fortran repo: /fortran/netcdf_constants.f90
+  logical, dimension(3), parameter  :: wahasatt = [.true., .true., .false.]
+  integer(i4), dimension(3), parameter  :: waglobaltype = [2_i4, 4_i4, -1_i4]
+  integer(i4), dimension(3), parameter  :: wagloballen = [64_i4, 1_i4, -1_i4]
+  integer(i4), dimension(3)  :: raglobaltype, ragloballen, raglobalnum
+  logical, dimension(3)  :: rahasatt
+  character(64), dimension(2), parameter  :: wavarnames = [character(64) :: 'units', 'scaling']
+  character(64), dimension(:), allocatable  :: raglobalnames, ravarnames
   character(64)            :: wavalue, ravalue
 
   type(NcDataset)          :: nc
@@ -72,6 +81,10 @@ contains
     ! add some variable attributes
     call var_time%setAttribute("units", "days since 1989-12-31 12:00:00")
 
+    ! add some variable attributes
+    call var_data%setAttribute(trim(wavarnames(1)),   "mm/d")
+    call var_data%setAttribute(trim(wavarnames(2)), 0.1_dp)
+
     ! set fill value before any data is written
     call var_data%setFillValue(wfvalue)
 
@@ -85,13 +98,9 @@ contains
       call var_data%setData(wdata(:,:,i), start=(/1,1,i/))
     end do
 
-    ! add some more variable attributes
-    call var_data%setAttribute("units",   "mm/d")
-    call var_data%setAttribute("scaling", 0.1_dp)
-
     ! add global attributes
-    call nc%setAttribute("Author", wavalue)
-    call nc%setAttribute("Year",   2099_i4)
+    call nc%setAttribute(trim(waglobalnames(1)), wavalue)
+    call nc%setAttribute(trim(waglobalnames(2)),   2099_i4)
 
     ! close the file
     call nc%close()
@@ -114,23 +123,42 @@ contains
     call var_lon%getData(rlon)
     call var_data%getData(rdata)
 
+    ravarnames = var_data%getAttributeNames()
+
     ! read the fill value
     call var_data%getFillValue(rfvalue)
 
     ! read a global attribute
-    call nc%getAttribute("Author", ravalue)
+    raglobalnames = nc%getAttributeNames()
+
+    rahasatt(1) = nc%hasAttribute(name=waglobalnames(1), xtype=raglobaltype(1), len=ragloballen(1))
+    rahasatt(2) = nc%hasAttribute(name=waglobalnames(2), xtype=raglobaltype(2), len=ragloballen(2))
+    rahasatt(3) = nc%hasAttribute(name=waglobalnames(3), xtype=raglobaltype(3), len=ragloballen(3))
+
+    call nc%getAttribute(trim(waglobalnames(1)), ravalue)
 
     ! close dataset
     call nc%close()
 
     ! 1.3 Check
     ! ---------
-    @assertEqual(rtime, wtime(1:ntime))
-    @assertEqual(rlat, wlat)
-    @assertEqual(rlon, wlon)                
-    @assertEqual(rdata, wdata(:,:,1:ntime)) 
+    @assertEqual(wtime(1:ntime), rtime)
+    @assertEqual(wlat, rlat)
+    @assertEqual(wlon, rlon)
+    @assertEqual(wdata(:,:,1:ntime), rdata)
     @assertEqual(rfvalue, rfvalue)
-    @assertEqual(ravalue, wavalue)
+    @assertEqual(wavalue, ravalue)
+    do i=1, size(wavarnames)
+      @assertEqual(wavarnames(i), ravarnames(i))
+    end do
+    do i=1, size(waglobalnames)
+      @assertEqual(wahasatt(i), rahasatt(i))
+      if (rahasatt(i)) then
+        @assertEqual(waglobalnames(i), raglobalnames(i))
+        @assertEqual(waglobaltype(i), raglobaltype(i))
+        @assertEqual(wagloballen(i), ragloballen(i))
+      end if
+    end do
 
   end subroutine test_netcdf_create_new
 
@@ -179,8 +207,8 @@ contains
 
     ! 2.3 Check
     ! ---------
-    @assertEqual(rtime(1:nadd), wtime(ntime+1:ntime+nadd))
-    @assertEqual(rdata(:,:,1:nadd), wdata(:,:,ntime+1:ntime+nadd))
+    @assertEqual(wtime(ntime+1:ntime+nadd), rtime(1:nadd))
+    @assertEqual(wdata(:,:,ntime+1:ntime+nadd), rdata(:,:,1:nadd))
 
   end subroutine test_netcdf_append
 
@@ -249,8 +277,8 @@ contains
 
     ! 3.3 check
     ! ---------
-    @assertEqual(rtime, wtime)
-    @assertEqual(rdata, wdata)
+    @assertEqual(wtime, rtime)
+    @assertEqual(wdata, rdata)
 
   end subroutine test_netcdf_dump
 
