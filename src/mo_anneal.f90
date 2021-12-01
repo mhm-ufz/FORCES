@@ -24,7 +24,7 @@ MODULE mo_anneal
   !                                    using optional arguments
   !                                  - undef_funcval instead of anneal_valid function
   !          Juliane Mai, Feb 2013 : - xor4096 optionals combined in save_state
-  !          Arya Prasetya, Dec 2021 : - doxygen documentation anneal
+  !          Arya Prasetya, Dec 2021 : - doxygen documentation anneal and get_temperature
 
   ! License
   ! -------
@@ -172,12 +172,14 @@ MODULE mo_anneal
   !!            WRR, 43(1), W01413, 2007.
   
  
-  !>    \authors Samaniego,   Jan   2000 : Created \n
-  !!        Samaniego,   Mar   2003 : Re-heating \n
-  !!        Juliane Mai, March 2012 : modular version \n
-  !!        Juliane Mai, May   2012 : sp version \n
-  !!        Juliane Mai, May   2012 : documentation \n
-  !!        Arya Prasetya, Dec 2021 : doxygen documentation
+  !>    \author Samaniego
+  !>    \date Jan 2000
+  !        Modified by:
+  !        Samaniego,   Mar   2003 : Re-heating \n
+  !        Juliane Mai, March 2012 : modular version \n
+  !        Juliane Mai, May   2012 : sp version \n
+  !        Juliane Mai, May   2012 : documentation \n
+  !        Arya Prasetya, Dec 2021 : doxygen documentation
 
   ! ------------------------------------------------------------------
 
@@ -262,8 +264,9 @@ MODULE mo_anneal
   !!            _Compututing the Initial Temperature of Simulated Annealing_.
   !!             Comput. Opt. and App. (2004).
 
-  !>        \authors  Juliane Mai,   May   2012 \n
-  !!        Arya Prasetya, Dec 2021 : doxygen documentation
+  !>        \author  Juliane Mai
+  !>        \date May 2012
+  !         Modified by Arya Prasetya, Dec 2021 : doxygen documentation
 
   ! ------------------------------------------------------------------
 
