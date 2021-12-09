@@ -3,8 +3,8 @@
 !> \brief Provides computational, mathematical, physical, and file constants
 
 !> \details Provides computational constants like epsilon, mathematical constants such as Pi,
-!> physical constants such as the Stefan-Boltzmann constant, and file units for some standard streams
-!> such as standard in.
+!! physical constants such as the Stefan-Boltzmann constant, and file units for some standard streams
+!! such as standard in.
 
 !> \author Matthias Cuntz
 !> \date Nov 2011
