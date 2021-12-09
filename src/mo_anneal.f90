@@ -1,3 +1,8 @@
+!> \file mo_anneal.f90
+
+!> \brief Anneal optimization of cost function.
+
+!> \details Minimization of cost function and temperature finding of minima.
 MODULE mo_anneal
 
   ! This module is minimizing a cost function via Simulated Annealing
