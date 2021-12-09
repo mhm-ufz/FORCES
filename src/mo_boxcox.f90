@@ -71,7 +71,7 @@ MODULE mo_boxcox
   !>        \param[in]  "real(sp/dp) :: lmbda"          Exponent power of Box-Cox transform (`>= 0.`)
   !>        \param[in]  "logical, optional :: mask"  Scalar/1D-array of logical values with `size(x)`.
   !!                                   If present, only those locations in vec corresponding to the true values in mask are used.
-  !>        \param[out] "real(sp/dp) :: boxcox"     Power transformed values (at `mask=.true.`)
+  !>        \returns    "real(sp/dp) :: boxcox"     Power transformed values (at `mask=.true.`)
 
   !>     ## Restrictions
   !!     Input values must be positive, i.e. \f$x > 0\f$.
@@ -110,7 +110,7 @@ MODULE mo_boxcox
   !>        \param[in]  "optional, logical :: mask"  1D-array of logical values with `size(x)`.
   !!                                                    If present, only those locations in vec corresponding to the true values in mask are used.
   !!                                                    Only applicable if `x` is a 1D-array.
-  !>        \param[out] "real(sp/dp) :: boxcox"         Back transformed values (at `mask=.true.`)
+  !>        \returns    "real(sp/dp) :: boxcox"         Back transformed values (at `mask=.true.`)
 
   !>     ## Restrictions
   !!     None

@@ -1,4 +1,4 @@
-! added for testing purposes of test_mo_anneal
+!>  \brief Added for testing purposes of test_mo_anneal
 Module mo_cost
 
   use mo_kind, only: sp, dp

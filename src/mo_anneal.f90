@@ -67,7 +67,6 @@ MODULE mo_anneal
   !>        \brief Optimize cost function with simulated annealing.
 
   !>        \details Optimizes a user provided cost function using the Simulated Annealing strategy.
-  !!
 
   !>        \param[in]  "interface                       :: cost_dp"         Interface calculating the
   !!                                                                         cost function at a given point.
