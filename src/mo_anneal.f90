@@ -163,7 +163,7 @@ MODULE mo_anneal
   !!
   !!         parabest = anneal(cost_dp, para, prange)
   !!
-  !!     See also test folder for a detailed example, "test/test_mo_anneal/".
+  !!     See also test folder for a detailed example, "test/test_mo_anneal".
 
   !>    ## Literature
   !!         1. S. Kirkpatrick, C. D. Gelatt, and M. P. Vecchi.
@@ -177,7 +177,7 @@ MODULE mo_anneal
   !!            WRR, 43(1), W01413, 2007.
   
  
-  !>    \author Samaniego
+  !>    \author Luis Samaniego
   !>    \date Jan 2000
   !        Modified by:
   !        Samaniego,   Mar   2003 : Re-heating \n
