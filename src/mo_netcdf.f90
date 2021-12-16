@@ -713,8 +713,9 @@ contains
     type(NcDimension), intent(in) :: ncDim
     real(dp)      , intent(in), dimension(:) :: bounds
     integer(i4)   , intent(in), optional :: referenceArg
-    type(NcVariable):: ncVar
+    type(NcVariable), intent(out) :: ncVar
 
+    type(NcVariable) :: ncVarBounds
     type(NcDimension) :: bndsDim
     integer(i8) :: dimLength, iBound
     integer(i4) :: reference, iAtt
@@ -757,7 +758,7 @@ contains
     else
       bndsDim = self%setDimension("bnds", 2_i4)
     end if
-    ncVar = self%setVariable(dimBoundName, "f64", [bndsDim, ncDim])
+    ncVarBounds = self%setVariable(dimBoundName, "f64", [bndsDim, ncDim])
 
     ! allocate array for data
     allocate(boundData(2_i8, dimLength-1_i8))
@@ -765,7 +766,7 @@ contains
       boundData(1_i8, iBound) = bounds(iBound)
       boundData(2_i8, iBound) = bounds(iBound + 1_i8)
     end do
-    call ncVar%setData(boundData)
+    call ncVarBounds%setData(boundData)
     deallocate(boundData)
 
   end subroutine set_1D_coordinate_variable
