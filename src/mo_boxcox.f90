@@ -65,27 +65,31 @@ MODULE mo_boxcox
   !!         If an optional mask is given, then the Box-Cox transformation is only performed on
   !!         those locations that correspond to true values in the mask.\n
   !!         \f$x\f$ can be single or double precision. The result will have the same numerical precision.
-  !!         \f$x\f$ can be scalar or vector.
+  !!         \f$x\f$ can be scalar or vector.\n
+  !!         
+  !!         \b Example
+  !!
+  !!         \code{.f90}
+  !!          out = boxcox(x, lmbda, mask=mask)
+  !!         \endcode
+  !!
+  !!         See also test folder for a detailed example, "pf_tests/test_mo_boxcox".
+
 
   !>        \param[in]  "real(sp/dp) :: x"           Scalar/1D-array with input numbers (`>0.`)
   !>        \param[in]  "real(sp/dp) :: lmbda"          Exponent power of Box-Cox transform (`>= 0.`)
   !>        \param[in]  "logical, optional :: mask"  Scalar/1D-array of logical values with `size(x)`.
   !!                                   If present, only those locations in vec corresponding to the true values in mask are used.
-  !>        \returns    "real(sp/dp) :: boxcox"     Power transformed values (at `mask=.true.`)
+  !>        \retval "real(sp/dp) :: boxcox"     Power transformed values (at `mask=.true.`)
 
-  !>     ## Restrictions
-  !!     Input values must be positive, i.e. \f$x > 0\f$.
-
-  !>     ## Example
-  !!
-  !!         out = boxcox(x, lmbda, mask=mask)
-  !!
-  !!     See also test folder for a detailed example, "test/test_mo_boxcox".
+  !>     \note Input values must be positive, i.e. \f$x > 0\f$.
 
   !>     \author Matthias Cuntz
   !>     \date March 2011
-  !            - Modified Python code of Travis Oliphant (2002): boxcox, llf_boxcox, get_boxcox
-  !            - Modified numerical recipes: brent, mnbrak, swap, shft
+  !!            - Modified Python code of Travis Oliphant (2002): boxcox, llf_boxcox, get_boxcox
+  !!            - Modified numerical recipes: brent, mnbrak, swap, shft
+  !>     \date Dec 2021
+  !!            - Updated doxygen docs
   INTERFACE boxcox 
     MODULE PROCEDURE boxcox_sp, boxcox_dp
   END INTERFACE boxcox
@@ -104,28 +108,29 @@ MODULE mo_boxcox
   !!         those locations that correspond to true values in the mask.\n
   !!         \f$y\f$ can be single or double precision. The result will have the same numerical precision.\n
   !!         \f$y\f$ can be scalar or vector.
+  !!
+  !!         \b Example
+  !!
+  !!         \code{.f90}
+  !!         out = invboxcox(x, lmbda, mask=mask)
+  !!         \endcode
+  !!          
+  !!         See also test folder for a detailed example, "pf_tests/test_mo_boxcox".
 
   !>        \param[in]  "real(sp/dp) :: y"              Scalar/1D-array with input numbers (`>0.`)
   !>        \param[in]  "real(sp/dp) :: lmbda"          Exponent power of Box-Cox transform (`>= 0.`)
   !>        \param[in]  "optional, logical :: mask"  1D-array of logical values with `size(x)`.
   !!                                                    If present, only those locations in vec corresponding to the true values in mask are used.
   !!                                                    Only applicable if `x` is a 1D-array.
-  !>        \returns    "real(sp/dp) :: boxcox"         Back transformed values (at `mask=.true.`)
-
-  !>     ## Restrictions
-  !!     None
-
-  !>     ## Example
-  !!
-  !!         out = invboxcox(x, lmbda, mask=mask)
-  !!
-  !!     See also test folder for a detailed example, "test/test_mo_boxcox".
+  !>        \retval    "real(sp/dp) :: invboxcox"         Back transformed values (at `mask=.true.`)
 
   !>     \author Matthias Cuntz
+  !>     \author Juliane Mai
+  !>     \author Sebastian Müller
   !>     \date March 2011
-  !            - Modified MC: Python code of Travis Oliphant (2002): boxcox, llf_boxcox, get_boxcox
-  !            - Modified MC: numerical recipes: brent, mnbrak, swap, shft
-  !            - Modified JM: scalar version of invboxcox
+  !!            - Modified MC: Python code of Travis Oliphant (2002): boxcox, llf_boxcox, get_boxcox
+  !!            - Modified MC: numerical recipes: brent, mnbrak, swap, shft
+  !!            - Modified JM: scalar version of invboxcox
   INTERFACE invboxcox
      MODULE PROCEDURE invboxcox_0d_sp, invboxcox_0d_dp, invboxcox_1d_sp, invboxcox_1d_dp
   END INTERFACE invboxcox
