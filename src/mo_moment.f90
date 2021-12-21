@@ -1,3 +1,18 @@
+!> \file    mo_moment.f90
+!> \brief   Statistical moments.
+!> \details This module contains routines for the masked calculation of
+!! statistical properties such as moments and mixed moments of input vectors
+!> \author Mathias Cuntz
+!> \author Martin Schroen
+!> \author Sebastian Mueller
+!> \date    Nov 2011
+!!      - Written
+!> \date    Dec 2011
+!!      - Added mod. correlation and covariance
+!> \date    Nov 2011
+!!      - Added mean for single value
+!> \date    Dec 2019
+!!      - No citations
 MODULE mo_moment
 
   ! This module contains routines for the masked calculation of
@@ -57,731 +72,547 @@ MODULE mo_moment
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         absdev
+  !>    \brief Mean absolute deviation from mean.
+  
+  !>    \details  
+  !!    Calculates the mean absolute deviations from the mean
+  !!
+  !!    \f[ ABSDEV = \sum_i\frac{|x_i-\bar x|}{N} \f]
+  !!  
+  !!    If an optinal mask is given, the calculations are over those locations that correspond to true values in the mask.
+  !!    \f$ x\f$ can be single or double precision. The result will have the same numerical precision.\n
+  !!
+  !!    \b Example
+  !!
+  !!        vec = (/ 1., 2, 3., -999., 5., 6. /)
+  !!        m   = absdev(vec, mask=(vec >= 0.))
+  !!
+  !!    See also example in pf_tests directory.
 
-  !     PURPOSE
-  !         Calculates the mean absolute deviations from the mean
-  !             absdev = sum(abs(x-mean(x)))/n
-  !
-  !         If an optinal mask is given, the calculations are over those locations that correspond to true values in the mask.
-  !         x can be single or double precision. The result will have the same numerical precision.
 
-  !     CALLING SEQUENCE
-  !         out = absdev(dat, mask=mask)
+  !>    \param[in]  "real(sp/dp) :: dat(:)"               1D-array with input numbers.
+  !>    \param[in]  "logical, optional :: mask(:)"        1D-array of logical values with `size(dat)`.
+  !!                                                      If present, only those locations in `vec` corresponding to the true values in mask are used.
+  !>    \retval     "real(sp/dp) :: absdev"               Mean absolute deviations from average.
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: dat(:)     1D-array with input numbers
+  !>    \note Input values must be floating points.
 
-  !     INTENT(INOUT)
-  !         None
+  !>    \author Matthias Cuntz
+  !>    \date Nov 2011
 
-  !     INTENT(OUT)
-  !         real(sp/dp) :: absdev     mean absolute deviations from average
+  ! ------------------------------------------------------------------
 
-  !     INTENT(IN), OPTIONAL
-  !         logical :: mask(:)        1D-array of logical values with size(dat).
-  !                                   If present, only those locations in vec corresponding to the true values in mask are used.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         Input values must be floating points.
-
-  !     EXAMPLE
-  !         vec = (/ 1., 2, 3., -999., 5., 6. /)
-  !         m   = absdev(vec, mask=(vec >= 0.))
-  !         -> see also example in test directory
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE absdev
     MODULE PROCEDURE absdev_sp, absdev_dp
   END INTERFACE absdev
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         average
+  !>    \brief Mean of vector.
 
-  !     PURPOSE
-  !         Calculates the average value of a vector, i.e. the first moment of a series of numbers:
-  !             average = sum(x)/n
-  !
-  !         If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
-  !         x can be single or double precision. The result will have the same numerical precision.
+  !>    \details 
+  !!    Calculates the average value of a vector, i.e. the first moment of a series of numbers:
+  !!
+  !!    \f[ AVE = \sum_i \frac{x_i}{N} \f]
+  !!
+  !!    If an optional mask is given, the average is only over those locations that correspond to true values in the mask.
+  !!    \f$ x\f$ can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!    \b Example
+  !!
+  !!        vec = (/ 1., 2, 3., -999., 5., 6. /)
+  !!        m   = average(vec, mask=(vec >= 0.))
+  !!        --> m = 3.4
+  !!
+  !!    See also example in pf_tests directory.
+  
+  !>    \param[in]  "real(sp/dp) :: dat(:)"         1D-array with input numbers
 
-  !     CALLING SEQUENCE
-  !         out = average(dat, mask=mask)
+  !>    \retval     "real(sp/dp) :: average"        Average of all elements in dat
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: dat(:)     1D-array with input numbers
+  
+  !>    \param[in]  "logical, optional :: mask(:)"  1D-array of logical values with `size(dat)`.
+  !!                                                If present, only those locations in dat corresponding to the true values in mask are used.
 
-  !     INTENT(INOUT)
-  !         None
+  !>    \note Input values must be floating points.
 
-  !     INTENT(OUT)
-  !         real(sp/dp) :: average    average of all elements in dat
+  !>    \author Matthias Cuntz
+  !>    \date Nov 2011
 
-  !     INTENT(IN), OPTIONAL
-  !         logical :: mask(:)        1D-array of logical values with size(dat).
-  !                                   If present, only those locations in dat corresponding to the true values in mask are used.
+  ! ------------------------------------------------------------------
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         Input values must be floating points.
-
-  !     EXAMPLE
-  !         vec = (/ 1., 2, 3., -999., 5., 6. /)
-  !         m   = average(vec, mask=(vec >= 0.))
-  !         -> see also example in test directory
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE average
     MODULE PROCEDURE average_sp, average_dp
   END INTERFACE average
 
   ! ------------------------------------------------------------------
+  
+  !>    \brief R-central moment
 
-  !     NAME
-  !         central_moment
+  !>    \details 
+  !!    Calculates the central moment of a vector, i.e. the r-central moment of a series of numbers:
+  !!
+  !!    \f[ \mu_r = \sum_i\frac{(x_i-\bar x)^r}{N} \f]
+  !!
+  !!    Note that the variance is the second central moment: `variance(x) = central_moment(x,2)`\n
+  !!
+  !!    If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
+  !!    x can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!    \b Example
+  !!
+  !!        vec = (/ 1., 2, 3., 4., 5., 6. /)
+  !!        m   = central_moment(vec, 2, mask=(vec >= 0.))
+  !!        --> m = 2.91666
+  !!
+  !!    See also example in pf_tests directory.
+  !!
+  !>    \b Literature
+  !!    1.  LH Benedict & RD Gould, _Towards better uncertainty estimates for turbulence statistics_.
+  !!        Experiments in Fluids 22, 129-136, 1996
 
-  !     PURPOSE
-  !         Calculates the central moment of a vector, i.e. the r-central moment of a series of numbers:
-  !             central_moment = sum((x-mean(x))**r)/n
-  !         Note that the variance is the second central moment: variance(x) = central_moment(x,2)
-  !
-  !         If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
-  !         x can be single or double precision. The result will have the same numerical precision.
+  !>    \param[in]  "real(sp/dp) :: dat(:)"         1D-array with input numbers.
+  !>    \param[in]  "integer(i4) :: r"              Order of the central moment, i.e. r=2 is variance.
+  !>    \param[in]  "logical, optional :: mask(:)"  1D-array of logical values with size(dat).
+  !!                                                If present, only those locations in `dat` corresponding to the true values in mask are used.
+  !>    \retval "real(sp/dp) :: central_moment"     R-th central moment of elements in `dat`.
 
-  !     CALLING SEQUENCE
-  !         out = central_moment(x, r, mask=mask)
+  !>    \note Input values must be floating points.
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: dat(:)     1D-array with input numbers
-  !         integer(i4) :: r          order of the central moment, i.e. r=2 is variance
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         real(sp/dp) :: central_moment    r-th central moment of elements in dat
-
-  !     INTENT(IN), OPTIONAL
-  !         logical :: mask(:)        1D-array of logical values with size(dat).
-  !                                   If present, only those locations in dat corresponding to the true values in mask are used.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         Input values must be floating points.
-
-  !     EXAMPLE
-  !         vec = (/ 1., 2, 3., -999., 5., 6. /)
-  !         m   = central_moment(vec, 2, mask=(vec >= 0.))
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         LH Benedict & RD Gould, Towards better uncertainty estimates for turbulence statistics,
-  !             Experiments in Fluids 22, 129-136, 1996
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Nov 2011
+  !>    \author Matthias Cuntz
+  !>    \date Nov 2011
+  
+  ! ------------------------------------------------------------------
   INTERFACE central_moment
     MODULE PROCEDURE central_moment_sp, central_moment_dp
   END INTERFACE central_moment
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         central_moment_var
+  !>    \brief R-central moment variance 
 
-  !     PURPOSE
-  !         Calculates the sampling variance of the central moment of a vector.
-  !         central_moment_var is something like the "error variance" of the r-th order central moment sampling statistic.
-  !
-  !         If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
-  !         x can be single or double precision. The result will have the same numerical precision.
+  !>    \details 
+  !!    Calculates the sampling variance of the central moment of a vector.
+  !!    `central_moment_var` is something like the "error variance" of the r-th order central moment sampling statistic.\n
+  !!
+  !!    If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
+  !!    \f$x\f$ can be single or double precision. The result will have the same numerical precision.\n
+  !!
+  !!    \b Example
+  !!
+  !!        vec = (/ 1., 2, 3., -999., 5., 6. /)
+  !!        m   = central_moment(vec, 2, mask=(vec >= 0.))
+  !!        em  = central_moment_var(vec, 2, mask=(vec >= 0.))
+  !!
+  !!    See also example in pf_tests directory.
+  !!    \b Literature
+  !!    1.  LH Benedict & RD Gould, _Towards better uncertainty estimates for turbulence statistics_,
+  !!        Experiments in Fluids 22, 129-136, 1996
 
-  !     CALLING SEQUENCE
-  !         out = central_moment_var(x, r, nin=nin, mask=mask)
+  !>    \param[in]  "real(sp/dp) :: dat(:)"                 1D-array with input numbers.
+  !>    \param[in]  "integer(i4) :: r"                      Order of the central moment, i.e. r=2 is variance.
+  !>    \param[in]  "logical, optional :: mask(:)"          1D-array of logical values with `size(dat)`.
+  !!                                                        If present, only those locations in dat corresponding to the true values in mask are used.
+  !>    \retval     "real(sp/dp) :: central_moment_var"     Sampling variance of r-th central moment of elements in dat
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: dat(:)     1D-array with input numbers
-  !         integer(i4) :: r          order of the central moment, i.e. r=2 is variance
+  !>    \notes  Input values must be floating points.
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         real(sp/dp) :: central_moment_var    sampling variance of r-th central moment of elements in dat
-
-  !     INTENT(IN), OPTIONAL
-  !         logical :: mask(:)        1D-array of logical values with size(dat).
-  !                                   If present, only those locations in dat corresponding to the true values in mask are used.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         Input values must be floating points.
-
-  !     EXAMPLE
-  !         vec = (/ 1., 2, 3., -999., 5., 6. /)
-  !         m   = central_moment(vec, 2, mask=(vec >= 0.))
-  !         em  = central_moment_var(vec, 2, mask=(vec >= 0.))
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         LH Benedict & RD Gould, Towards better uncertainty estimates for turbulence statistics,
-  !             Experiments in Fluids 22, 129-136, 1996
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Nov 2011
+  !>    \author Matthias Cuntz
+  !>    \date Nov 2011
   INTERFACE central_moment_var
     MODULE PROCEDURE central_moment_var_sp, central_moment_var_dp
   END INTERFACE central_moment_var
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         correlation
+  !>    \brief Correlation between two vectors.
 
-  !     PURPOSE
-  !         Calculates the correlation between two input vectors, i.e. the covariance divided by the standard deviations:
-  !             correlation = (sum((x-mean(x))*(y-mean(y)))/n) / (stddev(x)*stddev(y))
-  !
-  !         If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
-  !         x can be single or double precision. The result will have the same numerical precision.
+  !>    \details 
+  !!    Calculates the correlation between two input vectors, i.e. the covariance divided by the standard deviations:\n
+  !!
+  !!    \f[\langle x y\rangle = \sum_i\frac{(x_i-\bar x)(y_i-\bar y)}{N\sqrt{\mu_2(x)\mu_2(y)}}\f]
+  !!
+  !!    If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
+  !!    \f$x\f$ can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!    \b Example
+  !!
+  !!        vec1 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!        vec2 = (/ 1.3, 2.7, 3.9, 5.1, 6., 8. /)
+  !!        m   = correlation(vec1, vec2, mask=((vec1 >= 0.) .and. (vec2 >= 0.)))
+  !!
+  !!    See also example in pf_tests directory.
 
-  !     CALLING SEQUENCE
-  !         out = correlation(x, y, mask=mask)
+  !>    \param[in]  "real(sp/dp) :: x(:)"           First 1D-array with input numbers.
+  !>    \param[in]  "real(sp/dp) :: y(:)"           Second 1D-array with input numbers.
+  !>    \retval     "real(sp/dp) :: correlation"    Correlation between \f$x\f$ and \f$y\f$.
+  !>    \param[in]  "logical, optional :: mask(:)"  1D-array of logical values with `size(x)`.
+  !!                                                If present, only those locations in dat corresponding to the true values in mask are used.
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: x(:)     First 1D-array with input numbers
-  !         real(sp/dp) :: y(:)     Second 1D-array with input numbers
+  !>    \notes Input values must be floating points.
 
-  !     INTENT(INOUT)
-  !         None
+  !>    \author Matthias Cuntz
+  !>    \date Nov 2011
+  !>    \date Dec 2011 
+  !!        - covariance as <(x-<x>)(y-<y>)> instead of <xy>-<x><y>
 
-  !     INTENT(OUT)
-  !         real(sp/dp) :: correlation    correlation between x and y
+  ! ------------------------------------------------------------------
 
-  !     INTENT(IN), OPTIONAL
-  !         logical :: mask(:)        1D-array of logical values with size(x).
-  !                                   If present, only those locations in dat corresponding to the true values in mask are used.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         Input values must be floating points.
-
-  !     EXAMPLE
-  !         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
-  !         vec2 = (/ 1.3, 2.7, 3.9, 5.1, 6., 8. /)
-  !         m   = correlation(vec1, vec2, mask=((vec1 >= 0.) .and. (vec2 >= 0.)))
-  !         -> see also example in test directory
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Nov 2011
-  !         Modified, MC, Dec 2011 - covariance as <(x-<x>)(y-<y>)> instead of <xy>-<x><y>
   INTERFACE correlation
     MODULE PROCEDURE correlation_sp, correlation_dp
   END INTERFACE correlation
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         covariance
+  !>    \brief Covariance between vectors
 
-  !     PURPOSE
-  !         Calculates the covariance between two input vectors:
-  !             covariance = sum((x-mean(x))*(y-mean(y)))/n
-  !
-  !         If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
-  !         x can be single or double precision. The result will have the same numerical precision.
+  !>    \details  
+  !!    Calculates the covariance between two input vectors:\n
+  !!
+  !!    \f[Cov(x,y) = \sum_i\frac{(x_i-\bar x)(y_i-\bar y)}{N}\f]
+  !!
+  !!    If an optional mask is given, the average is only over those locations that correspond to true values in the mask.
+  !!    \f$x\f$ can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!    \b Example
+  !!
+  !!         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!         vec2 = (/ 1.3, 2.7, 3.9, 5.1, 6., 8. /)
+  !!         m   = covariance(vec1, vec2, mask=((vec1 >= 0.) .and. (vec2 >= 0.)))
+  !!
+  !!    See also example in test directory.
 
-  !     CALLING SEQUENCE
-  !         out = covariance(x, y, mask=mask)
+  !>    \param[in]  "real(sp/dp) :: x(:)"           First 1D-array with input numbers.
+  !>    \param[in]  "real(sp/dp) :: y(:)"           Second 1D-array with input numbers.
+  !>    \param[in]  "logical, optional :: mask(:)"  1D-array of logical values with size(x).
+  !!                                                If present, only those locations in dat corresponding to the true values in mask are used.
+  !>    \retval     "real(sp/dp) :: covariance"     Covariance between x and y.
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: x(:)     First 1D-array with input numbers
-  !         real(sp/dp) :: y(:)     Second 1D-array with input numbers
+  !>    \notes Input values must be floating points.
 
-  !     INTENT(INOUT)
-  !         None
+  !>    \author Matthias Cuntz 
+  !>    \date Nov 2011
+  !>    \date Dec 2011 
+  !!        - covariance as <(x-<x>)(y-<y>)> instead of <xy>-<x><y>
 
-  !     INTENT(OUT)
-  !         real(sp/dp) :: covariance    covariance between x and y
+  ! ------------------------------------------------------------------
 
-  !     INTENT(IN), OPTIONAL
-  !         logical :: mask(:)        1D-array of logical values with size(x).
-  !                                   If present, only those locations in dat corresponding to the true values in mask are used.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         Input values must be floating points.
-
-  !     EXAMPLE
-  !         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
-  !         vec2 = (/ 1.3, 2.7, 3.9, 5.1, 6., 8. /)
-  !         m   = covariance(vec1, vec2, mask=((vec1 >= 0.) .and. (vec2 >= 0.)))
-  !         -> see also example in test directory
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Nov 2011
-  !         Modified, MC, Dec 2011 - covariance as <(x-<x>)(y-<y>)> instead of <xy>-<x><y>
   INTERFACE covariance
     MODULE PROCEDURE covariance_sp, covariance_dp
   END INTERFACE covariance
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         kurtosis
+  !>    \brief Kurtosis of a vector.
 
-  !     PURPOSE
-  !         Calculates the kurtosis of a vector, also called excess kurtosis:
-  !             kurtosis = central_moment(x,4) / variance(x)**2 - 3
-  !                      = sum(((x-mean(x))/stddev(x))**4)/n - 3
-  !
-  !         If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
-  !         x can be single or double precision. The result will have the same numerical precision.
+  !>    \details
+  !!    Calculates the kurtosis of a vector, also called excess kurtosis:
+  !!
+  !!    \f[ Kurt(x) = \verb|central_moment(x,4) / variance(x)**2 - 3|
+  !!    = \sum_i\frac{1}{N}\left(\frac{(x_i-\bar x)^2}{\mu_2(x)}\right)^2 - 3\f]
+  !!
+  !!    If an optional mask is given, the average is only over those locations that correspond to true values in the mask.
+  !!    \f$x\f$ can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!    \b Example
+  !!
+  !!         vec = (/ 1., 2, 3., -999., 5., 6. /)
+  !!         m   = kurtosis(vec, mask=(vec >= 0.))
+  !!
+  !!    See also example in test directory.
 
-  !     CALLING SEQUENCE
-  !         out = kurtosis(dat, mask=mask)
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: dat(:)     1D-array with input numbers
+  !>    \param[in]  "real(sp/dp) :: dat(:)"         1D-array with input numbers.
+  !>    \param[in]  "logical, optional :: mask(:)"  1D-array of logical values with `size(dat)`.
+  !!                                                If present, only those locations in dat corresponding to the true values in mask are used.
+  !>    \retval     "real(sp/dp) :: kurtosis"       Kurtosis of all elements in dat.
 
-  !     INTENT(INOUT)
-  !         None
+  !>    \notes  Input values must be floating points.
+  
+  !>    \authors Matthias Cuntz
+  !>    \date Nov 2011
 
-  !     INTENT(OUT)
-  !         real(sp/dp) :: kurtosis    kurtosis of all elements in dat
+  ! ------------------------------------------------------------------
 
-  !     INTENT(IN), OPTIONAL
-  !         logical :: mask(:)        1D-array of logical values with size(dat).
-  !                                   If present, only those locations in dat corresponding to the true values in mask are used.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         Input values must be floating points.
-
-  !     EXAMPLE
-  !         vec = (/ 1., 2, 3., -999., 5., 6. /)
-  !         m   = kurtosis(vec, mask=(vec >= 0.))
-  !         -> see also example in test directory
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE kurtosis
     MODULE PROCEDURE kurtosis_sp, kurtosis_dp
   END INTERFACE kurtosis
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         mean
+  !>    \brief Mean of a vector.
 
-  !     PURPOSE
-  !         Calculates the average value of a vector, i.e. the first moment of a series of numbers:
-  !             mean = sum(x)/n
-  !
-  !         If an optinal mask is given, the mean is only over those locations that correspond to true values in the mask.
-  !         x can be single or double precision. The result will have the same numerical precision.
+  !>    \details 
+  !!    Calculates the average value of a vector, i.e. the first moment of a series of numbers:
+  !!    
+  !!    \f[\bar x = sum_i \frac{x_i}{N}
+  !!
+  !!    If an optional mask is given, the mean is only over those locations that correspond to true values in the mask.
+  !!    \f$x\f$ can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!    \b Example
+  !!
+  !!         vec = (/ 1., 2, 3., -999., 5., 6. /)
+  !!         m   = mean(vec, mask=(vec >= 0.))
+  !!
+  !!    See also example in test directory.
 
-  !     CALLING SEQUENCE
-  !         out = mean(dat, mask=mask)
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: dat(:)     1D-array with input numbers
+  !>    \param[in]  "real(sp/dp) :: dat(:)"           1D-array with input numbers.
+  !>    \param[in]  "logical, optional :: mask(:)"    1D-array of logical values with `size(dat)`.
+  !!                                                  If present, only those locations in dat corresponding to the true values in mask are used.
+  !>    \retval     "real(sp/dp) :: mean"       Average of all elements in dat.
+  
+  !>    \notes  Input values must be floating points.
 
-  !     INTENT(INOUT)
-  !         None
+  !>    \author Matthias Cuntz
+  !>    \date Nov 2011
+  
+  ! ------------------------------------------------------------------
 
-  !     INTENT(OUT)
-  !         real(sp/dp) :: mean       average of all elements in dat
-
-  !     INTENT(IN), OPTIONAL
-  !         logical :: mask(:)        1D-array of logical values with size(dat).
-  !                                   If present, only those locations in dat corresponding to the true values in mask are used.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         Input values must be floating points.
-
-  !     EXAMPLE
-  !         vec = (/ 1., 2, 3., -999., 5., 6. /)
-  !         m   = mean(vec, mask=(vec >= 0.))
-  !         -> see also example in test directory
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE mean
     MODULE PROCEDURE mean_sp, mean_dp
   END INTERFACE mean
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         mixed_central_moment
+  !>    \brief R-s mixed central moment between vectors.
 
-  !     PURPOSE
-  !         Calculates the r,s-th mixed central moment between two vectors:
-  !             mixed_central_moment = sum((x-mean(x))**r * (y-mean(y))**s)/n
-  !         Note that covariace(x,y) = mixed_central_moment(x,y,1,1)
-  !
-  !         If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
-  !         x can be single or double precision. The result will have the same numerical precision.
+  !>    \detail
+  !!    Calculates the r,s-th mixed central moment between two vectors:
+  !!
+  !!    \f[\mu_{r-s} = \sum_i\frac{(x_i-\bar x)^r(y_i-\bar_y)^s}{N}\f]
+  !!
+  !!    Note that covariace(x,y) = mixed_central_moment(x,y,1,1)
+  !!
+  !!    If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
+  !!    \f$x\f$ can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!    \b Example
+  !!
+  !!         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!         vec2 = (/ 1.3, 2.7, 3.9, 5.1, 6., 8. /)
+  !!         m   = mixed_central_moment(vec1, vec2, 2, 2, mask=((vec1 >= 0.) .and. (vec2 >= 0.)))
+  !!
+  !!    See also example in test directory.
+  !!
+  !!    \b Literature
+  !!
+  !!    1. LH Benedict & RD Gould, _Towards better uncertainty estimates for turbulence statistics_,
+  !!            Experiments in Fluids 22, 129-136, 1996
+  
+  !>    \param[in]  "real(sp/dp) :: x(:)"       First 1D-array
+  !>    \param[in]  "real(sp/dp) :: y(:)"       Second 1D-array
+  !>    \param[in]  "integer(i4) :: r"          Order of x
+  !>    \param[in]  "integer(i4) :: s"          Order of y
+  !>    \param[in]  "logical, optional :: mask(:)"        1D-array of logical values with size(x).
+  !!                                                      If present, only those locations in dat corresponding to the true values in mask are used.
+  !>    \retval     "real(sp/dp) :: mixed_central_moment"    r,s-th mixed central moment between x and y
 
-  !     CALLING SEQUENCE
-  !         out = mixed_central_moment(x, y, r, s, mask=mask)
+  !>    \notes Input values must be floating points.
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: x(:)       First 1D-array
-  !         real(sp/dp) :: y(:)       Second 1D-array
-  !         integer(i4) :: r          order of x
-  !         integer(i4) :: r          order of y
+  !>    \author Matthias Cuntz
+  !>    \date Nov 2011
 
-  !     INTENT(INOUT)
-  !         None
+  ! ------------------------------------------------------------------
 
-  !     INTENT(OUT)
-  !         real(sp/dp) :: mixed_central_moment    r,s-th mixed central moment between x and y
-
-  !     INTENT(IN), OPTIONAL
-  !         logical :: mask(:)        1D-array of logical values with size(x).
-  !                                   If present, only those locations in dat corresponding to the true values in mask are used.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         Input values must be floating points.
-
-  !     EXAMPLE
-  !         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
-  !         vec2 = (/ 1.3, 2.7, 3.9, 5.1, 6., 8. /)
-  !         m   = mixed_central_moment(vec1, vec2, 2, 2, mask=((vec1 >= 0.) .and. (vec2 >= 0.)))
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         LH Benedict & RD Gould, Towards better uncertainty estimates for turbulence statistics,
-  !             Experiments in Fluids 22, 129-136, 1996
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE mixed_central_moment
     MODULE PROCEDURE mixed_central_moment_sp, mixed_central_moment_dp
   END INTERFACE mixed_central_moment
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         mixed_central_moment_var
+  !>    \brief Mixed central moment variance.
 
-  !     PURPOSE
-  !         Calculates the sample variance of r,s-th mixed central moment between two vectors.
-  !         mixed_central_moment_var is something like the "error variance" of
-  !         the r,s-th order mixed central moment sampling statistic.
-  !
-  !         If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
-  !         x can be single or double precision. The result will have the same numerical precision.
+  !>    \details         
+  !!    Calculates the sample variance of r,s-th mixed central moment between two vectors.
+  !!    `mixed_central_moment_var` is something like the "error variance" of
+  !!    the r,s-th order mixed central moment sampling statistic.
+  !!
+  !!    If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
+  !!    \f$x\f$ can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!    \b Example
+  !!
+  !!         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!         vec2 = (/ 1.3, 2.7, 3.9, 5.1, 6., 8. /)
+  !!         em   = mixed_central_moment_var(vec1, vec2, 2, 2, mask=((vec1 >= 0.) .and. (vec2 >= 0.)))
+  !!
+  !!    See also example in test directory.
+  !!
+  !!    \b Literature
+  !!
+  !!    1. LH Benedict & RD Gould, _Towards better uncertainty estimates for turbulence statistics_,
+  !!            Experiments in Fluids 22, 129-136, 1996
 
-  !     CALLING SEQUENCE
-  !         out = mixed_central_moment_var(x, y, r, s, mask=mask)
+  !>    \param[in]  "real(sp/dp) :: x(:)"       First 1D-array
+  !>    \param[in]  "real(sp/dp) :: y(:)"       Second 1D-array
+  !>    \param[in]  "integer(i4) :: r"          Order of x
+  !>    \param[in]  "integer(i4) :: s"          Order of y
+  !>    \param[in]  "logical, optional :: mask(:)"        1D-array of logical values with size(x).
+  !!                                                      If present, only those locations in dat corresponding to the true values in mask are used.
+  !>    \retval     "real(sp/dp) :: mixed_central_moment_var"    Sampling variance of r,s-th mixed central moment between x and y
+  
+  !>    \notes  Input values must be floating points.
+  
+  !>    \author Matthias Cuntz
+  !>    \date Nov 2011
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: x(:)       First 1D-array
-  !         real(sp/dp) :: y(:)       Second 1D-array
-  !         integer(i4) :: r          order of x
-  !         integer(i4) :: r          order of y
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         real(sp/dp) :: mixed_central_moment_var    sampling variance of r,s-th mixed central moment between x and y
-
-  !     INTENT(IN), OPTIONAL
-  !         logical :: mask(:)        1D-array of logical values with size(x).
-  !                                   If present, only those locations in dat corresponding to the true values in mask are used.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         Input values must be floating points.
-
-  !     EXAMPLE
-  !         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
-  !         vec2 = (/ 1.3, 2.7, 3.9, 5.1, 6., 8. /)
-  !         m    = mixed_central_moment(vec1, vec2, 2, 2, mask=((vec1 >= 0.) .and. (vec2 >= 0.)))
-  !         em   = mixed_central_moment_var(vec1, vec2, 2, 2, mask=((vec1 >= 0.) .and. (vec2 >= 0.)))
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         LH Benedict & RD Gould, Towards better uncertainty estimates for turbulence statistics,
-  !             Experiments in Fluids 22, 129-136, 1996
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE mixed_central_moment_var
     MODULE PROCEDURE mixed_central_moment_var_sp, mixed_central_moment_var_dp
   END INTERFACE mixed_central_moment_var
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         moment
+  !>    \brief First four moments, stddev and mean absolute devation.
 
-  !     PURPOSE
-  !         Calculates the first four sample/population moments of a vector, i.e. mean, variance, skewness, and kurtosis,
-  !         as well as standard deviation and mean absolute devation.
-  !            mean = sum(x)/n
-  !            variance = sum((x-mean(x))**2)/(n-1) or sum((x-mean(x))**2)/n if sample is False
-  !            skewness = sum(((x-mean(x))/stddev(x))**3)/n
-  !            kurtosis = sum(((x-mean(x))/stddev(x))**4)/n - 3
-  !            stddev   = sqrt(variance)
-  !            absdev   = sum(abs(x-mean(x)))/n
-  !
-  !         All output is optional.
-  !         If an optinal mask is given, the calculations are over those locations that correspond to true values in the mask.
-  !         x can be single or double precision. The result will have the same numerical precision.
+  !>    \details
+  !!    Calculates the first four sample/population moments of a vector, i.e. mean, variance, skewness, and kurtosis,
+  !!    as well as standard deviation and mean absolute devation.\n
+  !!
+  !!    All output is optional.
+  !!
+  !!    If an optinal mask is given, the calculations are over those locations that correspond to true values in the mask.
+  !!    \f$x\f$ can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!    \b Example
+  !!
+  !!         vec = (/ 1., 2, 3., 4., 5., 6. /)
+  !!         call moment(vec, average=average, variance=variance, skewness=skewness, kurtosis=kurtosis, &
+  !!                    mean=mean, stddev=stddev, absdev=absdev, mask=mask, sample=sample)
+  !!         --> average = 3.5
 
-  !     CALLING SEQUENCE
-  !         call moment(dat, average=average, variance=variance, skewness=skewness, kurtosis=kurtosis, &
-  !                     mean=mean, stddev=stddev, absdev=absdev, mask=mask, sample=sample)
+  !>    \param[in]  "real(sp/dp) :: dat(:)"               1D-array with input numbers.
+  !>    \param[in]  "logical, optional :: mask(:)"        1D-array of logical values with `size(dat)`.
+  !!                                                      If present, only those locations in vec corresponding to the true values in mask are used.
+  !>    \param[in]  "logical, optional :: sample"         Logical value.
+  !!                                                      If present and False, the population variance and std-dev will be calculated (divide by n).
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: dat(:)     1D-array with input numbers
+  !>    \param[out] "real(sp/dp), optional :: average"    Average of input vector.
+  !>    \param[out] "real(sp/dp), optional :: variance"   Sample variance of input vector (either a sample or pupulation moment).
+  !>    \param[out] "real(sp/dp), optional :: skewness"   Skewness of input vector.
+  !>    \param[out] "real(sp/dp), optional :: kurtosis"   Excess kurtosis of input vector.
+  !>    \param[out] "real(sp/dp), optional :: mean"       Same as average.
+  !>    \param[out] "real(sp/dp), optional :: stddev"     Sqaure root of variance (either a sample or pupulation moment).
+  !>    \param[out] "real(sp/dp), optional :: absdev"     Mean absolute deviations from average.
 
-  !     INTENT(INOUT)
-  !         None
+  !>    \notes  Input values must be floating points. Inpt and all optional outputs must have same kind.
 
-  !     INTENT(OUT)
-  !         None
+  !>    \author Matthias Cuntz
+  !>    \date Nov 2011
+  !>    \author Sebastian Mueller
+  !>    \date Dec 2019 
+  !!        -   added optional sample input-para to switch sample to population variance and std-dev.
 
-  !     INTENT(IN), OPTIONAL
-  !         logical :: mask(:)        1D-array of logical values with size(dat).
-  !                                   If present, only those locations in vec corresponding to the true values in mask are used.
-  !         logical :: sample         logical value
-  !                                   If present and False, the population variance and std-dev will be calculated (divide by n).
+  ! ------------------------------------------------------------------
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         real(sp/dp) :: average    average of input vector
-  !         real(sp/dp) :: variance   sample variance of input vector (either a sample or pupulation moment)
-  !         real(sp/dp) :: skewness   skewness of input vector
-  !         real(sp/dp) :: kurtosis   excess kurtosis of input vector
-  !         real(sp/dp) :: mean       same as average
-  !         real(sp/dp) :: stddev     sqaure root of variance (either a sample or pupulation moment)
-  !         real(sp/dp) :: absdev     mean absolute deviations from average
-
-  !     RESTRICTIONS
-  !         Input values must be floating points. Inpt and all optional outputs must have same kind.
-
-  !     EXAMPLE
-  !         vec = (/ 1., 2, 3., -999., 5., 6. /)
-  !         call moment(vec, mask=(vec >= 0.), mean=m, stddev=s)
-  !         -> see also example in test directory
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Nov 2011
-  !         Modified,  S. Mueller, Dec 2019 added optional sample input-para to switch sample to population variance and std-dev.
   INTERFACE moment
     MODULE PROCEDURE moment_sp, moment_dp
   END INTERFACE moment
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         skewness
+  !>    \brief Skewness of a vector
 
-  !     PURPOSE
-  !         Calculates the skewness of a vector, i.e. the third standardised moment:
-  !             skewness = sum(((x-mean(x))/stddev(x))**3)/n
-  !
-  !         If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
-  !         x can be single or double precision. The result will have the same numerical precision.
+  !>    \details         
+  !!    Calculates the skewness of a vector, i.e. the third standardised moment:
+  !!
+  !!    \f[\tilda \mu_3 = \sum_i\left(\frac{(x-\bar x)}{\sigma_x}\right)^3)\f]
+  !!
+  !!    If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
+  !!    \f$x\f$ can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!    \b Example
+  !!
+  !!         vec = (/ 1., 2, 3., -999., 5., 6. /)
+  !!         m   = skewness(vec, mask=(vec >= 0.))
+  !!
+  !!    See also example in test directory.
 
-  !     CALLING SEQUENCE
-  !         out = skewness(dat, mask=mask)
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: dat(:)     1D-array with input numbers
+  !>    \param[in]  "real(sp/dp) :: dat(:)"               1D-array with input numbers.
+  !>    \param[in]  "logical, optional :: mask(:)"        1D-array of logical values with `size(dat)`.
+  !!                                                      If present, only those locations in vec corresponding to the true values in mask are used.
+  !>    \retval     "real(sp/dp) :: skewness"             Skewness of all elements in dat.
 
-  !     INTENT(INOUT)
-  !         None
+  !>    \notes   Input values must be floating points.
 
-  !     INTENT(OUT)
-  !         real(sp/dp) :: skewness    skewness of all elements in dat
-
-  !     INTENT(IN), OPTIONAL
-  !         logical :: mask(:)        1D-array of logical values with size(dat).
-  !                                   If present, only those locations in dat corresponding to the true values in mask are used.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         Input values must be floating points.
-
-  !     EXAMPLE
-  !         vec = (/ 1., 2, 3., -999., 5., 6. /)
-  !         m   = skewness(vec, mask=(vec >= 0.))
-  !         -> see also example in test directory
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Nov 2011
+  !>    \author Matthias Cuntz
+  !>    \date Nov 2011
   INTERFACE skewness
     MODULE PROCEDURE skewness_sp, skewness_dp
   END INTERFACE skewness
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         stddev
+  !>    \brief  Standard deviation of a vector.
 
-  !     PURPOSE
-  !         Calculates the sample standard deviation of a vector, i.e. the square root of the second moment
-  !             stddev = sqrt(sum((x-mean(x))**2)/(n-1))
-  !
-  !         If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
-  !         x can be single or double precision. The result will have the same numerical precision.
+  !>    \details  
+  !!    Calculates the sample standard deviation of a vector, i.e. the square root of the second moment
+  !!
+  !!    \f[\sigma_x = \sqrt{\sum_i\frac{(x_i-\bar x)^2}{N-1}}\f]
+  !!
+  !!    If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
+  !!    \f$x\f$ can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!    \b Example
+  !!
+  !!         vec = (/ 1., 2, 3., -999., 5., 6. /)
+  !!         m   = stddev(vec, mask=(vec >= 0.))
+  !!
+  !!    See also example in test directory
 
-  !     CALLING SEQUENCE
-  !         out = stddev(dat, mask=mask)
+  !>    \param[in]  "real(sp/dp) :: dat(:)"               1D-array with input numbers.
+  !>    \param[in]  "logical, optional :: mask(:)"        1D-array of logical values with `size(dat)`.
+  !!                                                      If present, only those locations in vec corresponding to the true values in mask are used.
+  !>    \retval     "real(sp/dp) :: stddev"               Sample standard deviation of all elements in dat.
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: dat(:)     1D-array with input numbers
+  !>    \notes         
+  !!    Input values must be floating points.\n
+  !!    This is the sample standard deviation. The population standard deviation is:
+  !!            `popstddev = stddev * sqrt((n-1)/n)`
 
-  !     INTENT(INOUT)
-  !         None
+  !>    \author Matthias Cuntz
+  !>    \date Nov 2011
 
-  !     INTENT(OUT)
-  !         real(sp/dp) :: stddev     sample standard deviation of all elements in dat
+  ! ------------------------------------------------------------------
 
-  !     INTENT(IN), OPTIONAL
-  !         logical :: mask(:)        1D-array of logical values with size(dat).
-  !                                   If present, only those locations in dat corresponding to the true values in mask are used.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         Input values must be floating points.
-  !         This is the sample standard deviation. The population standard deviation is:
-  !             popstddev = stddev * sqrt((n-1)/n)
-
-  !     EXAMPLE
-  !         vec = (/ 1., 2, 3., -999., 5., 6. /)
-  !         m   = stddev(vec, mask=(vec >= 0.))
-  !         -> see also example in test directory
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Nov 2011
   INTERFACE stddev
     MODULE PROCEDURE stddev_sp, stddev_dp
   END INTERFACE stddev
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         variance
+  !>    \brief  Standard deviation of a vector.
 
-  !     PURPOSE
-  !         Calculates the sample variance of a vector, i.e. the second moment
-  !             variance = sum((x-mean(x))**2)/(n-1)
-  !
-  !         If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
-  !         x can be single or double precision. The result will have the same numerical precision.
+  !>    \details
+  !!    Calculates the sample variance of a vector, i.e. the second moment
+  !!
+  !!    \f[\sigma_x^2 = \sum_i\frac{(x_i-\bar x)^2}{N-1}\f]
+  !!
+  !!    If an optional mask is given, the average is only over those locations that correspond to true values in the mask.
+  !!    \f$x\f$ can be single or double precision. The result will have the same numerical precision.
 
-  !     CALLING SEQUENCE
-  !         out = variance(dat, mask=mask)
+   !!
+  !!    \b Example
+  !!
+  !!         vec = (/ 1., 2, 3., -999., 5., 6. /)
+  !!         m   = variance(vec, mask=(vec >= 0.))
+  !!
+  !!    See also example in test directory
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: dat(:)     1D-array with input numbers
+  !>    \param[in]  "real(sp/dp) :: dat(:)"               1D-array with input numbers.
+  !>    \param[in]  "logical, optional :: mask(:)"        1D-array of logical values with `size(dat)`.
+  !!                                                      If present, only those locations in vec corresponding to the true values in mask are used.
+  !>    \retval     "real(sp/dp) :: variance"             Sample variance of all elements in dat.
 
-  !     INTENT(INOUT)
-  !         None
+  !>    \notes         
+  !!    Input values must be floating points.\n
+  !!    This is the sample variance. The population variance is:
+  !!             `var = variance * (n-1)/n`
 
-  !     INTENT(OUT)
-  !         real(sp/dp) :: variance    sample variance of all elements in dat
-
-  !     INTENT(IN), OPTIONAL
-  !         logical :: mask(:)        1D-array of logical values with size(dat).
-  !                                   If present, only those locations in dat corresponding to the true values in mask are used.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         Input values must be floating points.
-  !         This is the sample variance. The population variance is:
-  !             var = variance * (n-1)/n
-
-  !     EXAMPLE
-  !         vec = (/ 1., 2, 3., -999., 5., 6. /)
-  !         m   = variance(vec, mask=(vec >= 0.))
-  !         -> see also example in test directory
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Nov 2011
+  !>    \author Matthias Cuntz
+  !>    \date Nov 2011
   INTERFACE variance
     MODULE PROCEDURE variance_sp, variance_dp
   END INTERFACE variance
