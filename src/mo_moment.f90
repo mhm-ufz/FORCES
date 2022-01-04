@@ -1,4 +1,7 @@
 !> \file    mo_moment.f90
+!> \brief   \copybrief mo_moment
+!> \details \copydetails mo_moment
+
 !> \brief   Statistical moments.
 !> \details This module contains routines for the masked calculation of
 !! statistical properties such as moments and mixed moments of input vectors
@@ -1144,7 +1147,7 @@ CONTAINS
 
   END FUNCTION mean_dp
 
-
+  !> \copydoc mean
   FUNCTION mean_sp(dat, mask)
 
     IMPLICIT NONE

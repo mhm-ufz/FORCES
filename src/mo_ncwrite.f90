@@ -1,3 +1,11 @@
+!> \file mo_ncwrite.f90
+!> \brief \copybrief mo_ncwrite
+!> \details \copydetails mo_ncwrite
+
+!> \brief Writing netcdf files
+!> \details Subroutines for writing arrays on nc file using the netcdf4 library.
+!> \author Stephan Thober, Luis Samaniego, Matthias Cuntz
+!> \date Nov 2011
 module mo_ncwrite
 
   ! This module provides a structure and subroutines for writing netcdf files.
@@ -116,49 +124,40 @@ module mo_ncwrite
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         dump_netcdf
+  !>    \brief Variable simple write in netcdf.
 
-  !     PURPOSE
-  !         Simple write of a variable in a netcdf file.
+  !>    \details  
+  !!    Simple write of a variable in a netcdf file.\n
+  !!    The variabel can be 1 to 5 dimensional and single or double precision.\n
+  !!    1D and 2D are dumped as static variables. From 3 to 5 dimension, the last
+  !!    dimension will be defined as time.\n
+  !!    The Variable will be called var.
+  !!
+  !!    \b Example
+  !!
+  !!         call dump_netcdf('test.nc', myarray)
+  !!         call dump_netcdf('test.nc', myarray, netcdf4=.true.)
+  !!
+  !!    See also example in test!
 
-  !         The variabel can be 1 to 5 dimensional and single or double precision.
+  !>    \param[in]  "character(len=*) :: filename"                  Name of netcdf output file.
+  !>    \param[in]  "real(sp/dp)      :: arr(:[,:[,:[,:[,:]]]])"    1D to 5D-array with input numbers.
+  !>    \param[in]  "logical, optional :: lfs"                      True: enable netcdf3 large file support, i.e. 64-bit offset.
+  !>    \param[in]  "logical, optional :: logical"                  True: use netcdf4 format.
+  !>    \param[in]  "integer(i4), optional   :: deflate_level"      Compression level in netcdf4 (default: 1).
 
-  !         1D and 2D are dumped as static variables. From 3 to 5 dimension, the last
-  !         dimension will be defined as time.
-  !         The Variable will be called var.
-
-  !     CALLING SEQUENCE
-  !         call dump_netcdf(filename, arr, append, lfs, netcdf4, deflate_level)
-
-  !     INTENT(IN)
-  !         character(len=*) :: filename                  name of netcdf output file
-  !         real(sp/dp)      :: arr(:[,:[,:[,:[,:]]]])    1D to 5D-array with input numbers
-
-  !     INTENT(IN), OPTIONAL
-  !         logical          :: lfs                       True: enable netcdf3 large file support, i.e. 64-bit offset
-  !         logical          :: logical,                  True: use netcdf4 format
-  !         integer(i4)      :: deflate_level             Compression level in netcdf4 (default: 1)
-
-  !     RESTRICTIONS
-  !         If dimension
-
-  !     EXAMPLE
-  !         call dump_netcdf('test.nc', myarray)
-  !         call dump_netcdf('test.nc', myarray, netcdf4=.true.)
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Nov 2012
-  !         Modified, Stephan Thober, Nov 2012 - added functions for i4 variables
-  !                   Matthias Cuntz and Juliane Mai
-  !                                   Nov 2012 - append
-  !                                            - fake time dimension for 1D and 2D
-  !                                            - make i4 behave exactly as sp and dp
-  !                                   Mar 2013 - lfs, netcdf4, deflate_level
+  !>    \author Matthias Cuntz
+  !>    \date Nov 2012
+  !>    \author Stephan Thober
+  !>    \date Nov 2012 
+  !!      - added functions for i4 variables
+  !>    \author Matthias Cuntz and Juliane Mai
+  !>    \date Nov 2012 
+  !!      - append
+  !!      - fake time dimension for 1D and 2D
+  !!      - make i4 behave exactly as sp and dp
+  !>    \date Mar 2013 
+  !!      - lfs, netcdf4, deflate_level
   interface dump_netcdf
     module procedure dump_netcdf_1d_sp, dump_netcdf_2d_sp, dump_netcdf_3d_sp, &
             dump_netcdf_4d_sp, dump_netcdf_5d_sp, &
@@ -170,133 +169,150 @@ module mo_ncwrite
 
 
   ! ------------------------------------------------------------------
-  !
-  !     NAME
-  !         var2nc
-  !
-  !     PURPOSE
-  !         Provide an intermediate way to write netcdf files
-  !         between dump_netcdf and create_netcdf
-  !
-  !>        \brief Extended dump_netcdf for multiple variables
-  !
-  !>        \details Write different variables including attributes to netcdf
-  !>        file. The attributes are restricted to long_name, units,
-  !>        and missing_value. It is also possible to append variables
-  !>        when an unlimited dimension is specified.
-  !
-  !     CALLING SEQUENCE
-  !>        call var2nc(f_name, arr, dnames, v_name, dim_unlimited,
-  !>                    long_name, units, missing_value, create)
-  !
-  !     INTENT(IN)
+
+  !>    \brief Extended dump_netcdf for multiple variables
+
+  !>    \details 
+  !!    Write different variables including attributes to netcdf
+  !!    file. The attributes are restricted to long_name, units,
+  !!    and missing_value. It is also possible to append variables
+  !!    when an unlimited dimension is specified.
+  !!
+  !!    \b Example
+  !!
+  !!    Let <field> be some three dimensional array
+  !!    
+  !!    \code{.f90}
+  !!    dnames(1) = 'x'
+  !!    dnames(2) = 'y'
+  !!    dnames(3) = 'time'
+  !!    \endcode
+  !!  
+  !!    The simplest call to write <field> to a file is
+  !!
+  !!    \code{.f90}
+  !!    call var2nc('test.nc', field, dnames, 'h')
+  !!    \endcode
+  !!  
+  !!    With attributes it looks like
+  !!
+  !!    \code{.f90}
+  !!    call var2nc('test.nc', field, dnames, 'h', &
+  !!    long_name = 'height', units = '[m]', missing_value = -9999)
+  !!    \endcode
+  !!
+  !!    or alternatively
+  !!
+  !!    \code{.f90}
+  !!    character(256), dimension(3,2) :: attributes
+  !!    attributes(1,1) = 'long_name'
+  !!    attributes(1,2) = 'precipitation'
+  !!    attributes(2,1) = 'units'
+  !!    attributes(2,2) = '[mm/d]'
+  !!    attributes(3,1) = 'missing_value'
+  !!    attributes(3,2) = '-9999.'
+  !!    call var2nc('test.nc', field, dnames, 'h', attributes = attributes, create = .true. )
+  !!    \endcode
+  !!
+  !!    To be able to dynamically write <field>, an unlimited dimension
+  !!    needs to be specified (in this example field could also be only two
+  !!    dimensional)
+  !!
+  !!    \code{.f90}
+  !!    call var2nc('test.nc', field(:,:,1), dnames, 'h', dim_unlimited=3)
+  !!    \endcode
+  !!
+  !!    Now one can append an arbitrary number of time steps, e.g., the next 9
+  !!    and the time has to be added again before
+  !!
+  !!    \code{.f90}
+  !!    call var2nc('test.nc', (/20,...,100/), dnames(3:3), 'time',
+  !!                dim_unlimited = 1 )
+  !!    call var2nc('test.nc', field(:,:,2:10, dnames, 'h', dim_unlimited=3)
+  !!    \endcode
+  !!
+  !!    You can also write another variable sharing the same dimensions
+  !!
+  !!    \code{.f90}
+  !!    call var2nc('test.nc', field_2, dnames(1:2), 'h_2')
+  !!    \endcode
+  !!
+  !!    The netcdf file can stay open after the first call and subsequent calls can use the file unit
+  !!
+  !!    \code{.f90}
+  !!    ncid = -1_i4
+  !!    call var2nc('test.nc', field_1, dnames(1:1), 'h_1', ncid=ncid) ! opens file
+  !!    call var2nc('test.nc', field_2, dnames(1:2), 'h_2', ncid=ncid) ! uses ncid from last call
+  !!    call close_netcdf(ncid)
+  !!    \endcode
+  !!
+  !!    One can also give the start record number (on the unlimited dimension)
+  !!
+  !!    \code{.f90}
+  !!    ncid = -1_i4
+  !!    call var2nc('test.nc', time1, dnames(3:3), 'time', dim_unlimited=1_i4, ncid=ncid, create=.true.)
+  !!    do i=1, n
+  !!        call var2nc('test.nc', field_2(:,:,i), dnames(1:3), 'h_2', dim_unlimited=3_i4, ncid=ncid, nrec=i)
+  !!    end do
+  !!    call close_netcdf(ncid)
+  !!    \endcode
+  !!
+  !!    That's it, enjoy!
+  !!
+  !!    \b Literature
+  !!
+  !!    The manual of the used netcdf fortran library can be found in
+  !!    Robert Pincus & Ross Rew, The netcdf Fortran 90 Interface Guide
+
   !>        \param[in] "character(*) :: f_name"                             filename
   !>        \param[in] "integer(i4)/real(sp,dp) :: arr(:[,:[,:[,:[,:]]]])"  array to write
   !>        \param[in] "character(*) :: dnames(:)"                          dimension names
   !>        \param[in] "character(*) :: v_name"                             variable name
-  !
-  !     INTENT(IN), OPTIONAL
   !>        \param[in] "integer(i4),             optional :: dim_unlimited"     index of unlimited dimension
   !>        \param[in] "character(*),            optional :: long_name"         attribute
   !>        \param[in] "character(*),            optional :: units"             attribute
   !>        \param[in] "integer(i4)/real(sp,dp), optional :: missing_value"     attribute
   !>        \param[in] "character(256), dimension(:,:), optional :: attributes" two dimensional array of attributes
-  !>           size of first dimension equals number of attributes
-  !>           first entry of second dimension equals attribute name (e.g. long_name)
-  !>           second entry of second dimension equals attribute value (e.g. precipitation)
-  !>           every attribute is written as string with the exception of missing_value
+  !!                                                                size of first dimension equals number of attributes
+  !!                                                                first entry of second dimension equals attribute name (e.g. long_name)
+  !!                                                                second entry of second dimension equals attribute value (e.g. precipitation)
+  !!                                                                every attribute is written as string with the exception of missing_value
   !>        \param[in] "logical,                 optional :: create"            flag - specify whether a
   !>                                                                            output file should be
   !>                                                                            created, default
   !>        \param[inout] "integer(i4)/real(sp,dp), optional :: ncid"   if not given filename will be opened and closed
-  !>                                                                    if given and <0 then file will be opened
-  !>                                                                    and ncid will return the file unit.
-  !>                                                                    if given and >0 then file is assumed open and
-  !>                                                                    ncid is used as file unit.
+  !!                                                                    if given and <0 then file will be opened
+  !!                                                                    and ncid will return the file unit.
+  !!                                                                    if given and >0 then file is assumed open and
+  !!                                                                    ncid is used as file unit.
   !>        \param[in] "integer(i4),                optional :: nrec"   if given: start point on unlimited dimension.
-  !
-  !     RESTRICTIONS
-  !>        \note It is not allowed to write the folloing numbers for the indicated type\n
-  !>                        number | kind\n
-  !>                -2.1474836E+09 | integer(i4)\n
-  !>                 9.9692100E+36 | real(sp)\n
-  !>        9.9692099683868690E+36 | real(dp)\n
-  !>        These numbers are netcdf fortran 90 constants! They are used to determine the
-  !>        chunksize of the already written variable. Hence, this routine cannot append
-  !>        correctly to variables when these numbers are used. Only five dimensional
-  !>        variables can be written, only one unlimited dimension can be defined.
-  !
-  !     EXAMPLE
-  !         Let <field> be some three dimensional array
-  !           dnames(1) = 'x'
-  !           dnames(2) = 'y'
-  !           dnames(3) = 'time'
-  !
-  !         The simplest call to write <field> to a file is
-  !           call var2nc('test.nc', field, dnames, 'h')
-  !
-  !         With attributes it looks like
-  !           call var2nc('test.nc', field, dnames, 'h', &
-  !                       long_name = 'height', units = '[m]', missing_value = -9999)
-  !         or alternatively
-  !         character(256), dimension(3,2) :: attributes
-  !         attributes(1,1) = 'long_name'
-  !         attributes(1,2) = 'precipitation'
-  !         attributes(2,1) = 'units'
-  !         attributes(2,2) = '[mm/d]'
-  !         attributes(3,1) = 'missing_value'
-  !         attributes(3,2) = '-9999.'
-  !         call var2nc('test.nc', field, dnames, 'h', attributes = attributes, create = .true. )
+  !>        \note It is not allowed to write the following numbers for the indicated type\n
+  !!                        number | kind\n
+  !!                -2.1474836E+09 | integer(i4)\n
+  !!                 9.9692100E+36 | real(sp)\n
+  !!        9.9692099683868690E+36 | real(dp)\n
+  !!        These numbers are netcdf fortran 90 constants! They are used to determine the
+  !!        chunksize of the already written variable. Hence, this routine cannot append
+  !!        correctly to variables when these numbers are used. Only five dimensional
+  !!        variables can be written, only one unlimited dimension can be defined.
 
-  !         To be able to dynamically write <field>, an unlimited dimension
-  !         needs to be specified (in this example field could also be only two
-  !         dimensional)
-  !         call var2nc('test.nc', field(:,:,1), dnames, 'h', dim_unlimited=3)
-  !         Now one can append an arbitrary number of time steps, e.g., the next 9
-  !         and the time has to be added again before
-  !           call var2nc('test.nc', (/20,...,100/), dnames(3:3), 'time',
-  !                       dim_unlimited = 1 )
-  !           call var2nc('test.nc', field(:,:,2:10, dnames, 'h', dim_unlimited=3)
-  !
-  !         You can also write another variable sharing the same dimensions
-  !           call var2nc('test.nc', field_2, dnames(1:2), 'h_2')
-  !
-  !         The netcdf file can stay open after the first call and subsequent calls can use the file unit
-  !           ncid = -1_i4
-  !           call var2nc('test.nc', field_1, dnames(1:1), 'h_1', ncid=ncid) ! opens file
-  !           call var2nc('test.nc', field_2, dnames(1:2), 'h_2', ncid=ncid) ! uses ncid from last call
-  !           call close_netcdf(ncid)
-  !
-  !         One can also give the start record number (on the unlimited dimension)
-  !           ncid = -1_i4
-  !           call var2nc('test.nc', time1, dnames(3:3), 'time', dim_unlimited=1_i4, ncid=ncid, create=.true.)
-  !           do i=1, n
-  !               call var2nc('test.nc', field_2(:,:,i), dnames(1:3), 'h_2', dim_unlimited=3_i4, ncid=ncid, nrec=i)
-  !           end do
-  !           call close_netcdf(ncid)
-  !
-  !         That's it, enjoy!
-  !           -> see also example in test program
-  !
-  !    LITERATURE
-  !        The manual of the used netcdf fortran library can be found in
-  !        Robert Pincus & Ross Rew, The netcdf Fortran 90 Interface Guide
-  !
-  !    HISTORY
-  !>       \author Stephan Thober & Matthias Cuntz
-  !>       \date May 2014
-  !        Modified Stephan Thober - Jun 2014 added deflate, shuffle, and chunksizes
-  !                 Stephan Thober - Jun 2014 automatically append variable at the end,
-  !                                           renamed _FillValue to missing_value
-  !                 Stephan Thober - Jul 2014 add attributes array, introduced unlimited dimension
-  !                                           that is added to the dimensions of the given array
-  !                 Stephan Thober - Jan 2015 changed chunk_size convention to one chunk per unit in
-  !                                           unlimited dimension (typically time)
-  !                 Matthias Cuntz - Feb 2015 d_unlimit was not set in 5d cases
-  !                                           use ne from mo_utils for fill value comparisons
-  !                                           dummy(1) was sp instead of i4 in var2nc_1d_i4
-  !                 Matthias Cuntz - May 2015 ncid for opening the file only once
-  !                                           nrec for writing a specific record
+  !>    \author Stephan Thober & Matthias Cuntz
+  !>    \date May 2014
+  !!        - created
+  !>    \date Jun 2014
+  !!        - added deflate, shuffle, and chunksizes
+  !!        - automatically append variable at the end, renamed _FillValue to missing_value
+  !>    \date Jul 2014
+  !!        - add attributes array, introduced unlimited dimension that is added to the dimensions of the given array
+  !>    \date Jan 2015
+  !!        - changed chunk_size convention to one chunk per unit in unlimited dimension (typically time)
+  !>    \date Feb 2015
+  !!        - d_unlimit was not set in 5d cases 
+  !!        - use ne from mo_utils for fill value comparisons 
+  !!        - dummy(1) was sp instead of i4 in var2nc_1d_i4
+  !>    \date May 2015
+  !!        - ncid for opening the file only once
+  !!        - nrec for writing a specific record
 
   interface var2nc
     module procedure var2nc_1d_i4, var2nc_1d_sp, var2nc_1d_dp, &
@@ -315,33 +331,36 @@ module mo_ncwrite
 contains
 
   ! ----------------------------------------------------------------------------
+  
+  !>    \brief  Closes netcdf file stream.
 
-  ! NAME
-  !     close_netcdf
+  !>    \details
+  !!    Closes a stream of an open netcdf file and saves the file.
+  !!    
+  !!    \b Example
+  !!
+  !!    See test_mo_ncwrite.
+  !!
+  !!    \b Literature
+  !!    
+  !!    1. http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
 
-  ! PURPOSE
-  !     closes a stream of an open netcdf file and saves the file.
+  !>    \param[in]  "integer(i4) :: ncid"  Stream id of an open netcdf file which shall be closed
 
-  ! CALLING SEQUENCE
-  !     call close_netcdf(nc)
+  !>    \note Closes only an already open stream
 
-  ! INTENT(IN)
-  !     integer(i4) :: ncid - stream id of an open netcdf file which shall be closed
+  !>    \author Luis Samaniego
+  !>    \date   Feb 2011
+  
+  !>    \author Stephan Thober
+  !>    \date   Dec 2011
+  !!        - added comments and generalized
 
-  ! RESTRICTIONS
-  !     Closes only an already open stream
-
-  ! EXAMPLE
-  !     See test_mo_ncwrite
-
-  ! LITERATURE
-  !     http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
-
-  ! HISTORY
-  !     Written  Luis Samaniego  Feb 2011
-  !     Modified Stephan Thober  Dec 2011 - added comments and generalized
-  !              Matthias Cuntz  Jan 2012 - Info
-  !              Matthias Cuntz  Mar 2013 - removed Info
+  !>    \author Matthias Cuntz
+  !>    \date   Jan 2012
+  !!        - Info
+  !>    \date   Mar 2013
+  !!        - removed Info
 
   subroutine close_netcdf(ncId)
 
@@ -356,47 +375,45 @@ contains
 
   ! ------------------------------------------------------------------------------
 
-  ! NAME
-  !     create_netcdf
+  !>    \brief Open and write on new netcdf file.
 
-  ! PURPOSE
-  !     This subroutine will open a new netcdf file and write the variable
-  !     attributes stored in the structure V in the file. Therefore V
-  !     has to be already set. See the file set_netcdf in test_mo_ncwrite
-  !     for an example.
+  !>    \details
+  !!    This subroutine will open a new netcdf file and write the variable
+  !!    attributes stored in the structure V in the file. Therefore V
+  !!    has to be already set. See the file set_netcdf in test_mo_ncwrite
+  !!    for an example.
+  !!
+  !!    \b Literature
+  !!    
+  !!    1. http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
 
-  ! CALLING SEQUENCE
-  !     call create_netcdf(File, ncid, lfs, netcdf4, deflate_level)
+  !>    \param[in]  "character(len=maxLen) :: File"             Filename of file to be written
 
-  ! INTENT(IN)
-  !     character(len=maxLen) :: File             Filename of file to be written
+  !>    \param[in]  "logical, optional     :: lfs"              True: enable netcdf3 large file support, i.e. 64-bit offset
+  !>    \param[in]  "logical, optional     :: logical"          True: use netcdf4 format
+  !>    \param[in]  "integer(i4), optional :: deflate_level"    compression level in netcdf4 (default: 1)
+  !>    \param[out] "integer(i4)           :: ncid"             integer value of the stream for the opened file
 
-  ! INTENT(IN), OPTIONAL
-  !     logical               :: lfs              True: enable netcdf3 large file support, i.e. 64-bit offset
-  !     logical               :: logical          True: use netcdf4 format
-  !     integer(i4)           :: deflate_level    compression level in netcdf4 (default: 1)
+  !>    \notes This routine only writes attributes and variables which have been stored in V
+  !!     nothing else.
 
-  ! INTENT(OUT)
-  !     integer(i4)           :: ncid             integer value of the stream for the opened file
+  !>    \author Luis Samaniego
+  !>    \date  Feb 2011
 
-  ! RESTRICTIONS
-  !     This routine only writes attributes and variables which have been stored in V
-  !     nothing else.
+  !>    \author Stephan Thober
+  !>    \date   Dec 2011
+  !!        - added comments and generalized
+  !>    \date   Feb 2013
+  !!        - added flag for large file support
+  !>    \date   Mar 2013
+  !!        - buffersize
 
-  ! EXAMPLE
-  !     see test_mo_ncwrite
-
-  ! LITERATURE
-  !     http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
-
-  ! HISTORY
-  !     Written  Luis Samaniego  Feb 2011
-  !     Modified Stephan Thober  Dec 2011 - added comments and generalized
-  !              Matthias Cuntz  Jan 2012 - Info
-  !              Stephan Thober  Feb 2013 - added flag for large file support
-  !              Matthias Cuntz  Mar 2013 - netcdf4, deflate_level
-  !              Stephan Thober  Mar 2013 - buffersize
-  !              Matthias Cuntz  Mar 2013 - removed Info
+  !>    \author Matthias Cuntz
+  !>    \date   Jan 2012
+  !!        - Info
+  !>    \date   Mar 2013
+  !!        - netcdf4, deflate_level
+  !!        - removed Info
 
   subroutine create_netcdf(Filename, ncid, lfs, netcdf4, deflate_level)
 
