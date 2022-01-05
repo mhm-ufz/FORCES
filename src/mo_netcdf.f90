@@ -1,13 +1,11 @@
 !> \file mo_netcdf.f90
+!> \brief \copybrief mo_netcdf
+!> \details \copybrief mo_netcdf
 
 !> \brief NetCDF Fortran 90 interface wrapper
-
 !> \details A wrapper around the NetCDF Fortran 90 interface.
-!
 !> \authors David Schaefer
 !> \date Jun 2015
-
-
 
 module mo_netcdf
 
