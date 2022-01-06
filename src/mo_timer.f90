@@ -1,10 +1,10 @@
 !> \file mo_timer.f90
+!> \brief \copybrief mo_timer
+!> \details \copydetails mo_timer
 
 !> \brief Timing routines
-
 !> \details This module uses F90 cpu time routines to allowing setting of
-!>          multiple CPU timers.
-
+!!          multiple CPU timers.
 !> \authors Matthias Cuntz - from timers.f (c) the Regents of the University of Californi
 !> \date Dec 2012
 
@@ -112,44 +112,22 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         timer_check
-
-  !     PURPOSE
   !>        \brief Check a timer
 
-  !>        \details This routine checks a given timer. This is primarily used to
-  !>        periodically accumulate time in the timer to prevent timer cycles
-  !>        from wrapping around max_cycles.
-
-  !     INTENT(IN)
+  !>        \details 
+  !!        This routine checks a given timer. This is primarily used to
+  !!        periodically accumulate time in the timer to prevent timer cycles
+  !!        from wrapping around max_cycles.
+  !!        
+  !!        \b Example
+  !!      
+  !!        Check timer 3
+  !!        \code{.f90}
+  !!        call timer_check(3)
+  !!        \endcode
+  
   !>        \param[in] "integer(i4) :: timer"        timer number
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         call timer_check(3)
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
   !>        \author Matthias Cuntz
   !>        \date Aug 2012
 
@@ -168,44 +146,26 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         timer_clear
-
-  !     PURPOSE
   !>        \brief Reset a timer
 
-  !>        \details This routine resets a given timer or all timers to 0.
+  !>        \details 
+  !!        This routine resets a given timer or all timers to 0.
+  !!
+  !!        \b Example
+  !!
+  !!        ! Clear timer 3
+  !!        \code{.f90}
+  !!        call timer_clear(3)
+  !!        \endcode
+  !!
+  !!        Clear all timers
+  !!        \code{.f90}
+  !!        call timer_clear()
+  !!        \endcode
 
-  !     INTENT(IN)
-  !         None
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
   !>        \param[in] "integer(i4), optional :: timer"        timer number if given.\n
-  !>                                                           If missing, all timers will be reset.
+  !!                                                           If missing, all timers will be reset.
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         call timer_clear(3)
-  !         call timer_clear()
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
   !>        \author Matthias Cuntz
   !>        \date Aug 2012
 
@@ -225,44 +185,21 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         timer_get
-
-  !     PURPOSE
   !>        \brief Return a timer
 
   !>        \details This routine returns the result of a given timer. This can be
-  !>        called instead of timer_print so that the calling routine can
-  !>        print it in desired format.
+  !!        called instead of timer_print so that the calling routine can
+  !!        print it in desired format.
+  !!
+  !!        \b Example
+  !!
+  !!        Return timer 3
+  !!        \code{.f90}
+  !!        call timer_get(3)
+  !!        \endcode
 
-  !     INTENT(IN)
   !>        \param[in] "integer(i4) :: timer"        timer number
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         call timer_get(3)
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
   !>        \author Matthias Cuntz
   !>        \date Aug 2012
 
@@ -286,42 +223,19 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         timer_print
-
-  !     PURPOSE
   !>        \brief Print a timer
 
   !>        \details This routine prints the accumulated cpu time in given timer.
+  !!
+  !!        \b Example
+  !!        
+  !!        Prints timer 3
+  !!        \code{.f90}
+  !!        call timer_print(3)
+  !!        \endcode
 
-  !     INTENT(IN)
   !>        \param[in] "integer(i4) :: timer"        timer number
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         call timer_print(3)
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
   !>        \author Matthias Cuntz
   !>        \date Aug 2012
 
@@ -350,42 +264,19 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         timer_start
-
-  !     PURPOSE
   !>        \brief Start a timer
 
   !>        \details This routine starts a given timer.
+  !!
+  !!        \b Example
+  !!
+  !!        Start timer 3
+  !!        \code{.f90}
+  !!        call timer_start(3)
+  !!        \endcode
 
-  !     INTENT(IN)
   !>        \param[in] "integer(i4) :: timer"        timer number
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         call timer_start(3)
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
   !>        \author Matthias Cuntz
   !>        \date Aug 2012
 
@@ -408,42 +299,18 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         timer_stop
-
-  !     PURPOSE
   !>        \brief Stop a timer
 
   !>        \details This routine stops a given timer.
+  !!        \b Example
+  !!        
+  !!        Stop timer 3
+  !!        \code{.f90}
+  !!        call timer_stop(3)
+  !!        \endcode
 
-  !     INTENT(IN)
   !>        \param[in] "integer(i4) :: timer"        timer number
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         call timer_stop(3)
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
   !>        \author Matthias Cuntz
   !>        \date Aug 2012
 
@@ -490,43 +357,18 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !         timers_init
-
-  !     PURPOSE
   !>        \brief Initialise timer module
 
   !>        \details This routine initializes some machine parameters necessary for
-  !>        computing cpu time from F90 intrinsics.
+  !!        computing cpu time from F90 intrinsics.
+  !!        
+  !!        \b Example
+  !!
+  !!        Initialize timers (before running timers)
+  !!        \code{.f90}
+  !!        call timers_init()
+  !!        \endcode
 
-  !     INTENT(IN)
-  !         None
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         call timers_init()
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
   !>        \author Matthias Cuntz
   !>        \date Aug 2012
 
