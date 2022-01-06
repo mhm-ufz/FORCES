@@ -1,9 +1,9 @@
 !> \file mo_temporal_aggregation.f90
+!> \brief \copybrief
+!> \details \copydetails
 
 !> \brief Temporal aggregation for time series (averaging)
-
 !> \details This module does temporal aggregation (averaging) of time series
-
 !> \authors Oldrich Rakovec, Rohini Kumar
 !> \date October 2015
 
@@ -43,114 +43,46 @@ MODULE mo_temporal_aggregation
   PUBLIC :: hour2day_average   ! converts hourly time series to daily
 
   ! ------------------------------------------------------------------
-  !     NAME
-  !         day2mon_average
 
-  !     PURPOSE
-  !         Calculates monthly average values from daily values
-  !
   !>        \brief Day-to-month average (day2mon_average)
-  !
+
   !>        \details converts daily time series to monthly
-  !
-  !
-  !     INTENT(IN)
+
   !>        \param[in] "real(sp/dp) :: daily_data(:)"   array of daily time series
   !>        \param[in] "integer(i4) :: year"            year of the starting time
   !>        \param[in] "integer(i4) :: month"           month of the starting time
   !>        \param[in] "integer(i4) :: day"             day of the starting time
-  !
-  !     INTENT(INOUT)
-  !>        \param[in] "real(sp/dp) :: mon_average(:)"  array of monthly averaged values
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "real(sp/dp) :: misval"          missing value definition
-  !>        \param[in] "logical     :: rm_misval"       switch to exclude missing values
-  !
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !>       \note
-  !
-  !     EXAMPLE
-  !         -> see example in test directory
+  !>        \param[inout] "real(sp/dp) :: mon_average(:)"  array of monthly averaged values
+  !>        \param[in] "real(sp/dp), optional :: misval"          missing value definition
+  !>        \param[in] "logical, optional     :: rm_misval"       switch to exclude missing values
 
-  !     LITERATURE
-  !
-
-  !     HISTORY
-  !>        \author Oldrich Rakovec, Rohini Kumar
+  !>        \authors Oldrich Rakovec, Rohini Kumar
   !>        \date Oct 2015
-  !         Modified,
 
   INTERFACE day2mon_average
     MODULE PROCEDURE day2mon_average_dp
   END INTERFACE day2mon_average
 
   ! ------------------------------------------------------------------
-  !     NAME
-  !         hour2day_average
 
-  !     PURPOSE
-  !         Calculates daily average values from hourly values
-  !
   !>        \brief Hour-to-day average (hour2day_average)
-  !
+
   !>        \details converts hourly time series to daily
-  !
-  !
-  !     INTENT(IN)
+
   !>        \param[in] "real(sp/dp) :: hourly_data(:)"  array of hourly time series
   !>        \param[in] "integer(i4) :: year"            year of the starting time
   !>        \param[in] "integer(i4) :: month"           month of the starting time
   !>        \param[in] "integer(i4) :: day"             day of the starting time
   !>        \param[in] "integer(i4) :: hour"            hour of the starting time
-  !
-  !     INTENT(INOUT)
-  !>        \param[in] "real(sp/dp) :: day_average(:)"  array of daily averaged values
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "real(sp/dp) :: misval"          missing value definition
-  !>        \param[in] "logical     :: rm_misval"       switch to exclude missing values
-  !
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !         None
-  !
-  !     RESTRICTIONS
-  !>       \note Hours values should be from 0 to 23 (NOT from 1 to 24!)
-  !
-  !     EXAMPLE
-  !         -> see example in test directory
-
-  !     LITERATURE
-  !
-
-  !     HISTORY
+  !>        \param[inout] "real(sp/dp) :: day_average(:)"         array of daily averaged values
+  !>        \param[in] "real(sp/dp), optional :: misval"          missing value definition
+  !>        \param[in] "logical, optional     :: rm_misval"       switch to exclude missing values
+ 
+  !>        \note Hours values should be from 0 to 23 (NOT from 1 to 24!)
+ 
   !>        \author Oldrich Rakovec, Rohini Kumar
   !>        \date Oct 2015
-  !         Modified,
-
+ 
   INTERFACE hour2day_average
     MODULE PROCEDURE hour2day_average_dp
   END INTERFACE hour2day_average
