@@ -1,3 +1,14 @@
+!>    \file mo_poly.f90
+!>    \brief \copybrief mo_poly
+!>    \details \copydetails mo_poly
+
+!>    \brief  Polygon calculations.
+!>    \details  
+!!    This module determines wether a 2D point lies inside, outside, or
+!!    on the vertice/edge of a 2D polygon
+!!    and is part of the UFZ CHS Fortran library.
+!>    \author Juliane Mai
+!>    \date Jul 2012
 MODULE mo_poly
 
   ! This module determines wether a 2D point lies inside, outside, or
@@ -40,180 +51,134 @@ MODULE mo_poly
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         areapoly
+  !>    \brief Area of polygon
 
-  !     PURPOSE
-  !         Function for computing the area of a polygon
-  !         The polygon can be convex or not.
-  !
-  !         The method is only applicable for 2D polygons and points.
-  !
-  !         http://de.wikipedia.org/wiki/Geometrischer_Schwerpunkt
-  !
-  !     CALLING SEQUENCE
-  !         area =  areapoly(coord)
+  !>    \details
+  !!    Function for computing the area of a polygon
+  !!    The polygon can be convex or not.
+  !!  
+  !!    The method is only applicable for 2D polygons and points.
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
+  !!    polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
+  !!
+  !!    area = areapoly(polygon )
+  !!
+  !!    --> area = 1
+  !!    \endcode
+  !!  
+  !!    See also example in test directory.
+  !!
+  !!    \b Literature
+  !!
+  !!    1. http://de.wikipedia.org/wiki/Geometrischer_Schwerpunkt
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: coord(:,2)     (x,y) coordinates of edges of the polygon
+  !>    \param[in]  "real(sp/dp) :: coord(:,2)"     (x,y) coordinates of edges of the polygon
+  !>    \retval     "real(sp/dp) :: areapoly"       Area of polygon
+  
+  !>    \notes Only available in 2D version
 
-  !     INTENT(INOUT)
-  !         None
+  !>    \author Maren Goehler
+  !>    \date Jul 2012
 
-  !     INTENT(OUT)
-  !         None
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         Only available in 2D version
-
-  !     EXAMPLE
-  !         polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
-  !         polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
-  !
-  !         area = areapoly(polygon )
-  !
-  !         --> area = 1
-  !
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         http://de.wikipedia.org/wiki/Geometrischer_Schwerpunkt
-
-  !     HISTORY
-  !         Written,  Maren Goehler, July 2012
   INTERFACE areapoly
      MODULE PROCEDURE areapoly_sp, areapoly_dp
   END INTERFACE areapoly
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         center_of_mass
+  !>    \brief  Center of mass of polygon.
 
-  !     PURPOSE
-  !         Function for computing the center of mass of a polygon
-  !         Computation of polygon area needed for center of mass.
-  !         The polygon can be convex or not.
-  !
-  !         The method is only applicable for 2D polygons and points.
-  !
-  !         http://de.wikipedia.org/wiki/Geometrischer_Schwerpunkt
-  !
-  !         A = sum(xiyi+1-xi+1yi)
-  !         xs = 1/(6*A) * sum(xi+xi+1)(xiyi+1-xi+1yi)
-  !         ys = 1/(6*A) * sum(yi+yi+1)(xiyi+1-xi+1yi)
+  !>    \details
+  !!    Function for computing the center of mass of a polygon.
+  !!    Computation of polygon area needed for center of mass.
+  !!    The polygon can be convex or not.
+  !!
+  !!    The method is only applicable for 2D polygons and points.
+  !!
+  !!    \f[ A = \sum_{i}(x_{i}y_{i+1}-x_{i+1}y_{i}) \f]
+  !!    \f[ x_s = \frac{1}{6A}  \sum_i(x_i+x_{i+1})(x_iy_{i+1}-x_{i+1}y_i) \f]
+  !!    \f[ y_s = \frac{1}{6A}  \sum_i(y_i+y_{i+1})(x_iy_{i+1}-x_{i+1}y_i) \f]
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
+  !!    polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
+  !!  
+  !!    com = center_of_mass(polygon)
+  !!
+  !!    --> com = (/1.5_dp, 1.5_dp/)
+  !!    \endcode
+  !!
+  !!    See also example in test directory
+  !!
+  !!    \b Literature
+  !!
+  !!    1. http://de.wikipedia.org/wiki/Geometrischer_Schwerpunkt
 
-  !     CALLING SEQUENCE
-  !         com =  center_of_mass(coord)
+  !>    \param[in]  "real(sp/dp) :: coord(:,2)"           (x,y) coordinates of edges of the polygon.
+  !>    \retval     "real(sp/dp), dimension(2) :: center" Center of mass of polygon.
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: coord(:,2)     (x,y) coordinates of edges of the polygon
+  !>    \notes Only available in 2D version
 
-  !     INTENT(INOUT)
-  !         None
+  !>    \author Maren Goehler
+  !>    \date July 2012
 
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         Only available in 2D version
-
-  !     EXAMPLE
-  !         polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
-  !         polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
-  !
-  !         com = center_of_mass(polygon)
-  !
-  !         --> com = (/1.5_dp, 1.5_dp/)
-  !
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         http://de.wikipedia.org/wiki/Geometrischer_Schwerpunkt
-
-  !     HISTORY
-  !         Written,  Maren Goehler, July 2012
   INTERFACE center_of_mass
      MODULE PROCEDURE  center_of_mass_sp,center_of_mass_dp
   END INTERFACE center_of_mass
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         inpoly
+  !>    \brief Determination point of polygon.
 
-  !     PURPOSE
-  !         Determines whether a 2D point falls in a polygon or is located outside or
-  !         lies on a vertex or an edge of the polygon.
-  !         The polygon can be convex or not.
-  !
-  !         The method is only applicable for 2D polygons and points.
-  !
-  !         The original version of the source code (pnpoly) was implemented by
-  !         W. Randolph Franklin. It was insufficiently assigning vertex/edge points.
+  !>    \details
+  !!    Determines whether a 2D point falls in a polygon or is located outside or
+  !!    lies on a vertex or an edge of the polygon.
+  !!    The polygon can be convex or not.
+  !!
+  !!    The method is only applicable for 2D polygons and points.
+  !!
+  !!    The original version of the source code (pnpoly) was implemented by
+  !!    W. Randolph Franklin. It was insufficiently assigning vertex/edge points.
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
+  !!    polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
+  !!  
+  !!    point = (/ 1.5, 1.5 /)
+  !!  
+  !!    call inpoly( point, polygon, inside )
+  !!
+  !!    --> inside = 1 ... point is inside the polygon
+  !!    \endcode
+  !!
+  !!    See also example in test directory   
+  !!
+  !!    \b Literature
+  !!    
+  !!    1. https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
+  
+  !>    \param[in]  "real(sp/dp) :: p(2)"           coordinates of the point in question
+  !>    \param[in]  "real(sp/dp) :: coord(:,2)"     (x,y) coordinates of edges of the polygon
 
-  !     CALLING SEQUENCE
-  !         call inpoly( p, coord, inside )
+  !>    \param[out] "integer(i4) :: inside"         Whether point is inside (=1), outside (=-1) or
+  !!                                                on a vertex/edge of the polygon
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: p(2)           coordinates of the point in question
-  !         real(sp/dp) :: coord(:,2)     (x,y) coordinates of edges of the polygon
+  !>    \notes Only available in 2D version
 
-  !     INTENT(INOUT)
-  !         None
+  !>    \author Juliane Mai
+  !>    \date Jul 2012
+  !!       - removing GOTO statements
 
-  !     INTENT(OUT)
-  !         integer(i4) :: inside   whether point is inside (=1), outside (=-1) or
-  !                                 on a vertex/edge of the polygon
 
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         Only available in 2D version
-
-  !     EXAMPLE
-  !         polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
-  !         polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
-  !
-  !         point = (/ 1.5, 1.5 /)
-  !
-  !         call inpoly( point, polygon, inside )
-  !
-  !         --> inside = 1 ... point is inside the polygon
-  !
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
-
-  !     HISTORY
-  !         Written,  Juliane Mai, July 2012
-  !         Modified, Juliane Mai, July 2012 - removing GOTO statements
   INTERFACE inpoly
      MODULE PROCEDURE inpoly_dp, inpoly_sp
   END INTERFACE inpoly

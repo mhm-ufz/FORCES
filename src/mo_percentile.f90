@@ -1,3 +1,12 @@
+!>    \file mo_percentile.f90
+!>    \brief \copybrief mo_percentile
+!>    \details \copydetails mo_percentile
+
+!>    \brief  Median and percentiles.
+!>    \details  
+!!    This module provides routines for median and percentiles.
+!>    \author Mathias Cuntz
+!>    \date Mar 2011
 MODULE mo_percentile
 
   ! This module provides routines for median and percentiles.
@@ -38,232 +47,179 @@ MODULE mo_percentile
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         median
+  !>    \brief Median.
 
-  !     PURPOSE
-  !         Returns the median of the values in an array.
-  !         If size is even, then the mean of the size/2 and size/2+1 element is the median.
-  !
-  !         If an optinal mask is given, values only on those locations that correspond
-  !         to true values in the mask are used.
+  !>    \details
+  !!    Returns the median of the values in an array.
+  !!    If size is even, then the mean of the size/2 and size/2+1 element is the median.
+  !!  
+  !!    If an optinal mask is given, values only on those locations that correspond
+  !!    to true values in the mask are used.
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    vec = (/ 1.,2.,3.,4.,5.,6.,7.,8.,9.,10. /)
+  !!    ! Returns 5.5
+  !!    out = median(vec)
+  !!    \endcode
+  !!
+  !!    See also example in test directory.
 
-  !     CALLING SEQUENCE
-  !         out = median(vec,mask=mask)
+  !>    \param[in]  "real(sp/dp) :: vec(:)"               1D-array with input numbers
+  !>    \param[in]  "logical, optional     :: mask(:)"    1D-array of logical values with size(vec).
+  !!                                                      If present, only those locations in vec corresponding to the true values in mask are used.
+  !>    \retval     "real(sp/dp) :: out"                  Median of values in input array
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: vec(:)     1D-array with input numbers
+  !>    \author Matthias Cuntz
+  !>    \date Mar 2011
+  !>    \author Juliane Mai
+  !>    \date Jul 2012
+  !!      - uses previous of ksmallest to half execution time
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         real(sp/dp) :: out        median of values in input array
-
-  !     INTENT(IN), OPTIONAL
-  !         logical     :: mask(:)    1D-array of logical values with size(vec).
-  !                                   If present, only those locations in vec corresponding to the true values in mask are used.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         vec = (/ 1.,2.,3.,4.,5.,6.,7.,8.,9.,10. /)
-  !         ! Returns 5.5
-  !         out = median(vec)
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Mar 2011
-  !         Modified, Matthias Cuntz, Juliane Mai, Jul 2012 - uses previous of ksmallest to half execution time
   INTERFACE median
     MODULE PROCEDURE median_sp, median_dp
   END INTERFACE median
 
   ! ------------------------------------------------------------------
+  
+  !>    \brief Nth smallest value in array.
 
-  !     NAME
-  !         n_element
+  !>    \details
+  !!    Returns the n-th smallest value in an array.
+  !!
+  !!    If an optinal mask is given, values only on those locations that correspond
+  !!    to true values in the mask are used.
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    vec = (/ 1.,2.,3.,4.,5.,6.,7.,8.,9.,10. /)
+  !!    ! Returns 4
+  !!    out = n_element(vec,4)
+  !!    \endcode
+  !!
+  !!    See also example in test directory.
+  !!
+  !!    \b Literature
+  !!
+  !!    1. Niklaus Wirth. _"Algorithms and Data Structures"_. Prentice-Hall, Inc., 1985. ISBN 0-13-022005-1.
 
-  !     PURPOSE
-  !         Returns the n-th smallest value in an array.
-  !
-  !         If an optinal mask is given, values only on those locations that correspond
-  !         to true values in the mask are used.
+  !>    \param[in]  "real(sp/dp) :: vec(:)"             1D-array with input numbers
+  !>    \param[in]  "integer(i4), optional :: n"        Index of sorted array
+  !>    \param[in]  "logical, optional     :: mask(:)"  1D-array of logical values with size(vec).
+  !!                                                    If present, only those locations in vec corresponding to the true values in mask are used.
+  !>    \param[out]  "real(sp/dp) :: before"            (n-1)-th smallest value in input array, e.g. for median/percentile calculations
+  !>    \param[out]  "real(sp/dp) :: previous"          Same as before
+  !>    \param[out]  "real(sp/dp) :: after"             (n+1)-th smallest value in input array
+  !>    \param[out]  "real(sp/dp) :: next"              Same as after
+  !>    \retval  "real(sp/dp) :: out"           N-th smallest value in input array
 
-  !     CALLING SEQUENCE
-  !         out = n_element(vec, n, mask=mask, before=before, previous=previous, after=after, next=next)
+  !>    \author Matthias Cuntz
+  !>    \date May 2014 
+  !!        - based on qmedian
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: vec(:)     1D-array with input numbers
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         real(sp/dp) :: out        n-th smallest value in input array
-
-  !     INTENT(IN), OPTIONAL
-  !         integer(i4) :: n          index of sorted array
-  !         logical     :: mask(:)    1D-array of logical values with size(vec).
-  !                                   If present, only those locations in vec corresponding to the true values in mask are used.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         real(sp/dp) :: before      (n-1)-th smallest value in input array, e.g. for median/percentile calculations
-  !         real(sp/dp) :: previous    same as before
-  !         real(sp/dp) :: after       (n+1)-th smallest value in input array
-  !         real(sp/dp) :: next        same as after
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         vec = (/ 1.,2.,3.,4.,5.,6.,7.,8.,9.,10. /)
-  !         ! Returns 4
-  !         out = n_element(vec,4)
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         Niklaus Wirth. "Algorithms and Data Structures". Prentice-Hall, Inc., 1985. ISBN 0-13-022005-1.
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, May 2014 - based on qmedian
   INTERFACE n_element
     MODULE PROCEDURE n_element_dp, n_element_sp
   END INTERFACE n_element
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         percentile
+  !>    \brief Percentile.
 
-  !     PURPOSE
-  !         Returns the value below which a certain percent of array values fall.
-  !
-  !         If an optinal mask is given, values only on those locations that correspond
-  !         to true values in the mask are used.
-  !
-  !         Different definitions can be applied to interpolate the stepwise CDF of the given data.
-  !         (1) Inverse empirical CDF (no interpolation, default MATHEMATICA)
-  !         (2) Linear interpolation (California method)
-  !         (3) Element numbered closest
-  !         (4) Linear interpolation (hydrologist method)
-  !         (5) Mean-based estimate (Weibull method, default IMSL)
-  !         (6) Mode-based estimate
-  !         (7) Median-based estimate
-  !         (8) normal distribution estimate
-  !
-  !         See: http://reference.wolfram.com/mathematica/tutorial/BasicStatistics.html
+  !>    \details
+  !!    Returns the value below which a certain percent of array values fall.
+  !!
+  !!    If an optinal mask is given, values only on those locations that correspond
+  !!    to true values in the mask are used.
+  !!
+  !!    Different definitions can be applied to interpolate the stepwise CDF of the given data.
+  !!    1. Inverse empirical CDF (no interpolation, default MATHEMATICA)
+  !!    2. Linear interpolation (California method)
+  !!    3. Element numbered closest
+  !!    4. Linear interpolation (hydrologist method)
+  !!    5. Mean-based estimate (Weibull method, default IMSL)
+  !!    6. Mode-based estimate
+  !!    7. Median-based estimate
+  !!    8. normal distribution estimate
+  !!  
+  !!    See: http://reference.wolfram.com/mathematica/tutorial/BasicStatistics.html
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    vec = (/ 1.,2.,3.,4.,5.,6.,7.,8.,9.,10. /)
+  !!    ! Returns 10.
+  !!    out = percentile(vec,95.)
+  !!    ! Returns (10.,8)
+  !!    out = percentile(vec,(/95.,80./))
+  !!    \endcode
+  !!
+  !!    See also example in test directory
 
-  !     CALLING SEQUENCE
-  !         out = percentile(vec,k,mask=mask,mode_in=mode)
+  !>    \param[in]  "real(sp/dp) :: vec(:)"             1D-array with input numbers
+  !>    \param[in]  "real(sp/dp) :: k[(:)]"             Percentage of percentile, can be 1 dimensional
+  !>    \param[in]  "logical, optional  :: mask(:)"     1D-array of logical values with size(vec).
+  !!                                                    If present, only those locations in vec corresponding to the true values in mask are used.
+  !>    \param[in]  "integer(i4), optional :: mode_in"  Specifies the interpolation scheme applied.\n
+  !!                                                    Default:
+  !!                                                    Inverse empirical CDF (no interpolation, default Mathematica)
+  !!                                                    mode_in = 1_i4
+  !>    \retval     "real(sp/dp) :: out[(size(k))]"     k-th percentile of values in input array, can be
+  !!                                                    1 dimensional corresponding to k
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: vec(:)     1D-array with input numbers
-  !         real(sp/dp) :: k[(:)]     Percentage of percentile, can be 1 dimensional
+  !>    \author Matthias Cuntz
+  !>    \date Mar 2011
+  
+  !>    \author Stephan Thober
+  !>    \date Dec 2011
+  !!      - added 1 dimensional version
+  
+  !>    \author Juliane Mai
+  !>    \date Jul 2012
+  !!      - different interpolation schemes
 
-  !     INTENT(INOUT)
-  !         None
+  !>    \authors Matthias Cuntz, Juliane Mai
+  !>    \date Jul 2012
+  !!      - uses previous of ksmallest to half execution time
 
-  !     INTENT(OUT)
-  !         real(sp/dp) :: out[(size(k))]   k-th percentile of values in input array, can be
-  !                                         1 dimensional corresponding to k
-
-  !     INTENT(IN), OPTIONAL
-  !         logical     :: mask(:)    1D-array of logical values with size(vec).
-  !                                   If present, only those locations in vec corresponding to the true values in mask are used.
-  !         integer(i4) :: mode_in    Specifies the interpolation scheme applied.
-  !                                   Default:
-  !                                       Inverse empirical CDF (no interpolation, default Mathematica)
-  !                                       mode_in = 1_i4
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         vec = (/ 1.,2.,3.,4.,5.,6.,7.,8.,9.,10. /)
-  !         ! Returns 10.
-  !         out = percentile(vec,95.)
-  !         ! Returns (10.,8)
-  !         out = percentile(vec,(/95.,80./))
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Mar  2011
-  !         Modified, Stephan Thober, Dec  2011 - added 1 dimensional version
-  !                   Juliane Mai,    July 2012 - different interpolation schemes
-  !         Modified, Matthias Cuntz, Juliane Mai, Jul 2012 - uses previous of ksmallest to half execution time
   INTERFACE percentile
     MODULE PROCEDURE percentile_0d_sp, percentile_0d_dp, percentile_1d_sp, percentile_1d_dp
   END INTERFACE percentile
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         qmedian
+  !>    \brief  Quick median calculation
 
-  !     PURPOSE
-  !         Quick calculation of the median thereby rearranging the input array.
+  !>    \details
+  !!    Quick calculation of the median thereby rearranging the input array.
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    vec = (/ 1.,2.,3.,4.,5.,6.,7.,8.,9.,10. /)
+  !!    ! Returns 5.5
+  !!    out = qmedian(vec)
+  !!    \endcode
+  !!
+  !!    See also example in test directory.
+  !!
+  !!    \b Literature
+  !!
+  !!    1. Niklaus Wirth. _"Algorithms and Data Structures"_. Prentice-Hall, Inc., 1985. ISBN 0-13-022005-1.
 
-  !     CALLING SEQUENCE
-  !         out = qmedian(vec)
+  !>    \param[inout] "real(sp/dp) :: vec(:)"     1D-array with input numbers.
+  !!                                              Will be rearranged on output.
+  !>    \retval       "real(sp/dp) :: out"        Median of values in input array
 
-  !     INTENT(IN)
-  !         None
+  !>    \author Filip Hroch
+  !!      - as part of Munipack: http://munipack.physics.muni.cz
+  !>    \author Matthias Cuntz
+  !>    \date Jul 2012 
+  !!      - function, k=n/2+1
+  !!      - real median for even n
 
-  !     INTENT(INOUT)
-  !         real(sp/dp) :: vec(:)     1D-array with input numbers.
-  !                                   Wil be rearranged on output.
-
-  !     INTENT(OUT)
-  !         real(sp/dp) :: out        median of values in input array
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         vec = (/ 1.,2.,3.,4.,5.,6.,7.,8.,9.,10. /)
-  !         ! Returns 5.5
-  !         out = qmedian(vec)
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         Niklaus Wirth. "Algorithms and Data Structures". Prentice-Hall, Inc., 1985. ISBN 0-13-022005-1.
-
-  !     HISTORY
-  !         Written, Filip Hroch as part of Munipack: http://munipack.physics.muni.cz
-  !         Modified, Matthias Cuntz, Jul 2012 - function, k=n/2+1
-  !         Modified, Matthias Cuntz, Juliane Mai, Jul 2012 - real median for even n
   INTERFACE qmedian
     MODULE PROCEDURE qmedian_sp, qmedian_dp
   END INTERFACE qmedian
