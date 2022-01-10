@@ -12,6 +12,9 @@ MODULE mo_utils
   ! Modified Matthias Cuntz, Juliane Mai, Feb 2014 - equal, notequal
   !          Matthias Cuntz,              May 2014 - swap
   !          Matthias Cuntz,              May 2014 - is_finite, is_nan, is_normal, special_value
+  !          Matthias Cuntz,              Jun 2016 - special_value as elemental function
+  !          Matthias Cuntz,              Jun 2016 - cumsum, arange, linspace, imaxloc/iminloc
+  !          Matthias Cuntz,              Jun 2016 - copy toupper of mo_string_utils into module
 
   ! License
   ! -------
@@ -28,43 +31,89 @@ MODULE mo_utils
   ! GNU Lesser General Public License for more details.
 
   ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
+  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
   ! If not, see <http://www.gnu.org/licenses/>.
 
   ! Copyright 2014 Matthias Cuntz, Juliane Mai
 
-  USE mo_kind, only : sp, dp, i1, i4, i8
-  USE mo_string_utils, only : toupper
+  USE mo_kind,         only: sp, dp, i4, i8, spc, dpc
 
   IMPLICIT NONE
 
-  PUBLIC :: equal        ! a == b, a .eq. b
-  PUBLIC :: greaterequal ! a >= b, a .ge. b
-  PUBLIC :: lesserequal  ! a <= b, a .le. b
-  PUBLIC :: notequal     ! a /= b, a .ne. b
-  PUBLIC :: eq           ! a == b, a .eq. b
-  PUBLIC :: ge           ! a >= b, a .ge. b
-  PUBLIC :: le           ! a <= b, a .le. b
-  PUBLIC :: ne           ! a /= b, a .ne. b
-  PUBLIC :: is_finite    ! .true. if not IEEE Inf and not IEEE NaN
-  PUBLIC :: is_nan       ! .true. if IEEE NaN
-  PUBLIC :: is_normal    ! .true. if not IEEE Inf and not IEEE NaN
-  PUBLIC :: locate       ! Find closest values in a monotonic series
-  PUBLIC :: swap         ! swaps arrays or elements of an array
+  PUBLIC :: arange        ! Natural numbers within interval
+  PUBLIC :: cumsum        ! Cumulative sum
+  PUBLIC :: eq            ! a == b, a .eq. b
+  PUBLIC :: equal         ! a == b, a .eq. b
+  PUBLIC :: ge            ! a >= b, a .ge. b
+  PUBLIC :: greaterequal  ! a >= b, a .ge. b
+  PUBLIC :: imaxloc       ! maxloc(arr)(1)
+  PUBLIC :: iminloc       ! maxloc(arr)(1)
+  PUBLIC :: is_finite     ! .true. if not IEEE Inf and not IEEE NaN
+  PUBLIC :: is_nan        ! .true. if IEEE NaN
+  PUBLIC :: is_normal     ! .true. if not IEEE Inf and not IEEE NaN
+  PUBLIC :: le            ! a <= b, a .le. b
+  PUBLIC :: lesserequal   ! a <= b, a .le. b
+  PUBLIC :: linspace      ! Evenly spaced numbers in interval
+  PUBLIC :: locate        ! Find closest values in a monotonic series
+  PUBLIC :: ne            ! a /= b, a .ne. b
+  PUBLIC :: notequal      ! a /= b, a .ne. b
   PUBLIC :: special_value ! Special IEEE values
-  PUBLIC :: relational_operator_dp, relational_operator_sp ! abstract interface for relational operators
+  PUBLIC :: swap          ! Swaps arrays or elements of an array
 
-  public :: flip ! flips a dimension of an array
-  public :: unpack_chunkwise ! flips a dimension of an array
+  
+  ! ------------------------------------------------------------------
 
-  interface flip
-    procedure flip_1D_dp, flip_2D_dp, flip_3D_dp, flip_4D_dp, flip_1D_i4, flip_2D_i4, flip_3D_i4, flip_4D_i4
-  end interface
+  !     NAME
+  !         cumsum
 
-  interface unpack_chunkwise
-    procedure unpack_chunkwise_i1, unpack_chunkwise_dp
-  end interface
+  !     PURPOSE
+  !         Calculate the cumulative sum
+  !
+  !>        \brief Cumulative sum.
+  !
+  !>        \details The cumulative sum of the elements of an array
+  !>        \f[ cumsum(i) = \sum_{j=1}^i array(j) \f]
+  !
+  !     INTENT(IN)
+  !>        \param[in] "integer(i4/i8)/real(sp/dp)/complex(spc/dpc) :: arr(:)"   1D array
+  !
+  !     INTENT(INOUT)
+  !         None
 
+  !     INTENT(OUT)
+  !         None
+  !
+  !     INTENT(IN), OPTIONAL
+  !         None
+  !
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+  !
+  !     INTENT(OUT), OPTIONAL
+  !         None
+  !
+  !     RETURN
+  !>       \return     kind(arr) :: cumsum(size(arr)) &mdash; Cumulative sum
+  !
+  !     RESTRICTIONS
+  !         None
+  !
+  !     EXAMPLE
+  !         vec = (/ 1., 2., 3., 4., 5., 6. /)
+  !         cum = cumsum(vec)
+  !         -> see also example in test directory
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \authors Matthias Cuntz
+  !>        \date Jun 2016
+  INTERFACE cumsum
+     MODULE PROCEDURE cumsum_i4, cumsum_i8, cumsum_dp, cumsum_sp, cumsum_dpc, cumsum_spc
+  END INTERFACE cumsum
+
+  
   ! ------------------------------------------------------------------
 
   !     NAME
@@ -117,54 +166,115 @@ MODULE mo_utils
   !>        \date Feb 2014
   !         Modified, Matthias Cuntz, Juliane Mai, Feb 2014 - sp, dp
   INTERFACE equal
-    MODULE PROCEDURE equal_sp, equal_dp
+     MODULE PROCEDURE equal_sp, equal_dp
   END INTERFACE equal
 
   INTERFACE notequal
-    MODULE PROCEDURE notequal_sp, notequal_dp
+     MODULE PROCEDURE notequal_sp, notequal_dp
   END INTERFACE notequal
 
   INTERFACE greaterequal
-    MODULE PROCEDURE greaterequal_sp, greaterequal_dp
+     MODULE PROCEDURE greaterequal_sp, greaterequal_dp
   END INTERFACE greaterequal
 
   INTERFACE lesserequal
-    MODULE PROCEDURE lesserequal_sp, lesserequal_dp
+     MODULE PROCEDURE lesserequal_sp, lesserequal_dp
   END INTERFACE lesserequal
 
   INTERFACE eq
-    MODULE PROCEDURE equal_sp, equal_dp
+     MODULE PROCEDURE equal_sp, equal_dp
   END INTERFACE eq
 
   INTERFACE ne
-    MODULE PROCEDURE notequal_sp, notequal_dp
+     MODULE PROCEDURE notequal_sp, notequal_dp
   END INTERFACE ne
 
   INTERFACE ge
-    MODULE PROCEDURE greaterequal_sp, greaterequal_dp
+     MODULE PROCEDURE greaterequal_sp, greaterequal_dp
   END INTERFACE ge
 
   INTERFACE le
-    MODULE PROCEDURE lesserequal_sp, lesserequal_dp
+     MODULE PROCEDURE lesserequal_sp, lesserequal_dp
   END INTERFACE le
 
 
   ! ------------------------------------------------------------------
 
   !     NAME
-  !         is_finite
+  !         imaxloc / iminloc
+
+  !     PURPOSE
+  !         First location in array of element with the maximum/minimum value.
+  !
+  !>        \brief First location in array of element with the maximum/minimum value.
+  !
+  !>        \details Fortran intrinsics maxloc and minloc return arrays with all subsripts
+  !>                 corresponding to the maximum/minimum value in the array.\n
+  !>                 This routine returns only the first entry as scalar integer.
+  !
+  !     INTENT(IN)
+  !>        \param[in] "integer(i4/i8)/real(sp/dp)/complex(spc/dpc) :: array(:)" Input array
+  !
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+  !
+  !     INTENT(IN), OPTIONAL
+  !>        \param[in] "logical :: mask(:)"   If present, only those locations in array corresponding to
+  !>                                          the true values in mask are searched for the maximum value.
+  !
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+  !
+  !     INTENT(OUT), OPTIONAL
+  !         None
+  !
+  !     RETURN
+  !>       \return     integer(i4) :: imaxloc/iminloc &mdash; First location of maximum/minimum
+  !
+  !     RESTRICTIONS
+  !         None
+  !
+  !     EXAMPLE
+  !         integer(i4) :: imin
+  !         imin = iminloc(vec, mask=mask)
+  !         -> see also example in test directory
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \authors Matthias Cuntz, Juliane Mai
+  !>        \date Feb 2014
+  !         Modified, Matthias Cuntz, Juliane Mai, Feb 2014 - sp, dp
+  INTERFACE imaxloc
+     MODULE PROCEDURE imaxloc_i4, imaxloc_i8, imaxloc_sp, imaxloc_dp
+  END INTERFACE imaxloc
+
+  INTERFACE iminloc
+     MODULE PROCEDURE iminloc_i4, iminloc_i8, iminloc_sp, iminloc_dp
+  END INTERFACE iminloc
+
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         is_finite / is_nan / is_normal
 
   !     PURPOSE
   !         Elemental inquiry functions returning .true. if the argument has a value
   !         implied by the name of the function.
   !
-  !>        \brief .true. if not IEEE Inf.
+  !>        \brief .true. if not IEEE Inf, IEEE NaN, nor IEEE Inf nor IEEE NaN, respectively.
   !
-  !>        \details Checks for IEEE Inf, i.e. Infinity.\n
-  !>                 Wraps to functions of the intrinsic module ieee_arithmetic.
+  !>        \details Checks for IEEE Inf and IEEE NaN, i.e. Infinity and Not-a-Number.\n
+  !>                 Wraps to functions of the intrinsic module ieee_arithmetic
+  !>                 but gives alternatives for gfortran, which does not provide ieee_arithmetic.
   !
   !     INTENT(IN)
-  !>        \param[in] "real(sp/dp) :: a"        Number to be evaluated.
+  !>        \param[in] "real(sp/dp) :: x"        Number to check
   !
   !     INTENT(INOUT)
   !         None
@@ -182,8 +292,8 @@ MODULE mo_utils
   !         None
   !
   !     RETURN
-  !>       \return logical :: is_finite &mdash; \f$ a \neq \infty \f$,
-  !>                                                             logically true or false.
+  !>       \return logical :: is_finite/is_nan/is_normal &mdash; \f$ a /= Inf, a == NaN, a /= Inf and a == NaN \f$,
+  !>                                                             logically true or false
   !
   !     RESTRICTIONS
   !         None
@@ -202,44 +312,72 @@ MODULE mo_utils
   !>        \authors Matthias Cuntz
   !>        \date Mar 2015
   INTERFACE is_finite
-    MODULE PROCEDURE is_finite_sp, is_finite_dp
-  END INTERFACE is_finite
-
-  !     NAME
-  !         is_nan
-  !
-  !>        \brief .true. if IEEE NaN.
-  !
-  !>        \details Checks for IEEE NaN, i.e. Not-a-Number.\n
-  !>                 Wraps to functions of the intrinsic module ieee_arithmetic.
-  !
-  !     INTENT(IN)
-  !>        \param[in] "real(sp/dp) :: a"        Number to be evaluated.
-  !
-  !     RETURN
-  !>       \return logical :: is_nan &mdash; \f$ a = NaN \f$, logically true or false.
+     MODULE PROCEDURE is_finite_sp, is_finite_dp
+  END INTERFACE is_finite  
 
   INTERFACE is_nan
-    MODULE PROCEDURE is_nan_sp, is_nan_dp
+     MODULE PROCEDURE is_nan_sp, is_nan_dp
   END INTERFACE is_nan
+  
+  INTERFACE is_normal
+     MODULE PROCEDURE is_normal_sp, is_normal_dp
+  END INTERFACE is_normal  
+
+
+  ! ------------------------------------------------------------------
 
   !     NAME
-  !         is_normal
+  !         linspace
+
+  !     PURPOSE
+  !         Return evenly spaced numbers over a specified interval.
   !
-  !>        \brief .true. if nor IEEE Inf nor IEEE NaN.
+  !>        \brief Evenly spaced numbers in interval.
   !
-  !>        \details Checks if IEEE Inf and IEEE NaN, i.e. Infinity and Not-a-Number.\n
-  !>                 Wraps to functions of the intrinsic module ieee_arithmetic.
+  !>        \details Return N evenly spaced numbers over a specified interval [lower,upper].
+  !>        \f[ linspace(lower,upper,N) = lower + arange(0,N-1)/(N-1) * (upper-lower) \f]
+  !
+  !>        Output array has kind of lower.
   !
   !     INTENT(IN)
-  !>        \param[in] "real(sp/dp) :: a"        Number to be evaluated.
+  !>        \param[in] "integer(i4/i8)/real(sp/dp) :: lower"   Start of interval.
+  !>        \param[in] "integer(i4/i8)/real(sp/dp) :: upper"   End of interval.
+  !>        \param[in] "integer(i4)                :: nstep"   Number of steps.
+  !
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+  !
+  !     INTENT(IN), OPTIONAL
+  !         None
+  !
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+  !
+  !     INTENT(OUT), OPTIONAL
+  !         None
   !
   !     RETURN
-  !>       \return logical :: is_normal &mdash; \f$ a \neq \infty \land a = NaN \f$, logically true or false.
+  !>       \return     kind(lower) :: linspace(N) &mdash; 1D array with evenly spaced numbers between lower and upper.
+  !
+  !     RESTRICTIONS
+  !         None
+  !
+  !     EXAMPLE
+  !         rr = linspace(1.0_dp,11._dp,101)
+  !         -> see also example in test directory
 
-  INTERFACE is_normal
-    MODULE PROCEDURE is_normal_sp, is_normal_dp
-  END INTERFACE is_normal
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \authors Matthias Cuntz
+  !>        \date Jun 2016
+  INTERFACE linspace
+     MODULE PROCEDURE linspace_i4, linspace_i8, linspace_dp, linspace_sp
+  END INTERFACE linspace
 
 
   ! ------------------------------------------------------------------
@@ -301,10 +439,70 @@ MODULE mo_utils
   !>        \author Matthias Cuntz
   !>        \date May 2014
   INTERFACE locate
-    MODULE PROCEDURE locate_0d_dp, locate_0d_sp, locate_1d_dp, locate_1d_sp
+     MODULE PROCEDURE locate_0d_dp, locate_0d_sp, locate_1d_dp, locate_1d_sp
   END INTERFACE locate
 
 
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         arange
+
+  !     PURPOSE
+  !         Gives natural numbers within a given interval.
+  !
+  !>        \brief Numbers within a given range.
+  !
+  !>        \details Gives array with numbers in a given interval, i.e.
+  !>        \f[ arange(1) = lower \f]
+  !>        \f[ arange(2) = lower+1 \f]
+  !>        ...
+  !>        \f[ arange(n) = upper \f]
+  !
+  !>        Default is lower=1.
+  !
+  !>        Output array has kind of lower.
+  !
+  !     INTENT(IN)
+  !>        \param[in] "integer(i4/i8)/real(sp/dp) :: lower"   Start of interval if upper is given,
+  !>                                                           Otherwise end of interval and start of interval is 1.
+  !
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+  !
+  !     INTENT(IN), OPTIONAL
+  !>        \param[in] "integer(i4/i8)/real(sp/dp) :: upper    End of interval"
+  !
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+  !
+  !     INTENT(OUT), OPTIONAL
+  !         None
+  !
+  !     RETURN
+  !>       \return     kind(arr) :: arange(upper-lower+1) &mdash; 1D array with values within given interval.
+  !
+  !     RESTRICTIONS
+  !         None
+  !
+  !     EXAMPLE
+  !         rr = arange(100._dp)
+  !         -> see also example in test directory
+
+  !     LITERATURE
+  !         None
+
+  !     HISTORY
+  !>        \authors Matthias Cuntz
+  !>        \date Jun 2016
+  INTERFACE arange
+     MODULE PROCEDURE arange_i4, arange_i8, arange_dp, arange_sp
+  END INTERFACE arange
+
+  
   ! ------------------------------------------------------------------
 
   !     NAME
@@ -361,12 +559,12 @@ MODULE mo_utils
   !>        \author Matthias Cuntz
   !>        \date May 2014
   INTERFACE swap
-    MODULE PROCEDURE &
-            swap_xy_dp, swap_xy_sp, swap_xy_i4, &
-            swap_vec_dp, swap_vec_sp, swap_vec_i4
+     MODULE PROCEDURE &
+          swap_xy_dp, swap_xy_sp, swap_xy_i4, &
+          swap_vec_dp, swap_vec_sp, swap_vec_i4
   END INTERFACE swap
 
-
+  
   ! ------------------------------------------------------------------
 
   !     NAME
@@ -378,7 +576,10 @@ MODULE mo_utils
   !>        \brief Special IEEE values.
   !
   !>        \details Returns special IEEE values such as Infinity or Not-a-Number.\n
-  !>                 Wraps to function ieee_value of the intrinsic module ieee_arithmetic.
+  !>                 Wraps to function ieee_value of the intrinsic module ieee_arithmetic
+  !>                 but gives alternatives for gfortran, which does not provide ieee_arithmetic.\n
+  !>                 Quiet and signaling NaN are the same in case of gfortran;\n
+  !>                 also denormal values are the same as inf.
   !>
   !>                 Current special values are:\n
   !>                 IEEE_SIGNALING_NAN\n
@@ -394,7 +595,7 @@ MODULE mo_utils
   !
   !     INTENT(IN)
   !>        \param[in] "real(sp/dp) :: x"         dummy for kind of output
-  !>        \param[in] "character(le=*) :: ieee"   ieee signal nanme
+  !>        \param[in] "character(le=*) :: name   ieee signal nanme
   !
   !     INTENT(INOUT)
   !         None
@@ -439,22 +640,8 @@ MODULE mo_utils
   !>        \authors Matthias Cuntz
   !>        \date Mar 2015
   INTERFACE special_value
-    MODULE PROCEDURE special_value_sp, special_value_dp
+     MODULE PROCEDURE special_value_sp, special_value_dp
   END INTERFACE special_value
-
-  abstract interface
-    logical pure function relational_operator_dp(a, b) result(boolean)
-      import dp
-      real(dp), intent(in) :: a, b
-    end function relational_operator_dp
-  end interface
-
-  abstract interface
-    logical pure function relational_operator_sp(a, b) result(boolean)
-      import sp
-      real(sp), intent(in) :: a, b
-    end function relational_operator_sp
-  end interface
 
   ! ------------------------------------------------------------------
 
@@ -464,238 +651,722 @@ MODULE mo_utils
 
 CONTAINS
 
-  ! ------------------------------------------------------------------
-
-  logical elemental pure function equal_dp(a, b) result(boolean)
-
-    real(dp), intent(in) :: a
-    real(dp), intent(in) :: b
-
-    if ((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) then
-      boolean = .false.
-    else
-      boolean = .true.
-    end if
-
-  end function equal_dp
-
-
-  logical elemental pure function equal_sp(a, b) result(boolean)
-
-    real(sp), intent(in) :: a
-    real(sp), intent(in) :: b
-
-    if ((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) then
-      boolean = .false.
-    else
-      boolean = .true.
-    end if
-
-  end function equal_sp
 
   ! ------------------------------------------------------------------
 
-  logical elemental pure function greaterequal_dp(a, b) result(boolean)
+  function arange_i4(lower, upper)
 
-    real(dp), intent(in) :: a
-    real(dp), intent(in) :: b
+    implicit none
 
-    boolean = .true.
+    integer(i4), intent(in)                :: lower
+    integer(i4), intent(in), optional      :: upper
+    integer(i4), dimension(:), allocatable :: arange_i4
+    
+    integer(i4) :: istart, istop
+    integer(i4) :: i
+
+    if (present(upper)) then
+       istart = lower
+       istop  = upper
+    else
+       istart = 1_i4
+       istop  = lower
+    endif
+
+    allocate(arange_i4(istop-istart+1_i4))
+
+    forall(i=istart:istop) arange_i4(i-istart+1) = i
+
+  end function arange_i4
+
+  function arange_i8(lower, upper)
+
+    implicit none
+
+    integer(i8), intent(in)                :: lower
+    integer(i8), intent(in), optional      :: upper
+    integer(i8), dimension(:), allocatable :: arange_i8
+    
+    integer(i8) :: istart, istop
+    integer(i8) :: i
+
+    if (present(upper)) then
+       istart = lower
+       istop  = upper
+    else
+       istart = 1_i8
+       istop  = lower
+    endif
+
+    allocate(arange_i8(istop-istart+1_i8))
+
+    forall(i=istart:istop) arange_i8(i-istart+1) = i
+
+  end function arange_i8
+
+  function arange_dp(lower, upper)
+
+    implicit none
+
+    real(dp), intent(in)                :: lower
+    real(dp), intent(in), optional      :: upper
+    real(dp), dimension(:), allocatable :: arange_dp
+    
+    integer(i8) :: istart, istop
+    integer(i8) :: i
+
+    if (present(upper)) then
+       istart = int(lower,i8)
+       istop  = int(upper,i8)
+    else
+       istart = 1_i8
+       istop  = int(lower,i8)
+    endif
+
+    allocate(arange_dp(istop-istart+1_i8))
+
+    forall(i=istart:istop) arange_dp(i-istart+1) = real(i,dp)
+
+  end function arange_dp
+
+  function arange_sp(lower, upper)
+
+    implicit none
+
+    real(sp), intent(in)                :: lower
+    real(sp), intent(in), optional      :: upper
+    real(sp), dimension(:), allocatable :: arange_sp
+    
+    integer(i8) :: istart, istop
+    integer(i8) :: i
+
+    if (present(upper)) then
+       istart = int(lower,i8)
+       istop  = int(upper,i8)
+    else
+       istart = 1_i8
+       istop  = int(lower,i8)
+    endif
+
+    allocate(arange_sp(istop-istart+1_i8))
+
+    forall(i=istart:istop) arange_sp(i-istart+1) = real(i,sp)
+
+  end function arange_sp
+
+
+  ! ------------------------------------------------------------------
+
+  function cumsum_i4(arr)
+
+    implicit none
+
+    integer(i4), dimension(:), intent(in) :: arr
+    integer(i4), dimension(size(arr,1))   :: cumsum_i4
+    
+    integer(i4) :: i
+
+    cumsum_i4(1) = arr(1)
+    do i=2, size(arr)
+       cumsum_i4(i) = cumsum_i4(i-1) + arr(i)
+    end do
+
+  end function cumsum_i4
+
+  function cumsum_i8(arr)
+
+    implicit none
+
+    integer(i8), dimension(:), intent(in) :: arr
+    integer(i8), dimension(size(arr,1))   :: cumsum_i8
+    
+    integer(i4) :: i
+
+    cumsum_i8(1) = arr(1)
+    do i=2, size(arr)
+       cumsum_i8(i) = cumsum_i8(i-1) + arr(i)
+    end do
+
+  end function cumsum_i8
+
+  function cumsum_dp(arr)
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: arr
+    real(dp), dimension(size(arr,1))   :: cumsum_dp
+    
+    integer(i4) :: i
+
+    cumsum_dp(1) = arr(1)
+    do i=2, size(arr)
+       cumsum_dp(i) = cumsum_dp(i-1) + arr(i)
+    end do
+
+  end function cumsum_dp
+
+  function cumsum_dpc(arr)
+
+    implicit none
+
+    complex(dpc), dimension(:), intent(in) :: arr
+    complex(dpc), dimension(size(arr,1))   :: cumsum_dpc
+    
+    integer(i4) :: i
+
+    cumsum_dpc(1) = arr(1)
+    do i=2, size(arr)
+       cumsum_dpc(i) = cumsum_dpc(i-1) + arr(i)
+    end do
+
+  end function cumsum_dpc
+
+  function cumsum_sp(arr)
+
+    implicit none
+
+    real(sp), dimension(:), intent(in) :: arr
+    real(sp), dimension(size(arr,1))   :: cumsum_sp
+    
+    integer(i4) :: i
+
+    cumsum_sp(1) = arr(1)
+    do i=2, size(arr)
+       cumsum_sp(i) = cumsum_sp(i-1) + arr(i)
+    end do
+
+  end function cumsum_sp
+
+  function cumsum_spc(arr)
+
+    implicit none
+
+    complex(spc), dimension(:), intent(in) :: arr
+    complex(spc), dimension(size(arr,1))   :: cumsum_spc
+    
+    integer(i4) :: i
+
+    cumsum_spc(1) = arr(1)
+    do i=2, size(arr)
+       cumsum_spc(i) = cumsum_spc(i-1) + arr(i)
+    end do
+
+  end function cumsum_spc
+
+  ! ------------------------------------------------------------------
+
+  ELEMENTAL PURE FUNCTION equal_dp(a, b)
+
+    IMPLICIT NONE
+
+    REAL(dp), INTENT(IN) :: a
+    REAL(dp), INTENT(IN) :: b
+    LOGICAL              :: equal_dp
+
+    if ((epsilon(1.0_dp)*abs(b) - abs(a-b)) < 0.0_dp) then
+       equal_dp = .false.
+    else
+       equal_dp = .true.
+    endif
+
+  END FUNCTION equal_dp
+
+
+  ELEMENTAL PURE FUNCTION equal_sp(a, b)
+
+    IMPLICIT NONE
+
+    REAL(sp), INTENT(IN) :: a
+    REAL(sp), INTENT(IN) :: b
+    LOGICAL              :: equal_sp
+
+    if ((epsilon(1.0_sp)*abs(b) - abs(a-b)) < 0.0_sp) then
+       equal_sp = .false.
+    else
+       equal_sp = .true.
+    endif
+
+  END FUNCTION equal_sp
+
+  ! ------------------------------------------------------------------
+
+  ELEMENTAL PURE FUNCTION greaterequal_dp(a, b)
+
+    IMPLICIT NONE
+
+    REAL(dp), INTENT(IN) :: a
+    REAL(dp), INTENT(IN) :: b
+    LOGICAL              :: greaterequal_dp
+
+    greaterequal_dp = .true.
     ! 1st part is /=, 2nd part is the a<b
-    if (((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) .and. (a < b)) boolean = .false.
+    if ( ((epsilon(1.0_dp)*abs(b) - abs(a-b)) < 0.0_dp) .and. (a < b) ) greaterequal_dp = .false.
 
-  end function greaterequal_dp
+  END FUNCTION greaterequal_dp
 
 
-  logical elemental pure function greaterequal_sp(a, b) result(boolean)
+  ELEMENTAL PURE FUNCTION greaterequal_sp(a, b)
 
-    real(sp), intent(in) :: a
-    real(sp), intent(in) :: b
+    IMPLICIT NONE
 
-    boolean = .true.
+    REAL(sp), INTENT(IN) :: a
+    REAL(sp), INTENT(IN) :: b
+    LOGICAL              :: greaterequal_sp
+
+    greaterequal_sp = .true.
     ! 1st part is /=, 2nd part is the a<b
-    if (((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) .and. (a < b)) boolean = .false.
+    if ( ((epsilon(1.0_sp)*abs(b) - abs(a-b)) < 0.0_sp) .and. (a < b) ) greaterequal_sp = .false.
 
-  end function greaterequal_sp
-
-  ! ------------------------------------------------------------------
-
-  logical elemental pure function lesserequal_dp(a, b) result(boolean)
-
-    real(dp), intent(in) :: a
-    real(dp), intent(in) :: b
-
-    boolean = .true.
-    ! 1st part is /=, 2nd part is the a>b
-    if (((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) .and. (a > b)) boolean = .false.
-
-  end function lesserequal_dp
-
-
-  logical elemental pure function lesserequal_sp(a, b) result(boolean)
-
-    real(sp), intent(in) :: a
-    real(sp), intent(in) :: b
-
-    boolean = .true.
-    ! 1st part is /=, 2nd part is the a>b
-    if (((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) .and. (a > b)) boolean = .false.
-
-  end function lesserequal_sp
+  END FUNCTION greaterequal_sp
 
   ! ------------------------------------------------------------------
 
-  logical elemental pure function notequal_dp(a, b) result(boolean)
+  ELEMENTAL PURE FUNCTION lesserequal_dp(a, b)
 
-    real(dp), intent(in) :: a
-    real(dp), intent(in) :: b
+    IMPLICIT NONE
 
-    if ((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) then
-      boolean = .true.
+    REAL(dp), INTENT(IN) :: a
+    REAL(dp), INTENT(IN) :: b
+    LOGICAL              :: lesserequal_dp
+
+    lesserequal_dp = .true.
+    ! 1st part is /=, 2nd part is the a>b
+    if ( ((epsilon(1.0_dp)*abs(b) - abs(a-b)) < 0.0_dp) .and. (a > b) ) lesserequal_dp = .false.
+
+  END FUNCTION lesserequal_dp
+
+
+  ELEMENTAL PURE FUNCTION lesserequal_sp(a, b)
+
+    IMPLICIT NONE
+
+    REAL(sp), INTENT(IN) :: a
+    REAL(sp), INTENT(IN) :: b
+    LOGICAL              :: lesserequal_sp
+
+    lesserequal_sp = .true.
+    ! 1st part is /=, 2nd part is the a>b
+    if ( ((epsilon(1.0_sp)*abs(b) - abs(a-b)) < 0.0_sp) .and. (a > b) ) lesserequal_sp = .false.
+
+  END FUNCTION lesserequal_sp
+
+  ! ------------------------------------------------------------------
+
+  ELEMENTAL PURE FUNCTION notequal_dp(a, b)
+
+    IMPLICIT NONE
+
+    REAL(dp), INTENT(IN) :: a
+    REAL(dp), INTENT(IN) :: b
+    LOGICAL              :: notequal_dp
+
+    if ((epsilon(1.0_dp)*abs(b) - abs(a-b)) < 0.0_dp) then
+       notequal_dp = .true.
     else
-      boolean = .false.
-    end if
+       notequal_dp = .false.
+    endif
 
-  end function notequal_dp
+  END FUNCTION notequal_dp
 
 
-  logical elemental pure function notequal_sp(a, b) result(boolean)
+  ELEMENTAL PURE FUNCTION notequal_sp(a, b)
 
-    real(sp), intent(in) :: a
-    real(sp), intent(in) :: b
+    IMPLICIT NONE
 
-    if ((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) then
-      boolean = .true.
+    REAL(sp), INTENT(IN) :: a
+    REAL(sp), INTENT(IN) :: b
+    LOGICAL              :: notequal_sp
+
+    if ((epsilon(1.0_sp)*abs(b) - abs(a-b)) < 0.0_sp) then
+       notequal_sp = .true.
     else
-      boolean = .false.
-    end if
+       notequal_sp = .false.
+    endif
 
-  end function notequal_sp
+  END FUNCTION notequal_sp
 
+
+  ! ------------------------------------------------------------------
+
+  function imaxloc_i4(arr, mask)
+
+    implicit none
+
+    integer(i4), dimension(:), intent(in)           :: arr
+    logical,     dimension(:), intent(in), optional :: mask
+    integer(i4)                                     :: imaxloc_i4
+    
+    integer(i4), dimension(1) :: imax
+
+    if (present(mask)) then
+       imax = maxloc(arr, 1, mask)
+    else
+       imax = maxloc(arr, 1)
+    endif
+    imaxloc_i4 = imax(1)
+
+  end function imaxloc_i4
+
+  function imaxloc_i8(arr, mask)
+
+    implicit none
+
+    integer(i8), dimension(:), intent(in)           :: arr
+    logical,     dimension(:), intent(in), optional :: mask
+    integer(i4)                                     :: imaxloc_i8
+    
+    integer(i4), dimension(1) :: imax
+
+    if (present(mask)) then
+       imax = maxloc(arr, 1, mask)
+    else
+       imax = maxloc(arr, 1)
+    endif
+    imaxloc_i8 = imax(1)
+
+  end function imaxloc_i8
+
+  function imaxloc_dp(arr, mask)
+
+    implicit none
+
+    real(dp),   dimension(:), intent(in)           :: arr
+    logical,    dimension(:), intent(in), optional :: mask
+    integer(i4)                                    :: imaxloc_dp
+    
+    integer(i4), dimension(1) :: imax
+
+    if (present(mask)) then
+       imax = maxloc(arr, 1, mask)
+    else
+       imax = maxloc(arr, 1)
+    endif
+    imaxloc_dp = imax(1)
+
+  end function imaxloc_dp
+
+  function imaxloc_sp(arr, mask)
+
+    implicit none
+
+    real(sp),   dimension(:), intent(in)           :: arr
+    logical,    dimension(:), intent(in), optional :: mask
+    integer(i4)                                    :: imaxloc_sp
+    
+    integer(i4), dimension(1) :: imax
+
+    if (present(mask)) then
+       imax = maxloc(arr, 1, mask)
+    else
+       imax = maxloc(arr, 1)
+    endif
+    imaxloc_sp = imax(1)
+
+  end function imaxloc_sp
+
+
+  ! ------------------------------------------------------------------
+
+  function iminloc_i4(arr, mask)
+
+    implicit none
+
+    integer(i4), dimension(:), intent(in)           :: arr
+    logical,     dimension(:), intent(in), optional :: mask
+    integer(i4)                                     :: iminloc_i4
+    
+    integer(i4), dimension(1) :: imin
+
+    if (present(mask)) then
+       imin = minloc(arr, 1, mask)
+    else
+       imin = minloc(arr, 1)
+    endif
+    iminloc_i4 = imin(1)
+
+  end function iminloc_i4
+
+  function iminloc_i8(arr, mask)
+
+    implicit none
+
+    integer(i8), dimension(:), intent(in)           :: arr
+    logical,     dimension(:), intent(in), optional :: mask
+    integer(i4)                                     :: iminloc_i8
+    
+    integer(i4), dimension(1) :: imin
+
+    if (present(mask)) then
+       imin = minloc(arr, 1, mask)
+    else
+       imin = minloc(arr, 1)
+    endif
+    iminloc_i8 = imin(1)
+
+  end function iminloc_i8
+
+  function iminloc_dp(arr, mask)
+
+    implicit none
+
+    real(dp),   dimension(:), intent(in)           :: arr
+    logical,    dimension(:), intent(in), optional :: mask
+    integer(i4)                                    :: iminloc_dp
+    
+    integer(i4), dimension(1) :: imin
+
+    if (present(mask)) then
+       imin = minloc(arr, 1, mask)
+    else
+       imin = minloc(arr, 1)
+    endif
+    iminloc_dp = imin(1)
+
+  end function iminloc_dp
+
+  function iminloc_sp(arr, mask)
+
+    implicit none
+
+    real(sp),   dimension(:), intent(in)           :: arr
+    logical,    dimension(:), intent(in), optional :: mask
+    integer(i4)                                    :: iminloc_sp
+    
+    integer(i4), dimension(1) :: imin
+
+    if (present(mask)) then
+       imin = minloc(arr, 1, mask)
+    else
+       imin = minloc(arr, 1)
+    endif
+    iminloc_sp = imin(1)
+
+  end function iminloc_sp
+
+  
   ! ------------------------------------------------------------------
 
   ELEMENTAL PURE FUNCTION is_finite_dp(a)
 
+#ifndef GFORTRAN
+  use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+#endif
 
-  use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
+    IMPLICIT NONE
 
-  IMPLICIT NONE
+    REAL(dp), INTENT(IN) :: a
+    LOGICAL              :: is_finite_dp
 
-  REAL(dp), INTENT(IN) :: a !< Number to be evaluated.
-  LOGICAL :: is_finite_dp !< logical :: is_finite &mdash; \f$ a \neq \infty \f$, logically true or false.
-
+#ifndef GFORTRAN
     is_finite_dp = ieee_is_finite(a)
+#else
+    is_finite_dp = (.not. ((a > huge(a)) .or. (a < -huge(a)))) .and. (.not. is_nan(a))
+#endif
 
   END FUNCTION is_finite_dp
 
   ELEMENTAL PURE FUNCTION is_finite_sp(a)
 
-  use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
+#ifndef GFORTRAN
+  use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+#endif
 
-  IMPLICIT NONE
+    IMPLICIT NONE
 
-  REAL(sp), INTENT(IN) :: a !< Number to be evaluated.
-  LOGICAL :: is_finite_sp !< logical :: is_finite &mdash; \f$ a \neq \infty \f$, logically true or false.
+    REAL(sp), INTENT(IN) :: a
+    LOGICAL              :: is_finite_sp
 
+#ifndef GFORTRAN
     is_finite_sp = ieee_is_finite(a)
+#else
+    is_finite_sp = (.not. ((a > huge(a)) .or. (a < -huge(a)))) .and. (.not. is_nan(a))
+#endif
 
   END FUNCTION is_finite_sp
 
 
   ELEMENTAL PURE FUNCTION is_nan_dp(a)
 
-  use, intrinsic :: ieee_arithmetic, only : isnan => ieee_is_nan
+#ifndef GFORTRAN
+  use, intrinsic :: ieee_arithmetic, only: isnan => ieee_is_nan
+#endif
 
-  IMPLICIT NONE
+    IMPLICIT NONE
 
-  REAL(dp), INTENT(IN) :: a !< Number to be evaluated.
-  LOGICAL :: is_nan_dp !< logical :: is_nan &mdash; \f$ a = NaN \f$, logically true or false.
+    REAL(dp), INTENT(IN) :: a
+    LOGICAL              :: is_nan_dp
 
+    ! isnan introduced in gfortran rev 4.2
+#ifdef GFORTRAN41
+    is_nan_dp = a /= a
+#else
     is_nan_dp = isnan(a)
+#endif
 
   END FUNCTION is_nan_dp
 
   ELEMENTAL PURE FUNCTION is_nan_sp(a)
 
-  use, intrinsic :: ieee_arithmetic, only : isnan => ieee_is_nan
+#ifndef GFORTRAN
+  use, intrinsic :: ieee_arithmetic, only: isnan => ieee_is_nan
+#endif
 
-  IMPLICIT NONE
+    IMPLICIT NONE
 
-  REAL(sp), INTENT(IN) :: a !< Number to be evaluated.
-  LOGICAL :: is_nan_sp !< logical :: is_nan &mdash; \f$ a = NaN \f$, logically true or false.
+    REAL(sp), INTENT(IN) :: a
+    LOGICAL              :: is_nan_sp
 
+    ! isnan introduced in gfortran rev 4.2
+#ifdef GFORTRAN41
+    is_nan_sp = a /= a
+#else
     is_nan_sp = isnan(a)
+#endif
 
   END FUNCTION is_nan_sp
 
 
   ELEMENTAL PURE FUNCTION is_normal_dp(a)
 
-  use, intrinsic :: ieee_arithmetic, only : ieee_is_normal
+#ifndef GFORTRAN
+  use, intrinsic :: ieee_arithmetic, only: ieee_is_normal
+#endif
 
-  IMPLICIT NONE
+    IMPLICIT NONE
 
-  REAL(dp), INTENT(IN) :: a !< Number to be evaluated.
-  LOGICAL :: is_normal_dp !< logical :: is_normal &mdash; \f$ a \neq \infty \land a = NaN \f$, logically true or false.
+    REAL(dp), INTENT(IN) :: a
+    LOGICAL              :: is_normal_dp
 
+#ifndef GFORTRAN
     is_normal_dp = ieee_is_normal(a)
+#else
+    is_normal_dp = is_finite(a)
+#endif
 
   END FUNCTION is_normal_dp
 
   ELEMENTAL PURE FUNCTION is_normal_sp(a)
 
-  use, intrinsic :: ieee_arithmetic, only : ieee_is_normal
+#ifndef GFORTRAN
+  use, intrinsic :: ieee_arithmetic, only: ieee_is_normal
+#endif
 
-  IMPLICIT NONE
+    IMPLICIT NONE
 
-  REAL(sp), INTENT(IN) :: a !< Number to be evaluated.
-  LOGICAL :: is_normal_sp !< logical :: is_normal &mdash; \f$ a \neq \infty \land a = NaN \f$, logically true or false.
+    REAL(sp), INTENT(IN) :: a
+    LOGICAL              :: is_normal_sp
 
+#ifndef GFORTRAN
     is_normal_sp = ieee_is_normal(a)
+#else
+    is_normal_sp = is_finite(a)
+#endif
 
   END FUNCTION is_normal_sp
 
+
+  ! ------------------------------------------------------------------
+
+  function linspace_i4(lower, upper, nstep)
+
+    implicit none
+
+    integer(i4), intent(in)       :: lower
+    integer(i4), intent(in)       :: upper
+    integer(i4), intent(in)       :: nstep
+    integer(i4), dimension(nstep) :: linspace_i4
+        
+    linspace_i4 = lower + nint(arange(0.0_dp,real(nstep-1_i4,dp))/real(nstep-1_i4,dp) * real(upper-lower,dp), i4)
+
+  end function linspace_i4
+
+  function linspace_i8(lower, upper, nstep)
+
+    implicit none
+
+    integer(i8), intent(in)       :: lower
+    integer(i8), intent(in)       :: upper
+    integer(i4), intent(in)       :: nstep
+    integer(i8), dimension(nstep) :: linspace_i8
+        
+    linspace_i8 = lower + nint(arange(0.0_dp,real(nstep-1_i4,dp))/real(nstep-1_i4,dp) * real(upper-lower,dp), i8)
+
+  end function linspace_i8
+
+  function linspace_dp(lower, upper, nstep)
+
+    implicit none
+
+    real(dp),    intent(in)       :: lower
+    real(dp),    intent(in)       :: upper
+    integer(i4), intent(in)       :: nstep
+    real(dp),    dimension(nstep) :: linspace_dp
+        
+    linspace_dp = lower + arange(0.0_dp,real(nstep-1_i4,dp))/real(nstep-1_i4,dp) * (upper-lower)
+
+  end function linspace_dp
+
+  function linspace_sp(lower, upper, nstep)
+
+    implicit none
+
+    real(sp),    intent(in)       :: lower
+    real(sp),    intent(in)       :: upper
+    integer(i4), intent(in)       :: nstep
+    real(sp),    dimension(nstep) :: linspace_sp
+        
+    linspace_sp = lower + arange(0.0_sp,real(nstep-1_i4,sp))/real(nstep-1_i4,sp) * (upper-lower)
+
+  end function linspace_sp
+
+  
   ! ------------------------------------------------------------------
 
   ! Given an array x(1:N), and given a value y, returns a value j such that y is between
   !  x(j) and x(j+1). x must be monotonically increasing.
   !  j=0 or j=N is returned to indicate that x is out of range.
 
-  FUNCTION locate_0d_dp(x, y)
+  FUNCTION locate_0d_dp(x,y)
+
+    IMPLICIT NONE
 
     REAL(dp), DIMENSION(:), INTENT(IN) :: x
-    REAL(dp), INTENT(IN) :: y
-    INTEGER(i4) :: locate_0d_dp
+    REAL(dp),               INTENT(IN) :: y
+    INTEGER(i4)                        :: locate_0d_dp
 
     INTEGER(i4), dimension(1) :: c
 
-    c = minloc(abs(x - y))
-    if (le(x(c(1)), y)) then
-      locate_0d_dp = c(1)
+    c = minloc(abs(x-y))
+    if (le(x(c(1)),y)) then
+       locate_0d_dp = c(1)
     else
-      locate_0d_dp = c(1) - 1
-    end if
+       locate_0d_dp = c(1)-1
+    endif
 
   END FUNCTION locate_0d_dp
 
-  FUNCTION locate_0d_sp(x, y)
+  FUNCTION locate_0d_sp(x,y)
+
+    IMPLICIT NONE
 
     REAL(sp), DIMENSION(:), INTENT(IN) :: x
-    REAL(sp), INTENT(IN) :: y
-    INTEGER(i4) :: locate_0d_sp
+    REAL(sp),               INTENT(IN) :: y
+    INTEGER(i4)                        :: locate_0d_sp
 
     INTEGER(i4), dimension(1) :: c
 
-    c = minloc(abs(x - y))
-    if (le(x(c(1)), y)) then
-      locate_0d_sp = c(1)
+    c = minloc(abs(x-y))
+    if (le(x(c(1)),y)) then
+       locate_0d_sp = c(1)
     else
-      locate_0d_sp = c(1) - 1
-    end if
+       locate_0d_sp = c(1)-1
+    endif
 
   END FUNCTION locate_0d_sp
 
-  FUNCTION locate_1d_dp(x, y)
+  FUNCTION locate_1d_dp(x,y)
+
+    IMPLICIT NONE
 
     REAL(dp), DIMENSION(:), INTENT(IN) :: x
     REAL(dp), DIMENSION(:), INTENT(IN) :: y
@@ -708,18 +1379,20 @@ CONTAINS
     ny = size(y)
     if (.not. allocated(locate_1d_dp)) allocate(locate_1d_dp(ny))
 
-    do i = 1, ny
-      c = minloc(abs(x - y(i)))
-      if (le(x(c(1)), y(i))) then
-        locate_1d_dp(i) = c(1)
-      else
-        locate_1d_dp(i) = c(1) - 1
-      end if
+    do i=1, ny
+       c = minloc(abs(x-y(i)))
+       if (le(x(c(1)),y(i))) then
+          locate_1d_dp(i) = c(1)
+       else
+          locate_1d_dp(i) = c(1)-1
+       endif
     end do
 
   END FUNCTION locate_1d_dp
 
-  FUNCTION locate_1d_sp(x, y)
+  FUNCTION locate_1d_sp(x,y)
+
+    IMPLICIT NONE
 
     REAL(sp), DIMENSION(:), INTENT(IN) :: x
     REAL(sp), DIMENSION(:), INTENT(IN) :: y
@@ -732,20 +1405,23 @@ CONTAINS
     ny = size(y)
     if (.not. allocated(locate_1d_sp)) allocate(locate_1d_sp(ny))
 
-    do i = 1, ny
-      c = minloc(abs(x - y(i)))
-      if (le(x(c(1)), y(i))) then
-        locate_1d_sp(i) = c(1)
-      else
-        locate_1d_sp(i) = c(1) - 1
-      end if
+    do i=1, ny
+       c = minloc(abs(x-y(i)))
+       if (le(x(c(1)),y(i))) then
+          locate_1d_sp(i) = c(1)
+       else
+          locate_1d_sp(i) = c(1)-1
+       endif
     end do
 
   END FUNCTION locate_1d_sp
 
+  
   ! ------------------------------------------------------------------
 
-  elemental pure subroutine swap_xy_dp(x, y)
+  elemental pure subroutine swap_xy_dp(x,y)
+
+    implicit none
 
     real(dp), intent(inout) :: x
     real(dp), intent(inout) :: y
@@ -758,7 +1434,9 @@ CONTAINS
 
   end subroutine swap_xy_dp
 
-  elemental pure subroutine swap_xy_sp(x, y)
+  elemental pure subroutine swap_xy_sp(x,y)
+
+    implicit none
 
     real(sp), intent(inout) :: x
     real(sp), intent(inout) :: y
@@ -771,7 +1449,9 @@ CONTAINS
 
   end subroutine swap_xy_sp
 
-  elemental pure subroutine swap_xy_i4(x, y)
+  elemental pure subroutine swap_xy_i4(x,y)
+
+    implicit none
 
     integer(i4), intent(inout) :: x
     integer(i4), intent(inout) :: y
@@ -785,43 +1465,49 @@ CONTAINS
   end subroutine swap_xy_i4
 
 
-  subroutine swap_vec_dp(x, i1, i2)
+  subroutine swap_vec_dp(x,i1,i2)
 
-    real(dp), dimension(:), intent(inout) :: x
-    integer(i4), intent(in) :: i1
-    integer(i4), intent(in) :: i2
+    implicit none
+
+    real(dp),    dimension(:), intent(inout) :: x
+    integer(i4),               intent(in)    :: i1
+    integer(i4),               intent(in)    :: i2
 
     real(dp) :: z
 
-    z = x(i1)
+    z     = x(i1)
     x(i1) = x(i2)
     x(i2) = z
 
   end subroutine swap_vec_dp
 
-  subroutine swap_vec_sp(x, i1, i2)
+  subroutine swap_vec_sp(x,i1,i2)
 
-    real(sp), dimension(:), intent(inout) :: x
-    integer(i4), intent(in) :: i1
-    integer(i4), intent(in) :: i2
+    implicit none
+
+    real(sp),    dimension(:), intent(inout) :: x
+    integer(i4),               intent(in)    :: i1
+    integer(i4),               intent(in)    :: i2
 
     real(sp) :: z
 
-    z = x(i1)
+    z     = x(i1)
     x(i1) = x(i2)
     x(i2) = z
 
   end subroutine swap_vec_sp
 
-  subroutine swap_vec_i4(x, i1, i2)
+  subroutine swap_vec_i4(x,i1,i2)
 
-    integer(i4), dimension(:), intent(inout) :: x
-    integer(i4), intent(in) :: i1
-    integer(i4), intent(in) :: i2
+    implicit none
+
+    integer(i4),    dimension(:), intent(inout) :: x
+    integer(i4),               intent(in)    :: i1
+    integer(i4),               intent(in)    :: i2
 
     integer(i4) :: z
 
-    z = x(i1)
+    z     = x(i1)
     x(i1) = x(i2)
     x(i2) = z
 
@@ -829,493 +1515,253 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  function special_value_dp(x, ieee)
+  elemental pure function special_value_dp(x, ieee)
 
-    use, intrinsic :: ieee_arithmetic, only : ieee_value, &
-          IEEE_SIGNALING_NAN, &
-          IEEE_QUIET_NAN, &
-          IEEE_NEGATIVE_INF, &
-          IEEE_POSITIVE_INF, &
-          IEEE_NEGATIVE_DENORMAL, &
-          IEEE_POSITIVE_DENORMAL, &
-          IEEE_NEGATIVE_NORMAL, &
-          IEEE_POSITIVE_NORMAL, &
-          IEEE_NEGATIVE_ZERO, &
-          IEEE_POSITIVE_ZERO
+#ifndef GFORTRAN
+    use, intrinsic :: ieee_arithmetic, only: ieee_value, &
+         IEEE_SIGNALING_NAN, &
+         IEEE_QUIET_NAN, &
+         IEEE_NEGATIVE_INF, &
+         IEEE_POSITIVE_INF, &
+         IEEE_NEGATIVE_DENORMAL, &
+         IEEE_POSITIVE_DENORMAL, &
+         IEEE_NEGATIVE_NORMAL, &
+         IEEE_POSITIVE_NORMAL, &
+         IEEE_NEGATIVE_ZERO, &
+         IEEE_POSITIVE_ZERO
+#endif
 
-  implicit none
+    implicit none
+    
+    real(dp),         intent(in) :: x
+    character(len=*), intent(in) :: ieee
+    real(dp)                     :: special_value_dp
 
-  real(dp), intent(in) :: x !< dummy for kind of output.
-  character(len = *), intent(in) :: ieee !< ieee signal name.
-  real(dp) :: special_value_dp !< real(dp) :: special_value &mdash; IEEE special value\n
-  !<                 IEEE_SIGNALING_NAN\n
-  !<                 IEEE_QUIET_NAN\n
-  !<                 IEEE_NEGATIVE_INF\n
-  !<                 IEEE_POSITIVE_INF\n
-  !<                 IEEE_NEGATIVE_DENORMAL\n
-  !<                 IEEE_POSITIVE_DENORMAL\n
-  !<                 IEEE_NEGATIVE_NORMAL\n
-  !<                 IEEE_POSITIVE_NORMAL\n
-  !<                 IEEE_NEGATIVE_ZERO\n
-  !<                 IEEE_POSITIVE_ZERO\n
+    ! local
+    character(len=len(ieee)) :: ieee_up
+#ifdef GFORTRAN
+    real(dp) :: tmp
+#endif
 
-  ! local
-  character(len = 21) :: ieee_up
-  real(dp) :: tmp
-
-  ieee_up = toupper(ieee)
+    ieee_up = itoupper(ieee)
+#ifndef GFORTRAN
     select case(trim(ieee_up))
-  case('IEEE_SIGNALING_NAN')
-    special_value_dp = ieee_value(x, IEEE_SIGNALING_NAN)
-  case('IEEE_QUIET_NAN')
-    special_value_dp = ieee_value(x, IEEE_QUIET_NAN)
-  case('IEEE_NEGATIVE_INF')
-    special_value_dp = ieee_value(x, IEEE_NEGATIVE_INF)
-  case('IEEE_POSITIVE_INF')
-    special_value_dp = ieee_value(x, IEEE_POSITIVE_INF)
-  case('IEEE_NEGATIVE_DENORMAL')
-    special_value_dp = ieee_value(x, IEEE_NEGATIVE_DENORMAL)
-  case('IEEE_POSITIVE_DENORMAL')
-    special_value_dp = ieee_value(x, IEEE_POSITIVE_DENORMAL)
-  case('IEEE_NEGATIVE_NORMAL')
-    special_value_dp = ieee_value(x, IEEE_NEGATIVE_NORMAL)
-  case('IEEE_POSITIVE_NORMAL')
-    special_value_dp = ieee_value(x, IEEE_POSITIVE_NORMAL)
-  case('IEEE_NEGATIVE_ZERO')
-    special_value_dp = ieee_value(x, IEEE_NEGATIVE_ZERO)
-  case('IEEE_POSITIVE_ZERO')
-    special_value_dp = ieee_value(x, IEEE_POSITIVE_ZERO)
-  case default
-    special_value_dp = 0.0_dp
-  end select
+    case('IEEE_SIGNALING_NAN')
+       special_value_dp = ieee_value(x, IEEE_SIGNALING_NAN)
+    case('IEEE_QUIET_NAN')
+       special_value_dp = ieee_value(x, IEEE_QUIET_NAN)
+    case('IEEE_NEGATIVE_INF')
+       special_value_dp = ieee_value(x, IEEE_NEGATIVE_INF)
+    case('IEEE_POSITIVE_INF')
+       special_value_dp = ieee_value(x, IEEE_POSITIVE_INF)
+    case('IEEE_NEGATIVE_DENORMAL')
+       special_value_dp = ieee_value(x, IEEE_NEGATIVE_DENORMAL)
+    case('IEEE_POSITIVE_DENORMAL')
+       special_value_dp = ieee_value(x, IEEE_POSITIVE_DENORMAL)
+    case('IEEE_NEGATIVE_NORMAL')
+       special_value_dp = ieee_value(x, IEEE_NEGATIVE_NORMAL)
+    case('IEEE_POSITIVE_NORMAL')
+       special_value_dp = ieee_value(x, IEEE_POSITIVE_NORMAL)
+    case('IEEE_NEGATIVE_ZERO')
+       special_value_dp = ieee_value(x, IEEE_NEGATIVE_ZERO)
+    case('IEEE_POSITIVE_ZERO')
+       special_value_dp = ieee_value(x, IEEE_POSITIVE_ZERO)
+    case default
+       special_value_dp = 0.0_dp
+    end select
+#else
+    select case(ieee_up)
+    case('IEEE_SIGNALING_NAN')
+       tmp = 0.0_dp
+       special_value_dp = tmp/tmp
+    case('IEEE_QUIET_NAN')
+       tmp = 0.0_dp
+       special_value_dp = tmp/tmp
+    case('IEEE_NEGATIVE_INF')
+       tmp = huge(x)
+       special_value_dp = -tmp*tmp
+    case('IEEE_POSITIVE_INF')
+       tmp = huge(x)
+       special_value_dp = tmp*tmp
+    case('IEEE_NEGATIVE_DENORMAL')
+       special_value_dp = -0.0_dp
+    case('IEEE_POSITIVE_DENORMAL')
+       special_value_dp = 0.0_dp
+    case('IEEE_NEGATIVE_NORMAL')
+       special_value_dp = -1.0_dp
+    case('IEEE_POSITIVE_NORMAL')
+       special_value_dp = 1.0_dp
+    case('IEEE_NEGATIVE_ZERO')
+       special_value_dp = -0.0_dp
+    case('IEEE_POSITIVE_ZERO')
+       special_value_dp = 0.0_dp
+    case default
+       special_value_dp = 0.0_dp
+    end select
+#endif
 
   end function special_value_dp
 
-  function special_value_sp(x, ieee)
+  elemental pure function special_value_sp(x, ieee)
 
-    use, intrinsic :: ieee_arithmetic, only : ieee_value, &
-          IEEE_SIGNALING_NAN, &
-          IEEE_QUIET_NAN, &
-          IEEE_NEGATIVE_INF, &
-          IEEE_POSITIVE_INF, &
-          IEEE_NEGATIVE_DENORMAL, &
-          IEEE_POSITIVE_DENORMAL, &
-          IEEE_NEGATIVE_NORMAL, &
-          IEEE_POSITIVE_NORMAL, &
-          IEEE_NEGATIVE_ZERO, &
-          IEEE_POSITIVE_ZERO
+#ifndef GFORTRAN
+    use, intrinsic :: ieee_arithmetic, only: ieee_value, &
+         IEEE_SIGNALING_NAN, &
+         IEEE_QUIET_NAN, &
+         IEEE_NEGATIVE_INF, &
+         IEEE_POSITIVE_INF, &
+         IEEE_NEGATIVE_DENORMAL, &
+         IEEE_POSITIVE_DENORMAL, &
+         IEEE_NEGATIVE_NORMAL, &
+         IEEE_POSITIVE_NORMAL, &
+         IEEE_NEGATIVE_ZERO, &
+         IEEE_POSITIVE_ZERO
+#endif
 
-  implicit none
+    implicit none
+    
+    real(sp),         intent(in) :: x
+    character(len=*), intent(in) :: ieee
+    real(sp)                     :: special_value_sp
 
-  real(sp), intent(in) :: x !< dummy for kind of output.
-  character(len = *), intent(in) :: ieee !< ieee signal name.
-  real(sp) :: special_value_sp !< real(sp) :: special_value &mdash; IEEE special value\n
-  !<                 IEEE_SIGNALING_NAN\n
-  !<                 IEEE_QUIET_NAN\n
-  !<                 IEEE_NEGATIVE_INF\n
-  !<                 IEEE_POSITIVE_INF\n
-  !<                 IEEE_NEGATIVE_DENORMAL\n
-  !<                 IEEE_POSITIVE_DENORMAL\n
-  !<                 IEEE_NEGATIVE_NORMAL\n
-  !<                 IEEE_POSITIVE_NORMAL\n
-  !<                 IEEE_NEGATIVE_ZERO\n
-  !<                 IEEE_POSITIVE_ZERO\n
-
-  ! local
-  character(len = 21) :: ieee_up
+    ! local
+    character(len=len(ieee)) :: ieee_up
+#ifdef GFORTRAN
     real(sp) :: tmp
+#endif
 
-  ieee_up = toupper(ieee)
+    ieee_up = itoupper(ieee)
+#ifndef GFORTRAN
     select case(trim(ieee_up))
-  case('IEEE_SIGNALING_NAN')
-    special_value_sp = ieee_value(x, IEEE_SIGNALING_NAN)
-  case('IEEE_QUIET_NAN')
-    special_value_sp = ieee_value(x, IEEE_QUIET_NAN)
-  case('IEEE_NEGATIVE_INF')
-    special_value_sp = ieee_value(x, IEEE_NEGATIVE_INF)
-  case('IEEE_POSITIVE_INF')
-    special_value_sp = ieee_value(x, IEEE_POSITIVE_INF)
-  case('IEEE_NEGATIVE_DENORMAL')
-    special_value_sp = ieee_value(x, IEEE_NEGATIVE_DENORMAL)
-  case('IEEE_POSITIVE_DENORMAL')
-    special_value_sp = ieee_value(x, IEEE_POSITIVE_DENORMAL)
-  case('IEEE_NEGATIVE_NORMAL')
-    special_value_sp = ieee_value(x, IEEE_NEGATIVE_NORMAL)
-  case('IEEE_POSITIVE_NORMAL')
-    special_value_sp = ieee_value(x, IEEE_POSITIVE_NORMAL)
-  case('IEEE_NEGATIVE_ZERO')
-    special_value_sp = ieee_value(x, IEEE_NEGATIVE_ZERO)
-  case('IEEE_POSITIVE_ZERO')
-    special_value_sp = ieee_value(x, IEEE_POSITIVE_ZERO)
-  case default
-    special_value_sp = 0.0_sp
-  end select
+    case('IEEE_SIGNALING_NAN')
+       special_value_sp = ieee_value(x, IEEE_SIGNALING_NAN)
+    case('IEEE_QUIET_NAN')
+       special_value_sp = ieee_value(x, IEEE_QUIET_NAN)
+    case('IEEE_NEGATIVE_INF')
+       special_value_sp = ieee_value(x, IEEE_NEGATIVE_INF)
+    case('IEEE_POSITIVE_INF')
+       special_value_sp = ieee_value(x, IEEE_POSITIVE_INF)
+    case('IEEE_NEGATIVE_DENORMAL')
+       special_value_sp = ieee_value(x, IEEE_NEGATIVE_DENORMAL)
+    case('IEEE_POSITIVE_DENORMAL')
+       special_value_sp = ieee_value(x, IEEE_POSITIVE_DENORMAL)
+    case('IEEE_NEGATIVE_NORMAL')
+       special_value_sp = ieee_value(x, IEEE_NEGATIVE_NORMAL)
+    case('IEEE_POSITIVE_NORMAL')
+       special_value_sp = ieee_value(x, IEEE_POSITIVE_NORMAL)
+    case('IEEE_NEGATIVE_ZERO')
+       special_value_sp = ieee_value(x, IEEE_NEGATIVE_ZERO)
+    case('IEEE_POSITIVE_ZERO')
+       special_value_sp = ieee_value(x, IEEE_POSITIVE_ZERO)
+    case default
+       special_value_sp = 0.0_sp
+    end select
+#else
+    select case(ieee_up)
+    case('IEEE_SIGNALING_NAN')
+       tmp = 0.0_sp
+       special_value_sp = tmp/tmp
+    case('IEEE_QUIET_NAN')
+       tmp = 0.0_sp
+       special_value_sp = tmp/tmp
+    case('IEEE_NEGATIVE_INF')
+       tmp = huge(x)
+       special_value_sp = -tmp*tmp
+    case('IEEE_POSITIVE_INF')
+       tmp = huge(x)
+       special_value_sp = tmp*tmp
+    case('IEEE_NEGATIVE_DENORMAL')
+       special_value_sp = -0.0_sp
+    case('IEEE_POSITIVE_DENORMAL')
+       special_value_sp = 0.0_sp
+    case('IEEE_NEGATIVE_NORMAL')
+       special_value_sp = -1.0_sp
+    case('IEEE_POSITIVE_NORMAL')
+       special_value_sp = 1.0_sp
+    case('IEEE_NEGATIVE_ZERO')
+       special_value_sp = -0.0_sp
+    case('IEEE_POSITIVE_ZERO')
+       special_value_sp = 0.0_sp
+    case default
+       special_value_sp = 0.0_sp
+    end select
+#endif
 
   end function special_value_sp
 
-  subroutine flip_1D_dp(data, iDim)
-    use mo_string_utils, only: compress, num2str
-    use mo_message, only: message
-    real(dp), dimension(:), allocatable, intent(inout) :: data
-    integer(i4), intent(in) :: iDim
+  ! -----------------------------------------------------------
+  ! PRIVATE ROUTINES
+  ! -----------------------------------------------------------
 
-    real(dp), dimension(:), allocatable :: temp_data
-    integer(i4) :: iDim1
+  ! ------------------------------------------------------------------
 
-    if (iDim > 1_i4) then
-      call message('Cannot flip 1D-array at dimension ', compress(trim(num2str(iDim))))
-      stop 1
-    end if
-    allocate(temp_data(size(data, 1)))
+  !     NAME
+  !         itoupper
 
-    do iDim1 = 1, size(data, 1)
-      temp_data(size(data, 1) - iDim1 + 1) = data(iDim1)
-    end do
-    call move_alloc(temp_data, data)
-  end subroutine flip_1D_dp
+  !     PURPOSE
+  !         \brief Convert to upper case
 
-  subroutine flip_2D_dp(data, iDim)
-    use mo_string_utils, only: compress, num2str
-    use mo_message, only: message
+  !         \details Convert all lower case letters in string to upper case letters.
 
-    real(dp), dimension(:, :), allocatable, intent(inout) :: data
-    integer(i4), intent(in) :: iDim
+  !         Copy of toupper of mo_string_utils, making mo_utils only dependent on mo_kind.
 
-    real(dp), dimension(:, :), allocatable :: temp_data
-    integer(i4) :: iDim2, iDim1
+  !     CALLING SEQUENCE
+  !         up = itoupper(lower)
 
-    if (iDim > 2_i4) then
-      call message('Cannot flip 2D-array at dimension ', compress(trim(num2str(iDim))))
-      stop 1
-    end if
+  !     INTENT(IN)
+  !         \param[in] "character(len=*) :: lower"    String
 
-    allocate(temp_data(size(data, 1), size(data, 2)))
+  !     INTENT(INOUT)
+  !         None
 
-    if (iDim == 1_i4) then
-      do iDim2 = 1, size(data, 2)
-        do iDim1 = 1, size(data, 1)
-          temp_data(size(data, 1) - iDim1 + 1, iDim2) = data(iDim1, iDim2)
-        end do
-      end do
-    else if (iDim == 2_i4) then
-      do iDim2 = 1, size(data, 2)
-        temp_data(:, size(data, 2) - iDim2 + 1) = data(:, iDim2)
-      end do
-    end if
-    call move_alloc(temp_data, data)
-  end subroutine flip_2D_dp
+  !     INTENT(OUT)
+  !         None
 
-  subroutine flip_3D_dp(data, iDim)
-    use mo_string_utils, only: compress, num2str
-    use mo_message, only: message
-    real(dp), dimension(:, :, :), allocatable, intent(inout) :: data
-    integer(i4), intent(in) :: iDim
+  !     INTENT(IN), OPTIONAL
+  !         None
 
-    real(dp), dimension(:, :, :), allocatable :: temp_data
-    integer(i4) :: iDim3, iDim2, iDim1
+  !     INTENT(INOUT), OPTIONAL
+  !         None
 
-    if (iDim > 3_i4) then
-      call message('Cannot flip 3D-array at dimension ', compress(trim(num2str(iDim))))
-      stop 1
-    end if
+  !     INTENT(OUT), OPTIONAL
+  !         None
 
-    allocate(temp_data(size(data, 1), size(data, 2), size(data, 3)))
+  !     RETURN
+  !         \return character(len=len_trim(lower)) :: up  &mdash;  String where all lowercase in input is converted to uppercase
 
-    if (iDim == 1_i4) then
-      do iDim3 = 1, size(data, 3)
-        do iDim2 = 1, size(data, 2)
-          do iDim1 = 1, size(data, 1)
-            temp_data(size(data, 1) - iDim1 + 1, iDim2, iDim3) = data(iDim1, iDim2, iDim3)
-          end do
-        end do
-      end do
-    else if (iDim == 2_i4) then
-      do iDim3 = 1, size(data, 3)
-        do iDim2 = 1, size(data, 2)
-          temp_data(:, size(data, 2) - iDim2 + 1, iDim3) = data(:, iDim2, iDim3)
-        end do
-      end do
-    else if (iDim == 3_i4) then
-      do iDim3 = 1, size(data, 3)
-        temp_data(:, :, size(data, 3) - iDim3 + 1) = data(:, :, iDim3)
-      end do
-    end if
-    call move_alloc(temp_data, data)
-  end subroutine flip_3D_dp
+  !     RESTRICTIONS
+  !         None
 
-  subroutine flip_4D_dp(data, iDim)
-    use mo_string_utils, only: compress, num2str
-    use mo_message, only: message
-    real(dp), dimension(:, :, :, :), allocatable, intent(inout) :: data
-    integer(i4), intent(in) :: iDim
+  !     EXAMPLE
+  !         ! Returns 'HALLO'
+  !         up = itoupper('Hallo')
 
-    real(dp), dimension(:, :, :, :), allocatable :: temp_data
-    integer(i4) :: iDim4, iDim3, iDim2, iDim1
+  !     LITERATURE
+  !         None
 
-    if (iDim > 4_i4) then
-      call message('Cannot flip 4D-array at dimension ', compress(trim(num2str(iDim))))
-      stop 1
-    end if
+  !     HISTORY
+  !         \author Matthias Cuntz - modified from Echam5, (C) MPI-MET, Hamburg, Germany
+  !         \date Dec 2011
 
-    allocate(temp_data(size(data, 1), size(data, 2), size(data, 3), size(data, 4)))
+  pure function itoupper (lower)
 
-    if (iDim == 1_i4) then
-      do iDim4 = 1, size(data, 4)
-        do iDim3 = 1, size(data, 3)
-          do iDim2 = 1, size(data, 2)
-            do iDim1 = 1, size(data, 1)
-              temp_data(size(data, 1) - iDim1 + 1, iDim2, iDim3, iDim4) = data(iDim1, iDim2, iDim3, iDim4)
-            end do
-          end do
-        end do
-      end do
-    else if (iDim == 2_i4) then
-      do iDim4 = 1, size(data, 4)
-        do iDim3 = 1, size(data, 3)
-          do iDim2 = 1, size(data, 2)
-            temp_data(:, size(data, 2) - iDim2 + 1, iDim3, iDim4) = data(:, iDim2, iDim3, iDim4)
-          end do
-        end do
-      end do
-    else if (iDim == 3_i4) then
-      do iDim4 = 1, size(data, 4)
-        do iDim3 = 1, size(data, 3)
-          temp_data(:, :, size(data, 3) - iDim3 + 1, iDim4) = data(:, :, iDim3, iDim4)
-        end do
-      end do
-    else if (iDim == 4_i4) then
-      do iDim4 = 1, size(data, 4)
-        temp_data(:, :, :, size(data, 4) - iDim4 + 1) = data(:, :, :, iDim4)
-      end do
-    end if
-    call move_alloc(temp_data, data)
-  end subroutine flip_4D_dp
+    implicit none
 
-  subroutine flip_1D_i4(data, iDim)
-    use mo_string_utils, only: compress, num2str
-    use mo_message, only: message
-    integer(i4), dimension(:), allocatable, intent(inout) :: data
-    integer(i4), intent(in) :: iDim
+    character(len=*)              ,intent(in) :: lower
+    character(len=len_trim(lower))            :: itoupper
 
-    integer(i4), dimension(:), allocatable :: temp_data
-    integer(i4) :: iDim1
+    integer            :: i
+    integer, parameter :: idel = ichar('A')-ichar('a')
 
-    if (iDim > 1_i4) then
-      call message('Cannot flip 1D-array at dimension ', compress(trim(num2str(iDim))))
-      stop 1
-    end if
-    allocate(temp_data(size(data, 1)))
-
-    do iDim1 = 1, size(data, 1)
-      temp_data(size(data, 1) - iDim1 + 1) = data(iDim1)
-    end do
-    call move_alloc(temp_data, data)
-  end subroutine flip_1D_i4
-
-  subroutine flip_2D_i4(data, iDim)
-    use mo_string_utils, only: compress, num2str
-    use mo_message, only: message
-
-    integer(i4), dimension(:, :), allocatable, intent(inout) :: data
-    integer(i4), intent(in) :: iDim
-
-    integer(i4), dimension(:, :), allocatable :: temp_data
-    integer(i4) :: iDim2, iDim1
-
-    if (iDim > 2_i4) then
-      call message('Cannot flip 2D-array at dimension ', compress(trim(num2str(iDim))))
-      stop 1
-    end if
-
-    allocate(temp_data(size(data, 1), size(data, 2)))
-
-    if (iDim == 1_i4) then
-      do iDim2 = 1, size(data, 2)
-        do iDim1 = 1, size(data, 1)
-          temp_data(size(data, 1) - iDim1 + 1, iDim2) = data(iDim1, iDim2)
-        end do
-      end do
-    else if (iDim == 2_i4) then
-      do iDim2 = 1, size(data, 2)
-        temp_data(:, size(data, 2) - iDim2 + 1) = data(:, iDim2)
-      end do
-    end if
-    call move_alloc(temp_data, data)
-  end subroutine flip_2D_i4
-
-  subroutine flip_3D_i4(data, iDim)
-    use mo_string_utils, only: compress, num2str
-    use mo_message, only: message
-    integer(i4), dimension(:, :, :), allocatable, intent(inout) :: data
-    integer(i4), intent(in) :: iDim
-
-    integer(i4), dimension(:, :, :), allocatable :: temp_data
-    integer(i4) :: iDim3, iDim2, iDim1
-
-    if (iDim > 3_i4) then
-      call message('Cannot flip 3D-array at dimension ', compress(trim(num2str(iDim))))
-      stop 1
-    end if
-
-    allocate(temp_data(size(data, 1), size(data, 2), size(data, 3)))
-
-    if (iDim == 1_i4) then
-      do iDim3 = 1, size(data, 3)
-        do iDim2 = 1, size(data, 2)
-          do iDim1 = 1, size(data, 1)
-            temp_data(size(data, 1) - iDim1 + 1, iDim2, iDim3) = data(iDim1, iDim2, iDim3)
-          end do
-        end do
-      end do
-    else if (iDim == 2_i4) then
-      do iDim3 = 1, size(data, 3)
-        do iDim2 = 1, size(data, 2)
-          temp_data(:, size(data, 2) - iDim2 + 1, iDim3) = data(:, iDim2, iDim3)
-        end do
-      end do
-    else if (iDim == 3_i4) then
-      do iDim3 = 1, size(data, 3)
-        temp_data(:, :, size(data, 3) - iDim3 + 1) = data(:, :, iDim3)
-      end do
-    end if
-    call move_alloc(temp_data, data)
-  end subroutine flip_3D_i4
-
-  subroutine flip_4D_i4(data, iDim)
-    use mo_string_utils, only: compress, num2str
-    use mo_message, only: message
-    integer(i4), dimension(:, :, :, :), allocatable, intent(inout) :: data
-    integer(i4), intent(in) :: iDim
-
-    integer(i4), dimension(:, :, :, :), allocatable :: temp_data
-    integer(i4) :: iDim4, iDim3, iDim2, iDim1
-
-    if (iDim > 4_i4) then
-      call message('Cannot flip 4D-array at dimension ', compress(trim(num2str(iDim))))
-      stop 1
-    end if
-
-    allocate(temp_data(size(data, 1), size(data, 2), size(data, 3), size(data, 4)))
-
-    if (iDim == 1_i4) then
-      do iDim4 = 1, size(data, 4)
-        do iDim3 = 1, size(data, 3)
-          do iDim2 = 1, size(data, 2)
-            do iDim1 = 1, size(data, 1)
-              temp_data(size(data, 1) - iDim1 + 1, iDim2, iDim3, iDim4) = data(iDim1, iDim2, iDim3, iDim4)
-            end do
-          end do
-        end do
-      end do
-    else if (iDim == 2_i4) then
-      do iDim4 = 1, size(data, 4)
-        do iDim3 = 1, size(data, 3)
-          do iDim2 = 1, size(data, 2)
-            temp_data(:, size(data, 2) - iDim2 + 1, iDim3, iDim4) = data(:, iDim2, iDim3, iDim4)
-          end do
-        end do
-      end do
-    else if (iDim == 3_i4) then
-      do iDim4 = 1, size(data, 4)
-        do iDim3 = 1, size(data, 3)
-          temp_data(:, :, size(data, 3) - iDim3 + 1, iDim4) = data(:, :, iDim3, iDim4)
-        end do
-      end do
-    else if (iDim == 4_i4) then
-      do iDim4 = 1, size(data, 4)
-        temp_data(:, :, :, size(data, 4) - iDim4 + 1) = data(:, :, :, iDim4)
-      end do
-    end if
-    call move_alloc(temp_data, data)
-  end subroutine flip_4D_i4
-
-  function unpack_chunkwise_dp(vector, mask, field, chunksizeArg) result(unpacked)
-  !< this is a chunkwise application of the intrinsic unpack function
-  !< it became necessary as the unpack intrinsic can handle only arrays
-  !< with size smaller than huge(default_integer_kind)...
-  !< it has the following restrictions:
-  !<   - vector must be of type dp
-  !<   - mask must have rank 1
-  !<   - field must be a scalar
-    real(dp), dimension(:), intent(in) :: vector
-    logical, dimension(:), intent(in) :: mask
-    real(dp), intent(in) :: field
-    real(dp), dimension(size(mask, kind=i8)) :: unpacked
-    integer(i8), intent(in), optional :: chunksizeArg
-
-    integer(i8) :: i, chunksize, indexMin, indexMax, currentCounts, counts
-
-    if (present(chunksizeArg)) then
-      chunksize = chunksizeArg
-    else
-      chunksize = int(huge(0_i4), i8)
-    end if
-    ! init some values
-    i = 1_i8
-    indexMax = i * chunksize
-    currentCounts = 1_i8
-    do while (indexMax < size(mask, kind=i8))
-      ! get the indices for the mask
-      indexMin = (i-1) * chunksize + 1_i8
-      indexMax = minval([i * chunksize, size(mask, kind=i8)])
-      ! this is the indexer for the vector
-      counts = count(mask(indexMin: indexMax), kind=i8)
-      ! unpack slices of maximum size
-      if (counts == (indexMax - indexMin + 1_i8)) then
-        unpacked(indexMin: indexMax) = vector(currentCounts: currentCounts + counts - 1_i8)
-      else if (counts == 0_i8) then
-        unpacked(indexMin: indexMax) = field
-      else
-        unpacked(indexMin: indexMax) = unpack(vector(currentCounts: currentCounts + counts - 1_i8), &
-                                                  mask(indexMin: indexMax), &
-                                                  field)
-      end if
-      ! advance the counters
-      currentCounts = currentCounts + counts
-      i = i + 1_i8
+    do i=1, len_trim(lower)
+       if (ichar(lower(i:i)) >= ichar('a') .and. &
+            ichar(lower(i:i)) <= ichar('z')) then
+          itoupper(i:i) = char( ichar(lower(i:i)) + idel )
+       else
+          itoupper(i:i) = lower(i:i)
+       end if
     end do
 
-  end function unpack_chunkwise_dp
-
-  function unpack_chunkwise_i1(vector, mask, field, chunksizeArg) result(unpacked)
-  !< this is a chunkwise application of the intrinsic unpack function
-  !< it has the following restrictions:
-  !<   - vector must be of type i1
-  !<   - mask must have rank 1
-  !<   - field must be a scalar
-    integer(i1), dimension(:), intent(in) :: vector
-    logical, dimension(:), intent(in) :: mask
-    integer(i1), intent(in) :: field
-    integer(i1), dimension(size(mask, kind=i8)) :: unpacked
-    integer(i8), intent(in), optional :: chunksizeArg
-
-    integer(i8) :: i, chunksize, indexMin, indexMax, currentCounts, counts
-
-    if (present(chunksizeArg)) then
-      chunksize = chunksizeArg
-    else
-      chunksize = int(huge(0_i4), i8)
-    end if
-    ! init some values
-    i = 1_i8
-    indexMax = i * chunksize
-    currentCounts = 1_i8
-    do while (indexMax < size(mask, kind=i8))
-      ! get the indices for the mask
-      indexMin = (i-1) * chunksize + 1_i8
-      indexMax = minval([i * chunksize, size(mask, kind=i8)])
-      ! this is the indexer for the vector
-      counts = count(mask(indexMin: indexMax), kind=i8)
-      ! unpack slices of maximum size
-      unpacked(indexMin: indexMax) = unpack(vector(currentCounts: currentCounts + counts - 1_i8), &
-                                                mask(indexMin: indexMax), &
-                                                field)
-      ! advance the counters
-      currentCounts = currentCounts + counts
-      i = i + 1_i8
-    end do
-
-  end function unpack_chunkwise_i1
-
+  end function itoupper
 
 END MODULE mo_utils
