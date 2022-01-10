@@ -126,10 +126,10 @@ MODULE mo_utils
 
   !>        \brief .true. if not IEEE Inf.
 
-  !>        \details 
+  !>        \details
   !!        Checks for IEEE Inf, i.e. Infinity.\n
   !!        Wraps to functions of the intrinsic module ieee_arithmetic.
-  !!        
+  !!
   !!        \b Example
   !!
   !!        Returns `.false.` in 1st and 4th element.
@@ -137,10 +137,9 @@ MODULE mo_utils
   !!        vec1 = (/ NaN, 2., 3., Inf, 5., 6. /)
   !!        isfinite = is_finite(vec1)
   !!        \endcode
- 
+
   !>        \param[in] "real(sp/dp) :: a"   Number to be evaluated.
-  !>        \retval "logical :: is_finite"  \f$ a \neq \infty \f$,
-  !!                                                                                                        logically true or false.
+  !>        \retval "logical :: is_finite"  \f$ a \neq \infty \f$, logically true or false.
 
   !>        \authors Matthias Cuntz
   !>        \date Mar 2015
@@ -150,7 +149,7 @@ MODULE mo_utils
 
   !>        \brief .true. if IEEE NaN.
 
-  !>        \details 
+  !>        \details
   !!        Checks for IEEE NaN, i.e. Not-a-Number.\n
   !!        Wraps to functions of the intrinsic module ieee_arithmetic.
   !!
@@ -161,7 +160,7 @@ MODULE mo_utils
   !!        vec1 = (/ NaN, 2., 3., Inf, 5., 6. /)
   !!        isnan = is_nan(vec1)
   !!        \endcode
- 
+
   !>        \param[in] "real(sp/dp) :: a"        Number to be evaluated.
   !>        \retval "logical :: is_nan"  \f$ a = NaN \f$, logically true or false.
 
@@ -171,7 +170,7 @@ MODULE mo_utils
 
   !>        \brief .true. if nor IEEE Inf nor IEEE NaN.
 
-  !>        \details 
+  !>        \details
   !!        Checks if IEEE Inf and IEEE NaN, i.e. Infinity and Not-a-Number.\n
   !!        Wraps to functions of the intrinsic module ieee_arithmetic.
   !!
@@ -195,7 +194,7 @@ MODULE mo_utils
 
   !>         \brief Find closest values in a monotonic series, returns the indexes.
 
-  !>        \details 
+  !>        \details
   !!        Given an array x(1:n), and given a value y,
   !!        returns a value j such that y is between
   !!        x(j) and x(j+1).\n
@@ -211,7 +210,7 @@ MODULE mo_utils
   !!        y = (/ 1.1, 5.6 /)
   !!        ii = locate(x, y)
   !!        \endcode
-  !!        
+  !!
   !!        Returns `ii = 1`
   !!        \code{.f90}
   !!        y = 1.1
@@ -235,7 +234,7 @@ MODULE mo_utils
 
   !>        \brief Swap to values or two elements in array.
 
-  !>        \details 
+  !>        \details
   !!        Swaps either two entities, i.e. scalars, vectors, matrices,
   !!        or two elements in a vector.
   !!        The call is either \n
@@ -282,7 +281,7 @@ MODULE mo_utils
 
   !>        \brief Special IEEE values.
 
-  !>        \details 
+  !>        \details
   !!        Returns special IEEE values such as Infinity or Not-a-Number.\n
   !!        Wraps to function ieee_value of the intrinsic module ieee_arithmetic.\n
   !!        Current special values are:\n
@@ -303,21 +302,21 @@ MODULE mo_utils
   !!        \code{.f90}
   !!        NaN = special_value(1.0, 'IEEE_QUIET_NAN')
   !!        nan = special_value(1.0_dp, 'ieee_quiet_nan')
-  !!        \endcode    
+  !!        \endcode
 
   !>        \param[in] "real(sp/dp) :: x"             dummy for kind of output
   !>        \param[in] "character(le=*) :: ieee"      ieee signal nanme
   !>        \retval    "real(sp/dp) :: special_value" IEEE special value,
-  !!                                                  IEEE_SIGNALING_NAN, 
-  !!                                                  IEEE_QUIET_NAN (==IEEE_SIGNALING_NAN for gfortran), 
-  !!                                                  IEEE_NEGATIVE_INF, 
-  !!                                                  IEEE_POSITIVE_INF, 
-  !!                                                  IEEE_NEGATIVE_DENORMAL (==-0.0 for gfortran), 
-  !!                                                  IEEE_POSITIVE_DENORMAL (==0.0 for gfortran), 
-  !!                                                  IEEE_NEGATIVE_NORMAL (==-1.0 for gfortran), 
-  !!                                                  IEEE_POSITIVE_NORMAL (==1.0 for gfortran), 
-  !!                                                  IEEE_NEGATIVE_ZERO, 
-  !!                                                  IEEE_POSITIVE_ZERO, 
+  !!                                                  IEEE_SIGNALING_NAN,
+  !!                                                  IEEE_QUIET_NAN (==IEEE_SIGNALING_NAN for gfortran),
+  !!                                                  IEEE_NEGATIVE_INF,
+  !!                                                  IEEE_POSITIVE_INF,
+  !!                                                  IEEE_NEGATIVE_DENORMAL (==-0.0 for gfortran),
+  !!                                                  IEEE_POSITIVE_DENORMAL (==0.0 for gfortran),
+  !!                                                  IEEE_NEGATIVE_NORMAL (==-1.0 for gfortran),
+  !!                                                  IEEE_POSITIVE_NORMAL (==1.0 for gfortran),
+  !!                                                  IEEE_NEGATIVE_ZERO,
+  !!                                                  IEEE_POSITIVE_ZERO,
 
   !>        \authors Matthias Cuntz
   !>        \date Mar 2015
@@ -730,17 +729,17 @@ CONTAINS
 
   real(dp), intent(in) :: x !< dummy for kind of output.
   character(len = *), intent(in) :: ieee !< ieee signal name.
-  real(dp) :: special_value_dp !< real(dp) :: special_value &mdash; IEEE special value, 
-  !!                                                  IEEE_SIGNALING_NAN, 
-  !!                                                  IEEE_QUIET_NAN, 
-  !!                                                  IEEE_NEGATIVE_INF, 
-  !!                                                  IEEE_POSITIVE_INF, 
-  !!                                                  IEEE_NEGATIVE_DENORMAL, 
-  !!                                                  IEEE_POSITIVE_DENORMAL, 
-  !!                                                  IEEE_NEGATIVE_NORMAL, 
-  !!                                                  IEEE_POSITIVE_NORMAL, 
-  !!                                                  IEEE_NEGATIVE_ZERO, 
-  !!                                                  IEEE_POSITIVE_ZERO, 
+  real(dp) :: special_value_dp !< real(dp) :: special_value &mdash; IEEE special value,
+  !!                                                  IEEE_SIGNALING_NAN,
+  !!                                                  IEEE_QUIET_NAN,
+  !!                                                  IEEE_NEGATIVE_INF,
+  !!                                                  IEEE_POSITIVE_INF,
+  !!                                                  IEEE_NEGATIVE_DENORMAL,
+  !!                                                  IEEE_POSITIVE_DENORMAL,
+  !!                                                  IEEE_NEGATIVE_NORMAL,
+  !!                                                  IEEE_POSITIVE_NORMAL,
+  !!                                                  IEEE_NEGATIVE_ZERO,
+  !!                                                  IEEE_POSITIVE_ZERO,
 
   ! local
   character(len = 21) :: ieee_up
@@ -792,17 +791,17 @@ CONTAINS
 
   real(sp), intent(in) :: x !< dummy for kind of output.
   character(len = *), intent(in) :: ieee !< ieee signal name.
-  real(sp) :: special_value_sp !< IEEE special value, 
-  !!                                                              IEEE_SIGNALING_NAN, 
-  !!                                                              IEEE_QUIET_NAN, 
-  !!                                                              IEEE_NEGATIVE_INF, 
-  !!                                                              IEEE_POSITIVE_INF, 
-  !!                                                              IEEE_NEGATIVE_DENORMAL, 
-  !!                                                              IEEE_POSITIVE_DENORMAL, 
-  !!                                                              IEEE_NEGATIVE_NORMAL, 
-  !!                                                              IEEE_POSITIVE_NORMAL, 
-  !!                                                              IEEE_NEGATIVE_ZERO, 
-  !!                                                              IEEE_POSITIVE_ZERO, 
+  real(sp) :: special_value_sp !< IEEE special value,
+  !!                                                              IEEE_SIGNALING_NAN,
+  !!                                                              IEEE_QUIET_NAN,
+  !!                                                              IEEE_NEGATIVE_INF,
+  !!                                                              IEEE_POSITIVE_INF,
+  !!                                                              IEEE_NEGATIVE_DENORMAL,
+  !!                                                              IEEE_POSITIVE_DENORMAL,
+  !!                                                              IEEE_NEGATIVE_NORMAL,
+  !!                                                              IEEE_POSITIVE_NORMAL,
+  !!                                                              IEEE_NEGATIVE_ZERO,
+  !!                                                              IEEE_POSITIVE_ZERO,
 
   ! local
   character(len = 21) :: ieee_up
@@ -1150,8 +1149,8 @@ CONTAINS
         unpacked(indexMin: indexMax) = field
       else
         unpacked(indexMin: indexMax) = unpack(vector(currentCounts: currentCounts + counts - 1_i8), &
-                                                                                                                  mask(indexMin: indexMax), &
-                                                                                                                  field)
+                                              mask(indexMin: indexMax), &
+                                              field)
       end if
       ! advance the counters
       currentCounts = currentCounts + counts
@@ -1191,8 +1190,8 @@ CONTAINS
       counts = count(mask(indexMin: indexMax), kind=i8)
       ! unpack slices of maximum size
       unpacked(indexMin: indexMax) = unpack(vector(currentCounts: currentCounts + counts - 1_i8), &
-                                                                                                                mask(indexMin: indexMax), &
-                                                                                                                field)
+                                            mask(indexMin: indexMax), &
+                                            field)
       ! advance the counters
       currentCounts = currentCounts + counts
       i = i + 1_i8
