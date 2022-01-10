@@ -1,11 +1,11 @@
 !> \file mo_kind.f90
+!> \brief \copybrief mo_kind
+!> \details \copydetails mo_kind
 
 !> \brief Define number representations
-
 !> \details This module declares the desired ranges and precisions of the number representations,
 !> such as single precision or double precision, 32-bit or 46-bit integer, etc.
 !> It confirms mostly with the nrtype module of Numerical Recipes in f90.
-
 !> \authors Juliane Mai, Matthias Cuntz, Nov 2011
 !> \date 2011-2014
 !> \copyright GNU Lesser General Public License http://www.gnu.org/licenses/

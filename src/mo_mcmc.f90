@@ -1,9 +1,9 @@
 !> \file mo_mcmc.f90
+!> \brief \copybrief mo_mcmc
+!> \details \copydetails mo_mcmc
 
 !> \brief Monte Carlo Markov Chain sampling.
-
 !> \details This module is Monte Carlo Markov Chain sampling of a posterior parameter distribution.
-
 !> \authors Maren Goehler, Juliane Mai
 !> \date Aug 2012
 

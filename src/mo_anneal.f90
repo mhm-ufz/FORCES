@@ -1,8 +1,11 @@
 !> \file mo_anneal.f90
+!> \brief \copybrief mo_anneal
+!> \details \copydetails mo_anneal
 
 !> \brief Anneal optimization of cost function.
-
 !> \details Minimization of cost function and temperature finding of minima.
+!> \author Juliane Mai
+!> \date Mar 2012
 MODULE mo_anneal
 
   ! This module is minimizing a cost function via Simulated Annealing
@@ -66,7 +69,34 @@ MODULE mo_anneal
 
   !>        \brief Optimize cost function with simulated annealing.
 
-  !>        \details Optimizes a user provided cost function using the Simulated Annealing strategy.
+  !>        \details 
+  !!        Optimizes a user provided cost function using the Simulated Annealing strategy.
+  !!
+  !!        \b Example
+  !!
+  !!        User defined function `cost_dp` which calculates the cost function value for a
+  !!        parameter set (the interface given below has to be used for this function!).
+  !!
+  !!        \code{.f90}
+  !!        para = (/ 1.0_dp , 2.0_dp /)
+  !!        prange(1,:) = (/ 0.0_dp, 10.0_dp /)
+  !!        prange(2,:) = (/ 0.0_dp, 50.0_dp /)
+  !!
+  !!        parabest = anneal(cost_dp, para, prange)
+  !!        \endcode
+  !!
+  !!        See also test folder for a detailed example, "test/test_mo_anneal".
+  !!
+  !!        \b Literature
+  !!        1. S. Kirkpatrick, C. D. Gelatt, and M. P. Vecchi.
+  !!           _Optimization by simulated annealing_.
+  !!           Science, 220:671-680, 1983.
+  !!        2. N. Metropolis, A. W. Rosenbluth, M. N. Rosenbluth, A. H. Teller, and E. Teller.
+  !!           _Equation of state calculations by fast computing machines_.
+  !!           J. Chem. Phys., 21:1087-1092, June 1953.
+  !!        3. B. A. Tolson, and C. A. Shoemaker.
+  !!           _Dynamically dimensioned search algorithm for computationally efficient watershed model calibration_.
+  !!           WRR, 43(1), W01413, 2007.
 
   !>        \param[in]  "interface                       :: cost_dp"         Interface calculating the
   !!                                                                         cost function at a given point.
@@ -138,10 +168,9 @@ MODULE mo_anneal
   !>        \param[out]  "real(dp), optional             :: funcbest"        minimized value of cost function
   !>        \param[out]  "real(dp), dimension(:,:), allocatable, optional      :: history"         returns a vector of achieved objective
   !!                                                                                               after ith model evaluation
+  !>        \retval "real(dp) :: parabest(size(para))"                       Parameter set minimizing the cost function.
 
-  !>        \return real(dp) :: parabest(size(para))  &mdash;  Parameter set minimizing the cost function.
-
-  !>     ## Restrictions
+  !>     \note
   !!     - Either fixed parameter range (`prange`) OR flexible parameter range (function interface `prange_func`)
   !!     has to be given in calling sequence. \n
   !!     - Only double precision version available. \n
@@ -151,40 +180,19 @@ MODULE mo_anneal
   !!     - For Temperature estimation always only one single parameter is changed (ParaChangeMode=1)
   !!     which should give theoretically always the best estimate. \n
   !!     - `cost_func` and `prange_func` are user defined functions. See interface definition.
-
-  !>     ## Example
-  !!     User defined function `cost_dp` which calculates the cost function value for a
-  !!     parameter set (the interface given below has to be used for this function!).
-  !!
-  !!         para = (/ 1.0_dp , 2.0_dp /)
-  !!         prange(1,:) = (/ 0.0_dp, 10.0_dp /)
-  !!         prange(2,:) = (/ 0.0_dp, 50.0_dp /)
-  !!
-  !!         parabest = anneal(cost_dp, para, prange)
-  !!
-  !!     See also test folder for a detailed example, "test/test_mo_anneal".
-
-  !>    ## Literature
-  !!         1. S. Kirkpatrick, C. D. Gelatt, and M. P. Vecchi.
-  !!            _Optimization by simulated annealing_.
-  !!            Science, 220:671-680, 1983.
-  !!         2. N. Metropolis, A. W. Rosenbluth, M. N. Rosenbluth, A. H. Teller, and E. Teller.
-  !!            _Equation of state calculations by fast computing machines_.
-  !!            J. Chem. Phys., 21:1087-1092, June 1953.
-  !!         3. B. A. Tolson, and C. A. Shoemaker.
-  !!            _Dynamically dimensioned search algorithm for computationally efficient watershed model calibration_.
-  !!            WRR, 43(1), W01413, 2007.
-  
  
   !>    \author Luis Samaniego
   !>    \date Jan 2000
-  !        Modified by:
-  !        Samaniego,   Mar   2003 : Re-heating \n
-  !        Juliane Mai, March 2012 : modular version \n
-  !        Juliane Mai, May   2012 : sp version \n
-  !        Juliane Mai, May   2012 : documentation \n
-  !        Arya Prasetya, Dec 2021 : doxygen documentation
-
+  !>    \date Mar 2003
+  !!      - Re-heating
+  
+  !>    \author Juliane Mai
+  !>    \date Mar 2012
+  !!      - Modular version
+  !>    \date May 2012
+  !!      - sp version
+  !!      - documentation
+  
   ! ------------------------------------------------------------------
 
   INTERFACE anneal
@@ -197,6 +205,27 @@ MODULE mo_anneal
   
   !>        \details Determines an initial temperature for Simulated Annealing achieving
   !!         certain acceptance ratio.
+  !!
+  !!        \b Example
+  !!
+  !!        User defined function 'cost_dp' which calculates the cost function value for a
+  !!        parameter set (the interface given below has to be used for this function!).         
+  !!
+  !!        \code{.f90}
+  !!        para = (/ 1.0_dp , 2.0_dp /)
+  !!        acc_goal   = 0.95_dp
+  !!        prange(1,:) = (/ 0.0_dp, 10.0_dp /)
+  !!        prange(2,:) = (/ 0.0_dp, 50.0_dp /)
+  !!
+  !!        temp = GetTemperature(para, cost_dp, acc_goal, prange)
+  !!        \endcode
+  !!
+  !!        See also test folder for a detailed example, "pf_tests/test_mo_anneal".
+  !!
+  !!        \b Literature
+  !!        1. Walid Ben-Ameur.
+  !!           _Compututing the Initial Temperature of Simulated Annealing_.
+  !!           Comput. Opt. and App. (2004).
 
   !>        \param[in] "real(dp),    dimension(:)   :: paraset"   Initial (valid) parameter set.
   !>        \param[in] "INTERFACE                   :: cost_dp"   Interface calculating the
@@ -236,10 +265,10 @@ MODULE mo_anneal
   !>        \param[in] "real(dp), optional               :: undef_funcval"    Objective function value defining invalid
   !!                                                                          model output, e.g. -999.0_dp.
 
-  !>        \return real(dp) :: temperature  &mdash;  Temperature achieving a certain
-  !!                                                  acceptance ratio in Simulated Annealing.
+  !>        \retval "real(dp) :: temperature"                                 Temperature achieving a certain
+  !!                                                                          acceptance ratio in Simulated Annealing.
 
-  !>     ## Restrictions
+  !>        \note
   !!        - Either fixed parameter range (`prange`) OR flexible parameter range (function interface `prange_func`)
   !!          has to be given in calling sequence. \n
   !!        - Only double precision version available.
@@ -250,27 +279,8 @@ MODULE mo_anneal
   !!          which should give theoretically always the best estimate. \n
   !!        - `cost_dp` and `prange_func` are user defined functions. See interface definition.
 
-  !>     ## Example
-  !!     User defined function 'cost_dp' which calculates the cost function value for a
-  !!     parameter set (the interface given below has to be used for this function!).         
-  !!
-  !!         para = (/ 1.0_dp , 2.0_dp /)
-  !!         acc_goal   = 0.95_dp
-  !!         prange(1,:) = (/ 0.0_dp, 10.0_dp /)
-  !!         prange(2,:) = (/ 0.0_dp, 50.0_dp /)
-  !!
-  !!         temp = GetTemperature(para, cost_dp, acc_goal, prange)
-  !!
-  !!     See also test folder for a detailed example, "test/test_mo_anneal/".
-
-  !>     # Literature
-  !!         1. Walid Ben-Ameur.
-  !!            _Compututing the Initial Temperature of Simulated Annealing_.
-  !!             Comput. Opt. and App. (2004).
-
   !>        \author  Juliane Mai
   !>        \date May 2012
-  !         Modified by Arya Prasetya, Dec 2021 : doxygen documentation
 
   ! ------------------------------------------------------------------
 

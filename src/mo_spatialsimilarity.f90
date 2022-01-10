@@ -1,10 +1,10 @@
 !> \file mo_spatialsimilarity.f90
+!> \brief \copybrief mo_spatialsimilarity
+!> \details \copydetails mo_spatialsimilarity
 
 !> \brief Routines for bias insensitive comparison of spatial patterns.
-
 !> \details These routines are based on the idea that spatial similarity can be assessed by comparing
-!>          the magnitude of neighboring pixels (e.g. is the neighboring pixel larger or smaller).
-
+!!          the magnitude of neighboring pixels (e.g. is the neighboring pixel larger or smaller).
 !> \author Matthias Zink
 !> \date Mar 2013
 

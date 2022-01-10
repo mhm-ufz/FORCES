@@ -1,7 +1,7 @@
 !> \file mo_corr.f90
+!> \brief \copybrief mo_corr
 
 !> \brief Provides autocorrelation function calculations.
-
 !> \author Sebastian Mueller
 !> \date Dec 2019
 
@@ -50,26 +50,32 @@ MODULE mo_corr
   !!         If an optional mask is given, the calculations are only over those locations that correspond
   !!         to true values in the mask.\n
   !!         \f$ x \f$ can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!         \b Example
+  !!
+  !!         Autocorrelation of 0 time steps
+  !!         \code{.f90}
+  !!         ak = autocorr(x, 0, mask=mask)
+  !!         ---> ak = 1
+  !!         \endcode
 
   !>        \param[in]  "real(sp/dp) :: x(:)"                 Time series.
   !>        \param[in]  "integer(i4) :: k[(:)]"               Lag for autocorrelation.
   !>        \param[in]  "optional, logical     :: mask(:)"    1D-array of logical values with `size(vec)`.
   !!                                                          If present, only those locations in vec corresponding to the true values in mask are used.
-  !>        \returns    "real(sp/dp) :: ak[(:)]"              Coefficient of autocorrelation function at lag k.
-
-  !>     ## Restrictions
-  !!     None
-
-  !>     ## Example
-  !!
-  !!         ak = autocorr(x, 0, mask=mask)
-  !!         ---> ak = 1
-  !!
+  !>        \retval    "real(sp/dp) :: ak[(:)]"               Coefficient of autocorrelation function at lag k.
 
   !>        \author Matthias Cuntz 
   !>        \date Nov 2011
-  !         Modified, Stephan Thober, Nov 2012 - added 1d version
-  !         Modified, Sebastian Mueller, Dec 2019 - rewritten
+
+  !>        \author Stephan Thober
+  !>        \date Nov 2012
+  !!          - added 1d version
+
+  !>        \author Sebastion Mueller
+  !>        \date Dec 2019
+  !!          - rewritten
+
   INTERFACE autocorr
     MODULE PROCEDURE autocorr_sp, autocorr_dp, autocorr_1d_sp, autocorr_1d_dp
   END INTERFACE autocorr

@@ -1,13 +1,12 @@
 !> \file mo_errormeasures.f90
+!> \brief \copybrief mo_errormeasures
+!> \details \copydetails mo_errormeasures
 
 !> \brief Calculation of error measures.
-
 !> \details This module contains routines for the masked calculation of
 !! error measures like MSE, RMSE, BIAS, SSE, NSE, ...
-!! 
-!! \note all except variance and standard deviation are population and not sample moments,
+!> \note all except variance and standard deviation are population and not sample moments,
 !!       i.e. they are normally divided by n and not (n-1)
-
 !> \authors Mathias Zink
 !> \date Aug 2012
 MODULE mo_errormeasures
@@ -68,6 +67,17 @@ MODULE mo_errormeasures
   !!
   !!      If an optinal mask is given, the calculations are over those locations that correspond to true values in the mask.
   !!      \f$ x\f$ and \f$ y\f$ can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!      \b Example
+  !!
+  !!      \code{.f90}
+  !!         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!         vec2 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!         m   = BIAS(vec1, vec2, mask=(vec >= 0.))
+  !!         --> m = 0.0 
+  !!      \endcode
+  !!
+  !!     See also example in test directory.
 
 
   !>      \param[in]  "real(sp/dp), dimension()     :: x, y"    1D/2D/3D-array with input numbers.
@@ -76,18 +86,8 @@ MODULE mo_errormeasures
 
   !>      \returns    "real(sp/dp) :: BIAS"                     Bias.
 
-  !>     ## Restrictions
-  !!
+  !>     \note
   !!     Input values must be floating points.
-
-  !>     ## Example
-  !!
-  !!         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         vec2 = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         m   = BIAS(vec1, vec2, mask=(vec >= 0.))
-  !!         --> m = 0.0 
-  !!
-  !!     See also example in test directory.
 
   !>      \authors Matthias Zink
   !>      \date Sept 2012
@@ -99,76 +99,54 @@ MODULE mo_errormeasures
 
   !>        \brief Kling-Gupta-Efficiency measure.
 
-  !>        \details The Kling-Gupta model efficiency coefficient \f$ KGE \f$ is
-  !>                     \f[ KGE = 1 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
-  !>                 where \n
-  !>                     \f$ r \f$      = Pearson product-moment correlation coefficient \n
-  !>                     \f$ \alpha \f$ = ratio of simulated mean to observed mean  \n
-  !>                     \f$ \beta  \f$ = ratio of simulated standard deviation to
-  !>                                      observed standard deviation \n
-  !>                 This three measures are calculated between two arrays (1d, 2d, or 3d).
-  !>                 Usually, one is an observation and the second is a modelled variable.\n
-  !>
-  !>                 The higher the KGE the better the observation and simulation are matching.
-  !>                 The upper limit of KGE is 1.\n
-  !>
-  !>                 Therefore, if you apply a minimization algorithm to calibrate regarding
-  !>                 KGE you have to use the objective function
-  !>                     \f[ obj\_value = 1.0 - KGE \f]
-  !>                 which has then the optimum at 0.0.
-  !>                 (Like for the NSE where you always optimize 1-NSE.)\n
-  !>
+  !>        \details 
+  !!        The Kling-Gupta model efficiency coefficient \f$ KGE \f$ is
+  !!            \f[ KGE = 1 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
+  !!        where \n
+  !!            \f$ r \f$      = Pearson product-moment correlation coefficient \n
+  !!            \f$ \alpha \f$ = ratio of simulated mean to observed mean  \n
+  !!            \f$ \beta  \f$ = ratio of simulated standard deviation to
+  !!                             observed standard deviation \n
+  !!        This three measures are calculated between two arrays (1d, 2d, or 3d).
+  !!        Usually, one is an observation and the second is a modelled variable.\n
+  !!
+  !!        The higher the KGE the better the observation and simulation are matching.
+  !!        The upper limit of KGE is 1.\n
+  !!
+  !!        Therefore, if you apply a minimization algorithm to calibrate regarding
+  !!        KGE you have to use the objective function
+  !!            \f[ obj\_value = 1.0 - KGE \f]
+  !!        which has then the optimum at 0.0.
+  !!        (Like for the NSE where you always optimize 1-NSE.)\n
+  !!
+  !!        \b Example
+  !!
+  !!        \code{.f90}
+  !!        para = (/ 1., 2, 3., -999., 5., 6. /)
+  !!        kge = kge(x,y,mask=mask)
+  !!        \endcode
+  !!
+  !!        \b Literature
+  !!
+  !>        1. Gupta, Hoshin V., et al.
+  !!           _"Decomposition of the mean squared error and NSE performance criteria:
+  !!           Implications for improving hydrological modelling"_.
+  !!           Journal of Hydrology 377.1 (2009): 80-91.        
 
-  !     INTENT(IN)
-  !>        real(sp/dp), dimension(:)     :: x, y    1D-array with input numbers
-  !             OR
-  !>        real(sp/dp), dimension(:,:)   :: x, y    2D-array with input numbers
-  !             OR
-  !>        real(sp/dp), dimension(:,:,:) :: x, y    3D-array with input numbers
+  !>        \param[in]  "real(sp/dp)   :: x, y"           1D/2D/3D-array with input numbers
+  !>        \param[in]  "logical, optional     :: mask"   1D/2D/3D-array of logical values with size(x/y).
+  !>        \retval     "real(sp/dp) ::kge"               Kling-Gupta-Efficiency (value less equal 1.0)
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !>        logical     :: mask(:)     1D-array of logical values with size(x/y).
-  !             OR
-  !>        logical     :: mask(:,:)   2D-array of logical values with size(x/y).
-  !             OR
-  !>        logical     :: mask(:,:,:) 3D-array of logical values with size(x/y).
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return  kge &mdash; Kling-Gupta-Efficiency (value less equal 1.0)
-
-  !     RESTRICTIONS
   !>       \note Input values must be floating points. \n
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         kge = kge(x,y,mask=mask)
-
-  !     LITERATURE
-  !>        Gupta, Hoshin V., et al.
-  !>           "Decomposition of the mean squared error and NSE performance criteria:
-  !>           Implications for improving hydrological modelling."
-  !>           Journal of Hydrology 377.1 (2009): 80-91.
-
-
-  !     HISTORY
   !>        \author Rohini Kumar
   !>        \date August 2014
-  !         Modified, R. Kumar & O. Rakovec - Sep. 2014
-  !                   J. Mai                - remove double packing of input data (bug)
-  !                                         - KGE instead of 1.0-KGE
-  !                                         - 1d, 2d, 3d, version in sp and dp
+  
+  !>        \author R. Kumar, J. Mai, & O. Rakovec 
+  !>        \date Sep. 2014
+  !!          - remove double packing of input data (bug)
+  !!          - KGE instead of 1.0-KGE
+  !!          - 1d, 2d, 3d, version in sp and dp
 
   INTERFACE KGE
     MODULE PROCEDURE KGE_dp_1d, KGE_dp_2d, KGE_dp_3d, KGE_sp_1d, KGE_sp_2d, KGE_sp_3d
@@ -176,81 +154,58 @@ MODULE mo_errormeasures
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          KGEnocorr
-
   !>        \brief Kling-Gupta-Efficiency measure without correlation
 
   !>        \details The modified Kling-Gupta model efficiency coefficient \f$ KGEnocorr \f$ is
-  !>                     \f[ KGEnocorr = 1 - \sqrt{( (1-\alpha)^2 + (1-\beta)^2 )} \f]
-  !>                 where \n
-  !>                     \f$ \alpha \f$ = ratio of simulated mean to observed mean  \n
-  !>                     \f$ \beta  \f$ = ratio of simulated standard deviation to
-  !>                                      observed standard deviation \n
-  !>                 This two measures are calculated between two arrays (1d, 2d, or 3d).
-  !>                 Usually, one is an observation and the second is a modelled variable.\n
-  !>
-  !>                 The higher the KGEnocorr the better the observation and simulation are matching.
-  !>                 The upper limit of KGEnocorr is 1.\n
-  !>
-  !>                 Therefore, if you apply a minimization algorithm to calibrate regarding
-  !>                 KGEnocorr you have to use the objective function
-  !>                     \f[ obj\_value = 1.0 - KGEnocorr \f]
-  !>                 which has then the optimum at 0.0.
-  !>                 (Like for the NSE where you always optimize 1-NSE.)\n
-  !>
+  !!            \f[ KGEnocorr = 1 - \sqrt{( (1-\alpha)^2 + (1-\beta)^2 )} \f]
+  !!        where \n
+  !!            \f$ \alpha \f$ = ratio of simulated mean to observed mean  \n
+  !!            \f$ \beta  \f$ = ratio of simulated standard deviation to
+  !!                             observed standard deviation \n
+  !!        This two measures are calculated between two arrays (1d, 2d, or 3d).
+  !!        Usually, one is an observation and the second is a modelled variable.\n
+  !!
+  !!        The higher the KGEnocorr the better the observation and simulation are matching.
+  !!        The upper limit of KGEnocorr is 1.\n
+  !!
+  !!        Therefore, if you apply a minimization algorithm to calibrate regarding
+  !!        KGEnocorr you have to use the objective function
+  !!            \f[ obj\_value = 1.0 - KGEnocorr \f]
+  !!        which has then the optimum at 0.0.
+  !!        (Like for the NSE where you always optimize 1-NSE.)\n
+  !!
+  !!        \b Example
+  !!
+  !!        \code{.f90}
+  !!        para = (/ 1., 2, 3., -999., 5., 6. /)
+  !!        kgenocorr = kgenocorr(x,y,mask=mask)
+  !!        \endcode
+  !!
+  !!        \b Literature
+  !!
+  !!        1. Gupta, Hoshin V., et al.
+  !!           _"Decomposition of the mean squared error and NSE performance criteria:
+  !!           Implications for improving hydrological modelling"_.
+  !!           Journal of Hydrology 377.1 (2009): 80-91.
 
-  !     INTENT(IN)
-  !>        real(sp/dp), dimension(:)     :: x, y    1D-array with input numbers
-  !             OR
-  !>        real(sp/dp), dimension(:,:)   :: x, y    2D-array with input numbers
-  !             OR
-  !>        real(sp/dp), dimension(:,:,:) :: x, y    3D-array with input numbers
+  !>        \param[in]  "real(sp/dp)   :: x, y"           1D/2D/3D-array with input numbers
+  !>        \param[in]  "logical, optional     :: mask"   1D/2D/3D-array of logical values with size(x/y).
+  !>        \retval     "real(sp/dp) :: kgenocorr"        Kling-Gupta-Efficiency without correlation (value less equal 1.0)
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !>        logical     :: mask(:)     1D-array of logical values with size(x/y).
-  !             OR
-  !>        logical     :: mask(:,:)   2D-array of logical values with size(x/y).
-  !             OR
-  !>        logical     :: mask(:,:,:) 3D-array of logical values with size(x/y).
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return  kgenocorr &mdash; Kling-Gupta-Efficiency without correlation (value less equal 1.0)
-
-  !     RESTRICTIONS
   !>       \note Input values must be floating points. \n
 
-  !     EXAMPLE
-  !         para = (/ 1., 2, 3., -999., 5., 6. /)
-  !         kgenocorr = kgenocorr(x,y,mask=mask)
-
-  !     LITERATURE
-  !>        Gupta, Hoshin V., et al.
-  !>           "Decomposition of the mean squared error and NSE performance criteria:
-  !>           Implications for improving hydrological modelling."
-  !>           Journal of Hydrology 377.1 (2009): 80-91.
-
-
-  !     HISTORY
   !>        \author Rohini Kumar
-  !>        \date August 2014
-  !         Modified, M. Schroen            - Jul 2017 add KGEnocorr (KGE without correlation)
-  !                   R. Kumar & O. Rakovec - Sep. 2014
-  !                   J. Mai                - remove double packing of input data (bug)
-  !                                         - KGE instead of 1.0-KGE
-  !                                         - 1d, 2d, 3d, version in sp and dp
+  !>        \date Aug 2014
+
+  !>        \author M. Schroen
+  !>        \date Jul 2017
+  !!          - add KGEnocorr
+
+  !>        \author R. Kumar, J. Mai, & O. Rakovec 
+  !>        \date Sep 2014
+  !!          - remove double packing of input data (bug)
+  !!          - KGE instead of 1.0-KGE
+  !!          - 1d, 2d, 3d, version in sp and dp
 
   INTERFACE KGEnocorr
     MODULE PROCEDURE KGEnocorr_dp_1d, KGEnocorr_dp_2d, KGEnocorr_dp_3d, KGEnocorr_sp_1d, KGEnocorr_sp_2d, KGEnocorr_sp_3d
@@ -270,28 +225,33 @@ MODULE mo_errormeasures
   !!        If an optinal mask is given, the calculations are over those locations that correspond to true values in the mask.
   !!        Note that the mask is intent inout, since values which are less or equal zero will be masked additionally.
   !!        \f$ x \f$ and \f$ y\f$ can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!        \b Example
+  !!
+  !!        \code{.f90}
+  !!        vec1 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!        vec2 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!        m   = LNNSE(vec1, vec2, mask=(vec >= 0.))
+  !!        --> m = 1.0 
+  !!        \endcode
+  !!
+  !!        See also example in test directory.
 
   !>      \param[in]  "real(sp/dp), dimension()     :: x, y"    1D/2D/3D-array with input numbers.
   !>      \param[in]  "logical, optional     :: mask"         1D/2D/Array-array of logical values with `size(x/y)`.
   !!         If present, only those locations in vec corresponding to the true values in mask are used.
 
-  !>      \returns    "real(sp/dp) :: LNNSE"                     LNNSE.
+  !>      \retval    "real(sp/dp) :: LNNSE"                     LNNSE.
 
-  !>     ## Restrictions
-  !!
+  !>     \note
   !!     Input values must be floating points.
 
-  !>     ## Example
-  !!
-  !!         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         vec2 = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         m   = LNNSE(vec1, vec2, mask=(vec >= 0.))
-  !!         --> m = 1.0 
-  !!
-  !!     See also example in test directory.
+  !>      \author Juliane Mai
+  !>      \date May 2013
 
-  !>        \authors Juliane Mai, May 2013\n
-  !!         Updated by Rohin Kumar, May 2013 for mean of logQ
+  !>      \author Rohini Kumar
+  !>      \date May 2013
+  !!        - mean of logQ
   INTERFACE LNNSE
     MODULE PROCEDURE LNNSE_sp_1d, LNNSE_dp_1d, LNNSE_dp_2d, LNNSE_sp_2d, LNNSE_sp_3d, LNNSE_dp_3d
   END INTERFACE LNNSE
@@ -306,6 +266,17 @@ MODULE mo_errormeasures
   !!
   !!        If an optinal mask is given, the calculations are over those locations that correspond to true values in the mask.
   !!        \f$ x\f$ and \f$ y\f$ can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!        \b Example
+  !!
+  !!        \code{.f90}
+  !!        vec1 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!        vec2 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!        m   = MAE(vec1, vec2, mask=(vec >= 0.))
+  !!        --> m = 0.0
+  !!        \endcode
+  !!
+  !!        See also example in test directory.
 
   !>      \param[in]  "real(sp/dp), dimension()     :: x, y"    1D/2D/3D-array with input numbers.
   !>      \param[in]  "logical, optional     :: mask"         1D/2D/Array-array of logical values with `size(x/y)`.
@@ -313,18 +284,8 @@ MODULE mo_errormeasures
 
   !>      \returns    "real(sp/dp) :: MAE"                     MAE.
 
-  !>     ## Restrictions
-  !!
+  !>     \note
   !!     Input values must be floating points.
-
-  !>     ## Example
-  !!
-  !!         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         vec2 = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         m   = MAE(vec1, vec2, mask=(vec >= 0.))
-  !!         --> m = 0.0
-  !!
-  !!     See also example in test directory.
 
   !>      \authors Matthias Zink
   !>      \date Sept 2012
@@ -345,25 +306,25 @@ MODULE mo_errormeasures
   !!
   !!        If an optional mask is given, the calculations are over those locations that correspond to true values in the mask.
   !!        x and y can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!        \b Example
+  !!
+  !!        \code{.f90}
+  !!        vec1 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!        vec2 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!        m   = MSE(vec1, vec2, mask=(vec >= 0.))
+  !!        --> m = 0.0
+  !!        \endcode
+  !!
+  !!        See also example in test directory.
 
   !>      \param[in]  "real(sp/dp), dimension()     :: x, y"    1D/2D/3D-array with input numbers.
   !>      \param[in]  "logical, optional     :: mask"         1D/2D/Array-array of logical values with `size(x/y)`.
   !!         If present, only those locations in vec corresponding to the true values in mask are used.
+  !>      \retval    "real(sp/dp) :: MSE"                     MSE.
 
-  !>      \returns    "real(sp/dp) :: MSE"                     MSE.
-
-  !>     ## Restrictions
-  !!
+  !>     \note
   !!     Input values must be floating points.
-
-  !>     ## Example
-  !!
-  !!         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         vec2 = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         m   = MSE(vec1, vec2, mask=(vec >= 0.))
-  !!         --> m = 0.0
-  !!
-  !!     See also example in test directory.
   
   !>        \authors Matthias Zink 
   !>        \date Sept 2012
@@ -386,30 +347,31 @@ MODULE mo_errormeasures
   !!
   !!        If an optinal mask is given, the calculations are over those locations that correspond to true values in the mask.
   !!        \f$ x\f$ and \f$ y\f$ can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!        \b Example
+  !!
+  !!        \code{.f90}
+  !!        vec1 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!        vec2 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!        m   = NSE(vec1, vec2, mask=(vec >= 0.))
+  !!        --> m = 1.0
+  !!        \endcode
+  !!
+  !!        See also example in test directory.
+  !!
+  !!        \b Literature
+  !!
+  !!        1. Nash, J., & Sutcliffe, J. (1970). _River flow forecasting through conceptual models part I: A discussion of
+  !!           principles_. Journal of Hydrology, 10(3), 282-290. doi:10.1016/0022-1694(70)90255-6
+
 
   !>      \param[in]  "real(sp/dp), dimension()     :: x, y"    1D/2D/3D-array with input numbers.
   !>      \param[in]  "logical, optional     :: mask"         1D/2D/Array-array of logical values with `size(x/y)`.
   !!         If present, only those locations in vec corresponding to the true values in mask are used.
+  !>      \retval    "real(sp/dp) :: NSE"                     NSE.
 
-  !>      \returns    "real(sp/dp) :: NSE"                     NSE.
-
-  !>     ## Restrictions
-  !!
+  !>     \note
   !!     Input values must be floating points.
-
-  !>     ## Example
-  !!
-  !!         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         vec2 = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         m   = NSE(vec1, vec2, mask=(vec >= 0.))
-  !!         --> m = 1.0
-  !!
-  !!     See also example in test directory.
-
-  !>     ## Literature
-  !!
-  !!     1.   Nash, J., & Sutcliffe, J. (1970). _River flow forecasting through conceptual models part I: A discussion of
-  !!          principles_. Journal of Hydrology, 10(3), 282-290. doi:10.1016/0022-1694(70)90255-6
 
   !>        \authors Matthias Zink 
   !>        \date Sept 2012
@@ -422,36 +384,37 @@ MODULE mo_errormeasures
 
   ! ------------------------------------------------------------------
 
-  !>        \brief  Sum of absolute errors.
+  !>     \brief  Sum of absolute errors.
 
-  !>        \details Calculates the sum of absolute errors
+  !>     \details Calculates the sum of absolute errors
   !!
-  !!        \f[ SAE = \sum_i|y_i - x_i| \f]
+  !!     \f[ SAE = \sum_i|y_i - x_i| \f]
   !!
-  !!        If an optional mask is given, the calculations are over those locations that correspond to true values in the mask.
-  !!        \f$ x\f$ and \f$ y\f$ can be single or double precision. The result will have the same numerical precision.
-
-  !>        \param[in]  "real(sp/dp), dimension()     :: x, y"    1D/2D/3D-array with input numbers.
-  !>        \param[in]  "logical, optional     :: mask"         1D/2D/Array-array of logical values with `size(x/y)`.
-  !!         If present, only those locations in vec corresponding to the true values in mask are used.
-
-  !>        \returns    "real(sp/dp) :: NSE"                     NSE.
-
-  !>     ## Restrictions
+  !!     If an optional mask is given, the calculations are over those locations that correspond to true values in the mask.
+  !!     \f$ x\f$ and \f$ y\f$ can be single or double precision. The result will have the same numerical precision.
   !!
-  !!     Input values must be floating points.
-
-  !>     ## Example
+  !!     \b Example
   !!
-  !!         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         vec2 = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         m = NSE(vec1, vec2, mask=(vec >= 0.))
-  !!         --> m = 0.0
+  !!     \code{.f90}
+  !!     vec1 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!     vec2 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!     m = NSE(vec1, vec2, mask=(vec >= 0.))
+  !!     --> m = 0.0
+  !!     \endcode
   !!
   !!     See also example in test directory.
 
-  !>        \authors Matthias Zink
-  !>        \date Sept 2012
+  !>     \param[in]  "real(sp/dp), dimension()     :: x, y"    1D/2D/3D-array with input numbers.
+  !>     \param[in]  "logical, optional     :: mask"         1D/2D/Array-array of logical values with `size(x/y)`.
+  !!         If present, only those locations in vec corresponding to the true values in mask are used.
+
+  !>     \returns    "real(sp/dp) :: NSE"                     NSE.
+
+  !>     \note
+  !!     Input values must be floating points.
+
+  !>     \authors Matthias Zink
+  !>     \date Sept 2012
 
   ! ------------------------------------------------------------------
 
@@ -461,36 +424,36 @@ MODULE mo_errormeasures
 
   ! ------------------------------------------------------------------
 
-  !>        \brief Sum of squared errors
+  !>    \brief Sum of squared errors
 
-  !>        \details Calculates the sum of squared errors
+  !>    \details Calculates the sum of squared errors
   !!
-  !!        \f[ SSE = \sum_i(y_i - x_i)^2 \f]
+  !!    \f[ SSE = \sum_i(y_i - x_i)^2 \f]
   !!
-  !!        If an optional mask is given, the calculations are over those locations that correspond to true values in the mask.
-  !!        \f$ x\f$ and \f$ y\f$ can be single or double precision. The result will have the same numerical precision.
-
-  !>        \param[in]  "real(sp/dp), dimension()     :: x, y"    1D/2D/3D-array with input numbers.
-  !>        \param[in]  "logical, optional     :: mask"         1D/2D/Array-array of logical values with `size(x/y)`.
-  !!         If present, only those locations in vec corresponding to the true values in mask are used.
-
-  !>        \returns    "real(sp/dp) :: SSE"                     SSE.
-
-  !>     ## Restrictions
+  !!    If an optional mask is given, the calculations are over those locations that correspond to true values in the mask.
+  !!    \f$ x\f$ and \f$ y\f$ can be single or double precision. The result will have the same numerical precision.
   !!
-  !!     Input values must be floating points.
-
-  !>     ## Example
+  !!    \b Example
   !!
-  !!         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         vec2 = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         m   = SSE(vec1, vec2, mask=(vec >= 0.))
-  !!         --> m = 0.0
+  !!    \code{.f90}
+  !!    vec1 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!    vec2 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!    m   = SSE(vec1, vec2, mask=(vec >= 0.))
+  !!    --> m = 0.0
+  !!    \endcode
   !!
-  !!     See also example in test directory.
+  !!    See also example in test directory.
 
-  !>         \authors Matthias Zink
-  !>         \date Sept 2012
+  !>    \param[in]  "real(sp/dp), dimension()     :: x, y"    1D/2D/3D-array with input numbers.
+  !>    \param[in]  "logical, optional     :: mask"         1D/2D/Array-array of logical values with `size(x/y)`.
+  !!    If present, only those locations in vec corresponding to the true values in mask are used.
+  !>    \retval    "real(sp/dp) :: SSE"                     SSE.
+
+  !>    \note
+  !!    Input values must be floating points.
+
+  !>    \authors Matthias Zink
+  !>    \date Sept 2012
 
   ! ------------------------------------------------------------------
 
@@ -500,36 +463,36 @@ MODULE mo_errormeasures
 
   ! ------------------------------------------------------------------
 
-  !>        \brief RMS Error.
+  !>    \brief RMS Error.
 
-  !>        \details Calculates the root-mean-square error
+  !>    \details Calculates the root-mean-square error
   !!
-  !!        \f[ RMSE = \sqrt{\frac{\sum_i{(y_i - x_i)^2}} {{N_\text{count}}}} \f]
+  !!    \f[ RMSE = \sqrt{\frac{\sum_i{(y_i - x_i)^2}} {{N_\text{count}}}} \f]
   !!
-  !!        If an optional mask is given, the calculations are over those locations that correspond to true values in the mask.
-  !!        \f$ x\f$ and \f$ y\f$ can be single or double precision. The result will have the same numerical precision.
-
-  !>        \param[in]  "real(sp/dp), dimension()     :: x, y"    1D/2D/3D-array with input numbers.
-  !>        \param[in]  "logical, optional     :: mask"         1D/2D/Array-array of logical values with `size(x/y)`.
-  !!         If present, only those locations in vec corresponding to the true values in mask are used.
-
-  !>        \returns    "real(sp/dp) :: RMSE"                     RMSE.
-
-  !>     ## Restrictions
+  !!    If an optional mask is given, the calculations are over those locations that correspond to true values in the mask.
+  !!    \f$ x\f$ and \f$ y\f$ can be single or double precision. The result will have the same numerical precision.
   !!
-  !!     Input values must be floating points.
-
-  !>     ## Example
+  !!    \b Example
   !!
-  !!         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         vec2 = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         m   = RMSE(vec1, vec2, mask=(vec >= 0.))
-  !!         --> m = 0.0
+  !!    \code{.f90}
+  !!    vec1 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!    vec2 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!    m   = RMSE(vec1, vec2, mask=(vec >= 0.))
+  !!    --> m = 0.0
+  !!    \endcode
   !!
-  !!     See also example in test directory.
+  !!    See also example in test directory.
 
-  !>        \authors Matthias Zink
-  !>        \date Sept 2012
+  !>    \param[in]  "real(sp/dp), dimension()     :: x, y"    1D/2D/3D-array with input numbers.
+  !>    \param[in]  "logical, optional     :: mask"         1D/2D/Array-array of logical values with `size(x/y)`.
+  !!    If present, only those locations in vec corresponding to the true values in mask are used.
+  !>    \retval    "real(sp/dp) :: RMSE"                     RMSE.
+
+  !>    \note
+  !!    Input values must be floating points.
+
+  !>    \authors Matthias Zink
+  !>    \date Sept 2012
 
   ! ------------------------------------------------------------------
 
@@ -539,47 +502,46 @@ MODULE mo_errormeasures
 
   ! ------------------------------------------------------------------
 
-  !>        \brief weighted Nash Sutcliffe Efficiency.
+  !>    \brief weighted Nash Sutcliffe Efficiency.
 
-  !>        Calculates the weighted Nash Sutcliffe Efficiency
+  !>    Calculates the weighted Nash Sutcliffe Efficiency
   !!
-  !!        \f[ wNSE = \frac{\sum_i {x_i (y_i - x_i)^2}} {\sum_i{ x_i (x_i - \bar x)^2}} \f]
+  !!    \f[ wNSE = \frac{\sum_i {x_i (y_i - x_i)^2}} {\sum_i{ x_i (x_i - \bar x)^2}} \f]
   !!
-  !!        where \f$ x\f$ is the observation and \f$ y\f$ is the modelled data.
-  !!        This objective function is introduced in Hundecha and Bardossy, 2004.
+  !!    where \f$ x\f$ is the observation and \f$ y\f$ is the modelled data.
+  !!    This objective function is introduced in Hundecha and Bardossy, 2004.
   !!
-  !!        If an optinal mask is given, the calculations are over those locations that correspond to true values in the mask.
-  !!        \f$ x\f$ and \f$ y\f$ can be single or double precision. The result will have the same numerical precision.
+  !!    If an optinal mask is given, the calculations are over those locations that correspond to true values in the mask.
+  !!    \f$ x\f$ and \f$ y\f$ can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    vec1 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!    vec2 = (/ 1., 2, 3., -999., 5., 6. /)
+  !!    m   = wNSE(vec1, vec2, mask=(vec >= 0.))
+  !!    --> m = 1.0
+  !!    \endcode
+  !!
+  !!    See also example in test directory.
+  !!
+  !!    \b Literature
+  !!
+  !!    1.   Nash, J., & Sutcliffe, J. (1970). _River flow forecasting through conceptual models part I: A discussion of
+  !!                principles_. Journal of Hydrology, 10(3), 282-290. doi:10.1016/0022-1694(70)90255-6\n
+  !!    2.   Hundecha and Bardossy (2004). _Modeling of the effect of land use changes on the runoff generation of a river
+  !!                domain through parameter regionalization of a watershed model_. Journal of Hydrology, 292, 281-295
 
-  !>        \param[in]  "real(sp/dp), dimension()     :: x, y"    1D/2D/3D-array with input numbers.
-  !>        \param[in]  "logical, optional     :: mask"         1D/2D/Array-array of logical values with `size(x/y)`.
-  !!         If present, only those locations in vec corresponding to the true values in mask are used.
+  !>    \param[in]  "real(sp/dp), dimension()     :: x, y"    1D/2D/3D-array with input numbers.
+  !>    \param[in]  "logical, optional     :: mask"         1D/2D/Array-array of logical values with `size(x/y)`.
+  !!    If present, only those locations in vec corresponding to the true values in mask are used.
+  !>    \retval    "real(sp/dp) :: wNSE"                     wNSE.
 
-  !>        \returns    "real(sp/dp) :: wNSE"                     wNSE.
+  !>    \note
+  !!    Input values must be floating points.
 
-  !>     ## Restrictions
-  !!
-  !!     Input values must be floating points.
-
-  !>     ## Example
-  !!
-  !!         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         vec2 = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         m   = wNSE(vec1, vec2, mask=(vec >= 0.))
-  !!         --> m = 1.0
-  !!
-  !!     See also example in test directory.
-
-  !>     ## Literature
-  !!
-  !!     1.   Nash, J., & Sutcliffe, J. (1970). _River flow forecasting through conceptual models part I: A discussion of
-  !!                 principles_. Journal of Hydrology, 10(3), 282-290. doi:10.1016/0022-1694(70)90255-6\n
-  !!     2.   Hundecha and Bardossy (2004). _Modeling of the effect of land use changes on the runoff generation of a river
-  !!                 domain through parameter regionalization of a watershed model_. Journal of Hydrology, 292, 281-295
-
-  !>        \authors Matthias Zink\n
-  !!        Bjoern Guse
-  !>        \date May 2018
+  !>    \authors Matthias Zink & Bjoern Guse
+  !>    \date May 2018
 
   ! ------------------------------------------------------------------
 

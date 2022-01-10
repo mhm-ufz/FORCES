@@ -1,10 +1,10 @@
 !> \file mo_append.f90
+!> \brief \copybrief mo_append
+!> \details \copydetails mo_append
 
 !> \brief Append values on existing arrays.
-
 !> \details Provides routines to append (rows) and paste (columns) scalars, vectors,
 !!          and matrixes onto existing arrays.
-
 !> \author Juliane Mai
 !> \date Aug 2012
 
@@ -58,6 +58,19 @@ MODULE mo_append
   !!        1.     append scalar to vector\n
   !!        2.     append vector to vector\n
   !!        3.     append matrix to matrix
+  !!
+  !>        \b Example
+  !!
+  !!        Append input1 with input2
+  !!        \code{.f90}
+  !!         input1 = (/ 1.0_dp , 2.0_dp /)
+  !!         input2 = 3.0_dp
+  !!
+  !!         call append(input1, input2)
+  !!         --> input1 = (/ 1.0_dp , 2.0_dp, 3.0_dp /)
+  !!        \endcode
+  !!
+  !!        See also test folder for a detailed example, "test/test_mo_append/".
 
   !>        \param[in] "input2" 
   !!         Values to append. Can be `integer(i4/i8)`, `real(sp/dp)`, `logical`, or `character(len=*)`
@@ -67,7 +80,7 @@ MODULE mo_append
   !!         4d version is available for `real(dp)` and `logical`, where
   !!         append can be done in any component of the dimension.\n 
   !!         If not scalar then the columns have to agree with `input1`.
-  !>        \param[in,out] "`allocatable` :: input1" 
+  !>        \param[inout] "`allocatable` :: input1" 
   !!         Array to be appended to. Can be `integer(i4/i8)`, `real(sp/dp)`, `logical`,
   !!         or `character(len=*)`. Must be `dimension(:)` or `dimension(:,:)`, and `allocatable`.\n
   !!         If `input2` is not scalar then it must be `size(input1,2) = size(input2,2)`.
@@ -78,31 +91,32 @@ MODULE mo_append
   !!         Applicable when appending matrix-matrix, 3d, and 4d for `logical` and `real(dp)`.
   !!         Determines along which dimension `input2` is appended to.
 
-  !>     ## Restrictions
+  !>        \note
   !!         Size of `input1` and `input2` have to fit together,
   !!         i.e. number of columns input1 = number of columns input2.
 
-  !>     ## Example
-  !!
-  !!         input1 = (/ 1.0_dp , 2.0_dp /)
-  !!         input2 = 3.0_dp
-  !!
-  !!         call append(input1, input2)
-  !!         --> input1 = (/ 1.0_dp , 2.0_dp, 3.0_dp /)
-  !!
-  !!     See also test folder for a detailed example, "test/test_mo_append/".
+  !>        \author Juliane Mai
+  !>        \date Aug 2012
+  
+  !>        \author Matthias Cuntz
+  !>        \date Jan 2013
+  !!          - removed 256 character restriction.  
+  !>        \date Feb 2013
+  !!          - logical append and paste.
 
-  !>    ## Literature
-  !!
+  !>        \author Matthias Zink
+  !>        \date Feb 2015
+  !!          - added optional 'fill_value' for logical append
+  
+  !>        \author Stephan Thober
+  !>        \date Jan 2017
+  !!          - added 3d version for append
+  !>        \date Jul 2018
+  !!          - added optional iDim argument for arrays larger equal 2d
 
-  !>       \author Juliane Mai
-  !>       \date Aug 2012
-  !        Modified Matthias Cuntz, Jan 2013 - removed 256 character restriction
-  !        Modified Matthias Cuntz, Feb 2013 - logical append and paste
-  !        Modified Matthias Zink,  Feb 2015 - added optional 'fill_value' for logical append
-  !        Modified Stephan Thober, Jan 2017 - added 3d version for append
-  !        Modified Stephan thober, Jul 2018 - added optional iDim argument for arrays larger equal 2d
-  !        Modified Arya Prasetya, Nov 2021 - included i4_3d in append() interface
+  !>        \author Arya Prasetya
+  !>        \date Nov 2021
+  !!          -  included i4_3d in append interface
 
   INTERFACE append
      MODULE PROCEDURE append_i4_v_s, append_i4_v_v, append_i4_m_m, &
@@ -129,6 +143,19 @@ MODULE mo_append
   !!        1.     paste scalar to one-line matrix\n
   !!        2.     paste vector to a matrix\n
   !!        3.     paste matrix to matrix
+  !!
+  !!        \b Example
+  !!
+  !!        Paste input2 to input1.
+  !!        \code{.f90}
+  !!        input1 = (/ 1.0_dp , 2.0_dp /)
+  !!        input2 = (/ 3.0_dp , 4.0_dp /)
+  !!
+  !!        call paste(input1, input2)
+  !!        --> input1(1,:) = (/ 1.0_dp , 3.0_dp /)
+  !!            input1(2,:) = (/ 2.0_dp , 4.0_dp /)
+  !!        \endcode
+  !!        See also test folder for a detailed example, "test/test_mo_append".
 
   !>        \param[in] "input2" 
   !!         Values to paste. Can be `integer(i4/i8)`, `real(sp/dp)`, `logical`, or `character(len=*)`
@@ -136,7 +163,7 @@ MODULE mo_append
   !!         Includes 3d and 4d version for `real(dp)` and `integer(i4)`, where paste is always done along
   !!         the last dimension.\n
   !!         If not scalar then the rows have to agree with `input1`.\n
-  !>        \param[in,out] "allocatable :: input1" 
+  !>        \param[inout] "allocatable :: input1" 
   !!         Array to be pasted to. Can be `integer(i4/i8)`, `real(sp/dp)`,
   !!         or `character(len=*)`. Must be `dimension(:)`, `dimension(:,:)`, `dimension(:,:,:)`, or 
   !!         `dimension(:,:,:,:)` and `allocatable`.\n
@@ -145,25 +172,18 @@ MODULE mo_append
   !!         Filler value if number of rows do not coincide. Then the largest row will 
   !!         be taken and empty elements from the generated rows will be filled by this value.
 
-  !>     ## Restrictions
+  !>        \note
   !!        Size of input1 and input2 have to fit together,
   !!        i.e. number of rows input1 = number of rows input2
 
-  !>     ## Example
-  !!
-  !!         input1 = (/ 1.0_dp , 2.0_dp /)
-  !!         input2 = (/ 3.0_dp , 4.0_dp /)
-  !!
-  !!         call paste(input1, input2)
-  !!         --> input1(1,:) = (/ 1.0_dp , 3.0_dp /)
-  !!             input1(2,:) = (/ 2.0_dp , 4.0_dp /)
-  !!
-  !!     See also test folder for a detailed example, "test/test_mo_append/".
-
   !>       \author Juliane Mai
   !>       \date Aug 2012
-  !        Modified Matthias Cuntz, Jan 2013 - removed 256 character restriction
-  !        Modified Matthias Cuntz, Feb 2013 - logical append and paste
+
+  !>       \author Matthias Cuntz
+  !>       \date Jan 2013
+  !!          - removed 256 character restriction
+  !>       \date Feb 2013
+  !!          - logical append and paste
 
   INTERFACE paste
      MODULE PROCEDURE paste_i4_m_s, paste_i4_m_v, paste_i4_m_m, &
@@ -182,6 +202,22 @@ MODULE mo_append
 
   !>        \details Pastes a matrix of uniform element and predefined number of columns 
   !!        to the columns of another matrix.\n
+  !!
+  !!        \b Example
+  !!
+  !!        Add 2 columns of elements 5.0_dp.
+  !!        \code{.f90}
+  !!        input1(1,:) = (/ 1.0_dp , 2.0_dp /)
+  !!        input1(2,:) = (/ 2.0_dp , 4.0_dp /)
+  !!
+  !!        call add_nodata_slice(input1, 2, 5.0_dp)
+  !!        --> input1(1,:) = (/ 1.0_dp , 2.0_dp /)
+  !!            input1(2,:) = (/ 2.0_dp , 4.0_dp /)
+  !!            input1(3,:) = (/ 5.0_dp , 5.0_dp /)
+  !!            input1(4,:) = (/ 5.0_dp , 5.0_dp /)
+  !!        \endcode
+  !!
+  !!        See also test folder for a detailed example, "test/test_mo_append/".
   
   !>        \param[in,out] "allocatable :: matrix" 
   !!         Matrix to be pasted to. Can be `integer(i4)` or `real(dp)`.
@@ -190,22 +226,6 @@ MODULE mo_append
   !!         Number of column to paste.\n
   !>        \param[in] "noDataValue"
   !!         Value of elements of the matrix. Can be `integer(i4)` or `real(dp)`.
-
-  !>     ## Example
-  !!
-  !!         input1(1,:) = (/ 1.0_dp , 2.0_dp /)
-  !!         input1(2,:) = (/ 2.0_dp , 4.0_dp /)
-  !!
-  !!         call add_nodata_slice(input1, 2, 5.0_dp)
-  !!         --> input1(1,:) = (/ 1.0_dp , 3.0_dp /)
-  !!             input1(2,:) = (/ 2.0_dp , 4.0_dp /)
-  !!             input1(3,:) = (/ 5.0_dp , 5.0_dp /)
-  !!             input1(4,:) = (/ 5.0_dp , 5.0_dp /)
-  !!
-  !!     See also test folder for a detailed example, "test/test_mo_append/".
-
-  !>       \author -
-  !>       \date -
 
   interface add_nodata_slice
     module procedure add_nodata_slice_dp_2d, add_nodata_slice_dp_3d, add_nodata_slice_dp_4d, &

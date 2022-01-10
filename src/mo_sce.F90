@@ -1,10 +1,10 @@
 !> \file mo_sce.f90
+!> \brief \copybrief mo_sce
+!> \details \copydetails mo_sce
 
 !> \brief Shuffled Complex Evolution optimization algorithm.
-
 !> \details Optimization algorithm using Shuffled Complex Evolution strategy.
-!>          Original version 2.1 of Qingyun Duan (1992) rewritten in Fortran 90.
-
+!!          Original version 2.1 of Qingyun Duan (1992) rewritten in Fortran 90.
 !> \authors Juliane Mai
 !> \date Feb 2013
 

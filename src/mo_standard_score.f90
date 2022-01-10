@@ -1,11 +1,11 @@
 !> \file mo_standard_score.f90
+!> \brief \copybrief mo_standard_score
+!> \details \copydetails mo_standard_score
 
 !> \brief Routines for calculating the normalization (anomaly)/standard score/z score and the
-!>        deseasonalized (standard score on monthly basis) values of a time series.
-
+!!        deseasonalized (standard score on monthly basis) values of a time series.
 !> \details In environmental research often the centralization and standardization are estimated
-!>          for characterizing the dynamics of a signal.
-
+!!          for characterizing the dynamics of a signal.
 !> \author Matthias Zink
 !> \date May 2015
 

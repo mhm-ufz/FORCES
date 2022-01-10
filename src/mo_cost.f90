@@ -1,3 +1,6 @@
+!>  \file mo_cost.f90
+!>  \brief \copybrief mo_cost
+
 !>  \brief Added for testing purposes of test_mo_anneal
 Module mo_cost
 

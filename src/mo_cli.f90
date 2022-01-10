@@ -1,5 +1,5 @@
 !> \file    mo_cli.f90
-!> \brief   Module to parse command line arguments.
+!> \brief   \copybrief mo_cli
 !> \details \copydetails mo_cli
 
 !> \brief   Module to parse command line arguments.

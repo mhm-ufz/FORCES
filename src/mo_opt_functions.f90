@@ -1,4 +1,9 @@
-! added for testing purposes of test_mo_sce, test_mo_dds, test_mo_mcmc
+!> \file mo_opt_functions.f90
+!> \brief \copybrief mo_opt_functions
+
+!> \brief Added for testing purposes of test_mo_sce, test_mo_dds, test_mo_mcmc
+!> \author Matthias Cuntz
+!> \date Jul 2012
 MODULE mo_opt_functions
 
   ! This modules provides test functions for minimisation routines

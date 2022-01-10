@@ -2,7 +2,6 @@
 
 !> \authors Maren Kaluza
 !> \date November 2019
-
 MODULE mo_optimization_types
   use mo_kind, only : i4, dp
 

@@ -1,10 +1,10 @@
 !> \file mo_boxcox.f90
+!> \brief \copybrief mo_boxcox
+!> \brief \copydetails mo_boxcox
 
 !> \brief Box-Cox transformation of data.
-
 !> \details This module contains routines to calculate the Box-Cox transformation
 !!          as well as estimating the best exponent for the Box-Cox transformation
-
 !> \author Mathias Cuntz
 !> \date Aug 2011
 

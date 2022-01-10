@@ -1,11 +1,11 @@
 !> \file mo_constants.f90
+!> \brief \copybrief mo_constants
+!> \details \copydetails mo_constants
 
 !> \brief Provides computational, mathematical, physical, and file constants
-
 !> \details Provides computational constants like epsilon, mathematical constants such as Pi,
 !! physical constants such as the Stefan-Boltzmann constant, and file units for some standard streams
 !! such as standard in.
-
 !> \author Matthias Cuntz
 !> \date Nov 2011
 

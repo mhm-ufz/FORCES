@@ -1,9 +1,9 @@
 !> \file mo_string_utils.f90
+!> \brief \copybrief mo_string_utils
+!> \details \copydetails mo_string_utils
 
 !> \brief String utilities
-
 !> \details This module provides string conversion and checking utilities.
-
 !> \authors Matthias Cuntz, Matthias Zink, Giovanni Dalmasso, David Schaefer
 !> \date Dec 2011
 

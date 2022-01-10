@@ -1,15 +1,13 @@
 !> \file mo_dds.f90
+!> \brief \copybrief mo_dds
+!> \detail \copydetails mo_dds
 
 !> \brief Dynamically Dimensioned Search (DDS)
-
 !> \details This module provides routines for Dynamically Dimensioned Search (DDS)
-!> of Tolson and Shoemaker (2007). It searches the minimum or maximum of a user-specified function,
-!> using an n-dimensional continuous global optimization algorithm (DDS).
-
-!> \authors Original by Bryan Tolson and later modified by Rohini Kumar.
-!> Matthias Cuntz and Juliane Mai for the module, MDDS, etc.
+!! of Tolson and Shoemaker (2007). It searches the minimum or maximum of a user-specified function,
+!! using an n-dimensional continuous global optimization algorithm (DDS).
+!> \authors Bryan Tolson, modified by Rohini Kumar, Matthias Cuntz and Juliane Mai.
 !> \date Jul 2012
-
 module mo_dds
 
   ! This module contains routines for Dynamically Dimensioned Search (DDS)
@@ -53,21 +51,38 @@ CONTAINS
 
   !>        \brief DDS
 
-  !!        \details Searches Minimum or Maximum of a user-specified function using
+  !>        \details Searches Minimum or Maximum of a user-specified function using
   !!        Dynamically Dimensioned Search (DDS).\n
   !!        DDS is an n-dimensional continuous global optimization algorithm.
   !!        It is coded as a minimizer but one can give maxit=True in a maximization problem,
   !!        so that the algorithm minimizes the negative of the objective function F=(-1*F).
   !!
   !!        The function to be minimized is the first argument of DDS and must be defined as \n
-  !!        \code
-  !!            function func(p)
-  !!              use mo_kind, only: dp
-  !!              implicit none
-  !!              real(dp), dimension(:), intent(in) :: p
-  !!              real(dp) :: func
-  !!            end function func
+  !!        \code{.f90}
+  !!        function func(p)
+  !!          use mo_kind, only: dp
+  !!          implicit none
+  !!          real(dp), dimension(:), intent(in) :: p
+  !!          real(dp) :: func
+  !!        end function func
   !!        \endcode
+  !!  
+  !!        \b Example
+  !!
+  !!        \code{.f90}
+  !!        dv_range(:,1) = (/ -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0 /)
+  !!        dv_range(:,2) = (/ 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0 /)
+  !!        dv_ini        = (/ -.226265E+01, -.130187E+01, -.151219E+01, 0.133983E+00, 0.988159E+00, &
+  !!                           -.495074E+01, -.126574E+02, 0.572684E+00, 0.303864E+01, 0.343031E+01 /)
+  !!        dv_opt = DDS(griewank, dv_ini, dv_range)
+  !!        \endcode
+  !!     
+  !!        See also example in test directory.
+  !!
+  !!        \b Literature
+  !!        1. Tolson, B. A., and C. A. Shoemaker (2007)
+  !!            _Dynamically dimensioned search algorithm for computationally efficient watershed
+  !!            model calibration_, Water Resour. Res., 43, W01413, doi:10.1029/2005WR004723.
 
 
   !>        \param[in] "real(dp) :: obj_func(p)"             Function on which to search the minimum
@@ -89,35 +104,26 @@ CONTAINS
   !>        \param[out] "real(dp), optional, allocatable :: history(:)"  the history of best function values,
   !!                                                                     history(maxiter)=funcbest\n
   !!                                          allocatable only to be in correspondance with other optimization routines
+  !>        \retval "real(dp) :: DDS"   The parameters of the point which is estimated to minimize the function.
 
-  !>        \returns real(dp) :: DDS  &mdash;  The parameters of the point which is estimated to minimize the function.
+  !>        \author Bryan Tolson
+  !>        \date Feb 2007
 
-  !>     ## Restrictions
-  !!         None.
+  !>        \author Rohini Kumar
+  !>        \date Feb 2008
 
-  !>     ## Example
-  !!
-  !!         dv_range(:,1) = (/ -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0 /)
-  !!         dv_range(:,2) = (/ 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0 /)
-  !!         dv_ini        = (/ -.226265E+01, -.130187E+01, -.151219E+01, 0.133983E+00, 0.988159E+00, &
-  !!                            -.495074E+01, -.126574E+02, 0.572684E+00, 0.303864E+01, 0.343031E+01 /)
-  !!         dv_opt = DDS(griewank, dv_ini, dv_range)
-  !!     
-  !!      See also example in test directory.
+  !>        \author Matthias Cuntz & Juliane Mai
+  !>        \date Jul 2012
+  !!          - module
 
-  !>     ## Literature
-  !!         1. Tolson, B. A., and C. A. Shoemaker (2007)
-  !!             _Dynamically dimensioned search algorithm for computationally efficient watershed
-  !!             model calibration_, Water Resour. Res., 43, W01413, doi:10.1029/2005WR004723.
+  !>        \author Juliane Mai
+  !>        \date Aug 2012
+  !!          - optional argument funcbest added
+  !>        \date Nov 2012
+  !!          - masked parameter
+  !>        \date Dec 2012
+  !!          - history output
 
-  !>        \author Written original Bryan Tolson - DDS v1.1\n
-  !!        Modified Rohini Kumar, Matthias Cuntz, Juliane Mai
-  !>         \date Feb 2007
-  !         Modified, Rohini Kumar, Feb 2008
-  !         Modified, Matthias Cuntz & Juliane Mai, Jul 2012 - module
-  !                   Juliane Mai,                  Aug 2012 - optional argument funcbest added
-  !                   Juliane Mai,                  Nov 2012 - masked parameter
-  !                   Juliane Mai,                  Dec 2012 - history output
 #ifdef MPI
   function DDS(eval, obj_func, pini, prange, r, seed, maxiter, maxit, mask, tmp_file, comm, funcbest, history)
 #else

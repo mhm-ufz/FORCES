@@ -1,9 +1,9 @@
 !> \file mo_mad.f90
+!> \brief \copybrief mo_mad
+!> \details \copydetails mo_mad
 
 !> \brief Median absolute deviation test.
-
 !> \details This module provides a median absolute deviation (MAD) test.
-
 !> \authors Mathias Zink
 !> \date Aug 2012
 MODULE mo_mad
@@ -64,6 +64,20 @@ MODULE mo_mad
   !!          - b: upper and lower values are cut at the threshold
   !!
   !!        With this setting only the variant 0 is available (no argument implemented).
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!          vec = (/ -0.25,0.68,0.94,1.15,2.26,2.35,2.37,2.40,2.47,2.54,2.62, &
+  !!                    2.64,2.90,2.92,2.92,2.93,3.21,3.26,3.30,3.59,3.68,4.30, &
+  !!                    4.64,5.34,5.42,8.01 /)
+  !!          mask(:) = true
+  !!          ! Sets last entry false
+  !!          mask = mask .and. mad(vec, z=4., deriv=0, mask=mask)
+  !!    \endcode
+  !!
+  !!    See also example in test directory.
+
 
   !>       \param[in]  "real(sp/dp) :: vec(:)"     1D-array with input numbers
   !>       \param[in]  "real(sp/dp) :: arr"        nD-array with input numbers
@@ -78,10 +92,10 @@ MODULE mo_mad
   !!                                   l: Trim only values below mad\n
   !!                                   b: Trim values below and above mad
   
-  !>       \returns "logical or real(sp/dp), dimension(size(arr)) :: out"            mask with true everywhere except where input deviates more
+  !>       \retval "logical or real(sp/dp), dimension(size(arr)) :: out"            mask with true everywhere except where input deviates more
   !!                                                                  than z standard deviations from median. If tout five, threshold value is returned.
 
-  !>     ## Restrictions
+  !>     \note
   !!
   !!     1st derivative is
   !!
@@ -89,19 +103,12 @@ MODULE mo_mad
   !!
   !!     because mean of left and right would give 0 for spikes.
 
-  !>     ## Example
-  !!
-  !!          vec = (/ -0.25,0.68,0.94,1.15,2.26,2.35,2.37,2.40,2.47,2.54,2.62, &
-  !!                    2.64,2.90,2.92,2.92,2.93,3.21,3.26,3.30,3.59,3.68,4.30, &
-  !!                    4.64,5.34,5.42,8.01 /)
-  !!          mask(:) = true
-  !!          ! Sets last entry false
-  !!          mask = mask .and. mad(vec, z=4., deriv=0, mask=mask)
-  !!
-  !!     See also example in test directory.
+  !>        \author Matthias Cuntz
+  !>        \date Mar 2011
 
-  !>        \authors Matthias Cuntz, Mar 2011 \n
-  !!         mad_val added by Matthias Kelbling, May 2018
+  !>        \author Mathhias Kelbling
+  !>        \date May 2018
+  !!          - mad_val added by Matthias Kelbling, May 2018
 
   ! ------------------------------------------------------------------
 

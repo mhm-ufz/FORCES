@@ -1,3 +1,7 @@
+!> \file mo_os.f90
+!> \brief \copybrief mo_os
+
+!> \brief Path and directory management.
 MODULE mo_os
 
   ! License

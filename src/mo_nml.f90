@@ -1,9 +1,9 @@
 !> \file mo_nml.f90
+!> \brief \copybrief mo_nml
+!> \details \copydetails mo_nml
 
 !> \brief Deal with namelist files.
-
 !> \details This module provides routines to open, close and position namelist files.
-
 !> \authors Matthias Cuntz
 !> \date Jan 2011
 
