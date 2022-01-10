@@ -49,24 +49,24 @@ MODULE mo_boxcox
 
   IMPLICIT NONE
 
-  PUBLIC :: boxcox     
-  PUBLIC :: invboxcox  
+  PUBLIC :: boxcox
+  PUBLIC :: invboxcox
 
   ! ------------------------------------------------------------------
 
   !>        \brief Transform a positive dataset with a Box-Cox power transformation.
 
   !>        \details Calculate Box-Cox power transformed values given the original values and the exponent lambda.\n
-  !!          \f[ w_\text{Box-Cox}(x) = 
-  !!                          \begin{cases} 
-  !!                           \frac{x^\lambda - 1}{\lambda}&&\text{, if }\lambda \neq 0 \\
-  !!                           \ln{x}&&\text{, if }\lambda = 0 
+  !!          \f[ w_\text{Box-Cox}(x) =
+  !!                          \begin{cases}
+  !!                           \frac{x^\lambda - 1}{\lambda}&\text{, if }\lambda \neq 0 \\
+  !!                           \ln{x}&\text{, if }\lambda = 0
   !!                          \end{cases} \f]
   !!         If an optional mask is given, then the Box-Cox transformation is only performed on
   !!         those locations that correspond to true values in the mask.\n
   !!         \f$x\f$ can be single or double precision. The result will have the same numerical precision.
   !!         \f$x\f$ can be scalar or vector.\n
-  !!         
+  !!
   !!         \b Example
   !!
   !!         \code{.f90}
@@ -90,7 +90,7 @@ MODULE mo_boxcox
   !!            - Modified numerical recipes: brent, mnbrak, swap, shft
   !>     \date Dec 2021
   !!            - Updated doxygen docs
-  INTERFACE boxcox 
+  INTERFACE boxcox
     MODULE PROCEDURE boxcox_sp, boxcox_dp
   END INTERFACE boxcox
 
@@ -99,10 +99,10 @@ MODULE mo_boxcox
   !>        \brief Back-transformation of Box-Cox-transformed data.
 
   !>        \details Calculate the inverse Box-Cox given the transformed values and the exponent lambda.
-  !!          \f[ w_\text{Box-Cox}^{-1}(y) = 
-  !!                          \begin{cases} 
-  !!                           (\lambda y + 1)^{\frac{1}{\lambda}}&&\text{, if }\lambda \neq 0 \\
-  !!                           e^{y}&&\text{, if }\lambda = 0 
+  !!          \f[ w_\text{Box-Cox}^{-1}(y) =
+  !!                          \begin{cases}
+  !!                           (\lambda y + 1)^{\frac{1}{\lambda}}&\text{, if }\lambda \neq 0 \\
+  !!                           e^{y}&\text{, if }\lambda = 0
   !!                          \end{cases} \f]
   !!         If an optional mask is given, then the inverse Box-Cox transformation is only performed on
   !!         those locations that correspond to true values in the mask.\n
@@ -114,7 +114,7 @@ MODULE mo_boxcox
   !!         \code{.f90}
   !!         out = invboxcox(x, lmbda, mask=mask)
   !!         \endcode
-  !!          
+  !!
   !!         See also test folder for a detailed example, "pf_tests/test_mo_boxcox".
 
   !>        \param[in]  "real(sp/dp) :: y"              Scalar/1D-array with input numbers (`>0.`)

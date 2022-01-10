@@ -76,12 +76,12 @@ MODULE mo_moment
   ! ------------------------------------------------------------------
 
   !>    \brief Mean absolute deviation from mean.
-  
-  !>    \details  
+
+  !>    \details
   !!    Calculates the mean absolute deviations from the mean
   !!
   !!    \f[ ABSDEV = \sum_i\frac{|x_i-\bar x|}{N} \f]
-  !!  
+  !!
   !!    If an optinal mask is given, the calculations are over those locations that correspond to true values in the mask.
   !!    \f$ x\f$ can be single or double precision. The result will have the same numerical precision.\n
   !!
@@ -113,7 +113,7 @@ MODULE mo_moment
 
   !>    \brief Mean of vector.
 
-  !>    \details 
+  !>    \details
   !!    Calculates the average value of a vector, i.e. the first moment of a series of numbers:
   !!
   !!    \f[ AVE = \sum_i \frac{x_i}{N} \f]
@@ -128,12 +128,12 @@ MODULE mo_moment
   !!        --> m = 3.4
   !!
   !!    See also example in pf_tests directory.
-  
+
   !>    \param[in]  "real(sp/dp) :: dat(:)"         1D-array with input numbers
 
   !>    \retval     "real(sp/dp) :: average"        Average of all elements in dat
 
-  
+
   !>    \param[in]  "logical, optional :: mask(:)"  1D-array of logical values with `size(dat)`.
   !!                                                If present, only those locations in dat corresponding to the true values in mask are used.
 
@@ -149,10 +149,10 @@ MODULE mo_moment
   END INTERFACE average
 
   ! ------------------------------------------------------------------
-  
+
   !>    \brief R-central moment
 
-  !>    \details 
+  !>    \details
   !!    Calculates the central moment of a vector, i.e. the r-central moment of a series of numbers:
   !!
   !!    \f[ \mu_r = \sum_i\frac{(x_i-\bar x)^r}{N} \f]
@@ -184,7 +184,7 @@ MODULE mo_moment
 
   !>    \author Matthias Cuntz
   !>    \date Nov 2011
-  
+
   ! ------------------------------------------------------------------
   INTERFACE central_moment
     MODULE PROCEDURE central_moment_sp, central_moment_dp
@@ -192,9 +192,9 @@ MODULE mo_moment
 
   ! ------------------------------------------------------------------
 
-  !>    \brief R-central moment variance 
+  !>    \brief R-central moment variance
 
-  !>    \details 
+  !>    \details
   !!    Calculates the sampling variance of the central moment of a vector.
   !!    `central_moment_var` is something like the "error variance" of the r-th order central moment sampling statistic.\n
   !!
@@ -230,7 +230,7 @@ MODULE mo_moment
 
   !>    \brief Correlation between two vectors.
 
-  !>    \details 
+  !>    \details
   !!    Calculates the correlation between two input vectors, i.e. the covariance divided by the standard deviations:\n
   !!
   !!    \f[\langle x y\rangle = \sum_i\frac{(x_i-\bar x)(y_i-\bar y)}{N\sqrt{\mu_2(x)\mu_2(y)}}\f]
@@ -256,7 +256,7 @@ MODULE mo_moment
 
   !>    \author Matthias Cuntz
   !>    \date Nov 2011
-  !>    \date Dec 2011 
+  !>    \date Dec 2011
   !!        - covariance as <(x-<x>)(y-<y>)> instead of <xy>-<x><y>
 
   ! ------------------------------------------------------------------
@@ -269,7 +269,7 @@ MODULE mo_moment
 
   !>    \brief Covariance between vectors
 
-  !>    \details  
+  !>    \details
   !!    Calculates the covariance between two input vectors:\n
   !!
   !!    \f[Cov(x,y) = \sum_i\frac{(x_i-\bar x)(y_i-\bar y)}{N}\f]
@@ -293,9 +293,9 @@ MODULE mo_moment
 
   !>    \notes Input values must be floating points.
 
-  !>    \author Matthias Cuntz 
+  !>    \author Matthias Cuntz
   !>    \date Nov 2011
-  !>    \date Dec 2011 
+  !>    \date Dec 2011
   !!        - covariance as <(x-<x>)(y-<y>)> instead of <xy>-<x><y>
 
   ! ------------------------------------------------------------------
@@ -331,7 +331,7 @@ MODULE mo_moment
   !>    \retval     "real(sp/dp) :: kurtosis"       Kurtosis of all elements in dat.
 
   !>    \notes  Input values must be floating points.
-  
+
   !>    \authors Matthias Cuntz
   !>    \date Nov 2011
 
@@ -345,9 +345,9 @@ MODULE mo_moment
 
   !>    \brief Mean of a vector.
 
-  !>    \details 
+  !>    \details
   !!    Calculates the average value of a vector, i.e. the first moment of a series of numbers:
-  !!    
+  !!
   !!    \f[\bar x = sum_i \frac{x_i}{N}
   !!
   !!    If an optional mask is given, the mean is only over those locations that correspond to true values in the mask.
@@ -365,12 +365,12 @@ MODULE mo_moment
   !>    \param[in]  "logical, optional :: mask(:)"    1D-array of logical values with `size(dat)`.
   !!                                                  If present, only those locations in dat corresponding to the true values in mask are used.
   !>    \retval     "real(sp/dp) :: mean"       Average of all elements in dat.
-  
+
   !>    \notes  Input values must be floating points.
 
   !>    \author Matthias Cuntz
   !>    \date Nov 2011
-  
+
   ! ------------------------------------------------------------------
 
   INTERFACE mean
@@ -384,7 +384,7 @@ MODULE mo_moment
   !>    \detail
   !!    Calculates the r,s-th mixed central moment between two vectors:
   !!
-  !!    \f[\mu_{r-s} = \sum_i\frac{(x_i-\bar x)^r(y_i-\bar_y)^s}{N}\f]
+  !!    \f[\mu_{r-s} = \sum_i\frac{(x_i-\bar{x})^r(y_i-\bar{y})^s}{N}\f]
   !!
   !!    Note that covariace(x,y) = mixed_central_moment(x,y,1,1)
   !!
@@ -403,7 +403,7 @@ MODULE mo_moment
   !!
   !!    1. LH Benedict & RD Gould, _Towards better uncertainty estimates for turbulence statistics_,
   !!            Experiments in Fluids 22, 129-136, 1996
-  
+
   !>    \param[in]  "real(sp/dp) :: x(:)"       First 1D-array
   !>    \param[in]  "real(sp/dp) :: y(:)"       Second 1D-array
   !>    \param[in]  "integer(i4) :: r"          Order of x
@@ -427,7 +427,7 @@ MODULE mo_moment
 
   !>    \brief Mixed central moment variance.
 
-  !>    \details         
+  !>    \details
   !!    Calculates the sample variance of r,s-th mixed central moment between two vectors.
   !!    `mixed_central_moment_var` is something like the "error variance" of
   !!    the r,s-th order mixed central moment sampling statistic.
@@ -455,9 +455,9 @@ MODULE mo_moment
   !>    \param[in]  "logical, optional :: mask(:)"        1D-array of logical values with size(x).
   !!                                                      If present, only those locations in dat corresponding to the true values in mask are used.
   !>    \retval     "real(sp/dp) :: mixed_central_moment_var"    Sampling variance of r,s-th mixed central moment between x and y
-  
+
   !>    \notes  Input values must be floating points.
-  
+
   !>    \author Matthias Cuntz
   !>    \date Nov 2011
 
@@ -504,7 +504,7 @@ MODULE mo_moment
   !>    \author Matthias Cuntz
   !>    \date Nov 2011
   !>    \author Sebastian Mueller
-  !>    \date Dec 2019 
+  !>    \date Dec 2019
   !!        -   added optional sample input-para to switch sample to population variance and std-dev.
 
   ! ------------------------------------------------------------------
@@ -517,10 +517,10 @@ MODULE mo_moment
 
   !>    \brief Skewness of a vector
 
-  !>    \details         
+  !>    \details
   !!    Calculates the skewness of a vector, i.e. the third standardised moment:
   !!
-  !!    \f[\tilda \mu_3 = \sum_i\left(\frac{(x-\bar x)}{\sigma_x}\right)^3)\f]
+  !!    \f[\tilde \mu_3 = \sum_i\left(\frac{(x-\bar x)}{\sigma_x}\right)^3\f]
   !!
   !!    If an optinal mask is given, the average is only over those locations that correspond to true values in the mask.
   !!    \f$x\f$ can be single or double precision. The result will have the same numerical precision.
@@ -550,7 +550,7 @@ MODULE mo_moment
 
   !>    \brief  Standard deviation of a vector.
 
-  !>    \details  
+  !>    \details
   !!    Calculates the sample standard deviation of a vector, i.e. the square root of the second moment
   !!
   !!    \f[\sigma_x = \sqrt{\sum_i\frac{(x_i-\bar x)^2}{N-1}}\f]
@@ -570,7 +570,7 @@ MODULE mo_moment
   !!                                                      If present, only those locations in vec corresponding to the true values in mask are used.
   !>    \retval     "real(sp/dp) :: stddev"               Sample standard deviation of all elements in dat.
 
-  !>    \notes         
+  !>    \notes
   !!    Input values must be floating points.\n
   !!    This is the sample standard deviation. The population standard deviation is:
   !!            `popstddev = stddev * sqrt((n-1)/n)`
@@ -609,7 +609,7 @@ MODULE mo_moment
   !!                                                      If present, only those locations in vec corresponding to the true values in mask are used.
   !>    \retval     "real(sp/dp) :: variance"             Sample variance of all elements in dat.
 
-  !>    \notes         
+  !>    \notes
   !!    Input values must be floating points.\n
   !!    This is the sample variance. The population variance is:
   !!             `var = variance * (n-1)/n`
