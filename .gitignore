@@ -4,6 +4,9 @@ latex
 doxygen_warn.txt
 forces_env/
 
+# VSCode
+.vscode/
+
 # Created by .ignore support plugin (hsz.mobi)
 ### Fortran template
 # Prerequisites
