@@ -173,7 +173,7 @@ MODULE mo_moment
   !>    \b Literature
   !!    1.  LH Benedict & RD Gould, _Towards better uncertainty estimates for turbulence statistics_.
   !!        Experiments in Fluids 22, 129-136, 1996
-
+  !!
   !>    \param[in]  "real(sp/dp) :: dat(:)"         1D-array with input numbers.
   !>    \param[in]  "integer(i4) :: r"              Order of the central moment, i.e. r=2 is variance.
   !>    \param[in]  "logical, optional :: mask(:)"  1D-array of logical values with size(dat).
@@ -208,10 +208,11 @@ MODULE mo_moment
   !!        em  = central_moment_var(vec, 2, mask=(vec >= 0.))
   !!
   !!    See also example in pf_tests directory.
+  !!
   !!    \b Literature
   !!    1.  LH Benedict & RD Gould, _Towards better uncertainty estimates for turbulence statistics_,
   !!        Experiments in Fluids 22, 129-136, 1996
-
+  !!
   !>    \param[in]  "real(sp/dp) :: dat(:)"                 1D-array with input numbers.
   !>    \param[in]  "integer(i4) :: r"                      Order of the central moment, i.e. r=2 is variance.
   !>    \param[in]  "logical, optional :: mask(:)"          1D-array of logical values with `size(dat)`.
@@ -403,7 +404,7 @@ MODULE mo_moment
   !!
   !!    1. LH Benedict & RD Gould, _Towards better uncertainty estimates for turbulence statistics_,
   !!            Experiments in Fluids 22, 129-136, 1996
-
+  !!
   !>    \param[in]  "real(sp/dp) :: x(:)"       First 1D-array
   !>    \param[in]  "real(sp/dp) :: y(:)"       Second 1D-array
   !>    \param[in]  "integer(i4) :: r"          Order of x
@@ -447,7 +448,7 @@ MODULE mo_moment
   !!
   !!    1. LH Benedict & RD Gould, _Towards better uncertainty estimates for turbulence statistics_,
   !!            Experiments in Fluids 22, 129-136, 1996
-
+  !!
   !>    \param[in]  "real(sp/dp) :: x(:)"       First 1D-array
   !>    \param[in]  "real(sp/dp) :: y(:)"       Second 1D-array
   !>    \param[in]  "integer(i4) :: r"          Order of x

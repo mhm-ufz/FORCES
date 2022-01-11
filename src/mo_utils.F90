@@ -57,10 +57,12 @@ MODULE mo_utils
   public :: flip ! flips a dimension of an array
   public :: unpack_chunkwise ! flips a dimension of an array
 
+  !> \brief flip an array at a certain dimension
   interface flip
     procedure flip_1D_dp, flip_2D_dp, flip_3D_dp, flip_4D_dp, flip_1D_i4, flip_2D_i4, flip_3D_i4, flip_4D_i4
   end interface
 
+  !> \brief chunk version of the unpack operation
   interface unpack_chunkwise
     procedure unpack_chunkwise_i1, unpack_chunkwise_dp
   end interface
@@ -88,35 +90,42 @@ MODULE mo_utils
   !>        \authors Matthias Cuntz, Juliane Mai
   !>        \date Feb 2014
   !!          - sp, dp
-
   INTERFACE equal
     MODULE PROCEDURE equal_sp, equal_dp
   END INTERFACE equal
 
+  !> \brief Comparison of real values for inequality.
+  !> \see equal
   INTERFACE notequal
     MODULE PROCEDURE notequal_sp, notequal_dp
   END INTERFACE notequal
 
+  !> \brief Comparison of real values: `a >= b`.
   INTERFACE greaterequal
     MODULE PROCEDURE greaterequal_sp, greaterequal_dp
   END INTERFACE greaterequal
 
+  !> \brief Comparison of real values: `a <= b`.
   INTERFACE lesserequal
     MODULE PROCEDURE lesserequal_sp, lesserequal_dp
   END INTERFACE lesserequal
 
+  !> \copydoc equal
   INTERFACE eq
     MODULE PROCEDURE equal_sp, equal_dp
   END INTERFACE eq
 
+  !> \copydoc notequal
   INTERFACE ne
     MODULE PROCEDURE notequal_sp, notequal_dp
   END INTERFACE ne
 
+  !> \copydoc greaterequal
   INTERFACE ge
     MODULE PROCEDURE greaterequal_sp, greaterequal_dp
   END INTERFACE ge
 
+  !> \copydoc lesserequal
   INTERFACE le
     MODULE PROCEDURE lesserequal_sp, lesserequal_dp
   END INTERFACE le

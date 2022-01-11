@@ -1,9 +1,5 @@
 !> \file    mo_forces_info.f90
-!> \brief   \copybrief mo_forces_info
-
-!> \brief   Provides information about FORCES
-!> \authors Sebastian Mueller
-!> \date    May 2021
+!> \copydoc mo_forces_info
 
 #ifndef FORCESVERSION
 #define FORCESVERSION "0.0.0-dev0"

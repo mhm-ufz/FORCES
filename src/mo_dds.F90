@@ -66,7 +66,7 @@ CONTAINS
   !!          real(dp) :: func
   !!        end function func
   !!        \endcode
-  !!  
+  !!
   !!        \b Example
   !!
   !!        \code{.f90}
@@ -76,15 +76,14 @@ CONTAINS
   !!                           -.495074E+01, -.126574E+02, 0.572684E+00, 0.303864E+01, 0.343031E+01 /)
   !!        dv_opt = DDS(griewank, dv_ini, dv_range)
   !!        \endcode
-  !!     
+  !!
   !!        See also example in test directory.
   !!
   !!        \b Literature
   !!        1. Tolson, B. A., and C. A. Shoemaker (2007)
   !!            _Dynamically dimensioned search algorithm for computationally efficient watershed
   !!            model calibration_, Water Resour. Res., 43, W01413, doi:10.1029/2005WR004723.
-
-
+  !!
   !>        \param[in] "real(dp) :: obj_func(p)"             Function on which to search the minimum
   !>        \param[in] "real(dp) :: pini(:)"                 inital value of decision variables
   !>        \param[in] "real(dp) :: prange(size(pini),2)"    Min/max range of decision variables
@@ -408,7 +407,7 @@ CONTAINS
   !!     1. Tolson, B. A., and C. A. Shoemaker (2007),
   !!         _Dynamically dimensioned search algorithm for computationally efficient watershed
   !!         model calibration_, Water Resour. Res., 43, W01413, doi:10.1029/2005WR004723.
-  !!     2. Huang X-L and Xiong J (2010), 
+  !!     2. Huang X-L and Xiong J (2010),
   !!         _Parameter Optimization of Multi-tank Model with Modified Dynamically Dimensioned
   !!         Search Algorithm_, Proceedings of the Third International Symposium on Computer
   !!         Science and Computational Technology(ISCSCT ''10), Jiaozuo, P. R. China,

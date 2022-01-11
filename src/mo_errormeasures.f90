@@ -74,7 +74,7 @@ MODULE mo_errormeasures
   !!         vec1 = (/ 1., 2, 3., -999., 5., 6. /)
   !!         vec2 = (/ 1., 2, 3., -999., 5., 6. /)
   !!         m   = BIAS(vec1, vec2, mask=(vec >= 0.))
-  !!         --> m = 0.0 
+  !!         --> m = 0.0
   !!      \endcode
   !!
   !!     See also example in test directory.
@@ -99,7 +99,7 @@ MODULE mo_errormeasures
 
   !>        \brief Kling-Gupta-Efficiency measure.
 
-  !>        \details 
+  !>        \details
   !!        The Kling-Gupta model efficiency coefficient \f$ KGE \f$ is
   !!            \f[ KGE = 1 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 )} \f]
   !!        where \n
@@ -131,8 +131,8 @@ MODULE mo_errormeasures
   !>        1. Gupta, Hoshin V., et al.
   !!           _"Decomposition of the mean squared error and NSE performance criteria:
   !!           Implications for improving hydrological modelling"_.
-  !!           Journal of Hydrology 377.1 (2009): 80-91.        
-
+  !!           Journal of Hydrology 377.1 (2009): 80-91.
+  !!
   !>        \param[in]  "real(sp/dp)   :: x, y"           1D/2D/3D-array with input numbers
   !>        \param[in]  "logical, optional     :: mask"   1D/2D/3D-array of logical values with size(x/y).
   !>        \retval     "real(sp/dp) ::kge"               Kling-Gupta-Efficiency (value less equal 1.0)
@@ -141,8 +141,8 @@ MODULE mo_errormeasures
 
   !>        \author Rohini Kumar
   !>        \date August 2014
-  
-  !>        \author R. Kumar, J. Mai, & O. Rakovec 
+
+  !>        \author R. Kumar, J. Mai, & O. Rakovec
   !>        \date Sep. 2014
   !!          - remove double packing of input data (bug)
   !!          - KGE instead of 1.0-KGE
@@ -187,7 +187,7 @@ MODULE mo_errormeasures
   !!           _"Decomposition of the mean squared error and NSE performance criteria:
   !!           Implications for improving hydrological modelling"_.
   !!           Journal of Hydrology 377.1 (2009): 80-91.
-
+  !!
   !>        \param[in]  "real(sp/dp)   :: x, y"           1D/2D/3D-array with input numbers
   !>        \param[in]  "logical, optional     :: mask"   1D/2D/3D-array of logical values with size(x/y).
   !>        \retval     "real(sp/dp) :: kgenocorr"        Kling-Gupta-Efficiency without correlation (value less equal 1.0)
@@ -201,7 +201,7 @@ MODULE mo_errormeasures
   !>        \date Jul 2017
   !!          - add KGEnocorr
 
-  !>        \author R. Kumar, J. Mai, & O. Rakovec 
+  !>        \author R. Kumar, J. Mai, & O. Rakovec
   !>        \date Sep 2014
   !!          - remove double packing of input data (bug)
   !!          - KGE instead of 1.0-KGE
@@ -215,7 +215,7 @@ MODULE mo_errormeasures
   ! ------------------------------------------------------------------
 
   !>        \brief Logarithmic Nash Sutcliffe Efficiency.
-  
+
   !>        \details  Calculates the Logarithmic Nash Sutcliffe Efficiency
   !!
   !!        \f[LNNSE = \frac{\sum_i(\ln(y_i) - \ln(x_i))^2}  {\sum_i (\ln(x_i) - \ln(\bar x))^2 }\f]
@@ -232,7 +232,7 @@ MODULE mo_errormeasures
   !!        vec1 = (/ 1., 2, 3., -999., 5., 6. /)
   !!        vec2 = (/ 1., 2, 3., -999., 5., 6. /)
   !!        m   = LNNSE(vec1, vec2, mask=(vec >= 0.))
-  !!        --> m = 1.0 
+  !!        --> m = 1.0
   !!        \endcode
   !!
   !!        See also example in test directory.
@@ -261,7 +261,7 @@ MODULE mo_errormeasures
   !>        \brief Mean absolute error.
 
   !>        \details Calculates the mean absolute error,
-  !!        
+  !!
   !!        \f[ MAE = \sum_i\frac{|y_i - x_i|}{N_\text{mask}} \f]
   !!
   !!        If an optinal mask is given, the calculations are over those locations that correspond to true values in the mask.
@@ -325,8 +325,8 @@ MODULE mo_errormeasures
 
   !>     \note
   !!     Input values must be floating points.
-  
-  !>        \authors Matthias Zink 
+
+  !>        \authors Matthias Zink
   !>        \date Sept 2012
 
   ! ------------------------------------------------------------------
@@ -363,8 +363,7 @@ MODULE mo_errormeasures
   !!
   !!        1. Nash, J., & Sutcliffe, J. (1970). _River flow forecasting through conceptual models part I: A discussion of
   !!           principles_. Journal of Hydrology, 10(3), 282-290. doi:10.1016/0022-1694(70)90255-6
-
-
+  !!
   !>      \param[in]  "real(sp/dp), dimension()     :: x, y"    1D/2D/3D-array with input numbers.
   !>      \param[in]  "logical, optional     :: mask"         1D/2D/Array-array of logical values with `size(x/y)`.
   !!         If present, only those locations in vec corresponding to the true values in mask are used.
@@ -373,7 +372,7 @@ MODULE mo_errormeasures
   !>     \note
   !!     Input values must be floating points.
 
-  !>        \authors Matthias Zink 
+  !>        \authors Matthias Zink
   !>        \date Sept 2012
 
   ! ------------------------------------------------------------------
@@ -531,7 +530,7 @@ MODULE mo_errormeasures
   !!                principles_. Journal of Hydrology, 10(3), 282-290. doi:10.1016/0022-1694(70)90255-6\n
   !!    2.   Hundecha and Bardossy (2004). _Modeling of the effect of land use changes on the runoff generation of a river
   !!                domain through parameter regionalization of a watershed model_. Journal of Hydrology, 292, 281-295
-
+  !!
   !>    \param[in]  "real(sp/dp), dimension()     :: x, y"    1D/2D/3D-array with input numbers.
   !>    \param[in]  "logical, optional     :: mask"         1D/2D/Array-array of logical values with `size(x/y)`.
   !!    If present, only those locations in vec corresponding to the true values in mask are used.

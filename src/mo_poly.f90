@@ -3,7 +3,7 @@
 !>    \details \copydetails mo_poly
 
 !>    \brief  Polygon calculations.
-!>    \details  
+!>    \details
 !!    This module determines wether a 2D point lies inside, outside, or
 !!    on the vertice/edge of a 2D polygon
 !!    and is part of the UFZ CHS Fortran library.
@@ -56,7 +56,7 @@ MODULE mo_poly
   !>    \details
   !!    Function for computing the area of a polygon
   !!    The polygon can be convex or not.
-  !!  
+  !!
   !!    The method is only applicable for 2D polygons and points.
   !!
   !!    \b Example
@@ -69,16 +69,16 @@ MODULE mo_poly
   !!
   !!    --> area = 1
   !!    \endcode
-  !!  
+  !!
   !!    See also example in test directory.
   !!
   !!    \b Literature
   !!
   !!    1. http://de.wikipedia.org/wiki/Geometrischer_Schwerpunkt
-
+  !!
   !>    \param[in]  "real(sp/dp) :: coord(:,2)"     (x,y) coordinates of edges of the polygon
   !>    \retval     "real(sp/dp) :: areapoly"       Area of polygon
-  
+
   !>    \notes Only available in 2D version
 
   !>    \author Maren Goehler
@@ -109,7 +109,7 @@ MODULE mo_poly
   !!    \code{.f90}
   !!    polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
   !!    polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
-  !!  
+  !!
   !!    com = center_of_mass(polygon)
   !!
   !!    --> com = (/1.5_dp, 1.5_dp/)
@@ -120,7 +120,7 @@ MODULE mo_poly
   !!    \b Literature
   !!
   !!    1. http://de.wikipedia.org/wiki/Geometrischer_Schwerpunkt
-
+  !!
   !>    \param[in]  "real(sp/dp) :: coord(:,2)"           (x,y) coordinates of edges of the polygon.
   !>    \retval     "real(sp/dp), dimension(2) :: center" Center of mass of polygon.
 
@@ -152,20 +152,20 @@ MODULE mo_poly
   !!    \code{.f90}
   !!    polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
   !!    polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
-  !!  
+  !!
   !!    point = (/ 1.5, 1.5 /)
-  !!  
+  !!
   !!    call inpoly( point, polygon, inside )
   !!
   !!    --> inside = 1 ... point is inside the polygon
   !!    \endcode
   !!
-  !!    See also example in test directory   
+  !!    See also example in test directory
   !!
   !!    \b Literature
-  !!    
+  !!
   !!    1. https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
-  
+  !!
   !>    \param[in]  "real(sp/dp) :: p(2)"           coordinates of the point in question
   !>    \param[in]  "real(sp/dp) :: coord(:,2)"     (x,y) coordinates of edges of the polygon
 

@@ -3,7 +3,7 @@
 !> \details \copydetails mo_orderpack
 
 !> \brief Sort and ranking routines
-!> \details 
+!> \details
 !! This module is the Orderpack 2.0 from Michel Olagnon.
 !! It provides order and unconditional, unique, and partial
 !! ranking, sorting, and permutation.
@@ -17,7 +17,7 @@
 !! standard loop, and use dedicated coding.
 !!
 !! \code{.f90} subroutine MRGREF (XVALT, IRNGT) \endcode
-!! 
+!!
 !! Ranks array XVALT into index array
 !! IRNGT, using merge-sort. This version is not optimized for performance,
 !! and is thus not as difficult to read as the previous one.
@@ -38,7 +38,7 @@
 !! it is supposedly small.
 !!
 !! \code{.f90} subroutine RAPKNR (XVALT, IRNGT, NORD) \endcode
-!! 
+!!
 !! Same as RNKPAR, but in
 !! decreasing order (RAPKNR = RNKPAR spelt backwards).
 !!
@@ -53,7 +53,7 @@
 !! number of values lower than the pivot to exactly NORD, and then uses
 !! an insertion sort to rank this set, since it is supposedly small.
 !!
-!! \code{.f90} subroutine RINPAR (XVALT, IRNGT, NORD) \endcode 
+!! \code{.f90} subroutine RINPAR (XVALT, IRNGT, NORD) \endcode
 !!
 !! Ranks partially XVALT by IRNGT,
 !! up to order NORD This version is not optimized for performance, and is
@@ -63,7 +63,7 @@
 !! behavior (intially inverse sorted) can easily happen. In many cases,
 !! the refined quicksort method is faster.
 !!
-!! \code{.f90} integer function INDNTH (XVALT, NORD) \endcode 
+!! \code{.f90} integer function INDNTH (XVALT, NORD) \endcode
 !!
 !! Returns the index of the NORDth
 !! value of XVALT (in increasing order) This routine uses a pivoting
@@ -76,7 +76,7 @@
 !! exactly NORD, and then takes out the original index of the maximum
 !! value in this set.
 !!
-!! \code{.f90} subroutine INDMED (XVALT, INDM) \endcode 
+!! \code{.f90} subroutine INDMED (XVALT, INDM) \endcode
 !!
 !! Returns the index of the median
 !! (((Size(XVALT)+1))/2th value) of XVALT This routine uses the recursive
@@ -91,7 +91,7 @@
 !!
 !! <b> Unique ranking </b>
 !!
-!! \code{.f90} subroutine UNIRNK (XVALT, IRNGT, NUNI) \endcode 
+!! \code{.f90} subroutine UNIRNK (XVALT, IRNGT, NUNI) \endcode
 !!
 !! Ranks an array, removing
 !! duplicate entries (uses merge sort).  The routine is similar to pure
@@ -114,7 +114,7 @@
 !! first values in ILOWT correspond to distinct values of the input
 !! array.
 !!
-!! \code{.f90} subroutine UNIINV (XVALT, IGOEST) \endcode 
+!! \code{.f90} subroutine UNIINV (XVALT, IGOEST) \endcode
 !!
 !! Inverse ranking of an array, with
 !! removal of duplicate entries The routine is similar to pure merge-sort
@@ -163,7 +163,7 @@
 !! i.e. to reconstruct a realistic dataset, though very likely not to be
 !! the true one.
 !!
-!! \code{.f90} program GIVCOR \endcode 
+!! \code{.f90} program GIVCOR \endcode
 !!
 !! Given two arrays of equal length of unordered values,
 !! find a "matching value" in the second array for each value in the
@@ -210,7 +210,7 @@
 !!
 !! <b> Partial sorting </b>
 !!
-!! \code{.f90} subroutine INSPAR (XVALT, NORD) \endcode 
+!! \code{.f90} subroutine INSPAR (XVALT, NORD) \endcode
 !!
 !! Sorts partially XVALT, bringing the
 !! NORD lowest values at the begining of the array.  This subroutine uses
@@ -322,9 +322,17 @@ MODULE mo_orderpack
   public :: valnth
 
   ! aliases/wrapper
+
+  !> \brief Sorts the input array in ascending order.
+  !> \param[in,out] "real(sp/dp) :: arr(:)"     On input:  unsorted 1D-array\n
+  !!                                            On output: ascendingly sorted input array
   interface sort
     module procedure d_refsor, r_refsor, i_refsor, c_refsor
   end interface sort
+
+  !> \brief Gives the indeces that would sort an array in ascending order.
+  !> \param[in] "real(sp/dp) :: arr(:)"     Unsorted 1D-array
+  !> \return integer(i4) :: indices(:) &mdash; Indices that would sort arr in ascending order
   interface sort_index
     module procedure sort_index_dp, sort_index_sp, sort_index_i4
   end interface sort_index
@@ -441,7 +449,7 @@ MODULE mo_orderpack
 
   !>    \brief  Insertion sort ranking
 
-  !>    \details 
+  !>    \details
   !!    Sorts XVALT into increasing order (Insertion
   !!    sort) This subroutine uses insertion sort. It does not use any work
   !!    array and is faster when XVALT is of very small size (< 20), or
@@ -583,7 +591,7 @@ MODULE mo_orderpack
   end interface rinpar
 
   !>    \brief  Skewed-pivot with quicksort ranking.
-  
+
   !>    \details
   !!    Ranks partially XVALT by IRNGT,
   !!    up to order NORD (refined for speed). This routine uses a pivoting
@@ -639,10 +647,10 @@ MODULE mo_orderpack
   !!    rank this set, since it is supposedly small. At all times, the NORD
   !!    first values in ILOWT correspond to distinct values of the input
   !!    array.
-  
+
   !>    \param[in]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
   !>    \param[in]  "integer(i4) :: NORD" Rank of quicksort ranking.
-  !>    \param[out] "integer(i4), dimension(:) :: IRNGT" Index of rank.  
+  !>    \param[out] "integer(i4), dimension(:) :: IRNGT" Index of rank.
 
   interface unipar
     module procedure d_unipar, r_unipar, i_unipar
@@ -659,7 +667,7 @@ MODULE mo_orderpack
 
   !>    \param[in]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
   !>    \param[out]  "integer(i4) :: NUNI" Rank of last number after duplicates removed.
-  !>    \param[out] "integer(i4), dimension(:) :: IRNGT" Index of rank.  
+  !>    \param[out] "integer(i4), dimension(:) :: IRNGT" Index of rank.
 
   interface unirnk
     module procedure D_unirnk, R_unirnk, I_unirnk

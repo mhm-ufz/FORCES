@@ -115,10 +115,14 @@ CONTAINS
   !         None
 
   !     HISTORY
-  !>        \author Matthias Cuntz - modified from Echam5, (C) MPI-MET, Hamburg, Germany
+  !>        \author Matthias Cuntz
   !>        \date Dec 2011
-  !         Modified, Matthias Cuntz, Jan 2013 - quiet=.true. default
-  !         Modified, Luis Samaniego, Nov 2013 comparison statements == -> .eq., etc
+  !!              - modified from Echam5, (C) MPI-MET, Hamburg, Germany
+  !>        \date Jan 2013
+  !!              - quiet=.true. default
+  !>        \author Luis Samaniego
+  !>        \date Nov 2013
+  !!              - comparison statements == -> .eq., etc
 
   SUBROUTINE open_nml(file, unit, quiet)
 
@@ -186,10 +190,11 @@ CONTAINS
   !         None
 
   !     HISTORY
-  !>        \author Matthias Cuntz - modified from Echam5, (C) MPI-MET, Hamburg, Germany
+  !>        \author Matthias Cuntz
   !>        \date Dec 2011
-  !         Modified, Matthias Cuntz, Jan 2013 - unit
-
+  !!              - modified from Echam5, (C) MPI-MET, Hamburg, Germany
+  !>        \date Jan 2013
+  !!              - unit
   SUBROUTINE close_nml(unit)
 
     IMPLICIT NONE
@@ -263,10 +268,11 @@ CONTAINS
   !         None
 
   !     HISTORY
-  !>        \author Matthias Cuntz - modified from Echam5, (C) MPI-MET, Hamburg, Germany
+  !>        \author Matthias Cuntz
   !>        \date Dec 2011
-  !         Modified, Matthias Cuntz, Jan 2013 - swap first and status in call list
-
+  !!              - modified from Echam5, (C) MPI-MET, Hamburg, Germany
+  !>        \date Jan 2013
+  !!              - swap first and status in call list
   SUBROUTINE position_nml(name, unit, status, first)
 
     IMPLICIT NONE

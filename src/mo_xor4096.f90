@@ -194,7 +194,7 @@ module mo_xor4096
   !!    2. Brent RP. _From Mersenne Primes to Rndom Number Generators_, 2006
   !!    3. L''Ecuyer P & Simard R. _ACM: TestU01: A C Library for Empirical Testing of
   !!              Random Number Generators_, 2007
-  
+  !!
   !>    \param[in]  "integer(i4/i8) :: seed/seed(:)"    Value or 1D-array with non-zero seeds for
   !!                                                    initialization or zero for subsequent callsyy
   !>    \param[out] "integer(i4/i8)/real(sp/dp)   :: RN/RN(size(seed))"
@@ -281,7 +281,7 @@ module mo_xor4096
   !!              Random Number Generators_, 2007
   !!    4. http://en.wikipedia.org/wiki/Marsaglia_polar_method
   !!    5. http://de.wikipedia.org/wiki/Polar-Methode
-
+  !!
   !>    \param[in]  "integer(i4/i8) :: seed/seed(:)"     Value or 1D-array with non-zero seeds for
   !!                                                     initialization or zero for subsequent calls
   !>    \param[out] "real(sp/dp)   :: RN/RN(size(seed))"

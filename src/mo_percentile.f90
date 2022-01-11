@@ -3,7 +3,7 @@
 !>    \details \copydetails mo_percentile
 
 !>    \brief  Median and percentiles.
-!>    \details  
+!>    \details
 !!    This module provides routines for median and percentiles.
 !>    \author Mathias Cuntz
 !>    \date Mar 2011
@@ -52,7 +52,7 @@ MODULE mo_percentile
   !>    \details
   !!    Returns the median of the values in an array.
   !!    If size is even, then the mean of the size/2 and size/2+1 element is the median.
-  !!  
+  !!
   !!    If an optinal mask is given, values only on those locations that correspond
   !!    to true values in the mask are used.
   !!
@@ -82,7 +82,7 @@ MODULE mo_percentile
   END INTERFACE median
 
   ! ------------------------------------------------------------------
-  
+
   !>    \brief Nth smallest value in array.
 
   !>    \details
@@ -104,7 +104,7 @@ MODULE mo_percentile
   !!    \b Literature
   !!
   !!    1. Niklaus Wirth. _"Algorithms and Data Structures"_. Prentice-Hall, Inc., 1985. ISBN 0-13-022005-1.
-
+  !!
   !>    \param[in]  "real(sp/dp) :: vec(:)"             1D-array with input numbers
   !>    \param[in]  "integer(i4), optional :: n"        Index of sorted array
   !>    \param[in]  "logical, optional     :: mask(:)"  1D-array of logical values with size(vec).
@@ -116,7 +116,7 @@ MODULE mo_percentile
   !>    \retval  "real(sp/dp) :: out"           N-th smallest value in input array
 
   !>    \author Matthias Cuntz
-  !>    \date May 2014 
+  !>    \date May 2014
   !!        - based on qmedian
 
 
@@ -143,7 +143,7 @@ MODULE mo_percentile
   !!    6. Mode-based estimate
   !!    7. Median-based estimate
   !!    8. normal distribution estimate
-  !!  
+  !!
   !!    See: http://reference.wolfram.com/mathematica/tutorial/BasicStatistics.html
   !!
   !!    \b Example
@@ -171,11 +171,11 @@ MODULE mo_percentile
 
   !>    \author Matthias Cuntz
   !>    \date Mar 2011
-  
+
   !>    \author Stephan Thober
   !>    \date Dec 2011
   !!      - added 1 dimensional version
-  
+
   !>    \author Juliane Mai
   !>    \date Jul 2012
   !!      - different interpolation schemes
@@ -206,9 +206,8 @@ MODULE mo_percentile
   !!    See also example in test directory.
   !!
   !!    \b Literature
-  !!
   !!    1. Niklaus Wirth. _"Algorithms and Data Structures"_. Prentice-Hall, Inc., 1985. ISBN 0-13-022005-1.
-
+  !!
   !>    \param[inout] "real(sp/dp) :: vec(:)"     1D-array with input numbers.
   !!                                              Will be rearranged on output.
   !>    \retval       "real(sp/dp) :: out"        Median of values in input array
@@ -216,7 +215,7 @@ MODULE mo_percentile
   !>    \author Filip Hroch
   !!      - as part of Munipack: http://munipack.physics.muni.cz
   !>    \author Matthias Cuntz
-  !>    \date Jul 2012 
+  !>    \date Jul 2012
   !!      - function, k=n/2+1
   !!      - real median for even n
 

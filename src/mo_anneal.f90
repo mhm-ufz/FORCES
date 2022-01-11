@@ -69,7 +69,7 @@ MODULE mo_anneal
 
   !>        \brief Optimize cost function with simulated annealing.
 
-  !>        \details 
+  !>        \details
   !!        Optimizes a user provided cost function using the Simulated Annealing strategy.
   !!
   !!        \b Example
@@ -97,7 +97,7 @@ MODULE mo_anneal
   !!        3. B. A. Tolson, and C. A. Shoemaker.
   !!           _Dynamically dimensioned search algorithm for computationally efficient watershed model calibration_.
   !!           WRR, 43(1), W01413, 2007.
-
+  !!
   !>        \param[in]  "interface                       :: cost_dp"         Interface calculating the
   !!                                                                         cost function at a given point.
   !>        \param[in]  "real(dp),    dimension(:)       :: para"            Initial parameter set.
@@ -171,28 +171,28 @@ MODULE mo_anneal
   !>        \retval "real(dp) :: parabest(size(para))"                       Parameter set minimizing the cost function.
 
   !>     \note
-  !!     - Either fixed parameter range (`prange`) OR flexible parameter range (function interface `prange_func`)
-  !!     has to be given in calling sequence. \n
-  !!     - Only double precision version available. \n
-  !!     - If single precision is needed not only dp has to be replaced by sp
-  !!     but also i8 of `save_state` (random number variables) has to be replaced by i4. \n
-  !!     - ParaChangeMode > 1 is not applied in GetTemperature.
-  !!     - For Temperature estimation always only one single parameter is changed (ParaChangeMode=1)
-  !!     which should give theoretically always the best estimate. \n
-  !!     - `cost_func` and `prange_func` are user defined functions. See interface definition.
- 
+  !!           - Either fixed parameter range (`prange`) OR flexible parameter range (function interface `prange_func`)
+  !!             has to be given in calling sequence.
+  !!           - Only double precision version available.
+  !!           - If single precision is needed not only dp has to be replaced by sp
+  !!             but also i8 of `save_state` (random number variables) has to be replaced by i4.
+  !!           - ParaChangeMode > 1 is not applied in GetTemperature.
+  !!           - For Temperature estimation always only one single parameter is changed (ParaChangeMode=1)
+  !!             which should give theoretically always the best estimate.
+  !!           - `cost_func` and `prange_func` are user defined functions. See interface definition.
+
   !>    \author Luis Samaniego
   !>    \date Jan 2000
   !>    \date Mar 2003
-  !!      - Re-heating
-  
+  !!          - Re-heating
+
   !>    \author Juliane Mai
   !>    \date Mar 2012
-  !!      - Modular version
+  !!          - Modular version
   !>    \date May 2012
-  !!      - sp version
-  !!      - documentation
-  
+  !!          - sp version
+  !!          - documentation
+
   ! ------------------------------------------------------------------
 
   INTERFACE anneal
@@ -202,14 +202,14 @@ MODULE mo_anneal
   ! ------------------------------------------------------------------
 
   !>        \brief Find initial temperature for simulated annealing.
-  
+
   !>        \details Determines an initial temperature for Simulated Annealing achieving
   !!         certain acceptance ratio.
   !!
   !!        \b Example
   !!
   !!        User defined function 'cost_dp' which calculates the cost function value for a
-  !!        parameter set (the interface given below has to be used for this function!).         
+  !!        parameter set (the interface given below has to be used for this function!).
   !!
   !!        \code{.f90}
   !!        para = (/ 1.0_dp , 2.0_dp /)
@@ -226,7 +226,7 @@ MODULE mo_anneal
   !!        1. Walid Ben-Ameur.
   !!           _Compututing the Initial Temperature of Simulated Annealing_.
   !!           Comput. Opt. and App. (2004).
-
+  !!
   !>        \param[in] "real(dp),    dimension(:)   :: paraset"   Initial (valid) parameter set.
   !>        \param[in] "INTERFACE                   :: cost_dp"   Interface calculating the
   !!                                                              cost function at a given point.
@@ -239,7 +239,6 @@ MODULE mo_anneal
   !>        \param[in] "integer(i4), optional            :: samplesize"      Number of iterations the estimation of temperature
   !!                                                                         is based on. \n
   !!                                                                         DEFAULT: Max(20_i4*n,250_i4)
-
   !>        \param[in] "logical, dimension(size(para)), optional    :: maskpara"
   !!                                                                         maskpara(i) = .true.  --> parameter is optimized. \n
   !!                                                                         maskpara(i) = .false. --> parameter is discarded
@@ -258,7 +257,7 @@ MODULE mo_anneal
   !!                                                                         optimization (will be scaled to a CDF internally). \n
   !!                                                                         eg. [1,2,1] --> parameter 2 is chosen twice as
   !!                                                                                         often as parameter 1 and 2. \n
-  !!                                                                         DEFAULT: weight = 1.0_dp. 
+  !!                                                                         DEFAULT: weight = 1.0_dp.
   !>        \param[in] "logical, optional                :: maxit"            Minimizing (.false.) or maximizing (.true.)
   !!                                                                          a function. \n
   !!                                                                          DEFAULT: .false. (minimization).
@@ -269,15 +268,15 @@ MODULE mo_anneal
   !!                                                                          acceptance ratio in Simulated Annealing.
 
   !>        \note
-  !!        - Either fixed parameter range (`prange`) OR flexible parameter range (function interface `prange_func`)
-  !!          has to be given in calling sequence. \n
-  !!        - Only double precision version available.
-  !!        - If single precision is needed not only dp has to be replaced by sp
-  !!          but also i8 of `save_state` (random number variables) has to be replaced by i4. \n
-  !!        - ParaChangeMode > 1 is not applied in GetTemperature.
-  !!        - For Temperature estimation always only one single parameter is changed (ParaChangeMode=1)
-  !!          which should give theoretically always the best estimate. \n
-  !!        - `cost_dp` and `prange_func` are user defined functions. See interface definition.
+  !!              - Either fixed parameter range (`prange`) OR flexible parameter range (function interface `prange_func`)
+  !!                has to be given in calling sequence.
+  !!              - Only double precision version available.
+  !!              - If single precision is needed not only dp has to be replaced by sp
+  !!                but also i8 of `save_state` (random number variables) has to be replaced by i4.
+  !!              - ParaChangeMode > 1 is not applied in GetTemperature.
+  !!              - For Temperature estimation always only one single parameter is changed (ParaChangeMode=1)
+  !!                which should give theoretically always the best estimate.
+  !!              - `cost_dp` and `prange_func` are user defined functions. See interface definition.
 
   !>        \author  Juliane Mai
   !>        \date May 2012
@@ -347,7 +346,7 @@ CONTAINS
     CHARACTER(LEN = *), optional, intent(in) :: tmp_file                            !< file for temporal output
     real(dp), optional, intent(out) :: funcbest                                     !< minimized value of cost function! (DEFAULT: not present)
     real(dp), optional, dimension(:, :), allocatable, intent(out) :: history        !< returns a vector of achieved objective! after ith model evaluation! (DEFAULT: not present)
-    
+
     real(dp), dimension(size(para, 1)) :: parabest                     !< parameter set minimizing objective
 
     integer(i4) :: n              ! Number of parameters

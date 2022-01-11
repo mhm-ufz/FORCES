@@ -72,7 +72,7 @@ MODULE mo_mcmc
   !!     acceptance multiplier  | stepsize of a parameter is multiplied with this value when jump is accepted (initial : 1.01)
   !!     rejection multiplier   | stepsize of a parameter is multiplied with this value when jump is rejected (initial : 0.99 and will never be changed)
   !!     stepsize               | a new parameter value is chosen based on a uniform distribution pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) (initial : stepsize_i = 1.0 for all i)
-  !!     
+  !!
   !!     #### <i>Algorithm:</i></b>
   !!     <ol>
   !!     <li>start a new markov chain of length burnin_iter with initial parameter set is the OPTIMAL one</i>\n
@@ -208,7 +208,7 @@ MODULE mo_mcmc
 
   !>        \authors Juliane Mai
   !>        \date Nov 2014
-  
+
   INTERFACE mcmc
     MODULE PROCEDURE mcmc_dp
   END INTERFACE mcmc
@@ -359,15 +359,13 @@ MODULE mo_mcmc
   !>                                                                   stepsize for each parameter \n
   !>                                                                   if given burn-in is discarded \n
   !>                                                                   (default: none --> adjusted in burn-in)
-  
+
   !>        \param[out]  "real(dp), allocatable :: mcmc_paras(:,:)"    Parameter sets sampled in proper MCMC part of algorithm
   !>        \param[out]  "real(dp), allocatable :: burnin_paras(:,:)"  Parameter sets sampled during burn-in part of algorithm
 
-  !>    ## Restrictions
-  !!
-  !!    Likelihood has to be defined as a function interface
+  !>    \note \b Restrictions: Likelihood has to be defined as a function interface
 
-  !>    ## Example
+  !>    \b Example
   !!
   !!        call mcmc(  likelihood, para, rangePar, mcmc_paras, burnin_paras,                  &
   !!                    seed_in=seeds, printflag_in=printflag, maskpara_in=maskpara,           &
@@ -377,8 +375,8 @@ MODULE mo_mcmc
   !!                    chains_in=chains, stepsize_in=stepsize)
   !!
   !!    See also example in test directory.
-
-  !>    ## Literature
+  !!
+  !>    \b Literature
   !!
   !!    1.  Gelman et. al (1995)
   !!        _Bayesian Data Analyis_. Chapman & Hall.
@@ -388,9 +386,9 @@ MODULE mo_mcmc
   !!        _Beyond distance-invariant survival in inverse recruitment modeling:
   !!        A case study in Siberian Pinus sylvestris forests_. Ecological Modelling, 233,
   !!        90-103. doi:10.1016/j.ecolmodel.2012.03.009.
-
-  !>        \authors
-  !!         Written by Marem Goehler,\n    
+  !!
+  !>    \authors
+  !!         Written by Marem Goehler,\n
   !!         Sep. 2012 : Created using copy of Simulated Annealing:\n
   !!         - constant temperature T
   !!         - burn-in for stepsize adaption

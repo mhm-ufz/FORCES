@@ -52,7 +52,7 @@ module mo_NcRead
 
   !>    \brief Read array from NC file
 
-  !>    \details   
+  !>    \details
   !!    Reads a 2 - 5 dimensional array from a nc file given
   !!    the variable name EXACTLY as specified in the file.  If the
   !!    array is not allocated when calling, Get_NcVar will
@@ -67,7 +67,7 @@ module mo_NcRead
   !!    \b Literature
   !!
   !!    1.  http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
-
+  !!
   !>    \param[in]  "character(len=*) :: Filename"                                  Name of the nc file.
   !>    \param[in]  "character(len=*) :: VarName"                                   Name of the Variable in the nc file.
   !>    \param[in]  "real(sp/dp), dimension(:,:[,:[,:[,:]]]), allocatable :: array" Array where data will be read.
@@ -78,7 +78,7 @@ module mo_NcRead
   !!                                                                                many values in each dimension
   !!                                                                                is going to be read
   !>    \param[in]  "integer(i4)               :: fid"                              File handle of opened netcdf file
- 
+
   !>    \notes  Output array is a floating point of 2-5 dimensions.\n
   !!            NOT yet tested for different compilers than intel11.1.075
   !!            CANNOT read packed data.\n
@@ -123,30 +123,28 @@ module mo_NcRead
 contains
 
   ! ------------------------------------------------------------------------------
-  
+
   !>    \brief Dimension of netcdf variable.
 
-  !>    \details 
+  !>    \details
   !!    Gets the dimensions of variable in a netcdf file.
   !!
   !!    \b Literature
   !!
   !!    1.  http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
-
+  !!
   !>    \param[in]  "character(len=*) :: Filename"            Filename of netcdf file
   !>    \param[in]  "character(len=*) :: Variable"            Variable name exactly as specified in the file
   !>    \param[in]  "logical, optional       :: PrintInfo"    If given and true, information about dimension
   !!                                                          and their lengths will be printed to standard output.
   !>    \retval     "integer(i4), dimension(5) :: Get_NcDim"  Dimension length, -1 if dimension does not exist
   !>    \param[out] "integer(i4), optional :: ndims"                    # of dimensions
-  
+
   !>    \author Stephan Thober
   !>    \date Dec 2011
   !>    \author Matthias Cuntz
-  !>    \date Jan 2012 
+  !>    \date Jan 2012
   !!      - ndims
-
-
   function Get_NcDim(Filename, Variable, PrintInfo, ndims)
     !
     implicit none
@@ -198,7 +196,7 @@ contains
   !!    \b Literature
   !!
   !!    1.  http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
-
+  !!
   !>    \param[in]  "character(len=*),  intent(in) :: Filename"   Filename of netcdf file.
   !>    \param[in]  "character(len=*),  intent(in) :: Variable"   Variable name exactly as specified in the file.
   !>    \param[out] "integer(i4), dimension(:), allocatable, optional, intent(out) :: DimLen"    Allocatable array with the size
@@ -209,7 +207,7 @@ contains
   !>    \notes  DimName and DimLen are both allocated within the subroutine, so please just provide an 1 dimensional
   !!            allocatable array to the subroutine.
 
-  !>    \author Matthias Zink 
+  !>    \author Matthias Zink
   !>    \date Oct 2012
 
   subroutine Get_NcDimAtt(Filename, Variable, DimName, DimLen)
@@ -256,7 +254,7 @@ contains
 
   !>    \brief Get attribute of netcdf variable.
 
-  !>    \details     
+  !>    \details
   !!    Gets the values of an particular attribute of an variable.
   !!
   !!    \b Example
@@ -286,7 +284,7 @@ contains
   !>    \author Matthias Zink
   !>    \date Oct 2012
   !>    \author Matthias Cuntz & Juliane Mai
-  !>    \date Nov 2014 
+  !>    \date Nov 2014
   !!      - correct data type detection.
 
   subroutine Get_NcVarAtt(FileName, VarName, AttName, AttValues, fid, dtype)

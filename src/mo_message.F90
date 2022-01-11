@@ -107,7 +107,7 @@ CONTAINS
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t09  !< optional string arguments
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t10  !< optional string arguments
     INTEGER, INTENT(IN), OPTIONAL :: uni  !< Unit to write to (default: stdout)
-    CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< 'add linebreak after message, default: 'yes', elso 'no'
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< 'add linebreak after message, default: 'yes', else 'no'
 
     CHARACTER(len = 32000) :: outString
     INTEGER :: uniArg
@@ -143,7 +143,7 @@ CONTAINS
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t09  !< optional string arguments
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t10  !< optional string arguments
     INTEGER, INTENT(IN), OPTIONAL :: uni  !< Unit to write to (default: stderr)
-    CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< 'add linebreak after message, default: 'yes', elso 'no'
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< 'add linebreak after message, default: 'yes', else 'no'
 
     INTEGER :: uniArg
 

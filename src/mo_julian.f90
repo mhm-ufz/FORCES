@@ -70,7 +70,7 @@ MODULE mo_julian
 
   !>    \brief Set module private variable calendar
 
-  !>    \details 
+  !>    \details
   !!    Set which type of calendar to use.
   !!
   !!    \b Example
@@ -128,7 +128,7 @@ CONTAINS
   !!    and/or the module global private variable calendar. If an invalid selector is passed,
   !!    its value is ignored and the global calendar value retuned instead.
   !!
-  !!    \b Example 
+  !!    \b Example
   !!
   !!    Returns a valid index which is 3
   !!    \code{.f90}
@@ -156,7 +156,7 @@ CONTAINS
 
   !>    \brief Day, month and year from Julian day in the current or given calendar
 
-  !>    \details 
+  !>    \details
   !!    Wrapper around the calendar specific caldat procedures.
   !!    Inverse of the function julday. Here julian is input as a Julian Day Number,
   !!    and the routine outputs d0d, mm, and yy as the day, month, and year on which the specified
@@ -880,11 +880,15 @@ CONTAINS
   !         It is essentially the same as Numerical Recipes but uses astronomical instead of historical units.
 
   !     HISTORY
-  !>        \author Written, Matthias Cuntz - modified julday from Numerical Recipes
+  !>        \author Matthias Cuntz
   !>        \date Dec 2011
-  !>        Modified Matthias Cuntz, May 2014 - changed to new algorithm with astronomical units
-  !>                                            removed numerical recipes
-  !>                 David Schaefer, Jan 2016 - renamed procodure
+  !!              - modified julday from Numerical Recipes
+  !>        \date May 2014
+  !!              - changed to new algorithm with astronomical units
+  !!              - removed numerical recipes
+  !>        \author David Schaefer
+  !>        \date Jan 2016
+  !!              - renamed procodure
   ELEMENTAL FUNCTION juldayJulian(dd, mm, yy)
 
     IMPLICIT NONE

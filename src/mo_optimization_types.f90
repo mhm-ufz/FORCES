@@ -1,7 +1,9 @@
 !> \file mo_optimization_types.f90
+!> \copydoc mo_optimization_types
 
-!> \authors Maren Kaluza
-!> \date November 2019
+!> \brief Type definitions for optimization routines
+!> \author Maren Kaluza
+!> \date Nov 2019
 MODULE mo_optimization_types
   use mo_kind, only : i4, dp
 
@@ -13,25 +15,25 @@ MODULE mo_optimization_types
 
   private
 
-  ! optional data, such as sm, neutrons, et, tws
-  ! data type for observed data, providing metadata
-  ! for simulated data
-  ! dim1 = number grid cells L1
-  ! dim2 = number of meteorological time steps
+  !> \brief optional data, such as sm, neutrons, et, tws
+  !> \details data type for observed data, providing metadata
+  !! for simulated data
+  !! dim1 = number grid cells L1
+  !! dim2 = number of meteorological time steps
   type optidata
-    real(dp), dimension(:, :), allocatable    :: dataObs ! observed data
-    logical, dimension(:, :), allocatable     :: maskObs ! mask of observed data
-    character(256)                            :: dir ! directory where to read opti data
-    integer(i4)                               :: timeStepInput ! time step of optional data
-    character(256)                            :: varname
+    real(dp), dimension(:, :), allocatable    :: dataObs !< observed data
+    logical, dimension(:, :), allocatable     :: maskObs !< mask of observed data
+    character(256)                            :: dir !< directory where to read opti data
+    integer(i4)                               :: timeStepInput !< time step of optional data
+    character(256)                            :: varname !< variable name
   end type optidata
 
-  ! type for simulated optional data
+  !> \brief type for simulated optional data
   type optidata_sim
-    real(dp), dimension(:, :), allocatable    :: dataSim
-    integer(i4)                               :: averageTimestep ! the current timestep
-                                                                 ! the simulated opti data is written to
-    integer(i4)                               :: averageCounter  ! set to 0 on average, incremented on add
+    real(dp), dimension(:, :), allocatable    :: dataSim         !< simulation data
+    integer(i4)                               :: averageTimestep !< the current timestep
+                                                                 !< the simulated opti data is written to
+    integer(i4)                               :: averageCounter  !< set to 0 on average, incremented on add
 
     contains
     procedure :: init => optidata_sim_init

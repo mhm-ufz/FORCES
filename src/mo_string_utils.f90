@@ -115,8 +115,9 @@ MODULE mo_string_utils
   !         None
 
   !     HISTORY
-  !>        \author Matthias Cuntz - modified from Echam5, (C) MPI-MET, Hamburg, Germany
+  !>        \author Matthias Cuntz
   !>        \date Dec 2011
+  !!              - modified from Echam5, (C) MPI-MET, Hamburg, Germany
   INTERFACE num2str
      MODULE PROCEDURE i42str, i82str, sp2str, dp2str, log2str
   END INTERFACE num2str
@@ -167,9 +168,9 @@ MODULE mo_string_utils
   !         None
 
   !     HISTORY
-  !>        \author Matthias Cuntz - modified from Echam5, (C) MPI-MET, Hamburg, Germany
+  !>        \author Matthias Cuntz
   !>        \date Dec 2011
-
+  !!              - modified from Echam5, (C) MPI-MET, Hamburg, Germany
   INTERFACE numarray2str
      MODULE PROCEDURE i4array2str
   END INTERFACE numarray2str
@@ -192,15 +193,15 @@ CONTAINS
   !         compress
 
   !     PURPOSE
-  !         \brief Remove white spaces
+  !>         \brief Remove white spaces
 
-  !         \details Return a copy of an input string with all whitespace (spaces and tabs) removed
+  !>         \details Return a copy of an input string with all whitespace (spaces and tabs) removed
 
   !     CALLING SEQUENCE
   !         noSpaces = compress(whiteSpaces)
 
   !     INTENT(IN)
-  !         \param[in] "character(len=*) :: whiteSpaces"    String
+  !>         \param[in] "character(len=*) :: whiteSpaces"    String
 
   !     INTENT(INOUT)
   !         None
@@ -215,10 +216,10 @@ CONTAINS
   !         None
 
   !     INTENT(OUT), OPTIONAL
-  !         \param[out] "integer(i4) :: n"  Integer
+  !>         \param[out] "integer(i4) :: n"  Integer
 
   !     RETURN
-  !         \return character(len = len(whiteSpaces)) :: compress;  String where all all whitespace (spaces and tabs) are removed
+  !>         \return character(len = len(whiteSpaces)) :: compress;  String where all all whitespace (spaces and tabs) are removed
 
   !     RESTRICTIONS
   !         None
@@ -232,8 +233,8 @@ CONTAINS
   !         None
 
   !     HISTORY
-  !         \author Giovanni Dalmasso - modified from Paul van Delst, CIMSS/SSEC 18-Oct-1999
-  !         \date Jan 2013
+  !>         \author Giovanni Dalmasso - modified from Paul van Delst, CIMSS/SSEC 18-Oct-1999
+  !>         \date Jan 2013
 
   function compress( whiteSpaces, n )
 

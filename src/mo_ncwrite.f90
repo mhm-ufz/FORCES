@@ -57,76 +57,79 @@ module mo_ncwrite
   public :: attribute
 
   ! public parameters
-  integer(i4), public, parameter :: nMaxDim = 5         ! nr. max dimensions
-  integer(i4), public, parameter :: nMaxAtt = 20        ! nr. max attributes
-  integer(i4), public, parameter :: maxLen = 256       ! nr. string length
-  integer(i4), public, parameter :: nGAtt = 20        ! nr. global attributes
-  integer(i4), public, parameter :: nAttDim = 2         ! dim array of attribute values
+  integer(i4), public, parameter :: nMaxDim = 5         !< nr. max dimensions
+  integer(i4), public, parameter :: nMaxAtt = 20        !< nr. max attributes
+  integer(i4), public, parameter :: maxLen = 256       !< nr. string length
+  integer(i4), public, parameter :: nGAtt = 20        !< nr. global attributes
+  integer(i4), public, parameter :: nAttDim = 2         !< dim array of attribute values
 
   ! public types -----------------------------------------------------------------
+  !> \brief NetCDF dims
   type dims
-    character (len = maxLen) :: name                ! dim. name
-    integer(i4) :: len                 ! dim. lenght, undefined time => NF90_UNLIMITED
-    integer(i4) :: dimId               ! dim. Id
+    character (len = maxLen) :: name                !< dim. name
+    integer(i4) :: len                 !< dim. lenght, undefined time => NF90_UNLIMITED
+    integer(i4) :: dimId               !< dim. Id
   end type dims
 
+  !> \brief NetCDF attribute
   type attribute
-    character (len = maxLen) :: name                ! attribute name
-    integer(i4) :: xType               ! attribute of the values
-    integer(i4) :: nValues             ! number of attributes
-    character (len = maxLen) :: values              ! numbers or "characters" separed by spaces
+    character (len = maxLen) :: name                !< attribute name
+    integer(i4) :: xType               !< attribute of the values
+    integer(i4) :: nValues             !< number of attributes
+    character (len = maxLen) :: values              !< numbers or "characters" separed by spaces
   end type attribute
 
+  !> \brief NetCDF variable
   type variable
-    character (len = maxLen) :: name                ! short name
-    integer(i4) :: xType               ! NF90 var. type
-    integer(i4) :: nLvls               ! number of levels
-    integer(i4) :: nSubs               ! number of subparts
-    logical :: unlimited           ! time limited
-    integer(i4) :: variD               ! Id
-    integer(i4) :: nDims               ! field dimension
-    integer(i4), dimension(nMaxDim) :: dimIds              ! passing var. dimensions
-    integer(i4), dimension(nMaxDim) :: dimTypes            ! type of dimensions
-    integer(i4) :: nAtt                ! nr. attributes
-    type(attribute), dimension(nMaxAtt) :: att                 ! var. attributes
-    integer(i4), dimension(nMaxDim) :: start               ! starting indices for netcdf
-    integer(i4), dimension(nMaxDim) :: count               ! counter          for netcdf
-    logical :: wFlag               ! write flag
-    integer(i1), pointer :: G0_b              ! array pointing model variables
-    integer(i1), dimension(:), pointer :: G1_b              ! array pointing model variables
-    integer(i1), dimension(:, :), pointer :: G2_b              ! array pointing model variables
-    integer(i1), dimension(:, :, :), pointer :: G3_b              ! array pointing model variables
-    integer(i1), dimension(:, :, :, :), pointer :: G4_b              ! array pointing model variables
-    integer(i4), pointer :: G0_i              ! array pointing model variables
-    integer(i4), dimension(:), pointer :: G1_i              ! array pointing model variables
-    integer(i4), dimension(:, :), pointer :: G2_i              ! array pointing model variables
-    integer(i4), dimension(:, :, :), pointer :: G3_i              ! array pointing model variables
-    integer(i4), dimension(:, :, :, :), pointer :: G4_i              ! array pointing model variables
-    real(sp), pointer :: G0_f              ! array pointing model variables
-    real(sp), dimension(:), pointer :: G1_f              ! array pointing model variables
-    real(sp), dimension(:, :), pointer :: G2_f              ! array pointing model variables
-    real(sp), dimension(:, :, :), pointer :: G3_f              ! array pointing model variables
-    real(sp), dimension(:, :, :, :), pointer :: G4_f              ! array pointing model variables
-    real(dp), pointer :: G0_d              ! array pointing model variables
-    real(dp), dimension(:), pointer :: G1_d              ! array pointing model variables
-    real(dp), dimension(:, :), pointer :: G2_d              ! array pointing model variables
-    real(dp), dimension(:, :, :), pointer :: G3_d              ! array pointing model variables
-    real(dp), dimension(:, :, :, :), pointer :: G4_d              ! array pointing model variables
+    character (len = maxLen) :: name                !< short name
+    integer(i4) :: xType               !< NF90 var. type
+    integer(i4) :: nLvls               !< number of levels
+    integer(i4) :: nSubs               !< number of subparts
+    logical :: unlimited           !< time limited
+    integer(i4) :: variD               !< Id
+    integer(i4) :: nDims               !< field dimension
+    integer(i4), dimension(nMaxDim) :: dimIds              !< passing var. dimensions
+    integer(i4), dimension(nMaxDim) :: dimTypes            !< type of dimensions
+    integer(i4) :: nAtt                !< nr. attributes
+    type(attribute), dimension(nMaxAtt) :: att                 !< var. attributes
+    integer(i4), dimension(nMaxDim) :: start               !< starting indices for netcdf
+    integer(i4), dimension(nMaxDim) :: count               !< counter          for netcdf
+    logical :: wFlag               !< write flag
+    integer(i1), pointer :: G0_b              !< array pointing model variables
+    integer(i1), dimension(:), pointer :: G1_b              !< array pointing model variables
+    integer(i1), dimension(:, :), pointer :: G2_b              !< array pointing model variables
+    integer(i1), dimension(:, :, :), pointer :: G3_b              !< array pointing model variables
+    integer(i1), dimension(:, :, :, :), pointer :: G4_b              !< array pointing model variables
+    integer(i4), pointer :: G0_i              !< array pointing model variables
+    integer(i4), dimension(:), pointer :: G1_i              !< array pointing model variables
+    integer(i4), dimension(:, :), pointer :: G2_i              !< array pointing model variables
+    integer(i4), dimension(:, :, :), pointer :: G3_i              !< array pointing model variables
+    integer(i4), dimension(:, :, :, :), pointer :: G4_i              !< array pointing model variables
+    real(sp), pointer :: G0_f              !< array pointing model variables
+    real(sp), dimension(:), pointer :: G1_f              !< array pointing model variables
+    real(sp), dimension(:, :), pointer :: G2_f              !< array pointing model variables
+    real(sp), dimension(:, :, :), pointer :: G3_f              !< array pointing model variables
+    real(sp), dimension(:, :, :, :), pointer :: G4_f              !< array pointing model variables
+    real(dp), pointer :: G0_d              !< array pointing model variables
+    real(dp), dimension(:), pointer :: G1_d              !< array pointing model variables
+    real(dp), dimension(:, :), pointer :: G2_d              !< array pointing model variables
+    real(dp), dimension(:, :, :), pointer :: G3_d              !< array pointing model variables
+    real(dp), dimension(:, :, :, :), pointer :: G4_d              !< array pointing model variables
   end type variable
 
   ! public variables -----------------------------------------------------------------
-  integer(i4), public :: nVars   ! nr. variables
-  integer(i4), public :: nDims   ! nr. dimensions
-  type (dims), public, dimension(:), allocatable :: Dnc     ! dimensions list
-  type(variable), public, dimension(:), allocatable :: V       ! variable list, THIS STRUCTURE WILL BE WRITTEN IN THE FILE
-  type(attribute), public, dimension(nGAtt) :: gatt    ! global attributes for netcdf
+  integer(i4), public :: nVars   !< nr. variables
+  integer(i4), public :: nDims   !< nr. dimensions
+  type (dims), public, dimension(:), allocatable :: Dnc     !< dimensions list
+  type(variable), public, dimension(:), allocatable :: V       !< variable list, THIS STRUCTURE WILL BE WRITTEN IN THE FILE
+  type(attribute), public, dimension(nGAtt) :: gatt    !< global attributes for netcdf
 
 
   ! ------------------------------------------------------------------
 
   !>    \brief Variable simple write in netcdf.
 
-  !>    \details  
+  !>    \details
   !!    Simple write of a variable in a netcdf file.\n
   !!    The variabel can be 1 to 5 dimensional and single or double precision.\n
   !!    1D and 2D are dumped as static variables. From 3 to 5 dimension, the last
@@ -149,14 +152,14 @@ module mo_ncwrite
   !>    \author Matthias Cuntz
   !>    \date Nov 2012
   !>    \author Stephan Thober
-  !>    \date Nov 2012 
+  !>    \date Nov 2012
   !!      - added functions for i4 variables
   !>    \author Matthias Cuntz and Juliane Mai
-  !>    \date Nov 2012 
+  !>    \date Nov 2012
   !!      - append
   !!      - fake time dimension for 1D and 2D
   !!      - make i4 behave exactly as sp and dp
-  !>    \date Mar 2013 
+  !>    \date Mar 2013
   !!      - lfs, netcdf4, deflate_level
   interface dump_netcdf
     module procedure dump_netcdf_1d_sp, dump_netcdf_2d_sp, dump_netcdf_3d_sp, &
@@ -172,7 +175,7 @@ module mo_ncwrite
 
   !>    \brief Extended dump_netcdf for multiple variables
 
-  !>    \details 
+  !>    \details
   !!    Write different variables including attributes to netcdf
   !!    file. The attributes are restricted to long_name, units,
   !!    and missing_value. It is also possible to append variables
@@ -181,19 +184,19 @@ module mo_ncwrite
   !!    \b Example
   !!
   !!    Let <field> be some three dimensional array
-  !!    
+  !!
   !!    \code{.f90}
   !!    dnames(1) = 'x'
   !!    dnames(2) = 'y'
   !!    dnames(3) = 'time'
   !!    \endcode
-  !!  
+  !!
   !!    The simplest call to write <field> to a file is
   !!
   !!    \code{.f90}
   !!    call var2nc('test.nc', field, dnames, 'h')
   !!    \endcode
-  !!  
+  !!
   !!    With attributes it looks like
   !!
   !!    \code{.f90}
@@ -307,8 +310,8 @@ module mo_ncwrite
   !>    \date Jan 2015
   !!        - changed chunk_size convention to one chunk per unit in unlimited dimension (typically time)
   !>    \date Feb 2015
-  !!        - d_unlimit was not set in 5d cases 
-  !!        - use ne from mo_utils for fill value comparisons 
+  !!        - d_unlimit was not set in 5d cases
+  !!        - use ne from mo_utils for fill value comparisons
   !!        - dummy(1) was sp instead of i4 in var2nc_1d_i4
   !>    \date May 2015
   !!        - ncid for opening the file only once
@@ -331,18 +334,18 @@ module mo_ncwrite
 contains
 
   ! ----------------------------------------------------------------------------
-  
+
   !>    \brief  Closes netcdf file stream.
 
   !>    \details
   !!    Closes a stream of an open netcdf file and saves the file.
-  !!    
+  !!
   !!    \b Example
   !!
   !!    See test_mo_ncwrite.
   !!
   !!    \b Literature
-  !!    
+  !!
   !!    1. http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
 
   !>    \param[in]  "integer(i4) :: ncid"  Stream id of an open netcdf file which shall be closed
@@ -351,7 +354,7 @@ contains
 
   !>    \author Luis Samaniego
   !>    \date   Feb 2011
-  
+
   !>    \author Stephan Thober
   !>    \date   Dec 2011
   !!        - added comments and generalized
@@ -384,7 +387,7 @@ contains
   !!    for an example.
   !!
   !!    \b Literature
-  !!    
+  !!
   !!    1. http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
 
   !>    \param[in]  "character(len=maxLen) :: File"             Filename of file to be written

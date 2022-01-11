@@ -1,5 +1,5 @@
 !>  \file mo_cost.f90
-!>  \brief \copybrief mo_cost
+!>  \copydoc mo_cost
 
 !>  \brief Added for testing purposes of test_mo_anneal
 Module mo_cost
@@ -17,6 +17,7 @@ Module mo_cost
 
 CONTAINS
 
+  !> \brief function: `f(x) = ax^3 + bx^2 + cx + d`
   FUNCTION cost_sp (paraset)
 
     implicit none
@@ -41,6 +42,7 @@ CONTAINS
     RETURN
   END FUNCTION cost_sp
 
+  !> \brief function: `f(x) = ax^3 + bx^2 + cx + d`
   FUNCTION cost_dp (paraset)
 
     implicit none
@@ -65,6 +67,7 @@ CONTAINS
     RETURN
   END FUNCTION cost_dp
 
+  !> \brief function: `f(x) = ax^3 + bx^2 + cx + d`
   FUNCTION cost_valid_sp (paraset,status_in)
 
     implicit none
@@ -86,7 +89,7 @@ CONTAINS
 
     if (present(status_in)) then
        status_in = .true.
-       ! Define a status .false. if calculation of "calc" was not successful 
+       ! Define a status .false. if calculation of "calc" was not successful
     end if
 
     ! MAE  Mean Absolute Error
@@ -95,6 +98,7 @@ CONTAINS
     RETURN
   END FUNCTION cost_valid_sp
 
+  !> \brief function: `f(x) = ax^3 + bx^2 + cx + d`
   FUNCTION cost_valid_dp (paraset,status_in)
 
     implicit none
@@ -116,7 +120,7 @@ CONTAINS
 
     if (present(status_in)) then
        status_in = .true.
-       ! Define a status .false. if calculation of "calc" was not successful 
+       ! Define a status .false. if calculation of "calc" was not successful
     end if
 
     ! MAE  Mean Absolute Error
@@ -125,6 +129,7 @@ CONTAINS
     RETURN
   END FUNCTION cost_valid_dp
 
+  !> \brief dummy range
   SUBROUTINE range_dp(paraset, iPar, rangePar)
     use mo_kind
     REAL(DP), DIMENSION(:), INTENT(IN)  :: paraset
@@ -147,14 +152,14 @@ CONTAINS
     !       rangePar(2) =  5.0_dp
     ! end select
 
-    ! Range of parameter 2 depends on value of parameter 1: 
-    !    parameter 2 at most 40* parameter 1 : 
+    ! Range of parameter 2 depends on value of parameter 1:
+    !    parameter 2 at most 40* parameter 1 :
     !       0 <= p2 <= 40p1
     !       0 <= p1 <= 0.025p2
     select case(iPar)
     case(1_i4)
-       rangePar(1) =  0.025_dp*paraset(2) 
-       rangePar(2) =  10.0_dp 
+       rangePar(1) =  0.025_dp*paraset(2)
+       rangePar(2) =  10.0_dp
     case(2_i4)
        rangePar(1) =  0.0_dp
        rangePar(2) =  40.0_dp*paraset(1)
@@ -168,6 +173,7 @@ CONTAINS
 
   END SUBROUTINE range_dp
 
+  !> \brief dummy range
   SUBROUTINE range_sp(paraset, iPar, rangePar)
     use mo_kind
     REAL(SP), DIMENSION(:), INTENT(IN)  :: paraset
@@ -190,8 +196,8 @@ CONTAINS
     !       rangePar(2) =  5.0_sp
     ! end select
 
-    ! Range of parameter 2 depends on value of parameter 1: 
-    !    parameter 2 at most 4* parameter 1 : 
+    ! Range of parameter 2 depends on value of parameter 1:
+    !    parameter 2 at most 4* parameter 1 :
     !       0     <= p2 <= 4p1
     !       0.25p2 <= p1 <= 10.0
     select case(iPar)
@@ -211,6 +217,7 @@ CONTAINS
 
   END SUBROUTINE range_sp
 
+  !> \brief dummy cost objective function
   FUNCTION cost_objective(parameterset, eval, arg1, arg2, arg3)
 
     use mo_kind, only: dp
