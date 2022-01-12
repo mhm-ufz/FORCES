@@ -30,7 +30,7 @@ add_library(${LIB_NAME} ${sources} ${fyppOutFiles})
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 # control mo_kind
-option(FORCES_WITH_ISO_FORTRAN_ENV "build the module with kind definitions of ISO_FORTRAN_ENV instead of ISO_C_BINDING")
+option(FORCES_WITH_ISO_FORTRAN_ENV "build the module with kind definitions of ISO_FORTRAN_ENV instead of ISO_C_BINDING" OFF)
 if (FORCES_WITH_ISO_FORTRAN_ENV)
   message(STATUS "FORCES: use ISO_FORTRAN_ENV for mo_kind")
   target_compile_definitions(${LIB_NAME} PRIVATE FORCES_WITH_ISO_FORTRAN_ENV)
