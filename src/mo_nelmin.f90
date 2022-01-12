@@ -1,20 +1,14 @@
+!> \file mo_nelmin.f90
+!> \copydoc mo_nelmin
+
+!> \brief Nelder-Mead algorithm
+!> \details This module provides NELMIN, which minimizes a function using the Nelder-Mead algorithm
+!!          with the Applied Statistics algorithms No. 047.
+!!          Original FORTRAN77 version by R ONeill.
+!!          FORTRAN90 version by John Burkardt.
+!> \author Matthias Cuntz
+!> \date 2012
 MODULE mo_nelmin
-
-
-  ! This module provides NELMIN, which minimizes a function using the Nelder-Mead algorithm
-  ! with the Applied Statistics algorithms No. 047.
-
-  ! Written  Matthias Cuntz, Jul 2012 - extended asa047 of John Burkardt
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! It is NOT released under the GNU Lesser General Public License, yet.
-
-  ! If you use this routine, please contact Matthias Cuntz.
-
-  ! Copyright 2012 Matthias Cuntz
 
   USE mo_kind,  ONLY: i4, sp, dp
   USE mo_utils, ONLY: ne
@@ -26,118 +20,103 @@ MODULE mo_nelmin
   PUBLIC :: nelminrange     ! same as nelmin but with given range of parameter
 
   ! ------------------------------------------------------------------
+  !>        \brief Minimizes a user-specified function using the Nelder-Mead algorithm.
+  !>        \details Simplex function minimisation procedure due to Nelder and Mead (1965),
+  !!        as implemented by O'Neill(1971, Appl.Statist. 20, 338-45), with
+  !!        subsequent comments by Chambers+Ertel(1974, 23, 250-1), Benyon(1976,
+  !!        25, 97) and Hill(1978, 27, 380-2)
+  !!
+  !!        The function to be minimized is the first argument of nelmin and must be defined as
+  !!        \code{.f90}
+  !!          FUNCTION func(p)
+  !!            USE mo_kind, ONLY: dp
+  !!            IMPLICIT NONE
+  !!            REAL(dp), DIMENSION(:), INTENT(IN) :: p
+  !!            REAL(dp) :: func
+  !!          END FUNCTION func
+  !!        \endcode
+  !!
+  !!        and for nelminxy
+  !!        \code{.f90}
+  !!          FUNCTION func(p,x,y)
+  !!            USE mo_kind, ONLY: dp
+  !!            IMPLICIT NONE
+  !!            REAL(dp), DIMENSION(:), INTENT(IN) :: p
+  !!            REAL(dp), DIMENSION(:), INTENT(IN) :: x
+  !!            REAL(dp), DIMENSION(:), INTENT(IN) :: y
+  !!            REAL(dp) :: func
+  !!          END FUNCTION func
+  !!        \endcode
+  !!
+  !!        This routine does not include a termination test using the
+  !!        fitting of a quadratic surface.
+  !!
+  !!        \b Calling sequence
+  !!        \code{.f90}
+  !!        pmin = nelmin(func, pstart, funcmin, varmin, step, konvge, maxeval, &
+  !!                      neval, numrestart, ierror)
+  !!        pmin = nelminxy(func, pstart, xx, yy, funcmin, varmin, step, konvge, maxeval, &
+  !!                        neval, numrestart, ierror)
+  !!        pmin = nelmin(func, pstart, prange, funcmin, varmin, step, konvge, maxeval, &
+  !!                      neval, numrestart, ierror)
+  !!        \endcode
+  !!
+  !!        Original FORTRAN77 version by R ONeill.
+  !!        FORTRAN90 version by John Burkardt.
+  !!
+  !!        \b Example
+  !!        \code{.f90}
+  !!        pstart(1:n) = (/ -1.2_dp, 1.0_dp /)
+  !!        step(1:n) = (/ 1.0_dp, 1.0_dp /)
+  !!        pmin = nelmin(rosenbrock, pstart, step=step, ierror=ierror)
+  !!        \endcode
+  !!
+  !!        -> see also example in test directory
+  !!
+  !!        \b Literature
+  !!        1. Simplex function minimisation procedure due to Nelder and Mead (1965),
+  !!           as implemented by O'Neill(1971, Appl.Statist. 20, 338-45), with
+  !!           subsequent comments by Chambers+Ertel(1974, 23, 250-1), Benyon(1976,
+  !!           25, 97) and Hill(1978, 27, 380-2)
+  !!        2. John Nelder, Roger Mead, A simplex method for function minimization,
+  !!           Computer Journal, Volume 7, 1965, pages 308-313.
+  !!        3. R ONeill, Algorithm AS 47: Function Minimization Using a Simplex Procedure,
+  !!           Applied Statistics, Volume 20, Number 3, 1971, pages 338-345.
+  !!
+  !>        \param[in] "real(dp) :: func(p,xx,yy)"            Function on which to search the minimum
+  !>        \param[in] "real(dp) :: pstart(:)"                Starting point for the iteration.
+  !>        \param[in] "real(dp) :: xx"                       (ONLY nelminxy) First values to pass as function arguments
+  !>        \param[in] "real(dp) :: yy"                       (ONLY nelminxy) Second values to pass as function arguments
+  !>        \param[in] "real(dp) :: prange(:,2)"              (ONLY nelminrange) Range of parameters (upper and lower bound).
+  !>        \param[in] "real(dp), optional :: varmin"         the terminating limit for the variance
+  !!                                                          of the function values. varmin>0 is required.
+  !>        \param[in] "real(dp), optional :: step(:)"        determines the size and shape of the initial simplex.
+  !!                                                          The relative magnitudes of its elements should reflect
+  !!                                                          the units of the variables. size(step)=size(start)
+  !>        \param[in] "integer(i4), optional :: konvge"      the convergence check is carried out every konvge iterations.
+  !!                                                          konvge>0 is required.
+  !>        \param[in] "integer(i4), optional :: maxeval"     the maximum number of function evaluations.
+  !!                                                          default: 1000
+  !>        \param[out] "real(dp), optional    :: funcmin"    the minimum value of the function.
+  !>        \param[out] "integer(i4), optional :: neval"      the number of function evaluations used.
+  !>        \param[out] "integer(i4), optional :: numrestart" the number of restarts.
+  !>        \param[out] "integer(i4), optional :: ierror"     error indicator.
+  !!                                                          0: no errors detected.
+  !!                                                          1: varmin or konvge have an illegal value.
+  !!                                                          2: terminated because maxeval was exceeded without convergence.
+  !>        \param[out] "real(dp), optional, allocatable :: history(:)" the history of best function values, history(neval)=funcmin
+  !>        \return real(sp/dp) :: nelmin(size(start)) &mdash; coordinates of the point which is estimated to minimize the function.
 
-  !     NAME
-  !         nelmin
-  !         nelminxy
-  !         nelminrange
-
-  !     PURPOSE
-  !         Minimizes a user-specified function using the Nelder-Mead algorithm.
-  !
-  !         Simplex function minimisation procedure due to Nelder and Mead (1965),
-  !         as implemented by O'Neill(1971, Appl.Statist. 20, 338-45), with
-  !         subsequent comments by Chambers+Ertel(1974, 23, 250-1), Benyon(1976,
-  !         25, 97) and Hill(1978, 27, 380-2)
-  !
-  !         The function to be minimized is the first argument of nelmin and
-  !         must be defined as
-  !           FUNCTION func(p)
-  !             USE mo_kind, ONLY: dp
-  !             IMPLICIT NONE
-  !             REAL(dp), DIMENSION(:),           INTENT(IN) :: p
-  !             REAL(dp) :: func
-  !           END FUNCTION func
-  !
-  !         and for nelminxy
-  !           FUNCTION func(p,x,y)
-  !             USE mo_kind, ONLY: dp
-  !             IMPLICIT NONE
-  !             REAL(dp), DIMENSION(:), INTENT(IN) :: p
-  !             REAL(dp), DIMENSION(:), INTENT(IN) :: x
-  !             REAL(dp), DIMENSION(:), INTENT(IN) :: y
-  !             REAL(dp) :: func
-  !           END FUNCTION func
-  !
-  !         This routine does not include a termination test using the
-  !         fitting of a quadratic surface.
-
-  !     CALLING SEQUENCE
-  !         pmin = nelmin(func, pstart, funcmin, varmin, step, konvge, maxeval, &
-  !                       neval, numrestart, ierror)
-  !         pmin = nelminxy(func, pstart, xx, yy, funcmin, varmin, step, konvge, maxeval, &
-  !                         neval, numrestart, ierror)
-  !         pmin = nelmin(func, pstart, prange, funcmin, varmin, step, konvge, maxeval, &
-  !                       neval, numrestart, ierror)
-
-  !     INTENT(IN)
-  !         real(dp) :: func(p,xx,yy)    Function on which to search the minimum
-  !         real(dp) :: pstart(:)        Starting point for the iteration.
-  !         real(dp) :: xx               First values to pass as function arguments
-  !         real(dp) :: yy               Second values to pass as function arguments
-  !         real(dp) :: prange(:,2)      Range of parameters (upper and lower bound).
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         real(dp) :: nelmin(size(start))    the coordinates of the point which is estimated to minimize the function.
-
-  !     INTENT(IN), OPTIONAL
-  !         real(dp) :: varmin           the terminating limit for the variance
-  !                                      of the function values. varmin>0 is required.
-  !         real(dp) :: step(:)          determines the size and shape of the initial simplex. 
-  !                                      The relative magnitudes of its elements should reflect
-  !                                      the units of the variables. size(step)=size(start)
-  !         integer(i4) :: konvge        the convergence check is carried out every konvge iterations.
-  !                                      konvge>0 is required.
-  !         integer(i4) :: maxeval       the maximum number of function evaluations.
-  !                                      default: 1000
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         real(dp)    :: funcmin             the minimum value of the function.
-  !         integer(i4) :: neval               the number of function evaluations used.
-  !         integer(i4) :: numrestart          the number of restarts.
-  !         integer(i4) :: ierror              error indicator.
-  !                                            0: no errors detected.
-  !                                            1: varmin or konvge have an illegal value.
-  !                                            2: iteration terminated because maxeval was exceeded without convergence.
-  !         real(dp), allocatable 
-  !                     :: history(:)          the history of best function values, history(neval)=funcmin
-
-  !     RESTRICTIONS
-  !         None.
-
-  !     EXAMPLE
-  !         pstart(1:n) = (/ -1.2_dp, 1.0_dp /)
-  !         step(1:n) = (/ 1.0_dp, 1.0_dp /)
-  !         pmin = nelmin(rosenbrock, pstart, step=step, ierror=ierror)
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         Simplex function minimisation procedure due to Nelder and Mead (1965),
-  !         as implemented by O'Neill(1971, Appl.Statist. 20, 338-45), with
-  !         subsequent comments by Chambers+Ertel(1974, 23, 250-1), Benyon(1976,
-  !         25, 97) and Hill(1978, 27, 380-2)
-
-  !         John Nelder, Roger Mead, A simplex method for function minimization,
-  !         Computer Journal, Volume 7, 1965, pages 308-313.
-
-  !         R ONeill, Algorithm AS 47: Function Minimization Using a Simplex Procedure,
-  !         Applied Statistics, Volume 20, Number 3, 1971, pages 338-345.
-
-  !     HISTORY
-  !         Original FORTRAN77 version by R ONeill.
-  !         FORTRAN90 version by John Burkardt.
-  !         Modified,  Matthias Cuntz, Jul 2012 - i4, dp, intent
-  !                                             - function, optional
-  !                                             - nelminxy
-  !                    Juliane Mai,    Aug 2012 - nelminrange
-  !                    Juliane Mai,    Dec 2012 - history output
-
+  !>        \author Matthias Cuntz
+  !>        \date Jul 2012
+  !!              - i4, dp, intent
+  !!              - function, optional
+  !!              - nelminxy
+  !>        \author Juliane Mai
+  !>        \date Aug 2012
+  !!              - nelminrange
+  !>        \date Dec 2012
+  !!              - history output
   INTERFACE nelminrange
      MODULE PROCEDURE nelminrange_dp, nelminrange_sp
   END INTERFACE nelminrange
@@ -150,6 +129,7 @@ MODULE mo_nelmin
 
 CONTAINS
 
+  !> \copydoc nelminrange
   function nelmin(func, pstart, varmin, step, konvge, maxeval, &
        funcmin, neval, numrestart, ierror, history)
 
@@ -488,6 +468,7 @@ CONTAINS
   end function nelmin
 
 
+  !> \copydoc nelminrange
   function nelminxy(func, pstart, xx, yy, varmin, step, konvge, maxeval, &
        funcmin, neval, numrestart, ierror, history)
 
@@ -1005,7 +986,7 @@ CONTAINS
           !  Reflection through the centroid.
           !
           ! bound to range
-          pstar(1:n) = min( prange(1:n,2) , max( prange(1:n,1) , pbar(1:n) + rcoeff * ( pbar(1:n) - p(1:n,ihi) ) ) )  
+          pstar(1:n) = min( prange(1:n,2) , max( prange(1:n,1) , pbar(1:n) + rcoeff * ( pbar(1:n) - p(1:n,ihi) ) ) )
           ystar      = func(pstar)
           ineval      = ineval + 1
           if (present(history)) history_tmp(ineval) = Min( ystar,  history_tmp(ineval-1) )
@@ -1046,7 +1027,7 @@ CONTAINS
                 !
              else if ( l == 0 ) then
                 ! bound to range
-                p2star(1:n)  = min( prange(1:n,2) , max( prange(1:n,1) , pbar(1:n) + ccoeff * ( p(1:n,ihi) - pbar(1:n) ) ) )  
+                p2star(1:n)  = min( prange(1:n,2) , max( prange(1:n,1) , pbar(1:n) + ccoeff * ( p(1:n,ihi) - pbar(1:n) ) ) )
                 y2star       = func(p2star)
                 ineval       = ineval + 1
                 if (present(history)) history_tmp(ineval) = Min( y2star,  history_tmp(ineval-1) )
@@ -1056,7 +1037,7 @@ CONTAINS
                 if ( y(ihi) < y2star ) then
                    do j = 1, n + 1
                       ! bound to range
-                      p(1:n,j)  = min( prange(1:n,2) , max( prange(1:n,1) , ( p(1:n,j) + p(1:n,ilo) ) * 0.5_dp ) ) 
+                      p(1:n,j)  = min( prange(1:n,2) , max( prange(1:n,1) , ( p(1:n,j) + p(1:n,ilo) ) * 0.5_dp ) )
                       nelminrange_dp(1:n) = p(1:n,j)
                       y(j)      = func(nelminrange_dp)
                       ineval     = ineval + 1
@@ -1079,7 +1060,7 @@ CONTAINS
              else if ( l == 1 ) then
 
                 ! bound to range
-                p2star(1:n) =  min( prange(1:n,2) , max( prange(1:n,1) , pbar(1:n) + ccoeff * ( pstar(1:n) - pbar(1:n) ) ) ) 
+                p2star(1:n) =  min( prange(1:n,2) , max( prange(1:n,1) , pbar(1:n) + ccoeff * ( pstar(1:n) - pbar(1:n) ) ) )
                 y2star      = func(p2star)
                 ineval      = ineval + 1
                 if (present(history)) history_tmp(ineval) = Min( y2star,  history_tmp(ineval-1) )
@@ -1123,7 +1104,7 @@ CONTAINS
        !  Factorial tests to check that FUNCMIN is a local minimum.
        !
        ! bound to range
-       nelminrange_dp(1:n) = min( prange(1:n,2) , max( prange(1:n,1) , p(1:n,ilo) ) ) 
+       nelminrange_dp(1:n) = min( prange(1:n,2) , max( prange(1:n,1) , p(1:n,ilo) ) )
        ifuncmin   = y(ilo)
 
        if ( imaxeval < ineval ) then
@@ -1136,7 +1117,7 @@ CONTAINS
        do i = 1, n
           del     = istep(i) * eps
           ! bound to range: probably not necessary
-          nelminrange_dp(i) = min( prange(i,2) , max( prange(i,1) , nelminrange_dp(i) + del ) ) 
+          nelminrange_dp(i) = min( prange(i,2) , max( prange(i,1) , nelminrange_dp(i) + del ) )
           z       = func(nelminrange_dp)
           ineval  = ineval + 1
           if (present(history)) history_tmp(ineval) = Min( z,  history_tmp(ineval-1) )
@@ -1145,7 +1126,7 @@ CONTAINS
              exit
           end if
           ! bound to range: probably not necessary
-          nelminrange_dp(i) = min( prange(i,2) , max( prange(i,1) , nelminrange_dp(i) - del - del ) ) 
+          nelminrange_dp(i) = min( prange(i,2) , max( prange(i,1) , nelminrange_dp(i) - del - del ) )
           z       = func(nelminrange_dp)
           ineval  = ineval + 1
           if (present(history)) history_tmp(ineval) = Min( z,  history_tmp(ineval-1) )
@@ -1154,7 +1135,7 @@ CONTAINS
              exit
           end if
           ! bound to range: probably not necessary
-          nelminrange_dp(i) = min( prange(i,2) , max( prange(i,1) , nelminrange_dp(i) + del ) ) 
+          nelminrange_dp(i) = min( prange(i,2) , max( prange(i,1) , nelminrange_dp(i) + del ) )
        end do
 
        if ( iierror == 0 ) exit
@@ -1162,7 +1143,7 @@ CONTAINS
        !  Restart the procedure.
        !
        ! bound to range: probably not necessary
-       ipstart(1:n) = min( prange(1:n,2) , max( prange(1:n,1) , nelminrange_dp(1:n) ) ) 
+       ipstart(1:n) = min( prange(1:n,2) , max( prange(1:n,1) , nelminrange_dp(1:n) ) )
        del          = eps
        inumrestart  = inumrestart + 1
 
@@ -1362,7 +1343,7 @@ CONTAINS
           !  Reflection through the centroid.
           !
           ! bound to range
-          pstar(1:n) = min( prange(1:n,2) , max( prange(1:n,1) , pbar(1:n) + rcoeff * ( pbar(1:n) - p(1:n,ihi) ) ) )  
+          pstar(1:n) = min( prange(1:n,2) , max( prange(1:n,1) , pbar(1:n) + rcoeff * ( pbar(1:n) - p(1:n,ihi) ) ) )
           ystar      = func(pstar)
           ineval      = ineval + 1
           if (present(history)) history_tmp(ineval) = Min( ystar,  history_tmp(ineval-1) )
@@ -1403,7 +1384,7 @@ CONTAINS
                 !
              else if ( l == 0 ) then
                 ! bound to range
-                p2star(1:n)  = min( prange(1:n,2) , max( prange(1:n,1) , pbar(1:n) + ccoeff * ( p(1:n,ihi) - pbar(1:n) ) ) )  
+                p2star(1:n)  = min( prange(1:n,2) , max( prange(1:n,1) , pbar(1:n) + ccoeff * ( p(1:n,ihi) - pbar(1:n) ) ) )
                 y2star       = func(p2star)
                 ineval       = ineval + 1
                 if (present(history)) history_tmp(ineval) = Min( y2star,  history_tmp(ineval-1) )
@@ -1413,7 +1394,7 @@ CONTAINS
                 if ( y(ihi) < y2star ) then
                    do j = 1, n + 1
                       ! bound to range
-                      p(1:n,j)  = min( prange(1:n,2) , max( prange(1:n,1) , ( p(1:n,j) + p(1:n,ilo) ) * 0.5_sp ) ) 
+                      p(1:n,j)  = min( prange(1:n,2) , max( prange(1:n,1) , ( p(1:n,j) + p(1:n,ilo) ) * 0.5_sp ) )
                       nelminrange_sp(1:n) = p(1:n,j)
                       y(j)      = func(nelminrange_sp)
                       ineval     = ineval + 1
@@ -1436,7 +1417,7 @@ CONTAINS
              else if ( l == 1 ) then
 
                 ! bound to range
-                p2star(1:n) =  min( prange(1:n,2) , max( prange(1:n,1) , pbar(1:n) + ccoeff * ( pstar(1:n) - pbar(1:n) ) ) ) 
+                p2star(1:n) =  min( prange(1:n,2) , max( prange(1:n,1) , pbar(1:n) + ccoeff * ( pstar(1:n) - pbar(1:n) ) ) )
                 y2star      = func(p2star)
                 ineval      = ineval + 1
                 if (present(history)) history_tmp(ineval) = Min( y2star,  history_tmp(ineval-1) )
@@ -1480,7 +1461,7 @@ CONTAINS
        !  Factorial tests to check that FUNCMIN is a local minimum.
        !
        ! bound to range
-       nelminrange_sp(1:n) = min( prange(1:n,2) , max( prange(1:n,1) , p(1:n,ilo) ) ) 
+       nelminrange_sp(1:n) = min( prange(1:n,2) , max( prange(1:n,1) , p(1:n,ilo) ) )
        ifuncmin   = y(ilo)
 
        if ( imaxeval < ineval ) then
@@ -1493,7 +1474,7 @@ CONTAINS
        do i = 1, n
           del     = istep(i) * eps
           ! bound to range: probably not necessary
-          nelminrange_sp(i) = min( prange(i,2) , max( prange(i,1) , nelminrange_sp(i) + del ) ) 
+          nelminrange_sp(i) = min( prange(i,2) , max( prange(i,1) , nelminrange_sp(i) + del ) )
           z       = func(nelminrange_sp)
           ineval  = ineval + 1
           if (present(history)) history_tmp(ineval) = Min( z,  history_tmp(ineval-1) )
@@ -1502,7 +1483,7 @@ CONTAINS
              exit
           end if
           ! bound to range: probably not necessary
-          nelminrange_sp(i) = min( prange(i,2) , max( prange(i,1) , nelminrange_sp(i) - del - del ) ) 
+          nelminrange_sp(i) = min( prange(i,2) , max( prange(i,1) , nelminrange_sp(i) - del - del ) )
           z       = func(nelminrange_sp)
           ineval  = ineval + 1
           if (present(history)) history_tmp(ineval) = Min( z,  history_tmp(ineval-1) )
@@ -1511,7 +1492,7 @@ CONTAINS
              exit
           end if
           ! bound to range: probably not necessary
-          nelminrange_sp(i) = min( prange(i,2) , max( prange(i,1) , nelminrange_sp(i) + del ) ) 
+          nelminrange_sp(i) = min( prange(i,2) , max( prange(i,1) , nelminrange_sp(i) + del ) )
        end do
 
        if ( iierror == 0 ) exit
@@ -1519,7 +1500,7 @@ CONTAINS
        !  Restart the procedure.
        !
        ! bound to range: probably not necessary
-       ipstart(1:n) = min( prange(1:n,2) , max( prange(1:n,1) , nelminrange_sp(1:n) ) ) 
+       ipstart(1:n) = min( prange(1:n,2) , max( prange(1:n,1) , nelminrange_sp(1:n) ) )
        del          = eps
        inumrestart  = inumrestart + 1
 
