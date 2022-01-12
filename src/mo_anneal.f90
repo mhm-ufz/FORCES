@@ -166,8 +166,9 @@ MODULE mo_anneal
   !!                                                                         model output, e.g. -999.0_dp \n
   !>        \param[in]  "character(len=*) , optional     :: tmp_file"        file with temporal output
   !>        \param[out]  "real(dp), optional             :: funcbest"        minimized value of cost function
-  !>        \param[out]  "real(dp), dimension(:,:), allocatable, optional      :: history"         returns a vector of achieved objective
-  !!                                                                                               after ith model evaluation
+  !>        \param[out]  "real(dp), dimension(:,:), allocatable, optional   :: history"         
+  !!                                                                         returns a vector of achieved objective
+  !!                                                                         after ith model evaluation
   !>        \retval "real(dp) :: parabest(size(para))"                       Parameter set minimizing the cost function.
 
   !>     \note
@@ -326,26 +327,45 @@ CONTAINS
 
     real(dp), dimension(:), intent(in) :: para                         !< initial parameter
 
-    real(dp), optional, dimension(size(para, 1), 2), intent(in) :: prange           !< lower and upper limit per parameter
-    real(dp), optional, intent(in) :: temp                                          !< starting temperature! (DEFAULT: Get_Temperature)
-    real(dp), optional, intent(in) :: Dt                                            !< geometrical decreement, 0.7<DT<0.999! (DEFAULT: 0.9)
-    integer(i4), optional, intent(in) :: nITERmax                                   !< maximal number of iterations! (DEFAULT: 1000)
-    integer(i4), optional, intent(in) :: Len                                        !< Length of Markov Chain,! DEFAULT: max(250, size(para,1))
-    integer(i4), optional, intent(in) :: nST                                        !< Number of consecutive LEN steps! (DEFAULT: 5)
-    real(dp), optional, intent(in) :: eps                                           !< epsilon decreement of cost function! (DEFAULT: 0.01)
-    real(dp), optional, intent(in) :: acc                                           !< Acceptance Ratio, <0.1 stopping criteria! (DEFAULT: 0.1)
-    INTEGER(I8), optional, intent(in) :: seeds(3)                                   !< Seeds of random numbers! (DEFAULT: Get_timeseed)
-    logical, optional, intent(in) :: printflag                                      !< If command line output is written (.true.)! (DEFAULT: .false.)
-    logical, optional, dimension(size(para, 1)), intent(in) :: maskpara             !< true if parameter will be optimized! false if parameter is discarded in optimization! (DEFAULT: .true.)
-    real(dp), optional, dimension(size(para, 1)), intent(in) :: weight              !< vector of weights per parameter! gives the frequency of parameter to be! chosen for optimization! (DEFAULT: uniform)
-    integer(i4), optional, intent(in) :: changeParaMode                             !< which and how many param. are changed in a step! 1 = one parameter! 2 = all parameter! 3 = neighborhood parameter! (DEFAULT: 1_i4)
-    logical, optional, intent(in) :: reflectionFlag                                 !< if new parameter values are selected normal! distributed and reflected (.true.) or! uniform in range (.false.)! (DEFAULT: .false.)
-    logical, optional, intent(in) :: pertubFlexFlag                                 !< if pertubation of normal distributed parameter! values is constant 0.2 (.false.) or! depends on dR (.true.)! (DEFAULT: .true.)
-    logical, optional, intent(in) :: maxit                                          !< Maximization or minimization of function! maximization = .true., minimization = .false.! (DEFAULT: .false.)
-    real(dp), optional, intent(in) :: undef_funcval                                 !< objective function value occuring if! parameter set leads to  invalid model results,! e.g. -9999.0_dp! (DEFAULT: not present)
-    CHARACTER(LEN = *), optional, intent(in) :: tmp_file                            !< file for temporal output
-    real(dp), optional, intent(out) :: funcbest                                     !< minimized value of cost function! (DEFAULT: not present)
-    real(dp), optional, dimension(:, :), allocatable, intent(out) :: history        !< returns a vector of achieved objective! after ith model evaluation! (DEFAULT: not present)
+    real(dp), optional, dimension(size(para, 1), 2), intent(in) :: prange !< lower and upper limit per parameter
+    real(dp), optional, intent(in) :: temp                                !< starting temperature (DEFAULT: Get_Temperature)
+    real(dp), optional, intent(in) :: Dt                                  !< geometrical decreement, 0.7<DT<0.999 (DEFAULT: 0.9)
+    integer(i4), optional, intent(in) :: nITERmax                         !< maximal number of iterations (DEFAULT: 1000)
+    integer(i4), optional, intent(in) :: Len                              !< Length of Markov Chain, 
+                                                                          !! DEFAULT: max(250, size(para,1))
+    integer(i4), optional, intent(in) :: nST                              !< Number of consecutive LEN steps! (DEFAULT: 5)
+    real(dp), optional, intent(in) :: eps                                 !< epsilon decreement of cost function (DEFAULT: 0.01)
+    real(dp), optional, intent(in) :: acc                                 !< Acceptance Ratio, <0.1 stopping criteria 
+                                                                          !! (DEFAULT: 0.1)
+    INTEGER(I8), optional, intent(in) :: seeds(3)                         !< Seeds of random numbers (DEFAULT: Get_timeseed)
+    logical, optional, intent(in) :: printflag                            !< If command line output is written (.true.)
+                                                                          !!  (DEFAULT: .false.)
+    logical, optional, dimension(size(para, 1)), intent(in) :: maskpara   !< true if parameter will be optimized 
+                                                                          !! false if parameter is discarded in optimization 
+                                                                          !! (DEFAULT: .true.)
+    real(dp), optional, dimension(size(para, 1)), intent(in) :: weight    !< vector of weights per parameter 
+                                                                          !! gives the frequency of parameter to be
+                                                                          !!  chosen for optimization (DEFAULT: uniform)
+    integer(i4), optional, intent(in) :: changeParaMode                   !< which and how many param. are changed in a step
+                                                                          !!  1 = one parameter 2 = all parameter
+                                                                          !!  3 = neighborhood parameter (DEFAULT: 1_i4)
+    logical, optional, intent(in) :: reflectionFlag                       !< if new parameter values are selected normal
+                                                                          !!  distributed and reflected (.true.) or
+                                                                          !!  uniform in range (.false.) (DEFAULT: .false.)
+    logical, optional, intent(in) :: pertubFlexFlag                       !< if pertubation of normal distributed parameter
+                                                                          !!  values is constant 0.2 (.false.) or
+                                                                          !!  depends on dR (.true.) (DEFAULT: .true.)
+    logical, optional, intent(in) :: maxit                                !< Maximization or minimization of function
+                                                                          !! maximization = .true., minimization = .false.
+                                                                          !! (DEFAULT: .false.)
+    real(dp), optional, intent(in) :: undef_funcval                       !< objective function value occuring if
+                                                                          !!  parameter set leads to  invalid model results, 
+                                                                          !! e.g. -9999.0_dp! (DEFAULT: not present)
+    CHARACTER(LEN = *), optional, intent(in) :: tmp_file                  !< file for temporal output
+    real(dp), optional, intent(out) :: funcbest                           !< minimized value of cost function
+                                                                          !! (DEFAULT: not present)
+    real(dp), optional, dimension(:, :), allocatable, intent(out) :: history !< returns a vector of achieved objective! 
+                                                                          !! after ith model evaluation (DEFAULT: not present)
 
     real(dp), dimension(size(para, 1)) :: parabest                     !< parameter set minimizing objective
 
@@ -993,13 +1013,23 @@ CONTAINS
     real(dp), dimension(:), intent(in) :: paraset                               !< a valid parameter set of the model
     real(dp), intent(in) :: acc_goal                                            !< acceptance ratio to achieve
     real(dp), optional, dimension(size(paraset, 1), 2), intent(in) :: prange    !< lower and upper limit per parameter
-    integer(i4), optional, intent(in) :: samplesize                             !< size of random set the acc_estimate is based on. DEFAULT: Max(250, 20*Number paras)
-    logical, optional, dimension(size(paraset, 1)), intent(in) :: maskpara      !< true if parameter will be optimized. false if parameter is discarded in optimization. DEFAULT: .true.
+    integer(i4), optional, intent(in) :: samplesize                             !< size of random set the acc_estimate is based on.
+                                                                                !! DEFAULT: Max(250, 20*Number paras)
+    logical, optional, dimension(size(paraset, 1)), intent(in) :: maskpara      !< true if parameter will be optimized. 
+                                                                                !! false if parameter is discarded in optimization.
+                                                                                !! DEFAULT: .true.
     integer(i8), optional, dimension(2), intent(in) :: seeds                    !< Seeds of random numbers. DEFAULT: time dependent.
-    logical, optional, intent(in) :: printflag                                  !< .true. if detailed temperature estimation is printed. DEFAULT: .false.
-    real(dp), OPTIONAL, dimension(size(paraset, 1)), INTENT(IN) :: weight       !< vector of weights per parameter gives the frequency of parameter to be chosen for optimization. DEFAULT: equal weighting
-    logical, OPTIONAL, INTENT(IN) :: maxit                                      !< Maxim. or minim. of function maximization = .true., minimization = .false. . DEFAULT: .false.
-    real(dp), OPTIONAL, INTENT(IN) :: undef_funcval                             !< objective function value occuring if parameter set leads to invalid model results, e.g. -999.0_dp. DEFAULT: not present
+    logical, optional, intent(in) :: printflag                                  !< .true. if detailed temperature estimation is
+                                                                                !! printed. DEFAULT: .false.
+    real(dp), OPTIONAL, dimension(size(paraset, 1)), INTENT(IN) :: weight       !< vector of weights per parameter gives the
+                                                                                !! frequency of parameter to be chosen for
+                                                                                !! optimization. DEFAULT: equal weighting
+    logical, OPTIONAL, INTENT(IN) :: maxit                                      !< Maxim. or minim. of function
+                                                                                !! maximization = .true., minimization = .false. .
+                                                                                !! DEFAULT: .false.
+    real(dp), OPTIONAL, INTENT(IN) :: undef_funcval                             !< objective function value occuring if
+                                                                                !! parameter set leads to invalid model results,
+                                                                                !! e.g. -999.0_dp. DEFAULT: not present
 
     INTERFACE
       SUBROUTINE prange_func(paraset, iPar, rangePar)

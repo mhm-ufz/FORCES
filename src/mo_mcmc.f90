@@ -70,8 +70,10 @@ MODULE mo_mcmc
   !!     burnin_iter            | length of markov chain performed to calculate acceptance ratio\n
   !!     acceptance ratio       | ratio between accepted jumps and all trials (LEN)\n
   !!     acceptance multiplier  | stepsize of a parameter is multiplied with this value when jump is accepted (initial : 1.01)
-  !!     rejection multiplier   | stepsize of a parameter is multiplied with this value when jump is rejected (initial : 0.99 and will never be changed)
-  !!     stepsize               | a new parameter value is chosen based on a uniform distribution pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) (initial : stepsize_i = 1.0 for all i)
+  !!     rejection multiplier   | stepsize of a parameter is multiplied with this value when jump is rejected (initial : 0.99 
+  !!                              and will never be changed)
+  !!     stepsize               | a new parameter value is chosen based on a uniform distribution 
+  !!                              pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) (initial : stepsize_i = 1.0 for all i)
   !!
   !!     #### <i>Algorithm:</i></b>
   !!     <ol>
@@ -121,7 +123,8 @@ MODULE mo_mcmc
   !!       <b> Variable           |  Description                                                     </b>
   !!       ---------------------- | -----------------------------------------------------------------------
   !!       iter_mcmc              | length of the markov chain (>> iter_burnin)\n
-  !!       stepsize               | a new parameter value is chosen based on a uniform distribution pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) use stepsizes of the burn-in (1)
+  !!       stepsize               | a new parameter value is chosen based on a uniform distribution 
+  !!                                pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) use stepsizes of the burn-in (1)
   !!
   !!     #### <i>Algorithm:</i></b>
   !!     <ol>
@@ -237,8 +240,10 @@ MODULE mo_mcmc
   !!       burnin_iter            | length of markov chain performed to calculate acceptance ratio\n
   !!       acceptance ratio       | ratio between accepted jumps and all trials (LEN)\n
   !!       acceptance multiplier  | stepsize of a parameter is multiplied with this value when jump is accepted (initial : 1.01)
-  !!       rejection multiplier   | stepsize of a parameter is multiplied with this value when jump is rejected (initial : 0.99 and will never be changed)
-  !!       stepsize               | a new parameter value is chosen based on a uniform distribution pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) (initial : stepsize_i = 1.0 for all i)
+  !!       rejection multiplier   | stepsize of a parameter is multiplied with this value when jump is rejected (initial : 0.99 and
+  !!                                will never be changed)
+  !!       stepsize               | a new parameter value is chosen based on a uniform distribution 
+  !!                                pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) (initial : stepsize_i = 1.0 for all i)
   !!
   !!     #### <i>Algorithm:</i>\n
   !!     <ol>
@@ -288,7 +293,8 @@ MODULE mo_mcmc
   !!       <b> Variable           |  Description                                                     </b>
   !!       ---------------------- | -----------------------------------------------------------------------
   !!       iter_mcmc              | length of the markov chain (>> iter_burnin)\n
-  !!       stepsize               | a new parameter value is chosen based on a uniform distribution pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) use stepsizes of the burn-in (1)\n
+  !!       stepsize               | a new parameter value is chosen based on a uniform distribution 
+  !!                                pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) use stepsizes of the burn-in (1)\n
   !!
   !!     #### <i>Algorithm:</i>
   !!     <ol>

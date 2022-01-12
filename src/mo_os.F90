@@ -58,15 +58,19 @@ CONTAINS
   !         None
   !
   !     INTENT(IN), OPTIONAL
-  !>       \param[in] "logical, optional :: quiet_"   Be verbose or not (default: .false.)\n
+  !>       \param[in] "logical, optional :: quiet_"         Be verbose or not (default: .false.)\n
   !>                                                            .true.:  no message\n
   !>                                                            .false.: write out message if path is not found
-  !>       \param[in] "logical, optional :: throwError_"   Be verbose or not (default: .false.)\n
-  !>                                                            .true.:  quit program and throw error message if path is not found\n
+  !>       \param[in] "logical, optional :: throwError_"    Be verbose or not (default: .false.)\n
+  !>                                                            .true.:  quit program and throw error message if path is not 
+  !!                                                            found\n
   !>                                                            .false.: continue program and no message
-  !>       \param[in] "logical, optional :: dirOrFile_"   Be verbose or not (default: potential error message with imprecise information)\n
-  !>                                                            .true.:  if the given path does not exist, the potential error message relate to a directory\n
-  !>                                                            .false.: if the given path does not exist, the potential error message relate to a file
+  !>       \param[in] "logical, optional :: dirOrFile_"     Be verbose or not (default: potential error message with imprecise 
+  !!                                                        information)\n
+  !>                                                            .true.:  if the given path does not exist, the potential error 
+  !!                                                            message relate to a directory\n
+  !>                                                            .false.: if the given path does not exist, the potential error 
+  !!                                                            message relate to a file
   !
   !     INTENT(INOUT), OPTIONAL
   !         None
@@ -152,12 +156,14 @@ CONTAINS
   !         None
   !
   !     INTENT(IN), OPTIONAL
-  !>       \param[in] "logical, optional :: quiet_"   Be verbose or not (default: .false.)\n
-  !>                                                            .true.:  no message\n
-  !>                                                            .false.: write out message if path is not found or does not desrcibes a file
-  !>       \param[in] "logical, optional :: throwError_"   Be verbose or not (default: .false.)\n
-  !>                                                            .true.:  quit program and throw error message if path is not found or does not desrcibes a file\n
-  !>                                                            .false.: continue program and no message
+  !>       \param[in] "logical, optional :: quiet_"         Be verbose or not (default: .false.)\n
+  !!                                                            .true.:  no message\n
+  !!                                                            .false.: write out message if path is not found or does not 
+  !!                                                            desrcibes a file
+  !>       \param[in] "logical, optional :: throwError_"    Be verbose or not (default: .false.)\n
+  !!                                                            .true.:  quit program and throw error message if path is not 
+  !!                                                            found or does not desrcibes a file\n
+  !!                                                            .false.: continue program and no message
   !
   !     INTENT(INOUT), OPTIONAL
   !         None
@@ -251,11 +257,13 @@ CONTAINS
   !
   !     INTENT(IN), OPTIONAL
   !>       \param[in] "logical, optional :: quiet_"   Be verbose or not (default: .false.)\n
-  !>                                                            .true.:  no message\n
-  !>                                                            .false.: write out message if path is not found or does not desrcibes a directory
+  !!                                                            .true.:  no message\n
+  !!                                                            .false.: write out message if path is not found or does
+  !!                                                            not desrcibes a directory
   !>       \param[in] "logical, optional :: throwError_"   Be verbose or not (default: .false.)\n
-  !>                                                            .true.:  quit program and throw error message if path is not found or does not desrcibes a directory\n
-  !>                                                            .false.: continue program and no message
+  !!                                                            .true.:  quit program and throw error message if path is
+  !!                                                            not found or does not desrcibes a directory\n
+  !!                                                            .false.: continue program and no message
   !
   !     INTENT(INOUT), OPTIONAL
   !         None

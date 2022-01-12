@@ -68,7 +68,8 @@ MODULE mo_percentile
 
   !>    \param[in]  "real(sp/dp) :: vec(:)"               1D-array with input numbers
   !>    \param[in]  "logical, optional     :: mask(:)"    1D-array of logical values with size(vec).
-  !!                                                      If present, only those locations in vec corresponding to the true values in mask are used.
+  !!                                                      If present, only those locations in vec 
+  !!                                                      corresponding to the true values in mask are used.
   !>    \retval     "real(sp/dp) :: out"                  Median of values in input array
 
   !>    \author Matthias Cuntz
@@ -108,8 +109,10 @@ MODULE mo_percentile
   !>    \param[in]  "real(sp/dp) :: vec(:)"             1D-array with input numbers
   !>    \param[in]  "integer(i4), optional :: n"        Index of sorted array
   !>    \param[in]  "logical, optional     :: mask(:)"  1D-array of logical values with size(vec).
-  !!                                                    If present, only those locations in vec corresponding to the true values in mask are used.
-  !>    \param[out]  "real(sp/dp) :: before"            (n-1)-th smallest value in input array, e.g. for median/percentile calculations
+  !!                                                    If present, only those locations in vec 
+  !!                                                    corresponding to the true values in mask are used.
+  !>    \param[out]  "real(sp/dp) :: before"            (n-1)-th smallest value in input array, e.g. 
+  !!                                                    for median/percentile calculations
   !>    \param[out]  "real(sp/dp) :: previous"          Same as before
   !>    \param[out]  "real(sp/dp) :: after"             (n+1)-th smallest value in input array
   !>    \param[out]  "real(sp/dp) :: next"              Same as after
@@ -161,7 +164,8 @@ MODULE mo_percentile
   !>    \param[in]  "real(sp/dp) :: vec(:)"             1D-array with input numbers
   !>    \param[in]  "real(sp/dp) :: k[(:)]"             Percentage of percentile, can be 1 dimensional
   !>    \param[in]  "logical, optional  :: mask(:)"     1D-array of logical values with size(vec).
-  !!                                                    If present, only those locations in vec corresponding to the true values in mask are used.
+  !!                                                    If present, only those locations in vec 
+  !!                                                    corresponding to the true values in mask are used.
   !>    \param[in]  "integer(i4), optional :: mode_in"  Specifies the interpolation scheme applied.\n
   !!                                                    Default:
   !!                                                    Inverse empirical CDF (no interpolation, default Mathematica)

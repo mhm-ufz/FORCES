@@ -77,9 +77,10 @@ MODULE mo_boxcox
 
 
   !>        \param[in]  "real(sp/dp) :: x"           Scalar/1D-array with input numbers (`>0.`)
-  !>        \param[in]  "real(sp/dp) :: lmbda"          Exponent power of Box-Cox transform (`>= 0.`)
+  !>        \param[in]  "real(sp/dp) :: lmbda"       Exponent power of Box-Cox transform (`>= 0.`)
   !>        \param[in]  "logical, optional :: mask"  Scalar/1D-array of logical values with `size(x)`.
-  !!                                   If present, only those locations in vec corresponding to the true values in mask are used.
+  !!                                                 If present, only those locations in vec corresponding 
+  !!                                                 to the true values in mask are used.
   !>        \retval "real(sp/dp) :: boxcox"     Power transformed values (at `mask=.true.`)
 
   !>     \note Input values must be positive, i.e. \f$x > 0\f$.
@@ -119,10 +120,11 @@ MODULE mo_boxcox
 
   !>        \param[in]  "real(sp/dp) :: y"              Scalar/1D-array with input numbers (`>0.`)
   !>        \param[in]  "real(sp/dp) :: lmbda"          Exponent power of Box-Cox transform (`>= 0.`)
-  !>        \param[in]  "optional, logical :: mask"  1D-array of logical values with `size(x)`.
-  !!                                                    If present, only those locations in vec corresponding to the true values in mask are used.
+  !>        \param[in]  "optional, logical :: mask"     1D-array of logical values with `size(x)`.
+  !!                                                    If present, only those locations in vec corresponding to the 
+  !!                                                    true values in mask are used.
   !!                                                    Only applicable if `x` is a 1D-array.
-  !>        \retval    "real(sp/dp) :: invboxcox"         Back transformed values (at `mask=.true.`)
+  !>        \retval    "real(sp/dp) :: invboxcox"       Back transformed values (at `mask=.true.`)
 
   !>     \author Matthias Cuntz
   !>     \author Juliane Mai

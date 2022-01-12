@@ -277,9 +277,12 @@ module mo_ncwrite
   !>        \param[in] "integer(i4)/real(sp,dp), optional :: missing_value"     attribute
   !>        \param[in] "character(256), dimension(:,:), optional :: attributes" two dimensional array of attributes
   !!                                                                size of first dimension equals number of attributes
-  !!                                                                first entry of second dimension equals attribute name (e.g. long_name)
-  !!                                                                second entry of second dimension equals attribute value (e.g. precipitation)
-  !!                                                                every attribute is written as string with the exception of missing_value
+  !!                                                                first entry of second dimension equals attribute name 
+  !!                                                                (e.g. long_name)\n
+  !!                                                                second entry of second dimension equals attribute value 
+  !!                                                                (e.g. precipitation)\n
+  !!                                                                every attribute is written as string with the exception of 
+  !!                                                                missing_value
   !>        \param[in] "logical,                 optional :: create"            flag - specify whether a
   !>                                                                            output file should be
   !>                                                                            created, default

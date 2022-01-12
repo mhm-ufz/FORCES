@@ -274,7 +274,8 @@ contains
   !>    \param[in]  "character(len=*), intent(in)      :: VarName"      Variable name exactly as specified in the file.
   !>    \param[in]  "character(len=*), intent(in)      :: AttName"      Attribute name exactly as specified for the Variable.
   !>    \param[in]  "integer(i4), optional, intent(in) :: fid"          File handle of opened netcdf file
-  !>    \param[in]  "integer(i4), optional, intent(in) :: dtype"        Datatype (ineteger,float) see NetCDF convention (unidata.ucar)
+  !>    \param[in]  "integer(i4), optional, intent(in) :: dtype"        Datatype (ineteger,float) see NetCDF convention 
+  !!                                                                    (unidata.ucar)
   !>    \retval     "character(len=*), intent(out)     :: AttValues"    Values of the Attribute.
 
   !>    \notes AttValues are restricted to be of character type. \n

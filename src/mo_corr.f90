@@ -62,7 +62,8 @@ MODULE mo_corr
   !>        \param[in]  "real(sp/dp) :: x(:)"                 Time series.
   !>        \param[in]  "integer(i4) :: k[(:)]"               Lag for autocorrelation.
   !>        \param[in]  "optional, logical     :: mask(:)"    1D-array of logical values with `size(vec)`.
-  !!                                                          If present, only those locations in vec corresponding to the true values in mask are used.
+  !!                                                          If present, only those locations in vec corresponding 
+  !!                                                          to the true values in mask are used.
   !>        \retval    "real(sp/dp) :: ak[(:)]"               Coefficient of autocorrelation function at lag k.
 
   !>        \author Matthias Cuntz 

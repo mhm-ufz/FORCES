@@ -79,21 +79,23 @@ MODULE mo_mad
   !!       See also example in test directory.
 
 
-  !>       \param[in]  "real(sp/dp) :: vec(:)"     1D-array with input numbers
-  !>       \param[in]  "real(sp/dp) :: arr"        nD-array with input numbers
-  !>       \param[in]  "real(sp/dp), optional :: z"          Input is allowed to deviate maximum z standard deviations from the median (default: 7).
+  !>       \param[in]  "real(sp/dp) :: vec(:)"               1D-array with input numbers
+  !>       \param[in]  "real(sp/dp) :: arr"                  nD-array with input numbers
+  !>       \param[in]  "real(sp/dp), optional :: z"          Input is allowed to deviate maximum z standard deviations 
+  !!                                                         from the median (default: 7).
   !>       \param[in]  "integer(i4), optional :: deriv"      0: Act on raw input (default: 0)\n
-  !!                                   1: Use first derivatives\n
-  !!                                   2: Use 2nd derivatives
+  !!                                                         1: Use first derivatives\n
+  !!                                                         2: Use 2nd derivatives
   !>       \param[in]  "logical, optional     :: mask(:)"    1D-array of logical values with size(vec).
-  !!                                   If present, only those locations in vec corresponding to the true values in mask are used.
-  !!                                   nD-array if tout is used.
-  !>       \param[in]  "character(1):: tout"       u: Trim only values above mad\n
-  !!                                   l: Trim only values below mad\n
-  !!                                   b: Trim values below and above mad
+  !!                                                         If present, only those locations in vec corresponding to the true
+  !!                                                         values in mask are used. nD-array if tout is used.
+  !>       \param[in]  "character(1):: tout"                 u: Trim only values above mad\n
+  !!                                                         l: Trim only values below mad\n
+  !!                                                          b: Trim values below and above mad
 
-  !>       \retval "logical or real(sp/dp), dimension(size(arr)) :: out"            mask with true everywhere except where input deviates more
-  !!                                                                  than z standard deviations from median. If tout five, threshold value is returned.
+  !>       \retval "logical or real(sp/dp), dimension(size(arr)) :: out"        mask with true everywhere except where input 
+  !!                                                                            deviates more than z standard deviations from
+  !!                                                                            median. If tout five, threshold value is returned.
 
   !>     \note
   !!           1st derivative is
