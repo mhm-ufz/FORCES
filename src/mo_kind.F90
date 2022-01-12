@@ -4,14 +4,6 @@
 !> \brief Define number representations
 !> \details This module declares the desired ranges and precisions of the number representations,
 !! such as single precision or double precision, 32-bit or 64-bit integer, etc.
-!!
-!!  Number model from which the SELECTED_REAL_KIND are requested:
-!!                   4 byte REAL      8 byte REAL
-!!          IEEE:    precision =  6   precision =   15
-!!                   exponent  = 37   exponent  =  307
-!!         CRAY:        -            precision =   13
-!!                                    exponent  = 2465
-!!
 !> \copyright GNU Lesser General Public License http://www.gnu.org/licenses/
 !> \authors Juliane Mai, Matthias Cuntz
 !> \date 2011-2014
