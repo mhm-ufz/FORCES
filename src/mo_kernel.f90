@@ -1,43 +1,34 @@
 !> \file mo_kernel.f90
+!> \copydoc mo_kernel
 
 !> \brief   Module for kernel regression and kernel density estimation.
-
 !> \details This module provides routines for kernel regression of data as well as kernel density
-!>          estimation of both probability density functions (PDF) and cumulative density functions (CDF).\n
-!>          So far only a Gaussian kernel is implemented (Nadaraya-Watson)
-!>          which can be used for one- and multidimensional data.\n
-!>          Furthermore, the estimation of the bandwith needed for kernel methods is provided
-!>          by either Silverman''s rule of thumb or a Cross-Vaildation approach.\n
-!>          The Cross-Validation method is actually an optimization of the bandwith and
-!>          might be the most costly part of the kernel smoother.
-!>          Therefore, the bandwith estimation is not necessarily part of the kernel smoothing
-!>          but can be determined first and given as an optional argument to the smoother.
-
+!!          estimation of both probability density functions (PDF) and cumulative density functions (CDF).\n
+!!          So far only a Gaussian kernel is implemented (Nadaraya-Watson)
+!!          which can be used for one- and multidimensional data.\n
+!!          Furthermore, the estimation of the bandwith needed for kernel methods is provided
+!!          by either Silverman''s rule of thumb or a Cross-Vaildation approach.\n
+!!          The Cross-Validation method is actually an optimization of the bandwith and
+!!          might be the most costly part of the kernel smoother.
+!!          Therefore, the bandwith estimation is not necessarily part of the kernel smoothing
+!!          but can be determined first and given as an optional argument to the smoother.
 !> \author Juliane Mai
 !> \date Mar 2013
-
+!> \author Stephan Thober
+!> \date Mar 2013
+!> \author Matthias Cuntz
+!> \date Mar 2013
+!> \author Matthias Cuntz
+!> \date May 2013
+!!       - sort -> qsort
+!!       - module procedure golden
+!> \author Stephan Thober
+!> \date Jul 2015
+!!       - using sort_index in favor of qsort_index
+!> \author Matthias Cuntz
+!> \date Mar 2016
+!!       - Romberg integration in cumdensity
 MODULE mo_kernel
-
-  ! This module provides functions for kernel regression and kernel density estimation and
-  ! is part of the UFZ CHS Fortran library.
-
-  ! Written  Juliane Mai,    Mar 2013
-  ! Modified Stephan Thober, Mar 2013
-  !          Matthias Cuntz, Mar 2013
-  !          Matthias Cuntz, May 2014 - sort -> qsort
-  !          Matthias Cuntz, May 2014 - module procedure golden
-  !          Stephan Thober, Jul 2015 - using sort_index in favor of qsort_index
-  !          Matthias Cuntz, Jun 2016 - Romberg integration in cumdensity
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! It is NOT released under the GNU Lesser General Public License, yet.
-
-  ! If you use this routine, please contact Juliane Mai.
-
-  ! Copyright 2013-2014 Juliane Mai, Stephan Thober, Matthias Cuntz
 
   USE omp_lib
   USE mo_kind,      ONLY: i4, sp, dp
@@ -51,399 +42,298 @@ MODULE mo_kernel
   PUBLIC :: kernel_regression        ! Kernel regression                         (1D and ND)
   PUBLIC :: kernel_regression_h      ! Bandwith estimation for kernel regression (1D and ND)
 
-  
+
   ! ------------------------------------------------------------------
-
-  !     NAME
-  !         kernel_cumdensity
-
-  !     PURPOSE
-  !         Approximates the cumulative density function (CDF) to a given 1D data set using a Gaussian kernel.
-  !
   !>        \brief   Approximates the cumulative density function (CDF).
-  !
-  !>        \details Approximates the cumulative density function (CDF)
-  !>                 to a given 1D data set using a Gaussian kernel.\n
-  !
-  !>        The bandwith of the kernel can be pre-determined using the function kernel_density_h and
-  !>        specified by the optional argument h.
-  !>        If h is not given the default method to approximate the bandwith h is Silverman''s rule-of-thumb
-  !>               \f[ h = \frac{4}{3}^{0.2} n^{-0.2} \sigma_x \f]
-  !>        where n is the number of given data points and \f$ \sigma \f$ is the standard deviation of the data.\n
-  !>        If the optional argument silverman is set to false, the cross-validation method described
-  !>        by Scott et al. (2005) is applied.
-  !>        Therefore, the likelihood of a given h is maximized using the Nelder-Mead algorithm nelminrange.
-  !>        For large data sets this might be time consuming and should be performed aforehand using the
-  !>        function kernel_density_h.\n
-  !>        The dataset x can be single or double precision. The result will have the same numerical precision.\n
-  !>        If the CDF for other datapoints than x is needed the optional argument xout has to be specified.
-  !>        The result will than be of the same size and precision as xout.
-  !
-  !     INTENT(IN)
-  !>        \param[in] "real(sp/dp) :: x(:)"        \f$ x_i \f$ 1D-array with data points
-  !
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !>       \param[in] "real(sp/dp), optional :: h"       Bandwith of kernel.\n
-  !>                                                     If present, argument silverman is ignored.
-  !>                                                     If not present, the bandwith will be approximated first.
-  !>       \param[in] "logical, optional :: silverman"   By default Silverman''s Rule-of-thumb will be used to approximate
-  !>                                                     the bandwith of the kernel (silverman=true).
-  !>                                                     If silverman=false the Cross-Validation approach is used
-  !>                                                     to estimate the bandwidth.
-  !>       \param[in] "real(sp/dp), optional :: xout(:)" If present, the CDF will be approximated at this arguments,
-  !>                                                     otherwise the CDF is approximated at x.
-  !>       \param[in] "logical, optional :: romberg"     If .true., use Romberg converging integration
-  !>                                                     If .true., use 5-point Newton-Cotes with fixed nintegrate points
+  !>        \details Approximates the cumulative density function (CDF) to a given 1D data set using a Gaussian kernel.
+  !!
+  !!        The bandwith of the kernel can be pre-determined using the function kernel_density_h and
+  !!        specified by the optional argument h.
+  !!        If h is not given the default method to approximate the bandwith h is Silverman''s rule-of-thumb
+  !!               \f[ h = \frac{4}{3}^{0.2} n^{-0.2} \sigma_x \f]
+  !!        where n is the number of given data points and \f$ \sigma \f$ is the standard deviation of the data.\n
+  !!        If the optional argument silverman is set to false, the cross-validation method described
+  !!        by Scott et al. (2005) is applied.
+  !!        Therefore, the likelihood of a given h is maximized using the Nelder-Mead algorithm nelminrange.
+  !!        For large data sets this might be time consuming and should be performed aforehand using the
+  !!        function kernel_density_h.\n
+  !!        The dataset x can be single or double precision. The result will have the same numerical precision.\n
+  !!        If the CDF for other datapoints than x is needed the optional argument xout has to be specified.
+  !!        The result will than be of the same size and precision as xout.
+  !!
+  !!        \b Example
+  !!        \code{.f90}
+  !!        ! given data, e.g. temperature
+  !!        x = (/ 26.1_dp, 24.5_dp, 24.8_dp, 24.5_dp, 24.1_dp /)
+  !!
+  !!        ! estimate bandwidth via cross-validation (time-consuming)
+  !!        h = kernel_density_h(x,silverman=.false.)
+  !!
+  !!        ! estimate bandwidth with Silverman''s rule of thumb (default)
+  !!        h = kernel_density_h(x,silverman=.true.)
+  !!
+  !!        ! calc cumulative density with the estimated bandwidth h at given output points xout
+  !!        cdf = kernel_cumdensity(x, h=h, xout=xout)
+  !!        ! gives cumulative density at xout values, if specified, or at x values, if xout is not present
+  !!        ! if bandwith h is given                 : silverman (true/false) is ignored
+  !!        ! if silverman=.true.  and h not present : bandwith will be estimated using Silerman''s rule of thumb
+  !!        ! if silverman=.false. and h not present : bandwith will be estimated using Cross-Validation approach
+  !!        \endcode
+  !!
+  !!        -> see also example in test directory
+  !!
+  !!        \b Literature
+  !!        1. Scott, D. W., & Sain, S. R. (2005).
+  !!             Multi-dimensional Density Estimation. Handbook of Statistics, 24, 229-261.
+  !!             doi:10.1016/S0169-7161(04)24009-3
+  !!        2. Haerdle, W., & Mueller, M. (2000). Multivariate and semiparametric kernel regression.
+  !!            In M. G. Schimek (Ed.), Smoothing and regression: Approaches, computation, and
+  !!             application (pp. 357-392). Hoboken, NJ, USA: John Wiley & Sons, Inc. doi:10.1002/9781118150658.ch12s,
+  !!             Cambridge University Press, UK, 1996
+  !!
+  !>       \param[in] "real(sp/dp) :: x(:)"                 \f$ x_i \f$ 1D-array with data points
+  !>       \param[in] "real(sp/dp), optional :: h"          Bandwith of kernel.\n
+  !!                                                        If present, argument silverman is ignored.
+  !!                                                        If not present, the bandwith will be approximated first.
+  !>       \param[in] "logical, optional :: silverman"      By default Silverman''s Rule-of-thumb will be used to approximate
+  !!                                                        the bandwith of the kernel (silverman=true).
+  !!                                                        If silverman=false the Cross-Validation approach is used
+  !!                                                        to estimate the bandwidth.
+  !>       \param[in] "real(sp/dp), optional :: xout(:)"    If present, the CDF will be approximated at this arguments,
+  !!                                                        otherwise the CDF is approximated at x.
+  !>       \param[in] "logical, optional :: romberg"        If .true., use Romberg converging integration
+  !!                                                        If .true., use 5-point Newton-Cotes with fixed nintegrate points
   !>       \param[in] "integer(i4), optional :: nintegrate" 2**nintegrate if Romberg or nintegrate number of sampling
-  !>                                                        points for integration between output points.
-  !>                                                        Default: 10 if Romberg, 101 otherwise.
-  !>       \param[in] "real(sp/dp), optional :: epsint"  maximum relative error for Romberg integration.
-  !>                                                     Default: 1e-6.
-  !>       \param[in] "logical, optional :: mask(:)"     mask x values at calculation.\n
-  !>                                                     if not xout given, then kernel estimates will have nodata value.
-  !>       \param[in] "real(sp/dp), optional :: nodata"  if mask and not xout given, then masked data will
-  !>                                                     have nodata kernel estimate.
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !>       \return     real(sp/dp), allocatable :: kernel_cumdensity(:) &mdash; smoothed CDF at either x or xout
-  !
-  !     RESTRICTIONS
+  !!                                                        points for integration between output points.
+  !!                                                        Default: 10 if Romberg, 101 otherwise.
+  !>       \param[in] "real(sp/dp), optional :: epsint"     maximum relative error for Romberg integration.
+  !!                                                        Default: 1e-6.
+  !>       \param[in] "logical, optional :: mask(:)"        mask x values at calculation.\n
+  !!                                                        if not xout given, then kernel estimates will have nodata value.
+  !>       \param[in] "real(sp/dp), optional :: nodata"     if mask and not xout given, then masked data will
+  !!                                                        have nodata kernel estimate.
+  !>       \return    real(sp/dp), allocatable :: kernel_cumdensity(:) &mdash; smoothed CDF at either x or xout
+
   !>       \note Data need to be one-dimensional. Multi-dimensional data handling not implemented yet.
-  !
-  !     EXAMPLE
-  !         ! given data, e.g. temperature
-  !         x = (/ 26.1_dp, 24.5_dp, 24.8_dp, 24.5_dp, 24.1_dp /)
-  !
-  !         ! estimate bandwidth via cross-validation (time-consuming)
-  !         h = kernel_density_h(x,silverman=.false.)
-  !
-  !         ! estimate bandwidth with Silverman''s rule of thumb (default)
-  !         h = kernel_density_h(x,silverman=.true.)
-  !
-  !         ! calc cumulative density with the estimated bandwidth h at given output points xout
-  !         cdf = kernel_cumdensity(x, h=h, xout=xout)
-  !         ! gives cumulative density at xout values, if specified, or at x values, if xout is not present
-  !         ! if bandwith h is given                 : silverman (true/false) is ignored
-  !         ! if silverman=.true.  and h not present : bandwith will be estimated using Silerman''s rule of thumb
-  !         ! if silverman=.false. and h not present : bandwith will be estimated using Cross-Validation approach
-  !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Scott, D. W., & Sain, S. R. (2005).
-  !             Multi-dimensional Density Estimation. Handbook of Statistics, 24, 229-261.
-  !             doi:10.1016/S0169-7161(04)24009-3
-  !         Haerdle, W., & Mueller, M. (2000). Multivariate and semiparametric kernel regression.
-  !             In M. G. Schimek (Ed.), Smoothing and regression: Approaches, computation, and
-  !             application (pp. 357-392). Hoboken, NJ, USA: John Wiley & Sons, Inc. doi:10.1002/9781118150658.ch12s,
-  !             Cambridge University Press, UK, 1996
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date Mar 2013
-  !         Modified, Matthias Cuntz, Mar 2013
-  !                   Matthias Cuntz, May 2014 - sort -> qsort
-  !                   Matthias Cuntz, Jun 2016 - Romberg integration
-
+  !>       \author Juliane Mai
+  !>       \date Mar 2013
+  !>       \author Matthias Cuntz
+  !>       \date Mar 2013
+  !>       \date May 2013
+  !!             - sort -> qsort
+  !>       \author Matthias Cuntz
+  !>       \date Mar 2016
+  !!             - Romberg integration in cumdensity
   INTERFACE kernel_cumdensity
      MODULE PROCEDURE kernel_cumdensity_1d_dp, kernel_cumdensity_1d_sp
   END INTERFACE kernel_cumdensity
 
-  
+
   ! ------------------------------------------------------------------
-
-  !     NAME
-  !         kernel_density
-
-  !     PURPOSE
-  !         Approximates the probability density function (PDF) to a given 1D data set using a Gaussian kernel.
-  !
   !>        \brief   Approximates the probability density function (PDF).
-  !
-  !>        \details Approximates the probability density function (PDF)
-  !>                 to a given 1D data set using a Gaussian kernel.\n
-  !
-  !>        The bandwith of the kernel can be pre-determined using the function kernel_density_h and specified
-  !>        by the optional argument h.
-  !>        If h is not given the default method to approximate the bandwith h is Silverman''s rule-of-thumb
-  !>               \f[ h = \frac{4}{3}^{0.2} n^{-0.2} \sigma_x \f]
-  !>        where n is the number of given data points and \f$ \sigma \f$ is the standard deviation of the data.\n
-  !>        If the optional argument silverman is set to false, the cross-validation method described
-  !>        by Scott et al. (2005) is applied.
-  !>        Therefore, the likelihood of a given h is maximized using the Nelder-Mead algorithm nelminrange.
-  !>        For large data sets this might be time consuming and should be performed aforehand using the function
-  !>        kernel_density_h.\n
-  !>        The dataset x can be single or double precision. The result will have the same numerical precision.\n
-  !>        If the PDF for other datapoints than x is needed the optional argument xout has to be specified.
-  !>        The result will than be of the same size and precision as xout.
-  !
-  !     INTENT(IN)
-  !>        \param[in] "real(sp/dp) :: x(:)"        \f$ x_i \f$ 1D-array with data points
-  !
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
+  !>        \details Approximates the probability density function (PDF) to a given 1D data set using a Gaussian kernel.
+  !!
+  !!        The bandwith of the kernel can be pre-determined using the function kernel_density_h and specified
+  !!        by the optional argument h.
+  !!        If h is not given the default method to approximate the bandwith h is Silverman''s rule-of-thumb
+  !!               \f[ h = \frac{4}{3}^{0.2} n^{-0.2} \sigma_x \f]
+  !!        where n is the number of given data points and \f$ \sigma \f$ is the standard deviation of the data.\n
+  !!        If the optional argument silverman is set to false, the cross-validation method described
+  !!        by Scott et al. (2005) is applied.
+  !!        Therefore, the likelihood of a given h is maximized using the Nelder-Mead algorithm nelminrange.
+  !!        For large data sets this might be time consuming and should be performed aforehand using the function
+  !!        kernel_density_h.\n
+  !!        The dataset x can be single or double precision. The result will have the same numerical precision.\n
+  !!        If the PDF for other datapoints than x is needed the optional argument xout has to be specified.
+  !!        The result will than be of the same size and precision as xout.
+  !!
+  !!        \b Example
+  !!        \code{.f90}
+  !!        ! given data, e.g. temperature
+  !!        x = (/ 26.1_dp, 24.5_dp, 24.8_dp, 24.5_dp, 24.1_dp /)
+  !!
+  !!        ! estimate bandwidth via cross-validation (time-consuming)
+  !!        h = kernel_density_h(x,silverman=.false.)
+  !!
+  !!        ! estimate bandwidth with Silverman''s rule of thumb (default)
+  !!        h = kernel_density_h(x,silverman=.true.)
+  !!
+  !!        ! calc cumulative density with the estimated bandwidth h at given output points xout
+  !!        pdf = kernel_density(x, h=h, xout=xout)
+  !!        ! gives (probability) density at either xout values, if specified, or at x values, if xout is not present
+  !!        ! if bandwith h is given                 : silverman (true/false) is ignored
+  !!        ! if silverman=.true.  and h not present : bandwith will be estimated using Silerman''s rule of thumb
+  !!        ! if silverman=.false. and h not present : bandwith will be estimated using Cross-Validation approach
+  !!        \endcode
+  !!
+  !!        -> see also example in test directory
+  !!
+  !!        \b Literature
+  !!        1. Scott, D. W., & Sain, S. R. (2005).
+  !!             Multi-dimensional Density Estimation. Handbook of Statistics, 24, 229-261.
+  !!             doi:10.1016/S0169-7161(04)24009-3
+  !!        2. Haerdle, W., & Mueller, M. (2000). Multivariate and semiparametric kernel regression.
+  !!            In M. G. Schimek (Ed.), Smoothing and regression: Approaches, computation, and
+  !!             application (pp. 357-392). Hoboken, NJ, USA: John Wiley & Sons, Inc. doi:10.1002/9781118150658.ch12s,
+  !!             Cambridge University Press, UK, 1996
+  !!
+  !>       \param[in] "real(sp/dp) :: x(:)"        \f$ x_i \f$ 1D-array with data points
   !>       \param[in] "real(sp/dp), optional :: h"       Bandwith of kernel.\n
-  !>                                                     If present, argument silverman is ignored.
-  !>                                                     If not present, the bandwith will be approximated first.
+  !!                                                     If present, argument silverman is ignored.
+  !!                                                     If not present, the bandwith will be approximated first.
   !>       \param[in] "logical, optional :: silverman"   By default Silverman''s Rule-of-thumb will be used to approximate
-  !>                                                     the bandwith of the kernel (silverman=true).
-  !>                                                     If silverman=false the Cross-Validation approach is used
-  !>                                                     to estimate the bandwidth.
+  !!                                                     the bandwith of the kernel (silverman=true).
+  !!                                                     If silverman=false the Cross-Validation approach is used
+  !!                                                     to estimate the bandwidth.
   !>       \param[in] "real(sp/dp), optional :: xout(:)" If present, the PDF will be approximated at this arguments,
-  !>                                                     otherwise the PDF is approximated at x.
+  !!                                                     otherwise the PDF is approximated at x.
   !>       \param[in] "logical, optional :: mask(:)"     mask x values at calculation.\n
-  !>                                                     if not xout given, then kernel estimates will have nodata value.
+  !!                                                     if not xout given, then kernel estimates will have nodata value.
   !>       \param[in] "real(sp/dp), optional :: nodata"  if mask and not xout given, then masked data will
-  !>                                                     have nodata kernel estimate.
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
+  !!                                                     have nodata kernel estimate.
   !>       \return     real(sp/dp), allocatable :: kernel_density(:) &mdash; smoothed PDF at either x or xout
-  !
-  !     RESTRICTIONS
+
   !>       \note Data need to be one-dimensional. Multi-dimensional data handling not implemented yet.
-  !
-  !     EXAMPLE
-  !         ! given data, e.g. temperature
-  !         x = (/ 26.1_dp, 24.5_dp, 24.8_dp, 24.5_dp, 24.1_dp /)
-  !
-  !         ! estimate bandwidth via cross-validation (time-consuming)
-  !         h = kernel_density_h(x,silverman=.false.)
-  !
-  !         ! estimate bandwidth with Silverman''s rule of thumb (default)
-  !         h = kernel_density_h(x,silverman=.true.)
-  !
-  !         ! calc cumulative density with the estimated bandwidth h at given output points xout
-  !         pdf = kernel_density(x, h=h, xout=xout)
-  !         ! gives (probability) density at either xout values, if specified, or at x values, if xout is not present
-  !         ! if bandwith h is given                 : silverman (true/false) is ignored
-  !         ! if silverman=.true.  and h not present : bandwith will be estimated using Silerman''s rule of thumb
-  !         ! if silverman=.false. and h not present : bandwith will be estimated using Cross-Validation approach
-  !
-  !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Scott, D. W., & Sain, S. R. (2005).
-  !             Multi-dimensional Density Estimation. Handbook of Statistics, 24, 229-261.
-  !             doi:10.1016/S0169-7161(04)24009-3
-  !         Haerdle, W., & Mueller, M. (2000). Multivariate and semiparametric kernel regression.
-  !             In M. G. Schimek (Ed.), Smoothing and regression: Approaches, computation, and
-  !             application (pp. 357-392). Hoboken, NJ, USA: John Wiley & Sons, Inc. doi:10.1002/9781118150658.ch12s,
-  !             Cambridge University Press, UK, 1996
-
-  !     HISTORY
   !>        \author Juliane Mai
   !>        \date Mar 2013
-  !         Modified, Stephan Thober, Mar 2013 - mask and nodata
-  !                   Matthias Cuntz, Mar 2013
-
+  !>        \author Stephan Thober
+  !>        \date Mar 2013
+  !!              - mask and nodata
+  !>        \author Matthias Cuntz
+  !>        \date Mar 2013
   INTERFACE kernel_density
      MODULE PROCEDURE kernel_density_1d_dp,  kernel_density_1d_sp
   END INTERFACE kernel_density
 
-  
+
   ! ------------------------------------------------------------------
-
-  !     NAME
-  !         kernel_density_h
-
-  !     PURPOSE
-  !         Approximates the bandwith h of the kernel.
-  !
   !>        \brief   Approximates the bandwith h of the kernel.
-  !
-  !>        \details  Approximates the bandwith h of the kernel for a given dataset x
-  !>                  either using Silverman''s rule-of-thumb or a cross-validation method.\n
-  !
-  !>        By default the bandwidth h is approximated by Silverman''s rule-of-thumb
-  !>               \f[ h = \frac{4}{3}^{0.2} n^{-0.2} \sigma_x \f]
-  !>        where n is the number of given data points and \f$ \sigma \f$ is the standard deviation of the data.\n
-  !>        If the optional argument silverman is set to false, the cross-validation method described
-  !>        by Scott et al. (2005) is applied.
-  !>        Therefore, the likelihood of a given h is maximized using the Nelder-Mead algorithm nelminrange.
-  !>        For large data sets this might be time consuming and should be performed aforehand using the
-  !>        function kernel_density_h.\n
-  !>        The dataset x can be single or double precision. The result will have the same numerical precision.\n
-  !>        The result of this function can be used as the optional input for kernel_density and kernel_cumdensity.
-  !
-  !     INTENT(IN)
-  !>        \param[in] "real(sp/dp) :: x(:)"        \f$ x_i \f$ 1D-array with data points
-  !
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
+  !>        \details Approximates the bandwith h of the kernel for a given dataset x
+  !!                 either using Silverman''s rule-of-thumb or a cross-validation method.\n
+  !!
+  !!        By default the bandwidth h is approximated by Silverman''s rule-of-thumb
+  !!               \f[ h = \frac{4}{3}^{0.2} n^{-0.2} \sigma_x \f]
+  !!        where n is the number of given data points and \f$ \sigma \f$ is the standard deviation of the data.\n
+  !!        If the optional argument silverman is set to false, the cross-validation method described
+  !!        by Scott et al. (2005) is applied.
+  !!        Therefore, the likelihood of a given h is maximized using the Nelder-Mead algorithm nelminrange.
+  !!        For large data sets this might be time consuming and should be performed aforehand using the
+  !!        function kernel_density_h.\n
+  !!        The dataset x can be single or double precision. The result will have the same numerical precision.\n
+  !!        The result of this function can be used as the optional input for kernel_density and kernel_cumdensity.
+  !!
+  !!        \b Example
+  !!        \code{.f90}
+  !!        ! given data, e.g. temperature
+  !!        x = (/ 26.1_dp, 24.5_dp, 24.8_dp, 24.5_dp, 24.1_dp /)
+  !!
+  !!        ! estimate bandwidth via cross-validation (time-consuming)
+  !!        h = kernel_density_h(x,silverman=.false.)
+  !!
+  !!        ! estimate bandwidth with Silverman''s rule of thumb (default)
+  !!        h = kernel_density_h(x,silverman=.true.)
+  !!        \endcode
+  !!
+  !!        -> see also example in test directory
+  !!
+  !!        \b Literature
+  !!        1. Scott, D. W., & Sain, S. R. (2005).
+  !!             Multi-dimensional Density Estimation. Handbook of Statistics, 24, 229-261.
+  !!             doi:10.1016/S0169-7161(04)24009-3
+  !!        2. Haerdle, W., & Mueller, M. (2000). Multivariate and semiparametric kernel regression.
+  !!            In M. G. Schimek (Ed.), Smoothing and regression: Approaches, computation, and
+  !!             application (pp. 357-392). Hoboken, NJ, USA: John Wiley & Sons, Inc. doi:10.1002/9781118150658.ch12s,
+  !!             Cambridge University Press, UK, 1996
+  !!
+  !>       \param[in] "real(sp/dp) :: x(:)"        \f$ x_i \f$ 1D-array with data points
   !>       \param[in] "logical, optional :: silverman"   By default Silverman''s Rule-of-thumb will be used to approximate
-  !>                                                     the bandwith of the kernel (silverman=true).
-  !>                                                     If silverman=false the Cross-Validation approach is used
-  !>                                                     to estimate the bandwidth.
+  !!                                                     the bandwith of the kernel (silverman=true).
+  !!                                                     If silverman=false the Cross-Validation approach is used
+  !!                                                     to estimate the bandwidth.
   !>       \param[in] "logical, optional :: mask(:)"     mask x values at calculation.
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
   !>       \return     real(sp/dp), allocatable :: kernel_density_h(:) &mdash; approximated bandwith h for kernel smoother
-  !
-  !     RESTRICTIONS
+
   !>       \note Data need to be one-dimensional. Multi-dimensional data handling not implemented yet.
-  !
-  !     EXAMPLE
-  !         ! given data, e.g. temperature
-  !         x = (/ 26.1_dp, 24.5_dp, 24.8_dp, 24.5_dp, 24.1_dp /)
-  !
-  !         ! estimate bandwidth via cross-validation (time-consuming)
-  !         h = kernel_density_h(x,silverman=.false.)
-  !
-  !         ! estimate bandwidth with Silverman''s rule of thumb (default)
-  !         h = kernel_density_h(x,silverman=.true.)
-  !
-  !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Scott, D. W., & Sain, S. R. (2005).
-  !             Multi-dimensional Density Estimation. Handbook of Statistics, 24, 229-261.
-  !             doi:10.1016/S0169-7161(04)24009-3
-  !         Haerdle, W., & Mueller, M. (2000). Multivariate and semiparametric kernel regression.
-  !             In M. G. Schimek (Ed.), Smoothing and regression: Approaches, computation, and
-  !             application (pp. 357-392). Hoboken, NJ, USA: John Wiley & Sons, Inc. doi:10.1002/9781118150658.ch12s,
-  !             Cambridge University Press, UK, 1996
-
-  !     HISTORY
-  !>        \author Juliane Mai
-  !>        \date Mar 2013
-  !         Modified, Matthias Cuntz, Mar 2013
-
+  !>       \authors Juliane Mai, Matthias Cuntz
+  !>       \date Mar 2013
   INTERFACE kernel_density_h
      MODULE PROCEDURE kernel_density_h_1d_dp, kernel_density_h_1d_sp
   END INTERFACE kernel_density_h
 
-  
+
   ! ------------------------------------------------------------------
-
-  !     NAME
-  !         kernel_regression
-
-  !     PURPOSE
-  !         Multi-dimensional non-parametric kernel regression using a Gaussian kernel.
-  !
   !>        \brief   Multi-dimensional non-parametric kernel regression.
-  !
-  !>        \details Multi-dimensional non-parametric kernel regression using a Gaussian kernel.\n
-  !
-  !>        The bandwith of the kernel can be pre-determined using the function kernel_regression_h and specified
-  !>        by the optional argument h.
-  !>        If h is not given the default method to approximate the bandwith h is Silverman''s rule-of-thumb
-  !>               \f[ h = \frac{4}{d+2}^{1/(d+4)} n^{-1/(d+4)} \sigma_{x_i} \f]
-  !>        where \f$ n \f$ is the number of given data points, \f$ d \f$ is the number of dimensions,
-  !>        and \f$ \sigma_{x_i} \f$ is the standard deviation of the data of dimension \f$ i \f$.\n
-  !>        If the optional argument silverman is set to false, the cross-validation method described
-  !>        by Scott et al. (2005) is applied.
-  !>        Therefore, the likelihood of a given h is maximized using the Nelder-Mead algorithm nelminrange.
-  !>        For large data sets this might be time consuming and should be performed aforehand
-  !>        using the function kernel_regression_h.\n
-  !>        The dataset (x,y) can be single or double precision. The result will have the same numerical precision.\n
-  !>        If the regression for other datapoints than x is needed the optional argument xout has to be specified.
-  !>        The result will than be of the same size and precision as xout.\n
-  !>        \n
-  !>        The code is adapted from the kernel_regression.py of the UFZ CHS Python library.
-  !
-  !     INTENT(IN)
-  !>        \param[in] "real(sp/dp) :: x(:)/x(:,:)"  1D or ND array with independent variables
-  !>        \param[in] "real(sp/dp) :: y(:)"         1D array of dependent variables y(i) = f(x(i:)) with unknown f
-  !
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !>       \param[in] "real(sp/dp), optional :: h"       Bandwith of kernel.\n
-  !>                                                     If present, argument silverman is ignored.
-  !>                                                     If not present, the bandwith will be approximated first.
-  !>       \param[in] "logical, optional :: silverman"   By default Silverman''s Rule-of-thumb will be used to approximate the
-  !>                                                     bandwith of the kernel (silverman=true).
-  !>                                                     If silverman=false the Cross-Validation approach is used
-  !>                                                     to estimate the bandwidth.
-  !>       \param[in] "real(sp/dp), optional :: xout(:)/xout(:,:)"
-  !>                                                     If present, the fitted values will be returned for
-  !>                                                     this independent variables,
-  !>                                                     otherwise the fitted values at x are returned.
-  !>       \param[in] "logical, optional :: mask(:)"     mask y values at calculation.\n
-  !>                                                     if not xout given, then kernel estimates will have nodata value.
-  !>       \param[in] "real(sp/dp), optional :: nodata"  if mask and not xout given, then masked data will
-  !>                                                     have nodata kernel estimate.
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
+  !>        \details Multi-dimensional non-parametric kernel regression using a Gaussian kernel.
+  !!
+  !!        The bandwith of the kernel can be pre-determined using the function kernel_regression_h and specified
+  !!        by the optional argument h.
+  !!        If h is not given the default method to approximate the bandwith h is Silverman''s rule-of-thumb
+  !!               \f[ h = \frac{4}{d+2}^{1/(d+4)} n^{-1/(d+4)} \sigma_{x_i} \f]
+  !!        where \f$ n \f$ is the number of given data points, \f$ d \f$ is the number of dimensions,
+  !!        and \f$ \sigma_{x_i} \f$ is the standard deviation of the data of dimension \f$ i \f$.\n
+  !!        If the optional argument silverman is set to false, the cross-validation method described
+  !!        by Scott et al. (2005) is applied.
+  !!        Therefore, the likelihood of a given h is maximized using the Nelder-Mead algorithm nelminrange.
+  !!        For large data sets this might be time consuming and should be performed aforehand
+  !!        using the function kernel_regression_h.\n
+  !!        The dataset (x,y) can be single or double precision. The result will have the same numerical precision.\n
+  !!        If the regression for other datapoints than x is needed the optional argument xout has to be specified.
+  !!        The result will than be of the same size and precision as xout.\n
+  !!
+  !!        \b Example
+  !!        \code{.f90}
+  !!        The code is adapted from the kernel_regression.py of the jams_python library.
+  !!        ! given data, e.g. temperature
+  !!        x(:,1) = (/ 26.1_dp, 24.5_dp, 24.8_dp, 14.5_dp,  2.1_dp /)
+  !!        x(:,2) = (/  2.1_dp,  4.5_dp,  6.8_dp,  4.8_dp,  0.1_dp /)
+  !!        y      = (/ 28.2_dp, 29.0_dp, 31.6_dp, 19.3_dp,  2.2_dp /)
+  !!
+  !!        ! estimate bandwidth via cross-validation (time-consuming)
+  !!        h = kernel_regression_h(x,y,silverman=.false.)
+  !!
+  !!        ! estimate bandwidth with Silverman''s rule of thumb (default)
+  !!        h = kernel_regression_h(x,y,silverman=.true.)
+  !!
+  !!        fit_y = kernel_regression(x, y, h=h, silverman=.false., xout=xout)
+  !!        ! gives fitted values at either xout values, if specified, or at x values, if xout is not present
+  !!        ! if bandwith h is given                 : silverman (true/false) is ignored
+  !!        ! if silverman=.true.  and h not present : bandwith will be estimated using Silerman''s rule of thumb
+  !!        ! if silverman=.false. and h not present : bandwith will be estimated using Cross-Validation approach
+  !!        \endcode
+  !!
+  !!        -> see also example in test directory
+  !!
+  !!        \b Literature
+  !!        1. Scott, D. W., & Sain, S. R. (2005).
+  !!             Multi-dimensional Density Estimation. Handbook of Statistics, 24, 229-261.
+  !!             doi:10.1016/S0169-7161(04)24009-3
+  !!        2. Haerdle, W., & Mueller, M. (2000). Multivariate and semiparametric kernel regression.
+  !!            In M. G. Schimek (Ed.), Smoothing and regression: Approaches, computation, and
+  !!             application (pp. 357-392). Hoboken, NJ, USA: John Wiley & Sons, Inc. doi:10.1002/9781118150658.ch12s,
+  !!             Cambridge University Press, UK, 1996
+  !!
+  !>        \param[in] "real(sp/dp) :: x(:)/x(:,:)"      1D or ND array with independent variables
+  !>        \param[in] "real(sp/dp) :: y(:)"             1D array of dependent variables y(i) = f(x(i:)) with unknown f
+  !>        \param[in] "real(sp/dp), optional :: h"      Bandwith of kernel.\n
+  !!                                                     If present, argument silverman is ignored.
+  !!                                                     If not present, the bandwith will be approximated first.
+  !>        \param[in] "logical, optional :: silverman"   By default Silverman''s Rule-of-thumb will be used to approximate the
+  !!                                                     bandwith of the kernel (silverman=true).
+  !!                                                     If silverman=false the Cross-Validation approach is used
+  !!                                                     to estimate the bandwidth.
+  !>        \param[in] "real(sp/dp), optional :: xout(:)/xout(:,:)"
+  !!                                                     If present, the fitted values will be returned for
+  !!                                                     this independent variables,
+  !!                                                     otherwise the fitted values at x are returned.
+  !>        \param[in] "logical, optional :: mask(:)"     mask y values at calculation.\n
+  !!                                                     if not xout given, then kernel estimates will have nodata value.
+  !>        \param[in] "real(sp/dp), optional :: nodata"  if mask and not xout given, then masked data will
+  !!                                                     have nodata kernel estimate.
   !>        \return     real(sp/dp), allocatable :: kernel_regression(:) &mdash; fitted values at eighter x or xout
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         ! given data, e.g. temperature
-  !         x(:,1) = (/ 26.1_dp, 24.5_dp, 24.8_dp, 14.5_dp,  2.1_dp /)
-  !         x(:,2) = (/  2.1_dp,  4.5_dp,  6.8_dp,  4.8_dp,  0.1_dp /)
-  !         y      = (/ 28.2_dp, 29.0_dp, 31.6_dp, 19.3_dp,  2.2_dp /)
-  !
-  !         ! estimate bandwidth via cross-validation (time-consuming)
-  !         h = kernel_regression_h(x,y,silverman=.false.)
-  !
-  !         ! estimate bandwidth with Silverman''s rule of thumb (default)
-  !         h = kernel_regression_h(x,y,silverman=.true.)
-  !
-  !         fit_y = kernel_regression(x, y, h=h, silverman=.false., xout=xout)
-  !         ! gives fitted values at either xout values, if specified, or at x values, if xout is not present
-  !         ! if bandwith h is given                 : silverman (true/false) is ignored
-  !         ! if silverman=.true.  and h not present : bandwith will be estimated using Silerman''s rule of thumb
-  !         ! if silverman=.false. and h not present : bandwith will be estimated using Cross-Validation approach
-  !
-  !         -> see also example in test directory
 
-  !     LITERATURE
-  !         Scott, D. W., & Sain, S. R. (2005).
-  !             Multi-dimensional Density Estimation. Handbook of Statistics, 24, 229-261.
-  !             doi:10.1016/S0169-7161(04)24009-3
-  !         Haerdle, W., & Mueller, M. (2000). Multivariate and semiparametric kernel regression.
-  !             In M. G. Schimek (Ed.), Smoothing and regression: Approaches, computation, and
-  !             application (pp. 357-392). Hoboken, NJ, USA: John Wiley & Sons, Inc. doi:10.1002/9781118150658.ch12s,
-  !             Cambridge University Press, UK, 1996
-
-  !     HISTORY
   !>        \authors Matthias Cuntz, Juliane Mai
   !>        \date Mar 2013
   INTERFACE kernel_regression
@@ -451,88 +341,61 @@ MODULE mo_kernel
           kernel_regression_1d_dp, kernel_regression_1d_sp
   END INTERFACE kernel_regression
 
-  
+
   ! ------------------------------------------------------------------
-
-  !     NAME
-  !         kernel_regression_h
-
-  !     PURPOSE
-  !         Approximates the bandwith h of the kernel.
-  !
   !>        \brief   Approximates the bandwith h of the kernel for regression.
-  !
   !>        \details  Approximates the bandwith h of the kernel for a given dataset x
-  !>                  either using Silverman''s rule-of-thumb or a cross-validation method.\n
-  !
-  !>        By default the bandwidth h is approximated by Silverman''s rule-of-thumb
-  !>               \f[ h = \frac{4}{d+2}^{1/(d+4)} n^{-1/(d+4)} \sigma_{x_i} \f]
-  !>        where \f$ n \f$ is the number of given data points, \f$ d \f$ is the number of dimensions,
-  !>        and \f$ \sigma_{x_i} \f$ is the standard deviation of the data of dimension \f$ i \f$.\n
-  !>        If the optional argument silverman is set to false, the cross-validation method described
-  !>        by Scott et al. (2005) is applied.
-  !>        Therefore, the likelihood of a given h is maximized using the Nelder-Mead algorithm nelminrange.
-  !>        For large data sets this might be time consuming and should be performed aforehand using the function kernel_density_h.\n
-  !>        The dataset x can be single or double precision. The result will have the same numerical precision.\n
-  !>        The result of this function can be used as the optional input for kernel_regression.\n
-  !>        \n
-  !>        The code is adapted from the kernel_regression.py of the UFZ CHS Python library.
-  !
-  !     INTENT(IN)
+  !!                  either using Silverman''s rule-of-thumb or a cross-validation method.\n
+  !!
+  !!        By default the bandwidth h is approximated by Silverman''s rule-of-thumb
+  !!               \f[ h = \frac{4}{d+2}^{1/(d+4)} n^{-1/(d+4)} \sigma_{x_i} \f]
+  !!        where \f$ n \f$ is the number of given data points, \f$ d \f$ is the number of dimensions,
+  !!        and \f$ \sigma_{x_i} \f$ is the standard deviation of the data of dimension \f$ i \f$.\n
+  !!        If the optional argument silverman is set to false, the cross-validation method described
+  !!        by Scott et al. (2005) is applied.
+  !!        Therefore, the likelihood of a given h is maximized using the Nelder-Mead algorithm nelminrange.
+  !!        For large data sets this might be time consuming and should be performed aforehand using the function kernel_density_h.\n
+  !!        The dataset x can be single or double precision. The result will have the same numerical precision.\n
+  !!        The result of this function can be used as the optional input for kernel_regression.\n
+  !!
+  !!        The code is adapted from the kernel_regression.py of the UFZ CHS Python library.
+  !!
+  !!        \b Example
+  !!        \code{.f90}
+  !!        ! given data, e.g. temperature
+  !!        x(:,1) = (/ 26.1_dp, 24.5_dp, 24.8_dp, 14.5_dp,  2.1_dp /)
+  !!        x(:,2) = (/  2.1_dp,  4.5_dp,  6.8_dp,  4.8_dp,  0.1_dp /)
+  !!        y      = (/ 28.2_dp, 29.0_dp, 31.6_dp, 19.3_dp,  2.2_dp /)
+  !!
+  !!        ! estimate bandwidth via cross-validation (time-consuming)
+  !!        h = kernel_regression_h(x,y,silverman=.false.)
+  !!
+  !!        ! estimate bandwidth with Silverman''s rule of thumb (default)
+  !!        h = kernel_regression_h(x,y,silverman=.true.)
+  !!        \endcode
+  !!
+  !!        -> see also example in test directory
+  !!
+  !!        \b Literature
+  !!        1. Scott, D. W., & Sain, S. R. (2005).
+  !!             Multi-dimensional Density Estimation. Handbook of Statistics, 24, 229-261.
+  !!             doi:10.1016/S0169-7161(04)24009-3
+  !!        2. Haerdle, W., & Mueller, M. (2000). Multivariate and semiparametric kernel regression.
+  !!            In M. G. Schimek (Ed.), Smoothing and regression: Approaches, computation, and
+  !!             application (pp. 357-392). Hoboken, NJ, USA: John Wiley & Sons, Inc. doi:10.1002/9781118150658.ch12s,
+  !!             Cambridge University Press, UK, 1996
+  !!
   !>        \param[in] "real(sp/dp) :: x(:)/x(:,:)"  1D or ND array with independent variables
   !>        \param[in] "real(sp/dp) :: y(:)"         1D array of dependent variables y(i) = f(x(i:)) with unknown f
-  !
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !>       \param[in] "logical, optional :: silverman"   By default Silverman''s Rule-of-thumb will be used to approximate the
-  !>                                                     bandwith of the kernel (silverman=true).
-  !>                                                     If silverman=false the Cross-Validation approach is used
-  !>                                                     to estimate the bandwidth.
-  !>       \param[in] "logical, optional :: mask(:)"     mask x values at calculation.
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
+  !>        \param[in] "logical, optional :: silverman"   By default Silverman''s Rule-of-thumb will be used to approximate the
+  !!                                                      bandwith of the kernel (silverman=true).
+  !!                                                      If silverman=false the Cross-Validation approach is used
+  !!                                                      to estimate the bandwidth.
+  !>        \param[in] "logical, optional :: mask(:)"     mask x values at calculation.
   !>        \return     real(sp/dp), allocatable :: kernel_regression_h(:) &mdash; approximated bandwith h for kernel regression\n
-  !>                                                                               number of bandwidths equals
-  !>                                                                               number of independent variables
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         ! given data, e.g. temperature
-  !         x(:,1) = (/ 26.1_dp, 24.5_dp, 24.8_dp, 14.5_dp,  2.1_dp /)
-  !         x(:,2) = (/  2.1_dp,  4.5_dp,  6.8_dp,  4.8_dp,  0.1_dp /)
-  !         y      = (/ 28.2_dp, 29.0_dp, 31.6_dp, 19.3_dp,  2.2_dp /)
-  !
-  !         ! estimate bandwidth via cross-validation (time-consuming)
-  !         h = kernel_regression_h(x,y,silverman=.false.)
-  !
-  !         ! estimate bandwidth with Silverman''s rule of thumb (default)
-  !         h = kernel_regression_h(x,y,silverman=.true.)
-  !
-  !         -> see also example in test directory
+  !!                                                                               number of bandwidths equals
+  !!                                                                               number of independent variables
 
-  !     LITERATURE
-  !         Scott, D. W., & Sain, S. R. (2005).
-  !             Multi-dimensional Density Estimation. Handbook of Statistics, 24, 229-261.
-  !             doi:10.1016/S0169-7161(04)24009-3
-  !         Haerdle, W., & Mueller, M. (2000). Multivariate and semiparametric kernel regression.
-  !             In M. G. Schimek (Ed.), Smoothing and regression: Approaches, computation, and
-  !             application (pp. 357-392). Hoboken, NJ, USA: John Wiley & Sons, Inc. doi:10.1002/9781118150658.ch12s,
-  !             Cambridge University Press, UK, 1996
-
-  !     HISTORY
   !>        \authors Matthias Cuntz, Juliane Mai
   !>        \date Mar 2013
   INTERFACE kernel_regression_h
@@ -540,7 +403,7 @@ MODULE mo_kernel
           kernel_regression_h_1d_dp, kernel_regression_h_1d_sp
   END INTERFACE kernel_regression_h
 
-  
+
   ! ------------------------------------------------------------------
 
   INTERFACE nadaraya_watson
@@ -589,7 +452,7 @@ MODULE mo_kernel
   real(dp), dimension(:),   allocatable :: global_y_dp
   !$OMP threadprivate(global_x_sp,global_xout_sp,global_y_sp,global_x_dp,global_xout_dp,global_y_dp)
 
-  
+
   ! ------------------------------------------------------------------------------------------------
 
 CONTAINS
@@ -630,7 +493,7 @@ CONTAINS
     real(dp)               :: trapzreps                ! maximum relative integration error
     integer(i4), parameter :: kromb = 5                ! Romberg's method of order 2kromb
     real(dp)               :: a, b, k1, k2             ! integral limits and corresponding kernel densities
-    real(dp)               :: qromb, dqromb            ! interpolated result and changeof consecutive calls to trapzd 
+    real(dp)               :: qromb, dqromb            ! interpolated result and changeof consecutive calls to trapzd
     real(dp), dimension(:), allocatable :: s, hs       ! results and stepsize of consecutive calls to trapzd
     real(dp)               :: lower_x                  ! lowest support point at min(x) - 3 stddev(x)
     real(dp), dimension(1) :: klower_x                 ! kernel density estimate at lower_x
@@ -749,7 +612,7 @@ CONTAINS
              kernel_cumdensity_1d_dp(ii) = kernel_cumdensity_1d_dp(ii-1) + qromb
           endif
        end do
-       
+
        deallocate(s, hs)
     else
        ! loop through all regression points
@@ -829,7 +692,7 @@ CONTAINS
     real(sp)               :: trapzreps                ! maximum relative integration error
     integer(i4), parameter :: kromb = 5                ! Romberg's method of order 2kromb
     real(sp)               :: a, b, k1, k2             ! integral limits and corresponding kernel densities
-    real(sp)               :: qromb, dqromb            ! interpolated result and changeof consecutive calls to trapzd 
+    real(sp)               :: qromb, dqromb            ! interpolated result and changeof consecutive calls to trapzd
     real(sp), dimension(:), allocatable :: s, hs       ! results and stepsize of consecutive calls to trapzd
     real(sp)               :: lower_x                  ! lowest support point at min(x) - 3 stddev(x)
     real(sp), dimension(1) :: klower_x                 ! kernel density estimate at lower_x
@@ -948,7 +811,7 @@ CONTAINS
              kernel_cumdensity_1d_sp(ii) = kernel_cumdensity_1d_sp(ii-1) + qromb
           endif
        end do
-       
+
        deallocate(s, hs)
     else
        ! loop through all regression points
@@ -992,7 +855,7 @@ CONTAINS
 
   end function kernel_cumdensity_1d_sp
 
-  
+
   ! ------------------------------------------------------------------------------------------------
 
   function kernel_density_1d_dp(ix, h, silverman, xout, mask, nodata)
@@ -1187,7 +1050,7 @@ CONTAINS
 
   end function kernel_density_1d_sp
 
-  
+
   ! ------------------------------------------------------------------------------------------------
 
   function kernel_density_h_1d_dp(ix, silverman, mask)
@@ -1292,7 +1155,7 @@ CONTAINS
 
   end function kernel_density_h_1d_sp
 
-  
+
   ! ------------------------------------------------------------------------------------------------
 
   function kernel_regression_1d_dp(ix, iy, h, silverman, xout, mask, nodata)
@@ -1701,7 +1564,7 @@ CONTAINS
 
   end function kernel_regression_2d_sp
 
-  
+
   ! ------------------------------------------------------------------------------------------------
 
   function kernel_regression_h_1d_dp(ix, iy, silverman, mask)
@@ -1934,7 +1797,7 @@ CONTAINS
 
   end function kernel_regression_h_2d_sp
 
-  
+
   ! ------------------------------------------------------------------------------------------------
   !
   !                PRIVATE ROUTINES
@@ -2159,7 +2022,7 @@ CONTAINS
 
   end function nadaraya_watson_2d_sp
 
-  
+
   ! ------------------------------------------------------------------------------------------------
 
   function cross_valid_regression_dp(h)
@@ -2249,7 +2112,7 @@ CONTAINS
 
   end function cross_valid_regression_sp
 
-  
+
   ! ------------------------------------------------------------------------------------------------
 
   function cross_valid_density_1d_dp(h)
@@ -2399,7 +2262,7 @@ CONTAINS
 
   end function cross_valid_density_1d_sp
 
-  
+
   ! ------------------------------------------------------------------------------------------------
 
   subroutine allocate_globals_1d_dp(x,y,xout)
@@ -2494,7 +2357,7 @@ CONTAINS
 
   end subroutine allocate_globals_2d_sp
 
-  
+
   ! ------------------------------------------------------------------------------------------------
 
   subroutine deallocate_globals()
@@ -2510,7 +2373,7 @@ CONTAINS
 
   end subroutine deallocate_globals
 
-  
+
   ! ------------------------------------------------------------------------------------------------
 
   FUNCTION golden_sp(ax,bx,cx,func,tol,xmin)
@@ -2653,7 +2516,7 @@ CONTAINS
 
   END FUNCTION golden_dp
 
-  
+
   ! ------------------------------------------------------------------------------------------------
 
   function mesh_dp(start, end, n, delta)
