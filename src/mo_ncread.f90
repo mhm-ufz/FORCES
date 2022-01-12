@@ -2058,27 +2058,26 @@ contains
     !
   end subroutine Get_NcVar_5d_i1
   ! ------------------------------------------------------------------------------
-  !
-  ! NAME
-  !     NcOpen
-  !
-  ! PURPOSE
-  !     opens a netcdf file and returns file handle
-  !
-  ! CALLING SEQUENCE
-  !     id = NcOpen(Fname)
-  !
-  ! INTENT(IN)
-  !     character(len=*) :: Fname - Filename of file to open
-  !
-  ! INTENT(OUT)
-  !     integer(i4)      :: NcOpen - id of opened stream
-  !
-  ! LITERATURE
-  !     http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
-  !
-  ! HISTORY
-  !     Written,  Stephan Thober, May 2012
+
+  !>    \brief Open netcdf file
+  
+  !>    \details Opens a netcdf file and returns file handle
+  !!
+  !!    \b Example
+  !!    
+  !!    \code{.f90}
+  !!    id = NcOpen(Fname)
+  !!    \endcode
+  !!
+  !!    \b Literature
+  !!
+  !!    1. http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
+
+  !>    \param[in] "character(len=*) :: Fname"    Filename of file to open
+  !>    \param[out] "integer(i4)      :: NcOpen"  id of opened stream
+  
+  !>    \author Stephan Thober,
+  !>    \date May 2012
 
   function NcOpen(Fname)
     !
@@ -2092,24 +2091,25 @@ contains
   end function NcOpen
 
   ! ------------------------------------------------------------------------------
-  !
-  ! NAME
-  !     NcClose
-  !
-  ! PURPOSE
-  !     closes a netcdf file by file handle
-  !
-  ! CALLING SEQUENCE
-  !     call NcClose(ncid)
-  !
-  ! INTENT(IN) :: ncid - file handle of open netcdf file
-  !
-  ! LITERATURE
-  !     http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
-  !
-  ! HISTORY
-  !     Written,  Stephan Thober, May 2012
-  !
+  
+  !>    \brief Closes netcdf file
+
+  !>    \details Closes a netcdf file by file handle
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    call NcClose(ncid)
+  !!    \endcode
+  !!
+  !!    \b Literature
+  !!
+  !!    1. http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
+
+  !>    \param[in] "ncid" - file handle of open netcdf file
+  
+  !>    \author Stephan Thober
+  !>    \date May 2012
 
   subroutine NcClose(ncid)
     !
@@ -2122,19 +2122,20 @@ contains
   end subroutine NcClose
 
   ! ------------------------------------------------------------------------------
-  !
-  ! SUBROUTINE GET_INFO
-  !
-  ! This subroutine is PRIVATE and therefore does not exist outside of this module.
-  !
-  ! This subroutine inquires the nc file. Given the Variable name and the stream
-  ! of the nc file, this subroutine determines the variable id, the kind of the
-  ! variable and the length of the dimensions in the file.
-  !
-  ! See: http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90/ -> NF90-INQUIRE
-  ! for detailed information.
-  !
-  ! Modified, Matthias Cuntz, Nov 2012 - default dimension length -1
+  !>    \brief Get variable info from netcdf files
+  
+  !>    \details This subroutine is PRIVATE and therefore does not exist outside of this module.
+  !!
+  !!    This subroutine inquires the nc file. Given the Variable name and the stream
+  !!    of the nc file, this subroutine determines the variable id, the kind of the
+  !!    variable and the length of the dimensions in the file.
+  !!
+  !!    See: http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90/ -> NF90-INQUIRE
+  !!    for detailed information.
+
+  !>    \author Matthias Cuntz,
+  !>    \date Nov 2012
+  !!      - default dimension length -1
 
   subroutine Get_Info(Varname, ncid, varid, xtype, dl, Info, ndims)
     !
