@@ -3,11 +3,12 @@
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/jothepro/doxygen-awesome-css)](https://github.com/jothepro/doxygen-awesome-css/releases/latest)
 [![GitHub](https://img.shields.io/github/license/jothepro/doxygen-awesome-css)](https://github.com/jothepro/doxygen-awesome-css/blob/main/LICENSE)
 
-<div style="margin: -1% -4.4%;">
+<div style="filter: drop-shadow(0px 3px 15px rgba(0,0,0,0.25))">
 
 [![Screenshot of Doxygen Awesome CSS](img/screenshot.png)](https://jothepro.github.io/doxygen-awesome-css/)
 
 </div>
+<br>
 
 **Doxygen Awesome** is a custom **CSS theme for doxygen** html-documentation with lots of customization parameters.
 
@@ -24,7 +25,7 @@ This theme is an attemt to update the visuals of doxygen without changing it's o
 - 🧩 No changes to the HTML structure of Doxygen required
 - 📱 Improved mobile usability
 - 🌘 Dark mode support!
-- 🥇 Works best with **doxygen 1.9.1**
+- 🥇 Works best with **doxygen 1.9.1** or **1.9.2**
  
 ## Installation
 
@@ -70,48 +71,65 @@ The theme comes with an experimental feature that adds a button to enable and di
 
 It requires customizations in both the header & footer html template.
 
-```bash
-# Create default header & footer templates 
-doxygen -w html header.html footer.html
-```
+1. Create default header & footer templates:
+   ```bash
+   doxygen -w html header.html footer.html delete_me.css
+   ```
 
-```
-# Doxyfile
+2. Reference the required resources in your `Doxyfile`:
+   ```
+   # Include the required Javascript
+   HTML_EXTRA_FILES       = doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js
 
-# Include the required Javascript
-HTML_EXTRA_FILES       = doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js
+   # Add the additional CSS. This is ONLY required for the sidebar-only theme variant!
+   HTML_EXTRA_STYLESHEET  = doxygen-awesome-css/doxygen-awesome.css \ 
+                            doxygen-awesome-css/doxygen-awesome-sidebar-only.css \
+                            doxygen-awesome-css/doxygen-awesome-sidebar-only-darkmode-toggle.css
 
-# Add the additional CSS. This is ONLY required for the sidebar-only theme variant!
-HTML_EXTRA_STYLESHEET  = doxygen-awesome-css/doxygen-awesome.css \ 
-                         doxygen-awesome-css/doxygen-awesome-sidebar-only.css \
-                         doxygen-awesome-css/doxygen-awesome-sidebar-only-darkmode-toggle.css
+   # set custom header & footer files generated in previous step
+   HTML_HEADER            = header.html
+   HTML_FOOTER            = footer.html
+   ```
 
-# set custom header & footer templates
-HTML_HEADER            = header.html
-HTML_FOOTER            = footer.html
-```
+3. In `header.html`, include `doxygen-awesome-darkmode-toggle.js` at the end of the `<head>`:
+   ```html
+   <html> 
+       <head>
+           <!-- ... other metadata & script includes ... -->
+           <script type="text/javascript" src="$relpath^doxygen-awesome-darkmode-toggle.js"></script>
+       </head>
+       <body>
+   ```
+4. In `footer.html`, initialize the `doxygen-awesome-dark-mode-toggle` element at the end of the `<body>`:
+   ```html
+           <!-- ... -->
+           <script type="text/javascript">
+               // script for doxygen 1.9.1
+               $(function() {
+                   $(document).ready(function(){
+                      toggleButton = document.createElement('doxygen-awesome-dark-mode-toggle')
+                      toggleButton.title = "Toggle Light/Dark Mode"
+                      document.getElementById("MSearchBox").parentNode.appendChild(toggleButton)
+                  })
+               })
+           </script>
+       </body>
+   </html>
+   ```
+   **Attention**: In Doxygen 1.9.2 the searchbox and it's siblings are deleted on every resize, which is why the toggle button has to be re-added every time:
+   ```js
+   $(function() {
+     toggleButton = document.createElement('doxygen-awesome-dark-mode-toggle')
+     toggleButton.title = "Toggle Light/Dark Mode"
 
-
-```html
-<!-- header.html -->
-<html>
-    <head>
-        <!-- import the script somewhere in the head -->
-        <script type="text/javascript" src="$relpath^doxygen-awesome-darkmode-toggle.js"></script>
-    </head>
-    <body>
-<!-- footer.html -->
-    </body>
-    <!-- add the button to toggle the theme -->
-    <script>
-    $(document).ready(function(){
-        toggleButton = document.createElement('doxygen-awesome-dark-mode-toggle')
-        toggleButton.title = "Toggle Light/Dark Mode"
-        document.getElementById("MSearchBox").parentNode.appendChild(toggleButton)
-    })
-    </script>
-</html>
-```
+     $(document).ready(function(){
+       document.getElementById("MSearchBox").parentNode.appendChild(toggleButton)
+     })
+     $(window).resize(function(){
+       document.getElementById("MSearchBox").parentNode.appendChild(toggleButton)
+     })
+   })
+   ```
 
 ## Examples
 
@@ -165,8 +183,8 @@ html.dark-mode {
 | `--border-radius-small`           | `4px`                                                       |                                                             |
 | `--border-radius-medium`          | `6px`                                                       |                                                             |
 | `--border-radius-large`           | `8px`                                                       |                                                             |
-| **Content Width**:<br>The content is centered and constraint in it's width. To make the content fill the whole page, set the following variable to `auto`.  |||
-| `--content-maxwidth`              | `900px`                                                     |                                                             |
+| **Content Width**:<br>The content is centered and constrained in its width. To make the content fill the whole page, set the following variable to `auto`.  |||
+| `--content-maxwidth`              | `1000px`                                                     |                                                             |
 | **Code Fragment Colors**:<br>Color-Scheme of multiline codeblocks                                                                                           |||
 | `--fragment-background`           | <span style="background:#282c34;color:white">#282c34</span> |                                                             |
 | `--fragment-foreground`           | <span style="background:#fff;wolor:black">#fff</span>       |                                                             |
