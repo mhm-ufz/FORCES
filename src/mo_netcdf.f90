@@ -6,6 +6,8 @@
 !> \authors David Schaefer
 !> \date Jun 2015
 
+
+
 module mo_netcdf
 
   ! This module provides a thin wrapper around the NetCDF Fortran 90 interface,
@@ -41,123 +43,126 @@ module mo_netcdf
   implicit none
 
   ! --------------------------------------------------------------------------------------
-  character(10), parameter :: CF_FILL_VALUE = '_FillValue'
-  character(11), parameter :: CF_VALID_RANGE = 'valid_range'
-  character(9), parameter :: CF_VALID_MIN = 'valid_min'
-  character(9), parameter :: CF_VALID_MAX = 'valid_max'
-  integer(i4), parameter :: CF_USE_FILL_VALUE = 1_i4
-  integer(i4), parameter :: CF_USE_VALID_MIN = 2_i4
-  integer(i4), parameter :: CF_USE_VALID_MAX = 3_i4
-  integer(i4), parameter :: CF_USE_VALID_RANGE = 4_i4
-  integer(i4), parameter :: CF_USE_NAN = 5_i4
+  character(10), parameter :: CF_FILL_VALUE = '_FillValue' !< CF fill value
+  character(11), parameter :: CF_VALID_RANGE = 'valid_range' !< CF valid range
+  character(9), parameter :: CF_VALID_MIN = 'valid_min' !< CF valid min
+  character(9), parameter :: CF_VALID_MAX = 'valid_max' !< CF valid max
+  integer(i4), parameter :: CF_USE_FILL_VALUE = 1_i4 !< CF use fill value
+  integer(i4), parameter :: CF_USE_VALID_MIN = 2_i4 !< CF use valid min
+  integer(i4), parameter :: CF_USE_VALID_MAX = 3_i4 !< CF use valid max
+  integer(i4), parameter :: CF_USE_VALID_RANGE = 4_i4 !< CF use valid range
+  integer(i4), parameter :: CF_USE_NAN = 5_i4 !< CF use nan
 
+  !> \brief NetCDF base class
   type, abstract :: NcBase
 
-    integer(i4) :: id
+    integer(i4) :: id !< object id
 
   contains
 
-    procedure(getNameInterface), deferred :: getName
-    procedure(getParentInterface), deferred :: getParent
+    procedure(getNameInterface), deferred :: getName !< object name
+    procedure(getParentInterface), deferred :: getParent !< object parent
 
   end type NcBase
 
+  !> \brief NetCDF attributable class
   type, abstract, extends(NcBase) :: NcAttributable
 
   contains
 
-    procedure, public :: hasAttribute
-    procedure, public :: renameAttribute
+    procedure, public :: hasAttribute !< object has attribute
+    procedure, public :: renameAttribute !< rename attribute
     procedure, private :: getAttributableIds
 
     procedure, private :: setAttribute_0d_sp
-    generic, public :: setAttribute => setAttribute_0d_sp
+    generic, public :: setAttribute => setAttribute_0d_sp !< set attribute
     procedure, private :: getAttribute_0d_sp
-    generic, public :: getAttribute => getAttribute_0d_sp
+    generic, public :: getAttribute => getAttribute_0d_sp !< get attribute
     procedure, private :: setAttribute_1d_sp
-    generic, public :: setAttribute => setAttribute_1d_sp
+    generic, public :: setAttribute => setAttribute_1d_sp !< set attribute
     procedure, private :: getAttribute_1d_sp
-    generic, public :: getAttribute => getAttribute_1d_sp
+    generic, public :: getAttribute => getAttribute_1d_sp !< get attribute
     procedure, private :: setAttribute_0d_dp
-    generic, public :: setAttribute => setAttribute_0d_dp
+    generic, public :: setAttribute => setAttribute_0d_dp !< set attribute
     procedure, private :: getAttribute_0d_dp
-    generic, public :: getAttribute => getAttribute_0d_dp
+    generic, public :: getAttribute => getAttribute_0d_dp !< get attribute
     procedure, private :: setAttribute_1d_dp
-    generic, public :: setAttribute => setAttribute_1d_dp
+    generic, public :: setAttribute => setAttribute_1d_dp !< set attribute
     procedure, private :: getAttribute_1d_dp
-    generic, public :: getAttribute => getAttribute_1d_dp
+    generic, public :: getAttribute => getAttribute_1d_dp !< get attribute
     procedure, private :: setAttribute_0d_i1
-    generic, public :: setAttribute => setAttribute_0d_i1
+    generic, public :: setAttribute => setAttribute_0d_i1 !< set attribute
     procedure, private :: getAttribute_0d_i1
-    generic, public :: getAttribute => getAttribute_0d_i1
+    generic, public :: getAttribute => getAttribute_0d_i1 !< get attribute
     procedure, private :: setAttribute_1d_i1
-    generic, public :: setAttribute => setAttribute_1d_i1
+    generic, public :: setAttribute => setAttribute_1d_i1 !< set attribute
     procedure, private :: getAttribute_1d_i1
-    generic, public :: getAttribute => getAttribute_1d_i1
+    generic, public :: getAttribute => getAttribute_1d_i1 !< get attribute
     procedure, private :: setAttribute_0d_i2
-    generic, public :: setAttribute => setAttribute_0d_i2
+    generic, public :: setAttribute => setAttribute_0d_i2 !< set attribute
     procedure, private :: getAttribute_0d_i2
-    generic, public :: getAttribute => getAttribute_0d_i2
+    generic, public :: getAttribute => getAttribute_0d_i2 !< get attribute
     procedure, private :: setAttribute_1d_i2
-    generic, public :: setAttribute => setAttribute_1d_i2
+    generic, public :: setAttribute => setAttribute_1d_i2 !< set attribute
     procedure, private :: getAttribute_1d_i2
-    generic, public :: getAttribute => getAttribute_1d_i2
+    generic, public :: getAttribute => getAttribute_1d_i2 !< get attribute
     procedure, private :: setAttribute_0d_i4
-    generic, public :: setAttribute => setAttribute_0d_i4
+    generic, public :: setAttribute => setAttribute_0d_i4 !< set attribute
     procedure, private :: getAttribute_0d_i4
-    generic, public :: getAttribute => getAttribute_0d_i4
+    generic, public :: getAttribute => getAttribute_0d_i4 !< get attribute
     procedure, private :: setAttribute_1d_i4
-    generic, public :: setAttribute => setAttribute_1d_i4
+    generic, public :: setAttribute => setAttribute_1d_i4 !< set attribute
     procedure, private :: getAttribute_1d_i4
-    generic, public :: getAttribute => getAttribute_1d_i4
+    generic, public :: getAttribute => getAttribute_1d_i4 !< get attribute
     procedure, private :: setAttribute_0d_i8
-    generic, public :: setAttribute => setAttribute_0d_i8
+    generic, public :: setAttribute => setAttribute_0d_i8 !< set attribute
     procedure, private :: getAttribute_0d_i8
-    generic, public :: getAttribute => getAttribute_0d_i8
+    generic, public :: getAttribute => getAttribute_0d_i8 !< get attribute
     procedure, private :: setAttribute_1d_i8
-    generic, public :: setAttribute => setAttribute_1d_i8
+    generic, public :: setAttribute => setAttribute_1d_i8 !< set attribute
     procedure, private :: getAttribute_1d_i8
-    generic, public :: getAttribute => getAttribute_1d_i8
+    generic, public :: getAttribute => getAttribute_1d_i8 !< get attribute
     procedure, private :: setAttribute_0d_char
-    generic, public :: setAttribute => setAttribute_0d_char
+    generic, public :: setAttribute => setAttribute_0d_char !< set attribute
     procedure, private :: getAttribute_0d_char
-    generic, public :: getAttribute => getAttribute_0d_char
+    generic, public :: getAttribute => getAttribute_0d_char !< get attribute
 
   end type NcAttributable
 
   ! --------------------------------------------------------------------------------------
 
+  !> \brief NetCDF Group class
   type, extends(NcAttributable) :: NcGroup
 
   contains
 
     ! getter
     procedure, private :: getVariableIds
-    procedure, public :: getVariables
-    procedure, public :: getUnlimitedDimension
-    procedure, public :: getNoVariables
+    procedure, public :: getVariables !< get variables
+    procedure, public :: getUnlimitedDimension !< get unlimited dimension
+    procedure, public :: getNoVariables !< get number of variables
 
     procedure, private :: getDimensionByName
     procedure, private :: getDimensionById
 
-    procedure, public :: getParent => getGroupParent
-    procedure, public :: getName => getGroupName
-    procedure, public :: getGroup => getGroupByName
-    procedure, public :: getVariable => getVariableByName
+    procedure, public :: getParent => getGroupParent !< get parent
+    procedure, public :: getName => getGroupName !< get name
+    procedure, public :: getGroup => getGroupByName !< get group by name
+    procedure, public :: getVariable => getVariableByName !< get variable by name
     generic, public :: getDimension => &
             getDimensionById, &
-            getDimensionByName
+            getDimensionByName !< get dimension
 
     ! checker
-    procedure, public :: hasVariable
-    procedure, public :: hasDimension
-    procedure, public :: hasGroup
-    procedure, public :: isUnlimited => isDatasetUnlimited
+    procedure, public :: hasVariable !< has variable
+    procedure, public :: hasDimension !< has dimension
+    procedure, public :: hasGroup !< has group
+    procedure, public :: isUnlimited => isDatasetUnlimited !< is unlimited
 
     ! setter
-    procedure, public  :: setGroup
-    procedure, public  :: setDimension
-    procedure, public  :: setCoordinate
+    procedure, public  :: setGroup !< set group
+    procedure, public  :: setDimension !< set dimension
+    procedure, public  :: setCoordinate !< set coordinate
     procedure, private :: set_scrip_dimension
     procedure, private :: set_1d_coordinate_variable
     procedure, private :: setVariableWithTypes
@@ -167,7 +172,7 @@ module mo_netcdf
     generic, public :: setVariable => &
             setVariableWithNames, &
             setVariableWithTypes, &
-            setVariableWithIds
+            setVariableWithIds !< set variable
 
   end type NcGroup
 
@@ -177,15 +182,16 @@ module mo_netcdf
 
   ! --------------------------------------------------------------------------------------
 
+  !> \brief NetCDF Dataset class
   type, extends(NcGroup) :: NcDataset
 
-    character(256) :: fname !> Filename of the opened dataset
-    character(1) :: mode  !> File open mode
+    character(256) :: fname !< Filename of the opened dataset
+    character(1) :: mode  !< File open mode
 
   contains
 
-    procedure, public :: sync
-    procedure, public :: close
+    procedure, public :: sync !< sync dataset
+    procedure, public :: close !< close dataset
 
   end type NcDataset
 
@@ -195,15 +201,16 @@ module mo_netcdf
 
   ! --------------------------------------------------------------------------------------
 
+  !> \brief NetCDF Dimension class
   type, extends(NcBase) :: NcDimension
 
-    type(NcGroup) :: parent  !> The dimension's parent
+    type(NcGroup) :: parent  !< The dimension's parent
   contains
-    procedure, public :: renameDimension
-    procedure, public :: getParent => getDimensionParent
-    procedure, public :: getName => getDimensionName
-    procedure, public :: getLength => getDimensionLength
-    procedure, public :: isUnlimited => isUnlimitedDimension
+    procedure, public :: renameDimension !< rename dimension
+    procedure, public :: getParent => getDimensionParent !< get parent
+    procedure, public :: getName => getDimensionName !< get name
+    procedure, public :: getLength => getDimensionLength !< get length
+    procedure, public :: isUnlimited => isUnlimitedDimension !< is unlimited
   end type NcDimension
 
   interface NcDimension
@@ -211,232 +218,233 @@ module mo_netcdf
   end interface NcDimension
   ! --------------------------------------------------------------------------------------
 
+  !> \brief NetCDF Variable class
   type, extends(NcAttributable) :: NcVariable
-    type(NcGroup) :: parent   !> The variables's parent
+    type(NcGroup) :: parent   !< The variables's parent
 
   contains
 
-    procedure, public :: renameVariable
-    procedure, public :: getParent => getVariableParent
-    procedure, public :: getName => getVariableName
+    procedure, public :: renameVariable !< rename
+    procedure, public :: getParent => getVariableParent !< get parent
+    procedure, public :: getName => getVariableName !< get name
     procedure, private :: getSlicingShape
 
     procedure, private :: setData_0d_sp
-    generic, public :: setData => setData_0d_sp
+    generic, public :: setData => setData_0d_sp !< set data
     procedure, private :: getData_0d_sp
-    generic, public :: getData => getData_0d_sp
+    generic, public :: getData => getData_0d_sp !< get data
     procedure, private :: setData_1d_sp
-    generic, public :: setData => setData_1d_sp
+    generic, public :: setData => setData_1d_sp !< set data
     procedure, private :: getData_1d_sp
-    generic, public :: getData => getData_1d_sp
+    generic, public :: getData => getData_1d_sp !< get data
     procedure, private :: setData_2d_sp
-    generic, public :: setData => setData_2d_sp
+    generic, public :: setData => setData_2d_sp !< set data
     procedure, private :: getData_2d_sp
-    generic, public :: getData => getData_2d_sp
+    generic, public :: getData => getData_2d_sp !< get data
     procedure, private :: setData_3d_sp
-    generic, public :: setData => setData_3d_sp
+    generic, public :: setData => setData_3d_sp !< set data
     procedure, private :: getData_3d_sp
-    generic, public :: getData => getData_3d_sp
+    generic, public :: getData => getData_3d_sp !< get data
     procedure, private :: setData_4d_sp
-    generic, public :: setData => setData_4d_sp
+    generic, public :: setData => setData_4d_sp !< set data
     procedure, private :: getData_4d_sp
-    generic, public :: getData => getData_4d_sp
+    generic, public :: getData => getData_4d_sp !< get data
     procedure, private :: setData_5d_sp
-    generic, public :: setData => setData_5d_sp
+    generic, public :: setData => setData_5d_sp !< set data
     procedure, private :: getData_5d_sp
-    generic, public :: getData => getData_5d_sp
+    generic, public :: getData => getData_5d_sp !< get data
     procedure, private :: setData_6d_sp
-    generic, public :: setData => setData_6d_sp
+    generic, public :: setData => setData_6d_sp !< set data
     procedure, private :: getData_6d_sp
-    generic, public :: getData => getData_6d_sp
+    generic, public :: getData => getData_6d_sp !< get data
     procedure, private :: getCFAttributes_sp
-    generic, public :: getCFAttributes => getCFAttributes_sp
+    generic, public :: getCFAttributes => getCFAttributes_sp !< get CF attributes
     procedure, private :: setVariableFillValue_sp
-    generic, public :: setFillValue => setVariableFillValue_sp
+    generic, public :: setFillValue => setVariableFillValue_sp !< set fill value
     procedure, private :: getVariableFillValue_sp
-    generic, public :: getFillValue => getVariableFillValue_sp
+    generic, public :: getFillValue => getVariableFillValue_sp !< get fill value
     procedure, private :: setData_0d_dp
-    generic, public :: setData => setData_0d_dp
+    generic, public :: setData => setData_0d_dp !< set data
     procedure, private :: getData_0d_dp
-    generic, public :: getData => getData_0d_dp
+    generic, public :: getData => getData_0d_dp !< get data
     procedure, private :: setData_1d_dp
-    generic, public :: setData => setData_1d_dp
+    generic, public :: setData => setData_1d_dp !< set data
     procedure, private :: getData_1d_dp
-    generic, public :: getData => getData_1d_dp
+    generic, public :: getData => getData_1d_dp !< get data
     procedure, private :: setData_2d_dp
-    generic, public :: setData => setData_2d_dp
+    generic, public :: setData => setData_2d_dp !< set data
     procedure, private :: getData_2d_dp
-    generic, public :: getData => getData_2d_dp
+    generic, public :: getData => getData_2d_dp !< get data
     procedure, private :: setData_3d_dp
-    generic, public :: setData => setData_3d_dp
+    generic, public :: setData => setData_3d_dp !< set data
     procedure, private :: getData_3d_dp
-    generic, public :: getData => getData_3d_dp
+    generic, public :: getData => getData_3d_dp !< get data
     procedure, private :: setData_4d_dp
-    generic, public :: setData => setData_4d_dp
+    generic, public :: setData => setData_4d_dp !< set data
     procedure, private :: getData_4d_dp
-    generic, public :: getData => getData_4d_dp
+    generic, public :: getData => getData_4d_dp !< get data
     procedure, private :: setData_5d_dp
-    generic, public :: setData => setData_5d_dp
+    generic, public :: setData => setData_5d_dp !< set data
     procedure, private :: getData_5d_dp
-    generic, public :: getData => getData_5d_dp
+    generic, public :: getData => getData_5d_dp !< get data
     procedure, private :: setData_6d_dp
-    generic, public :: setData => setData_6d_dp
+    generic, public :: setData => setData_6d_dp !< set data
     procedure, private :: getData_6d_dp
-    generic, public :: getData => getData_6d_dp
+    generic, public :: getData => getData_6d_dp !< get data
     procedure, private :: getCFAttributes_dp
-    generic, public :: getCFAttributes => getCFAttributes_dp
+    generic, public :: getCFAttributes => getCFAttributes_dp !< get CF attributes
     procedure, private :: setVariableFillValue_dp
-    generic, public :: setFillValue => setVariableFillValue_dp
+    generic, public :: setFillValue => setVariableFillValue_dp !< set fill value
     procedure, private :: getVariableFillValue_dp
-    generic, public :: getFillValue => getVariableFillValue_dp
+    generic, public :: getFillValue => getVariableFillValue_dp !< get fill value
     procedure, private :: setData_0d_i1
-    generic, public :: setData => setData_0d_i1
+    generic, public :: setData => setData_0d_i1 !< set data
     procedure, private :: getData_0d_i1
-    generic, public :: getData => getData_0d_i1
+    generic, public :: getData => getData_0d_i1 !< get data
     procedure, private :: setData_1d_i1
-    generic, public :: setData => setData_1d_i1
+    generic, public :: setData => setData_1d_i1 !< set data
     procedure, private :: getData_1d_i1
-    generic, public :: getData => getData_1d_i1
+    generic, public :: getData => getData_1d_i1 !< get data
     procedure, private :: setData_2d_i1
-    generic, public :: setData => setData_2d_i1
+    generic, public :: setData => setData_2d_i1 !< set data
     procedure, private :: getData_2d_i1
-    generic, public :: getData => getData_2d_i1
+    generic, public :: getData => getData_2d_i1 !< get data
     procedure, private :: setData_3d_i1
-    generic, public :: setData => setData_3d_i1
+    generic, public :: setData => setData_3d_i1 !< set data
     procedure, private :: getData_3d_i1
-    generic, public :: getData => getData_3d_i1
+    generic, public :: getData => getData_3d_i1 !< get data
     procedure, private :: setData_4d_i1
-    generic, public :: setData => setData_4d_i1
+    generic, public :: setData => setData_4d_i1 !< set data
     procedure, private :: getData_4d_i1
-    generic, public :: getData => getData_4d_i1
+    generic, public :: getData => getData_4d_i1 !< get data
     procedure, private :: setData_5d_i1
-    generic, public :: setData => setData_5d_i1
+    generic, public :: setData => setData_5d_i1 !< set data
     procedure, private :: getData_5d_i1
-    generic, public :: getData => getData_5d_i1
+    generic, public :: getData => getData_5d_i1 !< get data
     procedure, private :: setData_6d_i1
-    generic, public :: setData => setData_6d_i1
+    generic, public :: setData => setData_6d_i1 !< set data
     procedure, private :: getData_6d_i1
-    generic, public :: getData => getData_6d_i1
+    generic, public :: getData => getData_6d_i1 !< get data
     procedure, private :: getCFAttributes_i1
-    generic, public :: getCFAttributes => getCFAttributes_i1
+    generic, public :: getCFAttributes => getCFAttributes_i1 !< get CF attributes
     procedure, private :: setVariableFillValue_i1
-    generic, public :: setFillValue => setVariableFillValue_i1
+    generic, public :: setFillValue => setVariableFillValue_i1 !< set fill value
     procedure, private :: getVariableFillValue_i1
-    generic, public :: getFillValue => getVariableFillValue_i1
+    generic, public :: getFillValue => getVariableFillValue_i1 !< get fill value
     procedure, private :: setData_0d_i2
-    generic, public :: setData => setData_0d_i2
+    generic, public :: setData => setData_0d_i2 !< set data
     procedure, private :: getData_0d_i2
-    generic, public :: getData => getData_0d_i2
+    generic, public :: getData => getData_0d_i2 !< get data
     procedure, private :: setData_1d_i2
-    generic, public :: setData => setData_1d_i2
+    generic, public :: setData => setData_1d_i2 !< set data
     procedure, private :: getData_1d_i2
-    generic, public :: getData => getData_1d_i2
+    generic, public :: getData => getData_1d_i2 !< get data
     procedure, private :: setData_2d_i2
-    generic, public :: setData => setData_2d_i2
+    generic, public :: setData => setData_2d_i2 !< set data
     procedure, private :: getData_2d_i2
-    generic, public :: getData => getData_2d_i2
+    generic, public :: getData => getData_2d_i2 !< get data
     procedure, private :: setData_3d_i2
-    generic, public :: setData => setData_3d_i2
+    generic, public :: setData => setData_3d_i2 !< set data
     procedure, private :: getData_3d_i2
-    generic, public :: getData => getData_3d_i2
+    generic, public :: getData => getData_3d_i2 !< get data
     procedure, private :: setData_4d_i2
-    generic, public :: setData => setData_4d_i2
+    generic, public :: setData => setData_4d_i2 !< set data
     procedure, private :: getData_4d_i2
-    generic, public :: getData => getData_4d_i2
+    generic, public :: getData => getData_4d_i2 !< get data
     procedure, private :: setData_5d_i2
-    generic, public :: setData => setData_5d_i2
+    generic, public :: setData => setData_5d_i2 !< set data
     procedure, private :: getData_5d_i2
-    generic, public :: getData => getData_5d_i2
+    generic, public :: getData => getData_5d_i2 !< get data
     procedure, private :: setData_6d_i2
-    generic, public :: setData => setData_6d_i2
+    generic, public :: setData => setData_6d_i2 !< set data
     procedure, private :: getData_6d_i2
-    generic, public :: getData => getData_6d_i2
+    generic, public :: getData => getData_6d_i2 !< get data
     procedure, private :: getCFAttributes_i2
-    generic, public :: getCFAttributes => getCFAttributes_i2
+    generic, public :: getCFAttributes => getCFAttributes_i2 !< get CF attributes
     procedure, private :: setVariableFillValue_i2
-    generic, public :: setFillValue => setVariableFillValue_i2
+    generic, public :: setFillValue => setVariableFillValue_i2 !< set fill value
     procedure, private :: getVariableFillValue_i2
-    generic, public :: getFillValue => getVariableFillValue_i2
+    generic, public :: getFillValue => getVariableFillValue_i2 !< get fill value
     procedure, private :: setData_0d_i4
-    generic, public :: setData => setData_0d_i4
+    generic, public :: setData => setData_0d_i4 !< set data
     procedure, private :: getData_0d_i4
-    generic, public :: getData => getData_0d_i4
+    generic, public :: getData => getData_0d_i4 !< get data
     procedure, private :: setData_1d_i4
-    generic, public :: setData => setData_1d_i4
+    generic, public :: setData => setData_1d_i4 !< set data
     procedure, private :: getData_1d_i4
-    generic, public :: getData => getData_1d_i4
+    generic, public :: getData => getData_1d_i4 !< get data
     procedure, private :: setData_2d_i4
-    generic, public :: setData => setData_2d_i4
+    generic, public :: setData => setData_2d_i4 !< set data
     procedure, private :: getData_2d_i4
-    generic, public :: getData => getData_2d_i4
+    generic, public :: getData => getData_2d_i4 !< get data
     procedure, private :: setData_3d_i4
-    generic, public :: setData => setData_3d_i4
+    generic, public :: setData => setData_3d_i4 !< set data
     procedure, private :: getData_3d_i4
-    generic, public :: getData => getData_3d_i4
+    generic, public :: getData => getData_3d_i4 !< get data
     procedure, private :: setData_4d_i4
-    generic, public :: setData => setData_4d_i4
+    generic, public :: setData => setData_4d_i4 !< set data
     procedure, private :: getData_4d_i4
-    generic, public :: getData => getData_4d_i4
+    generic, public :: getData => getData_4d_i4 !< get data
     procedure, private :: setData_5d_i4
-    generic, public :: setData => setData_5d_i4
+    generic, public :: setData => setData_5d_i4 !< set data
     procedure, private :: getData_5d_i4
-    generic, public :: getData => getData_5d_i4
+    generic, public :: getData => getData_5d_i4 !< get data
     procedure, private :: setData_6d_i4
-    generic, public :: setData => setData_6d_i4
+    generic, public :: setData => setData_6d_i4 !< set data
     procedure, private :: getData_6d_i4
-    generic, public :: getData => getData_6d_i4
+    generic, public :: getData => getData_6d_i4 !< get data
     procedure, private :: getCFAttributes_i4
-    generic, public :: getCFAttributes => getCFAttributes_i4
+    generic, public :: getCFAttributes => getCFAttributes_i4 !< get CF attributes
     procedure, private :: setVariableFillValue_i4
-    generic, public :: setFillValue => setVariableFillValue_i4
+    generic, public :: setFillValue => setVariableFillValue_i4 !< set fill value
     procedure, private :: getVariableFillValue_i4
-    generic, public :: getFillValue => getVariableFillValue_i4
+    generic, public :: getFillValue => getVariableFillValue_i4 !< get fill value
     procedure, private :: setData_0d_i8
-    generic, public :: setData => setData_0d_i8
+    generic, public :: setData => setData_0d_i8 !< set data
     procedure, private :: getData_0d_i8
-    generic, public :: getData => getData_0d_i8
+    generic, public :: getData => getData_0d_i8 !< get data
     procedure, private :: setData_1d_i8
-    generic, public :: setData => setData_1d_i8
+    generic, public :: setData => setData_1d_i8 !< set data
     procedure, private :: getData_1d_i8
-    generic, public :: getData => getData_1d_i8
+    generic, public :: getData => getData_1d_i8 !< get data
     procedure, private :: setData_2d_i8
-    generic, public :: setData => setData_2d_i8
+    generic, public :: setData => setData_2d_i8 !< set data
     procedure, private :: getData_2d_i8
-    generic, public :: getData => getData_2d_i8
+    generic, public :: getData => getData_2d_i8 !< get data
     procedure, private :: setData_3d_i8
-    generic, public :: setData => setData_3d_i8
+    generic, public :: setData => setData_3d_i8 !< set data
     procedure, private :: getData_3d_i8
-    generic, public :: getData => getData_3d_i8
+    generic, public :: getData => getData_3d_i8 !< get data
     procedure, private :: setData_4d_i8
-    generic, public :: setData => setData_4d_i8
+    generic, public :: setData => setData_4d_i8 !< set data
     procedure, private :: getData_4d_i8
-    generic, public :: getData => getData_4d_i8
+    generic, public :: getData => getData_4d_i8 !< get data
     procedure, private :: setData_5d_i8
-    generic, public :: setData => setData_5d_i8
+    generic, public :: setData => setData_5d_i8 !< set data
     procedure, private :: getData_5d_i8
-    generic, public :: getData => getData_5d_i8
+    generic, public :: getData => getData_5d_i8 !< get data
     procedure, private :: setData_6d_i8
-    generic, public :: setData => setData_6d_i8
+    generic, public :: setData => setData_6d_i8 !< set data
     procedure, private :: getData_6d_i8
-    generic, public :: getData => getData_6d_i8
+    generic, public :: getData => getData_6d_i8 !< get data
     procedure, private :: getCFAttributes_i8
-    generic, public :: getCFAttributes => getCFAttributes_i8
+    generic, public :: getCFAttributes => getCFAttributes_i8 !< get CF attributes
     procedure, private :: setVariableFillValue_i8
-    generic, public :: setFillValue => setVariableFillValue_i8
+    generic, public :: setFillValue => setVariableFillValue_i8 !< set fill value
     procedure, private :: getVariableFillValue_i8
-    generic, public :: getFillValue => getVariableFillValue_i8
+    generic, public :: getFillValue => getVariableFillValue_i8 !< get fill value
 
-    procedure, public :: getNoDimensions
+    procedure, public :: getNoDimensions !< get number of dimensions
 
-    procedure, public :: getDimensions => getVariableDimensions
+    procedure, public :: getDimensions => getVariableDimensions !< get dimensions
 
-    procedure, public :: getRank => getVariableRank
+    procedure, public :: getRank => getVariableRank !< get rank
 
-    procedure, public :: getShape => getVariableShape
+    procedure, public :: getShape => getVariableShape !< get shape
 
-    procedure, public :: getDtype => getVariableDtype
+    procedure, public :: getDtype => getVariableDtype !< get data type
 
-    procedure, public :: isUnlimited => isUnlimitedVariable
+    procedure, public :: isUnlimited => isUnlimitedVariable !< is unlimited
 
 
   end type NcVariable
@@ -448,12 +456,14 @@ module mo_netcdf
 
   ! abstract interfaces
   interface
+    !> \brief get name abstract interface
     function getNameInterface(self)
       import NcBase
       class(NcBase), intent(in) :: self
       character(len = 256) :: getNameInterface
     end function getNameInterface
 
+    !> \brief get parent abstract interface
     function getParentInterface(self)
       import NcBase, NcGroup
       class(NcBase), intent(in) :: self
@@ -461,6 +471,7 @@ module mo_netcdf
     end function getParentInterface
   end interface
 
+  !> \brief NetCDF comparison operator
   interface operator (==)
     procedure equalNcBases
   end interface operator (==)

@@ -332,6 +332,7 @@ MODULE mo_utils
     MODULE PROCEDURE special_value_sp, special_value_dp
   END INTERFACE special_value
 
+  !> \brief abstract interface for a relational operator on double precision arguments
   abstract interface
     logical pure function relational_operator_dp(a, b) result(boolean)
       import dp
@@ -339,6 +340,7 @@ MODULE mo_utils
     end function relational_operator_dp
   end interface
 
+  !> \brief abstract interface for a relational operator on single precision arguments
   abstract interface
     logical pure function relational_operator_sp(a, b) result(boolean)
       import sp

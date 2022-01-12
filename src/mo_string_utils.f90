@@ -130,7 +130,7 @@ MODULE mo_string_utils
   PRIVATE
 
   ! ------------------------------------------------------------------
-
+  !> separator string (line)
   CHARACTER(len=*), PARAMETER :: separator = repeat('-',70)
 
   ! ------------------------------------------------------------------
@@ -154,7 +154,7 @@ CONTAINS
   !>     \param[out] "integer(i4), optional :: n"                 Integer
   !>     \retval "character(len = len(whiteSpaces)) :: compress"  String where all all whitespace (spaces and tabs) are removed
 
-  !>     \author Giovanni Dalmasso 
+  !>     \author Giovanni Dalmasso
   !>     \date Jan 2013
   !!        - modified from Paul van Delst, CIMSS/SSEC 18-Oct-1999
 
@@ -216,9 +216,10 @@ CONTAINS
       end do
     end function replace_text
 
-    ! replaces proper words only,
-    ! e.g. replace_word('our hour', 'our', 'their') --> 'their hour'
-    ! written Nov 2018 by Robert Schweppe
+    !> \brief replaces words in a string
+    !> \details replaces proper words only, e.g. replace_word('our hour', 'our', 'their') --> 'their hour'
+    !> \author Robert Schweppe
+    !> \date Nov 2018
     function replace_word(s, word, rep, check_negative_number_arg)  result(outs)
       character(*) :: s, word, rep
       logical, optional  :: check_negative_number_arg
@@ -234,8 +235,10 @@ CONTAINS
       end do
     end function replace_word
 
-  ! written Nov 2018 by Robert Schweppe
-  function index_word(s, text, check_negative_number_arg) result(out_index)
+    !> \brief find index in word
+    !> \author Robert Schweppe
+    !> \date Nov 2018
+    function index_word(s, text, check_negative_number_arg) result(out_index)
     CHARACTER(*)       :: s
     CHARACTER(*)       :: text
     logical, optional  :: check_negative_number_arg
@@ -306,7 +309,7 @@ CONTAINS
   !!
   !!    \b Example
   !!
-  !!    Divide string into 'I', 'want', 'to', ... 
+  !!    Divide string into 'I', 'want', 'to', ...
   !!    \code{.f90}
   !!    divide_string('I want to test this routine!', ' ', strArr(:))
   !!    \endcode
@@ -384,7 +387,7 @@ CONTAINS
   !>    \param[in] "character(len=*) :: string1"    String
   !>    \param[in] "character(len=*) :: string2"    String
   !>    \retval "logical :: eq" Logical value if string equal
-  
+
   !>    \author David Schaefer
   !>    \date Mar 2015
 
@@ -539,7 +542,7 @@ CONTAINS
   !>    \param[in] "character(len=*) :: upper"                String
   !>    \retval    "character(len=len_trim(upper)) :: low"    String where all uppercase in input is converted to lowercase
 
-  !>    \author Matthias Cuntz 
+  !>    \author Matthias Cuntz
   !>    \date Dec 2011
   !!        - modified from Echam5, (C) MPI-MET, Hamburg, Germany
 
@@ -580,7 +583,7 @@ CONTAINS
   !>    \param[in] "character(len=*) :: lower"            String
   !>    \retval "character(len=len_trim(lower)) :: up"    String where all lowercase in input is converted to uppercase
 
-  !>    \author Matthias Cuntz 
+  !>    \author Matthias Cuntz
   !>    \date Dec 2011
   !!        - modified from Echam5, (C) MPI-MET, Hamburg, Germany
 
@@ -716,7 +719,7 @@ CONTAINS
   !!
   !!    \b Example
   !!
-  !!    Convert is string into numerical array of the letters 
+  !!    Convert is string into numerical array of the letters
   !!    \code{.f90}
   !!    str2num = startsWith(string)
   !!    \endcode

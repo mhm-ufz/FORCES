@@ -94,7 +94,7 @@ MODULE mo_moment
 
   !>    \param[in]  "real(sp/dp) :: dat(:)"               1D-array with input numbers.
   !>    \param[in]  "logical, optional :: mask(:)"        1D-array of logical values with `size(dat)`.
-  !!                                                      If present, only those locations in `vec` 
+  !!                                                      If present, only those locations in `vec`
   !!                                                      corresponding to the true values in mask are used.
   !>    \retval     "real(sp/dp) :: absdev"               Mean absolute deviations from average.
 
@@ -135,7 +135,7 @@ MODULE mo_moment
 
 
   !>    \param[in]  "logical, optional :: mask(:)"  1D-array of logical values with `size(dat)`.
-  !!                                                If present, only those locations in dat 
+  !!                                                If present, only those locations in dat
   !!                                                corresponding to the true values in mask are used.
 
   !>    \note Input values must be floating points.
@@ -178,7 +178,7 @@ MODULE mo_moment
   !>    \param[in]  "real(sp/dp) :: dat(:)"         1D-array with input numbers.
   !>    \param[in]  "integer(i4) :: r"              Order of the central moment, i.e. r=2 is variance.
   !>    \param[in]  "logical, optional :: mask(:)"  1D-array of logical values with size(dat).
-  !!                                                If present, only those locations in `dat` 
+  !!                                                If present, only those locations in `dat`
   !!                                                corresponding to the true values in mask are used.
   !>    \retval "real(sp/dp) :: central_moment"     R-th central moment of elements in `dat`.
 
@@ -218,11 +218,11 @@ MODULE mo_moment
   !>    \param[in]  "real(sp/dp) :: dat(:)"                 1D-array with input numbers.
   !>    \param[in]  "integer(i4) :: r"                      Order of the central moment, i.e. r=2 is variance.
   !>    \param[in]  "logical, optional :: mask(:)"          1D-array of logical values with `size(dat)`.
-  !!                                                        If present, only those locations in dat 
+  !!                                                        If present, only those locations in dat
   !!                                                        corresponding to the true values in mask are used.
   !>    \retval     "real(sp/dp) :: central_moment_var"     Sampling variance of r-th central moment of elements in dat
 
-  !>    \notes  Input values must be floating points.
+  !>    \note  Input values must be floating points.
 
   !>    \author Matthias Cuntz
   !>    \date Nov 2011
@@ -254,10 +254,10 @@ MODULE mo_moment
   !>    \param[in]  "real(sp/dp) :: y(:)"           Second 1D-array with input numbers.
   !>    \retval     "real(sp/dp) :: correlation"    Correlation between \f$x\f$ and \f$y\f$.
   !>    \param[in]  "logical, optional :: mask(:)"  1D-array of logical values with `size(x)`.
-  !!                                                If present, only those locations in dat 
+  !!                                                If present, only those locations in dat
   !!                                                corresponding to the true values in mask are used.
 
-  !>    \notes Input values must be floating points.
+  !>    \note Input values must be floating points.
 
   !>    \author Matthias Cuntz
   !>    \date Nov 2011
@@ -293,11 +293,11 @@ MODULE mo_moment
   !>    \param[in]  "real(sp/dp) :: x(:)"           First 1D-array with input numbers.
   !>    \param[in]  "real(sp/dp) :: y(:)"           Second 1D-array with input numbers.
   !>    \param[in]  "logical, optional :: mask(:)"  1D-array of logical values with size(x).
-  !!                                                If present, only those locations in dat 
+  !!                                                If present, only those locations in dat
   !!                                                corresponding to the true values in mask are used.
   !>    \retval     "real(sp/dp) :: covariance"     Covariance between x and y.
 
-  !>    \notes Input values must be floating points.
+  !>    \note Input values must be floating points.
 
   !>    \author Matthias Cuntz
   !>    \date Nov 2011
@@ -333,11 +333,11 @@ MODULE mo_moment
 
   !>    \param[in]  "real(sp/dp) :: dat(:)"         1D-array with input numbers.
   !>    \param[in]  "logical, optional :: mask(:)"  1D-array of logical values with `size(dat)`.
-  !!                                                If present, only those locations in dat 
+  !!                                                If present, only those locations in dat
   !!                                                corresponding to the true values in mask are used.
   !>    \retval     "real(sp/dp) :: kurtosis"       Kurtosis of all elements in dat.
 
-  !>    \notes  Input values must be floating points.
+  !>    \note  Input values must be floating points.
 
   !>    \authors Matthias Cuntz
   !>    \date Nov 2011
@@ -361,20 +361,19 @@ MODULE mo_moment
   !!    \f$x\f$ can be single or double precision. The result will have the same numerical precision.
   !!
   !!    \b Example
-  !!
-  !!         vec = (/ 1., 2, 3., -999., 5., 6. /)
-  !!         m   = mean(vec, mask=(vec >= 0.))
-  !!
+  !!    \code{.f90}
+  !!    vec = (/ 1., 2, 3., -999., 5., 6. /)
+  !!    m   = mean(vec, mask=(vec >= 0.))
+  !!    \endcode
   !!    See also example in test directory.
-
-
+  !!
   !>    \param[in]  "real(sp/dp) :: dat(:)"           1D-array with input numbers.
   !>    \param[in]  "logical, optional :: mask(:)"    1D-array of logical values with `size(dat)`.
-  !!                                                  If present, only those locations in dat 
+  !!                                                  If present, only those locations in dat
   !!                                                  corresponding to the true values in mask are used.
   !>    \retval     "real(sp/dp) :: mean"             Average of all elements in dat.
 
-  !>    \notes  Input values must be floating points.
+  !>    \note  Input values must be floating points.
 
   !>    \author Matthias Cuntz
   !>    \date Nov 2011
@@ -389,7 +388,7 @@ MODULE mo_moment
 
   !>    \brief R-s mixed central moment between vectors.
 
-  !>    \detail
+  !>    \details
   !!    Calculates the r,s-th mixed central moment between two vectors:
   !!
   !!    \f[\mu_{r-s} = \sum_i\frac{(x_i-\bar{x})^r(y_i-\bar{y})^s}{N}\f]
@@ -417,11 +416,11 @@ MODULE mo_moment
   !>    \param[in]  "integer(i4) :: r"                    Order of x
   !>    \param[in]  "integer(i4) :: s"                    Order of y
   !>    \param[in]  "logical, optional :: mask(:)"        1D-array of logical values with size(x).
-  !!                                                      If present, only those locations in dat 
+  !!                                                      If present, only those locations in dat
   !!                                                      corresponding to the true values in mask are used.
   !>    \retval     "real(sp/dp) :: mixed_central_moment" r,s-th mixed central moment between x and y
 
-  !>    \notes Input values must be floating points.
+  !>    \note Input values must be floating points.
 
   !>    \author Matthias Cuntz
   !>    \date Nov 2011
@@ -462,11 +461,11 @@ MODULE mo_moment
   !>    \param[in]  "integer(i4) :: r"                          Order of x
   !>    \param[in]  "integer(i4) :: s"                          Order of y
   !>    \param[in]  "logical, optional :: mask(:)"              1D-array of logical values with size(x).
-  !!                                                            If present, only those locations in dat 
+  !!                                                            If present, only those locations in dat
   !!                                                            corresponding to the true values in mask are used.
   !>    \retval     "real(sp/dp) :: mixed_central_moment_var"   Sampling variance of r,s-th mixed central moment between x and y
 
-  !>    \notes  Input values must be floating points.
+  !>    \note  Input values must be floating points.
 
   !>    \author Matthias Cuntz
   !>    \date Nov 2011
@@ -497,10 +496,10 @@ MODULE mo_moment
 
   !>    \param[in]  "real(sp/dp) :: dat(:)"               1D-array with input numbers.
   !>    \param[in]  "logical, optional :: mask(:)"        1D-array of logical values with `size(dat)`.
-  !!                                                      If present, only those locations in vec 
+  !!                                                      If present, only those locations in vec
   !!                                                      corresponding to the true values in mask are used.
   !>    \param[in]  "logical, optional :: sample"         Logical value.
-  !!                                                      If present and False, the population variance and 
+  !!                                                      If present and False, the population variance and
   !!                                                      std-dev will be calculated (divide by n).
 
   !>    \param[out] "real(sp/dp), optional :: average"    Average of input vector.
@@ -511,7 +510,7 @@ MODULE mo_moment
   !>    \param[out] "real(sp/dp), optional :: stddev"     Sqaure root of variance (either a sample or pupulation moment).
   !>    \param[out] "real(sp/dp), optional :: absdev"     Mean absolute deviations from average.
 
-  !>    \notes  Input values must be floating points. Inpt and all optional outputs must have same kind.
+  !>    \note  Input values must be floating points. Inpt and all optional outputs must have same kind.
 
   !>    \author Matthias Cuntz
   !>    \date Nov 2011
@@ -547,11 +546,11 @@ MODULE mo_moment
 
   !>    \param[in]  "real(sp/dp) :: dat(:)"               1D-array with input numbers.
   !>    \param[in]  "logical, optional :: mask(:)"        1D-array of logical values with `size(dat)`.
-  !!                                                      If present, only those locations in vec 
+  !!                                                      If present, only those locations in vec
   !!                                                      corresponding to the true values in mask are used.
   !>    \retval     "real(sp/dp) :: skewness"             Skewness of all elements in dat.
 
-  !>    \notes   Input values must be floating points.
+  !>    \note   Input values must be floating points.
 
   !>    \author Matthias Cuntz
   !>    \date Nov 2011
@@ -580,11 +579,11 @@ MODULE mo_moment
 
   !>    \param[in]  "real(sp/dp) :: dat(:)"               1D-array with input numbers.
   !>    \param[in]  "logical, optional :: mask(:)"        1D-array of logical values with `size(dat)`.
-  !!                                                      If present, only those locations in vec 
+  !!                                                      If present, only those locations in vec
   !!                                                      corresponding to the true values in mask are used.
   !>    \retval     "real(sp/dp) :: stddev"               Sample standard deviation of all elements in dat.
 
-  !>    \notes
+  !>    \note
   !!    Input values must be floating points.\n
   !!    This is the sample standard deviation. The population standard deviation is:
   !!            `popstddev = stddev * sqrt((n-1)/n)`
@@ -624,7 +623,7 @@ MODULE mo_moment
   !!                                                      corresponding to the true values in mask are used.
   !>    \retval     "real(sp/dp) :: variance"             Sample variance of all elements in dat.
 
-  !>    \notes
+  !>    \note
   !!    Input values must be floating points.\n
   !!    This is the sample variance. The population variance is:
   !!             `var = variance * (n-1)/n`

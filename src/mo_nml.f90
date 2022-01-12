@@ -64,7 +64,7 @@ MODULE mo_nml
   !> Error occured during read of namelist file
   INTEGER(i4), PARAMETER :: READ_ERROR = 3
 
-  ! default namelist unit
+  !> default namelist unit
   INTEGER, SAVE :: nunitnml = -1
 
   ! ------------------------------------------------------------------
@@ -133,7 +133,7 @@ CONTAINS
   !!    \code{.f90}
   !!    call close_nml()
   !!    ! or
-  !!    call close_nml(unml)    
+  !!    call close_nml(unml)
   !!    \endcode
   !!    See also example in test directory
 
@@ -182,7 +182,7 @@ CONTAINS
   !!    \code{.f90}
   !!    call position_nml('myname',nnml)
   !!    \endcode
-  
+
   !>    \param[in] "character(len=*) :: name"     namelist name (case independent)
   !>    \param[in] "integer, optional :: unit"    namelist unit (default: nunitnml)
   !>    \param[in] "logical, optional :: first"   start search at beginning,
@@ -194,7 +194,7 @@ CONTAINS
   !!                                                    MISSING (1)      - name not found\n
   !!                                                    LENGTH_ERROR (2) - namelist length longer then 256 characters\n
   !!                                                    READ_ERROR (3)   - error while reading namelist file
- 
+
   !>    \author Matthias Cuntz
   !>    \date Dec 2011
   !!        - modified from Echam5, (C) MPI-MET, Hamburg, Germany

@@ -209,7 +209,7 @@ CONTAINS
   !!
   !!    The zeroth Julian Day depends on the called procedure. See their documentation for details.
   !!
-  !!    \b Example  
+  !!    \b Example
   !!
   !!    Takes in fraction julian date fJulian to covert to dd, mm, yy, hh, nn, ss
   !!    \code{.f90}
@@ -320,7 +320,7 @@ CONTAINS
   !>    \param[in] "integer(i4) :: yy"                    Year of Julian day
   !>    \param[in] "integer(i4), optional :: calendar"    The calendar to use, the global calendar
   !!                                                      will be used by default
-  
+
   !>    \retval "integer(i4) :: julian"                   Julian day
 
   !>    \author David Schaefer
@@ -365,7 +365,7 @@ CONTAINS
   !!    2415021 is 01.01.1900
   !!    call caldatJulian(2415021, dd, mm, yy)
   !!    \endcode
-  !!    
+  !!
   !!    \b Literature
   !!    1.  http://de.wikipedia.org/wiki/Julianisches_Datum
   !!        which is different to the english Wiki\n
@@ -388,13 +388,13 @@ CONTAINS
   !!    Use date2decJulian with dec2dateJulian together for fractional Julian dates
   !!    and use juldayJulian with caldatJulian together for integer Julian days.
 
-  !>    \author Matthias Cuntz 
+  !>    \author Matthias Cuntz
   !>    \date Dec 2011
   !!      - modified julday from Numerical Recipes
-  !>    \date May 2014 
+  !>    \date May 2014
   !!      - changed to new algorithm with astronomical units
   !!      - removed numerical recipes
-  
+
   !>    \author David Schaefer
   !>    \date Jan 2016
   !!      - renamed procodure
@@ -483,7 +483,7 @@ CONTAINS
   !!    Here, the astronomical definition is used,
   !!    i.e. the year 1 BC (historic) is counted as 0 (astronomic), 2 BC is -1, etc.\n
   !!    This means that Julian day definition starts as 01.01.-4712 in astronomical units.\n
-  !!    
+  !!
   !!    juldayJulian and caldatJulian start at midnight of the 1st January 4713 BC.
   !!    So date2decJulian and juldayJulian as well as dec2dateJulian and caldatJulian are shifted by half a day.\n
   !!    Use date2decJulian with dec2dateJulian together for fractional Julian dates
@@ -491,12 +491,12 @@ CONTAINS
 
   !>    \author Matthias Cuntz
   !>    \date Jan 2013
-  !>    \date May 2014 
+  !>    \date May 2014
   !!      - changed to new algorithm with astronomical units
   !>      - removed numerical recipes
-  
+
   !>    \author David Schaefer
-  !>    \date Jan 2016 
+  !>    \date Jan 2016
   !!      - renamed procodure
 
   ELEMENTAL FUNCTION date2decJulian(dd, mm, yy, hh, nn, ss)
@@ -608,7 +608,7 @@ CONTAINS
   !!    Here, the astronomical definition is used,
   !!    i.e. the year 1 BC (historic) is counted as 0 (astronomic), 2 BC is -1, etc.\n
   !!    This means that Julian day definition starts as 01.01.-4712 in astronomical units.\n
-  !!    
+  !!
   !!    juldayJulian and caldatJulian start at midnight of the 1st January 4713 BC.
   !!    So date2decJulian and juldayJulian as well as dec2dateJulian and caldatJulian are shifted by half a day.\n
   !!    Use date2decJulian with dec2dateJulian together for fractional Julian dates
@@ -616,12 +616,12 @@ CONTAINS
 
   !>    \author Matthias Cuntz
   !>    \date Jan 2013
-  !>    \date May 2014 
+  !>    \date May 2014
   !!      - changed to new algorithm with astronomical units
   !>      - removed numerical recipes
-  
+
   !>    \author David Schaefer
-  !>    \date Jan 2016 
+  !>    \date Jan 2016
   !!      - renamed procodure
   ELEMENTAL SUBROUTINE dec2dateJulian(julian, dd, mm, yy, hh, nn, ss)
 
@@ -742,7 +742,7 @@ CONTAINS
   !!    Here, the astronomical definition is used,
   !!    i.e. the year 1 BC (historic) is counted as 0 (astronomic), 2 BC is -1, etc.\n
   !!    This means that Julian day definition starts as 01.01.-4712 in astronomical units.\n
-  !!    
+  !!
   !!    juldayJulian and caldatJulian start at midnight of the 1st January 4713 BC.
   !!    So date2decJulian and juldayJulian as well as dec2dateJulian and caldatJulian are shifted by half a day.\n
   !!    Use date2decJulian with dec2dateJulian together for fractional Julian dates
@@ -893,7 +893,7 @@ CONTAINS
   !>    \param[out] "integer(i4) :: dd"         Day in month of Julian day
   !>    \param[out] "integer(i4) :: mm"         Month in year of Julian day
   !>    \param[out] "integer(i4) :: yy"         Year of Julian day
-  
+
   !>    \author  David Schaefer
   !>    \date Oct 2015
   elemental subroutine caldat360(julian, dd, mm, yy)
@@ -922,7 +922,7 @@ CONTAINS
   !!    The zeroth Julian Day is 01.01.0000
   !!
   !!    \b Example
-  !!    
+  !!
   !!    \code{.f90}
   !!    julian = julday360(dd, mm, yy)
   !!    \endcode
@@ -1135,10 +1135,10 @@ CONTAINS
   !!    The zeroth Julian Day is 01.01.0000
   !!
   !!    \b Example
-  !!    
+  !!
   !!    \code{.f90}
   !!    julian = julday365(dd, mm, yy)
-  !!    \endcoed
+  !!    \endcode
 
   !>    \param[in] "integer(i4) :: dd"         Day in month of Julian day
   !>    \param[in] "integer(i4) :: mm"         Month in year of Julian day
@@ -1245,7 +1245,7 @@ CONTAINS
   !!    \code{.f90}
   !!    date2dec365 = date2dec365(dd, mm, yy, hh, nn, ss)
   !!    \endcode
-  
+
   !>    \param[in] "integer(i4), optional :: dd"        Day in month of Julian day (default: 1)
   !>    \param[in] "integer(i4), optional :: mm"        Month in year of Julian day (default: 1)
   !>    \param[in] "integer(i4), optional :: yy"        Year of Julian day (default: 1)

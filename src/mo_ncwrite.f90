@@ -276,11 +276,11 @@ module mo_ncwrite
   !>        \param[in] "integer(i4)/real(sp,dp), optional :: missing_value"     attribute
   !>        \param[in] "character(256), dimension(:,:), optional :: attributes" two dimensional array of attributes
   !!                                                                size of first dimension equals number of attributes
-  !!                                                                first entry of second dimension equals attribute name 
+  !!                                                                first entry of second dimension equals attribute name
   !!                                                                (e.g. long_name)\n
-  !!                                                                second entry of second dimension equals attribute value 
+  !!                                                                second entry of second dimension equals attribute value
   !!                                                                (e.g. precipitation)\n
-  !!                                                                every attribute is written as string with the exception of 
+  !!                                                                every attribute is written as string with the exception of
   !!                                                                missing_value
   !>        \param[in] "logical,                 optional :: create"            flag - specify whether a
   !>                                                                            output file should be
@@ -399,7 +399,7 @@ contains
   !>    \param[in]  "integer(i4), optional :: deflate_level"    compression level in netcdf4 (default: 1)
   !>    \param[out] "integer(i4)           :: ncid"             integer value of the stream for the opened file
 
-  !>    \notes This routine only writes attributes and variables which have been stored in V
+  !>    \note This routine only writes attributes and variables which have been stored in V
   !!     nothing else.
 
   !>    \author Luis Samaniego
@@ -5433,44 +5433,35 @@ contains
   end subroutine var2nc_5d_dp
 
   ! ----------------------------------------------------------------------------
+  !>     \brief dynamic writer
+  !>     \details This routine writes data, where one dimension has the unlimited attribute.
+  !!     Therefore, the number of the record which should be written has to be
+  !!     specified.
+  !!     See: http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
 
-  ! NAME
-  !     write_dynamic_netcdf
+  !>     \param[in] "integer(i4) :: nc"  stream id of an open netcdf file where data should be written
+  !!                                     can be obtained by an create_netcdf call
+  !>     \param[in] "integer(i4) :: rec" record id of record which will be written in the file
 
-  ! PURPOSE
-  !     This routine writes data, where one dimension has the unlimited attribute.
-  !     Therefore, the number of the record which should be written has to be
-  !     specified.
+  !>     \note Writes only data, where the data pointers of the structure V are assigned
+  !!     and where one dimension has the unlimited attribute. Moreover only one
+  !!     record will be written.
+  !!     Writes only 1 to 4 dim arrays, integer, single or double precision.
 
-  ! CALLING SEQUENCE
-  !     call write_dynamic_netcdf(nc, rec)
-
-  ! INTENT(IN)
-  !     integer(i4) :: nc - stream id of an open netcdf file where data should be written
-  !                         can be obtained by an create_netcdf call
-
-  ! INTENT(IN)
-  !     integer(i4) :: rec - record id of record which will be written in the file
-
-  ! RESTRICTIONS
-  !     Writes only data, where the data pointers of the structure V are assigned
-  !     and where one dimension has the unlimited attribute. Moreover only one
-  !     record will be written.
-  !     Writes only 1 to 4 dim arrays, integer, single or double precision.
-
-  ! EXAMPLE
-  !     see test_mo_ncwrite
-
-  ! LITERATURE
-  !     http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
-
-  ! HISTORY
-  !     Written  Luis Samaniego  Feb 2011
-  !     Modified Stephan Thober  Dec 2011 - added comments and generalized
-  !              Matthias Cuntz  Jan 2012 - Info
-  !              Stephan Thober  Jan 2012 - iRec is not optional
-  !              Matthias Cuntz  Mar 2013 - removed Info
-
+  !>     \author Luis Samaniego
+  !>     \date Feb 2011
+  !>     \author Stephan Thober
+  !>     \date Dec 2011
+  !!           - added comments and generalized
+  !>     \author Matthias Cuntz
+  !>     \date Jan 2012
+  !!           - Info
+  !>     \author Stephan Thober
+  !>     \date Jan 2012
+  !!           - iRec is not optional
+  !>     \author Matthias Cuntz
+  !>     \date Mar 2013
+  !!           - removed Info
   subroutine write_dynamic_netcdf(ncId, irec)
 
     implicit none
@@ -5549,36 +5540,29 @@ contains
   end subroutine write_dynamic_netcdf
 
   ! ----------------------------------------------------------------------------
+  !>     \brief static writer
+  !>     \details This routines writes static data in the netcdf file that is data
+  !!     where no dimension has the unlimited attribute.
+  !!     See: http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
 
-  ! NAME
-  !     write_static_netcdf
+  !>     \param[in] "integer(i4) :: ncid" stream id of an open netcdf file where data should be written
+  !!                                      can be obtained by an create_netcdf call
 
-  ! PURPOSE
-  !     This routines writes static data in the netcdf file that is data
-  !     where no dimension has the unlimited attribute.
-
-  ! CALLING SEQUENCE
-  !     call write_static_netcdf(ncid)
-
-  ! INTENT(IN)
-  !     integer(i4) :: ncid - stream id of an open netcdf file where data should be written
-  !                           can be obtained by an create_netcdf call
-
-  ! RESTRICTIONS
-  !     Writes only data, where the data pointers of the structure V are assigned.
-  !     Writes only 1 to 4 dim arrays, integer, single or double precision.
-
-  ! EXAMPLE
-  !     see test_mo_ncwrite
-
-  ! LITERATURE
-  !     http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
+  !>     \note Writes only data, where the data pointers of the structure V are assigned.
+  !!     Writes only 1 to 4 dim arrays, integer, single or double precision.
 
   ! HISTORY
-  !     Written  Luis Samaniego  Feb 2011
-  !     Modified Stephan Thober  Dec 2011 - added comments and generalized
-  !              Matthias Cuntz  Jan 2012 - Info
-  !              Matthias Cuntz  Mar 2013 - removed Info
+  !>     \author Luis Samaniego
+  !>     \date Feb 2011
+  !>     \author Stephan Thober
+  !>     \date Dec 2011
+  !!           - added comments and generalized
+  !>     \author Matthias Cuntz
+  !>     \date Jan 2012
+  !!           - Info
+  !>     \author Matthias Cuntz
+  !>     \date Mar 2013
+  !!           - removed Info
 
   subroutine write_static_netcdf(ncId)
 

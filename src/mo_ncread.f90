@@ -78,7 +78,7 @@ module mo_NcRead
   !!                                                                                is going to be read
   !>    \param[in]  "integer(i4)               :: fid"                              File handle of opened netcdf file
 
-  !>    \notes  Output array is a floating point of 2-5 dimensions.\n
+  !>    \note  Output array is a floating point of 2-5 dimensions.\n
   !!            NOT yet tested for different compilers than intel11.1.075
   !!            CANNOT read packed data.\n
   !!            i1 indicates, that 1 byte integer is read [type is integer(1)].
@@ -203,7 +203,7 @@ contains
   !>    \retval     "character(len=*), dimension(:), allocatable, intent(out)      :: DimName"   Allocatable array with the
   !!                                                                                             names of the dimensions.
 
-  !>    \notes  DimName and DimLen are both allocated within the subroutine, so please just provide an 1 dimensional
+  !>    \note  DimName and DimLen are both allocated within the subroutine, so please just provide an 1 dimensional
   !!            allocatable array to the subroutine.
 
   !>    \author Matthias Zink
@@ -273,11 +273,11 @@ contains
   !>    \param[in]  "character(len=*), intent(in)      :: VarName"      Variable name exactly as specified in the file.
   !>    \param[in]  "character(len=*), intent(in)      :: AttName"      Attribute name exactly as specified for the Variable.
   !>    \param[in]  "integer(i4), optional, intent(in) :: fid"          File handle of opened netcdf file
-  !>    \param[in]  "integer(i4), optional, intent(in) :: dtype"        Datatype (ineteger,float) see NetCDF convention 
+  !>    \param[in]  "integer(i4), optional, intent(in) :: dtype"        Datatype (ineteger,float) see NetCDF convention
   !!                                                                    (unidata.ucar)
   !>    \retval     "character(len=*), intent(out)     :: AttValues"    Values of the Attribute.
 
-  !>    \notes AttValues are restricted to be of character type. \n
+  !>    \note AttValues are restricted to be of character type. \n
   !!           The name of the variable (VarName) has to be known beforehand. \n
   !!           The name of the attribute (AttName) has to be known beforehand.
 
@@ -2059,11 +2059,11 @@ contains
   ! ------------------------------------------------------------------------------
 
   !>    \brief Open netcdf file
-  
+
   !>    \details Opens a netcdf file and returns file handle
   !!
   !!    \b Example
-  !!    
+  !!
   !!    \code{.f90}
   !!    id = NcOpen(Fname)
   !!    \endcode
@@ -2074,7 +2074,7 @@ contains
 
   !>    \param[in] "character(len=*) :: Fname"    Filename of file to open
   !>    \param[out] "integer(i4)      :: NcOpen"  id of opened stream
-  
+
   !>    \author Stephan Thober,
   !>    \date May 2012
 
@@ -2090,7 +2090,7 @@ contains
   end function NcOpen
 
   ! ------------------------------------------------------------------------------
-  
+
   !>    \brief Closes netcdf file
 
   !>    \details Closes a netcdf file by file handle
@@ -2106,7 +2106,7 @@ contains
   !!    1. http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
 
   !>    \param[in] "ncid" - file handle of open netcdf file
-  
+
   !>    \author Stephan Thober
   !>    \date May 2012
 
@@ -2122,7 +2122,7 @@ contains
 
   ! ------------------------------------------------------------------------------
   !>    \brief Get variable info from netcdf files
-  
+
   !>    \details This subroutine is PRIVATE and therefore does not exist outside of this module.
   !!
   !!    This subroutine inquires the nc file. Given the Variable name and the stream

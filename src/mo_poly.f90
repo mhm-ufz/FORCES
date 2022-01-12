@@ -78,7 +78,7 @@ MODULE mo_poly
   !>    \param[in]  "real(sp/dp) :: coord(:,2)"     (x,y) coordinates of edges of the polygon
   !>    \retval     "real(sp/dp) :: areapoly"       Area of polygon
 
-  !>    \notes Only available in 2D version
+  !>    \note Only available in 2D version
 
   !>    \author Maren Goehler
   !>    \date Jul 2012
@@ -123,7 +123,7 @@ MODULE mo_poly
   !>    \param[in]  "real(sp/dp) :: coord(:,2)"           (x,y) coordinates of edges of the polygon.
   !>    \retval     "real(sp/dp), dimension(2) :: center" Center of mass of polygon.
 
-  !>    \notes Only available in 2D version
+  !>    \note Only available in 2D version
 
   !>    \author Maren Goehler
   !>    \date July 2012
@@ -171,7 +171,7 @@ MODULE mo_poly
   !>    \param[out] "integer(i4) :: inside"         Whether point is inside (=1), outside (=-1) or
   !!                                                on a vertex/edge of the polygon
 
-  !>    \notes Only available in 2D version
+  !>    \note Only available in 2D version
 
   !>    \author Juliane Mai
   !>    \date Jul 2012
