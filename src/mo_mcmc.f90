@@ -56,14 +56,14 @@ MODULE mo_mcmc
   !!                 it cannot be used as an optimiser.\n
   !!                 However, the serial and the parallel version give therefore the bitwise same results.\n
   !!
-  !!     ### 1. BURN IN PHASE: FIND THE OPTIMAL STEP SIZE
+  !!    <b> 1. Burn in phase: Find the optimal step size </b>
   !!
-  !!     #### <i>Purpose:</i>
+  !!    \b <i>Purpose:</i>
   !!
   !!     Find optimal stepsize for each parameter such that the
   !!     acceptance ratio converges to a value around 0.3.
   !!
-  !!     #### <i>Important variables:</i>
+  !!    <b> <i>Important variables:</i></b>
   !!
   !!     <b> Variable           |  Description                                                     </b>
   !!     ---------------------- | -----------------------------------------------------------------------
@@ -75,7 +75,7 @@ MODULE mo_mcmc
   !!     stepsize               | a new parameter value is chosen based on a uniform distribution 
   !!                              pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) (initial : stepsize_i = 1.0 for all i)
   !!
-  !!     #### <i>Algorithm:</i></b>
+  !!    \b <i>Algorithm:</i></b>
   !!     <ol>
   !!     <li>start a new markov chain of length burnin_iter with initial parameter set is the OPTIMAL one</i>\n
   !!           - select a set of parameters to change:\n
@@ -113,20 +113,22 @@ MODULE mo_mcmc
   !!             else goto (1)\n\n
   !!     </ol>
   !!
-  !!     ### 2. MONTE CARLO MARKOV CHAIN: SAMPLE POSTERIOR DISTRIBUTION OF PARAMETER
+  !!    <b> 2. Monte Carlo Markov Chain: Sample posterioir distribution of parameter </b>
   !!
-  !!     #### <i>Purpose:</i></b>
+  !!    \b <i>Purpose:</i>
+  !!
   !!       use the previous adapted stepsizes and perform ONE monte carlo markov chain\n
   !!       the accepted parameter sets show the posterior distribution of parameters
   !!
-  !!     #### <i>Important variables:</i></b>
+  !!    <b> <i>Important variables:</i></b>
+  !!
   !!       <b> Variable           |  Description                                                     </b>
   !!       ---------------------- | -----------------------------------------------------------------------
   !!       iter_mcmc              | length of the markov chain (>> iter_burnin)\n
   !!       stepsize               | a new parameter value is chosen based on a uniform distribution 
   !!                                pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) use stepsizes of the burn-in (1)
   !!
-  !!     #### <i>Algorithm:</i></b>
+  !!    \b <i>Algorithm:</i></b>
   !!     <ol>
   !!     <li> select a set of parameters to change\n
   !!          * accurate --> choose one parameter,\n
@@ -142,6 +144,29 @@ MODULE mo_mcmc
   !!     <li> if step is accepted: save parameter set\n
   !!     <li> goto (1)\n
   !!     </ol>
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    call mcmc(  likelihood, para, rangePar, mcmc_paras, burnin_paras,                  &
+  !!                seed_in=seeds, printflag_in=printflag, maskpara_in=maskpara,           &
+  !!                tmp_file=tmp_file, loglike_in=loglike,                                 &
+  !!                ParaSelectMode_in=ParaSelectMode,                                      &
+  !!                iter_burnin_in=iter_burnin, iter_mcmc_in=iter_mcmc,                    &
+  !!                chains_in=chains, stepsize_in=stepsize)
+  !!    \endcode
+  !!    See also example in test directory.
+  !!
+  !!    \b Literature
+  !!
+  !!    1.   Gelman et. al (1995)
+  !!         _Bayesian Data Analyis_. Chapman & Hall.\n
+  !!    2.   Gelman et. al (1997)
+  !!         _Efficient Metropolis Jumping Rules: Baysian Statistics 5_. pp. 599-607\n
+  !!    3.   Tautenhahn et. al (2012)
+  !!         _Beyond distance-invariant survival in inverse recruitment modeling:
+  !!         A case study in Siberian Pinus sylvestris forests_. Ecological Modelling, 233,
+  !!         90-103. doi:10.1016/j.ecolmodel.2012.03.009.
 
   !>        \param[in]  "real(dp) :: likelihood(x)"                    Interface Function which calculates likelihood
   !!                                                                   of given parameter set x
@@ -183,31 +208,9 @@ MODULE mo_mcmc
   !>        \param[out]  "real(dp), allocatable :: mcmc_paras(:,:)"    Parameter sets sampled in proper MCMC part of algorithm
   !>        \param[out]  "real(dp), allocatable :: burnin_paras(:,:)"  Parameter sets sampled during burn-in part of algorithm
 
-  !>     ## Restrictions
-  !>        Likelihood has to be defined as a function interface\n
-  !>        The maximal number of parameters is 1000.
-
-  !>     ## Example
-  !!
-  !!              call mcmc(  likelihood, para, rangePar, mcmc_paras, burnin_paras,                  &
-  !!                          seed_in=seeds, printflag_in=printflag, maskpara_in=maskpara,           &
-  !!                          tmp_file=tmp_file, loglike_in=loglike,                                 &
-  !!                          ParaSelectMode_in=ParaSelectMode,                                      &
-  !!                          iter_burnin_in=iter_burnin, iter_mcmc_in=iter_mcmc,                    &
-  !!                          chains_in=chains, stepsize_in=stepsize)
-  !!
-  !!     See also example in test directory.
-
-  !>     ## Literature
-  !!
-  !!     1.   Gelman et. al (1995)
-  !!          _Bayesian Data Analyis_. Chapman & Hall.\n
-  !!     2.   Gelman et. al (1997)
-  !!          _Efficient Metropolis Jumping Rules: Baysian Statistics 5_. pp. 599-607\n
-  !!     3.   Tautenhahn et. al (2012)
-  !!          _Beyond distance-invariant survival in inverse recruitment modeling:
-  !!          A case study in Siberian Pinus sylvestris forests_. Ecological Modelling, 233,
-  !!          90-103. doi:10.1016/j.ecolmodel.2012.03.009.
+  !>    \note
+  !>    Likelihood has to be defined as a function interface\n
+  !>    The maximal number of parameters is 1000.
 
   !>        \authors Juliane Mai
   !>        \date Nov 2014
@@ -226,14 +229,14 @@ MODULE mo_mcmc
   !!                 model dependent parameters for the second step which is the proper
   !!                 sampling using the Metropolis Hastings Algorithm.\n\n
 
-  !>     ### 1. BURN IN PHASE: FIND THE OPTIMAL STEP SIZE
+  !>    <b> 1. Burn in phase: Find the optimal step size </b>
   !!
-  !!     #### <i>Purpose:</i>
+  !!    \b <i>Purpose:</i>
   !!
   !!     Find optimal stepsize for each parameter such that the
   !!     acceptance ratio converges to a value around 0.3.\n
   !!
-  !!     #### <i>Important variables:</i>
+  !!    <b> <i>Important variables:</i> </b>
   !!
   !!       <b> Variable           |  Description                                                     </b>
   !!       ---------------------- | -----------------------------------------------------------------------
@@ -245,7 +248,7 @@ MODULE mo_mcmc
   !!       stepsize               | a new parameter value is chosen based on a uniform distribution 
   !!                                pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) (initial : stepsize_i = 1.0 for all i)
   !!
-  !!     #### <i>Algorithm:</i>\n
+  !!    \b <i>Algorithm:</i>
   !!     <ol>
   !!     <li>start a new markov chain of length burnin_iter with initial parameter set is the OPTIMAL one</i>\n
   !!           - select a set of parameters to change:\n
@@ -283,20 +286,22 @@ MODULE mo_mcmc
   !!             else goto (1)\n\n
   !!     </ol>
   !!
-  !!     ### 2. MONTE CARLO MARKOV CHAIN: SAMPLE POSTERIOR DISTRIBUTION OF PARAMETER
+  !!    <b> 2. Monte Carlo Markov Chain: Sample posterioir distribution of parameter </b>
   !!
-  !!     #### <i>Purpose:</i>
+  !!    \b <i>Purpose:</i>
+  !!
   !!       use the previous adapted stepsizes and perform ONE monte carlo markov chain\n
   !!       the accepted parameter sets show the posterior distribution of parameters\n
   !!
-  !!     #### <i>Important variables:</i>
+  !!    <b> <i>Important variables:</i> </b>
+  !!
   !!       <b> Variable           |  Description                                                     </b>
   !!       ---------------------- | -----------------------------------------------------------------------
   !!       iter_mcmc              | length of the markov chain (>> iter_burnin)\n
   !!       stepsize               | a new parameter value is chosen based on a uniform distribution 
   !!                                pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) use stepsizes of the burn-in (1)\n
   !!
-  !!     #### <i>Algorithm:</i>
+  !!    \b <i>Algorithm:</i>
   !!     <ol>
   !!     <li> select a set of parameters to change\n
   !!          * accurate --> choose one parameter,\n
@@ -312,6 +317,30 @@ MODULE mo_mcmc
   !!     <li> if step is accepted: save parameter set\n
   !!     <li> goto (1)\n
   !!     </ol>
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    call mcmc(  likelihood, para, rangePar, mcmc_paras, burnin_paras,                  &
+  !!                seed_in=seeds, printflag_in=printflag, maskpara_in=maskpara,           &
+  !!                tmp_file=tmp_file, loglike_in=loglike,                                 &
+  !!                ParaSelectMode_in=ParaSelectMode,                                      &
+  !!                iter_burnin_in=iter_burnin, iter_mcmc_in=iter_mcmc,                    &
+  !!                chains_in=chains, stepsize_in=stepsize)
+  !!    \endcode
+  !!    See also example in test directory.
+  !!
+  !!    \b Literature
+  !!
+  !!    1.  Gelman et. al (1995)
+  !!        _Bayesian Data Analyis_. Chapman & Hall.
+  !!    2.  Gelman et. al (1997)
+  !!        _Efficient Metropolis Jumping Rules: Bayesian Statistics 5_. pp. 599-607
+  !!    3.  Tautenhahn et. al (2012)
+  !!        _Beyond distance-invariant survival in inverse recruitment modeling:
+  !!        A case study in Siberian Pinus sylvestris forests_. Ecological Modelling, 233,
+  !!        90-103. doi:10.1016/j.ecolmodel.2012.03.009.
+  !!
 
   !>        \param[in]  "real(dp) :: likelihood(x,sigma,stddev_new,likeli_new)"
   !>                                                                   Interface Function which calculates likelihood
@@ -369,58 +398,39 @@ MODULE mo_mcmc
   !>        \param[out]  "real(dp), allocatable :: mcmc_paras(:,:)"    Parameter sets sampled in proper MCMC part of algorithm
   !>        \param[out]  "real(dp), allocatable :: burnin_paras(:,:)"  Parameter sets sampled during burn-in part of algorithm
 
-  !>    \note \b Restrictions: Likelihood has to be defined as a function interface
+  !>    \note Restrictions: Likelihood has to be defined as a function interface
 
-  !>    \b Example
-  !!
-  !!        call mcmc(  likelihood, para, rangePar, mcmc_paras, burnin_paras,                  &
-  !!                    seed_in=seeds, printflag_in=printflag, maskpara_in=maskpara,           &
-  !!                    tmp_file=tmp_file, loglike_in=loglike,                                 &
-  !!                    ParaSelectMode_in=ParaSelectMode,                                      &
-  !!                    iter_burnin_in=iter_burnin, iter_mcmc_in=iter_mcmc,                    &
-  !!                    chains_in=chains, stepsize_in=stepsize)
-  !!
-  !!    See also example in test directory.
-  !!
-  !>    \b Literature
-  !!
-  !!    1.  Gelman et. al (1995)
-  !!        _Bayesian Data Analyis_. Chapman & Hall.
-  !!    2.  Gelman et. al (1997)
-  !!        _Efficient Metropolis Jumping Rules: Bayesian Statistics 5_. pp. 599-607
-  !!    3.  Tautenhahn et. al (2012)
-  !!        _Beyond distance-invariant survival in inverse recruitment modeling:
-  !!        A case study in Siberian Pinus sylvestris forests_. Ecological Modelling, 233,
-  !!        90-103. doi:10.1016/j.ecolmodel.2012.03.009.
-  !!
-  !>    \authors
-  !!         Written by Marem Goehler,\n
-  !!         Sep. 2012 : Created using copy of Simulated Annealing:\n
-  !!         - constant temperature T
-  !!         - burn-in for stepsize adaption
-  !!         - acceptance/ rejection multiplier
-  !!
-  !!         Modified by Juliane Mai,\n
-  !!         Sep. 2012 : Cleaning code and introduce likelihood:\n
-  !!         - likelihood instead of objective function
-  !!         - odds ratio
-  !!         - convergence criteria for burn-in
-  !!         - different modes of parameter selection
-  !!
-  !!         OpenMP for chains of MCMC\n
-  !!         optional file for temporal output\n
-  !!
-  !!         Nov. 2012 : Temporary file writing as NetCDF\n
-  !!         Aug. 2013 : New likelihood interface to reduce number of function evaluations.
-  !!                                Only one seed has to be given.\n
-  !!         Nov. 2014 : add new routine for mcmc,
-  !!                                 mcmc_stddev, i.e. mcmc with likelihood with "faked sigma".
-  !!                                 mcmc,        i.e. mcmc with "real" likelihood (sigma is given by e.g. error model).\n
-  !!         Apr. 2015 : handling of array-like variables in restart-namelists
-  !!
-  !!         Modified by Mathias Cuntz and Juliane Mai,\n
-  !!         Feb. 2015 : restart\n
-  !!
+  !>    \author Marem Goehler
+  !>    \date Sep. 2012 
+  !!        - Created using copy of Simulated Annealing:\n
+  !!          - constant temperature T\n
+  !!          - burn-in for stepsize adaption\n
+  !!          - acceptance/ rejection multiplier\n
+
+  !>    \author Juliane Mai
+  !>    \date Sep. 2012 
+  !!        - Cleaning code and introduce likelihood:\n
+  !!          - likelihood instead of objective function\n
+  !!          - odds ratio\n
+  !!          - convergence criteria for burn-in\n
+  !!          - different modes of parameter selection\n
+  !!        - OpenMP for chains of MCMC\n
+  !!        - optional file for temporal output\n
+  !>    \date Nov 2012 
+  !!        - Temporary file writing as NetCDF
+  !>    \date Aug 2013
+  !!        - New likelihood interface to reduce number of function evaluations. Only one seed has to be given.\n
+  !>    \date Nov 2014
+  !!        - add new routine for mcmc:\n
+  !!          - mcmc_stddev, i.e. mcmc with likelihood with "faked sigma".\n
+  !!          - mcmc,        i.e. mcmc with "real" likelihood (sigma is given by e.g. error model).\n
+  !>    \date Apr 2015
+  !!        - handling of array-like variables in restart-namelists
+
+  !>    \author Mathias Cuntz and Juliane Mai
+  !>    \date Feb 2015
+  !!        - restart
+
   INTERFACE mcmc_stddev
     MODULE PROCEDURE mcmc_stddev_dp
   END INTERFACE mcmc_stddev
