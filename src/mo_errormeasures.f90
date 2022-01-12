@@ -1,6 +1,5 @@
 !> \file mo_errormeasures.f90
-!> \brief \copybrief mo_errormeasures
-!> \details \copydetails mo_errormeasures
+!> \copydoc mo_errormeasures
 
 !> \brief Calculation of error measures.
 !> \details This module contains routines for the masked calculation of

@@ -1,6 +1,5 @@
 !> \file mo_spatialsimilarity.f90
-!> \brief \copybrief mo_spatialsimilarity
-!> \details \copydetails mo_spatialsimilarity
+!> \copydoc mo_spatialsimilarity
 
 !> \brief Routines for bias insensitive comparison of spatial patterns.
 !> \details These routines are based on the idea that spatial similarity can be assessed by comparing

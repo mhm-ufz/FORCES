@@ -1,6 +1,5 @@
 !> \file mo_sce.f90
-!> \brief \copybrief mo_sce
-!> \details \copydetails mo_sce
+!> \copydoc mo_sce
 
 !> \brief Shuffled Complex Evolution optimization algorithm.
 !> \details Optimization algorithm using Shuffled Complex Evolution strategy.

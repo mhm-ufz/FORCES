@@ -1,6 +1,5 @@
 !> \file mo_mad.f90
-!> \brief \copybrief mo_mad
-!> \details \copydetails mo_mad
+!> \copydoc mo_mad
 
 !> \brief Median absolute deviation test.
 !> \details This module provides a median absolute deviation (MAD) test.

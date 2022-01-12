@@ -1,6 +1,5 @@
 !> \file mo_anneal.f90
-!> \brief \copybrief mo_anneal
-!> \details \copydetails mo_anneal
+!> \copydoc mo_anneal
 
 !> \brief Anneal optimization of cost function.
 !> \details Minimization of cost function and temperature finding of minima.

@@ -1,6 +1,5 @@
 !>    \file mo_percentile.f90
-!>    \brief \copybrief mo_percentile
-!>    \details \copydetails mo_percentile
+!>    \copydoc mo_percentile
 
 !>    \brief  Median and percentiles.
 !>    \details

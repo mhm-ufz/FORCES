@@ -1,5 +1,5 @@
 !>  \file mo_likelihood.f90
-!>  \brief \copybrief mo_likelihood
+!>  \copydoc mo_likelihood
 
 !>  \brief Added for testing purposes of test_mo_mcmc
 module mo_likelihood

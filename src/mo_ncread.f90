@@ -1,6 +1,5 @@
 !> \file mo_ncread.f90
-!> \brief \copybrief mo_ncread
-!> \details \copydetails mo_ncread
+!> \copydoc mo_ncread
 
 !> \brief Reading netcdf files
 !> \details Subroutines for reading arrays from nc file using the netcdf4 library.

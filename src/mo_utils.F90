@@ -1,6 +1,5 @@
 !> \file mo_utils.f90
-!> \brief \copybrief mo_utils
-!> \details \copydetails mo_utils
+!> \copydoc mo_utils
 
 !> \brief General utilities for the CHS library
 !> \details This module provides general utilities such as comparisons of two reals.
