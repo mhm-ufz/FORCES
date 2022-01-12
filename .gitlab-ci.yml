@@ -6,15 +6,13 @@
 
 variables:
   GIT_DEPTH: 10
+  GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME/$CI_CONCURRENT_ID
+  MAKE_FLAGS: -j 4
 
 stages:
   - info
   - test
   - deploy
-
-variables:
-  GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME/$CI_CONCURRENT_ID
-  MAKE_FLAGS: -j 4
 
 show-env-vars:
   stage: info
@@ -31,19 +29,14 @@ show-env-vars:
     - echo -e "${SEP}\n${S00}$(date)\n${SEP}\n${S01}\n${S02}\n${S03}\n${S04}\n${SEP}\n${S05}${GIT_CLONE_PATH}\n${S06}\n${SEP}"
 
 documentation:
-  only:
-    - develop
   stage: test
   variables:
     GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
     GIT_FETCH_EXTRA_FLAGS: --all --no-tags --prune --quiet
   script:
-    - module load foss/2019b
-    - module load texlive/2019
-    - module load Graphviz/2.42.2
-    - module load Anaconda3
-    - source activate /global/apps/mhm_checks/mhm_env
-    # use doxygen from the mhm_env conda environment
+    - source hpc-module-loads/eve.chs-conda01
+    - module load GCCcore/9.3.0 texlive/2020
+    # use doxygen from the chs conda environment
     - doxygen doc/doxygen.config > doxygen_log_dev.txt
     # create pdf documentation
     - cd latex/ && make > ../doxygen_latex_dev.txt
@@ -51,7 +44,27 @@ documentation:
     - cp refman.pdf ../forces_doc_dev.pdf
     - cd .. && mv html html_dev
     - mv doxygen_warn.txt doxygen_warn_dev.txt
-    - rm -rf latex
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME"
+    paths:
+      - html_dev
+      - forces_doc_dev.pdf
+      - doxygen_log_dev.txt
+      - doxygen_latex_dev.txt
+      - doxygen_warn_dev.txt
+  when: always
+
+documentation_stable:
+  only:
+    - develop
+  stage: test
+  variables:
+    GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_RUNNER_SHORT_TOKEN/$CI_PROJECT_PATH/$CI_COMMIT_REF_NAME/$CI_JOB_NAME
+    GIT_FETCH_EXTRA_FLAGS: --all --no-tags --prune --quiet
+  script:
+    - source hpc-module-loads/eve.chs-conda01
+    - module load GCCcore/9.3.0 texlive/2020
+    # use doxygen from the chs conda environment
     # same for master
     - git checkout master
     - doxygen doc/doxygen.config > doxygen_log_mas.txt
@@ -63,11 +76,6 @@ documentation:
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
     paths:
-      - html_dev
-      - forces_doc_dev.pdf
-      - doxygen_log_dev.txt
-      - doxygen_latex_dev.txt
-      - doxygen_warn_dev.txt
       - html_mas
       - forces_doc_mas.pdf
       - doxygen_log_mas.txt
@@ -266,6 +274,8 @@ pages:
     - develop
   stage: deploy
   needs:
+    - job: documentation_stable
+      artifacts: true
     - job: documentation
       artifacts: true
     - job: coverage
@@ -289,4 +299,3 @@ pages:
     name: "$CI_COMMIT_REF_NAME"
     paths:
       - public
-  when: always
