@@ -1,36 +1,11 @@
 !> \file mo_integrate.f90
+!> \copydoc mo_integrate
 
 !> \brief Provides integration routines
-
 !> \details This module provides routine for numerical integration such a Newton-Cotes formulas, etc.
-
 !> \authors Matthias Cuntz
 !> \date Mar 2013
 MODULE mo_integrate
-
-  ! Provide numerical integration.
-
-  ! Written  Matthias Cuntz, Mar 2013
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2013 Matthias Cuntz
 
   USE mo_kind, ONLY: i4, sp, dp
 
@@ -39,51 +14,23 @@ MODULE mo_integrate
   PUBLIC :: int_regular ! Integrate regularily spaced data
 
   ! ------------------------------------------------------------------
-
-  !     NAME
-  !         int_regular
-
-  !     PURPOSE
   !>        \brief Integrate regularily spaced data.
-
   !>        \details Integrates regularily spaced data with a 5-point Newton-Cotes formula:
-  !>        \f[ \int y = \frac{2}{45} dx \sum_{i=5,n-4,4} 7 y_{i-4} + 32 y_{i-3} + 12 y_{i-2} + 32 y_{i-1} + 7 y_{i} \f]
-
-  !>        dx=1 if not given.
-
-  !     INTENT(IN)
+  !!        \f[ \int y dx = \frac{2}{45} \sum_{i=5,n-4,4} 7 y_{i-4} + 32 y_{i-3} + 12 y_{i-2} + 32 y_{i-1} + 7 y_{i} \f]
+  !!
+  !!        dx=1 if not given.
+  !!
+  !!        \b Example
+  !!        \code{.f90}
+  !!        vec = (/ 1., 2, 3., 4., 5., 6., 7., 8., 9. /)
+  !!        m   = int_regular(vec)
+  !!        -> see also example in test directory
+  !!        \endcode
+  !!
   !>        \param[in] "real(sp/dp) :: dat(:)"        \f$ y_i \f$ 1D-array with y-values.
+  !>        \param[in] "real(sp/dp) :: dx"             x-spacing (default=1.)
+  !>        \return     real(sp/dp) :: integral &mdash; \f$ \int y \f$ integral of y values
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !>       \param[in] "real(sp/dp) :: dx"             x-spacing (default=1.)
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>       \return     real(sp/dp) :: integral &mdash; \f$ \int y \f$ integral of y values
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         vec = (/ 1., 2, 3., 4., 5., 6., 7., 8., 9. /)
-  !         m   = int_regular(vec)
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
   !>        \author Matthias Cuntz
   !>        \date Mar 2013
   INTERFACE int_regular
@@ -132,7 +79,7 @@ CONTAINS
        if ( ddx .lt. 1.0_dp ) then
           if ( int_regular_dp .gt. tiny(1.0_dp)/ddx ) then
              int_regular_dp = ddx * int_regular_dp
-          else 
+          else
              int_regular_dp = tiny(1.0_dp)
           end if
        else
@@ -174,7 +121,7 @@ CONTAINS
        if ( ddx .lt. 1.0_sp ) then
           if ( int_regular_sp .gt. tiny(1.0_sp)/ddx ) then
              int_regular_sp = ddx * int_regular_sp
-          else 
+          else
              int_regular_sp = tiny(1.0_sp)
           end if
        else
