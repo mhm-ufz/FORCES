@@ -1,3 +1,7 @@
+!> \file mo_os.f90
+!> \copydoc mo_os
+
+!> \brief Path and directory management.
 MODULE mo_os
 
   ! License
@@ -35,66 +39,19 @@ MODULE mo_os
 CONTAINS
 
   ! ------------------------------------------------------------------
-  !
-  !     NAME
-  !         path_exists
-  !
-  !     PURPOSE
   !>        \brief Existence of a path
-  !
   !>        \details Checks whether a given path exists.
-  !
-  !     INTENT(IN)
-  !>        \paran[in] "character(len=*) :: path"        To be checked path
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !>       \param[in] "logical, optional :: quiet_"   Be verbose or not (default: .false.)\n
-  !>                                                            .true.:  no message\n
-  !>                                                            .false.: write out message if path is not found
-  !>       \param[in] "logical, optional :: throwError_"   Be verbose or not (default: .false.)\n
-  !>                                                            .true.:  quit program and throw error message if path is not found\n
-  !>                                                            .false.: continue program and no message
-  !>       \param[in] "logical, optional :: dirOrFile_"   Be verbose or not (default: potential error message with imprecise information)\n
-  !>                                                            .true.:  if the given path does not exist, the potential error message relate to a directory\n
-  !>                                                            .false.: if the given path does not exist, the potential error message relate to a file
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !>       \param[out] "logical, optional :: result_"   Be verbose or not. Contains the result of checking the path.
-  !
-  !     RETURN
-  !        None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         call path_exists(path, quiet)
-  !         -> see also example in pf_test directory
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
   !>        \author Nicola Doering
   !>        \date Aug 2020
-
   SUBROUTINE path_exists(path, quiet_, throwError_, dirOrFile_, result_)
 
     IMPLICIT NONE
 
-    CHARACTER(LEN=*), INTENT(IN)  :: path
-    LOGICAL, INTENT(IN), OPTIONAL :: quiet_
-    LOGICAL, INTENT(IN), OPTIONAL :: throwError_
-    LOGICAL, INTENT(IN), OPTIONAL :: dirOrFile_
-    LOGICAL, INTENT(OUT), OPTIONAL :: result_
+    CHARACTER(LEN=*), INTENT(IN)  :: path !< given path
+    LOGICAL, INTENT(IN), OPTIONAL :: quiet_ !< Be verbose or not (default: .false.)
+    LOGICAL, INTENT(IN), OPTIONAL :: throwError_ !< Throw an error if path does not exist (default: .false.)
+    LOGICAL, INTENT(IN), OPTIONAL :: dirOrFile_ !< whether it's a directory (.true.) or a file (.false.)
+    LOGICAL, INTENT(OUT), OPTIONAL :: result_ !< result
 
     LOGICAL :: quiet = .false.
     LOGICAL :: throwError = .false.
@@ -129,62 +86,18 @@ CONTAINS
   END SUBROUTINE path_exists
 
   ! ------------------------------------------------------------------
-  !
-  !     NAME
-  !         path_isfile
-  !
-  !     PURPOSE
   !>        \brief Whether the path describes a file.
-  !
   !>        \details Checks whether a given path exists and describes a file.
-  !
-  !     INTENT(IN)
-  !>        \paran[in] "character(len=*) :: path"        To be checked path
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !>       \param[in] "logical, optional :: quiet_"   Be verbose or not (default: .false.)\n
-  !>                                                            .true.:  no message\n
-  !>                                                            .false.: write out message if path is not found or does not desrcibes a file
-  !>       \param[in] "logical, optional :: throwError_"   Be verbose or not (default: .false.)\n
-  !>                                                            .true.:  quit program and throw error message if path is not found or does not desrcibes a file\n
-  !>                                                            .false.: continue program and no message
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !>        \param[out] "logical, optional :: result_"   Be verbose or not. Contains the result of checking the path.
-  !
-  !     RETURN
-  !               None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         call path_isfile(path, quiet, throwError, result)
-  !         -> see also example in pf_test directory
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
   !>        \author Nicola Doering
   !>        \date Aug 2020
-
   SUBROUTINE path_isfile(path, quiet_, throwError_, result_)
 
     IMPLICIT NONE
 
-    CHARACTER(LEN=*), INTENT(IN) :: path
-    LOGICAL, INTENT(IN), OPTIONAL :: quiet_
-    LOGICAL, INTENT(IN), OPTIONAL :: throwError_
-    LOGICAL, INTENT(OUT), OPTIONAL :: result_
+    CHARACTER(LEN=*), INTENT(IN)  :: path !< given path
+    LOGICAL, INTENT(IN), OPTIONAL :: quiet_ !< Be verbose or not (default: .false.)
+    LOGICAL, INTENT(IN), OPTIONAL :: throwError_ !< Throw an error if file does not exist (default: .false.)
+    LOGICAL, INTENT(OUT), OPTIONAL :: result_ !< result
 
     LOGICAL :: quiet
     LOGICAL :: throwError
@@ -227,62 +140,18 @@ CONTAINS
   END SUBROUTINE path_isfile
 
   ! ------------------------------------------------------------------
-  !
-  !     NAME
-  !         path_isdir
-  !
-  !     PURPOSE
   !>        \brief Whether the path describes a directory.
-  !
   !>        \details Checks whether a given path exists and describes a directory.
-  !
-  !     INTENT(IN)
-  !>        \paran[in] "character(len=*) :: path"                To be checked path
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !>       \param[in] "logical, optional :: quiet_"   Be verbose or not (default: .false.)\n
-  !>                                                            .true.:  no message\n
-  !>                                                            .false.: write out message if path is not found or does not desrcibes a directory
-  !>       \param[in] "logical, optional :: throwError_"   Be verbose or not (default: .false.)\n
-  !>                                                            .true.:  quit program and throw error message if path is not found or does not desrcibes a directory\n
-  !>                                                            .false.: continue program and no message
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !>       \param[out] "logical, optional :: result_"   Be verbose or not. Contains the result of checking the path.
-  !
-  !     RETURN
-  !                                        None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         call path_isdir(path, quiet, throwError, result)
-  !         -> see also example in pf_test directory
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
   !>        \author Nicola Doering
   !>        \date Aug 2020
-
   SUBROUTINE path_isdir(path, quiet_, throwError_, result_)
 
     IMPLICIT NONE
 
-    CHARACTER(LEN=*), INTENT(IN)        :: path
-    LOGICAL, INTENT(IN), OPTIONAL :: quiet_
-    LOGICAL, INTENT(IN), OPTIONAL :: throwError_
-    LOGICAL, INTENT(OUT), OPTIONAL :: result_
+    CHARACTER(LEN=*), INTENT(IN)  :: path !< given path
+    LOGICAL, INTENT(IN), OPTIONAL :: quiet_ !< Be verbose or not (default: .false.)
+    LOGICAL, INTENT(IN), OPTIONAL :: throwError_ !< Throw an error if dir does not exist (default: .false.)
+    LOGICAL, INTENT(OUT), OPTIONAL :: result_ !< result
 
     LOGICAL :: quiet
     LOGICAL :: throwError
@@ -315,59 +184,19 @@ CONTAINS
   END SUBROUTINE path_isdir
 
   ! ------------------------------------------------------------------
-  !
-  !     NAME
-  !         path_splitext
-  !
-  !     PURPOSE
   !>        \brief Splitting the path into root and ext
-  !
   !>        \details Splitting the path name into a pair root and ext.
-  !>                 Here, ext stands for extension and has the extension portion
-  !>                 of the specified path while root is everything except ext part.
-  !>                 If the path describes a directory or there is no extension
-  !>                 portion ext is returned empty.
-  !
-  !     INTENT(IN)
-  !>        \paran[in] "character(len=*) :: path"       To be checked path
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         \paran[out] "character(len=*) :: root"      Path without the extension
-  !         \paran[out] "character(len=*) :: ext"       Extension of path
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !               None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         call path_splitext(path, root, ext)
-  !         -> see also example in pf_test directory
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
+  !!                 Here, ext stands for extension and has the extension portion
+  !!                 of the specified path while root is everything except ext part.
+  !!                 If the path describes a directory or there is no extension
+  !!                 portion ext is returned empty.
   !>        \author Nicola Doering
   !>        \date Aug 2020
-
   SUBROUTINE path_splitext(path, root, ext)
 
-    CHARACTER(LEN=*), INTENT(IN)  :: path
-    CHARACTER(LEN=*), INTENT(OUT) :: root
-    CHARACTER(LEN=*), INTENT(OUT) :: ext
+    CHARACTER(LEN=*), INTENT(IN)  :: path !< given path
+    CHARACTER(LEN=*), INTENT(OUT) :: root !< root part of path without extension
+    CHARACTER(LEN=*), INTENT(OUT) :: ext  !< extension of given path (starting with ".")
 
     INTEGER   :: i
     CHARACTER :: c
@@ -404,59 +233,19 @@ CONTAINS
   END SUBROUTINE path_splitext
 
   ! ------------------------------------------------------------------
-  !
-  !     NAME
-  !         path_split
-  !
-  !     PURPOSE
   !>        \brief Splitting the path into head and tail
-  !
   !>        \details Splitting the path name into a pair head and tail.
-  !>                 Here, tail is the last path name component and head is
-  !>                 everything leading up to that.
-  !>                 If the path ends with an '/' tail is returned empty and
-  !>                 if there is no '/' in path head is returned empty.
-  !
-  !     INTENT(IN)
-  !>        \paran[in] "character(len=*) :: path"       To be checked path
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         \paran[out] "character(len=*) :: head"      Everything leading up to the last path component
-  !         \paran[out] "character(len=*) :: tail"      Last path name component
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !               None
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         call path_split(path, head, tail)
-  !         -> see also example in pf_test directory
-  !     LITERATURE
-  !         None
-  !
-  !     HISTORY
+  !!                 Here, tail is the last path name component and head is
+  !!                 everything leading up to that.
+  !!                 If the path ends with an '/' tail is returned empty and
+  !!                 if there is no '/' in path head is returned empty.
   !>        \author Nicola Doering
   !>        \date Aug 2020
-
   SUBROUTINE path_split(path, head, tail)
 
-    CHARACTER(LEN=*), INTENT(IN)  :: path
-    CHARACTER(LEN=*), INTENT(OUT) :: head
-    CHARACTER(LEN=*), INTENT(OUT) :: tail
+    CHARACTER(LEN=*), INTENT(IN)  :: path !< given path
+    CHARACTER(LEN=*), INTENT(OUT) :: head !< everything leading up to the last path component
+    CHARACTER(LEN=*), INTENT(OUT) :: tail !< last pathname component
 
     INTEGER   :: i
     CHARACTER :: c

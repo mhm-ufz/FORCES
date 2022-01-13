@@ -1,9 +1,8 @@
 !> \file mo_mcmc.f90
+!> \copydoc mo_mcmc
 
-!> \brief This module is Monte Carlo Markov Chain sampling of a posterior parameter distribution.
-
+!> \brief Monte Carlo Markov Chain sampling.
 !> \details This module is Monte Carlo Markov Chain sampling of a posterior parameter distribution.
-
 !> \authors Maren Goehler, Juliane Mai
 !> \date Aug 2012
 
@@ -43,429 +42,395 @@ MODULE mo_mcmc
   PUBLIC :: mcmc_stddev   ! Sample posterior parameter distribution (measurement errors are neither known nor modeled)
 
   !-----------------------------------------------------------------------------------------------
-  !
-  ! NAME
-  !         mcmc
-  !
-  ! PURPOSE
+
   !>        \brief This module is Monte Carlo Markov Chain sampling of a posterior parameter distribution
-  !>               (measurement errors are either known or modeled).
-  !
+  !!               (measurement errors are either known or modeled).
+
   !>        \details Sample posterior parameter distribution with Metropolis Algorithm.\n
-  !>                 This sampling is performed in two steps, i.e. the burn-in phase for adjusting
-  !>                 model dependent parameters for the second step which is the proper
-  !>                 sampling using the Metropolis Hastings Algorithm.\n\n
-  !>
-  !>                 This sampler does not change the best parameter set, i.e.
-  !>                 it cannot be used as an optimiser.\n
-  !>                 However, the serial and the parallel version give therefore the bitwise same results.
-  !
-  !>     <b>1. BURN IN PHASE: FIND THE OPTIMAL STEP SIZE </b>\n\n
-  !
-  !>          <b><i>Purpose:</i></b>\n
-  !>            Find optimal stepsize for each parameter such that the
-  !>            acceptance ratio converges to a value around 0.3.\n
-  !>
-  !>          <b><i>Important variables:</i></b>\n
-  !>
-  !>            <b> Variable           |  Description                                                     </b>
-  !>            ---------------------- | -----------------------------------------------------------------------
-  !>            burnin_iter            | length of markov chain performed to calculate acceptance ratio\n
-  !>            acceptance ratio       | ratio between accepted jumps and all trials (LEN)\n
-  !>            acceptance multiplier  | stepsize of a parameter is multiplied with this value when jump is
-  !>                                     accepted (initial : 1.01)
-  !>            rejection multiplier   | stepsize of a parameter is multiplied with this value when jump is rejected
-  !>                                     (initial : 0.99 and will never be changed)
-  !>            stepsize               | a new parameter value is chosen based on a uniform distribution
-  !>                                     pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) (initial : stepsize_i = 1.0 for all i)
-  !
-  !>          \n
-  !>          <b><i>Algorithm:</i></b>\n
-  !>          <ol>
-  !>          <li>start a new markov chain of length burnin_iter with initial parameter set is the OPTIMAL one</i>\n
-  !>                - select a set of parameters to change:\n
-  !>                  * accurate --> choose one parameter,\n
-  !>                  * comput. efficient --> choose all parameters,\n
-  !>                  * moderate accurate & efficient --> choose half of the parameters\n
-  !>                - change parameter(s) based on their stepsize\n
-  !>                - decide whether changed parameter set is accepted or rejected:\n
-  !>                  * \f$ \mathrm{odds Ratio} = \frac{\mathrm{likelihood}(p_{new})}{\mathrm{likelihood}(p_{old})} \f$\n
-  !>                  * random number r = Uniform[0,1]\n
-  !>                  * odds Ratio > 0 --> positive accept\n
-  !>                    odds Ratio > r --> negative accept\n
-  !>                    odds Ratio < r --> reject\n
-  !>                - adapt stepsize of parameters changed:\n
-  !>                  * accepted step: stepsize_i = stepsize_i * accptance multiplier\n
-  !>                  * rejected step: stepsize_i = stepsize_i * rejection multiplier\n
-  !>                - if step is accepted: for all changed parameter(s) change stepsize\n
-  !
-  !>          <li>calculate acceptance ratio of the Markov Chain</i>\n
-  !
-  !>          <li>adjust acceptance multiplier acc_mult and
-  !>                store good ratios in history list\n
-  !>                - acceptance ratio < 0.23 --> acc_mult = acc_mult * 0.99\n
-  !>                                              delete history list\n
-  !>                - acceptance ratio > 0.44 --> acc_mult = acc_mult * 1.01\n
-  !>                                              delete history list\n
-  !>                - 0.23 < acceptance ratio < 0.44\n
-  !>                                              add acceptance ratio to history list\n
-  !
-  !>          <li>check if already 10 values are stored in history list and
-  !>                if they have converged to a value above 0.3\n
-  !>                ( mean above 0.3 and variance less \f$\sqrt{1/12*0.05^2}\f$ = Variance
-  !>                  of uniform [acc_ratio +/- 2.5%] )\n
-  !>                - if check is positive abort and save stepsizes\n
-  !>                  else goto (1)\n\n
-  !>          </ol>
-  !
-  !>
-  !>     <b>2. MONTE CARLO MARKOV CHAIN: SAMPLE POSTERIOR DISTRIBUTION OF PARAMETER</b>\n\n
-  !>          <b><i>Purpose:</i></b>\n
-  !>            use the previous adapted stepsizes and perform ONE monte carlo markov chain\n
-  !>            the accepted parameter sets show the posterior distribution of parameters\n
-  !>
-  !>          <b><i>Important variables:</i></b>\n
-  !>            <b> Variable           |  Description                                                     </b>
-  !>            ---------------------- | -----------------------------------------------------------------------
-  !>            iter_mcmc              | length of the markov chain (>> iter_burnin)\n
-  !>            stepsize               | a new parameter value is chosen based on a uniform distribution
-  !>                                     pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) use stepsizes of the burn-in (1)\n
-  !
-  !>          \n
-  !>          <b><i>Algorithm:</i></b>\n
-  !>          <ol>
-  !>          <li> select a set of parameters to change\n
-  !>               * accurate --> choose one parameter,\n
-  !>               * comput. efficient --> choose all parameters,\n
-  !>               * moderate accurate & efficient --> choose half of the parameters\n
-  !>          <li> change parameter(s) based on their stepsize\n
-  !>          <li> decide whether changed parameter set is accepted or rejected:\n
-  !>               * \f$ \mathrm{odds Ratio} = \frac{\mathrm{likelihood}(p_{new})}{\mathrm{likelihood}(p_{old})} \f$\n
-  !>               * random number r = Uniform[0,1]\n
-  !>               * odds Ratio > 0 --> positive accept\n
-  !>                 odds Ratio > r --> negative accept\n
-  !>                 odds Ratio < r --> reject\n
-  !>          <li> if step is accepted: save parameter set\n
-  !>          <li> goto (1)\n
-  !>          </ol>
+  !!                 This sampling is performed in two steps, i.e. the burn-in phase for adjusting
+  !!                 model dependent parameters for the second step which is the proper
+  !!                 sampling using the Metropolis Hastings Algorithm.\n\n
+  !!
+  !!                 This sampler does not change the best parameter set, i.e.
+  !!                 it cannot be used as an optimiser.\n
+  !!                 However, the serial and the parallel version give therefore the bitwise same results.\n
+  !!
+  !!    <b> 1. Burn in phase: Find the optimal step size </b>
+  !!
+  !!    \b <i>Purpose:</i>
+  !!
+  !!     Find optimal stepsize for each parameter such that the
+  !!     acceptance ratio converges to a value around 0.3.
+  !!
+  !!    <b> <i>Important variables:</i></b>
+  !!
+  !!     <b> Variable      </b> | <b> Description                                                     </b>
+  !!     ---------------------- | -----------------------------------------------------------------------
+  !!     burnin_iter            | length of markov chain performed to calculate acceptance ratio\n
+  !!     acceptance ratio       | ratio between accepted jumps and all trials (LEN)\n
+  !!     acceptance multiplier  | stepsize of a parameter is multiplied with this value when jump is accepted (initial : 1.01)
+  !!     rejection multiplier   | stepsize of a parameter is multiplied with this value when jump is rejected (initial : 0.99
+  !!     ^                      | and will never be changed)
+  !!     stepsize               | a new parameter value is chosen based on a uniform distribution
+  !!     ^                      | pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) (initial : stepsize_i = 1.0 for all i)
+  !!
+  !!    \b <i>Algorithm:</i>
+  !!     <ol>
+  !!     <li><i>start a new markov chain of length burnin_iter with initial parameter set is the OPTIMAL one</i>\n
+  !!           - select a set of parameters to change:\n
+  !!             * accurate --> choose one parameter,\n
+  !!             * comput. efficient --> choose all parameters,\n
+  !!             * moderate accurate & efficient --> choose half of the parameters\n
+  !!           - change parameter(s) based on their stepsize\n
+  !!           - decide whether changed parameter set is accepted or rejected:\n
+  !!             * \f$ \mathrm{odds Ratio} = \frac{\mathrm{likelihood}(p_{new})}{\mathrm{likelihood}(p_{old})} \f$\n
+  !!             * random number r = Uniform[0,1]\n
+  !!             * odds Ratio > 0 --> positive accept\n
+  !!               odds Ratio > r --> negative accept\n
+  !!               odds Ratio < r --> reject\n
+  !!           - adapt stepsize of parameters changed:\n
+  !!             * accepted step: stepsize_i = stepsize_i * accptance multiplier\n
+  !!             * rejected step: stepsize_i = stepsize_i * rejection multiplier\n
+  !!           - if step is accepted: for all changed parameter(s) change stepsize\n
+  !!
+  !!     <li><i>calculate acceptance ratio of the Markov Chain</i>\n
+  !!
+  !!     <li>adjust acceptance multiplier acc_mult and
+  !!           store good ratios in history list\n
+  !!           - acceptance ratio < 0.23 --> acc_mult = acc_mult * 0.99\n
+  !!                                         delete history list\n
+  !!           - acceptance ratio > 0.44 --> acc_mult = acc_mult * 1.01\n
+  !!                                         delete history list\n
+  !!           - 0.23 < acceptance ratio < 0.44\n
+  !!                                         add acceptance ratio to history list\n
+  !!
+  !!     <li>check if already 10 values are stored in history list and
+  !!           if they have converged to a value above 0.3\n
+  !!           ( mean above 0.3 and variance less \f$\sqrt{1/12*0.05^2}\f$ = Variance
+  !!             of uniform [acc_ratio +/- 2.5%] )\n
+  !!           - if check is positive abort and save stepsizes\n
+  !!             else goto (1)\n\n
+  !!     </ol>
+  !!
+  !!    <b> 2. Monte Carlo Markov Chain: Sample posterioir distribution of parameter </b>
+  !!
+  !!    \b <i>Purpose:</i>
+  !!
+  !!       use the previous adapted stepsizes and perform ONE monte carlo markov chain\n
+  !!       the accepted parameter sets show the posterior distribution of parameters
+  !!
+  !!    <b> <i>Important variables:</i></b>
+  !!
+  !!       <b> Variable      </b> | <b> Description                                                     </b>
+  !!       ---------------------- | -----------------------------------------------------------------------
+  !!       iter_mcmc              | length of the markov chain (>> iter_burnin)\n
+  !!       stepsize               | a new parameter value is chosen based on a uniform distribution
+  !!                                pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) use stepsizes of the burn-in (1)
+  !!
+  !!    \b <i>Algorithm:</i>
+  !!     <ol>
+  !!     <li> select a set of parameters to change\n
+  !!          * accurate --> choose one parameter,\n
+  !!          * comput. efficient --> choose all parameters,\n
+  !!          * moderate accurate & efficient --> choose half of the parameters\n
+  !!     <li> change parameter(s) based on their stepsize\n
+  !!     <li> decide whether changed parameter set is accepted or rejected:\n
+  !!          * \f$ \mathrm{odds Ratio} = \frac{\mathrm{likelihood}(p_{new})}{\mathrm{likelihood}(p_{old})} \f$\n
+  !!          * random number r = Uniform[0,1]\n
+  !!          * odds Ratio > 0 --> positive accept\n
+  !!            odds Ratio > r --> negative accept\n
+  !!            odds Ratio < r --> reject\n
+  !!     <li> if step is accepted: save parameter set\n
+  !!     <li> goto (1)\n
+  !!     </ol>
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    call mcmc(  likelihood, para, rangePar, mcmc_paras, burnin_paras,                  &
+  !!                seed_in=seeds, printflag_in=printflag, maskpara_in=maskpara,           &
+  !!                tmp_file=tmp_file, loglike_in=loglike,                                 &
+  !!                ParaSelectMode_in=ParaSelectMode,                                      &
+  !!                iter_burnin_in=iter_burnin, iter_mcmc_in=iter_mcmc,                    &
+  !!                chains_in=chains, stepsize_in=stepsize)
+  !!    \endcode
+  !!    See also example in test directory.
+  !!
+  !!    \b Literature
+  !!
+  !!    1.   Gelman et. al (1995)
+  !!         _Bayesian Data Analyis_. Chapman & Hall.\n
+  !!    2.   Gelman et. al (1997)
+  !!         _Efficient Metropolis Jumping Rules: Baysian Statistics 5_. pp. 599-607\n
+  !!    3.   Tautenhahn et. al (2012)
+  !!         _Beyond distance-invariant survival in inverse recruitment modeling:
+  !!         A case study in Siberian Pinus sylvestris forests_. Ecological Modelling, 233,
+  !!         90-103. doi:10.1016/j.ecolmodel.2012.03.009.
+  !!
 
-  !     CALLING SEQUENCE
-  !         call mcmc(  likelihood, para, rangePar, mcmc_paras, burnin_paras,                  &
-  !                     seed_in=seeds, printflag_in=printflag, maskpara_in=maskpara,           &
-  !                     tmp_file=tmp_file, loglike_in=loglike,                                 &
-  !                     ParaSelectMode_in=ParaSelectMode,                                      &
-  !                     iter_burnin_in=iter_burnin, iter_mcmc_in=iter_mcmc,                    &
-  !                     chains_in=chains, stepsize_in=stepsize)
+  !>    \param[in]  "real(dp) :: likelihood(x)"                    Interface Function which calculates likelihood
+  !!                                                                   of given parameter set x
+  !>    \param[in]  "real(dp) :: para(:)"                          Inital parameter set (should be GOOD approximation
+  !!                                                                   of best parameter set)
+  !>    \param[in]  "real(dp) :: rangePar(size(para),2)"           Min/max range of parameters
+  !>    \param[in]  "integer(i8),      optional :: seed_in"        User seed to initialise the random number generator \n
+  !!                                                                   (default: none --> initialized with timeseed)
+  !>    \param[in]  "logical,          optional :: printflag_in"   Print of output on command line \n
+  !!                                                                   (default: .False.)
+  !>    \param[in]  "logical,          optional :: maskpara_in(size(para))"
+  !!                                                                   Parameter will be sampled (.True.) or not (.False.) \n
+  !!                                                                   (default: .True.)
+  !>    \param[in]  "character(len=*), optional :: tmp_file"       filename for temporal data saving: \n
+  !!                                                                   every iter_mcmc_in iterations parameter sets are
+  !!                                                                   appended to this file \n
+  !!                                                                   the number of the chain will be prepended to filename \n
+  !!                                                                   output format: netcdf \n
+  !!                                                                   (default: no file writing)
+  !>    \param[in]  "logical,          optional :: loglike_in"     true if loglikelihood function is given instead of
+  !!                                                                   likelihood function \n
+  !!                                                                   (default: .false.)
+  !>    \param[in]  "integer(i4),      optional :: ParaSelectMode_in"
+  !!                                                                   How many parameters will be changed at once?
+  !!                                                                   - half of the parameter  --> 1_i4
+  !!                                                                   - only one parameter     --> 2_i4
+  !!                                                                   - all parameter          --> 3_i4
+  !!                                                                   (default: 2_i4)
+  !>    \param[in]  "integer(i4),      optional :: iter_burnin_in" Length of Markov chains of initial burn-in part \n
+  !!                                                                   (default: Max(250, 200*count(maskpara)) )
+  !>    \param[in]  "integer(i4),      optional :: iter_mcmc_in"   Length of Markov chains of proper MCMC part \n
+  !!                                                                   (default: 1000 * count(maskpara) )
+  !>    \param[in]  "integer(i4),      optional :: chains_in"      number of parallel mcmc chains \n
+  !!                                                                   (default: 5_i4)
+  !>    \param[in]  "real(dp), DIMENSION(size(para,1)), optional :: stepsize_in"
+  !!                                                                   stepsize for each parameter \n
+  !!                                                                   if given burn-in is discarded \n
+  !!                                                                   (default: none --> adjusted in burn-in)
+  !>    \param[out]  "real(dp), allocatable :: mcmc_paras(:,:)"    Parameter sets sampled in proper MCMC part of algorithm
+  !>    \param[out]  "real(dp), allocatable :: burnin_paras(:,:)"  Parameter sets sampled during burn-in part of algorithm
 
-  !     INTENT(IN)
-  !>        \param[in]  "real(dp) :: likelihood(x)"                    Interface Function which calculates likelihood
-  !>                                                                   of given parameter set x
+  !>    \note
+  !>    Likelihood has to be defined as a function interface\n
+  !>    The maximal number of parameters is 1000.
 
-  !>        \param[in]  "real(dp) :: para(:)"                          Inital parameter set (should be GOOD approximation
-  !>                                                                   of best parameter set)
+  !>        \authors Juliane Mai
+  !>        \date Nov 2014
 
-  !>        \param[in]  "real(dp) :: rangePar(size(para),2)"           Min/max range of parameters
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>        \param[out]  "real(dp), allocatable :: mcmc_paras(:,:)"    Parameter sets sampled in proper MCMC part of algorithm
-  !>        \param[out]  "real(dp), allocatable :: burnin_paras(:,:)"  Parameter sets sampled during burn-in part of algorithm
-
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in]  "integer(i8),      optional :: seed_in"        User seed to initialise the random number generator \n
-  !>                                                                   (default: none --> initialized with timeseed)
-
-  !>        \param[in]  "logical,          optional :: printflag_in"   Print of output on command line \n
-  !>                                                                   (default: .False.)
-
-  !>        \param[in]  "logical,          optional :: maskpara_in(size(para))"
-  !>                                                                   Parameter will be sampled (.True.) or not (.False.) \n
-  !>                                                                   (default: .True.)
-
-  !>        \param[in]  "character(len=*), optional :: tmp_file"       filename for temporal data saving: \n
-  !>                                                                   every iter_mcmc_in iterations parameter sets are
-  !>                                                                   appended to this file \n
-  !>                                                                   the number of the chain will be prepended to filename \n
-  !>                                                                   output format: netcdf \n
-  !>                                                                   (default: no file writing)
-
-  !>        \param[in]  "logical,          optional :: loglike_in"     true if loglikelihood function is given instead of
-  !>                                                                   likelihood function \n
-  !>                                                                   (default: .false.)
-
-  !>        \param[in]  "integer(i4),      optional :: ParaSelectMode_in"
-  !>                                                                   How many parameters will be changed at once?
-  !>                                                                   - half of the parameter  --> 1_i4
-  !>                                                                   - only one parameter     --> 2_i4
-  !>                                                                   - all parameter          --> 3_i4
-  !>                                                                   (default: 2_i4)
-
-  !>        \param[in]  "integer(i4),      optional :: iter_burnin_in" Length of Markov chains of initial burn-in part \n
-  !>                                                                   (default: Max(250, 200*count(maskpara)) )
-
-  !>        \param[in]  "integer(i4),      optional :: iter_mcmc_in"   Length of Markov chains of proper MCMC part \n
-  !>                                                                   (default: 1000 * count(maskpara) )
-
-  !>        \param[in]  "integer(i4),      optional :: chains_in"      number of parallel mcmc chains \n
-  !>                                                                   (default: 5_i4)
-
-  !>        \param[in]  "real(dp), DIMENSION(size(para,1)), optional :: stepsize_in"
-  !>                                                                   stepsize for each parameter \n
-  !>                                                                   if given burn-in is discarded \n
-  !>                                                                   (default: none --> adjusted in burn-in)
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !>        \note Likelihood has to be defined as a function interface\n
-  !>              The maximal number of parameters is 1000.
-  !         -> see also example in test directory
-
-  !     EXAMPLE
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         Gelman et. al (1995)
-  !             Baysian Data Analyis, Chapman & Hall.
-  !         Gelman et. al (1997)
-  !             Efficient Metropolis Jumping Rules, Baysian Statistics 5, pp. 599-607
-  !         Tautenhahn et. al (2012)
-  !             Beyond distance-invariant survival in inverse recruitment modeling:
-  !             A case study in Siberian Pinus sylvestris forests, Ecological Modelling, 233,
-  !             90-103. doi:10.1016/j.ecolmodel.2012.03.009.
-
-  !     HISTORY
-  !         Written  Mai,        Nov. 2014 : add new routine for mcmc
-  !                                          mcmc, i.e. mcmc with "real" likelihood (sigma is given by e.g. error model)
-  !
   INTERFACE mcmc
     MODULE PROCEDURE mcmc_dp
   END INTERFACE mcmc
 
   !-----------------------------------------------------------------------------------------------
-  !
-  ! NAME
-  !         mcmc_stddev
-  !
-  ! PURPOSE
+
   !>        \brief This module is Monte Carlo Markov Chain sampling of a posterior parameter distribution
-  !>               (measurement errors are neither known nor modeled).
-  !
+  !!               (measurement errors are neither known nor modeled).
+
   !>        \details Sample posterior parameter distribution with Metropolis Algorithm.\n
-  !>                 This sampling is performed in two steps, i.e. the burn-in phase for adjusting
-  !>                 model dependent parameters for the second step which is the proper
-  !>                 sampling using the Metropolis Hastings Algorithm.\n\n
-  !
-  !>     <b>1. BURN IN PHASE: FIND THE OPTIMAL STEP SIZE </b>\n\n
-  !
-  !>          <b><i>Purpose:</i></b>\n
-  !>            Find optimal stepsize for each parameter such that the
-  !>            acceptance ratio converges to a value around 0.3.\n
-  !>
-  !>          <b><i>Important variables:</i></b>\n
-  !>
-  !>            <b> Variable           |  Description                                                     </b>
-  !>            ---------------------- | -----------------------------------------------------------------------
-  !>            burnin_iter            | length of markov chain performed to calculate acceptance ratio\n
-  !>            acceptance ratio       | ratio between accepted jumps and all trials (LEN)\n
-  !>            acceptance multiplier  | stepsize of a parameter is multiplied with this value when jump is
-  !>                                     accepted (initial : 1.01)
-  !>            rejection multiplier   | stepsize of a parameter is multiplied with this value when jump is rejected
-  !>                                     (initial : 0.99 and will never be changed)
-  !>            stepsize               | a new parameter value is chosen based on a uniform distribution
-  !>                                     pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) (initial : stepsize_i = 1.0 for all i)
-  !
-  !>          \n
-  !>          <b><i>Algorithm:</i></b>\n
-  !>          <ol>
-  !>          <li>start a new markov chain of length burnin_iter with initial parameter set is the OPTIMAL one</i>\n
-  !>                - select a set of parameters to change:\n
-  !>                  * accurate --> choose one parameter,\n
-  !>                  * comput. efficient --> choose all parameters,\n
-  !>                  * moderate accurate & efficient --> choose half of the parameters\n
-  !>                - change parameter(s) based on their stepsize\n
-  !>                - decide whether changed parameter set is accepted or rejected:\n
-  !>                  * \f$ \mathrm{odds Ratio} = \frac{\mathrm{likelihood}(p_{new})}{\mathrm{likelihood}(p_{old})} \f$\n
-  !>                  * random number r = Uniform[0,1]\n
-  !>                  * odds Ratio > 0 --> positive accept\n
-  !>                    odds Ratio > r --> negative accept\n
-  !>                    odds Ratio < r --> reject\n
-  !>                - adapt stepsize of parameters changed:\n
-  !>                  * accepted step: stepsize_i = stepsize_i * accptance multiplier\n
-  !>                  * rejected step: stepsize_i = stepsize_i * rejection multiplier\n
-  !>                - if step is accepted: for all changed parameter(s) change stepsize\n
-  !
-  !>          <li>calculate acceptance ratio of the Markov Chain</i>\n
-  !
-  !>          <li>adjust acceptance multiplier acc_mult and
-  !>                store good ratios in history list\n
-  !>                - acceptance ratio < 0.23 --> acc_mult = acc_mult * 0.99\n
-  !>                                              delete history list\n
-  !>                - acceptance ratio > 0.44 --> acc_mult = acc_mult * 1.01\n
-  !>                                              delete history list\n
-  !>                - 0.23 < acceptance ratio < 0.44\n
-  !>                                              add acceptance ratio to history list\n
-  !
-  !>          <li>check if already 10 values are stored in history list and
-  !>                if they have converged to a value above 0.3\n
-  !>                ( mean above 0.3 and variance less \f$\sqrt{1/12*0.05^2}\f$ = Variance
-  !>                  of uniform [acc_ratio +/- 2.5%] )\n
-  !>                - if check is positive abort and save stepsizes\n
-  !>                  else goto (1)\n\n
-  !>          </ol>
-  !
-  !>
-  !>     <b>2. MONTE CARLO MARKOV CHAIN: SAMPLE POSTERIOR DISTRIBUTION OF PARAMETER</b>\n\n
-  !>          <b><i>Purpose:</i></b>\n
-  !>            use the previous adapted stepsizes and perform ONE monte carlo markov chain\n
-  !>            the accepted parameter sets show the posterior distribution of parameters\n
-  !>
-  !>          <b><i>Important variables:</i></b>\n
-  !>            <b> Variable           |  Description                                                     </b>
-  !>            ---------------------- | -----------------------------------------------------------------------
-  !>            iter_mcmc              | length of the markov chain (>> iter_burnin)\n
-  !>            stepsize               | a new parameter value is chosen based on a uniform distribution
-  !>                                     pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) use stepsizes of the burn-in (1)\n
-  !
-  !>          \n
-  !>          <b><i>Algorithm:</i></b>\n
-  !>          <ol>
-  !>          <li> select a set of parameters to change\n
-  !>               * accurate --> choose one parameter,\n
-  !>               * comput. efficient --> choose all parameters,\n
-  !>               * moderate accurate & efficient --> choose half of the parameters\n
-  !>          <li> change parameter(s) based on their stepsize\n
-  !>          <li> decide whether changed parameter set is accepted or rejected:\n
-  !>               * \f$ \mathrm{odds Ratio} = \frac{\mathrm{likelihood}(p_{new})}{\mathrm{likelihood}(p_{old})} \f$\n
-  !>               * random number r = Uniform[0,1]\n
-  !>               * odds Ratio > 0 --> positive accept\n
-  !>                 odds Ratio > r --> negative accept\n
-  !>                 odds Ratio < r --> reject\n
-  !>          <li> if step is accepted: save parameter set\n
-  !>          <li> goto (1)\n
-  !>          </ol>
+  !!                 This sampling is performed in two steps, i.e. the burn-in phase for adjusting
+  !!                 model dependent parameters for the second step which is the proper
+  !!                 sampling using the Metropolis Hastings Algorithm.\n\n
 
-  !     CALLING SEQUENCE
-  !         call mcmc(  likelihood, para, rangePar, mcmc_paras, burnin_paras,                  &
-  !                     seed_in=seeds, printflag_in=printflag, maskpara_in=maskpara,           &
-  !                     tmp_file=tmp_file, loglike_in=loglike,                                 &
-  !                     ParaSelectMode_in=ParaSelectMode,                                      &
-  !                     iter_burnin_in=iter_burnin, iter_mcmc_in=iter_mcmc,                    &
-  !                     chains_in=chains, stepsize_in=stepsize)
+  !>    <b> 1. Burn in phase: Find the optimal step size </b>
+  !!
+  !!    \b <i>Purpose:</i>
+  !!
+  !!     Find optimal stepsize for each parameter such that the
+  !!     acceptance ratio converges to a value around 0.3.\n
+  !!
+  !!    <b> <i>Important variables:</i> </b>
+  !!
+  !!       <b> Variable </b>      |  <b> Description                                                     </b>
+  !!       ---------------------- | -----------------------------------------------------------------------
+  !!       burnin_iter            | length of markov chain performed to calculate acceptance ratio\n
+  !!       acceptance ratio       | ratio between accepted jumps and all trials (LEN)\n
+  !!       acceptance multiplier  | stepsize of a parameter is multiplied with this value when jump is accepted (initial : 1.01)
+  !!       rejection multiplier   | stepsize of a parameter is multiplied with this value when jump is rejected (initial : 0.99 and
+  !!       ^                      | will never be changed)
+  !!       stepsize               | a new parameter value is chosen based on a uniform distribution
+  !!       ^                      | pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) (initial : stepsize_i = 1.0 for all i)
+  !!
+  !!    \b <i>Algorithm:</i>
+  !!     <ol>
+  !!     <li><i>start a new markov chain of length burnin_iter with initial parameter set is the OPTIMAL one</i>\n
+  !!           - select a set of parameters to change:\n
+  !!             * accurate --> choose one parameter,\n
+  !!             * comput. efficient --> choose all parameters,\n
+  !!             * moderate accurate & efficient --> choose half of the parameters\n
+  !!           - change parameter(s) based on their stepsize\n
+  !!           - decide whether changed parameter set is accepted or rejected:\n
+  !!             * \f$ \mathrm{odds Ratio} = \frac{\mathrm{likelihood}(p_{new})}{\mathrm{likelihood}(p_{old})} \f$\n
+  !!             * random number r = Uniform[0,1]\n
+  !!             * odds Ratio > 0 --> positive accept\n
+  !!               odds Ratio > r --> negative accept\n
+  !!               odds Ratio < r --> reject\n
+  !!           - adapt stepsize of parameters changed:\n
+  !!             * accepted step: stepsize_i = stepsize_i * accptance multiplier\n
+  !!             * rejected step: stepsize_i = stepsize_i * rejection multiplier\n
+  !!           - if step is accepted: for all changed parameter(s) change stepsize\n
+  !!
+  !!     <li><i>calculate acceptance ratio of the Markov Chain</i>\n
+  !!
+  !!     <li>adjust acceptance multiplier acc_mult and
+  !!           store good ratios in history list\n
+  !!           - acceptance ratio < 0.23 --> acc_mult = acc_mult * 0.99\n
+  !!                                         delete history list\n
+  !!           - acceptance ratio > 0.44 --> acc_mult = acc_mult * 1.01\n
+  !!                                         delete history list\n
+  !!           - 0.23 < acceptance ratio < 0.44\n
+  !!                                         add acceptance ratio to history list\n
+  !!
+  !!     <li>check if already 10 values are stored in history list and
+  !!           if they have converged to a value above 0.3\n
+  !!           ( mean above 0.3 and variance less \f$\sqrt{1/12*0.05^2}\f$ = Variance
+  !!             of uniform [acc_ratio +/- 2.5%] )\n
+  !!           - if check is positive abort and save stepsizes\n
+  !!             else goto (1)\n\n
+  !!     </ol>
+  !!
+  !!    <b> 2. Monte Carlo Markov Chain: Sample posterioir distribution of parameter </b>
+  !!
+  !!    \b <i>Purpose:</i>
+  !!
+  !!       use the previous adapted stepsizes and perform ONE monte carlo markov chain\n
+  !!       the accepted parameter sets show the posterior distribution of parameters\n
+  !!
+  !!    <b> <i>Important variables:</i> </b>
+  !!
+  !!       <b> Variable </b>      | <b> Description                                                     </b>
+  !!       ---------------------- | -----------------------------------------------------------------------
+  !!       iter_mcmc              | length of the markov chain (>> iter_burnin)\n
+  !!       stepsize               | a new parameter value is chosen based on a uniform distribution
+  !!       ^                      | pnew_i = pold_i + Unif(-stepsize_i, stepsize_i) use stepsizes of the burn-in (1)\n
+  !!
+  !!    \b <i>Algorithm:</i>
+  !!     <ol>
+  !!     <li> select a set of parameters to change\n
+  !!          * accurate --> choose one parameter,\n
+  !!          * comput. efficient --> choose all parameters,\n
+  !!          * moderate accurate & efficient --> choose half of the parameters\n
+  !!     <li> change parameter(s) based on their stepsize\n
+  !!     <li> decide whether changed parameter set is accepted or rejected:\n
+  !!          * \f$ \mathrm{odds Ratio} = \frac{\mathrm{likelihood}(p_{new})}{\mathrm{likelihood}(p_{old})} \f$\n
+  !!          * random number r = Uniform[0,1]\n
+  !!          * odds Ratio > 0 --> positive accept\n
+  !!            odds Ratio > r --> negative accept\n
+  !!            odds Ratio < r --> reject\n
+  !!     <li> if step is accepted: save parameter set\n
+  !!     <li> goto (1)\n
+  !!     </ol>
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    call mcmc(  likelihood, para, rangePar, mcmc_paras, burnin_paras,                  &
+  !!                seed_in=seeds, printflag_in=printflag, maskpara_in=maskpara,           &
+  !!                tmp_file=tmp_file, loglike_in=loglike,                                 &
+  !!                ParaSelectMode_in=ParaSelectMode,                                      &
+  !!                iter_burnin_in=iter_burnin, iter_mcmc_in=iter_mcmc,                    &
+  !!                chains_in=chains, stepsize_in=stepsize)
+  !!    \endcode
+  !!    See also example in test directory.
+  !!
+  !!    \b Literature
+  !!
+  !!    1.  Gelman et. al (1995)
+  !!        _Bayesian Data Analyis_. Chapman & Hall.
+  !!    2.  Gelman et. al (1997)
+  !!        _Efficient Metropolis Jumping Rules: Bayesian Statistics 5_. pp. 599-607
+  !!    3.  Tautenhahn et. al (2012)
+  !!        _Beyond distance-invariant survival in inverse recruitment modeling:
+  !!        A case study in Siberian Pinus sylvestris forests_. Ecological Modelling, 233,
+  !!        90-103. doi:10.1016/j.ecolmodel.2012.03.009.
+  !!
 
-  !     INTENT(IN)
-  !>        \param[in]  "real(dp) :: likelihood(x,sigma,stddev_new,likeli_new)"
+  !>    \param[in]  "real(dp) :: likelihood(x,sigma,stddev_new,likeli_new)"
   !>                                                                   Interface Function which calculates likelihood
   !>                                                                   of given parameter set x and given standard deviation sigma
   !>                                                                   and returns optionally the standard deviation stddev_new
   !>                                                                   of the errors using x and
   !>                                                                   likelihood likeli_new using stddev_new
 
-  !>        \param[in]  "real(dp) :: para(:)"                          Inital parameter set (should be GOOD approximation
+  !>    \param[in]  "real(dp) :: para(:)"                          Inital parameter set (should be GOOD approximation
   !>                                                                   of best parameter set)
 
-  !>        \param[in]  "real(dp) :: rangePar(size(para),2)"           Min/max range of parameters
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>        \param[out]  "real(dp), allocatable :: mcmc_paras(:,:)"    Parameter sets sampled in proper MCMC part of algorithm
-  !>        \param[out]  "real(dp), allocatable :: burnin_paras(:,:)"  Parameter sets sampled during burn-in part of algorithm
-
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in]  "integer(i8),      optional :: seed_in"        User seed to initialise the random number generator \n
+  !>    \param[in]  "real(dp) :: rangePar(size(para),2)"           Min/max range of parameters
+  !>    \param[in]  "integer(i8),      optional :: seed_in"        User seed to initialise the random number generator \n
   !>                                                                   (default: none --> initialized with timeseed)
 
-  !>        \param[in]  "logical,          optional :: printflag_in"   Print of output on command line \n
+  !>    \param[in]  "logical,          optional :: printflag_in"   Print of output on command line \n
   !>                                                                   (default: .False.)
 
-  !>        \param[in]  "logical,          optional :: maskpara_in(size(para))"
+  !>    \param[in]  "logical,          optional :: maskpara_in(size(para))"
   !>                                                                   Parameter will be sampled (.True.) or not (.False.) \n
   !>                                                                   (default: .True.)
 
-  !>        \param[in]  "character(len=*), optional :: tmp_file"       filename for temporal data saving: \n
+  !>    \param[in]  "character(len=*), optional :: tmp_file"       filename for temporal data saving: \n
   !>                                                                   every iter_mcmc_in iterations parameter sets are
   !>                                                                   appended to this file \n
   !>                                                                   the number of the chain will be prepended to filename \n
   !>                                                                   output format: netcdf \n
   !>                                                                   (default: no file writing)
 
-  !>        \param[in]  "logical,          optional :: loglike_in"     true if loglikelihood function is given instead of
+  !>    \param[in]  "logical,          optional :: loglike_in"     true if loglikelihood function is given instead of
   !>                                                                   likelihood function \n
   !>                                                                   (default: .false.)
 
-  !>        \param[in]  "integer(i4),      optional :: ParaSelectMode_in"
+  !>    \param[in]  "integer(i4),      optional :: ParaSelectMode_in"
   !>                                                                   How many parameters will be changed at once?
   !>                                                                   - half of the parameter  --> 1_i4
   !>                                                                   - only one parameter     --> 2_i4
   !>                                                                   - all parameter          --> 3_i4
   !>                                                                   (default: 2_i4)
 
-  !>        \param[in]  "integer(i4),      optional :: iter_burnin_in" Length of Markov chains of initial burn-in part \n
+  !>    \param[in]  "integer(i4),      optional :: iter_burnin_in" Length of Markov chains of initial burn-in part \n
   !>                                                                   (default: Max(250, 200*count(maskpara)) )
 
-  !>        \param[in]  "integer(i4),      optional :: iter_mcmc_in"   Length of Markov chains of proper MCMC part \n
+  !>    \param[in]  "integer(i4),      optional :: iter_mcmc_in"   Length of Markov chains of proper MCMC part \n
   !>                                                                   (default: 1000 * count(maskpara) )
 
-  !>        \param[in]  "integer(i4),      optional :: chains_in"      number of parallel mcmc chains \n
+  !>    \param[in]  "integer(i4),      optional :: chains_in"      number of parallel mcmc chains \n
   !>                                                                   (default: 5_i4)
 
-  !>        \param[in]  "real(dp), DIMENSION(size(para,1)), optional :: stepsize_in"
+  !>    \param[in]  "real(dp), DIMENSION(size(para,1)), optional :: stepsize_in"
   !>                                                                   stepsize for each parameter \n
   !>                                                                   if given burn-in is discarded \n
   !>                                                                   (default: none --> adjusted in burn-in)
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  !>    \param[out]  "real(dp), allocatable :: mcmc_paras(:,:)"    Parameter sets sampled in proper MCMC part of algorithm
+  !>    \param[out]  "real(dp), allocatable :: burnin_paras(:,:)"  Parameter sets sampled during burn-in part of algorithm
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
+  !>    \note Restrictions: Likelihood has to be defined as a function interface
 
-  !     RESTRICTIONS
-  !         \note Likelihood has to be defined as a function interface
-  !         -> see also example in test directory
+  !>    \author Marem Goehler
+  !>    \date Sep. 2012
+  !!        - Created using copy of Simulated Annealing:\n
+  !!          - constant temperature T\n
+  !!          - burn-in for stepsize adaption\n
+  !!          - acceptance/ rejection multiplier\n
 
-  !     EXAMPLE
-  !         -> see also example in test directory
+  !>    \author Juliane Mai
+  !>    \date Sep. 2012
+  !!        - Cleaning code and introduce likelihood:\n
+  !!          - likelihood instead of objective function\n
+  !!          - odds ratio\n
+  !!          - convergence criteria for burn-in\n
+  !!          - different modes of parameter selection\n
+  !!        - OpenMP for chains of MCMC\n
+  !!        - optional file for temporal output\n
+  !>    \date Nov 2012
+  !!        - Temporary file writing as NetCDF
+  !>    \date Aug 2013
+  !!        - New likelihood interface to reduce number of function evaluations. Only one seed has to be given.\n
+  !>    \date Nov 2014
+  !!        - add new routine for mcmc:\n
+  !!          - mcmc_stddev, i.e. mcmc with likelihood with "faked sigma".\n
+  !!          - mcmc,        i.e. mcmc with "real" likelihood (sigma is given by e.g. error model).\n
+  !>    \date Apr 2015
+  !!        - handling of array-like variables in restart-namelists
 
-  !     LITERATURE
-  !         Gelman et. al (1995)
-  !             Baysian Data Analyis, Chapman & Hall.
-  !         Gelman et. al (1997)
-  !             Efficient Metropolis Jumping Rules, Baysian Statistics 5, pp. 599-607
-  !         Tautenhahn et. al (2012)
-  !             Beyond distance-invariant survival in inverse recruitment modeling:
-  !             A case study in Siberian Pinus sylvestris forests, Ecological Modelling, 233,
-  !             90-103. doi:10.1016/j.ecolmodel.2012.03.009.
+  !>    \author Mathias Cuntz and Juliane Mai
+  !>    \date Feb 2015
+  !!        - restart
 
-  !     HISTORY
-  !         Written  Goehler,    Sep. 2012 : Created using copy of Simulated Annealing
-  !                                          - constant temperature T
-  !                                          - burn-in for stepsize adaption
-  !                                          - acceptance/ rejection multiplier
-  !         Modified Mai,        Sep. 2012 : Cleaning code and introduce likelihood
-  !                                          - likelihood instead of objective function
-  !                                          - odds ratio
-  !                                          - convergence criteria for burn-in
-  !                                          - different modes of parameter selection
-  !                                          OpenMP for chains of MCMC
-  !                                          optional file for temporal output
-  !                  Mai,        Nov. 2012 : Temporary file writing as NetCDF
-  !                  Mai,        Aug. 2013 : New likelihood interface to reduce number of function evaluations
-  !                                          Only one seed has to be given
-  !                  Mai,        Nov. 2014 : add new routine for mcmc
-  !                                          mcmc_stddev, i.e. mcmc with likelihood with "faked sigma"
-  !                                          mcmc,        i.e. mcmc with "real" likelihood (sigma is given by e.g. error model)
-  !                  Cuntz, Mai  Feb. 2015 : restart
-  !                  Mai,        Apr. 2015 : handling of array-like variables in restart-namelists
-  !
   INTERFACE mcmc_stddev
     MODULE PROCEDURE mcmc_stddev_dp
   END INTERFACE mcmc_stddev

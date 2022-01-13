@@ -1,9 +1,8 @@
 !> \file mo_netcdf.f90
+!> \copydoc mo_netcdf
 
 !> \brief NetCDF Fortran 90 interface wrapper
-
 !> \details A wrapper around the NetCDF Fortran 90 interface.
-!
 !> \authors David Schaefer
 !> \date Jun 2015
 
@@ -48,50 +47,52 @@ module mo_netcdf
   implicit none
 
   ! --------------------------------------------------------------------------------------
-  character(10), parameter :: CF_FILL_VALUE = '_FillValue'
-  character(11), parameter :: CF_VALID_RANGE = 'valid_range'
-  character(9), parameter :: CF_VALID_MIN = 'valid_min'
-  character(9), parameter :: CF_VALID_MAX = 'valid_max'
-  integer(i4), parameter :: CF_USE_FILL_VALUE = 1_i4
-  integer(i4), parameter :: CF_USE_VALID_MIN = 2_i4
-  integer(i4), parameter :: CF_USE_VALID_MAX = 3_i4
-  integer(i4), parameter :: CF_USE_VALID_RANGE = 4_i4
-  integer(i4), parameter :: CF_USE_NAN = 5_i4
+  character(10), parameter :: CF_FILL_VALUE = '_FillValue' !< CF fill value
+  character(11), parameter :: CF_VALID_RANGE = 'valid_range' !< CF valid range
+  character(9), parameter :: CF_VALID_MIN = 'valid_min' !< CF valid min
+  character(9), parameter :: CF_VALID_MAX = 'valid_max' !< CF valid max
+  integer(i4), parameter :: CF_USE_FILL_VALUE = 1_i4 !< CF use fill value
+  integer(i4), parameter :: CF_USE_VALID_MIN = 2_i4 !< CF use valid min
+  integer(i4), parameter :: CF_USE_VALID_MAX = 3_i4 !< CF use valid max
+  integer(i4), parameter :: CF_USE_VALID_RANGE = 4_i4 !< CF use valid range
+  integer(i4), parameter :: CF_USE_NAN = 5_i4 !< CF use nan
 
+  !> \brief NetCDF base class
   type, abstract :: NcBase
 
-    integer(i4) :: id
+    integer(i4) :: id !< object id
 
   contains
 
-    procedure(getNameInterface), deferred :: getName
-    procedure(getParentInterface), deferred :: getParent
+    procedure(getNameInterface), deferred :: getName !< object name
+    procedure(getParentInterface), deferred :: getParent !< object parent
 
   end type NcBase
 
+  !> \brief NetCDF attributable class
   type, abstract, extends(NcBase) :: NcAttributable
 
   contains
 
-    procedure, public :: hasAttribute
-    procedure, public :: renameAttribute
+    procedure, public :: hasAttribute !< object has attribute
+    procedure, public :: renameAttribute !< rename attribute
     procedure, private :: getAttributableIds
     procedure, public :: getAttributeNames
 
 #:for kind, type in REAL_KINDS_TYPES + INT_KINDS_TYPES
   #:for rank in [0, 1]
     procedure, private :: setAttribute_${rank}$d_${kind}$
-    generic, public :: setAttribute => setAttribute_${rank}$d_${kind}$
+    generic, public :: setAttribute => setAttribute_${rank}$d_${kind}$ !< set attribute
     procedure, private :: getAttribute_${rank}$d_${kind}$
-    generic, public :: getAttribute => getAttribute_${rank}$d_${kind}$
+    generic, public :: getAttribute => getAttribute_${rank}$d_${kind}$ !< get attribute
   #:endfor
 #:endfor
 #:for kind, type in CHAR_KINDS_TYPES
   #:for rank in [0]
     procedure, private :: setAttribute_${rank}$d_${kind}$
-    generic, public :: setAttribute => setAttribute_${rank}$d_${kind}$
+    generic, public :: setAttribute => setAttribute_${rank}$d_${kind}$ !< set attribute
     procedure, private :: getAttribute_${rank}$d_${kind}$
-    generic, public :: getAttribute => getAttribute_${rank}$d_${kind}$
+    generic, public :: getAttribute => getAttribute_${rank}$d_${kind}$ !< get attribute
   #:endfor
 #:endfor
 
@@ -99,37 +100,38 @@ module mo_netcdf
 
   ! --------------------------------------------------------------------------------------
 
+  !> \brief NetCDF Group class
   type, extends(NcAttributable) :: NcGroup
 
   contains
 
     ! getter
     procedure, private :: getVariableIds
-    procedure, public :: getVariables
-    procedure, public :: getUnlimitedDimension
-    procedure, public :: getNoVariables
+    procedure, public :: getVariables !< get variables
+    procedure, public :: getUnlimitedDimension !< get unlimited dimension
+    procedure, public :: getNoVariables !< get number of variables
 
     procedure, private :: getDimensionByName
     procedure, private :: getDimensionById
 
-    procedure, public :: getParent => getGroupParent
-    procedure, public :: getName => getGroupName
-    procedure, public :: getGroup => getGroupByName
-    procedure, public :: getVariable => getVariableByName
+    procedure, public :: getParent => getGroupParent !< get parent
+    procedure, public :: getName => getGroupName !< get name
+    procedure, public :: getGroup => getGroupByName !< get group by name
+    procedure, public :: getVariable => getVariableByName !< get variable by name
     generic, public :: getDimension => &
             getDimensionById, &
-            getDimensionByName
+            getDimensionByName !< get dimension
 
     ! checker
-    procedure, public :: hasVariable
-    procedure, public :: hasDimension
-    procedure, public :: hasGroup
-    procedure, public :: isUnlimited => isDatasetUnlimited
+    procedure, public :: hasVariable !< has variable
+    procedure, public :: hasDimension !< has dimension
+    procedure, public :: hasGroup !< has group
+    procedure, public :: isUnlimited => isDatasetUnlimited !< is unlimited
 
     ! setter
-    procedure, public  :: setGroup
-    procedure, public  :: setDimension
-    procedure, public  :: setCoordinate
+    procedure, public  :: setGroup !< set group
+    procedure, public  :: setDimension !< set dimension
+    procedure, public  :: setCoordinate !< set coordinate
     procedure, private :: set_scrip_dimension
     procedure, private :: set_1d_coordinate_variable
     procedure, private :: setVariableWithTypes
@@ -139,7 +141,7 @@ module mo_netcdf
     generic, public :: setVariable => &
             setVariableWithNames, &
             setVariableWithTypes, &
-            setVariableWithIds
+            setVariableWithIds !< set variable
 
   end type NcGroup
 
@@ -149,15 +151,16 @@ module mo_netcdf
 
   ! --------------------------------------------------------------------------------------
 
+  !> \brief NetCDF Dataset class
   type, extends(NcGroup) :: NcDataset
 
-    character(256) :: fname !> Filename of the opened dataset
-    character(1) :: mode  !> File open mode
+    character(256) :: fname !< Filename of the opened dataset
+    character(1) :: mode  !< File open mode
 
   contains
 
-    procedure, public :: sync
-    procedure, public :: close
+    procedure, public :: sync !< sync dataset
+    procedure, public :: close !< close dataset
 
   end type NcDataset
 
@@ -167,15 +170,16 @@ module mo_netcdf
 
   ! --------------------------------------------------------------------------------------
 
+  !> \brief NetCDF Dimension class
   type, extends(NcBase) :: NcDimension
 
-    type(NcGroup) :: parent  !> The dimension's parent
+    type(NcGroup) :: parent  !< The dimension's parent
   contains
-    procedure, public :: renameDimension
-    procedure, public :: getParent => getDimensionParent
-    procedure, public :: getName => getDimensionName
-    procedure, public :: getLength => getDimensionLength
-    procedure, public :: isUnlimited => isUnlimitedDimension
+    procedure, public :: renameDimension !< rename dimension
+    procedure, public :: getParent => getDimensionParent !< get parent
+    procedure, public :: getName => getDimensionName !< get name
+    procedure, public :: getLength => getDimensionLength !< get length
+    procedure, public :: isUnlimited => isUnlimitedDimension !< is unlimited
   end type NcDimension
 
   interface NcDimension
@@ -183,42 +187,43 @@ module mo_netcdf
   end interface NcDimension
   ! --------------------------------------------------------------------------------------
 
+  !> \brief NetCDF Variable class
   type, extends(NcAttributable) :: NcVariable
-    type(NcGroup) :: parent   !> The variables's parent
+    type(NcGroup) :: parent   !< The variables's parent
 
   contains
 
-    procedure, public :: renameVariable
-    procedure, public :: getParent => getVariableParent
-    procedure, public :: getName => getVariableName
+    procedure, public :: renameVariable !< rename
+    procedure, public :: getParent => getVariableParent !< get parent
+    procedure, public :: getName => getVariableName !< get name
     procedure, private :: getSlicingShape
 
 #:for kind, type in REAL_KINDS_TYPES + INT_KINDS_TYPES
   #:for rank in RANKS
     procedure, private :: setData_${rank}$d_${kind}$
-    generic, public :: setData => setData_${rank}$d_${kind}$
+    generic, public :: setData => setData_${rank}$d_${kind}$ !< set data
     procedure, private :: getData_${rank}$d_${kind}$
-    generic, public :: getData => getData_${rank}$d_${kind}$
+    generic, public :: getData => getData_${rank}$d_${kind}$ !< get data
   #:endfor
     procedure, private :: getCFAttributes_${kind}$
-    generic, public :: getCFAttributes => getCFAttributes_${kind}$
+    generic, public :: getCFAttributes => getCFAttributes_${kind}$ !< get CF attributes
     procedure, private :: setVariableFillValue_${kind}$
-    generic, public :: setFillValue => setVariableFillValue_${kind}$
+    generic, public :: setFillValue => setVariableFillValue_${kind}$ !< set fill value
     procedure, private :: getVariableFillValue_${kind}$
-    generic, public :: getFillValue => getVariableFillValue_${kind}$
+    generic, public :: getFillValue => getVariableFillValue_${kind}$ !< get fill value
 #:endfor
 
-    procedure, public :: getNoDimensions
+    procedure, public :: getNoDimensions !< get number of dimensions
 
-    procedure, public :: getDimensions => getVariableDimensions
+    procedure, public :: getDimensions => getVariableDimensions !< get dimensions
 
-    procedure, public :: getRank => getVariableRank
+    procedure, public :: getRank => getVariableRank !< get rank
 
-    procedure, public :: getShape => getVariableShape
+    procedure, public :: getShape => getVariableShape !< get shape
 
-    procedure, public :: getDtype => getVariableDtype
+    procedure, public :: getDtype => getVariableDtype !< get data type
 
-    procedure, public :: isUnlimited => isUnlimitedVariable
+    procedure, public :: isUnlimited => isUnlimitedVariable !< is unlimited
 
 
   end type NcVariable
@@ -230,12 +235,14 @@ module mo_netcdf
 
   ! abstract interfaces
   interface
+    !> \brief get name abstract interface
     function getNameInterface(self)
       import NcBase
       class(NcBase), intent(in) :: self
       character(len = 256) :: getNameInterface
     end function getNameInterface
 
+    !> \brief get parent abstract interface
     function getParentInterface(self)
       import NcBase, NcGroup
       class(NcBase), intent(in) :: self
@@ -243,6 +250,7 @@ module mo_netcdf
     end function getParentInterface
   end interface
 
+  !> \brief NetCDF comparison operator
   interface operator (==)
     procedure equalNcBases
   end interface operator (==)

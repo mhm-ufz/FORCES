@@ -1,10 +1,263 @@
 !> \file mo_orderpack.f90
+!> \copydoc mo_orderpack
 
 !> \brief Sort and ranking routines
-
-!> \details This module is the Orderpack 2.0 from Michel Olagnon.
-!>          It provides order and unconditional, unique, and partial
-!>         ranking, sorting, and permutation.
+!> \details
+!! This module is the Orderpack 2.0 from Michel Olagnon.
+!! It provides order and unconditional, unique, and partial
+!! ranking, sorting, and permutation.
+!!
+!! <b> Unconditional ranking </b>
+!!
+!! \code{.f90} subroutine MRGRNK (XVALT, IMULT) \endcode
+!!
+!! Ranks array XVALT into index array IRNGT, using merge-sort.
+!! For performance reasons, the first 2 passes are taken out of the
+!! standard loop, and use dedicated coding.
+!!
+!! \code{.f90} subroutine MRGREF (XVALT, IRNGT) \endcode
+!!
+!! Ranks array XVALT into index array
+!! IRNGT, using merge-sort. This version is not optimized for performance,
+!! and is thus not as difficult to read as the previous one.
+!!
+!! <b> Partial ranking </b>
+!!
+!! \code{.f90} subroutine RNKPAR (XVALT, IRNGT, NORD) \endcode
+!!
+!! Ranks partially XVALT by IRNGT,
+!! up to order NORD (refined for speed). This routine uses a pivoting
+!! strategy such as the one of finding the median based on the quicksort
+!! algorithm, but we skew the pivot choice to try to bring it to NORD as
+!! fast as possible. It uses 2 temporary arrays, one where it stores the
+!! indices of the values smaller than the pivot, and the other for the
+!! indices of values larger than the pivot that we might still need later
+!! on. It iterates until it can bring the number of values in ILOWT to
+!! exactly NORD, and then uses an insertion sort to rank this set, since
+!! it is supposedly small.
+!!
+!! \code{.f90} subroutine RAPKNR (XVALT, IRNGT, NORD) \endcode
+!!
+!! Same as RNKPAR, but in
+!! decreasing order (RAPKNR = RNKPAR spelt backwards).
+!!
+!! \code{.f90} subroutine REFPAR (XVALT, IRNGT, NORD) \endcode
+!!
+!! Ranks partially XVALT by IRNGT,
+!! up to order NORD This version is not optimized for performance, and is
+!! thus not as difficult to read as some other ones. It uses a pivoting
+!! strategy such as the one of finding the median based on the quicksort
+!! algorithm. It uses a temporary array, where it stores the partially
+!! ranked indices of the values. It iterates until it can bring the
+!! number of values lower than the pivot to exactly NORD, and then uses
+!! an insertion sort to rank this set, since it is supposedly small.
+!!
+!! \code{.f90} subroutine RINPAR (XVALT, IRNGT, NORD) \endcode
+!!
+!! Ranks partially XVALT by IRNGT,
+!! up to order NORD This version is not optimized for performance, and is
+!! thus not as difficult to read as some other ones. It uses insertion
+!! sort, limiting insertion to the first NORD values. It does not use any
+!! work array and is faster when NORD is very small (2-5), but worst case
+!! behavior (intially inverse sorted) can easily happen. In many cases,
+!! the refined quicksort method is faster.
+!!
+!! \code{.f90} integer function INDNTH (XVALT, NORD) \endcode
+!!
+!! Returns the index of the NORDth
+!! value of XVALT (in increasing order) This routine uses a pivoting
+!! strategy such as the one of finding the median based on the quicksort
+!! algorithm, but we skew the pivot choice to try to bring it to NORD as
+!! fast as possible. It uses 2 temporary arrays, one where it stores the
+!! indices of the values smaller than the pivot, and the other for the
+!! indices of values larger than the pivot that we might still need later
+!! on. It iterates until it can bring the number of values in ILOWT to
+!! exactly NORD, and then takes out the original index of the maximum
+!! value in this set.
+!!
+!! \code{.f90} subroutine INDMED (XVALT, INDM) \endcode
+!!
+!! Returns the index of the median
+!! (((Size(XVALT)+1))/2th value) of XVALT This routine uses the recursive
+!! procedure described in Knuth, The Art of Computer Programming, vol. 3,
+!! 5.3.3 - This procedure is linear in time, and does not require to be
+!! able to interpolate in the set as the one used in INDNTH. It also has
+!! better worst case behavior than INDNTH, but is about 10% slower in
+!! average for random uniformly distributed values.
+!!
+!! Note that in Orderpack 1.0, this routine was a Function procedure, and
+!! is now changed to a Subroutine.
+!!
+!! <b> Unique ranking </b>
+!!
+!! \code{.f90} subroutine UNIRNK (XVALT, IRNGT, NUNI) \endcode
+!!
+!! Ranks an array, removing
+!! duplicate entries (uses merge sort).  The routine is similar to pure
+!! merge-sort ranking, but on the last pass, it discards indices that
+!! correspond to duplicate entries. For performance reasons, the first 2
+!! passes are taken out of the standard loop, and use dedicated coding.
+!!
+!! \code{.f90} subroutine UNIPAR (XVALT, IRNGT, NORD) \endcode
+!!
+!! Ranks partially XVALT by IRNGT,
+!! up to order NORD at most, removing duplicate entries This routine uses
+!! a pivoting strategy such as the one of finding the median based on the
+!! quicksort algorithm, but we skew the pivot choice to try to bring it
+!! to NORD as quickly as possible. It uses 2 temporary arrays, one where
+!! it stores the indices of the values smaller than the pivot, and the
+!! other for the indices of values larger than the pivot that we might
+!! still need later on. It iterates until it can bring the number of
+!! values in ILOWT to exactly NORD, and then uses an insertion sort to
+!! rank this set, since it is supposedly small. At all times, the NORD
+!! first values in ILOWT correspond to distinct values of the input
+!! array.
+!!
+!! \code{.f90} subroutine UNIINV (XVALT, IGOEST) \endcode
+!!
+!! Inverse ranking of an array, with
+!! removal of duplicate entries The routine is similar to pure merge-sort
+!! ranking, but on the last pass, it sets indices in IGOEST to the rank
+!! of the original value in an ordered set with duplicates removed. For
+!! performance reasons, the first 2 passes are taken out of the standard
+!! loop, and use dedicated coding.
+!!
+!! \code{.f90} subroutine MULCNT (XVALT, IMULT) \endcode
+!!
+!! Gives, for each array value, its
+!! multiplicity The number of times that a value appears in the array is
+!! computed by using inverse ranking, counting for each rank the number
+!! of values that ``collide'' to this rank, and returning this sum to the
+!! locations in the original set. Uses subroutine UNIINV.
+!!
+!! <b> Random permutation: an interesting use of ranking </b>
+!!
+!! A variation of the following problem was raised on the internet
+!! sci.math.num-analysis news group: Given an array, I would like to find
+!! a random permutation of this array that I could control with a
+!! "nearbyness" parameter so that elements stay close to their initial
+!! locations. The "nearbyness" parameter ranges from 0 to 1, with 0
+!! such that no element moves from its initial location, and 1 such that
+!! the permutation is fully random.
+!!
+!! \code{.f90} subroutine CTRPER (XVALT, PCLS) \endcode
+!!
+!! Permute array XVALT randomly, but
+!! leaving elements close to their initial locations The routine takes
+!! the 1...size(XVALT) index array as real values, takes a combination of
+!! these values and of random values as a perturbation of the index
+!! array, and sorts the initial set according to the ranks of these
+!! perturbated indices. The relative proportion of initial order and
+!! random order is 1-PCLS / PCLS, thus when PCLS = 0, there is no change
+!! in the order whereas the new order is fully random when PCLS = 1. Uses
+!! subroutine MRGRNK.
+!!
+!! The above solution found another application when I was asked the
+!! following question: I am given two arrays, representing parents'
+!! incomes and their children's incomes, but I do not know which parents
+!! correspond to which children. I know from an independent source the
+!! value of the correlation coefficient between the incomes of the
+!! parents and of their children. I would like to pair the elements of
+!! these arrays so that the given correlation coefficient is attained,
+!! i.e. to reconstruct a realistic dataset, though very likely not to be
+!! the true one.
+!!
+!! \code{.f90} program GIVCOR \endcode
+!!
+!! Given two arrays of equal length of unordered values,
+!! find a "matching value" in the second array for each value in the
+!! first so that the global correlation coefficient reaches exactly a
+!! given target The routine first sorts the two arrays, so as to get the
+!! match of maximum possible correlation. It then iterates, applying the
+!! random permutation algorithm of controlled disorder ctrper to the
+!! second array. When the resulting correlation goes beyond (lower than)
+!! the target correlation, one steps back and reduces the disorder
+!! parameter of the permutation. When the resulting correlation lies
+!! between the current one and the target, one replaces the array with
+!! the newly permuted one. When the resulting correlation increases from
+!! the current value, one increases the disorder parameter. That way, the
+!! target correlation is approached from above, by a controlled increase
+!! in randomness. Since full randomness leads to zero correlation, the
+!! iterations meet the desired coefficient at some point. It may be noted
+!! that there could be some cases when one would get stuck in a sort of
+!! local minimum, where local perturbations cannot further reduce the
+!! correlation and where global ones lead to overpass the target. It
+!! seems easier to restart the program with a different seed when this
+!! occurs than to design an avoidance scheme. Also, should a negative
+!! correlation be desired, the program should be modified to start with
+!! one array in reverse order with respect to the other, i.e. coorelation
+!! as close to -1 as possible.
+!!
+!! <b> Full sorting </b>
+!!
+!! \code{.f90} subroutine INSSOR (XVALT) \endcode
+!!
+!! Sorts XVALT into increasing order (Insertion
+!! sort) This subroutine uses insertion sort. It does not use any work
+!! array and is faster when XVALT is of very small size (< 20), or
+!! already almost sorted, but worst case behavior (intially inverse
+!! sorted) can easily happen. In most cases, the quicksort or merge sort
+!! method is faster.
+!!
+!! \code{.f90} subroutine REFSOR (XVALT) \endcode
+!!
+!! Sorts XVALT into increasing order (Quick
+!! sort) This version is not optimized for performance, and is thus not
+!! as difficult to read as some other ones. This subroutine uses
+!! quicksort in a recursive implementation, and insertion sort for the
+!! last steps with small subsets. It does not use any work array
+!!
+!! <b> Partial sorting </b>
+!!
+!! \code{.f90} subroutine INSPAR (XVALT, NORD) \endcode
+!!
+!! Sorts partially XVALT, bringing the
+!! NORD lowest values at the begining of the array.  This subroutine uses
+!! insertion sort, limiting insertion to the first NORD values. It does
+!! not use any work array and is faster when NORD is very small (2-5),
+!! but worst case behavior can happen fairly probably (initially inverse
+!! sorted). In many cases, the refined quicksort method is faster.
+!!
+!! \code{.f90} function FNDNTH (XVALT, NORD) \endcode
+!!
+!! Finds out and returns the NORDth value
+!! in XVALT (ascending order) This subroutine uses insertion sort,
+!! limiting insertion to the first NORD values, and even less when one
+!! can know that the value that is considered will not be the NORDth. It
+!! uses only a work array of size NORD and is faster when NORD is very
+!! small (2-5), but worst case behavior can happen fairly probably
+!! (initially inverse sorted). In many cases, the refined quicksort
+!! method implemented by VALNTH / INDNTH is faster, though much more
+!! difficult to read and understand.
+!!
+!! \code{.f90} function VALNTH (XVALT, NORD) \endcode
+!!
+!! Finds out and returns the NORDth value
+!! in XVALT (ascending order) This subroutine simply calls INDNTH.
+!!
+!! \code{.f90} function VALMED (XVALT) \endcode
+!!
+!! Finds out and returns the median(((Size(XVALT)+1))/2th value) of XVALT This routine uses the recursive
+!! procedure described in Knuth, The Art of Computer Programming, vol. 3,
+!! 5.3.3 - This procedure is linear in time, and does not require to be
+!! able to interpolate in the set as the one used in VALNTH/INDNTH. It
+!! also has better worst case behavior than VALNTH/INDNTH, and is about
+!! 20% faster in average for random uniformly distributed values.
+!!
+!! \code{.f90} function OMEDIAN (XVALT) \endcode
+!!
+!! It is a modified version of VALMED that
+!! provides the average between the two middle values in the case
+!! Size(XVALT) is even.
+!!
+!! <b> Unique sorting </b>
+!!
+!! \code{.f90} subroutine UNISTA (XVALT, NUNI) \endcode
+!!
+!! Removes duplicates from an array This
+!! subroutine uses merge sort unique inverse ranking. It leaves in the
+!! initial set only those entries that are unique, packing the array, and
+!! leaving the order of the retained values unchanged.
 
 !> \authors Michel Olagnon
 !> \date 2000-2012
@@ -67,290 +320,400 @@ MODULE mo_orderpack
   public :: valmed
   public :: valnth
 
-  !> Unconditional ranking
-  !>
-  !> Subroutine MRGRNK (XVALT, IMULT)
-  !> Ranks array XVALT into index array IRNGT, using merge-sort
-  !> For performance reasons, the first 2 passes are taken out of the
-  !> standard loop, and use dedicated coding.
-  !>
-  !> Subroutine MRGREF (XVALT, IRNGT) Ranks array XVALT into index array
-  !> IRNGT, using merge-sort This version is not optimized for performance,
-  !> and is thus not as difficult to read as the previous one.
-  !>
-  !> Partial ranking
-  !>
-  !> Subroutine RNKPAR (XVALT, IRNGT, NORD) Ranks partially XVALT by IRNGT,
-  !> up to order NORD (refined for speed) This routine uses a pivoting
-  !> strategy such as the one of finding the median based on the quicksort
-  !> algorithm, but we skew the pivot choice to try to bring it to NORD as
-  !> fast as possible. It uses 2 temporary arrays, one where it stores the
-  !> indices of the values smaller than the pivot, and the other for the
-  !> indices of values larger than the pivot that we might still need later
-  !> on. It iterates until it can bring the number of values in ILOWT to
-  !> exactly NORD, and then uses an insertion sort to rank this set, since
-  !> it is supposedly small.
-  !>
-  !> Subroutine RAPKNR (XVALT, IRNGT, NORD) Same as RNKPAR, but in
-  !> decreasing order (RAPKNR = RNKPAR spelt backwards).
-  !>
-  !> Subroutine REFPAR (XVALT, IRNGT, NORD) Ranks partially XVALT by IRNGT,
-  !> up to order NORD This version is not optimized for performance, and is
-  !> thus not as difficult to read as some other ones. It uses a pivoting
-  !> strategy such as the one of finding the median based on the quicksort
-  !> algorithm. It uses a temporary array, where it stores the partially
-  !> ranked indices of the values. It iterates until it can bring the
-  !> number of values lower than the pivot to exactly NORD, and then uses
-  !> an insertion sort to rank this set, since it is supposedly small.
-  !>
-  !> Subroutine RINPAR (XVALT, IRNGT, NORD) Ranks partially XVALT by IRNGT,
-  !> up to order NORD This version is not optimized for performance, and is
-  !> thus not as difficult to read as some other ones. It uses insertion
-  !> sort, limiting insertion to the first NORD values. It does not use any
-  !> work array and is faster when NORD is very small (2-5), but worst case
-  !> behavior (intially inverse sorted) can easily happen. In many cases,
-  !> the refined quicksort method is faster.
-  !>
-  !> Integer Function INDNTH (XVALT, NORD) Returns the index of the NORDth
-  !> value of XVALT (in increasing order) This routine uses a pivoting
-  !> strategy such as the one of finding the median based on the quicksort
-  !> algorithm, but we skew the pivot choice to try to bring it to NORD as
-  !> fast as possible. It uses 2 temporary arrays, one where it stores the
-  !> indices of the values smaller than the pivot, and the other for the
-  !> indices of values larger than the pivot that we might still need later
-  !> on. It iterates until it can bring the number of values in ILOWT to
-  !> exactly NORD, and then takes out the original index of the maximum
-  !> value in this set.
-  !>
-  !> Subroutine INDMED (XVALT, INDM) Returns the index of the median
-  !> (((Size(XVALT)+1))/2th value) of XVALT This routine uses the recursive
-  !> procedure described in Knuth, The Art of Computer Programming, vol. 3,
-  !> 5.3.3 - This procedure is linear in time, and does not require to be
-  !> able to interpolate in the set as the one used in INDNTH. It also has
-  !> better worst case behavior than INDNTH, but is about 10% slower in
-  !> average for random uniformly distributed values.
-  !>
-  !> Note that in Orderpack 1.0, this routine was a Function procedure, and
-  !> is now changed to a Subroutine.
-  !>
-  !> Unique ranking
-  !>
-  !> Subroutine UNIRNK (XVALT, IRNGT, NUNI) Ranks an array, removing
-  !> duplicate entries (uses merge sort).  The routine is similar to pure
-  !> merge-sort ranking, but on the last pass, it discards indices that
-  !> correspond to duplicate entries. For performance reasons, the first 2
-  !> passes are taken out of the standard loop, and use dedicated coding.
-  !>
-  !> Subroutine UNIPAR (XVALT, IRNGT, NORD) Ranks partially XVALT by IRNGT,
-  !> up to order NORD at most, removing duplicate entries This routine uses
-  !> a pivoting strategy such as the one of finding the median based on the
-  !> quicksort algorithm, but we skew the pivot choice to try to bring it
-  !> to NORD as quickly as possible. It uses 2 temporary arrays, one where
-  !> it stores the indices of the values smaller than the pivot, and the
-  !> other for the indices of values larger than the pivot that we might
-  !> still need later on. It iterates until it can bring the number of
-  !> values in ILOWT to exactly NORD, and then uses an insertion sort to
-  !> rank this set, since it is supposedly small. At all times, the NORD
-  !> first values in ILOWT correspond to distinct values of the input
-  !> array.
-  !>
-  !> Subroutine UNIINV (XVALT, IGOEST) Inverse ranking of an array, with
-  !> removal of duplicate entries The routine is similar to pure merge-sort
-  !> ranking, but on the last pass, it sets indices in IGOEST to the rank
-  !> of the original value in an ordered set with duplicates removed. For
-  !> performance reasons, the first 2 passes are taken out of the standard
-  !> loop, and use dedicated coding.
-  !>
-  !> Subroutine MULCNT (XVALT, IMULT) Gives, for each array value, its
-  !> multiplicity The number of times that a value appears in the array is
-  !> computed by using inverse ranking, counting for each rank the number
-  !> of values that ``collide'' to this rank, and returning this sum to the
-  !> locations in the original set. Uses subroutine UNIINV.
-  !>
-  !> Random permutation: an interesting use of ranking
-  !>
-  !> A variation of the following problem was raised on the internet
-  !> sci.math.num-analysis news group: Given an array, I would like to find
-  !> a random permutation of this array that I could control with a
-  !> ``nearbyness'' parameter so that elements stay close to their initial
-  !> locations. The ``nearbyness'' parameter ranges from 0 to 1, with 0
-  !> such that no element moves from its initial location, and 1 such that
-  !> the permutation is fully random.
-  !>
-  !> Subroutine CTRPER (XVALT, PCLS) Permute array XVALT randomly, but
-  !> leaving elements close to their initial locations The routine takes
-  !> the 1...size(XVALT) index array as real values, takes a combination of
-  !> these values and of random values as a perturbation of the index
-  !> array, and sorts the initial set according to the ranks of these
-  !> perturbated indices. The relative proportion of initial order and
-  !> random order is 1-PCLS / PCLS, thus when PCLS = 0, there is no change
-  !> in the order whereas the new order is fully random when PCLS = 1. Uses
-  !> subroutine MRGRNK.
-  !>
-  !> The above solution found another application when I was asked the
-  !> following question: I am given two arrays, representing parents'
-  !> incomes and their children's incomes, but I do not know which parents
-  !> correspond to which children. I know from an independent source the
-  !> value of the correlation coefficient between the incomes of the
-  !> parents and of their children. I would like to pair the elements of
-  !> these arrays so that the given correlation coefficient is attained,
-  !> i.e. to reconstruct a realistic dataset, though very likely not to be
-  !> the true one.
-  !>
-  !> Program GIVCOR Given two arrays of equal length of unordered values,
-  !> find a "matching value" in the second array for each value in the
-  !> first so that the global correlation coefficient reaches exactly a
-  !> given target The routine first sorts the two arrays, so as to get the
-  !> match of maximum possible correlation. It then iterates, applying the
-  !> random permutation algorithm of controlled disorder ctrper to the
-  !> second array. When the resulting correlation goes beyond (lower than)
-  !> the target correlation, one steps back and reduces the disorder
-  !> parameter of the permutation. When the resulting correlation lies
-  !> between the current one and the target, one replaces the array with
-  !> the newly permuted one. When the resulting correlation increases from
-  !> the current value, one increases the disorder parameter. That way, the
-  !> target correlation is approached from above, by a controlled increase
-  !> in randomness. Since full randomness leads to zero correlation, the
-  !> iterations meet the desired coefficient at some point. It may be noted
-  !> that there could be some cases when one would get stuck in a sort of
-  !> local minimum, where local perturbations cannot further reduce the
-  !> correlation and where global ones lead to overpass the target. It
-  !> seems easier to restart the program with a different seed when this
-  !> occurs than to design an avoidance scheme. Also, should a negative
-  !> correlation be desired, the program should be modified to start with
-  !> one array in reverse order with respect to the other, i.e. coorelation
-  !> as close to -1 as possible.
-  !>
-  !>
-  !> Sorting
-  !>
-  !> Full sorting
-  !>
-  !> Subroutine INSSOR (XVALT) Sorts XVALT into increasing order (Insertion
-  !> sort) This subroutine uses insertion sort. It does not use any work
-  !> array and is faster when XVALT is of very small size (< 20), or
-  !> already almost sorted, but worst case behavior (intially inverse
-  !> sorted) can easily happen. In most cases, the quicksort or merge sort
-  !> method is faster.
-  !>
-  !> Subroutine REFSOR (XVALT) Sorts XVALT into increasing order (Quick
-  !> sort) This version is not optimized for performance, and is thus not
-  !> as difficult to read as some other ones. This subroutine uses
-  !> quicksort in a recursive implementation, and insertion sort for the
-  !> last steps with small subsets. It does not use any work array
-  !>
-  !> Partial sorting
-  !>
-  !> Subroutine INSPAR (XVALT, NORD) Sorts partially XVALT, bringing the
-  !> NORD lowest values at the begining of the array.  This subroutine uses
-  !> insertion sort, limiting insertion to the first NORD values. It does
-  !> not use any work array and is faster when NORD is very small (2-5),
-  !> but worst case behavior can happen fairly probably (initially inverse
-  !> sorted). In many cases, the refined quicksort method is faster.
-  !>
-  !> Function FNDNTH (XVALT, NORD) Finds out and returns the NORDth value
-  !> in XVALT (ascending order) This subroutine uses insertion sort,
-  !> limiting insertion to the first NORD values, and even less when one
-  !> can know that the value that is considered will not be the NORDth. It
-  !> uses only a work array of size NORD and is faster when NORD is very
-  !> small (2-5), but worst case behavior can happen fairly probably
-  !> (initially inverse sorted). In many cases, the refined quicksort
-  !> method implemented by VALNTH / INDNTH is faster, though much more
-  !> difficult to read and understand.
-  !>
-  !> Function VALNTH (XVALT, NORD) Finds out and returns the NORDth value
-  !> in XVALT (ascending order) This subroutine simply calls INDNTH.
-  !>
-  !> Function VALMED (XVALT) Finds out and returns the median
-  !> (((Size(XVALT)+1))/2th value) of XVALT This routine uses the recursive
-  !> procedure described in Knuth, The Art of Computer Programming, vol. 3,
-  !> 5.3.3 - This procedure is linear in time, and does not require to be
-  !> able to interpolate in the set as the one used in VALNTH/INDNTH. It
-  !> also has better worst case behavior than VALNTH/INDNTH, and is about
-  !> 20% faster in average for random uniformly distributed values.
-  !>
-  !> Function OMEDIAN (XVALT) It is a modified version of VALMED that
-  !> provides the average between the two middle values in the case
-  !> Size(XVALT) is even.
-  !>
-  !> Unique sorting
-  !>
-  !> Subroutine UNISTA (XVALT, NUNI) Removes duplicates from an array This
-  !> subroutine uses merge sort unique inverse ranking. It leaves in the
-  !> initial set only those entries that are unique, packing the array, and
-  !> leaving the order of the retained values unchanged.
-
   ! aliases/wrapper
+
+  !> \brief Sorts the input array in ascending order.
+  !> \param[in,out] "real(sp/dp) :: arr(:)"     On input:  unsorted 1D-array\n
+  !!                                            On output: ascendingly sorted input array
   interface sort
     module procedure d_refsor, r_refsor, i_refsor, c_refsor
   end interface sort
+
+  !> \brief Gives the indeces that would sort an array in ascending order.
+  !> \param[in] "real(sp/dp) :: arr(:)"     Unsorted 1D-array
+  !> \return integer(i4) :: indices(:) &mdash; Indices that would sort arr in ascending order
   interface sort_index
     module procedure sort_index_dp, sort_index_sp, sort_index_i4
   end interface sort_index
 
+  !>    \brief Random permutation ranking.
+
+  !>    \details
+  !!    Permute array XVALT randomly, but
+  !!    leaving elements close to their initial locations The routine takes
+  !!    the 1...size(XVALT) index array as real values, takes a combination of
+  !!    these values and of random values as a perturbation of the index
+  !!    array, and sorts the initial set according to the ranks of these
+  !!    perturbated indices. The relative proportion of initial order and
+  !!    random order is 1-PCLS / PCLS, thus when PCLS = 0, there is no change
+  !!    in the order whereas the new order is fully random when PCLS = 1. Uses
+  !!    subroutine MRGRNK.
+  !!
+  !!    The above solution found another application when I was asked the
+  !!    following question: I am given two arrays, representing parents'
+  !!    incomes and their children's incomes, but I do not know which parents
+  !!    correspond to which children. I know from an independent source the
+  !!    value of the correlation coefficient between the incomes of the
+  !!    parents and of their children. I would like to pair the elements of
+  !!    these arrays so that the given correlation coefficient is attained,
+  !!    i.e. to reconstruct a realistic dataset, though very likely not to be
+  !!    the true one.
+
+  !>    \param[inout]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be randomly permuted.
+  !>    \param[in]    "integer(i4)/real(sp,dp) :: PCLS" Nearbyness of permutation.
+
   interface ctrper
     module procedure d_ctrper, r_ctrper, i_ctrper
   end interface ctrper
+
+  !>    \brief Find N-th value in array from insertion sort
+
+  !>    \details
+  !!    Finds out and returns the NORDth value
+  !!    in XVALT (ascending order). This subroutine uses insertion sort,
+  !!    limiting insertion to the first NORD values, and even less when one
+  !!    can know that the value that is considered will not be the NORDth. It
+  !!    uses only a work array of size NORD and is faster when NORD is very
+  !!    small (2-5), but worst case behavior can happen fairly probably
+  !!    (initially inverse sorted). In many cases, the refined quicksort
+  !!    method implemented by VALNTH / INDNTH is faster, though much more
+  !!    difficult to read and understand.
+
+  !>    \param[in]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+  !>    \param[in]  "integer(i4) :: NORD" Number of ranked elements.
+  !>    \retval     "integer(i4)/real(sp,dp) :: FNDNTH" Value of NORDth rank.
+
   interface fndnth
     module procedure d_fndnth, r_fndnth, i_fndnth
   end interface fndnth
+
+  !>    \brief Median index of skewed-pivot with quicksort ranking.
+
+  !>    \details
+  !!    Returns the index of the median
+  !!    `(((Size(XVALT)+1))/2th value)` of XVALT This routine uses the recursive
+  !!    procedure described in Knuth, The Art of Computer Programming, vol. 3,
+  !!    5.3.3 - This procedure is linear in time, and does not require to be
+  !!    able to interpolate in the set as the one used in INDNTH. It also has
+  !!    better worst case behavior than INDNTH, but is about 10% slower in
+  !!    average for random uniformly distributed values.\n
+  !!    Note that in Orderpack 1.0, this routine was a Function procedure, and
+  !!    is now changed to a Subroutine.
+
+  !>    \param[in]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+  !>    \param[out]     "integer(i4) :: INDM" Index of Median.
+
   interface indmed
     module procedure d_indmed, r_indmed, i_indmed
   end interface indmed
+
+  !>    \brief Nth index of skewed-pivot with quicksort ranking.
+
+  !>    \details
+  !!    Returns the index of the NORDth
+  !!    value of XVALT (in increasing order). This routine uses a pivoting
+  !!    strategy such as the one of finding the median based on the quicksort
+  !!    algorithm, but we skew the pivot choice to try to bring it to NORD as
+  !!    fast as possible. It uses 2 temporary arrays, one where it stores the
+  !!    indices of the values smaller than the pivot, and the other for the
+  !!    indices of values larger than the pivot that we might still need later
+  !!    on. It iterates until it can bring the number of values in ILOWT to
+  !!    exactly NORD, and then takes out the original index of the maximum
+  !!    value in this set.
+
+  !>    \param[in]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+  !>    \param[in]  "integer(i4) :: NORD" Number of ranked elements.
+  !>    \retval     "integer(i4) :: INDNTH" Index of NORDth rank.
+
   interface indnth
     module procedure d_indnth, r_indnth, i_indnth
   end interface indnth
+
+  !>    \brief Partial insertion sort ranking,
+
+  !>    \details
+  !!    Sorts partially XVALT, bringing the
+  !!    NORD lowest values at the begining of the array.  This subroutine uses
+  !!    insertion sort, limiting insertion to the first NORD values. It does
+  !!    not use any work array and is faster when NORD is very small (2-5),
+  !!    but worst case behavior can happen fairly probably (initially inverse
+  !!    sorted). In many cases, the refined quicksort method is faster.
+
+  !>    \param[inout]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+  !>    \param[in]  "integer(i4) :: NORD" Number of ranked elements from beginning of array.
+
   interface inspar
     module procedure d_inspar, r_inspar, i_inspar
   end interface inspar
+
+  !>    \brief  Insertion sort ranking
+
+  !>    \details
+  !!    Sorts XVALT into increasing order (Insertion
+  !!    sort) This subroutine uses insertion sort. It does not use any work
+  !!    array and is faster when XVALT is of very small size (< 20), or
+  !!    already almost sorted, but worst case behavior (intially inverse
+  !!    sorted) can easily happen. In most cases, the quicksort or merge sort
+  !!    method is faster.
+
+  !>    \param[inout]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+
   interface inssor
     module procedure d_inssor, r_inssor, i_inssor, c_inssor
   end interface inssor
+
+  !>    \brief Find median value of array (case for even elements)
+
+  !>    \details
+  !!    It is a modified version of VALMED that
+  !!    provides the average between the two middle values in the case
+  !!    Size(XVALT) is even.
+
+  !>    \param[in]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+  !>    \retval     "integer(i4)/real(sp,dp) :: OMEDIAN" Value of median.
+
   interface omedian
     module procedure d_median, r_median, i_median
   end interface omedian
+
+  !>    \brief Merge-sort ranking (unoptimized)
+
+  !>    \details
+  !!    Ranks array XVALT into index array
+  !!    IRNGT, using merge-sort. This version is not optimized for performance,
+  !!    and is thus not as difficult to read as the previous one.
+
+  !>    \param[in]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+  !>    \retval     "integer(i4), dimension(:) :: IRNGT" Index of rank.
+
   interface mrgref
     module procedure d_mrgref, r_mrgref, i_mrgref
   end interface mrgref
+
+  !>    \brief Merge-sort ranking
+
+  !>    \details
+  !!    Ranks array XVALT into index array IRNGT, using merge-sort.\n
+  !!    For performance reasons, the first 2 passes are taken out of the
+  !!    standard loop, and use dedicated coding.
+
+  !>    \param[in]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+  !>    \retval     "integer(i4), dimension(:) :: IRNGT" Index of rank.
+
   interface mrgrnk
     module procedure D_mrgrnk, R_mrgrnk, I_mrgrnk, C_mrgrnk
   end interface mrgrnk
+
+  !>    \brief  Multiplicity of array values.
+
+  !>    \details
+  !!    Gives, for each array value, its
+  !!    multiplicity. The number of times that a value appears in the array is
+  !!    computed by using inverse ranking, counting for each rank the number
+  !!    of values that ``collide'' to this rank, and returning this sum to the
+  !!    locations in the original set. Uses subroutine UNIINV.
+
+  !>    \param[in]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+  !>    \param[out] "integer(i4), dimension(:) :: IMULT" Multiplicity of array values.
+
+
   interface mulcnt
     module procedure d_mulcnt, r_mulcnt, i_mulcnt
   end interface mulcnt
+
+  !>    \brief  Skewed-pivot with quicksort ranking (reversed).
+
+  !>    \details
+  !!    Same as `RNKPAR`, but in
+  !!    decreasing order (RAPKNR = RNKPAR spelt backwards).
+
+  !>    \param[in]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+  !>    \param[in]  "integer(i4) :: NORD" Number of ranked elements.
+  !>    \retval     "integer(i4), dimension(:) :: IRNGT" Index of rank.
+
   interface rapknr
     module procedure d_rapknr, r_rapknr, i_rapknr
   end interface rapknr
+
+  !>    \brief Skewed-pivot with quicksort ranking (unoptimized).
+
+  !>    \details
+  !!    Ranks partially XVALT by IRNGT,
+  !!    up to order NORD. This version is not optimized for performance, and is
+  !!    thus not as difficult to read as some other ones. It uses a pivoting
+  !!    strategy such as the one of finding the median based on the quicksort
+  !!    algorithm. It uses a temporary array, where it stores the partially
+  !!    ranked indices of the values. It iterates until it can bring the
+  !!    number of values lower than the pivot to exactly NORD, and then uses
+  !!    an insertion sort to rank this set, since it is supposedly small.
+
+  !>    \param[in]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+  !>    \param[in]  "integer(i4) :: NORD" Number of ranked elements.
+  !>    \retval     "integer(i4), dimension(:) :: IRNGT" Index of rank.
+
   interface refpar
     module procedure d_refpar, r_refpar, i_refpar
   end interface refpar
+
+  !>    \brief  Quicksort ranking, with insertion sort at last step (unoptimized)
+
+  !>    \details
+  !!    Sorts XVALT into increasing order (Quick
+  !!    sort). This version is not optimized for performance, and is thus not
+  !!    as difficult to read as some other ones. This subroutine uses
+  !!    quicksort in a recursive implementation, and insertion sort for the
+  !!    last steps with small subsets. It does not use any work array
+
+  !>    \param[inout]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+
   interface refsor
     module procedure d_refsor, r_refsor, i_refsor, c_refsor
   end interface refsor
+
+  !>    \brief Insertion sort ranking (unoptimized).
+
+  !>    \details
+  !!    Ranks partially XVALT by IRNGT,
+  !!    up to order NORD This version is not optimized for performance, and is
+  !!    thus not as difficult to read as some other ones. It uses insertion
+  !!    sort, limiting insertion to the first NORD values. It does not use any
+  !!    work array and is faster when NORD is very small (2-5), but worst case
+  !!    behavior (intially inverse sorted) can easily happen. In many cases,
+  !!    refined quicksort method is faster.
+
+  !>    \param[in]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+  !>    \param[in]  "integer(i4) :: NORD" Number of ranked elements.
+  !>    \retval     "integer(i4), dimension(:) :: IRNGT" Index of rank.
+
   interface rinpar
     module procedure d_rinpar, r_rinpar, i_rinpar
   end interface rinpar
+
+  !>    \brief  Skewed-pivot with quicksort ranking.
+
+  !>    \details
+  !!    Ranks partially XVALT by IRNGT,
+  !!    up to order NORD (refined for speed). This routine uses a pivoting
+  !!    strategy such as the one of finding the median based on the quicksort
+  !!    algorithm, but we skew the pivot choice to try to bring it to NORD as
+  !!    fast as possible. It uses 2 temporary arrays, one where it stores the
+  !!    indices of the values smaller than the pivot, and the other for the
+  !!    indices of values larger than the pivot that we might still need later
+  !!    on. It iterates until it can bring the number of values in ILOWT to
+  !!    exactly NORD, and then uses an insertion sort to rank this set, since
+  !!    it is supposedly small.
+
+  !>    \param[in]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+  !>    \param[in]  "integer(i4) :: NORD" Number of ranked elements.
+  !>    \retval     "integer(i4), dimension(:) :: IRNGT" Index of rank.
+
   interface rnkpar
     module procedure d_rnkpar, r_rnkpar, i_rnkpar
   end interface rnkpar
+
+  !>    \brief Merge-sort ranking, with removal of duplicate entries (reversed).
+
+  !>    \details
+  !!    Inverse ranking of an array, with
+  !!    removal of duplicate entries. The routine is similar to pure merge-sort
+  !!    ranking, but on the last pass, it sets indices in IGOEST to the rank
+  !!    of the original value in an ordered set with duplicates removed. For
+  !!    performance reasons, the first 2 passes are taken out of the standard
+  !!    loop, and use dedicated coding.
+
+  !>    \param[in]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+  !>    \param[out] "integer(i4), dimension(:) :: IGOEST" Index of rank.
+
   interface uniinv
     module procedure d_uniinv, r_uniinv, i_uniinv
   end interface uniinv
   interface nearless
     module procedure D_nearless, R_nearless, I_nearless
   end interface nearless
+
+  !>    \brief Partial quicksort/insertion sort ranking, with removal of duplicate entries.
+
+  !>    \details
+  !!    Ranks partially XVALT by IRNGT,
+  !!    up to order NORD at most, removing duplicate entries. This routine uses
+  !!    a pivoting strategy such as the one of finding the median based on the
+  !!    quicksort algorithm, but we skew the pivot choice to try to bring it
+  !!    to NORD as quickly as possible. It uses 2 temporary arrays, one where
+  !!    it stores the indices of the values smaller than the pivot, and the
+  !!    other for the indices of values larger than the pivot that we might
+  !!    still need later on. It iterates until it can bring the number of
+  !!    values in ILOWT to exactly NORD, and then uses an insertion sort to
+  !!    rank this set, since it is supposedly small. At all times, the NORD
+  !!    first values in ILOWT correspond to distinct values of the input
+  !!    array.
+
+  !>    \param[in]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+  !>    \param[in]  "integer(i4) :: NORD" Rank of quicksort ranking.
+  !>    \param[out] "integer(i4), dimension(:) :: IRNGT" Index of rank.
+
   interface unipar
     module procedure d_unipar, r_unipar, i_unipar
   end interface unipar
+
+  !>    \brief Merge-sort ranking, with removal of duplicate entries.
+
+  !>    \details
+  !!    Ranks an array, removing
+  !!    duplicate entries (uses merge sort).  The routine is similar to pure
+  !!    merge-sort ranking, but on the last pass, it discards indices that
+  !!    correspond to duplicate entries. For performance reasons, the first 2
+  !!    passes are taken out of the standard loop, and use dedicated coding.
+
+  !>    \param[in]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+  !>    \param[out]  "integer(i4) :: NUNI" Rank of last number after duplicates removed.
+  !>    \param[out] "integer(i4), dimension(:) :: IRNGT" Index of rank.
+
   interface unirnk
     module procedure D_unirnk, R_unirnk, I_unirnk
   end interface unirnk
+
+  !>    \brief  Merge-sort unique inverse ranking.
+
+  !>    \details
+  !!    Removes duplicates from an array This
+  !!    subroutine uses merge sort unique inverse ranking. It leaves in the
+  !!    initial set only those entries that are unique, packing the array, and
+  !!    leaving the order of the retained values unchanged.
+
+  !>    \param[inout]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+  !>    \param[out]  "integer(i4) :: NUNI" Rank of last number after duplicates removed.
+
   interface unista
     module procedure d_unista, r_unista, i_unista
   end interface unista
+
+  !>    \brief  Find median value of array
+
+  !>    \details
+  !!    Finds out and returns the median(((Size(XVALT)+1))/2th value) of XVALT This routine uses the recursive
+  !!    procedure described in Knuth, The Art of Computer Programming, vol. 3,
+  !!    5.3.3 - This procedure is linear in time, and does not require to be
+  !!    able to interpolate in the set as the one used in VALNTH/INDNTH. It
+  !!    also has better worst case behavior than VALNTH/INDNTH, and is about
+  !!    20% faster in average for random uniformly distributed values.
+
+  !>    \param[in]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+  !>    \retval     "integer(i4)/real(sp,dp) :: VALMED" Value of median.
+
   interface valmed
     module procedure d_valmed, r_valmed, i_valmed
   end interface valmed
+
+  !>    \brief  Find N-th value in array from quicksort
+
+  !>    \details
+  !!    Finds out and returns the NORDth value
+  !!    in XVALT (ascending order). This subroutine simply calls INDNTH.
+
+  !>    \param[in]  "integer(i4)/real(sp,dp), dimension(:) :: XVALT"  Array to be ranked.
+  !>    \param[in]  "integer(i4) :: NORD" Number of ranked elements.
+  !>    \retval     "integer(i4)/real(sp,dp) :: VALNTH" Value of NORDth rank.
+
   interface valnth
     module procedure d_valnth, r_valnth, i_valnth
   end interface valnth

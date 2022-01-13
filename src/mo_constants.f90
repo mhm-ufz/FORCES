@@ -1,11 +1,10 @@
 !> \file mo_constants.f90
+!> \copydoc mo_constants
 
 !> \brief Provides computational, mathematical, physical, and file constants
-
 !> \details Provides computational constants like epsilon, mathematical constants such as Pi,
-!> physical constants such as the Stefan-Boltzmann constant, and file units for some standard streams
-!> such as standard in.
-
+!! physical constants such as the Stefan-Boltzmann constant, and file units for some standard streams
+!! such as standard in.
 !> \author Matthias Cuntz
 !> \date Nov 2011
 
@@ -71,15 +70,15 @@ module mo_constants
   !> radian to degree conversion (180/pi) in single precision
   real(sp), parameter :: rad2deg_sp = 180._sp / PI_sp
 
-  !> Time conversion
+  ! Time conversion
   !> Seconds per day [s] in single precision
   real(sp), public, parameter :: secday_sp = 86400.0_sp
-  real(dp), public, parameter :: secday_dp = 86400.0_dp  ! secday [s]
-  real(dp), public, parameter :: DayHours = 24.0_dp  ! hours per day
-  real(dp), public, parameter :: YearMonths = 12.0_dp  ! months per year
-  real(dp), public, parameter :: YearDays = 365.0_dp  ! days in a year
-  real(dp), public, parameter :: DaySecs = 86400.0_dp  ! sec in a day
-  real(dp), public, parameter :: HourSecs = 3600.0_dp  ! seconds per hour
+  real(dp), public, parameter :: secday_dp = 86400.0_dp  !< secday [s]
+  real(dp), public, parameter :: DayHours = 24.0_dp  !< hours per day
+  real(dp), public, parameter :: YearMonths = 12.0_dp  !< months per year
+  real(dp), public, parameter :: YearDays = 365.0_dp  !< days in a year
+  real(dp), public, parameter :: DaySecs = 86400.0_dp  !< sec in a day
+  real(dp), public, parameter :: HourSecs = 3600.0_dp  !< seconds per hour
 
   ! Physical
   !> Psychrometric constant [kPa K^-1] in double precision
@@ -106,12 +105,12 @@ module mo_constants
   real(dp), parameter :: sigma_dp = 5.67e-08_dp                  ! Stefan-Boltzmann constant [W/m^2/K^4]
   !> Stefan-Boltzmann constant [W m^-2 K^-4] in single precision
   real(sp), parameter :: sigma_sp = 5.67e-08_sp
-  ! Earth radius [m] in single precision
+  !> Earth radius [m] in single precision
   real(sp), parameter :: RadiusEarth_sp = 6371228._sp
-  ! Earth radius [m] in double precision
+  !> Earth radius [m] in double precision
   real(dp), parameter :: RadiusEarth_dp = 6371228._dp
 
-  !> standard atmospehere
+  ! standard atmospehere
   !> Standard pressure [Pa] in double precision
   real(dp), parameter :: P0_dp = 101325._dp                   ! Standard pressure [Pa]
   !> Standard pressure [Pa] in single precision
@@ -164,11 +163,13 @@ module mo_constants
   integer, parameter :: nnml = 100 ! namelist unit
 
   ! computational, these values need to be the same!!!
-  real(dp), public, parameter :: nodata_dp = -9999.0_dp ! [-]     global no data value
-  integer(i4), public, parameter :: nodata_i4 = int(nodata_dp)  ! [-]     global no data value
-  integer(i8), public, parameter :: nodata_i8 = int(nodata_dp, kind=i8)  ! [-]     global no data value
+  real(sp), public, parameter :: nodata_sp = -9999.0_sp                  !< [-]     global no data value
+  real(dp), public, parameter :: nodata_dp = -9999.0_dp                  !< [-]     global no data value
+  integer(i4), public, parameter :: nodata_i4 = int(nodata_dp)           !< [-]     global no data value
+  integer(i8), public, parameter :: nodata_i8 = int(nodata_dp, kind=i8)  !< [-]     global no data value
   !> epsilon(1.0) in double precision
   real(dp), public, parameter :: eps_dp = epsilon(1.0_dp)
+  !> epsilon(1.0) in single precision
   real(sp), public, parameter :: eps_sp = epsilon(1.0_sp)
 
 end module mo_constants

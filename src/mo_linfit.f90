@@ -1,9 +1,8 @@
 !> \file mo_linfit.f90
+!> \copydoc mo_linfit
 
 !> \brief  Fitting a straight line.
-
 !> \details This module provides a routine to fit a straight line with model I or model II regression.
-
 !> \authors Matthias Cuntz
 !> \date Mar 2011
 

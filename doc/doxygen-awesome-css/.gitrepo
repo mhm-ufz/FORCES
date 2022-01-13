@@ -5,8 +5,8 @@
 ;
 [subrepo]
 	remote = https://github.com/jothepro/doxygen-awesome-css.git
-	branch = v1.5.0
-	commit = 9380569e8aea36374d848c8a43c6f9c6343d9bc0
-	parent = dbf958ef712fcc1597e2e77e3a4e6eb38a0761e0
+	branch = v1.6.1
+	commit = e5d9fd7d4c77cd5343e4de53b93dac433698012d
+	parent = 62d2fd0e2b23887db3033fa6cec4e63a64d437c2
 	method = merge
 	cmdver = 0.4.3

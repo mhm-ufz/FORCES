@@ -1,3 +1,10 @@
+!> \file mo_corr.f90
+!> \copydoc mo_corr
+
+!> \brief Provides autocorrelation function calculations.
+!> \author Sebastian Mueller
+!> \date Dec 2019
+
 MODULE mo_corr
 
   ! This module provides autocorrelation function calculations
@@ -33,52 +40,43 @@ MODULE mo_corr
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         autocorr
+  !>        \brief Autocorrelation function with lag k.
 
-  !     PURPOSE
-  !         Element at lag k of autocorrelation function
-  !             autocorr(x,k) = autocoeffk(x,k)/autocoeffk(x,0).
-  !
-  !         If an optinal mask is given, the calculations are only over those locations that correspond
-  !         to true values in the mask.
-  !         x can be single or double precision. The result will have the same numerical precision.
+  !>        \details Element at lag k of autocorrelation function
+  !!             \f[ ACF(x,k) = \frac{s_{x,k}}{s_{x,0}} \f]
+  !!         where \f$ s_{x,k} \f$ is the autocorrelation coefficient
+  !!             \f[ s_{x,k} = \langle (x_i-\bar{x})(x_{i+k}-\bar{x})\rangle \f]
+  !!
+  !!         If an optional mask is given, the calculations are only over those locations that correspond
+  !!         to true values in the mask.\n
+  !!         \f$ x \f$ can be single or double precision. The result will have the same numerical precision.
+  !!
+  !!         \b Example
+  !!
+  !!         Autocorrelation of 0 time steps
+  !!         \code{.f90}
+  !!         ak = autocorr(x, 0, mask=mask)
+  !!         ---> ak = 1
+  !!         \endcode
 
-  !     CALLING SEQUENCE
-  !         ak = autocorr(x, k, mask=mask)
+  !>        \param[in]  "real(sp/dp) :: x(:)"                 Time series.
+  !>        \param[in]  "integer(i4) :: k[(:)]"               Lag for autocorrelation.
+  !>        \param[in]  "optional, logical     :: mask(:)"    1D-array of logical values with `size(vec)`.
+  !!                                                          If present, only those locations in vec corresponding 
+  !!                                                          to the true values in mask are used.
+  !>        \retval    "real(sp/dp) :: ak[(:)]"               Coefficient of autocorrelation function at lag k.
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: x(:)        Time series
-  !         integer(i4) :: k[(:)]      Lag for autocorrelation
+  !>        \author Matthias Cuntz 
+  !>        \date Nov 2011
 
-  !     INTENT(INOUT)
-  !         None
+  !>        \author Stephan Thober
+  !>        \date Nov 2012
+  !!          - added 1d version
 
-  !     INTENT(OUT)
-  !         real(sp/dp) :: ak[(:)]     Coefficient of autocorrelation function at lag k
+  !>        \author Sebastion Mueller
+  !>        \date Dec 2019
+  !!          - rewritten
 
-  !     INTENT(IN), OPTIONAL
-  !         logical     :: mask(:)     1D-array of logical values with size(vec).
-  !                                    If present, only those locations in vec corresponding to the true values in mask are used.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         ! Last autocorrelation element
-  !         acorr = autocorr(x,size(x)/2)
-  !         -> see also example in test directory
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Nov 2011
-  !         Modified, Stephan Thober, Nov 2012 - added 1d version
-  !         Modified, Sebastian Mueller, Dec 2019 - rewritten
   INTERFACE autocorr
     MODULE PROCEDURE autocorr_sp, autocorr_dp, autocorr_1d_sp, autocorr_1d_dp
   END INTERFACE autocorr

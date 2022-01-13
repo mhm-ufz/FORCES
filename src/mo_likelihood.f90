@@ -1,4 +1,7 @@
-! added for testing purposes of test_mo_mcmc
+!>  \file mo_likelihood.f90
+!>  \copydoc mo_likelihood
+
+!>  \brief Added for testing purposes of test_mo_mcmc
 module mo_likelihood
 
   USE mo_kind,   only: i4, dp
@@ -9,17 +12,24 @@ module mo_likelihood
 
   PRIVATE
 
-  PUBLIC :: data        
+  PUBLIC :: data
   PUBLIC :: model_dp
   PUBLIC :: likelihood_dp,        loglikelihood_dp        ! "real" likelihood  (sigma is an error model or given)
   PUBLIC :: likelihood_stddev_dp, loglikelihood_stddev_dp ! "faked" likelihood (sigma is computed by obs vs model)
   PUBLIC :: setmeas
 
-
+  ! -------------------------------
+  !> \brief synthetic data
+  !> \details Data generated with
+  !!     paraset(1) = 1.0
+  !!     paraset(2) = 2.0
+  !!     paraset(3) = 3.0
+  !! plus additive, Gaussian distributed error with mu=0.0 and sigma=0.5
   INTERFACE data
      MODULE PROCEDURE data_dp
   END INTERFACE data
 
+  !> \brief set meas
   INTERFACE setmeas
      MODULE PROCEDURE setmeas_dp
   END INTERFACE setmeas
@@ -32,8 +42,7 @@ module mo_likelihood
 CONTAINS
 
   ! -------------------------------
-  ! A Likelihood function: "real" likelihood  (sigma is an error model or given)
-  ! -------------------------------
+  !> \brief A Likelihood function: "real" likelihood  (sigma is an error model or given)
   function likelihood_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
@@ -54,8 +63,7 @@ CONTAINS
   end function likelihood_dp
 
   ! -------------------------------
-  ! A Log-Likelihood function: "real" likelihood  (sigma is an error model or given)
-  ! -------------------------------
+  !> \brief A Log-Likelihood function: "real" likelihood  (sigma is an error model or given)
   function loglikelihood_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
@@ -76,8 +84,7 @@ CONTAINS
   end function loglikelihood_dp
 
   ! -------------------------------
-  ! A Likelihood function: "faked" likelihood (sigma is computed by obs vs model)
-  ! -------------------------------
+  !> \brief A Likelihood function: "faked" likelihood (sigma is computed by obs vs model)
   function likelihood_stddev_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
@@ -108,14 +115,13 @@ CONTAINS
   end function likelihood_stddev_dp
 
   ! -------------------------------
-  ! A Log-Likelihood_stddev function: "faked" likelihood (sigma is computed by obs vs model)
-  ! -------------------------------
+  !> \brief A Log-Likelihood_stddev function: "faked" likelihood (sigma is computed by obs vs model)
   function loglikelihood_stddev_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
     REAL(DP),               INTENT(IN), optional  :: stddev_in        ! standard deviation of data
     REAL(DP),               INTENT(OUT), OPTIONAL :: stddev_new       ! standard deviation of errors using paraset
-    REAL(DP),               INTENT(OUT), OPTIONAL :: likeli_new       ! likelihood using stddev_new, 
+    REAL(DP),               INTENT(OUT), OPTIONAL :: likeli_new       ! likelihood using stddev_new,
     !                                                                 ! i.e. using new parameter set
     REAL(DP)                                      :: loglikelihood_stddev_dp
 
@@ -140,14 +146,13 @@ CONTAINS
   end function loglikelihood_stddev_dp
 
   ! -------------------------------
-  ! A Model: p1*x^2 + p2*x + p3
-  ! -------------------------------
+  !> \brief A Model: p1*x^2 + p2*x + p3
   subroutine model_dp(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
 
     use mo_kind, only: dp
     use mo_optimization_types, only: optidata_sim
     !! !$ USE omp_lib,    only: OMP_GET_THREAD_NUM
-    
+
     real(dp),    dimension(:), intent(in) :: parameterset
     integer(i4), dimension(:),                 optional, intent(in)  :: opti_domain_indices
     real(dp),    dimension(:, :), allocatable, optional, intent(out) :: runoff        ! dim1=time dim2=gauge
@@ -164,7 +169,7 @@ CONTAINS
 
     !! !$ is_thread = OMP_GET_THREAD_NUM()
     !! !$ write(*,*) 'OMP_thread: ', is_thread
-    
+
     !$OMP parallel default(shared) &
     !$OMP private(i)
     !$OMP do
@@ -177,13 +182,6 @@ CONTAINS
 
   end subroutine model_dp
 
-  ! -------------------------------
-  ! Data generated with
-  !     paraset(1) = 1.0
-  !     paraset(2) = 2.0
-  !     paraset(3) = 3.0
-  ! plus additive, Gaussian distributed error with mu=0.0 and sigma=0.5
-  ! -------------------------------
   function data_dp()
     use mo_kind
     REAL(DP), DIMENSION(size(meas,1))      :: data_dp

@@ -1,10 +1,9 @@
 !> \file mo_sce.f90
+!> \copydoc mo_sce
 
 !> \brief Shuffled Complex Evolution optimization algorithm.
-
 !> \details Optimization algorithm using Shuffled Complex Evolution strategy.
-!>          Original version 2.1 of Qingyun Duan (1992) rewritten in Fortran 90.
-
+!!          Original version 2.1 of Qingyun Duan (1992) rewritten in Fortran 90.
 !> \authors Juliane Mai
 !> \date Feb 2013
 
@@ -46,44 +45,59 @@ MODULE mo_sce
   !     PURPOSE
   !>        \brief Shuffled Complex Evolution (SCE) algorithm for global optimization.
   !
-  !>        \details  Shuffled Complex Evolution method for global optimization\n
-  !>                  -- version 2.1\n
-  !>                  \n
-  !>                  by Qingyun Duan\n
-  !>                  Department of Hydrology & Water Resources\n
-  !>                  University of Arizona, Tucson, AZ 85721\n
-  !>                  (602) 621-9360, email: duan@hwr.arizona.edu\n
-  !>                  \n
-  !>                  Written by Qingyun Duan,   Oct 1990.\n
-  !>                  Revised by Qingyun Duan,   Aug 1991.\n
-  !>                  Revised by Qingyun Duan,   Apr 1992.\n
-  !>                  \n
-  !>                  Re-written by Juliane Mai, Feb 2013.\n
-  !>                  \n
-  !>                  Statement by Qingyun Duan:\n
-  !>                  ----------------------------------\n
-  !>                  \n
-  !>                     This general purpose global optimization program is developed at
-  !>                     the Department of Hydrology & Water Resources of the University
-  !>                     of Arizona.  Further information regarding the SCE-UA method can
-  !>                     be obtained from Dr. Q. Duan, Dr. S. Sorooshian or Dr. V.K. Gupta
-  !>                     at the address and phone number listed above.  We request all
-  !>                     users of this program make proper reference to the paper entitled
-  !>                     'Effective and Efficient Global Optimization for Conceptual
-  !>                     Rainfall-runoff Models' by Duan, Q., S. Sorooshian, and V.K. Gupta,
-  !>                     Water Resources Research, Vol 28(4), pp.1015-1031, 1992.\n
-  !>                  \n
-  !>                 The function to be minimized is the first argument of DDS and must be defined as \n
-  !>                 \code
-  !>                     function functn(p)
-  !>                          use mo_kind, only: dp
-  !>                          implicit none
-  !>                          real(dp), dimension(:), intent(in) :: p
-  !>                          real(dp) :: functn
-  !>                     end function functn
-  !>                 \endcode
-  !
-  !     INTENT(IN)
+  !>        \details  Shuffled Complex Evolution method for global optimization -- version 2.1\n
+  !!                  \n
+  !!                  by Qingyun Duan\n
+  !!                  Department of Hydrology & Water Resources\n
+  !!                  University of Arizona, Tucson, AZ 85721\n
+  !!                  (602) 621-9360, email: duan@hwr.arizona.edu\n
+  !!                  \n
+  !!                  Written by Qingyun Duan,   Oct 1990.\n
+  !!                  Revised by Qingyun Duan,   Aug 1991.\n
+  !!                  Revised by Qingyun Duan,   Apr 1992.\n
+  !!                  \n
+  !!                  Re-written by Juliane Mai, Feb 2013.\n
+  !!                  \n
+  !!                  \b Statement by Qingyun Duan:\n
+  !!                  \n
+  !!                     This general purpose global optimization program is developed at
+  !!                     the Department of Hydrology & Water Resources of the University
+  !!                     of Arizona.  Further information regarding the SCE-UA method can
+  !!                     be obtained from Dr. Q. Duan, Dr. S. Sorooshian or Dr. V.K. Gupta
+  !!                     at the address and phone number listed above.  We request all
+  !!                     users of this program make proper reference to the paper entitled
+  !!                     'Effective and Efficient Global Optimization for Conceptual
+  !!                     Rainfall-runoff Models' by Duan, Q., S. Sorooshian, and V.K. Gupta,
+  !!                     Water Resources Research, Vol 28(4), pp.1015-1031, 1992.\n
+  !!                  \n
+  !!                 The function to be minimized is the first argument of DDS and must be defined as \n
+  !!                 \code{.f90}
+  !!                     function functn(p)
+  !!                          use mo_kind, only: dp
+  !!                          implicit none
+  !!                          real(dp), dimension(:), intent(in) :: p
+  !!                          real(dp) :: functn
+  !!                     end function functn
+  !!                 \endcode
+  !!
+  !!        \b Example
+  !!        \code{.f90}
+  !!         use mo_opt_functions, only: griewank
+  !!
+  !!         prange(:,1) = (/ -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0 /)
+  !!         prange(:,2) = (/ 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0 /)
+  !!         pini        = (/ -.226265E+01, -.130187E+01, -.151219E+01, 0.133983E+00, 0.988159E+00, &
+  !!                            -.495074E+01, -.126574E+02, 0.572684E+00, 0.303864E+01, 0.343031E+01 /)
+  !!
+  !!         opt = sce(griewank, pini, prange)
+  !!        \endcode
+  !!         -> see also example in test directory
+  !!
+  !!        \b Literature
+  !!           1. Duan, Q., S. Sorooshian, and V.K. Gupta -
+  !!              Effective and Efficient Global Optimization for Conceptual Rainfall-runoff Models
+  !!              Water Resources Research, Vol 28(4), pp.1015-1031, 1992.
+  !!
   !>        \param[in] "real(dp) :: functn(p)"               Function on which to search the optimum
   !>        \param[in] "real(dp) :: pini(:)"                 inital value of decision variables
   !>        \param[in] "real(dp) :: prange(size(pini),2)"    Min/max range of decision variables
@@ -141,12 +155,12 @@ MODULE mo_sce
   !>                                                             DEFAULT: 0.45_dp
   !>        \param[in]  "character(len=*), optional  :: tmp_file" if given: write results after each evolution loop
   !>                                                              to temporal output file of that name\n
-  !>                                                              # of headlines: 7\n
-  !>                                                              format: '# nloop   icall   ngs1   bestf   worstf ... \n
+  !>                                                              \# of headlines: 7\n
+  !>                                                              format: '\# nloop   icall   ngs1   bestf   worstf ... \n
   !>                                                                         ... gnrng   (bestx(j),j=1,nn)'
   !>        \param[in]  "character(len=*), optional  :: popul_file" if given: write whole population to file of that name\n
-  !>                                                                # of headlines: 1 \n
-  !>                                                                format: #_evolution_loop, xf(i), (x(i,j),j=1,nn)\n
+  !>                                                                \# of headlines: 1 \n
+  !>                                                                format: \#_evolution_loop, xf(i), (x(i,j),j=1,nn)\n
   !>                                                                total number of lines written <= neval <= mymaxn\n
   !>        \param[in]  "logical, optional  :: popul_file_append"   if true, append to existing population file (default: false)\n
   !>        \param[in]  "logical, optional  :: parallel"    sce runs in parallel (true) or not (false)
@@ -168,49 +182,40 @@ MODULE mo_sce
   !
   !     RETURN
   !>        \return real(dp) :: bestx(size(pini))  &mdash;  The parameters of the point which is estimated
-  !>                                                        to minimize/maximize the function.
-  !
+  !!                                                        to minimize/maximize the function.
+
   !     RESTRICTIONS
   !>       \note Maximal number of parameters is 1000.\n
-  !>             SCE is OpenMP enabled on the loop over the complexes.\n
-  !>             OMP_NUM_THREADS > 1 does not give reproducible results even when seeded!
-  !
-  !     EXAMPLE
-  !         use mo_opt_functions, only: griewank
-  !
-  !         prange(:,1) = (/ -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0 /)
-  !         prange(:,2) = (/ 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0 /)
-  !         pini        = (/ -.226265E+01, -.130187E+01, -.151219E+01, 0.133983E+00, 0.988159E+00, &
-  !                            -.495074E+01, -.126574E+02, 0.572684E+00, 0.303864E+01, 0.343031E+01 /)
-  !
-  !         opt = sce(griewank, pini, prange)
-  !
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         Duan, Q., S. Sorooshian, and V.K. Gupta -
-  !             Effective and Efficient Global Optimization for Conceptual Rainfall-runoff Models
-  !             Water Resources Research, Vol 28(4), pp.1015-1031, 1992.
-
+  !!             SCE is OpenMP enabled on the loop over the complexes.\n
+  !!             OMP_NUM_THREADS > 1 does not give reproducible results even when seeded!
+  !!
   !     HISTORY
-  !>        \author Juliane Mai
+  !>        \author Juliane Mai, Matthias Cuntz
   !>        \date Feb 2013
-  !         Modified Juliane Mai, Matthias Cuntz, Jul 2013 - OpenMP
-  !                                                        - NaN and Inf in objective function
-  !                  Juliane Mai,                 Oct 2013 - added peps as optional argument
-  !                                                        - allow for masked parameters
-  !                                                        - write population to file --> popul_file
-  !                                                        - write intermediate results to file --> tmp_file
-  !                                                        - flag parallel introduced
-  !                  Matthias Cuntz,              Nov 2013 - progress dots
-  !                                                        - use iso_fortran_env
-  !                                                        - treat functn=NaN as worse function value in cce
-  !                  Matthias Cuntz,              May 2014 - sort -> orderpack
-  !                  Matthias Cuntz,              May 2014 - popul_file_append
-  !                  Matthias Cuntz,              May 2014 - sort with NaNs
-  !                  Matthias Cuntz, Juliane Mai  Feb 2015 - restart
-  !                  Matthias Cuntz               Mar 2015 - use is_finite and special_value from mo_utils
-  !                  Juliane Mai                  Apr 2015 - handling of array-like variables in restart-namelists
+  !!              - first version
+  !>        \date Jul 2013
+  !!              - OpenMP
+  !!              - NaN and Inf in objective function
+  !>        \date Oct 2013
+  !!              - added peps as optional argument
+  !!              - allow for masked parameters
+  !!              - write population to file --> popul_file
+  !!              - write intermediate results to file --> tmp_file
+  !!              - flag parallel introduced
+  !>        \date Nov 2013
+  !!              - progress dots (MC)
+  !!              - use iso_fortran_env
+  !!              - treat functn=NaN as worse function value in cce
+  !>        \date May 2014
+  !!              - sort -> orderpack (MC)
+  !!              - popul_file_append (MC)
+  !!              - sort with NaNs (MC)
+  !>        \date Feb 2015
+  !!              - restart (MC, JM)
+  !>        \date Mar 2015
+  !!              - use is_finite and special_value from mo_utils (MC)
+  !>        \date Apr 2015
+  !!              - handling of array-like variables in restart-namelists (JM)
 
   ! ------------------------------------------------------------------
 
@@ -294,7 +299,7 @@ CONTAINS
     !                                                               !     0, print information on the best point of the population
     !                                                               !     1, print information on every point of the population
     !                                                               !     2, no printing (DEFAULT)
-    logical, optional, intent(in), dimension(size(pini, 1)) :: mymask ! parameter included in optimization (true) or discarded (false)
+    logical, optional, intent(in), dimension(size(pini, 1)) :: mymask ! parameter included in optimization(true) or discarded(false)
     !                                                               !     DEFAULT: .true.
     real(dp), optional, intent(in) :: myalpha     ! parameter for reflection  of points in complex
     !                                                               !     DEFAULT: 0.8_dp

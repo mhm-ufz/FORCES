@@ -9,11 +9,14 @@ All these scripts will load:
 - the respective fortran compiler and set `FC` env-var (optional MPI support)
 - netCDF-Fortran
 - CMake
-- the MPR Python Environment
+- the MPR Python Environment (_except chs-conda environment_)
 - pFUnit - Fortran unit testing framework (_not available for GNU 6.4_)
 
 ### Usage
-
+- Conda environment with gfortran:
+  ```bash
+  source eve.chs-conda01
+  ```
 - GNU 6.4 compiler (`foss/2018a` Toolchain):
   ```bash
   source eve.gfortran64 # or
@@ -43,6 +46,11 @@ All these scripts will load:
   ```bash
   source eve.intel19 # or
   source eve.intel19MPI
+  ```
+- Intel 19.1.3 compiler (`iomkl/2020b` Toolchain):
+  ```bash
+  source eve.intel2020b # or
+  source eve.intel2020bMPI
   ```
 - NAG 6.2 compiler:
   ```bash

@@ -1,7 +1,5 @@
 !> \file    mo_forces_info.f90
-!> \brief   Provides information about FORCES
-!> \authors Sebastian Mueller
-!> \date    May 2021
+!> \copydoc mo_forces_info
 
 #ifndef FORCESVERSION
 #define FORCESVERSION "0.0.0-dev0"
@@ -14,10 +12,10 @@
 
 !> \brief   module with information about FORCES
 !> \details Provides all information about FORCES as parameter.
-!!          The \c version parameter will be set during compilation to
-!!          \"\htmlinclude version.txt \latexinclude version.txt\".
-!!          The \c version_date parameter will be set during compilation to
-!!          \"\htmlinclude version_date.txt \latexinclude version_date.txt\",
+!!          The \p version parameter will be set during compilation
+!!          to content of \a version.txt.
+!!          The \p version_date parameter will be set during compilation
+!!          to content of \a version_date.txt,
 !!          if it is a release version, otherwise it will be the current date.
 !> \authors Sebastian Mueller
 !> \date    May 2021
@@ -26,9 +24,9 @@ module mo_forces_info
   implicit none
 
   set_version(FORCESVERSION)
-  !< Current program version (will be set to \htmlinclude version.txt \latexinclude version.txt)
+  !< Current program version
 
   set_date(FORCESDATE)
-  !< Time of current program version release (will be set to \htmlinclude version_date.txt \latexinclude version_date.txt)
+  !< Time of current program version release
 
 end module mo_forces_info
