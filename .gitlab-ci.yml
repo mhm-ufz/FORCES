@@ -66,22 +66,22 @@ documentation_stable:
     - source hpc-module-loads/eve.chs-conda01
     - module load GCCcore/9.3.0 texlive/2020
     # use doxygen from the chs conda environment
-    # same for master
-    - git checkout master
-    - doxygen doc/doxygen.config > doxygen_log_mas.txt
-    - cd latex/ && make > ../doxygen_latex_mas.txt
+    # doc for latest version tag
+    - git checkout $(git describe --match "v*" --abbrev=0 --tags $(git rev-list --tags --max-count=1))
+    - doxygen doc/doxygen.config > doxygen_log_tag.txt
+    - cd latex/ && make > ../doxygen_latex_tag.txt
     - cp refman.pdf ../html/forces_doc.pdf
-    - cp refman.pdf ../forces_doc_mas.pdf
-    - cd .. && mv html html_mas
-    - mv doxygen_warn.txt doxygen_warn_mas.txt
+    - cp refman.pdf ../forces_doc_tag.pdf
+    - cd .. && mv html html_tag
+    - mv doxygen_warn.txt doxygen_warn_tag.txt
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
     paths:
-      - html_mas
-      - forces_doc_mas.pdf
-      - doxygen_log_mas.txt
-      - doxygen_latex_mas.txt
-      - doxygen_warn_mas.txt
+      - html_tag
+      - forces_doc_tag.pdf
+      - doxygen_log_tag.txt
+      - doxygen_latex_tag.txt
+      - doxygen_warn_tag.txt
   when: always
 
 # how the job build directory is erected
@@ -297,7 +297,7 @@ pages:
     - mkdir public/stable/
     - mkdir public/latest/
     # copy the doxygen generated html page to the public site
-    - cp html_mas/* public/stable/ -R
+    - cp html_tag/* public/stable/ -R
     - cp html_dev/* public/latest/ -R
     # create an index.html that redirects to the master documentation (in master folder)
     - cp doc/html_files/index.html public/
