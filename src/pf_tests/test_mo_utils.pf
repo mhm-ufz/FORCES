@@ -1,11 +1,11 @@
 module test_mo_utils
-  
+
   use funit
   use mo_kind,  only: sp, dp, i4, i8, i1
   use mo_utils, only: eq, ge, le, ne
-  use mo_utils, only: swap, locate !, cumsum, arange, linspace
+  use mo_utils, only: swap, locate, cumsum, arange, linspace
   use mo_utils, only: is_finite, is_nan, is_normal, special_value, unpack_chunkwise
-  
+
   implicit none
 
 
@@ -34,16 +34,19 @@ module test_mo_utils
 
   integer(i4) :: i
   logical  :: compare
-  
+
+  !> tolerance
+  real(dp), parameter ::  tt=1.0E-5_dp
+
 contains
 
-  
+
   @test
   subroutine test_utils()
 
-  ! -----------------------------------------------------
-  ! DOUBLE PRECISON
-  ! -----------------------------------------------------
+    ! -----------------------------------------------------
+    ! DOUBLE PRECISON
+    ! -----------------------------------------------------
 
     write(*,*) ''
     write(*,*) 'Test: eq/ equal: dp'
@@ -139,9 +142,9 @@ contains
     write(*,'(E24.17,A4,E24.17,A5,L2)') a_dp,' >= ',b_dp,' --> ',compare
     @assertFalse(compare)
 
-  ! -----------------------------------------------------
-  ! SINGLE PRECISON
-  ! -----------------------------------------------------
+    ! -----------------------------------------------------
+    ! SINGLE PRECISON
+    ! -----------------------------------------------------
 
     write(*,*) ''
     write(*,*) 'Test: eq/ equal: sp'
@@ -237,8 +240,8 @@ contains
     write(*,'(E15.8,A4,E15.8,A5,L2)') a_sp,' >= ',b_sp,' --> ',compare
     @assertFalse(compare)
 
-  ! -----------------------------------------------------
-  ! Swap
+    ! -----------------------------------------------------
+    ! Swap
 
     write(*,*) ''
     write(*,*) 'Test: swap'
@@ -274,9 +277,9 @@ contains
     call swap(iat2, nn, 1)
     @assertEqual(iat2, iat3)
 
-  ! -----------------------------------------------------
-  ! Locate
-  
+    ! -----------------------------------------------------
+    ! Locate
+
     write(*,*) ''
     write(*,*) 'Test: locate'
 
@@ -301,10 +304,10 @@ contains
     s5 = (/ 0.1_sp, 5.5_sp, 10.1_sp, 50.5_sp, 200.1_sp /)
     ii5 = locate(sat1, s5)
     @assertEqual(ii5, (/0, 5, 10, 50, 100/))
-  
-  ! -----------------------------------------------------
-  ! is_finite, is_nan, is_normal
-  
+
+    ! -----------------------------------------------------
+    ! is_finite, is_nan, is_normal
+
     write(*,*) ''
     write(*,*) 'Test: is_finite, is_nan, is_normal'
 
@@ -346,9 +349,9 @@ contains
     !@assertFalse(is_normal(sat1(2)))
     !@assertFalse(any(is_normal(sat1(1:2))))
 
-  ! -----------------------------------------------------
-  ! special_value
-  
+    ! -----------------------------------------------------
+    ! special_value
+
     write(*,*) ''
     write(*,*) 'Test: special_value dp'
     ! TODO: fix this, it fails in gfortran debug (option "-ffpe-trap=zero,overflow,underflow")
@@ -396,79 +399,75 @@ contains
     @assertEqual(abs(special_value(1.0_sp, 'IEEE_POSITIVE_ZERO')), 0.0_sp)
     @assertEqual(abs(special_value(1.0_sp, 'IEEE_NEGATIVE_ZERO')), 0.0_sp)
 
-    ! ! -----------------------------------------------------
-    ! ! COMMENTED since cumsum, arange and linspace are not existing anymore
-    ! ! Cumsum
-    ! ! double precision
-    ! dat1(:) = 1.0_dp
-    ! dat2    = cumsum(dat1)
-    ! isgood  = isgood .and. (eq(dat2(1),1.0_dp))
-    ! isgood  = isgood .and. (eq(dat2(nn),real(nn,dp)))
-    ! ! single precision
-    ! sat1(:) = 2.0_sp
-    ! sat2    = cumsum(sat1)
-    ! isgood  = isgood .and. (eq(sat2(1),2.0_sp))
-    ! isgood  = isgood .and. (eq(sat2(nn),real(2*nn,sp)))
-    ! ! integer
-    ! iat1(:) = 3
-    ! iat2    = cumsum(iat1)
-    ! isgood  = isgood .and. (iat2(1) == 3)
-    ! isgood  = isgood .and. (iat2(nn) == 3*nn)
-    ! ! complex
-    ! cat1(:) = (1.0_dp,1.0_dp)
-    ! cat2    = cumsum(cat1)
-    ! isgood  = isgood .and. (eq(real(cat2(1)),1.0_dp))
-    ! isgood  = isgood .and. (eq(aimag(cat2(nn)),real(nn,dp)))
-    !
-    ! ! -----------------------------------------------------
-    ! ! Range
-    ! ! double precision
-    ! dat1(:) = 1.0_dp
-    ! dat2    = cumsum(dat1)
-    ! dat1    = arange(real(nn,dp))
-    ! isgood  = isgood .and. all(eq(dat1,dat2))
-    ! ! single precision
-    ! sat1(:) = 2.0_dp
-    ! sat2    = cumsum(sat1)
-    ! sat1    = arange(real(nn,sp)) * 2.0_sp
-    ! isgood  = isgood .and. all(eq(sat1,sat2))
-    ! ! integer
-    ! iat1(:) = 1
-    ! iat2    = cumsum(iat1) - 2
-    ! iat1    = arange(-1,nn-2)
-    ! isgood  = isgood .and. all(iat1==iat2)
-    ! ! allocatable out
-    ! adat1 = arange(real(nn,dp))
-    !
-    ! ! -----------------------------------------------------
-    ! ! Linspace
-    ! ! double precision
-    ! dat1   = arange(real(nn,dp))
-    ! dat2   = linspace(1.0_dp,real(nn,dp),nn)
-    ! isgood = isgood .and. all(eq(dat1,dat2))
-    ! ! single precision
-    ! sat1   = arange(real(nn,sp))/real(nn,sp)
-    ! sat2   = linspace(0.01_sp,1.0_sp,nn)
-    ! isgood = isgood .and. all(eq(sat1,sat2))
-    ! ! integer
-    ! iat1(:) = 3
-    ! iat2    = cumsum(iat1)
-    ! iat1    = linspace(3,3*nn,nn)
-    ! isgood  = isgood .and. all(iat1==iat2)
+    ! -----------------------------------------------------
+    ! Cumsum
+    ! double precision
+    dat1(:) = 1.0_dp
+    dat2    = cumsum(dat1)
+    @assertEqual(dat2(1),1.0_dp, tolerance=tt)
+    @assertEqual(dat2(nn),real(nn,dp), tolerance=tt)
+    ! single precision
+    sat1(:) = 2.0_sp
+    sat2    = cumsum(sat1)
+    @assertEqual(sat2(1),2.0_sp, tolerance=real(tt, sp))
+    @assertEqual(sat2(nn),real(2*nn,sp), tolerance=real(tt, sp))
+    ! integer
+    iat1(:) = 3
+    iat2    = cumsum(iat1)
+    @assertEqual(iat2(1),3)
+    @assertEqual(iat2(nn),3*nn)
+    ! complex
+    cat1(:) = (1.0_dp,1.0_dp)
+    cat2    = cumsum(cat1)
+    @assertEqual(real(cat2(1)),1.0_dp, tolerance=tt)
+    @assertEqual(aimag(cat2(nn)),real(nn,dp), tolerance=tt)
 
-  ! -----------------------------------------------------
-  ! unpack_chunkwise
-  ! -----------------------------------------------------
-  
-    write(*,*) ''
-    write(*,*) 'Test: unpack_chunkwise'
+    ! -----------------------------------------------------
+    ! Range
+    ! double precision
+    dat1(:) = 1.0_dp
+    dat2    = cumsum(dat1)
+    dat1    = arange(real(nn,dp))
+    @assertEqual(dat1,dat2, tolerance=tt)
+    ! single precision
+    sat1(:) = 2.0_dp
+    sat2    = cumsum(sat1)
+    sat1    = arange(real(nn,sp)) * 2.0_sp
+    @assertEqual(sat1,sat2, tolerance=real(tt, sp))
+    ! integer
+    iat1(:) = 1
+    iat2    = cumsum(iat1) - 2
+    iat1    = arange(-1,nn-2)
+    @assertEqual(iat1,iat2)
+    ! allocatable out
+    adat1 = arange(real(nn,dp))
+
+    ! -----------------------------------------------------
+    ! Linspace
+    ! double precision
+    dat1   = arange(real(nn,dp))
+    dat2   = linspace(1.0_dp,real(nn,dp),nn)
+    @assertEqual(dat1,dat2, tolerance=tt)
+    ! single precision
+    sat1   = arange(real(nn,sp))/real(nn,sp)
+    sat2   = linspace(0.01_sp,1.0_sp,nn)
+    @assertEqual(sat1,sat2, tolerance=real(tt, sp))
+    ! integer
+    iat1(:) = 3
+    iat2    = cumsum(iat1)
+    iat1    = linspace(3,3*nn,nn)
+    @assertEqual(iat1,iat2)
+
+    ! -----------------------------------------------------
+    ! unpack_chunkwise
+    ! -----------------------------------------------------
     a_dp = -9999.0_dp
     allocate(dalloc(5), lalloc(10))
     dalloc = [ 0.1_dp, 5.5_dp, 10.1_dp, 50.5_dp, 200.1_dp ]
     lalloc = [ .false., .true., .false., .false., .false., .false., .true., .true., .true., .true. ]
     @assertEqual(unpack_chunkwise(dalloc, lalloc, a_dp, 2_i8), unpack(dalloc, lalloc, a_dp))
     deallocate(lalloc, dalloc)
-  
+
   end subroutine test_utils
 
   ! TODO: this is commented as it takes really long to test, any ideas?
