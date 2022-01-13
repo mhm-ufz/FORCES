@@ -1,0 +1,92 @@
+module test_mo_nelmin
+
+  use funit
+  use mo_kind,   only: i4, dp
+  use mo_nelmin, only: nelmin, nelminxy
+  use mo_opt_functions, only: rosenbrock
+
+  implicit none
+
+  integer(i4), parameter :: n = 2
+
+  integer(i4) :: icount
+  integer(i4) :: ifault
+  integer(i4) :: kcount
+  integer(i4) :: konvge
+  integer(i4) :: numres
+  real(dp) :: reqmin
+  real(dp) :: start(n)
+  real(dp) :: step(n)
+  real(dp) :: xmin(n)
+  real(dp) :: ynewlo
+  real(dp) :: xx(1)
+  real(dp) :: yy(1)
+  real(dp), allocatable :: history(:)
+  integer(i4) :: i
+
+  !> tolerance
+  real(dp), parameter ::  tt=1.0E-2_dp
+
+contains
+
+  @test
+  subroutine test_nelmin()
+
+    start(1:n) = (/ -1.2_dp, 1.0_dp /)
+    reqmin = 1.0E-08_dp
+    step(1:n) = (/ 1.0_dp, 1.0_dp /)
+    konvge = 10
+    kcount = 500
+    xmin = nelmin( rosenbrock, start, funcmin=ynewlo, varmin=reqmin, step=step, &
+      konvge=konvge, maxeval=kcount, neval=icount, numrestart=numres, ierror=ifault, history=history)
+    @assertEqual(xmin, [1._dp, 1._dp], tolerance=tt, message='rosenbrock minimum 1')
+
+    start(1:n) = (/ -1.2_dp, 1.0_dp /)
+    reqmin = 1.0E-08_dp
+    step(1:n) = (/ 1.0_dp, 1.0_dp /)
+    konvge = 10
+    kcount = 500
+    xmin = nelmin(rosenbrock, start, varmin=reqmin, step=step, konvge=konvge, maxeval=kcount)
+    @assertEqual(xmin, [1._dp, 1._dp], tolerance=tt, message='rosenbrock minimum 2')
+
+    start(1:n) = (/ -1.2_dp, 1.0_dp /)
+    reqmin = 1.0E-08_dp
+    konvge = 10
+    kcount = 500
+    xmin = nelmin(rosenbrock, start, varmin=reqmin, konvge=konvge, maxeval=kcount)
+    @assertEqual(xmin, [1._dp, 1._dp], tolerance=tt, message='rosenbrock minimum 3')
+
+    start(1:n) = (/ -1.2_dp, 1.0_dp /)
+    konvge = 10
+    kcount = 500
+    xmin = nelmin(rosenbrock, start, konvge=konvge, maxeval=kcount)
+    @assertEqual(xmin, [1._dp, 1._dp], tolerance=tt, message='rosenbrock minimum 4')
+
+    start(1:n) = (/ -1.2_dp, 1.0_dp /)
+    xmin = nelmin(rosenbrock, start)
+    @assertEqual(xmin, [1._dp, 1._dp], tolerance=tt, message='rosenbrock minimum 5')
+
+    start(1:n) = (/ -12.0_dp, 10.0_dp /)
+    xmin = nelmin(rosenbrock, start)
+    @assertEqual(xmin, [1._dp, 1._dp], tolerance=tt, message='rosenbrock minimum 6')
+
+    start(1:n) = (/ -12.0_dp, 10.0_dp /)
+    xx(1) = 1.0_dp
+    yy(1) = 100.0_dp
+    xmin = nelminxy(rosenbrockxy, start, xx, yy, neval=icount, history=history)
+    @assertEqual(xmin, [1._dp, 1._dp], tolerance=tt, message='rosenbrock minimum 7')
+
+  end subroutine test_nelmin
+
+  function rosenbrockxy(p, xx, yy)
+
+      real(dp), dimension(:), intent(in) :: p
+      real(dp), dimension(:), intent(in) :: xx
+      real(dp), dimension(:), intent(in) :: yy
+      real(dp) :: rosenbrockxy
+
+      rosenbrockxy = rosenbrock(p)
+
+    end function rosenbrockxy
+
+end module test_mo_nelmin

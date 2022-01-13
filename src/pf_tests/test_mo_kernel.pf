@@ -1,0 +1,89 @@
+module test_mo_kernel
+
+  use funit
+  use mo_kind,   only: i4, dp
+  use mo_kernel, only: kernel_regression_h, kernel_regression
+  use mo_kernel, only: kernel_density_h, kernel_density
+  use mo_kernel, only: kernel_cumdensity
+
+  implicit none
+
+  integer(i4)                        :: ii, nn
+  real(dp), dimension(20)            :: yin_1d
+  real(dp), dimension(10)            :: test1, y
+  real(dp)                           :: hh
+  real(dp), dimension(2)             :: h
+  real(dp), dimension(10,2)          :: x
+  !> Test data: 20 temperature data of Guayaquil
+  real(dp), dimension(20), parameter :: xin_1d = (/ &
+    26.1_dp, 24.5_dp, 24.8_dp, 24.5_dp, 24.1_dp, &
+    24.3_dp, 26.4_dp, 24.9_dp, 23.7_dp, 23.5_dp, &
+    24.0_dp, 24.1_dp, 23.7_dp, 24.3_dp, 26.6_dp, &
+    24.6_dp, 24.8_dp, 24.4_dp, 26.8_dp, 25.2_dp /)
+
+  !> tolerance
+  real(dp), parameter ::  tt=1.0E-4_dp
+
+contains
+
+  @test
+  subroutine test_approx_bandwidth()
+
+    nn = size(x,1)
+    forall(ii=1:nn) x(ii,1) = real(ii-1,dp)/9.0_dp
+    forall(ii=1:nn) x(ii,2) = 1.0_dp / (real(ii-1,dp)/9.0_dp + 0.1_dp)
+    y(:) = 1.0_dp + x(:,1)**2 - sin(x(:,2))** 2
+
+    h = kernel_regression_h(x,y,silverman=.true.)
+    @assertEqual(h(1), 0.2291_dp, tolerance=tt, message='Bandwith h (Silvermans rule) Ha01')
+    @assertEqual(h(2), 1.9033_dp, tolerance=tt, message='Bandwith h (Silvermans rule) Ha02')
+
+    h = kernel_regression_h(x,y,silverman=.false.)
+    @assertEqual(h(1), 0.1726_dp, tolerance=tt, message='Bandwith h (Cross-validation) Ha03')
+    @assertEqual(h(2), 9.5169_dp, tolerance=tt, message='Bandwith h (Cross-validation) Ha04')
+
+  end subroutine test_approx_bandwidth
+
+  @test
+  subroutine test_regression()
+
+    nn = size(x,1)
+    forall(ii=1:nn) x(ii,1) = real(ii-1,dp)/9.0_dp
+    forall(ii=1:nn) x(ii,2) = 1.0_dp / (real(ii-1,dp)/9.0_dp + 0.1_dp)
+    y(:) = 1.0_dp + x(:,1)**2 - sin(x(:,2))** 2
+
+    y = kernel_regression(x,y,silverman=.false.)
+    test1 = (/ 5224.0_dp, 5256.0_dp, 5417.0_dp, 5178.0_dp, 4764.0_dp, 4923.0_dp, 6034.0_dp, 7774.0_dp, 9545.0_dp, 10960.0_dp /)
+    @assertEqual(y, test1 * tt, tolerance=tt, message='kernel regression using bandwith h')
+
+  end subroutine test_regression
+
+  @test
+  subroutine test_approx_bandwidth_density()
+
+    hh = kernel_density_h(xin_1d(:),silverman=.false.)
+    @assertEqual(hh, 0.4582_dp, tolerance=tt, message='bandwith h for density estimation')
+
+  end subroutine test_approx_bandwidth_density
+
+  @test
+  subroutine test_kernel_density()
+
+    hh = kernel_density_h(xin_1d(:),silverman=.false.)
+    yin_1d = kernel_density(xin_1d, h=hh, silverman=.false.)
+    test1 = (/ 1260.0_dp, 4713.0_dp, 3900.0_dp, 4713.0_dp, 4443.0_dp, 4773.0_dp, 1498.0_dp, 3494.0_dp, 3035.0_dp, 2214.0_dp /)
+    @assertEqual(yin_1d(1:10), test1 * tt, tolerance=tt, message='kernel prob. density (PDF) estimation')
+
+  end subroutine test_kernel_density
+
+  @test
+  subroutine test_kernel_cumdensity()
+
+    hh = kernel_density_h(xin_1d(:),silverman=.false.)
+    yin_1d = kernel_cumdensity(xin_1d, h=hh, silverman=.false., romberg=.false.)
+    test1 = (/ 8461.0_dp, 4744.0_dp, 6055.0_dp, 4744.0_dp, 2861.0_dp, 3789.0_dp, 8880.0_dp, 6425.0_dp, 1344.0_dp, 819.0_dp /)
+    @assertEqual(yin_1d(1:10), test1 * tt, tolerance=tt, message='kernel cum. density (CDF) estimation')
+
+  end subroutine test_kernel_cumdensity
+
+end module test_mo_kernel

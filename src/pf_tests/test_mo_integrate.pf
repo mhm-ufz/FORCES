@@ -1,0 +1,37 @@
+module test_mo_integrate
+
+  use funit
+  use mo_kind, only: i4, sp, dp
+  use mo_integrate, only: int_regular
+
+  implicit none
+
+  integer(i4), parameter :: n=9
+
+contains
+
+  @test
+  subroutine test_integrate_dp()
+    real(dp), dimension(n)  ::  dat
+    real(dp)                ::  t=1.0E-5_dp
+    integer(i4)             ::  i
+
+    forall(i=1:n) dat(i) = real(i, dp)
+
+    @assertEqual(int_regular(dat), 40.0_dp, tolerance=t, message='int_regular double precision')
+
+  end subroutine test_integrate_dp
+
+  @test
+  subroutine test_integrate_sp()
+    real(sp), dimension(n)  ::  dat
+    real(sp)                ::  t=1.0E-5_sp
+    integer(i4)             ::  i
+
+    forall(i=1:n) dat(i) = real(i, sp)
+
+    @assertEqual(int_regular(dat), 40.0_sp, tolerance=t, message='int_regular single precision')
+
+  end subroutine test_integrate_sp
+
+end module test_mo_integrate

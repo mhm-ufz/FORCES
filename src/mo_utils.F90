@@ -4,7 +4,7 @@
 !> \brief General utilities for the CHS library
 !> \details This module provides general utilities such as comparisons of two reals.
 !> \authors Matthias Cuntz, Juliane Mai
-!> \date Feb 2014
+!> \date 2014 - 2016
 MODULE mo_utils
 
   ! Written  Matthias Cuntz, Juliane Mai, Feb 2014
@@ -32,24 +32,29 @@ MODULE mo_utils
 
   ! Copyright 2014 Matthias Cuntz, Juliane Mai
 
-  USE mo_kind, only : sp, dp, i1, i4, i8
+  USE mo_kind, only : sp, dp, i1, i4, i8, spc, dpc
   USE mo_string_utils, only : toupper
 
   IMPLICIT NONE
 
-  PUBLIC :: equal        ! a == b, a .eq. b
-  PUBLIC :: greaterequal ! a >= b, a .ge. b
-  PUBLIC :: lesserequal  ! a <= b, a .le. b
-  PUBLIC :: notequal     ! a /= b, a .ne. b
-  PUBLIC :: eq           ! a == b, a .eq. b
-  PUBLIC :: ge           ! a >= b, a .ge. b
-  PUBLIC :: le           ! a <= b, a .le. b
-  PUBLIC :: ne           ! a /= b, a .ne. b
-  PUBLIC :: is_finite    ! .true. if not IEEE Inf and not IEEE NaN
-  PUBLIC :: is_nan       ! .true. if IEEE NaN
-  PUBLIC :: is_normal    ! .true. if not IEEE Inf and not IEEE NaN
-  PUBLIC :: locate       ! Find closest values in a monotonic series
-  PUBLIC :: swap         ! swaps arrays or elements of an array
+  PUBLIC :: arange        ! Natural numbers within interval
+  PUBLIC :: cumsum        ! Cumulative sum
+  PUBLIC :: imaxloc       ! maxloc(arr)(1)
+  PUBLIC :: iminloc       ! maxloc(arr)(1)
+  PUBLIC :: linspace      ! numpy like linspace
+  PUBLIC :: equal         ! a == b, a .eq. b
+  PUBLIC :: greaterequal  ! a >= b, a .ge. b
+  PUBLIC :: lesserequal   ! a <= b, a .le. b
+  PUBLIC :: notequal      ! a /= b, a .ne. b
+  PUBLIC :: eq            ! a == b, a .eq. b
+  PUBLIC :: ge            ! a >= b, a .ge. b
+  PUBLIC :: le            ! a <= b, a .le. b
+  PUBLIC :: ne            ! a /= b, a .ne. b
+  PUBLIC :: is_finite     ! .true. if not IEEE Inf and not IEEE NaN
+  PUBLIC :: is_nan        ! .true. if IEEE NaN
+  PUBLIC :: is_normal     ! .true. if not IEEE Inf and not IEEE NaN
+  PUBLIC :: locate        ! Find closest values in a monotonic series
+  PUBLIC :: swap          ! swaps arrays or elements of an array
   PUBLIC :: special_value ! Special IEEE values
   PUBLIC :: relational_operator_dp, relational_operator_sp ! abstract interface for relational operators
 
@@ -67,9 +72,127 @@ MODULE mo_utils
   end interface
 
   ! ------------------------------------------------------------------
+  !>        \brief Numbers within a given range.
+  !>        \details Gives array with numbers in a given interval, i.e.
+  !!        \f[ arange(1) = lower \f]
+  !!        \f[ arange(2) = lower+1 \f]
+  !!        ...
+  !!        \f[ arange(n) = upper \f]
+  !!
+  !!        Default is lower=1.
+  !!        Output array has kind of lower.
+  !!
+  !!        \b Example
+  !!        \code{.f90}
+  !!        rr = arange(100._dp)
+  !!        \endcode
+  !!        -> see also example in test directory
+
+  !>        \param[in] "integer(i4/i8)/real(sp/dp) :: lower"   Start of interval if upper is given,
+  !!                                                           Otherwise end of interval and start of interval is 1.
+  !>        \param[in] "integer(i4/i8)/real(sp/dp) :: upper    End of interval"
+  !>        \return     kind(arr) :: arange(upper-lower+1)     &mdash; 1D array with values within given interval.
+
+  !>        \authors Matthias Cuntz
+  !>        \date Jun 2016
+  INTERFACE arange
+     MODULE PROCEDURE arange_i4, arange_i8, arange_dp, arange_sp
+  END INTERFACE arange
+
+  ! ------------------------------------------------------------------
+  !>        \brief Cumulative sum.
+  !>        \details The cumulative sum of the elements of an array
+  !!        \f[ cumsum(i) = \sum_{j=1}^i array(j) \f]
+  !!
+  !!        \b Example
+  !!        \code{.f90}
+  !!        vec = (/ 1., 2., 3., 4., 5., 6. /)
+  !!        cum = cumsum(vec)
+  !!        \endcode
+  !!        -> see also example in test directory
+
+  !>        \param[in] "integer(i4/i8)/real(sp/dp)/complex(spc/dpc) :: arr(:)"   1D array
+  !>        \return     kind(arr) :: cumsum(size(arr))                           &mdash; Cumulative sum
+
+  !>        \authors Matthias Cuntz
+  !>        \date Jun 2016
+  INTERFACE cumsum
+     MODULE PROCEDURE cumsum_i4, cumsum_i8, cumsum_dp, cumsum_sp, cumsum_dpc, cumsum_spc
+  END INTERFACE cumsum
+
+  ! ------------------------------------------------------------------
+  !>        \brief First location in array of element with the maximum value.
+  !>        \details Fortran intrinsic maxloc return arrays with all subsripts
+  !!        corresponding to the maximum value in the array.\n
+  !!        This routine returns only the first entry as scalar integer.
+  !!
+  !!        \b Example
+  !!        \code{.f90}
+  !!        integer(i4) :: imax
+  !!        imax = imaxloc(vec, mask=mask)
+  !!        \endcode
+  !!        -> see also example in test directory
+
+  !>        \param[in] "integer(i4/i8)/real(sp/dp)/complex(spc/dpc) :: array(:)" Input array
+  !>        \param[in] "logical :: mask(:)"   If present, only those locations in array corresponding to
+  !!                                          the true values in mask are searched for the maximum value.
+  !>        \return     integer(i4) :: imaxloc &mdash; First location of maximum
+
+  !>        \authors Matthias Cuntz, Juliane Mai
+  !>        \date Feb 2014
+  INTERFACE imaxloc
+     MODULE PROCEDURE imaxloc_i4, imaxloc_i8, imaxloc_sp, imaxloc_dp
+  END INTERFACE imaxloc
+
+  ! ------------------------------------------------------------------
+  !>        \brief First location in array of element with the minimum value.
+  !>        \details Fortran intrinsic minloc return arrays with all subsripts
+  !!        corresponding to the minimum value in the array.\n
+  !!        This routine returns only the first entry as scalar integer.
+  !!
+  !!        \b Example
+  !!        \code{.f90}
+  !!        integer(i4) :: imin
+  !!        imin = iminloc(vec, mask=mask)
+  !!        \endcode
+  !!        -> see also example in test directory
+
+  !>        \param[in] "integer(i4/i8)/real(sp/dp)/complex(spc/dpc) :: array(:)" Input array
+  !>        \param[in] "logical :: mask(:)"   If present, only those locations in array corresponding to
+  !!                                          the true values in mask are searched for the maximum value.
+  !>        \return     integer(i4) :: iminloc &mdash; First location of minimum
+
+  !>        \authors Matthias Cuntz, Juliane Mai
+  !>        \date Feb 2014
+  INTERFACE iminloc
+     MODULE PROCEDURE iminloc_i4, iminloc_i8, iminloc_sp, iminloc_dp
+  END INTERFACE iminloc
+
+  ! ------------------------------------------------------------------
+  !>        \brief Evenly spaced numbers in interval.
+  !>        \details Return N evenly spaced numbers over a specified interval [lower,upper].
+  !!        \f[ linspace(lower,upper,N) = lower + arange(0,N-1)/(N-1) * (upper-lower) \f]
+  !>        Output array has kind of lower.
+  !!
+  !!        \b Example
+  !!        \code{.f90}
+  !!         rr = linspace(1.0_dp,11._dp,101)
+  !!        \endcode
+  !!        -> see also example in test directory
+
+  !>        \param[in] "integer(i4/i8)/real(sp/dp) :: lower"   Start of interval.
+  !>        \param[in] "integer(i4/i8)/real(sp/dp) :: upper"   End of interval.
+  !>        \param[in] "integer(i4)                :: nstep"   Number of steps.
+  !>        \return     kind(lower) :: linspace(N)    &mdash; 1D array with evenly spaced numbers between lower and upper.
+
+  !>        \authors Matthias Cuntz
+  !>        \date Jun 2016
+  INTERFACE linspace
+     MODULE PROCEDURE linspace_i4, linspace_i8, linspace_dp, linspace_sp
+  END INTERFACE linspace
+  ! ------------------------------------------------------------------
 
   !>        \brief Comparison of real values.
-
   !>        \details Compares two reals if they are numerically equal or not, i.e.
   !!        equal: \f[ |\frac{a-b}{b}| < \epsilon \f]
   !!
@@ -133,7 +256,6 @@ MODULE mo_utils
   ! ------------------------------------------------------------------
 
   !>        \brief .true. if not IEEE Inf.
-
   !>        \details
   !!        Checks for IEEE Inf, i.e. Infinity.\n
   !!        Wraps to functions of the intrinsic module ieee_arithmetic.
@@ -156,7 +278,6 @@ MODULE mo_utils
   END INTERFACE is_finite
 
   !>        \brief .true. if IEEE NaN.
-
   !>        \details
   !!        Checks for IEEE NaN, i.e. Not-a-Number.\n
   !!        Wraps to functions of the intrinsic module ieee_arithmetic.
@@ -177,7 +298,6 @@ MODULE mo_utils
   END INTERFACE is_nan
 
   !>        \brief .true. if nor IEEE Inf nor IEEE NaN.
-
   !>        \details
   !!        Checks if IEEE Inf and IEEE NaN, i.e. Infinity and Not-a-Number.\n
   !!        Wraps to functions of the intrinsic module ieee_arithmetic.
@@ -200,8 +320,7 @@ MODULE mo_utils
 
   ! ------------------------------------------------------------------
 
-  !>         \brief Find closest values in a monotonic series, returns the indexes.
-
+  !>        \brief Find closest values in a monotonic series, returns the indexes.
   !>        \details
   !!        Given an array x(1:n), and given a value y,
   !!        returns a value j such that y is between
@@ -241,7 +360,6 @@ MODULE mo_utils
   ! ------------------------------------------------------------------
 
   !>        \brief Swap to values or two elements in array.
-
   !>        \details
   !!        Swaps either two entities, i.e. scalars, vectors, matrices,
   !!        or two elements in a vector.
@@ -288,7 +406,6 @@ MODULE mo_utils
   ! ------------------------------------------------------------------
 
   !>        \brief Special IEEE values.
-
   !>        \details
   !!        Returns special IEEE values such as Infinity or Not-a-Number.\n
   !!        Wraps to function ieee_value of the intrinsic module ieee_arithmetic.\n
@@ -355,6 +472,416 @@ MODULE mo_utils
   ! ------------------------------------------------------------------
 
 CONTAINS
+
+  ! ------------------------------------------------------------------
+
+  function arange_i4(lower, upper)
+
+    implicit none
+
+    integer(i4), intent(in)                :: lower
+    integer(i4), intent(in), optional      :: upper
+    integer(i4), dimension(:), allocatable :: arange_i4
+
+    integer(i4) :: istart, istop
+    integer(i4) :: i
+
+    if (present(upper)) then
+      istart = lower
+      istop  = upper
+    else
+      istart = 1_i4
+      istop  = lower
+    endif
+
+    allocate(arange_i4(istop-istart+1_i4))
+
+    forall(i=istart:istop) arange_i4(i-istart+1) = i
+
+  end function arange_i4
+
+  function arange_i8(lower, upper)
+
+    implicit none
+
+    integer(i8), intent(in)                :: lower
+    integer(i8), intent(in), optional      :: upper
+    integer(i8), dimension(:), allocatable :: arange_i8
+
+    integer(i8) :: istart, istop
+    integer(i8) :: i
+
+    if (present(upper)) then
+      istart = lower
+      istop  = upper
+    else
+      istart = 1_i8
+      istop  = lower
+    endif
+
+    allocate(arange_i8(istop-istart+1_i8))
+
+    forall(i=istart:istop) arange_i8(i-istart+1) = i
+
+  end function arange_i8
+
+  function arange_dp(lower, upper)
+
+    implicit none
+
+    real(dp), intent(in)                :: lower
+    real(dp), intent(in), optional      :: upper
+    real(dp), dimension(:), allocatable :: arange_dp
+
+    integer(i8) :: istart, istop
+    integer(i8) :: i
+
+    if (present(upper)) then
+      istart = int(lower,i8)
+      istop  = int(upper,i8)
+    else
+      istart = 1_i8
+      istop  = int(lower,i8)
+    endif
+
+    allocate(arange_dp(istop-istart+1_i8))
+
+    forall(i=istart:istop) arange_dp(i-istart+1) = real(i,dp)
+
+  end function arange_dp
+
+  function arange_sp(lower, upper)
+
+    implicit none
+
+    real(sp), intent(in)                :: lower
+    real(sp), intent(in), optional      :: upper
+    real(sp), dimension(:), allocatable :: arange_sp
+
+    integer(i8) :: istart, istop
+    integer(i8) :: i
+
+    if (present(upper)) then
+      istart = int(lower,i8)
+      istop  = int(upper,i8)
+    else
+      istart = 1_i8
+      istop  = int(lower,i8)
+    endif
+
+    allocate(arange_sp(istop-istart+1_i8))
+
+    forall(i=istart:istop) arange_sp(i-istart+1) = real(i,sp)
+
+  end function arange_sp
+
+  ! ------------------------------------------------------------------
+
+  function cumsum_i4(arr)
+
+    implicit none
+
+    integer(i4), dimension(:), intent(in) :: arr
+    integer(i4), dimension(size(arr,1))   :: cumsum_i4
+
+    integer(i4) :: i
+
+    cumsum_i4(1) = arr(1)
+    do i=2, size(arr)
+       cumsum_i4(i) = cumsum_i4(i-1) + arr(i)
+    end do
+
+  end function cumsum_i4
+
+  function cumsum_i8(arr)
+
+    implicit none
+
+    integer(i8), dimension(:), intent(in) :: arr
+    integer(i8), dimension(size(arr,1))   :: cumsum_i8
+
+    integer(i4) :: i
+
+    cumsum_i8(1) = arr(1)
+    do i=2, size(arr)
+       cumsum_i8(i) = cumsum_i8(i-1) + arr(i)
+    end do
+
+  end function cumsum_i8
+
+  function cumsum_dp(arr)
+
+    implicit none
+
+    real(dp), dimension(:), intent(in) :: arr
+    real(dp), dimension(size(arr,1))   :: cumsum_dp
+
+    integer(i4) :: i
+
+    cumsum_dp(1) = arr(1)
+    do i=2, size(arr)
+       cumsum_dp(i) = cumsum_dp(i-1) + arr(i)
+    end do
+
+  end function cumsum_dp
+
+  function cumsum_dpc(arr)
+
+    implicit none
+
+    complex(dpc), dimension(:), intent(in) :: arr
+    complex(dpc), dimension(size(arr,1))   :: cumsum_dpc
+
+    integer(i4) :: i
+
+    cumsum_dpc(1) = arr(1)
+    do i=2, size(arr)
+       cumsum_dpc(i) = cumsum_dpc(i-1) + arr(i)
+    end do
+
+  end function cumsum_dpc
+
+  function cumsum_sp(arr)
+
+    implicit none
+
+    real(sp), dimension(:), intent(in) :: arr
+    real(sp), dimension(size(arr,1))   :: cumsum_sp
+
+    integer(i4) :: i
+
+    cumsum_sp(1) = arr(1)
+    do i=2, size(arr)
+       cumsum_sp(i) = cumsum_sp(i-1) + arr(i)
+    end do
+
+  end function cumsum_sp
+
+  function cumsum_spc(arr)
+
+    implicit none
+
+    complex(spc), dimension(:), intent(in) :: arr
+    complex(spc), dimension(size(arr,1))   :: cumsum_spc
+
+    integer(i4) :: i
+
+    cumsum_spc(1) = arr(1)
+    do i=2, size(arr)
+       cumsum_spc(i) = cumsum_spc(i-1) + arr(i)
+    end do
+
+  end function cumsum_spc
+
+  ! ------------------------------------------------------------------
+
+  function imaxloc_i4(arr, mask)
+
+    implicit none
+
+    integer(i4), dimension(:), intent(in)           :: arr
+    logical,     dimension(:), intent(in), optional :: mask
+    integer(i4)                                     :: imaxloc_i4
+
+    integer(i4), dimension(1) :: imax
+
+    if (present(mask)) then
+       imax = maxloc(arr, 1, mask)
+    else
+       imax = maxloc(arr, 1)
+    endif
+    imaxloc_i4 = imax(1)
+
+  end function imaxloc_i4
+
+  function imaxloc_i8(arr, mask)
+
+    implicit none
+
+    integer(i8), dimension(:), intent(in)           :: arr
+    logical,     dimension(:), intent(in), optional :: mask
+    integer(i4)                                     :: imaxloc_i8
+
+    integer(i4), dimension(1) :: imax
+
+    if (present(mask)) then
+       imax = maxloc(arr, 1, mask)
+    else
+       imax = maxloc(arr, 1)
+    endif
+    imaxloc_i8 = imax(1)
+
+  end function imaxloc_i8
+
+  function imaxloc_dp(arr, mask)
+
+    implicit none
+
+    real(dp),   dimension(:), intent(in)           :: arr
+    logical,    dimension(:), intent(in), optional :: mask
+    integer(i4)                                    :: imaxloc_dp
+
+    integer(i4), dimension(1) :: imax
+
+    if (present(mask)) then
+       imax = maxloc(arr, 1, mask)
+    else
+       imax = maxloc(arr, 1)
+    endif
+    imaxloc_dp = imax(1)
+
+  end function imaxloc_dp
+
+  function imaxloc_sp(arr, mask)
+
+    implicit none
+
+    real(sp),   dimension(:), intent(in)           :: arr
+    logical,    dimension(:), intent(in), optional :: mask
+    integer(i4)                                    :: imaxloc_sp
+
+    integer(i4), dimension(1) :: imax
+
+    if (present(mask)) then
+       imax = maxloc(arr, 1, mask)
+    else
+       imax = maxloc(arr, 1)
+    endif
+    imaxloc_sp = imax(1)
+
+  end function imaxloc_sp
+
+  ! ------------------------------------------------------------------
+
+  function iminloc_i4(arr, mask)
+
+    implicit none
+
+    integer(i4), dimension(:), intent(in)           :: arr
+    logical,     dimension(:), intent(in), optional :: mask
+    integer(i4)                                     :: iminloc_i4
+
+    integer(i4), dimension(1) :: imin
+
+    if (present(mask)) then
+       imin = minloc(arr, 1, mask)
+    else
+       imin = minloc(arr, 1)
+    endif
+    iminloc_i4 = imin(1)
+
+  end function iminloc_i4
+
+  function iminloc_i8(arr, mask)
+
+    implicit none
+
+    integer(i8), dimension(:), intent(in)           :: arr
+    logical,     dimension(:), intent(in), optional :: mask
+    integer(i4)                                     :: iminloc_i8
+
+    integer(i4), dimension(1) :: imin
+
+    if (present(mask)) then
+       imin = minloc(arr, 1, mask)
+    else
+       imin = minloc(arr, 1)
+    endif
+    iminloc_i8 = imin(1)
+
+  end function iminloc_i8
+
+  function iminloc_dp(arr, mask)
+
+    implicit none
+
+    real(dp),   dimension(:), intent(in)           :: arr
+    logical,    dimension(:), intent(in), optional :: mask
+    integer(i4)                                    :: iminloc_dp
+
+    integer(i4), dimension(1) :: imin
+
+    if (present(mask)) then
+       imin = minloc(arr, 1, mask)
+    else
+       imin = minloc(arr, 1)
+    endif
+    iminloc_dp = imin(1)
+
+  end function iminloc_dp
+
+  function iminloc_sp(arr, mask)
+
+    implicit none
+
+    real(sp),   dimension(:), intent(in)           :: arr
+    logical,    dimension(:), intent(in), optional :: mask
+    integer(i4)                                    :: iminloc_sp
+
+    integer(i4), dimension(1) :: imin
+
+    if (present(mask)) then
+       imin = minloc(arr, 1, mask)
+    else
+       imin = minloc(arr, 1)
+    endif
+    iminloc_sp = imin(1)
+
+  end function iminloc_sp
+
+  ! ------------------------------------------------------------------
+
+  function linspace_i4(lower, upper, nstep)
+
+    implicit none
+
+    integer(i4), intent(in)       :: lower
+    integer(i4), intent(in)       :: upper
+    integer(i4), intent(in)       :: nstep
+    integer(i4), dimension(nstep) :: linspace_i4
+
+    linspace_i4 = lower + nint(arange(0.0_dp,real(nstep-1_i4,dp))/real(nstep-1_i4,dp) * real(upper-lower,dp), i4)
+
+  end function linspace_i4
+
+  function linspace_i8(lower, upper, nstep)
+
+    implicit none
+
+    integer(i8), intent(in)       :: lower
+    integer(i8), intent(in)       :: upper
+    integer(i4), intent(in)       :: nstep
+    integer(i8), dimension(nstep) :: linspace_i8
+
+    linspace_i8 = lower + nint(arange(0.0_dp,real(nstep-1_i4,dp))/real(nstep-1_i4,dp) * real(upper-lower,dp), i8)
+
+  end function linspace_i8
+
+  function linspace_dp(lower, upper, nstep)
+
+    implicit none
+
+    real(dp),    intent(in)       :: lower
+    real(dp),    intent(in)       :: upper
+    integer(i4), intent(in)       :: nstep
+    real(dp),    dimension(nstep) :: linspace_dp
+
+    linspace_dp = lower + arange(0.0_dp,real(nstep-1_i4,dp))/real(nstep-1_i4,dp) * (upper-lower)
+
+  end function linspace_dp
+
+  function linspace_sp(lower, upper, nstep)
+
+    implicit none
+
+    real(sp),    intent(in)       :: lower
+    real(sp),    intent(in)       :: upper
+    integer(i4), intent(in)       :: nstep
+    real(sp),    dimension(nstep) :: linspace_sp
+
+    linspace_sp = lower + arange(0.0_sp,real(nstep-1_i4,sp))/real(nstep-1_i4,sp) * (upper-lower)
+
+  end function linspace_sp
 
   ! ------------------------------------------------------------------
 
