@@ -4,5 +4,5 @@ module load python_env_mpr
 module load NAGfor
 module load netcdf-fortran/4.4.5-NAG-6.2.14-GCC-7.3.0-2.30-1
 module load CMake
-module load pFUnit/4.1.3_nagfor-6.2
+module load pFUnit/4.2.1_nagfor-6.2
 export FC=nagfor

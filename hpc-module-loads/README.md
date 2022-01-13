@@ -47,6 +47,11 @@ All these scripts will load:
   source eve.intel19 # or
   source eve.intel19MPI
   ```
+  - Intel 19.3 compiler (`iomkl/2020b` Toolchain):
+  ```bash
+  source eve.intel193 # or
+  source eve.intel193MPI
+  ```
 - NAG 6.2 compiler:
   ```bash
   source eve.nagfor62
