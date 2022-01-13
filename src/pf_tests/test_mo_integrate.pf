@@ -2,6 +2,7 @@ module test_mo_integrate
 
   use funit
   use mo_kind, only: i4, sp, dp
+  use mo_integrate, only: int_regular
 
   implicit none
 
@@ -13,6 +14,7 @@ contains
   subroutine test_integrate_dp()
     real(dp), dimension(n)  ::  dat
     real(dp)                ::  t=1.0E-5_dp
+    integer(i4)             ::  i
 
     forall(i=1:n) dat(i) = real(i, dp)
 
@@ -24,6 +26,7 @@ contains
   subroutine test_integrate_sp()
     real(sp), dimension(n)  ::  dat
     real(sp)                ::  t=1.0E-5_sp
+    integer(i4)             ::  i
 
     forall(i=1:n) dat(i) = real(i, sp)
 
