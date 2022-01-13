@@ -15,24 +15,6 @@ module test_mo_nelmin
   integer(i4) :: konvge
   integer(i4) :: numres
   real(dp) :: reqmin
-  ! INTERFACE
-  !   FUNCTION rosenbrock(pp)
-  !     USE mo_kind, ONLY: dp
-  !     IMPLICIT NONE
-  !     REAL(dp), DIMENSION(:), INTENT(IN) :: pp
-  !     REAL(dp) :: rosenbrock
-  !   END FUNCTION rosenbrock
-  ! END INTERFACE
-  ! INTERFACE
-  !   FUNCTION rosenbrockxy(pp, xx, yy)
-  !     USE mo_kind, ONLY: dp
-  !     IMPLICIT NONE
-  !     REAL(dp), DIMENSION(:), INTENT(IN) :: pp
-  !     REAL(dp), DIMENSION(:), INTENT(IN) :: xx
-  !     REAL(dp), DIMENSION(:), INTENT(IN) :: yy
-  !     REAL(dp) :: rosenbrockxy
-  !   END FUNCTION rosenbrockxy
-  ! END INTERFACE
   real(dp) :: start(n)
   real(dp) :: step(n)
   real(dp) :: xmin(n)
@@ -98,25 +80,12 @@ contains
 
   function rosenbrockxy(p, xx, yy)
 
-      use mo_kind,   only: dp
-
-      implicit none
-
       real(dp), dimension(:), intent(in) :: p
       real(dp), dimension(:), intent(in) :: xx
       real(dp), dimension(:), intent(in) :: yy
       real(dp) :: rosenbrockxy
 
-      real(dp) :: fx
-      real(dp) :: fx1
-      real(dp) :: fx2
-
-      fx1 = p(2) - p(1) * p(1)
-      fx2 = xx(1) - p(1)
-
-      fx = yy(1) * fx1 * fx1 + fx2 * fx2
-
-      rosenbrockxy = fx
+      rosenbrockxy = rosenbrock(p)
 
     end function rosenbrockxy
 
