@@ -32,7 +32,7 @@ MODULE mo_utils
 
   ! Copyright 2014 Matthias Cuntz, Juliane Mai
 
-  USE mo_kind, only : sp, dp, i1, i4, i8
+  USE mo_kind, only : sp, dp, i1, i4, i8, spc, dpc
   USE mo_string_utils, only : toupper
 
   IMPLICIT NONE
@@ -41,6 +41,7 @@ MODULE mo_utils
   PUBLIC :: cumsum        ! Cumulative sum
   PUBLIC :: imaxloc       ! maxloc(arr)(1)
   PUBLIC :: iminloc       ! maxloc(arr)(1)
+  PUBLIC :: linspace      ! numpy like linspace
   PUBLIC :: equal         ! a == b, a .eq. b
   PUBLIC :: greaterequal  ! a >= b, a .ge. b
   PUBLIC :: lesserequal   ! a <= b, a .le. b
@@ -168,9 +169,30 @@ MODULE mo_utils
   END INTERFACE iminloc
 
   ! ------------------------------------------------------------------
+  !>        \brief Evenly spaced numbers in interval.
+  !>        \details Return N evenly spaced numbers over a specified interval [lower,upper].
+  !!        \f[ linspace(lower,upper,N) = lower + arange(0,N-1)/(N-1) * (upper-lower) \f]
+  !>        Output array has kind of lower.
+  !!
+  !!        \b Example
+  !!        \code{.f90}
+  !!         rr = linspace(1.0_dp,11._dp,101)
+  !!        \endcode
+  !!        -> see also example in test directory
+
+  !>        \param[in] "integer(i4/i8)/real(sp/dp) :: lower"   Start of interval.
+  !>        \param[in] "integer(i4/i8)/real(sp/dp) :: upper"   End of interval.
+  !>        \param[in] "integer(i4)                :: nstep"   Number of steps.
+  !>        \return     kind(lower) :: linspace(N)    &mdash; 1D array with evenly spaced numbers between lower and upper.
+
+  !>        \authors Matthias Cuntz
+  !>        \date Jun 2016
+  INTERFACE linspace
+     MODULE PROCEDURE linspace_i4, linspace_i8, linspace_dp, linspace_sp
+  END INTERFACE linspace
+  ! ------------------------------------------------------------------
 
   !>        \brief Comparison of real values.
-
   !>        \details Compares two reals if they are numerically equal or not, i.e.
   !!        equal: \f[ |\frac{a-b}{b}| < \epsilon \f]
   !!
@@ -234,7 +256,6 @@ MODULE mo_utils
   ! ------------------------------------------------------------------
 
   !>        \brief .true. if not IEEE Inf.
-
   !>        \details
   !!        Checks for IEEE Inf, i.e. Infinity.\n
   !!        Wraps to functions of the intrinsic module ieee_arithmetic.
@@ -257,7 +278,6 @@ MODULE mo_utils
   END INTERFACE is_finite
 
   !>        \brief .true. if IEEE NaN.
-
   !>        \details
   !!        Checks for IEEE NaN, i.e. Not-a-Number.\n
   !!        Wraps to functions of the intrinsic module ieee_arithmetic.
@@ -278,7 +298,6 @@ MODULE mo_utils
   END INTERFACE is_nan
 
   !>        \brief .true. if nor IEEE Inf nor IEEE NaN.
-
   !>        \details
   !!        Checks if IEEE Inf and IEEE NaN, i.e. Infinity and Not-a-Number.\n
   !!        Wraps to functions of the intrinsic module ieee_arithmetic.
@@ -301,8 +320,7 @@ MODULE mo_utils
 
   ! ------------------------------------------------------------------
 
-  !>         \brief Find closest values in a monotonic series, returns the indexes.
-
+  !>        \brief Find closest values in a monotonic series, returns the indexes.
   !>        \details
   !!        Given an array x(1:n), and given a value y,
   !!        returns a value j such that y is between
@@ -342,7 +360,6 @@ MODULE mo_utils
   ! ------------------------------------------------------------------
 
   !>        \brief Swap to values or two elements in array.
-
   !>        \details
   !!        Swaps either two entities, i.e. scalars, vectors, matrices,
   !!        or two elements in a vector.
@@ -389,7 +406,6 @@ MODULE mo_utils
   ! ------------------------------------------------------------------
 
   !>        \brief Special IEEE values.
-
   !>        \details
   !!        Returns special IEEE values such as Infinity or Not-a-Number.\n
   !!        Wraps to function ieee_value of the intrinsic module ieee_arithmetic.\n
@@ -812,6 +828,60 @@ CONTAINS
     iminloc_sp = imin(1)
 
   end function iminloc_sp
+
+  ! ------------------------------------------------------------------
+
+  function linspace_i4(lower, upper, nstep)
+
+    implicit none
+
+    integer(i4), intent(in)       :: lower
+    integer(i4), intent(in)       :: upper
+    integer(i4), intent(in)       :: nstep
+    integer(i4), dimension(nstep) :: linspace_i4
+
+    linspace_i4 = lower + nint(arange(0.0_dp,real(nstep-1_i4,dp))/real(nstep-1_i4,dp) * real(upper-lower,dp), i4)
+
+  end function linspace_i4
+
+  function linspace_i8(lower, upper, nstep)
+
+    implicit none
+
+    integer(i8), intent(in)       :: lower
+    integer(i8), intent(in)       :: upper
+    integer(i4), intent(in)       :: nstep
+    integer(i8), dimension(nstep) :: linspace_i8
+
+    linspace_i8 = lower + nint(arange(0.0_dp,real(nstep-1_i4,dp))/real(nstep-1_i4,dp) * real(upper-lower,dp), i8)
+
+  end function linspace_i8
+
+  function linspace_dp(lower, upper, nstep)
+
+    implicit none
+
+    real(dp),    intent(in)       :: lower
+    real(dp),    intent(in)       :: upper
+    integer(i4), intent(in)       :: nstep
+    real(dp),    dimension(nstep) :: linspace_dp
+
+    linspace_dp = lower + arange(0.0_dp,real(nstep-1_i4,dp))/real(nstep-1_i4,dp) * (upper-lower)
+
+  end function linspace_dp
+
+  function linspace_sp(lower, upper, nstep)
+
+    implicit none
+
+    real(sp),    intent(in)       :: lower
+    real(sp),    intent(in)       :: upper
+    integer(i4), intent(in)       :: nstep
+    real(sp),    dimension(nstep) :: linspace_sp
+
+    linspace_sp = lower + arange(0.0_sp,real(nstep-1_i4,sp))/real(nstep-1_i4,sp) * (upper-lower)
+
+  end function linspace_sp
 
   ! ------------------------------------------------------------------
 
