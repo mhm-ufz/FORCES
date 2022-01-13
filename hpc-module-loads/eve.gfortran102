@@ -4,5 +4,5 @@ module load python_env_mpr
 module load foss/2020b
 module load netCDF-Fortran
 module load CMake
-module load pFUnit/4.2.0_foss2020b
+module load pFUnit/4.2.2_foss2020b
 export FC=gfortran

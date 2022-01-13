@@ -4,5 +4,5 @@ module load python_env_mpr
 module load foss/2018b
 module load netCDF-Fortran
 module load CMake
-module load pFUnit/4.0.0_foss_2018b
+module load pFUnit/4.2.1_foss2018b
 export FC=mpifort
