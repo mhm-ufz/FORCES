@@ -1,9 +1,8 @@
 !> \file mo_nml.f90
+!> \copydoc mo_nml
 
 !> \brief Deal with namelist files.
-
 !> \details This module provides routines to open, close and position namelist files.
-
 !> \authors Matthias Cuntz
 !> \date Jan 2011
 
@@ -65,7 +64,7 @@ MODULE mo_nml
   !> Error occured during read of namelist file
   INTEGER(i4), PARAMETER :: READ_ERROR = 3
 
-  ! default namelist unit
+  !> default namelist unit
   INTEGER, SAVE :: nunitnml = -1
 
   ! ------------------------------------------------------------------
@@ -74,51 +73,31 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         open_nml
+  !>    \brief Open a namelist file.
 
-  !     PURPOSE
-  !>        \brief Open a namelist file.
+  !>    \details Open a namelist file.
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    call open_nml('namelist.txt',nnml)
+  !!    \endcode
+  !!    See also example in test directory
 
-  !     CALLING SEQUENCE
-  !         call open_nml(file, unit, quiet=quiet)
-
-  !     INTENT(IN)
   !>        \param[in] "character(len=*) :: file"   namelist filename
   !>        \param[in] "integer          :: unit"   namelist unit
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
   !>       \param[in] "logical, optional :: quiet"   Be verbose or not (default: .true.)\n
-  !>                                                            .true.:  no messages\n
-  !>                                                            .false.: write out messages
+  !!                                                            .true.:  no messages\n
+  !!                                                            .false.: write out messages
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         call open_nml('namelist.txt',nnml)
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Cuntz - modified from Echam5, (C) MPI-MET, Hamburg, Germany
-  !>        \date Dec 2011
-  !         Modified, Matthias Cuntz, Jan 2013 - quiet=.true. default
-  !         Modified, Luis Samaniego, Nov 2013 comparison statements == -> .eq., etc
+  !>    \author Matthias Cuntz
+  !>    \date Dec 2011
+  !!        - modified from Echam5, (C) MPI-MET, Hamburg, Germany
+  !>    \date Jan 2013
+  !!        - quiet=.true. default
+  !>    \author Luis Samaniego
+  !>    \date Nov 2013
+  !!        - comparison statements == -> .eq., etc
 
   SUBROUTINE open_nml(file, unit, quiet)
 
@@ -145,51 +124,30 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         close_nml
+  !>    \brief Close a namelist file.
 
-  !     PURPOSE
-  !>        \brief Close a namelist file.
+  !>    \details Close a namelist file.
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    call close_nml()
+  !!    ! or
+  !!    call close_nml(unml)
+  !!    \endcode
+  !!    See also example in test directory
 
-  !     CALLING SEQUENCE
-  !         call close_nml(unit=unit)
+  !>    \param[in] "integer, optional :: unit"   namelist unit
 
-  !     INTENT(IN)
-  !         None
+  !>    \note
+  !!    open_nml remembers the namelist unit in the public, save variable nunitnml.\n
+  !!    close_nml uses nunitnml if unit is not given.
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "integer, optional :: unit"   namelist unit
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         open_nml remembers the namelist unit in the public, save variable nunitnml.
-  !         close_nml uses nunitnml if unit is not given.
-
-  !     EXAMPLE
-  !         call close_nml()
-  !         or
-  !         call close_nml(unml)
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Cuntz - modified from Echam5, (C) MPI-MET, Hamburg, Germany
-  !>        \date Dec 2011
-  !         Modified, Matthias Cuntz, Jan 2013 - unit
-
+  !>    \author Matthias Cuntz
+  !>    \date Dec 2011
+  !!        - modified from Echam5, (C) MPI-MET, Hamburg, Germany
+  !>    \date Jan 2013
+  !!        - unit
   SUBROUTINE close_nml(unit)
 
     IMPLICIT NONE
@@ -213,60 +171,35 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         position_nml
+  !>    \brief Position a namlist file.
 
-  !     PURPOSE
-  !>        \brief Position a namlist file.
+  !>    \details Position namelist file pointer for reading a new namelist next.\n
+  !!    It positions the namelist file at the correct place for reading\n
+  !!    namelist /name/ (case independent).
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    call position_nml('myname',nnml)
+  !!    \endcode
 
-  !>        \details Position namelist file pointer for reading a new namelist next.\n
-  !>        It positions the namelist file at the correct place for reading\n
-  !>        namelist /name/ (case independent).
+  !>    \param[in] "character(len=*) :: name"     namelist name (case independent)
+  !>    \param[in] "integer, optional :: unit"    namelist unit (default: nunitnml)
+  !>    \param[in] "logical, optional :: first"   start search at beginning,
+  !!                                              i.e. rewind the namelist first (default: .true.)\n
+  !!                                              .true.:  rewind\n
+  !!                                              .false.: continue search from current file pointer
+  !>    \param[out] "integer(i4), optional :: status"   Set on output to either of\n
+  !!                                                    POSITIONED (0)   - correct\n
+  !!                                                    MISSING (1)      - name not found\n
+  !!                                                    LENGTH_ERROR (2) - namelist length longer then 256 characters\n
+  !!                                                    READ_ERROR (3)   - error while reading namelist file
 
-  !     CALLING SEQUENCE
-  !         call position_nml(name, unit=unit, status=status, first=first)
-
-  !     INTENT(IN)
-  !>        \param[in] "character(len=*) :: name"     namelist name (case independent)
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "integer, optional :: unit"    namelist unit (default: nunitnml)
-  !>        \param[in] "logical, optional :: first"   start search at beginning,
-  !>                                                  i.e. rewind the namelist first (default: .true.)\n
-  !>                                                  .true.:  rewind\n
-  !>                                                  .false.: continue search from current file pointer
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !>        \param[out] "integer(i4), optional :: status"   Set on output to either of\n
-  !>                                                        POSITIONED (0)   - correct\n
-  !>                                                        MISSING (1)      - name not found\n
-  !>                                                        LENGTH_ERROR (2) - namelist length longer then 256 characters\n
-  !>                                                        READ_ERROR (3)   - error while reading namelist file
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         call position_nml('myname',nnml)
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Cuntz - modified from Echam5, (C) MPI-MET, Hamburg, Germany
-  !>        \date Dec 2011
-  !         Modified, Matthias Cuntz, Jan 2013 - swap first and status in call list
-
+  !>    \author Matthias Cuntz
+  !>    \date Dec 2011
+  !!        - modified from Echam5, (C) MPI-MET, Hamburg, Germany
+  !>    \date Jan 2013
+  !!        - swap first and status in call list
   SUBROUTINE position_nml(name, unit, status, first)
 
     IMPLICIT NONE

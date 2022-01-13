@@ -1,3 +1,10 @@
+!> \file mo_mad.f90
+!> \copydoc mo_mad
+
+!> \brief Median absolute deviation test.
+!> \details This module provides a median absolute deviation (MAD) test.
+!> \authors Mathias Zink
+!> \date Aug 2012
 MODULE mo_mad
 
   ! This module provides a median absolute deviation (MAD) test
@@ -33,150 +40,81 @@ MODULE mo_mad
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         mad
+  !>       \brief Mean absolute deviation test.
 
-  !     PURPOSE
-  !         Mean absolute deviation test with optional z-value (default: 7) and mask,
-  !         and 3 optional variants: 0. raw values (default), 1. 1st derivative, 2. 2nd derivative
-  !         Returns mask with true everywhere except where <(median-MAD*z/0.6745) or >(md+MAD*z/0.6745)
-  !
-  !         If an optinal mask is given, the mad test is only performed on those locations that correspond
-  !         to true values in the mask.
-  !
-  !         If tout is given mad returns the array with the enteries exceeding the treshold
-  !         being set to the threshold. With this setting arrays are accepted.
-  !         tout accepts: u. upper values are cut at the threshold,
-  !         l. lower values are cut at the threshold, b. upper and lower values are cut at the threshold
-  !         With this setting only the variant 0 is available (no argument implemented).
+  !>       \details Mean absolute deviation test with optional z-value (default: 7) and mask,
+  !!       and 3 optional variants:
+  !!
+  !!         - 0: raw values (default)
+  !!         - 1: 1st derivative
+  !!         - 2: 2nd derivative
+  !!
+  !!       Returns mask with true everywhere except where `0<(median-MAD*z/0.6745)` or `>(md+MAD*z/0.6745)` \n
+  !!
+  !!       If an optional mask is given, the mad test is only performed on those locations that correspond
+  !!       to true values in the mask.\n
+  !!
+  !!       If tout is given mad returns the array with the enteries exceeding the treshold
+  !!       being set to the threshold. With this setting arrays are accepted. \n
+  !!       tout accepts:
+  !!
+  !!         - u: upper values are cut at the threshold
+  !!         - l: lower values are cut at the threshold
+  !!         - b: upper and lower values are cut at the threshold
+  !!
+  !!       With this setting only the variant 0 is available (no argument implemented).
+  !!
+  !!       \b Example
+  !!
+  !!       \code{.f90}
+  !!             vec = (/ -0.25,0.68,0.94,1.15,2.26,2.35,2.37,2.40,2.47,2.54,2.62, &
+  !!                       2.64,2.90,2.92,2.92,2.93,3.21,3.26,3.30,3.59,3.68,4.30, &
+  !!                       4.64,5.34,5.42,8.01 /)
+  !!             mask(:) = true
+  !!             ! Sets last entry false
+  !!             mask = mask .and. mad(vec, z=4., deriv=0, mask=mask)
+  !!       \endcode
+  !!
+  !!       See also example in test directory.
 
-  !     CALLING SEQUENCE
-  !         out = mad(vec, z=z, mask=mask, deriv=deriv)
-  !
-  !         out = mad(arr, z=z, mask=mask, tout=tout)
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: vec(:)     1D-array with input numbers
-  !
-  !         real(sp/dp) :: arr        nD-array with input numbers
+  !>       \param[in]  "real(sp/dp) :: vec(:)"               1D-array with input numbers
+  !>       \param[in]  "real(sp/dp) :: arr"                  nD-array with input numbers
+  !>       \param[in]  "real(sp/dp), optional :: z"          Input is allowed to deviate maximum z standard deviations 
+  !!                                                         from the median (default: 7).
+  !>       \param[in]  "integer(i4), optional :: deriv"      0: Act on raw input (default: 0)\n
+  !!                                                         1: Use first derivatives\n
+  !!                                                         2: Use 2nd derivatives
+  !>       \param[in]  "logical, optional     :: mask(:)"    1D-array of logical values with size(vec).
+  !!                                                         If present, only those locations in vec corresponding to the true
+  !!                                                         values in mask are used. nD-array if tout is used.
+  !>       \param[in]  "character(1):: tout"                 u: Trim only values above mad\n
+  !!                                                         l: Trim only values below mad\n
+  !!                                                          b: Trim values below and above mad
 
-  !     INTENT(INOUT)
-  !         None
+  !>       \retval "logical or real(sp/dp), dimension(size(arr)) :: out"        mask with true everywhere except where input 
+  !!                                                                            deviates more than z standard deviations from
+  !!                                                                            median. If tout five, threshold value is returned.
 
-  !     INTENT(OUT)
-  !         logical :: out            mask with true everywhere except where input deviates more
-  !                                   than z standard deviations from median
-  !
-  !         arr     :: out            Array with values exceeding the threshold being trimmed.
+  !>     \note
+  !!           1st derivative is
+  !!
+  !!               d = datin[1:n]-datin[0:n-1]
+  !!
+  !!           because mean of left and right would give 0 for spikes.
+  !!
+  !>        \author Matthias Cuntz
+  !>        \date Mar 2011
 
-  !     INTENT(IN), OPTIONAL
-  !         real(sp/dp) :: z          Input is allowed to deviate maximum z standard deviations from the median (default: 7)
-  !         integer(i4) :: deriv      0: Act on raw input (default: 0)
-  !                                   1: Use first derivatives
-  !                                   2: Use 2nd derivatives
-  !         logical     :: mask(:)    1D-array of logical values with size(vec).
-  !                                   If present, only those locations in vec corresponding to the true values in mask are used.
-  !                                   nD-array if tout is used.
-  !         character(1):: tout       u: Trim only values above mad
-  !                                   l: Trim only values below mad
-  !                                   l: Trim values below and above mad
+  !>        \author Mathhias Kelbling
+  !>        \date May 2018
+  !!          - mad_val added by Matthias Kelbling, May 2018
 
-  !     INTENT(INOUT), OPTIONAL
-  !         None
+  ! ------------------------------------------------------------------
 
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         1st derivative is
-  !             d = datin[1:n]-datin[0:n-1]
-  !         because mean of left and right would give 0 for spikes.
-
-  !     EXAMPLE
-  !         vec = (/ -0.25,0.68,0.94,1.15,2.26,2.35,2.37,2.40,2.47,2.54,2.62, &
-  !                   2.64,2.90,2.92,2.92,2.93,3.21,3.26,3.30,3.59,3.68,4.30, &
-  !                   4.64,5.34,5.42,8.01 /)
-  !         mask(:) = true
-  !         ! Sets last entry false
-  !         mask = mask .and. mad(vec, z=4., deriv=0, mask=mask)
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, Mar 2011
-  !         mad_val added, Matthias Kelbling, May 2018
   INTERFACE mad
      MODULE PROCEDURE mad_sp, mad_dp, mad_val_dp, mad_val_sp
   END INTERFACE mad
-
-  ! ------------------------------------------------------------------
-
-  ! ------------------------------------------------------------------
-
-  !     NAME
-  !         mad_val
-
-  !     PURPOSE
-  !         Mean absolute deviation test with optional z-value (default: 7) and mask,
-  !         and 3 optional variants: 0. raw values (default), 1. 1st derivative, 2. 2nd derivative
-  !         Returns mask with true everywhere except where <(median-MAD*z/0.6745) or >(md+MAD*z/0.6745)
-  !
-  !         If an optinal mask is given, the mad test is only performed on those locations that correspond
-  !         to true values in the mask.
-
-  !     CALLING SEQUENCE
-  !         out = mad(vec, z=z, mask=mask, deriv=deriv, mval = mval)
-
-  !     INTENT(IN)
-  !         real(sp/dp) :: vec(:)     1D-array with input numbers
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         logical :: out            mask with true everywhere except where input deviates more
-  !                                   than z standard deviations from median
-
-  !     INTENT(IN), OPTIONAL
-  !         real(sp/dp) :: z          Input is allowed to deviate maximum z standard deviations from the median (default: 7)
-  !         integer(i4) :: deriv      0: Act on raw input (default: 0)
-  !                                   1: Use first derivatives
-  !                                   2: Use 2nd derivatives
-  !         logical     :: mask(:)    1D-array of logical values with size(vec).
-  !                                   If present, only those locations in vec corresponding to the true values in mask are used.
-  !         real(sp/dp) :: mval       Mask-Value. A value to mask for calculation.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         1st derivative is
-  !             d = datin[1:n]-datin[0:n-1]
-  !         because mean of left and right would give 0 for spikes.
-
-  !     EXAMPLE
-  !         vec = (/ -0.25,0.68,0.94,1.15,2.26,2.35,2.37,2.40,2.47,2.54,2.62, &
-  !                   2.64,2.90,2.92,2.92,2.93,3.21,3.26,3.30,3.59,3.68,4.30, &
-  !                   4.64,5.34,5.42,8.01 /)
-  !         mask(:) = true
-  !         ! Sets last entry false
-  !         mask = mask .and. mad(vec, z=4., deriv=0, mask=mask)
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         Written,  Matthias Kelbling, Dec 2017
-  !                   Using the mad-code from Matthias Cuntz
-
-  ! ------------------------------------------------------------------
-
 
   PRIVATE
 

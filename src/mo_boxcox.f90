@@ -1,3 +1,12 @@
+!> \file mo_boxcox.f90
+!> \copydoc mo_boxcox
+
+!> \brief Box-Cox transformation of data.
+!> \details This module contains routines to calculate the Box-Cox transformation
+!!          as well as estimating the best exponent for the Box-Cox transformation
+!> \author Mathias Cuntz
+!> \date Aug 2011
+
 MODULE mo_boxcox
 
   ! This module contains routines to calculate the Box-Cox transformation
@@ -39,119 +48,90 @@ MODULE mo_boxcox
 
   IMPLICIT NONE
 
-  PUBLIC :: boxcox     ! Calculate Box-Cox power transformed values given the original values and the exponent lambda
-  PUBLIC :: invboxcox  ! Calculate the inverse Box-Cox given the transformed values and the exponent lambda
+  PUBLIC :: boxcox
+  PUBLIC :: invboxcox
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         boxcox
+  !>        \brief Transform a positive dataset with a Box-Cox power transformation.
 
-  !     PURPOSE
-  !         Transform a positive dataset with a Box-Cox power transformation.
-  !             boxcox(x) = (x**lambda - 1)/lambda    if lambda <> 0
-  !                         ln(x)                     if lambda = 0
-  !
-  !         If an optinal mask is given, then the Box-Cox transformation is only performed on
-  !         those locations that correspond to true values in the mask.
-  !         x can be single or double precision. The result will have the same numerical precision.
+  !>        \details Calculate Box-Cox power transformed values given the original values and the exponent lambda.\n
+  !!          \f[ w_\text{Box-Cox}(x) =
+  !!                          \begin{cases}
+  !!                           \frac{x^\lambda - 1}{\lambda}&\text{, if }\lambda \neq 0 \\
+  !!                           \ln{x}&\text{, if }\lambda = 0
+  !!                          \end{cases} \f]
+  !!         If an optional mask is given, then the Box-Cox transformation is only performed on
+  !!         those locations that correspond to true values in the mask.\n
+  !!         \f$x\f$ can be single or double precision. The result will have the same numerical precision.
+  !!         \f$x\f$ can be scalar or vector.\n
+  !!
+  !!         \b Example
+  !!
+  !!         \code{.f90}
+  !!          out = boxcox(x, lmbda, mask=mask)
+  !!         \endcode
+  !!
+  !!         See also test folder for a detailed example, "pf_tests/test_mo_boxcox".
 
-  !     CALLING SEQUENCE
-  !         out = boxcox(x, lmbda, mask=mask)
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: x(:)       1D-array with input numbers (>0.)
-  !         real(sp/dp) :: lmbda      Exponent power of Box-Cox transform (>= 0.)
+  !>        \param[in]  "real(sp/dp) :: x"           Scalar/1D-array with input numbers (`>0.`)
+  !>        \param[in]  "real(sp/dp) :: lmbda"       Exponent power of Box-Cox transform (`>= 0.`)
+  !>        \param[in]  "logical, optional :: mask"  Scalar/1D-array of logical values with `size(x)`.
+  !!                                                 If present, only those locations in vec corresponding 
+  !!                                                 to the true values in mask are used.
+  !>        \retval "real(sp/dp) :: boxcox"     Power transformed values (at `mask=.true.`)
 
-  !     INTENT(INOUT)
-  !         None
+  !>     \note Input values must be positive, i.e. \f$x > 0\f$.
 
-  !     INTENT(OUT)
-  !         real(sp/dp) :: boxcox     Power transformed values (at mask=.True.)
-
-  !     INTENT(IN), OPTIONAL
-  !         logical :: mask(:)        1D-array of logical values with size(x).
-  !                                   If present, only those locations in vec corresponding to the true values in mask are used.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         Input values must be positive, i.e. > 0.
-
-  !     EXAMPLE
-  !         lmbda    = get_boxcox(data, mask=(data>0.))
-  !         new_data = boxcox(data, lmbda, mask=(data>0.))
-  !         idata    = invboxcox(new_data, lmbda, mask=(data>0.))
-  !         -> see also example in test directory
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, March 2011
-  !            - Modified Python code of Travis Oliphant (2002): boxcox, llf_boxcox, get_boxcox
-  !            - Modified numerical recipes: brent, mnbrak, swap, shft
+  !>     \author Matthias Cuntz
+  !>     \date March 2011
+  !!            - Modified Python code of Travis Oliphant (2002): boxcox, llf_boxcox, get_boxcox
+  !!            - Modified numerical recipes: brent, mnbrak, swap, shft
+  !>     \date Dec 2021
+  !!            - Updated doxygen docs
   INTERFACE boxcox
     MODULE PROCEDURE boxcox_sp, boxcox_dp
   END INTERFACE boxcox
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         invboxcox
+  !>        \brief Back-transformation of Box-Cox-transformed data.
 
-  !     PURPOSE
-  !         Back-transformation of Box-Cox-transformed data.
-  !             boxcox(x)    = (x**lambda - 1)/lambda        if lambda <> 0
-  !                            ln(x)                         if lambda = 0
-  !             invboxcox(y) = (lambda*y + 1)**(1/lambda)    if lambda <> 0
-  !                            exp(y)                        if lambda = 0
-  !
-  !         If an optinal mask is given, then the inverse Box-Cox transformation is only performed on
-  !         those locations that correspond to true values in the mask.
-  !         x can be single or double precision. The result will have the same numerical precision.
-  !         x can be scalar or vector
+  !>        \details Calculate the inverse Box-Cox given the transformed values and the exponent lambda.
+  !!          \f[ w_\text{Box-Cox}^{-1}(y) =
+  !!                          \begin{cases}
+  !!                           (\lambda y + 1)^{\frac{1}{\lambda}}&\text{, if }\lambda \neq 0 \\
+  !!                           e^{y}&\text{, if }\lambda = 0
+  !!                          \end{cases} \f]
+  !!         If an optional mask is given, then the inverse Box-Cox transformation is only performed on
+  !!         those locations that correspond to true values in the mask.\n
+  !!         \f$y\f$ can be single or double precision. The result will have the same numerical precision.\n
+  !!         \f$y\f$ can be scalar or vector.
+  !!
+  !!         \b Example
+  !!
+  !!         \code{.f90}
+  !!         out = invboxcox(x, lmbda, mask=mask)
+  !!         \endcode
+  !!
+  !!         See also test folder for a detailed example, "pf_tests/test_mo_boxcox".
 
-  !     CALLING SEQUENCE
-  !         out = invboxcox(x, lmbda)                   ! scalar x
-  !         out = invboxcox(x, lmbda, mask=mask)        ! vector x
+  !>        \param[in]  "real(sp/dp) :: y"              Scalar/1D-array with input numbers (`>0.`)
+  !>        \param[in]  "real(sp/dp) :: lmbda"          Exponent power of Box-Cox transform (`>= 0.`)
+  !>        \param[in]  "optional, logical :: mask"     1D-array of logical values with `size(x)`.
+  !!                                                    If present, only those locations in vec corresponding to the 
+  !!                                                    true values in mask are used.
+  !!                                                    Only applicable if `x` is a 1D-array.
+  !>        \retval    "real(sp/dp) :: invboxcox"       Back transformed values (at `mask=.true.`)
 
-  !     INTENT(IN)
-  !         real(sp/dp) :: x / x(:)   scalar/1D-array with input numbers (>0.)
-  !         real(sp/dp) :: lmbda      Exponent power of Box-Cox transform (>= 0.)
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         real(sp/dp) :: boxcox     Back transformed values (at mask=.True.)
-
-  !     INTENT(IN), OPTIONAL
-  !         logical :: mask(:)        1D-array of logical values with size(x).
-  !                                   If present, only those locations in vec corresponding to the true values in mask are used.
-  !                                   Only applicable if x is a 1D-array
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         lmbda    = get_boxcox(data, mask=(data>0.))
-  !         new_data = boxcox(data, lmbda, mask=(data>0.))
-  !         idata    = invboxcox(new_data, lmbda, mask=(data>0.))
-  !         -> see also example in test directory
-
-  !     HISTORY
-  !         Written,  Matthias Cuntz, March 2011
-  !            - Modified MC: Python code of Travis Oliphant (2002): boxcox, llf_boxcox, get_boxcox
-  !            - Modified MC: numerical recipes: brent, mnbrak, swap, shft
-  !            - Modified JM: scalar version of invboxcox
+  !>     \author Matthias Cuntz
+  !>     \author Juliane Mai
+  !>     \author Sebastian Müller
+  !>     \date March 2011
+  !!            - Modified MC: Python code of Travis Oliphant (2002): boxcox, llf_boxcox, get_boxcox
+  !!            - Modified MC: numerical recipes: brent, mnbrak, swap, shft
+  !!            - Modified JM: scalar version of invboxcox
   INTERFACE invboxcox
      MODULE PROCEDURE invboxcox_0d_sp, invboxcox_0d_dp, invboxcox_1d_sp, invboxcox_1d_dp
   END INTERFACE invboxcox

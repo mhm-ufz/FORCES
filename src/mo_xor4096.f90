@@ -1,3 +1,10 @@
+!> \file mo_xor4096.f90
+!> \copydoc mo_xor4096
+
+!> \brief XOR4096-based random number generator
+!> \details This module provides random number generator based on xor4096 algorithm.
+!> \authors Juliane Mai
+!> \date Nov 2011
 module mo_xor4096
 
   ! -----------------------------------------------------------------------------
@@ -47,59 +54,39 @@ module mo_xor4096
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         get_timeseed
+  !>    \brief Generate seed for xor4096
 
-  !     PURPOSE
-  !         Function which returns a scalar or a vector of integers
-  !         dependent on time.
-  !         This returned values can be used a seed for initializing
-  !         random number generators like xor4096.
-
-  !         If the return variable is a vector, only the first entry
-  !         depends on time while the others are just the entry before
-  !         increased by 1000.
-
-  !     CALLING SEQUENCE
-  !         call get_timeseed(seed)
-
-  !     INTENT(IN)
-  !         None
-
-  !     INTENT(INOUT)
-  !         integer(i4/i8)                     :: seed
-  !           OR
-  !         integer(i4/i8), dimension(:)       :: seed
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         integer(i4) :: seed
-  !         call get_timeseed(seed)
-  !         --> e.g. seed = 327_i4
-
-  !         integer(i8), dimension(3) :: seed
-  !         call get_timeseed(seed)
-  !         --> e.g. seed = (/ 327_i8, 1327_i8, 2327_i8 /)
-
-  !     LITERATURE
+  !>    \details
+  !!    Function which returns a scalar or a vector of integers
+  !!    dependent on time.
+  !!    This returned values can be used a seed for initializing
+  !!    random number generators like xor4096.\n
+  !!
+  !!    If the return variable is a vector, only the first entry
+  !!    depends on time while the others are just the entry before
+  !!    increased by 1000.
+  !!
+  !!    \b Example
+  !!
+  !!    Results in a scalar seed
+  !!    \code{.f90}
+  !!    integer(i4) :: seed
+  !!    call get_timeseed(seed)
+  !!    \endcode
+  !!
+  !!    Results in a array of seeds
+  !!    \code{.f90}
+  !!    integer(i8), dimension(3) :: seed
+  !!    call get_timeseed(seed)
+  !!    \endcode
+  !!    e.g. `seed = (/ 327_i8, 1327_i8, 2327_i8 /)`
 
 
-  !     HISTORY
-  !         Written,  Juliane Mai, Aug 2012
+  !>    \param[in]  "integer(i4/i8), dimension(:)        :: seed" Seed to be generated
+
+
+  !>    \author  Juliane Mai
+  !>    \date Aug 2012
 
   INTERFACE get_timeseed
     MODULE PROCEDURE   get_timeseed_i4_0d, get_timeseed_i4_1d, &
@@ -108,126 +95,126 @@ module mo_xor4096
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         xor4096
+  !>    \brief Uniform XOR4096-based RNG
 
-  !     PURPOSE
-  !         Generates a uniform distributed random number based on xor4096 algorithm proposed by
-  !         Brent et.al (2006).
-  !         ****************************************************************************************
-  !         The original version of this source code (without multiple streams and
-  !         optional arguments) is under GNU General Public Licence
-  !              xorgens.c
-  !         Copyright (C) 2004 R. P. Brent.
-  !         This program is free software; you can redistribute it and/or
-  !         modify it under the terms of the GNU General Public License,
-  !         version 2, June 1991, as published by the Free Software Foundation.
-  !         For details see http://www.gnu.org/copyleft/gpl.html .
+  !>    \details
+  !!    Generates a uniform distributed random number based on xor4096 algorithm proposed by
+  !!    Brent et.al (2006).\n
+  !!    ****************************************************************************************
+  !!    The original version of this source code (without multiple streams and
+  !!    optional arguments) is under GNU General Public Licence
+  !!         xorgens.c
+  !!    Copyright (C) 2004 R. P. Brent.
+  !!    This program is free software; you can redistribute it and/or
+  !!    modify it under the terms of the GNU General Public License,
+  !!    version 2, June 1991, as published by the Free Software Foundation.
+  !!    For details see http://www.gnu.org/copyleft/gpl.html .
+  !!    Author: Richard P. Brent (random@rpbrent.co.uk)
+  !!    ****************************************************************************************
+  !!    The period of the generator is\n
+  !!         (2^4096 - 1)*2^32 for single precision version and
+  !!         (2^4096 - 1)*2^64 for double precision version.\n
+  !!
+  !!    The generator is based on bitwise XOR compositions of left- and right-shifted numbers.\n
+  !!
+  !!    The generator has to be called once with a non-zero seed value which initializes a new
+  !!    random number stream. The subsequent calls are with seed=0 which returns the following
+  !!    numbers within the beforehand initialized stream. Since the random numbers are based on
+  !!    the initial seed, the precison of the seed (sp/dp) determines the precision of the
+  !!    returned random number (sp/dp).\n
+  !!
+  !!    If one initialize the generator with an array of seeds, one initializes n independent
+  !!    streams of random numbers.
+  !!    Lets assume that the streams with seed:
+  !!    1_sp is 10, 20, 30 ...\n
+  !!    2_sp is 40, 50, 60 ...\n
+  !!    3_sp is 70, 80, 90 ...\n
+  !!
+  !!    What you get is:\n
+  !!    1st call
+  !!    \code{.f90}
+  !!    call xor( (/ 1_SP, 2_SP, 3_SP /), RN )   --> RN = (/ 10, 40, 70 /)
+  !!    \endcode
+  !!    2nd call
+  !!    \code{.f90}
+  !!    call xor( (/ 0_SP, 0_SP, 0_SP /), RN )   --> RN = (/ 20, 50, 80 /)
+  !!    \endcode
+  !!    3rd call
+  !!    \code{.f90}
+  !!    call xor( (/ 0_SP, 0_SP, 0_SP /), RN )   --> RN = (/ 30, 60, 90 /)
+  !!    \endcode
+  !!
+  !!    Since after every initialization one looses the old stream of random numbers,
+  !!    it might be necessary to switch between different streams. Therefore, one needs
+  !!    the optional save_state argument.
+  !!    What you get is:
+  !!    1st call of 1st stream
+  !!    \code{.f90}
+  !!    call xor( 1_SP, RN, save_state=save_stream_1 )   RN = 10
+  !!    \endcode
+  !!    2nd call of 1st stream
+  !!    \code{.f90}
+  !!    call xor( 0_SP, RN, save_state=save_stream_1 )   RN = 20
+  !!    \endcode
+  !!    1st call of 2nd stream
+  !!    \code{.f90}
+  !!    call xor( 2_SP, RN, save_state=save_stream_2 )   RN = 40
+  !!    \endcode
+  !!    3rd call of 1st stream
+  !!    \code{.f90}
+  !!    call xor( 0_SP, RN, save_state=save_stream_1 )   RN = 30
+  !!    \endcode
+  !!    Note: If you would have called 4 times without optional argument,
+  !!          you would have get 50 in the 4th call.
+  !!
+  !!    \b Example
+  !!
+  !!    I4 seeds are generating I4 or SP random numbers,
+  !!    I8 seeds are generating I8 or DP random numbers.
+  !!
+  !!    Initializing:
+  !!    \code{.f90}
+  !!    real(SP) :: RN(3)
+  !!    seed = (/ 1_I4, 100_I4, 2_I4 /)
+  !!    call xor4096(seed,RN)
+  !!    print*, RN --> (/ 0.1_sp, 0.2_sp, 0.6_sp /)
+  !!    \endcode
+  !!
+  !!    After initializing
+  !!    \code{.f90}
+  !!    seed = (/ 0_I4, 0_I4, 0_I4 /)
+  !!    call xor4096(seed,RN)
+  !!    print*, RN --> (/ 0.3_sp, 0.1_sp, 0.5_sp /)
+  !!    \endcode
+  !!
+  !!    \b Literature
+  !!
+  !!    1. Brent RP. _Some long-period random number generators using shifts and xors_, 2010
+  !!    2. Brent RP. _From Mersenne Primes to Rndom Number Generators_, 2006
+  !!    3. L''Ecuyer P & Simard R. _ACM: TestU01: A C Library for Empirical Testing of
+  !!              Random Number Generators_, 2007
+  !!
+  !>    \param[in]  "integer(i4/i8) :: seed/seed(:)"    Value or 1D-array with non-zero seeds for
+  !!                                                    initialization or zero for subsequent callsyy
+  !>    \param[out] "integer(i4/i8)/real(sp/dp)   :: RN/RN(size(seed))"
+  !!                                       uniform distributed random number with
+  !!                                       interval:\n
+  !!                                           - i4: (-2^31,2^31-1)
+  !!                                           - i8: (-2^63,2^63-1)
+  !!                                           - sp: (0.0_sp, 1.0_sp)
+  !!                                           - dp: (0.0_dp, 1.0_dp)
+  !>    \param[inout] "integer(i4/i8), dimension(size(seed), n_save_state), opional :: save_state"
+  !!                                       Array carrying state of random number stream
+  !!                                       this should be used if several streams are used, i.e.
+  !!                                       each stream has its own save_state.
 
-  !         Author: Richard P. Brent (random@rpbrent.co.uk)
-  !         ****************************************************************************************
-  !         The period of the generator is
-  !              (2^4096 - 1)*2^32 for single precision version and
-  !              (2^4096 - 1)*2^64 for double precision version.
+  !!    \note
+  !!    - The dimension of the optional argument can be set using the public module parameter n_save_state.
+  !!    - If random numbers are in single precision (sp), one needs seed and save_state in (i4).
+  !!    - If random numbers are in double precision (dp), one needs seed and save_state in (i8).
 
-  !         The generator is based on bitwise XOR compositions of left- and right-shifted numbers.
-
-  !         The generator has to be called once with a non-zero seed value which initializes a new
-  !         random number stream. The subsequent calls are with seed=0 which returns the following
-  !         numbers within the beforehand initialized stream. Since the random numbers are based on
-  !         the initial seed, the precison of the seed (sp/dp) determines the precision of the
-  !         returned random number (sp/dp).
-
-  !         If one initialize the generator with an array of seeds, one initializes n independent
-  !         streams of random numbers.
-  !         Lets assume that the streams with seed 1_sp is 10, 20, 30 ...
-  !                                                2_sp is 40, 50, 60 ...
-  !                                                3_sp is 70, 80, 90 ...
-  !         What you get is:
-  !         1st call
-  !             call xor( (/ 1_SP, 2_SP, 3_SP /), RN )   --> RN = (/ 10, 40, 70 /)
-  !         2nd call
-  !             call xor( (/ 0_SP, 0_SP, 0_SP /), RN )   --> RN = (/ 20, 50, 80 /)
-  !         3rd call
-  !             call xor( (/ 0_SP, 0_SP, 0_SP /), RN )   --> RN = (/ 30, 60, 90 /)
-
-  !         Since after every initialization one looses the old stream of random numbers,
-  !         it might be necessary to switch between different streams. Therefore, one needs
-  !         the optional save_state argument.
-  !         What you get is:
-  !         1st call of 1st stream
-  !                                   call xor( 1_SP, RN, save_state=save_stream_1 )   RN = 10
-  !         2nd call of 1st stream
-  !                                   call xor( 0_SP, RN, save_state=save_stream_1 )   RN = 20
-  !         1st call of 2nd stream
-  !                                   call xor( 2_SP, RN, save_state=save_stream_2 )   RN = 40
-  !         3rd call of 1st stream
-  !                                   call xor( 0_SP, RN, save_state=save_stream_1 )   RN = 30
-  !         Note: If you would have called 4 times without optional argument,
-  !               you would have get 50 in the 4th call.
-
-  !     CALLING SEQUENCE
-  !         call xor4096(seed, rn)
-  !         call xor4096(seed, rn, save_state=save_state)
-
-  !     INTENT(IN)
-  !         integer(i4/i8) :: seed/seed(:)     value or 1D-array with non-zero seeds for
-  !                                            initialization or zero for subsequent calls
-
-  !     INTENT(INOUT)
-  !             none
-
-  !     INTENT(OUT)
-  !         integer(i4/i8)/real(sp/dp)   :: RN/RN(size(seed))
-  !                                            uniform distributed random number with
-  !                                            interval:
-  !                                                i4: (-2^31,2^31-1)
-  !                                                i8: (-2^63,2^63-1)
-  !                                                sp: (0.0_sp, 1.0_sp)
-  !                                                dp: (0.0_dp, 1.0_dp)
-
-  !     INTENT(IN), OPTIONAL
-  !         none
-
-  !     INTENT(INOUT), OPTIONAL
-  !         integer(i4/i8), dimension(size(seed), n_save_state) :: save_state
-  !                                            array carrying state of random number stream
-  !                                            this should be used if several streams are used, i.e.
-  !                                            each stream has its own save_state
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         The dimension of the optional argument can be set using the public module parameter n_save_state.
-  !         If random numbers are in single precision (sp), one needs seed and save_state in (i4).
-  !         If random numbers are in double precision (dp), one needs seed and save_state in (i8).
-
-  !     EXAMPLE
-  !         I4 seeds are generating I4 or SP random numbers
-  !         I8 seeds are generating I8 or DP random numbers
-  !
-  !         ! Initializing
-  !         real(SP) :: RN(3)
-  !         seed = (/ 1_I4, 100_I4, 2_I4 /)
-  !         call xor4096(seed,RN)
-  !         print*, RN --> (/ 0.1_sp, 0.2_sp, 0.6_sp /)
-  !
-  !         ! proper usage after initialization
-  !         seed = (/ 0_I4, 0_I4, 0_I4 /)
-  !         call xor4096(seed,RN)
-  !         print*, RN --> (/ 0.3_sp, 0.1_sp, 0.5_sp /)
-  !
-  !         -> see also example in test_mo_xor4096 directory
-
-  !     LITERATURE
-  !         Brent RP - Some long-period random number generators using shifts and xors, 2010
-  !         Brent RP - From Mersenne Primes to Rndom Number Generators, 2006
-  !         L''Ecuyer P & Simard R - ACM: TestU01: A C Library for Empirical Testing of
-  !                   Random Number Generators, 2007
-
-  !     HISTORY
-  !         Written,  Juliane Mai, Nov 2011
+  !>    \author Juliane Mai
+  !>    \date Nov 2011
 
   INTERFACE xor4096
     MODULE PROCEDURE   xor4096s_0d, xor4096s_1d, xor4096f_0d, xor4096f_1d, &
@@ -236,112 +223,85 @@ module mo_xor4096
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         xor4096g
+  !>    \brief Gaussian XOR4096-based RNG
 
-  !     PURPOSE
-  !         Generates a gaussian distributed random number. First, a uniform distributed random
-  !         number based on xor4096 algorithm is generated. Second, this number is transformed
-  !         using the Polar method of Box-Mueller-transform to calculate the gaussian distributed
-  !         numbers.
+  !>    \details
+  !!    Generates a gaussian distributed random number. First, a uniform distributed random
+  !!    number based on xor4096 algorithm is generated. Second, this number is transformed
+  !!    using the Polar method of Box-Mueller-transform to calculate the gaussian distributed
+  !!    numbers.\n
+  !!
+  !!    ****************************************************************************************
+  !!    The original version of this source code (without multiple streams,
+  !!    optional arguments and gaussian distributed RN) is under GNU General Public Licence
+  !!         xorgens.c
+  !!    Copyright (C) 2004 R. P. Brent.
+  !!    This program is free software; you can redistribute it and/or
+  !!    modify it under the terms of the GNU General Public License,
+  !!    version 2, June 1991, as published by the Free Software Foundation.
+  !!    For details see http://www.gnu.org/copyleft/gpl.html .
+  !!
+  !!    Author: Richard P. Brent (random@rpbrent.co.uk)
+  !!    ****************************************************************************************
+  !!
+  !!    The generator has to be called once with a non-zero seed value which initializes a new
+  !!    random number stream. The subsequent calls are with seed=0 which returns the following
+  !!    numbers within the beforehand initialized stream. Since the random numbers are based on
+  !!    the initial seed, the precison of the seed (sp/dp) determines the precision of the
+  !!    returned random number (sp/dp).\n
+  !!
+  !!    The returned values are gaussian distributed with mean 0 and variance 1.\n
+  !!
+  !!    The polar method of the Box-Mueller transform transforms two uniform distributed
+  !!    random numbers \f$u_1\f$ and \f$u_2\f$ into two gaussian distributed random numbers \f$x_1\f$ and \f$x_2\f$.
+  !!    First, two uniform numbers a1, a2 distributed between (-1,1) are calculated:\n
+  !!                 \f[a_1 = 2u_1 - 1\f]
+  !!                 \f[a_2 = 2u_2 - 1\f]
+  !!    Second, \f$q = a_1^2 + a_2^2\f$ is calculated. If (\f$q = 0\f$) or (\f$q > 1\f$) one has to generate
+  !!    a new \f$x_1\f$ and \f$x_2\f$, since a divison by q is needed afterwards and q needs to be distributed
+  !!    within the unit circle.
+  !!    Third,
+  !!                 \f[p = \sqrt{-2 \frac{\ln{q}}{q}}\f]
+  !!    is calculated.
+  !!    The numbers \f$z_1\f$ and \f$z_2\f$ with
+  !!                 \f[z_1 = a_1 p\f]
+  !!                 \f[z_2 = a_2 p\f]
+  !!    are then gaussian distributed with mean 0 and variance 1.
+  !!
+  !!    \b Example
+  !!
+  !!    See example for xor4096.
+  !!
+  !!    \b Literature
+  !!
+  !!    1. Brent RP. _Some long-period random number generators using shifts and xors_, 2010
+  !!    2. Brent RP. _From Mersenne Primes to Rndom Number Generators_, 2006
+  !!    3. L''Ecuyer P & Simard R. _ACM: TestU01: A C Library for Empirical Testing of
+  !!              Random Number Generators_, 2007
+  !!    4. http://en.wikipedia.org/wiki/Marsaglia_polar_method
+  !!    5. http://de.wikipedia.org/wiki/Polar-Methode
+  !!
+  !>    \param[in]  "integer(i4/i8) :: seed/seed(:)"     Value or 1D-array with non-zero seeds for
+  !!                                                     initialization or zero for subsequent calls
+  !>    \param[out] "real(sp/dp)   :: RN/RN(size(seed))"
+  !!                                       Gaussian distributed random number with
+  !!                                       interval:\n
+  !!                                           - sp: RN ~ N(0.0_sp, 1.0_sp)
+  !!                                           - dp: RN ~ N(0.0_dp, 1.0_dp)
+  !>    \param[inout] "integer(i4/i8), dimension(size(seed),n_save_state), optional :: save_state"
+  !!                                       Array carrying state of random number stream
+  !!                                       this should be used if several streams are used, i.e.
+  !!                                       each stream has its own save_state.
 
-  !         ****************************************************************************************
-  !         The original version of this source code (without multiple streams,
-  !         optional arguments and gaussian distributed RN) is under GNU General Public Licence
-  !              xorgens.c
-  !         Copyright (C) 2004 R. P. Brent.
-  !         This program is free software; you can redistribute it and/or
-  !         modify it under the terms of the GNU General Public License,
-  !         version 2, June 1991, as published by the Free Software Foundation.
-  !         For details see http://www.gnu.org/copyleft/gpl.html .
+  !>    \note
+  !!    - The dimension of the optional argument can be set using the public module parameter n_save_state.
+  !!    - If random numbers are in single precision (sp), one needs seed and save_state in (i4).
+  !!    - If random numbers are in double precision (dp), one needs seed and save_state in (i8).
 
-  !         Author: Richard P. Brent (random@rpbrent.co.uk)
-  !         ****************************************************************************************
-
-  !         The generator has to be called once with a non-zero seed value which initializes a new
-  !         random number stream. The subsequent calls are with seed=0 which returns the following
-  !         numbers within the beforehand initialized stream. Since the random numbers are based on
-  !         the initial seed, the precison of the seed (sp/dp) determines the precision of the
-  !         returned random number (sp/dp).
-
-  !         The returned values are gaussian distributed with mean 0 and variance 1.
-
-  !         The polar method of the Box-Mueller transform transforms two uniform distributed
-  !         random numbers u1 and u2 into two gaussian distributed random numbers x1 and x2.
-  !         First, two uniform numbers a1, a2 distributed between (-1,1) are calculated:
-  !                      a1 = 2u1 - 1
-  !                      a2 = 2u2 - 1
-  !         Second, q = a1^2 + a2^2 is calculated. If (q = 0) or (q > 1) one has to generate
-  !         a new x1 and x2, since a divison by q is needed afterwards and q needs to be distributed
-  !         within the unit circle.
-  !         Third,
-  !                      p = Sqrt( -2 LN(q) / q )
-  !         is calculated.
-  !         The numbers z1 and z2 with
-  !                      z1 = a1 * p
-  !                      z2 = a2 * p
-  !         are then gaussian distributed with mean 0 and variance 1.
-
-  !     CALLING SEQUENCE
-  !         call xor4096g(seed, rn) or
-  !         call xor4096g(seed, rn, save_state=save_state)
-
-  !     INTENT(IN)
-  !         integer(i4/i8) :: seed/seed(:)     value or 1D-array with non-zero seeds for
-  !                                            initialization or zero for subsequent calls
-
-  !     INTENT(INOUT)
-  !             none
-
-  !     INTENT(OUT)
-  !         real(sp/dp)   :: RN/RN(size(seed))
-  !                                            gaussian distributed random number with
-  !                                            interval:
-  !                                                sp: RN ~ N(0.0_sp, 1.0_sp)
-  !                                                dp: RN ~ N(0.0_dp, 1.0_dp)
-
-  !     INTENT(IN), OPTIONAL
-  !         none
-
-  !     INTENT(INOUT), OPTIONAL
-  !         integer(i4/i8), dimension(size(seed),n_save_state) :: save_state
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         The dimension of the optional argument can be set using the public module parameter n_save_state.
-  !         If random numbers are in single precision (sp), one needs seed and save_state in (i4).
-  !         If random numbers are in double precision (dp), one needs seed and save_state in (i8).
-
-  !     EXAMPLE
-  !         I4 seeds are generating I4 or SP random numbers
-  !         I8 seeds are generating I8 or DP random numbers
-  !
-  !         ! Initializing
-  !         real(SP) :: RN(3)
-  !         seed = (/ 1_I4, 100_I4, 2_I4 /)
-  !         call xor4096(seed,RN)
-  !         print*, RN --> (/ 0.1_sp, -0.2_sp, 0.3_sp /)
-  !
-  !         ! proper usage after initialization
-  !         seed = (/ 0_I4, 0_I4, 0_I4 /)
-  !         call xor4096(seed,RN)
-  !         print*, RN --> (/ 0.2_sp, 0.1_sp, -0.1_sp /)
-  !
-  !         -> see also example in test_mo_xor4096 directory
-
-  !     LITERATURE
-  !         Brent RP - Some long-period random number generators using shifts and xors, 2010
-  !         Brent RP - From Mersenne Primes to Rndom Number Generators, 2006
-  !         L''Ecuyer P & Simard R - ACM: TestU01: A C Library for Empirical Testing of
-  !                   Random Number Generators, 2007
-  !         http://en.wikipedia.org/wiki/Marsaglia_polar_method
-  !         http://de.wikipedia.org/wiki/Polar-Methode
-
-  !     HISTORY
-  !         Written,  Juliane Mai, Nov 2011
-  !         Modified, Juliane Mai, Feb 2013 - all optionals combined in save_state
+  !>    \author Juliane Mai
+  !>    \date Nov 2011
+  !>    \date Feb 2013
+  !!      - all optionals combined in save_state
 
   INTERFACE xor4096g
     MODULE PROCEDURE xor4096gf_0d, xor4096gf_1d, xor4096gd_0d, xor4096gd_1d

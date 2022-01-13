@@ -1,9 +1,8 @@
 !> \file mo_string_utils.f90
+!> \copydoc mo_string_utils
 
 !> \brief String utilities
-
 !> \details This module provides string conversion and checking utilities.
-
 !> \authors Matthias Cuntz, Matthias Zink, Giovanni Dalmasso, David Schaefer
 !> \date Dec 2011
 
@@ -54,69 +53,51 @@ MODULE mo_string_utils
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         num2str
+  !>    \brief Convert to string.
 
-  !     PURPOSE
-  !>        \brief Convert to string.
+  !>    \details Convert a number or logical to a string with an optional format.
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    str = num2str(3.1415217_i4,'(F3.1)')
+  !!    \endcode
+  !!    See also example in test directory.
 
-  !>        \details Convert a number or logical to a string with an optional format.
+  !>    \param[in] "integer(i4/i8)/real(sp/dp)/logical :: num"  Number or logical
+  !>    \param[in] "character(len=*), optional :: form"         Format string\n
+  !!                                                            Defaults are:\n
+  !!                                                            i4    - '(I10)'\n
+  !!                                                            i8    - '(I20)'\n
+  !!                                                            sp/dp - '(G32.5)'\n
+  !!                                                            log   - '(L10)'
+  !>    \retval "character(len=X) :: str"                       String of formatted input number or logical\n
+  !!                                                            Output length X is:\n
+  !!                                                            i4    - 10\n
+  !!                                                            i8    - 20\n
+  !!                                                            sp/dp - 32\n
+  !!                                                            log   - 10
 
-  !     CALLING SEQUENCE
-  !         str = num2str(num,form=form)
+  !>    \note
+  !!    Uses WRITE to write into string. Recursive write is not permitted before Fortran 2003
+  !!    so that one cannot use\n
+  !!    \code{.f90}
+  !!    write(*,*) 'A='//num2str(a)
+  !!    \endcode
+  !!    Use 'call message' from mo_messages.f90
+  !!    \code{.f90}
+  !!    use mo_messages, only message
+  !!    call message('A=', trim(num2str(a)))
+  !!    \endcode
+  !!    or write into another string first:
+  !!    \code{.f90}
+  !!    str = 'A='//num2str(a)
+  !!    write(*,*) trim(str)
+  !!    \endcode
 
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4/i8)/real(sp/dp)/logical :: num"    Number or logical
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !>        \param[in] "character(len=*), optinal :: form"   Format string\n
-  !>                                                         Defaults are:\n
-  !>                                                         i4    - '(I10)'\n
-  !>                                                         i8    - '(I20)'\n
-  !>                                                         sp/dp - '(G32.5)'\n
-  !>                                                         log   - '(L10)'
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>        \return character(len=X) :: str &mdash; String of formatted input number or logical\n
-  !>                                                Ouput length X is:\n
-  !>                                                i4    - 10\n
-  !>                                                i8    - 20\n
-  !>                                                sp/dp - 32\n
-  !>                                                log   - 10
-
-  !     RESTRICTIONS
-  !         Uses WRITE to write into string. Recursive write is not permitted before Fortran 2003
-  !         so that one cannot use
-  !             write(*,*) 'A='//num2str(a)
-  !         Use 'call message' from mo_messages.f90
-  !             use mo_messages, only message
-  !             call message('A=', trim(num2str(a)))
-  !         or write into another string first:
-  !             str = 'A='//num2str(a)
-  !             write(*,*) trim(str)
-
-  !     EXAMPLE
-  !         str = num2str(3.1415217_i4,'(F3.1)')
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Cuntz - modified from Echam5, (C) MPI-MET, Hamburg, Germany
-  !>        \date Dec 2011
+  !>    \author Matthias Cuntz
+  !>    \date Dec 2011
+  !!        - modified from Echam5, (C) MPI-MET, Hamburg, Germany
   INTERFACE num2str
      MODULE PROCEDURE i42str, i82str, sp2str, dp2str, log2str
   END INTERFACE num2str
@@ -124,52 +105,22 @@ MODULE mo_string_utils
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         numarray2str
+  !>    \brief Convert to string.
 
-  !     PURPOSE
-  !>        \brief Convert to string.
+  !>    \details Convert a array of numbers or logicals to a string.
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    str = numarray2str(num)
+  !!    \endcode
 
-  !>        \details Convert a array of numbers or logicals to a string.
+  !>    \param[in] "integer(i4/i8)/real(sp/dp)/logical :: num(:)"    Array of numbers or logicals
+  !>    \retval "character(len=X) :: str"                            String of formatted input number or logical\n
 
-  !     CALLING SEQUENCE
-  !         str = numarray2str(num)
-
-  !     INTENT(IN)
-  !>        \param[in] "integer(i4/i8)/real(sp/dp)/logical :: num(:)"    Array of numbers or logicals
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>        \return character(len=X) :: str &mdash; String of formatted input number or logical\n
-  !
-
-  !     RESTRICTIONS
-  !        Unknown
-
-  !     EXAMPLE
-  !        None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Cuntz - modified from Echam5, (C) MPI-MET, Hamburg, Germany
-  !>        \date Dec 2011
-
+  !>    \author Matthias Cuntz
+  !>    \date Dec 2011
+  !!        - modified from Echam5, (C) MPI-MET, Hamburg, Germany
   INTERFACE numarray2str
      MODULE PROCEDURE i4array2str
   END INTERFACE numarray2str
@@ -179,7 +130,7 @@ MODULE mo_string_utils
   PRIVATE
 
   ! ------------------------------------------------------------------
-
+  !> separator string (line)
   CHARACTER(len=*), PARAMETER :: separator = repeat('-',70)
 
   ! ------------------------------------------------------------------
@@ -188,52 +139,24 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         compress
+  !>    \brief Remove white spaces
 
-  !     PURPOSE
-  !         \brief Remove white spaces
+  !>    \details Return a copy of an input string with all whitespace (spaces and tabs) removed
+  !!
+  !!    \b Example
+  !!
+  !!    Returns 'Hallo'
+  !!    \code{.f90}
+  !!    noSpaces = whiteSpaces = compress('H a l l o')
+  !!    \endcode
 
-  !         \details Return a copy of an input string with all whitespace (spaces and tabs) removed
+  !>     \param[in] "character(len=*) :: whiteSpaces"             String
+  !>     \param[out] "integer(i4), optional :: n"                 Integer
+  !>     \retval "character(len = len(whiteSpaces)) :: compress"  String where all all whitespace (spaces and tabs) are removed
 
-  !     CALLING SEQUENCE
-  !         noSpaces = compress(whiteSpaces)
-
-  !     INTENT(IN)
-  !         \param[in] "character(len=*) :: whiteSpaces"    String
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         \param[out] "integer(i4) :: n"  Integer
-
-  !     RETURN
-  !         \return character(len = len(whiteSpaces)) :: compress;  String where all all whitespace (spaces and tabs) are removed
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         ! Returns 'Hallo'
-  !         whiteSpaces = compress('H a l l o')
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         \author Giovanni Dalmasso - modified from Paul van Delst, CIMSS/SSEC 18-Oct-1999
-  !         \date Jan 2013
+  !>     \author Giovanni Dalmasso
+  !>     \date Jan 2013
+  !!        - modified from Paul van Delst, CIMSS/SSEC 18-Oct-1999
 
   function compress( whiteSpaces, n )
 
@@ -293,9 +216,10 @@ CONTAINS
       end do
     end function replace_text
 
-    ! replaces proper words only,
-    ! e.g. replace_word('our hour', 'our', 'their') --> 'their hour'
-    ! written Nov 2018 by Robert Schweppe
+    !> \brief replaces words in a string
+    !> \details replaces proper words only, e.g. replace_word('our hour', 'our', 'their') --> 'their hour'
+    !> \author Robert Schweppe
+    !> \date Nov 2018
     function replace_word(s, word, rep, check_negative_number_arg)  result(outs)
       character(*) :: s, word, rep
       logical, optional  :: check_negative_number_arg
@@ -311,8 +235,10 @@ CONTAINS
       end do
     end function replace_word
 
-  ! written Nov 2018 by Robert Schweppe
-  function index_word(s, text, check_negative_number_arg) result(out_index)
+    !> \brief find index in word
+    !> \author Robert Schweppe
+    !> \date Nov 2018
+    function index_word(s, text, check_negative_number_arg) result(out_index)
     CHARACTER(*)       :: s
     CHARACTER(*)       :: text
     logical, optional  :: check_negative_number_arg
@@ -376,53 +302,30 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         divide_string
+  !>    \brief Divide string in substrings.
 
-  !     PURPOSE
-  !>        \brief Divide string in substrings.
+  !>    \details Divides a string in several substrings (array of strings) with the help of a user
+  !!    specified delimiter.
+  !!
+  !!    \b Example
+  !!
+  !!    Divide string into 'I', 'want', 'to', ...
+  !!    \code{.f90}
+  !!    divide_string('I want to test this routine!', ' ', strArr(:))
+  !!    \endcode
 
-  !>        \details Divides a string in several substrings (array of strings) with the help of a user
-  !>        specified delimiter.
+  !>    \param[in] "CHARACTER(len=*), INTENT(IN) :: string"     - string to be divided
+  !>    \param[in] "CHARACTER(len=*), INTENT(IN) :: delim"      - delimiter specifying places for division
+  !>    \param[out] "CHARACTER(len=*), DIMENSION(:), ALLOCATABLE,  INTENT(OUT) :: strArr"
+  !!                 Array of substrings, has to be allocateable and is handed to the routine unallocated
 
-  !     CALLING SEQUENCE
-  !         call divide_string(string, delim, strArr(:))
+  !>    \note
+  !!    only character types allowed.\n
+  !!    output array should be allocateable array, which is unallocated handed to the subroutine.
+  !!    allocation is done in in devide_string.
 
-  !     INTENT(IN)
-  !>        \param[in] "CHARACTER(len=*), INTENT(IN) :: string"     - string to be divided
-  !>        \param[in] "CHARACTER(len=*), INTENT(IN) :: delim"      - delimiter specifying places for division
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !>        \param[out] "CHARACTER(len=*), DIMENSION(:), ALLOCATABLE,  INTENT(OUT) :: strArr"
-  !>                     Array of substrings, has to be allocateable and is handed to the routine unallocated
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         only character types allowed
-  !         output array should be allocateable array, which is unallocated handed to the subroutine
-  !             allocation is done in in devide_string
-
-  !     EXAMPLE
-  !        divide_string('I want to test this routine!', ' ', strArr(:))
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Zink
-  !>        \date Oct 2012
+  !>    \author Matthias Zink
+  !>    \date Oct 2012
 
   SUBROUTINE divide_string(string, delim, strArr)
 
@@ -471,51 +374,22 @@ CONTAINS
 
     ! ------------------------------------------------------------------
 
-  !     NAME
-  !         equalStrings
+  !>    \brief Checks if two string are equal
 
-  !     PURPOSE
-  !         \brief Checks if two string are equal
+  !>    \details Returns true if the given string arguments are equal
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    isequal = equalString(string1,string2)
+  !!    \endcode
 
-  !         \details Returns true if the given string arguments are equal
+  !>    \param[in] "character(len=*) :: string1"    String
+  !>    \param[in] "character(len=*) :: string2"    String
+  !>    \retval "logical :: eq" Logical value if string equal
 
-  !     CALLING SEQUENCE
-  !         isequal = equalString(string1,string2)
-
-  !     INTENT(IN)
-  !         \param[in] "character(len=*) :: string1"    String
-  !         \param[in] "character(len=*) :: string2"    String
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         \return logical
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         \author David Schaefer
-  !         \date Mar 2015
+  !>    \author David Schaefer
+  !>    \date Mar 2015
 
   function equalStrings(string1,string2)
     implicit none
@@ -543,51 +417,22 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         nonull
+  !>    \brief Checks if string was already used
 
-  !     PURPOSE
-  !>        \brief Checks if string was already used
+  !>    \details Checks if string was already used, i.e. does not contain NULL character anymore.
+  !!
+  !!    \b Example
+  !!
+  !!    Trim if string is used.
+  !!    \code{.f90}
+  !!    if (nonull(str)) write(*,*) trim(str)
+  !!    \endcode
 
-  !>        \details Checks if string was already used, i.e. does not contain NULL character anymore.
+  !>    \param[in] "character(len=*) :: str"    String
+  !>    \retval "logical :: used"               .true.: string was already set; .false.: string still in initialised state
 
-  !     CALLING SEQUENCE
-  !         used = nonull(str)
-
-  !     INTENT(IN)
-  !>        \param[in] "character(len=*) :: str"    String
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>        \return logical :: used &mdash;  .true.: string was already set; .false.: string still in initialised state
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         if (nonull(str)) write(*,*) trim(str)
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Cuntz
-  !>        \date Jan 2012
+  !>    \author Matthias Cuntz
+  !>    \date Jan 2012
 
   FUNCTION nonull(str)
 
@@ -606,51 +451,22 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         splitString
+  !>    \brief split string at delimiter
 
-  !     PURPOSE
-  !         \brief split string at delimiter
+  !>    \details Split string at delimiter an return an array of strings
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    string_parts = splitString(string,delim)
+  !!    \endcode
 
-  !         \details Split string at delimiter an return an array of strings
+  !>    \param[in] "character(len=*) :: string"    String
+  !>    \param[in] "character(len=*) :: delim"     String
+  !>    \retval "character(len=245) :: out(:)"     Array of splitted strings
 
-  !     CALLING SEQUENCE
-  !         string_parts = splitString(string,delim)
-
-  !     INTENT(IN)
-  !         \param[in] "character(len=*) :: string"    String
-  !         \param[in] "character(len=*) :: delim"     String
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         \return character(len=245) :: out(:)
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         \author David Schaefer
-  !         \date Mar 2015
+  !>    \author David Schaefer
+  !>    \date Mar 2015
 
   function splitString(string,delim) result(out)
 
@@ -679,51 +495,19 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         startsWith
+  !>    \brief Checks if string starts with character(s)
 
-  !     PURPOSE
-  !         \brief Checks if string starts with character(s)
+  !>    \details Returns true if string starts with characters, flase otherwise
+  !!
+  !!    CALLING SEQUENCE
+  !!    starts_with = startsWith(string,start)
 
-  !         \details Returns true if string starts with characters, flase otherwise
+  !>    \param[in] "character(len=*) :: string"   String
+  !>    \param[in] "character(len=*) :: start"    String
+  !>    \retval    "logical :: startsWith"        Logical if start is equal to string
 
-  !     CALLING SEQUENCE
-  !         starts_with = startsWith(string,start)
-
-  !     INTENT(IN)
-  !         \param[in] "character(len=*) :: string"    String
-  !         \param[in] "character(len=*) :: start"    String
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         \return logical
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         \author David Schaefer
-  !         \date Mar 2015
+  !>    \author David Schaefer
+  !>    \date Mar 2015
 
   function startsWith(string, start)
 
@@ -744,52 +528,23 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         tolower
+  !>    \brief Convert to lower case
 
-  !     PURPOSE
-  !>        \brief Convert to lower case
+  !>    \details Convert all upper case letters in string to lower case letters.
+  !!
+  !!    \b Example
+  !!
+  !!    Returns 'hallo'
+  !!    \code{.f90}
+  !!    low = tolower('Hallo')
+  !!    \endcode
 
-  !>        \details Convert all upper case letters in string to lower case letters.
+  !>    \param[in] "character(len=*) :: upper"                String
+  !>    \retval    "character(len=len_trim(upper)) :: low"    String where all uppercase in input is converted to lowercase
 
-  !     CALLING SEQUENCE
-  !         low = tolower(upper)
-
-  !     INTENT(IN)
-  !>        \param[in] "character(len=*) :: upper"    String
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !>        \return character(len=len_trim(upper)) :: low  &mdash;  String where all uppercase in input is converted to lowercase
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         ! Returns 'hallo'
-  !         low = tolower('Hallo')
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !>        \author Matthias Cuntz - modified from Echam5, (C) MPI-MET, Hamburg, Germany
-  !>        \date Dec 2011
+  !>    \author Matthias Cuntz
+  !>    \date Dec 2011
+  !!        - modified from Echam5, (C) MPI-MET, Hamburg, Germany
 
   FUNCTION tolower(upper)
 
@@ -814,52 +569,23 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         toupper
+  !>    \brief Convert to upper case
 
-  !     PURPOSE
-  !         \brief Convert to upper case
+  !>    \details Convert all lower case letters in string to upper case letters.
+  !!
+  !!    \b Example
+  !!
+  !!    Returns 'HALLO'
+  !!    \code{.f90}
+  !!    up = toupper('Hallo')
+  !!    \endcode
 
-  !         \details Convert all lower case letters in string to upper case letters.
+  !>    \param[in] "character(len=*) :: lower"            String
+  !>    \retval "character(len=len_trim(lower)) :: up"    String where all lowercase in input is converted to uppercase
 
-  !     CALLING SEQUENCE
-  !         up = toupper(lower)
-
-  !     INTENT(IN)
-  !         \param[in] "character(len=*) :: lower"    String
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         \return character(len=len_trim(lower)) :: up  &mdash;  String where all lowercase in input is converted to uppercase
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         ! Returns 'HALLO'
-  !         up = toupper('Hallo')
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         \author Matthias Cuntz - modified from Echam5, (C) MPI-MET, Hamburg, Germany
-  !         \date Dec 2011
+  !>    \author Matthias Cuntz
+  !>    \date Dec 2011
+  !!        - modified from Echam5, (C) MPI-MET, Hamburg, Germany
 
   FUNCTION toupper (lower)
 
@@ -985,52 +711,24 @@ CONTAINS
 
   end function i4array2str
 
-    ! ------------------------------------------------------------------
+  ! ------------------------------------------------------------------
 
-  !     NAME
-  !         str2num
+  !>    \brief Converts string into an array of its numerical representation
 
-  !     PURPOSE
-  !         \brief Converts string into an array of its numerical representation
+  !>    \details Converts string into an integer array of the numerical values of the letters
+  !!
+  !!    \b Example
+  !!
+  !!    Convert is string into numerical array of the letters
+  !!    \code{.f90}
+  !!    str2num = startsWith(string)
+  !!    \endcode
 
-  !         \details Converts string into an integer array of the numerical values of the letters
+  !>    \param[in] "character(len=*) :: string"    String
+  !>    \retval "integer  :: out(:)"               Numerical array of letters
 
-  !     CALLING SEQUENCE
-  !         str2num = startsWith(string)
-
-  !     INTENT(IN)
-  !         \param[in] "character(len=*) :: string"    String
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         None
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RETURN
-  !         \return integer  :: out(:)
-
-  !     RESTRICTIONS
-  !         None
-
-  !     EXAMPLE
-  !         None
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
-  !         \author David Schaefer
-  !         \date Mar 2015
+  !>    \author David Schaefer
+  !>    \date Mar 2015
 
   function str2num(string) result(out)
 

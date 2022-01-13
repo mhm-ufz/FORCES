@@ -1,3 +1,11 @@
+!> \file mo_ncread.f90
+!> \copydoc mo_ncread
+
+!> \brief Reading netcdf files
+!> \details Subroutines for reading arrays from nc file using the netcdf4 library.
+!> \author Stephan Thober, Matthias Cuntz
+!> \date Nov 2011
+
 module mo_NcRead
 
   ! This module provides subroutines for reading arrays from nc file using the netcdf4 library
@@ -41,59 +49,58 @@ module mo_NcRead
 
   ! ------------------------------------------------------------------------------
 
-  !    NAME
-  !        Get_NcVar
+  !>    \brief Read array from NC file
 
-  !    PURPOSE
-  !        Reads a 2 - 5 dimensional array from a nc file given
-  !        the variable name EXACTLY as specified in the file.  If the
-  !        array is not allocated when calling, Get_NcVar will
-  !        allocate it internally. If the dimension of the actual data
-  !        is less than the ones of the array, then the dimension
-  !        lengths of the array will be filled with ones.
+  !>    \details
+  !!    Reads a 2 - 5 dimensional array from a nc file given
+  !!    the variable name EXACTLY as specified in the file.  If the
+  !!    array is not allocated when calling, Get_NcVar will
+  !!    allocate it internally. If the dimension of the actual data
+  !!    is less than the ones of the array, then the dimension
+  !!    lengths of the array will be filled with ones.
+  !!
+  !!    \b Example
+  !!
+  !!    See test program in directory test_mo_NcRead.
+  !!
+  !!    \b Literature
+  !!
+  !!    1.  http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
+  !!
+  !>    \param[in]  "character(len=*) :: Filename"                                  Name of the nc file.
+  !>    \param[in]  "character(len=*) :: VarName"                                   Name of the Variable in the nc file.
+  !>    \param[in]  "real(sp/dp), dimension(:,:[,:[,:[,:]]]), allocatable :: array" Array where data will be read.
+  !>    \param[in]  "integer(i4), dimension(:) :: jdate"                            Starting indeces of first value to read.
+  !!                                                                                `len` is the number of dimensions of
+  !!                                                                                array, default is 1, see example
+  !>    \param[in]  "integer(i4), dimension(:) :: a_count"                          Same size as jdate, specifies how
+  !!                                                                                many values in each dimension
+  !!                                                                                is going to be read
+  !>    \param[in]  "integer(i4)               :: fid"                              File handle of opened netcdf file
 
-  !    CALLING SEQUENCE
-  !        call Get_NcVar(Filename, VarName, Dat, start=jdate, a_count=Nvalues, fid=fid)
+  !>    \note  Output array is a floating point of 2-5 dimensions.\n
+  !!            NOT yet tested for different compilers than intel11.1.075
+  !!            CANNOT read packed data.\n
+  !!            i1 indicates, that 1 byte integer is read [type is integer(1)].
 
-  !    INTENT(IN)
-  !        character(len=*) :: Filename - Name of the nc file
+  !>    \author Stephan Thober
+  !>    \date Nov 2011
+  !!     -  added comments
+  !>    \date Mar 2012
+  !!     -  corrected dynamical read of data
+  !>    \date May 2012
+  !!     -  fid
+  !>    \date Nov 2012
+  !!     -  write out Varname, when vartype is incorrect
+  !>    \date Feb 2013
+  !!     -  added 1 byte integer version
+  !>    \date Mar 2014
+  !!     -  added subroutines for allocatable arrays
+  !>    \author Matthias Cuntz
+  !>    \date Jan 2012
+  !!     -  unified routines for different dimensions and data types
 
-  !    INTENT(IN)
-  !        character(len=*) :: VarName - Name of the Variable in the nc file
-
-  !    INTENT(INOUT)
-  !        real(sp/dp), dimension(:,:[,:[,:[,:]]]), allocatable :: array - array where data will be read
-
-  !    INTENT(IN), OPTIONAL
-  !        integer(i4), dimension(:) :: jdate ! starting indeces of first value to read
-  !                                           ! len is the number of dimensions of
-  !                                           ! array, default is 1, see example
-  !        integer(i4), dimension(:) :: a_count ! same size as jdate, specifies how
-  !                                           ! many values in each dimension
-  !                                           ! is going to be read
-  !        integer(i4)               :: fid   ! file handle of opened netcdf file
-  !
-  !    RESTRICTIONS
-  !        Output array is a floating point of 2-5 dimensions.
-  !        NOT yet tested for different compilers than intel11.1.075
-  !        CANNOT read packed data
-  !        i1 indicates, that 1 byte integer is read [type is integer(1)]
-
-  !    EXAMPLE
-  !        see test program in directory test_mo_NcRead
-
-  !    LITERATURE
-  !        http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
-
-  !    HISTORY
-  !        Written,  Stephan Thober, Nov 2011
-  !        Modified, Stephan Thober, Nov 2011 - added comments
-  !        Modified, Matthias Cuntz, Jan 2012 - unified routines for different dimensions and data types
-  !        Modified, Stephan Thober, Mar 2012 - corrected dynamical read of data
-  !        Modified, Stephan Thober, May 2012 - fid
-  !        Modified, Stephan Thober, Nov 2012 - write out Varname, when vartype is incorrect
-  !        Modified, Stephan Thober, Feb 2013 - added 1 byte integer version
-  !        Modified, Stephan Thober, Mar 2014 - added subroutines for allocatable arrays
+  ! ------------------------------------------------------------------------------
 
   interface Get_NcVar
     module procedure Get_NcVar_0d_sp, Get_NcVar_0d_dp, Get_NcVar_1d_sp, &
@@ -115,39 +122,28 @@ module mo_NcRead
 contains
 
   ! ------------------------------------------------------------------------------
-  !
-  ! NAME
-  !     Get_NcDim
-  !
-  ! PURPOSE
-  !     gets the dimensions of variable in a netcdf file
-  !
-  ! CALLING SEQUENCE
-  !     dim = Get_NcDim(Filename, Variable, PrintInfo=PrintInfo, ndims=ndims)
-  !
-  ! INTENT(IN)
-  !     character(len=*) :: Filename - Filename of netcdf file
-  !
-  ! INTENT(IN)
-  !     character(len=*) :: Variable - Variable name exactly as specified in the file
-  !
-  ! INTENT(IN), OPTIONAL
-  !     logical       :: PrintInfo - if given and true, information about dimension
-  !                                  and their lengths will be printed to standard output
-  !
-  ! INTENT(OUT)
-  !     integer(i4), dimension(5) :: Get_NcDim - dimension length, -1 if dimension does not exist
-  !
-  ! INTENT(OUT), OPTIONAL
-  !     integer(i4) :: ndims - # of dimensions
-  !
-  ! LITERATURE
-  !     http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
-  !
-  ! HISTORY
-  !     Written,  Stephan Thober, Dec 2011
-  !     Modified, Matthias Cuntz, Jan 2012 - ndims
 
+  !>    \brief Dimension of netcdf variable.
+
+  !>    \details
+  !!    Gets the dimensions of variable in a netcdf file.
+  !!
+  !!    \b Literature
+  !!
+  !!    1.  http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
+  !!
+  !>    \param[in]  "character(len=*) :: Filename"            Filename of netcdf file
+  !>    \param[in]  "character(len=*) :: Variable"            Variable name exactly as specified in the file
+  !>    \param[in]  "logical, optional       :: PrintInfo"    If given and true, information about dimension
+  !!                                                          and their lengths will be printed to standard output.
+  !>    \retval     "integer(i4), dimension(5) :: Get_NcDim"  Dimension length, -1 if dimension does not exist
+  !>    \param[out] "integer(i4), optional :: ndims"                    # of dimensions
+
+  !>    \author Stephan Thober
+  !>    \date Dec 2011
+  !>    \author Matthias Cuntz
+  !>    \date Jan 2012
+  !!      - ndims
   function Get_NcDim(Filename, Variable, PrintInfo, ndims)
     !
     implicit none
@@ -183,51 +179,35 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         Get_NcDimAtt
+  !>    \brief Name and size of variable in netcdf.
 
-  !     PURPOSE
-  !         gets the name and size of the dimensions of a variable in a netcdf file
+  !>    \details
+  !!    Gets the name and size of the dimensions of a variable in a netcdf file
+  !!
+  !!    \b Example
+  !!
+  !!         Filename = 'test.nc'
+  !!         Varname  = 'data'
+  !!         call Get_NcDimAtt(Filename, Varname, DimNames, DimLen)
+  !!
+  !!    See example in test directory.
+  !!
+  !!    \b Literature
+  !!
+  !!    1.  http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
+  !!
+  !>    \param[in]  "character(len=*),  intent(in) :: Filename"   Filename of netcdf file.
+  !>    \param[in]  "character(len=*),  intent(in) :: Variable"   Variable name exactly as specified in the file.
+  !>    \param[out] "integer(i4), dimension(:), allocatable, optional, intent(out) :: DimLen"    Allocatable array with the size
+  !!                                                                                             of the dimensions
+  !>    \retval     "character(len=*), dimension(:), allocatable, intent(out)      :: DimName"   Allocatable array with the
+  !!                                                                                             names of the dimensions.
 
-  !     CALLING SEQUENCE
-  !         Get_NcDimAtt(Filename, Variable, DimName, DimLen)
+  !>    \note  DimName and DimLen are both allocated within the subroutine, so please just provide an 1 dimensional
+  !!            allocatable array to the subroutine.
 
-  !     INTENT(IN)
-  !         character(len=*),  intent(in) :: Filename  - Filename of netcdf file
-  !         character(len=*),  intent(in) :: Variable  - Variable name exactly as specified in the file
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         character(len=*), dimension(:), allocatable, intent(out)      :: DimName  - allocatable array with the
-  !                                                                                     names of the dimensions
-
-  !     INTENT(IN), OPTIONAL
-  !         None
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         integer(i4), dimension(:), allocatable, optional, intent(out) :: DimLen   - allocatable array with the size
-  !                                                                                     of the dimensions
-
-  !     RESTRICTIONS
-  !         DimName and DimLen are both allocated within the subroutine, so please just provide an 1 dimensional
-  !             allocatable array to the subroutine
-
-  !     EXAMPLE
-  !         Filename = 'test.nc'
-  !         Varname  = 'data'
-  !         call Get_NcDimAtt(Filename, Varname, DimNames, DimLen)
-  !         -> see example in test directory
-
-  !     LITERATURE
-  !         http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
-
-  !     HISTORY
-  !         Written,  Matthias Zink, Oct 2012
+  !>    \author Matthias Zink
+  !>    \date Oct 2012
 
   subroutine Get_NcDimAtt(Filename, Variable, DimName, DimLen)
     !
@@ -271,54 +251,41 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         Get_NcVarAtt
+  !>    \brief Get attribute of netcdf variable.
 
-  !     PURPOSE
-  !         gets the values of an particular attribute of an variable
+  !>    \details
+  !!    Gets the values of an particular attribute of an variable.
+  !!
+  !!    \b Example
+  !!
+  !!         Filename = 'test.nc'
+  !!         VarName  = 'data'
+  !!         AttName  = 'units'
+  !!         call Get_NcDimAtt(Filename, Varname, AttName, AttValues)
+  !!
+  !!    See example in test directory.
+  !!
+  !!    \b Literature
+  !!
+  !!    1.  http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
 
-  !     CALLING SEQUENCE
-  !         Get_NcVarAtt(FileName, VarName, AttName, AttValues, fid)
+  !>    \param[in]  "character(len=*), intent(in)      :: FileName"     Filename of netcdf file.
+  !>    \param[in]  "character(len=*), intent(in)      :: VarName"      Variable name exactly as specified in the file.
+  !>    \param[in]  "character(len=*), intent(in)      :: AttName"      Attribute name exactly as specified for the Variable.
+  !>    \param[in]  "integer(i4), optional, intent(in) :: fid"          File handle of opened netcdf file
+  !>    \param[in]  "integer(i4), optional, intent(in) :: dtype"        Datatype (ineteger,float) see NetCDF convention
+  !!                                                                    (unidata.ucar)
+  !>    \retval     "character(len=*), intent(out)     :: AttValues"    Values of the Attribute.
 
-  !     INTENT(IN)
-  !         character(len=*), intent(in)      :: FileName  - Filename of netcdf file
-  !         character(len=*), intent(in)      :: VarName   - Variable name exactly as specified in the file
-  !         character(len=*), intent(in)      :: AttName   - Attribute name exactly as specified for the Variable
+  !>    \note AttValues are restricted to be of character type. \n
+  !!           The name of the variable (VarName) has to be known beforehand. \n
+  !!           The name of the attribute (AttName) has to be known beforehand.
 
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         character(len=*), intent(out)     :: AttValues - values of the Attribute
-
-  !     INTENT(IN), OPTIONAL
-  !         integer(i4), optional, intent(in) :: fid   ! file handle of opened netcdf file
-  !         integer(i4), optional, intent(in) :: dtype ! datatype (ineteger,float) see NetCDF convention (unidata.ucar)
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         AttValues are restricted to be of character type
-  !         The name of the variable (VarName) has to be known beforehand
-  !         The name of the attribute (AttName) has to be known beforehand
-
-  !     EXAMPLE
-  !         Filename = 'test.nc'
-  !         VarName  = 'data'
-  !         AttName  = 'units'
-  !         call Get_NcDimAtt(Filename, Varname, AttName, AttValues)
-  !         -> see example in test directory
-
-  !     LITERATURE
-  !         http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
-
-  !     HISTORY
-  !         Written,  Matthias Zink, Oct 2012
-  !         Modified, Matthias Cuntz & Juliane Mai, Nov 2014 - correct data type detection
+  !>    \author Matthias Zink
+  !>    \date Oct 2012
+  !>    \author Matthias Cuntz & Juliane Mai
+  !>    \date Nov 2014
+  !!      - correct data type detection.
 
   subroutine Get_NcVarAtt(FileName, VarName, AttName, AttValues, fid, dtype)
     !
@@ -2090,27 +2057,26 @@ contains
     !
   end subroutine Get_NcVar_5d_i1
   ! ------------------------------------------------------------------------------
-  !
-  ! NAME
-  !     NcOpen
-  !
-  ! PURPOSE
-  !     opens a netcdf file and returns file handle
-  !
-  ! CALLING SEQUENCE
-  !     id = NcOpen(Fname)
-  !
-  ! INTENT(IN)
-  !     character(len=*) :: Fname - Filename of file to open
-  !
-  ! INTENT(OUT)
-  !     integer(i4)      :: NcOpen - id of opened stream
-  !
-  ! LITERATURE
-  !     http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
-  !
-  ! HISTORY
-  !     Written,  Stephan Thober, May 2012
+
+  !>    \brief Open netcdf file
+
+  !>    \details Opens a netcdf file and returns file handle
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    id = NcOpen(Fname)
+  !!    \endcode
+  !!
+  !!    \b Literature
+  !!
+  !!    1. http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
+
+  !>    \param[in] "character(len=*) :: Fname"    Filename of file to open
+  !>    \param[out] "integer(i4)      :: NcOpen"  id of opened stream
+
+  !>    \author Stephan Thober,
+  !>    \date May 2012
 
   function NcOpen(Fname)
     !
@@ -2124,24 +2090,25 @@ contains
   end function NcOpen
 
   ! ------------------------------------------------------------------------------
-  !
-  ! NAME
-  !     NcClose
-  !
-  ! PURPOSE
-  !     closes a netcdf file by file handle
-  !
-  ! CALLING SEQUENCE
-  !     call NcClose(ncid)
-  !
-  ! INTENT(IN) :: ncid - file handle of open netcdf file
-  !
-  ! LITERATURE
-  !     http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
-  !
-  ! HISTORY
-  !     Written,  Stephan Thober, May 2012
-  !
+
+  !>    \brief Closes netcdf file
+
+  !>    \details Closes a netcdf file by file handle
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    call NcClose(ncid)
+  !!    \endcode
+  !!
+  !!    \b Literature
+  !!
+  !!    1. http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90.html
+
+  !>    \param[in] "ncid" - file handle of open netcdf file
+
+  !>    \author Stephan Thober
+  !>    \date May 2012
 
   subroutine NcClose(ncid)
     !
@@ -2154,19 +2121,20 @@ contains
   end subroutine NcClose
 
   ! ------------------------------------------------------------------------------
-  !
-  ! SUBROUTINE GET_INFO
-  !
-  ! This subroutine is PRIVATE and therefore does not exist outside of this module.
-  !
-  ! This subroutine inquires the nc file. Given the Variable name and the stream
-  ! of the nc file, this subroutine determines the variable id, the kind of the
-  ! variable and the length of the dimensions in the file.
-  !
-  ! See: http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90/ -> NF90-INQUIRE
-  ! for detailed information.
-  !
-  ! Modified, Matthias Cuntz, Nov 2012 - default dimension length -1
+  !>    \brief Get variable info from netcdf files
+
+  !>    \details This subroutine is PRIVATE and therefore does not exist outside of this module.
+  !!
+  !!    This subroutine inquires the nc file. Given the Variable name and the stream
+  !!    of the nc file, this subroutine determines the variable id, the kind of the
+  !!    variable and the length of the dimensions in the file.
+  !!
+  !!    See: http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-f90/ -> NF90-INQUIRE
+  !!    for detailed information.
+
+  !>    \author Matthias Cuntz,
+  !>    \date Nov 2012
+  !!      - default dimension length -1
 
   subroutine Get_Info(Varname, ncid, varid, xtype, dl, Info, ndims)
     !

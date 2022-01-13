@@ -1,9 +1,8 @@
 !> \file mo_utils.f90
+!> \copydoc mo_utils
 
 !> \brief General utilities for the CHS library
-
 !> \details This module provides general utilities such as comparisons of two reals.
-
 !> \authors Matthias Cuntz, Juliane Mai
 !> \date Feb 2014
 MODULE mo_utils
@@ -57,93 +56,75 @@ MODULE mo_utils
   public :: flip ! flips a dimension of an array
   public :: unpack_chunkwise ! flips a dimension of an array
 
+  !> \brief flip an array at a certain dimension
   interface flip
     procedure flip_1D_dp, flip_2D_dp, flip_3D_dp, flip_4D_dp, flip_1D_i4, flip_2D_i4, flip_3D_i4, flip_4D_i4
   end interface
 
+  !> \brief chunk version of the unpack operation
   interface unpack_chunkwise
     procedure unpack_chunkwise_i1, unpack_chunkwise_dp
   end interface
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         equal / notequal / greaterequal / lesserequal
-
-  !     PURPOSE
-  !         Elemental function returning .true. or .false. depending if the reals are equal or not.
-  !
   !>        \brief Comparison of real values.
-  !
+
   !>        \details Compares two reals if they are numerically equal or not, i.e.
-  !>        equal: \f[ |\frac{a-b}{b}| < \epsilon \f]
-  !
-  !     INTENT(IN)
+  !!        equal: \f[ |\frac{a-b}{b}| < \epsilon \f]
+  !!
+  !!        \b Example
+  !!
+  !!        Returns ´.false.´
+  !!        \code{.f90}
+  !!        vec1 = (/ 1., 2., 3., -999., 5., 6. /)
+  !!        vec2 = (/ 1., 1., 3., -999., 10., 6. /)
+  !!        isequal = equal(vec1, vec2)
+  !!        \endcode
+
   !>        \param[in] "real(sp/dp) :: a"        First number to compare
   !>        \param[in] "real(sp/dp) :: b"        Second number to compare
-  !
-  !     INTENT(INOUT)
-  !         None
+  !>        \retval    "real(sp/dp) :: equal" \f$ a == b \f$ logically true or false
 
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !>       \return     real(sp/dp) :: equal &mdash; \f$ a == b \f$ logically true or false
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         vec1 = (/ 1., 2., 3., -999., 5., 6. /)
-  !         vec2 = (/ 1., 1., 3., -999., 10., 6. /)
-  !         isequal = equal(vec1, vec2)
-  !         -> see also example in test directory
-
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
   !>        \authors Matthias Cuntz, Juliane Mai
   !>        \date Feb 2014
-  !         Modified, Matthias Cuntz, Juliane Mai, Feb 2014 - sp, dp
+  !!          - sp, dp
   INTERFACE equal
     MODULE PROCEDURE equal_sp, equal_dp
   END INTERFACE equal
 
+  !> \brief Comparison of real values for inequality.
+  !> \see equal
   INTERFACE notequal
     MODULE PROCEDURE notequal_sp, notequal_dp
   END INTERFACE notequal
 
+  !> \brief Comparison of real values: `a >= b`.
   INTERFACE greaterequal
     MODULE PROCEDURE greaterequal_sp, greaterequal_dp
   END INTERFACE greaterequal
 
+  !> \brief Comparison of real values: `a <= b`.
   INTERFACE lesserequal
     MODULE PROCEDURE lesserequal_sp, lesserequal_dp
   END INTERFACE lesserequal
 
+  !> \copydoc equal
   INTERFACE eq
     MODULE PROCEDURE equal_sp, equal_dp
   END INTERFACE eq
 
+  !> \copydoc notequal
   INTERFACE ne
     MODULE PROCEDURE notequal_sp, notequal_dp
   END INTERFACE ne
 
+  !> \copydoc greaterequal
   INTERFACE ge
     MODULE PROCEDURE greaterequal_sp, greaterequal_dp
   END INTERFACE ge
 
+  !> \copydoc lesserequal
   INTERFACE le
     MODULE PROCEDURE lesserequal_sp, lesserequal_dp
   END INTERFACE le
@@ -151,91 +132,66 @@ MODULE mo_utils
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         is_finite
-
-  !     PURPOSE
-  !         Elemental inquiry functions returning .true. if the argument has a value
-  !         implied by the name of the function.
-  !
   !>        \brief .true. if not IEEE Inf.
-  !
-  !>        \details Checks for IEEE Inf, i.e. Infinity.\n
-  !>                 Wraps to functions of the intrinsic module ieee_arithmetic.
-  !
-  !     INTENT(IN)
-  !>        \param[in] "real(sp/dp) :: a"        Number to be evaluated.
-  !
-  !     INTENT(INOUT)
-  !         None
 
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !>       \return logical :: is_finite &mdash; \f$ a \neq \infty \f$,
-  !>                                                             logically true or false.
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         vec1 = (/ NaN, 2., 3., Inf, 5., 6. /)
-  !         is_finite = equal(vec1)
-  !         is_nan    = equal(vec1)
-  !         is_normal = equal(vec1)
-  !         -> see also example in test directory
+  !>        \details
+  !!        Checks for IEEE Inf, i.e. Infinity.\n
+  !!        Wraps to functions of the intrinsic module ieee_arithmetic.
+  !!
+  !!        \b Example
+  !!
+  !!        Returns `.false.` in 1st and 4th element.
+  !!        \code{.f90}
+  !!        vec1 = (/ NaN, 2., 3., Inf, 5., 6. /)
+  !!        isfinite = is_finite(vec1)
+  !!        \endcode
 
-  !     LITERATURE
-  !         None
+  !>        \param[in] "real(sp/dp) :: a"   Number to be evaluated.
+  !>        \retval "logical :: is_finite"  \f$ a \neq \infty \f$, logically true or false.
 
-  !     HISTORY
   !>        \authors Matthias Cuntz
   !>        \date Mar 2015
   INTERFACE is_finite
     MODULE PROCEDURE is_finite_sp, is_finite_dp
   END INTERFACE is_finite
 
-  !     NAME
-  !         is_nan
-  !
   !>        \brief .true. if IEEE NaN.
-  !
-  !>        \details Checks for IEEE NaN, i.e. Not-a-Number.\n
-  !>                 Wraps to functions of the intrinsic module ieee_arithmetic.
-  !
-  !     INTENT(IN)
+
+  !>        \details
+  !!        Checks for IEEE NaN, i.e. Not-a-Number.\n
+  !!        Wraps to functions of the intrinsic module ieee_arithmetic.
+  !!
+  !!        \b Example
+  !!
+  !!        Returns `.false.` in all but 1st element
+  !!        \code{.f90}
+  !!        vec1 = (/ NaN, 2., 3., Inf, 5., 6. /)
+  !!        isnan = is_nan(vec1)
+  !!        \endcode
+
   !>        \param[in] "real(sp/dp) :: a"        Number to be evaluated.
-  !
-  !     RETURN
-  !>       \return logical :: is_nan &mdash; \f$ a = NaN \f$, logically true or false.
+  !>        \retval "logical :: is_nan"  \f$ a = NaN \f$, logically true or false.
 
   INTERFACE is_nan
     MODULE PROCEDURE is_nan_sp, is_nan_dp
   END INTERFACE is_nan
 
-  !     NAME
-  !         is_normal
-  !
   !>        \brief .true. if nor IEEE Inf nor IEEE NaN.
-  !
-  !>        \details Checks if IEEE Inf and IEEE NaN, i.e. Infinity and Not-a-Number.\n
-  !>                 Wraps to functions of the intrinsic module ieee_arithmetic.
-  !
-  !     INTENT(IN)
+
+  !>        \details
+  !!        Checks if IEEE Inf and IEEE NaN, i.e. Infinity and Not-a-Number.\n
+  !!        Wraps to functions of the intrinsic module ieee_arithmetic.
+  !!
+  !!        \b Example
+  !!
+  !!        Returns `.true.` in all but 1st and 4th element.
+  !!        \code{.f90}
+  !!        vec1 = (/ NaN, 2., 3., Inf, 5., 6. /)
+  !!        isnormal = is_normal(vec1)
+  !!        \endcode
+
   !>        \param[in] "real(sp/dp) :: a"        Number to be evaluated.
-  !
-  !     RETURN
-  !>       \return logical :: is_normal &mdash; \f$ a \neq \infty \land a = NaN \f$, logically true or false.
+  !>        \retval "logical :: is_normal" \f$ a \neq \infty \land a = NaN \f$, logically true or false.
 
   INTERFACE is_normal
     MODULE PROCEDURE is_normal_sp, is_normal_dp
@@ -244,60 +200,37 @@ MODULE mo_utils
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         locate
-
-  !     PURPOSE
-  !         Find closest values in a monotonic series
-  !
   !>         \brief Find closest values in a monotonic series, returns the indexes.
-  !
-  !>         \details Given an array x(1:n), and given a value y,
-  !>         returns a value j such that y is between
-  !>         x(j) and x(j+1).\n
-  !
-  !>         x must be monotonically increasing.\n
-  !>         j=0 or j=N is returned to indicate that x is out of range.
-  !
-  !     INTENT(IN)
-  !>        \param[in] "real(dp/sp)    :: x(:)"            Sorted array
-  !>        \param[in] "real(dp/sp)    :: y[(:)]"          Value(s) of which the closest match in x(:) is wanted
-  !
-  !     INTENT(INOUT)
-  !         None
-  !
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !>       \return     integer(i4) :: index[(:)] &mdash; index(es) of x so that y is between x(index) and x(index+1)
-  !
-  !     RESTRICTIONS
-  !>       \note x must be monotonically increasing.\n
-  !
-  !     EXAMPLE
-  !         x = (/ 1., 2., 3., -999., 5., 6. /)
-  !         y = (/ 1.1, 5.6 /)
-  !         ii = locate(x, y)
-  !         -> ii == (/ 1, 5 /)
-  !         y = 1.1
-  !         ii = locate(x, y)
-  !         -> ii == 1
-  !         -> see also example in test directory
 
-  !     LITERATURE
-  !         None
+  !>        \details
+  !!        Given an array x(1:n), and given a value y,
+  !!        returns a value j such that y is between
+  !!        x(j) and x(j+1).\n
+  !!
+  !!        x must be monotonically increasing.\n
+  !!        j=0 or j=N is returned to indicate that x is out of range.
+  !!
+  !!        \b Example
+  !!
+  !!        Returns `ii = (/1, 5/)`
+  !!        \code{.f90}
+  !!        x = (/ 1., 2., 3., -999., 5., 6. /)
+  !!        y = (/ 1.1, 5.6 /)
+  !!        ii = locate(x, y)
+  !!        \endcode
+  !!
+  !!        Returns `ii = 1`
+  !!        \code{.f90}
+  !!        y = 1.1
+  !!        ii = locate(x, y)
+  !!        \endcode
 
-  !     HISTORY
+  !>        \param[in] "real(dp/sp)    :: x(:)"           Sorted array
+  !>        \param[in] "real(dp/sp)    :: y[(:)]"         Value(s) of which the closest match in x(:) is wanted
+  !>        \retval    "integer(i4) :: index[(:)]"        Index(es) of x so that y is between x(index) and x(index+1)
+
+  !>        \note x must be monotonically increasing.\n
+
   !>        \author Matthias Cuntz
   !>        \date May 2014
   INTERFACE locate
@@ -307,57 +240,42 @@ MODULE mo_utils
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         swap
-
-  !     PURPOSE
-  !         Swap to values/arrays or two elements in 1D-array.
-  !
   !>        \brief Swap to values or two elements in array.
-  !
-  !>        \details Swaps either two entities, i.e. scalars, vectors, matrices,
-  !>                 or two elements in a vector.
-  !>                 The call is either \n
-  !>                   call swap(x,y) \n
-  !>                 or \n
-  !>                   call swap(vec,i,j)
-  !
-  !     INTENT(IN)
+
+  !>        \details
+  !!        Swaps either two entities, i.e. scalars, vectors, matrices,
+  !!        or two elements in a vector.
+  !!        The call is either \n
+  !!          call swap(x,y) \n
+  !!        or \n
+  !!          call swap(vec,i,j)
+  !!
+  !!        \b Example
+  !!
+  !!        \code{.f90}
+  !!        vec1 = (/ 1., 2., 3., -999., 5., 6. /)
+  !!        vec2 = (/ 1., 1., 3., -999., 10., 6. /)
+  !!        \endcode
+  !!
+  !!        Swaps elements in vec1 and vec2
+  !!        \code{.f90}
+  !!        call swap(vec1, vec2)
+  !!        \endcode
+  !!
+  !!        Swaps 1st and 3rd element of vec1
+  !!        \code{.f90}
+  !!        call swap(vec1, 1, 3)
+  !!        \endcode
+
+
   !>        \param[in] "integer(i4)    :: i"               Index of first element to be swapped with second [case swap(vec,i,j)]
   !>        \param[in] "integer(i4)    :: j"               Index of second element to be swapped with first [case swap(vec,i,j)]
-  !
-  !     INTENT(INOUT)
   !>        \param[inout] "real(sp/dp/i4) :: x[(:,...)]"   First scalar or array to swap with second [case swap(x,y)]
   !>        \param[inout] "real(sp/dp/i4) :: y[(:[,:])]"   Second scalar or array to swap with first [case swap(x,y)]
-  !>
   !>        \param[inout] "real(sp/dp/i4) :: x(:)"         Vector of which to elements are swapped [case swap(vec,i,j)]
 
-  !     INTENT(OUT)
-  !         None
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RESTRICTIONS
-  !         No mask or undef.
-  !
-  !     EXAMPLE
-  !         vec1 = (/ 1., 2., 3., -999., 5., 6. /)
-  !         vec2 = (/ 1., 1., 3., -999., 10., 6. /)
-  !         call swap(vec1, vec2)
-  !         call swap(vec1, 1, 3)
-  !         -> see also example in test directory
+  !>        \note No mask or undef.
 
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
   !>        \author Matthias Cuntz
   !>        \date May 2014
   INTERFACE swap
@@ -369,79 +287,52 @@ MODULE mo_utils
 
   ! ------------------------------------------------------------------
 
-  !     NAME
-  !         special_value
-
-  !     PURPOSE
-  !         Mimics the function ieee_value of the intrinsic module ieee_arithmetic.
-  !
   !>        \brief Special IEEE values.
-  !
-  !>        \details Returns special IEEE values such as Infinity or Not-a-Number.\n
-  !>                 Wraps to function ieee_value of the intrinsic module ieee_arithmetic.
-  !>
-  !>                 Current special values are:\n
-  !>                 IEEE_SIGNALING_NAN\n
-  !>                 IEEE_QUIET_NAN\n
-  !>                 IEEE_NEGATIVE_INF\n
-  !>                 IEEE_POSITIVE_INF\n
-  !>                 IEEE_NEGATIVE_DENORMAL\n
-  !>                 IEEE_POSITIVE_DENORMAL\n
-  !>                 IEEE_NEGATIVE_NORMAL\n
-  !>                 IEEE_POSITIVE_NORMAL\n
-  !>                 IEEE_NEGATIVE_ZERO\n
-  !>                 IEEE_POSITIVE_ZERO
-  !
-  !     INTENT(IN)
-  !>        \param[in] "real(sp/dp) :: x"         dummy for kind of output
-  !>        \param[in] "character(le=*) :: ieee"   ieee signal nanme
-  !
-  !     INTENT(INOUT)
-  !         None
 
-  !     INTENT(OUT)
-  !
-  !     INTENT(IN), OPTIONAL
-  !         None
-  !
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-  !
-  !     INTENT(OUT), OPTIONAL
-  !         None
-  !
-  !     RETURN
-  !>       \return real(sp/dp) :: special_value &mdash; IEEE special value\n
-  !>                 IEEE_SIGNALING_NAN\n
-  !>                 IEEE_QUIET_NAN (==IEEE_SIGNALING_NAN for gfortran)\n
-  !>                 IEEE_NEGATIVE_INF\n
-  !>                 IEEE_POSITIVE_INF\n
-  !>                 IEEE_NEGATIVE_DENORMAL (==-0.0 for gfortran)\n
-  !>                 IEEE_POSITIVE_DENORMAL (==0.0 for gfortran)\n
-  !>                 IEEE_NEGATIVE_NORMAL (==-1.0 for gfortran)\n
-  !>                 IEEE_POSITIVE_NORMAL (==1.0 for gfortran)\n
-  !>                 IEEE_NEGATIVE_ZERO\n
-  !>                 IEEE_POSITIVE_ZERO\n
+  !>        \details
+  !!        Returns special IEEE values such as Infinity or Not-a-Number.\n
+  !!        Wraps to function ieee_value of the intrinsic module ieee_arithmetic.\n
+  !!        Current special values are:\n
+  !!        - IEEE_SIGNALING_NAN
+  !!        - IEEE_QUIET_NAN
+  !!        - IEEE_NEGATIVE_INF
+  !!        - IEEE_POSITIVE_INF
+  !!        - IEEE_NEGATIVE_DENORMAL
+  !!        - IEEE_POSITIVE_DENORMAL
+  !!        - IEEE_NEGATIVE_NORMAL
+  !!        - IEEE_POSITIVE_NORMAL
+  !!        - IEEE_NEGATIVE_ZERO
+  !!        - IEEE_POSITIVE_ZERO
+  !!
+  !!        \b Example
+  !!
+  !!        Returns NaN
+  !!        \code{.f90}
+  !!        NaN = special_value(1.0, 'IEEE_QUIET_NAN')
+  !!        nan = special_value(1.0_dp, 'ieee_quiet_nan')
+  !!        \endcode
 
-  !
-  !     RESTRICTIONS
-  !         None
-  !
-  !     EXAMPLE
-  !         NaN = special_value(1.0, 'IEEE_QUIET_NAN')
-  !         nan = special_value(1.0_dp, 'ieee_quiet_nan')
-  !         -> see also example in test directory
+  !>        \param[in] "real(sp/dp) :: x"             dummy for kind of output
+  !>        \param[in] "character(le=*) :: ieee"      ieee signal nanme
+  !>        \retval    "real(sp/dp) :: special_value" IEEE special value,
+  !!                                                  IEEE_SIGNALING_NAN,
+  !!                                                  IEEE_QUIET_NAN (==IEEE_SIGNALING_NAN for gfortran),
+  !!                                                  IEEE_NEGATIVE_INF,
+  !!                                                  IEEE_POSITIVE_INF,
+  !!                                                  IEEE_NEGATIVE_DENORMAL (==-0.0 for gfortran),
+  !!                                                  IEEE_POSITIVE_DENORMAL (==0.0 for gfortran),
+  !!                                                  IEEE_NEGATIVE_NORMAL (==-1.0 for gfortran),
+  !!                                                  IEEE_POSITIVE_NORMAL (==1.0 for gfortran),
+  !!                                                  IEEE_NEGATIVE_ZERO,
+  !!                                                  IEEE_POSITIVE_ZERO,
 
-  !     LITERATURE
-  !         None
-
-  !     HISTORY
   !>        \authors Matthias Cuntz
   !>        \date Mar 2015
   INTERFACE special_value
     MODULE PROCEDURE special_value_sp, special_value_dp
   END INTERFACE special_value
 
+  !> \brief abstract interface for a relational operator on double precision arguments
   abstract interface
     logical pure function relational_operator_dp(a, b) result(boolean)
       import dp
@@ -449,6 +340,7 @@ MODULE mo_utils
     end function relational_operator_dp
   end interface
 
+  !> \brief abstract interface for a relational operator on single precision arguments
   abstract interface
     logical pure function relational_operator_sp(a, b) result(boolean)
       import sp
@@ -847,17 +739,17 @@ CONTAINS
 
   real(dp), intent(in) :: x !< dummy for kind of output.
   character(len = *), intent(in) :: ieee !< ieee signal name.
-  real(dp) :: special_value_dp !< real(dp) :: special_value &mdash; IEEE special value\n
-  !<                 IEEE_SIGNALING_NAN\n
-  !<                 IEEE_QUIET_NAN\n
-  !<                 IEEE_NEGATIVE_INF\n
-  !<                 IEEE_POSITIVE_INF\n
-  !<                 IEEE_NEGATIVE_DENORMAL\n
-  !<                 IEEE_POSITIVE_DENORMAL\n
-  !<                 IEEE_NEGATIVE_NORMAL\n
-  !<                 IEEE_POSITIVE_NORMAL\n
-  !<                 IEEE_NEGATIVE_ZERO\n
-  !<                 IEEE_POSITIVE_ZERO\n
+  real(dp) :: special_value_dp !< real(dp) :: special_value &mdash; IEEE special value,
+  !!                                                  IEEE_SIGNALING_NAN,
+  !!                                                  IEEE_QUIET_NAN,
+  !!                                                  IEEE_NEGATIVE_INF,
+  !!                                                  IEEE_POSITIVE_INF,
+  !!                                                  IEEE_NEGATIVE_DENORMAL,
+  !!                                                  IEEE_POSITIVE_DENORMAL,
+  !!                                                  IEEE_NEGATIVE_NORMAL,
+  !!                                                  IEEE_POSITIVE_NORMAL,
+  !!                                                  IEEE_NEGATIVE_ZERO,
+  !!                                                  IEEE_POSITIVE_ZERO,
 
   ! local
   character(len = 21) :: ieee_up
@@ -909,17 +801,17 @@ CONTAINS
 
   real(sp), intent(in) :: x !< dummy for kind of output.
   character(len = *), intent(in) :: ieee !< ieee signal name.
-  real(sp) :: special_value_sp !< real(sp) :: special_value &mdash; IEEE special value\n
-  !<                 IEEE_SIGNALING_NAN\n
-  !<                 IEEE_QUIET_NAN\n
-  !<                 IEEE_NEGATIVE_INF\n
-  !<                 IEEE_POSITIVE_INF\n
-  !<                 IEEE_NEGATIVE_DENORMAL\n
-  !<                 IEEE_POSITIVE_DENORMAL\n
-  !<                 IEEE_NEGATIVE_NORMAL\n
-  !<                 IEEE_POSITIVE_NORMAL\n
-  !<                 IEEE_NEGATIVE_ZERO\n
-  !<                 IEEE_POSITIVE_ZERO\n
+  real(sp) :: special_value_sp !< IEEE special value,
+  !!                                                              IEEE_SIGNALING_NAN,
+  !!                                                              IEEE_QUIET_NAN,
+  !!                                                              IEEE_NEGATIVE_INF,
+  !!                                                              IEEE_POSITIVE_INF,
+  !!                                                              IEEE_NEGATIVE_DENORMAL,
+  !!                                                              IEEE_POSITIVE_DENORMAL,
+  !!                                                              IEEE_NEGATIVE_NORMAL,
+  !!                                                              IEEE_POSITIVE_NORMAL,
+  !!                                                              IEEE_NEGATIVE_ZERO,
+  !!                                                              IEEE_POSITIVE_ZERO,
 
   ! local
   character(len = 21) :: ieee_up
@@ -1231,12 +1123,12 @@ CONTAINS
 
   function unpack_chunkwise_dp(vector, mask, field, chunksizeArg) result(unpacked)
   !< this is a chunkwise application of the intrinsic unpack function
-  !< it became necessary as the unpack intrinsic can handle only arrays
-  !< with size smaller than huge(default_integer_kind)...
-  !< it has the following restrictions:
-  !<   - vector must be of type dp
-  !<   - mask must have rank 1
-  !<   - field must be a scalar
+  !! it became necessary as the unpack intrinsic can handle only arrays
+  !! with size smaller than huge(default_integer_kind)...
+  !! it has the following restrictions:\n
+  !!   - vector must be of type dp
+  !!   - mask must have rank 1
+  !!   - field must be a scalar
     real(dp), dimension(:), intent(in) :: vector
     logical, dimension(:), intent(in) :: mask
     real(dp), intent(in) :: field
@@ -1267,8 +1159,8 @@ CONTAINS
         unpacked(indexMin: indexMax) = field
       else
         unpacked(indexMin: indexMax) = unpack(vector(currentCounts: currentCounts + counts - 1_i8), &
-                                                  mask(indexMin: indexMax), &
-                                                  field)
+                                              mask(indexMin: indexMax), &
+                                              field)
       end if
       ! advance the counters
       currentCounts = currentCounts + counts
@@ -1279,10 +1171,10 @@ CONTAINS
 
   function unpack_chunkwise_i1(vector, mask, field, chunksizeArg) result(unpacked)
   !< this is a chunkwise application of the intrinsic unpack function
-  !< it has the following restrictions:
-  !<   - vector must be of type i1
-  !<   - mask must have rank 1
-  !<   - field must be a scalar
+  !! it has the following restrictions:\n
+  !!   - vector must be of type i1
+  !!   - mask must have rank 1
+  !!   - field must be a scalar
     integer(i1), dimension(:), intent(in) :: vector
     logical, dimension(:), intent(in) :: mask
     integer(i1), intent(in) :: field
@@ -1308,8 +1200,8 @@ CONTAINS
       counts = count(mask(indexMin: indexMax), kind=i8)
       ! unpack slices of maximum size
       unpacked(indexMin: indexMax) = unpack(vector(currentCounts: currentCounts + counts - 1_i8), &
-                                                mask(indexMin: indexMax), &
-                                                field)
+                                            mask(indexMin: indexMax), &
+                                            field)
       ! advance the counters
       currentCounts = currentCounts + counts
       i = i + 1_i8
