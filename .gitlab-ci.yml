@@ -258,6 +258,13 @@ test-intel19MPI-release:
     CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
   <<: *test_template
 
+test-intel2020b-release:
+  variables:
+    <<: *release_vars
+    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.intel2020b
+    CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
+  <<: *test_template
+
 coverage:
   variables:
     <<: *debug_vars
