@@ -236,12 +236,13 @@ test-intel18-release:
     CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
   <<: *test_template
 
-test-intel18-debug:
-  variables:
-    <<: *debug_vars
-    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.intel18
-    CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug'
-  <<: *test_template
+# # intel18debug takes ages for test_mcmc
+# test-intel18-debug:
+#   variables:
+#     <<: *debug_vars
+#     MODULE_LOAD_SCRIPT: hpc-module-loads/eve.intel18
+#     CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug'
+#   <<: *test_template
 
 test-intel19-release:
   variables:
@@ -261,7 +262,7 @@ coverage:
   variables:
     <<: *debug_vars
     <<: *coverage_vars
-    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran83MPI
+    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.chs-conda01
     CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON'
   <<: *coverage_template
 
