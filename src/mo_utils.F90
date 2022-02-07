@@ -1280,7 +1280,6 @@ CONTAINS
 
   ! local
   character(len = 21) :: ieee_up
-  real(dp) :: tmp
 
   ieee_up = toupper(ieee)
     select case(trim(ieee_up))
@@ -1342,7 +1341,6 @@ CONTAINS
 
   ! local
   character(len = 21) :: ieee_up
-    real(sp) :: tmp
 
   ieee_up = toupper(ieee)
     select case(trim(ieee_up))

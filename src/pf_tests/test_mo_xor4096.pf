@@ -29,8 +29,6 @@ module test_mo_xor4096
   integer(i4), allocatable       :: CheckISP_D0(:)
   integer(i4), allocatable       :: CheckISP_D1(:,:)
 
-  integer(i8)                    :: i,j
-
   ! Needed for optional versions: Single
   integer(i4), dimension(n_save_state)   :: save_state_d0
   integer(i4), dimension(3, n_save_state) :: save_state_d1_3
@@ -42,6 +40,8 @@ contains
   ! 1 STREAM
   @test
   subroutine test_uniform_sp_1stream()
+
+    integer(i8)                    :: i
 
     ISeedSP_D0 = 3_i4
     allocate (CheckISP_D0(5))
@@ -59,6 +59,8 @@ contains
   ! 3 STREAMS
   @test
   subroutine test_uniform_sp_3stream()
+
+    integer(i8)                    :: i,j
 
     allocate(ISeedSP(NumberOfStreams))
     allocate(SingleIntegerRN(NumberOfStreams))
@@ -85,6 +87,8 @@ contains
   ! with Optional
   @test
   subroutine test_uniform_sp_optional()
+
+    integer(i8)                    :: i
 
     ISeedSP_D0 = 3_i4
     allocate (CheckISP_D0(6))

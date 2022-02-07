@@ -24,7 +24,7 @@ module test_mo_mcmc
   real(dp), dimension(:,:), allocatable :: mcmc_paras
   integer(i8)                           :: seed
   ! for result handling
-  integer(i4)                           :: i, samples
+  integer(i4)                           :: samples
 
 contains
 
@@ -33,6 +33,7 @@ contains
   subroutine test_mcmc()
 
     real(dp)     :: t = 1.e-7_dp
+    integer(i4)  :: i
 
     ! loading the data points observed
     call setmeas()
@@ -104,6 +105,7 @@ contains
   subroutine test_mcmc_restart()
 
     real(dp)     :: t = 1.e-7_dp
+    integer(i4)  :: i
 
     write(*,*) ''
     write(*,*) '---------------------------------------------------------------------------------------------'
@@ -152,6 +154,7 @@ contains
   subroutine test_mcmc_stddev()
 
     real(dp)     :: t = 1.e-7_dp
+    integer(i4)  :: i
 
     write(*,*) ''
     write(*,*) '---------------------------------------------------------------------------------------------'

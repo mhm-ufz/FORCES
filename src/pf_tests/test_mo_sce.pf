@@ -18,7 +18,7 @@ module test_mo_sce
   integer(i8)                           :: neval      ! number of function evaluations = size(history,1)
   real(dp), dimension(:),   allocatable :: history    ! best function value found after ith iteration
 
-  integer(i4)   :: n, iPar
+  integer(i4)   :: n
   logical       :: parallel
 
   procedure(eval_interface), pointer :: eval
@@ -30,6 +30,7 @@ contains
   subroutine test_sce_ackley()
 
     real(dp)                ::  t = 1.e-7_dp
+    integer(i4)             :: iPar
   
     ! Dimension of test function = number of parameters
     n = 30
@@ -157,6 +158,7 @@ contains
   subroutine test_sce_griewank()
 
     real(dp)                ::  t = 1.e-7_dp
+    integer(i4)             ::  iPar
   
     ! Dimension of test function = number of parameters
     n = 3

@@ -8,7 +8,6 @@ module test_mo_errormeasures
   
   implicit none
 
-  integer(i4)                 :: i, j, k
   real(dp)                    :: t_dp
   real(sp)                    :: t_sp
   real(dp), dimension(54)     :: vec1, vec2
@@ -20,6 +19,8 @@ contains
 
   @test
   subroutine errormeasures_initial()
+
+    integer(i4)                 :: i, j, k
 
     write(*,*) ''
     write(*,*) 'Test mo_errormeasures.f90'

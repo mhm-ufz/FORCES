@@ -28,7 +28,7 @@ module test_mo_netcdf
   type(NcDimension)        :: dim_x, dim_y, dim_time
   type(NcVariable)         :: var_lon, var_lat, var_time, var_data
 
-  integer(i4)              :: wtime(ntime+nadd),  i
+  integer(i4)              :: wtime(ntime+nadd)
   integer(i4), allocatable :: rtime(:)
   real(sp)                 :: wlat(nx,ny), wlon(nx,ny)
   real(sp),    allocatable :: rlat(:,:),rlon(:,:)
@@ -41,6 +41,8 @@ contains
   ! 0. Initialization ...
   ! ------------------------------------------
   subroutine test_initialization()
+
+    integer(i4)   ::  i
     
     ! generate some dummy data
     wfvalue = -9999._dp
@@ -63,6 +65,8 @@ contains
   ! --------------------------------------------
   @test
   subroutine test_netcdf_create_new()
+
+    integer(i4)   ::  i
 
     ! 1.1 create a file
     nc = NcDataset(fname, "w")
@@ -168,6 +172,8 @@ contains
   @test
   subroutine test_netcdf_append()
   
+    integer(i4)   ::  i
+
     !
     ! 2.1 Write data
     ! --------------

@@ -504,7 +504,7 @@ contains
     type(NcVariable) :: ncVarBounds
     type(NcDimension) :: bndsDim
     integer(i8) :: dimLength, iBound
-    integer(i4) :: reference, iAtt
+    integer(i4) :: reference
     character(256) :: dimBoundName
     real(dp), allocatable, dimension(:, :) :: boundData
 
@@ -821,7 +821,7 @@ contains
   function getVariableDtype(self)
     class(NcVariable), intent(in) :: self
     integer(i4) :: dtype
-    character(3) :: getVariableDtype
+    character(4) :: getVariableDtype
 
     call check(nf90_inquire_variable(self%parent%id, self%id, xtype = dtype), &
             "Could not inquire variable: " // self%getName())
@@ -1045,7 +1045,7 @@ contains
     ${type}$ :: fillValue, minValue, maxValue
 #: if rank > 0
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
 $: '      allocate(data(' + ('datashape({}), '*rank).format(*list(range(1, rank+1)))[:-2] + '))'
@@ -1192,7 +1192,7 @@ $: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+
   end function getDtypeFromString
 
   function getDtypeFromInteger(dtype)
-    character(3) :: getDtypeFromInteger
+    character(4) :: getDtypeFromInteger
     integer(i4) :: dtype
 
     select case(dtype)

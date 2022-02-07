@@ -1214,7 +1214,7 @@ contains
     logical, dimension(:,:), allocatable  :: mplaceholder_lgt 
   
     logical, dimension(:,:,:), allocatable  :: matrix1_3d_lgt, matrix2_3d_lgt, matrix3_3d_lgt, matrix4_3d_lgt
-    logical, dimension(:,:,:), allocatable  :: matrix5_3d_lgt, matrix6_3d_lgt
+    logical, dimension(:,:,:), allocatable  :: matrix5_3d_lgt
 
     logical, dimension(:,:,:,:), allocatable  :: matrix1_4d_lgt, matrix2_4d_lgt, matrix3_4d_lgt, matrix4_4d_lgt
     logical, dimension(:,:,:,:), allocatable  :: matrix5_4d_lgt, matrix6_4d_lgt

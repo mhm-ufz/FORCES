@@ -19,13 +19,14 @@ module test_mo_ncread
   character(256)                                :: attvalues
   integer(i4)                                   :: ncid
   integer(i4)                                   :: nodims
-  integer(i4)                                   :: i
   integer(i4)   , dimension(5)                  :: dl
   
 contains
   
   @test
   subroutine test_ncread()
+
+    integer(i4)     :: i
   
     !
     filename = '../FORTRAN_chs_lib/test/test_mo_ncread/pr_1961-2000.nc'

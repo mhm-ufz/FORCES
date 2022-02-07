@@ -17,7 +17,7 @@ module test_mo_julian
   integer(i4), dimension(3) :: dd12, mm12, yy12, hh12, nn12, ss12
   real(dp),    dimension(3) :: dec1
   real(dp),    dimension(3) :: rr1, ff1, gg1
-  integer(i4) :: jj
+  
 
   ! -----------------------
   ! standard calendar tests
@@ -28,6 +28,8 @@ contains
   @test
   subroutine test_julday_caldat()
   
+    integer(i4) :: jj
+
     do jj=1, 2524594 ! 01.01.2200
       call caldat(jj, dd, mm, yy)
       ss = julday(dd, mm, yy)
@@ -44,6 +46,8 @@ contains
   ! Test ndays, ndyin
   @test
   subroutine test_ndays_ndyin()
+
+    integer(i4) :: jj
 
     do jj=0, 109573 ! 01.01.2200
       call ndyin(jj,dd,mm,yy)
@@ -76,6 +80,8 @@ contains
   @test
   subroutine test_date2dec_dec2date()
   
+    integer(i4) :: jj
+
     ! Scalar test date2dec-dec2date
     do jj=1, 2524594 ! 01.01.2200
       call random_number(ff)
@@ -192,6 +198,8 @@ contains
   @test
   subroutine test_mix()
   
+    integer(i4) :: jj
+
     do jj=1, 2524594 ! 01.01.2200
       call caldat(jj, dd, mm, yy)
       ss = int(date2dec(dd, mm, yy, 12, 0, 0), i4)
@@ -206,6 +214,8 @@ contains
   ! julday360, caldat360
   @test
   subroutine test_julday_caldat_360()
+
+    integer(i4) :: jj
 
     call setCalendar("360day")
 
@@ -235,6 +245,8 @@ contains
   @test
   subroutine test_date2dec_dec2date_360()
   
+    integer(i4) :: jj
+
     ! Scalar test date2dec-dec2date 360
     do jj=1, 109573 ! 01.01.2200
       call random_number(ff)
@@ -352,6 +364,8 @@ contains
   @test
   subroutine test_mix_360()
   
+    integer(i4) :: jj
+
     do jj=1, 79200 ! 01.01.2200
       call caldat(jj, dd, mm, yy)
       ss = int(date2dec(dd, mm, yy, 12, 0, 0), i4)
@@ -367,6 +381,8 @@ contains
   @test
   subroutine test_julday_caldat_365()
   
+    integer(i4) :: jj
+
     call setCalendar("365day")
 
     do jj=0, 803000 ! 01.01.2200
@@ -395,6 +411,8 @@ contains
   @test
   subroutine test_date2dec_dec2date_365()
   
+    integer(i4) :: jj
+
     ! Scalar test date2dec-dec2date 365
     do jj=1, 803000 ! 01.01.2200
       call random_number(ff)
@@ -512,6 +530,8 @@ contains
   @test
   subroutine test_mix_365()
   
+    integer(i4) :: jj
+
     do jj=1, 803000 ! 01.01.2200
       call caldat(jj, dd, mm, yy)
       ss = int(date2dec(dd, mm, yy, 12, 0, 0), i4)
