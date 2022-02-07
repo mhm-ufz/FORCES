@@ -657,6 +657,7 @@ CONTAINS
     real(SP) :: t24 = 1.0_SP / 16777216.0_SP     ! = 0.5^24 = 1/2^24
 
     !$omp   threadprivate(x,i,w)
+    !
 
     ! produces a 24bit Integer Random Number (0...16777216) and
     ! scales it afterwards to (0.0,1.0)
@@ -745,6 +746,8 @@ CONTAINS
       save_state(r + 2) = w
       if ((r + 3) <= n_save_state) save_state(r + 3 : n_save_state) = 0
     end if
+
+    !
 
   end subroutine xor4096f_0d
 

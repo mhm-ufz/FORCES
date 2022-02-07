@@ -6,7 +6,7 @@ module mo_likelihood
 
   USE mo_kind,   only: i4, dp
   USE mo_moment, only: stddev
-  use mo_optimization_utils, only: eval_interface, objective_interface
+  use mo_optimization_utils, only: eval_interface
 
   Implicit NONE
 

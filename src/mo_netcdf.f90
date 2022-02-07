@@ -726,7 +726,7 @@ contains
     type(NcVariable) :: ncVarBounds
     type(NcDimension) :: bndsDim
     integer(i8) :: dimLength, iBound
-    integer(i4) :: reference, iAtt
+    integer(i4) :: reference
     character(256) :: dimBoundName
     real(dp), allocatable, dimension(:, :) :: boundData
 
@@ -1043,7 +1043,7 @@ contains
   function getVariableDtype(self)
     class(NcVariable), intent(in) :: self
     integer(i4) :: dtype
-    character(3) :: getVariableDtype
+    character(4) :: getVariableDtype
 
     call check(nf90_inquire_variable(self%parent%id, self%id, xtype = dtype), &
             "Could not inquire variable: " // self%getName())
@@ -1547,7 +1547,7 @@ contains
     integer(i4) :: flagMissing
     real(sp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1)))
@@ -1591,7 +1591,7 @@ contains
     integer(i4) :: flagMissing
     real(sp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2)))
@@ -1635,7 +1635,7 @@ contains
     integer(i4) :: flagMissing
     real(sp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3)))
@@ -1679,7 +1679,7 @@ contains
     integer(i4) :: flagMissing
     real(sp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3), datashape(4)))
@@ -1723,7 +1723,7 @@ contains
     integer(i4) :: flagMissing
     real(sp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
@@ -1767,7 +1767,7 @@ contains
     integer(i4) :: flagMissing
     real(sp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6)))
@@ -1901,7 +1901,7 @@ contains
     integer(i4) :: flagMissing
     real(dp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1)))
@@ -1945,7 +1945,7 @@ contains
     integer(i4) :: flagMissing
     real(dp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2)))
@@ -1989,7 +1989,7 @@ contains
     integer(i4) :: flagMissing
     real(dp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3)))
@@ -2033,7 +2033,7 @@ contains
     integer(i4) :: flagMissing
     real(dp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3), datashape(4)))
@@ -2077,7 +2077,7 @@ contains
     integer(i4) :: flagMissing
     real(dp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
@@ -2121,7 +2121,7 @@ contains
     integer(i4) :: flagMissing
     real(dp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6)))
@@ -2253,7 +2253,7 @@ contains
     integer(i4) :: flagMissing
     integer(i1) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1)))
@@ -2295,7 +2295,7 @@ contains
     integer(i4) :: flagMissing
     integer(i1) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2)))
@@ -2337,7 +2337,7 @@ contains
     integer(i4) :: flagMissing
     integer(i1) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3)))
@@ -2379,7 +2379,7 @@ contains
     integer(i4) :: flagMissing
     integer(i1) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3), datashape(4)))
@@ -2421,7 +2421,7 @@ contains
     integer(i4) :: flagMissing
     integer(i1) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
@@ -2463,7 +2463,7 @@ contains
     integer(i4) :: flagMissing
     integer(i1) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6)))
@@ -2590,7 +2590,7 @@ contains
     integer(i4) :: flagMissing
     integer(i2) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1)))
@@ -2632,7 +2632,7 @@ contains
     integer(i4) :: flagMissing
     integer(i2) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2)))
@@ -2674,7 +2674,7 @@ contains
     integer(i4) :: flagMissing
     integer(i2) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3)))
@@ -2716,7 +2716,7 @@ contains
     integer(i4) :: flagMissing
     integer(i2) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3), datashape(4)))
@@ -2758,7 +2758,7 @@ contains
     integer(i4) :: flagMissing
     integer(i2) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
@@ -2800,7 +2800,7 @@ contains
     integer(i4) :: flagMissing
     integer(i2) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6)))
@@ -2927,7 +2927,7 @@ contains
     integer(i4) :: flagMissing
     integer(i4) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1)))
@@ -2969,7 +2969,7 @@ contains
     integer(i4) :: flagMissing
     integer(i4) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2)))
@@ -3011,7 +3011,7 @@ contains
     integer(i4) :: flagMissing
     integer(i4) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3)))
@@ -3053,7 +3053,7 @@ contains
     integer(i4) :: flagMissing
     integer(i4) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3), datashape(4)))
@@ -3095,7 +3095,7 @@ contains
     integer(i4) :: flagMissing
     integer(i4) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
@@ -3137,7 +3137,7 @@ contains
     integer(i4) :: flagMissing
     integer(i4) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6)))
@@ -3264,7 +3264,7 @@ contains
     integer(i4) :: flagMissing
     integer(i8) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1)))
@@ -3306,7 +3306,7 @@ contains
     integer(i4) :: flagMissing
     integer(i8) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2)))
@@ -3348,7 +3348,7 @@ contains
     integer(i4) :: flagMissing
     integer(i8) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3)))
@@ -3390,7 +3390,7 @@ contains
     integer(i4) :: flagMissing
     integer(i8) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3), datashape(4)))
@@ -3432,7 +3432,7 @@ contains
     integer(i4) :: flagMissing
     integer(i8) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
@@ -3474,7 +3474,7 @@ contains
     integer(i4) :: flagMissing
     integer(i8) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), datashape(:)
-
+    
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
       allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6)))
@@ -3626,7 +3626,7 @@ contains
   end function getDtypeFromString
 
   function getDtypeFromInteger(dtype)
-    character(3) :: getDtypeFromInteger
+    character(4) :: getDtypeFromInteger
     integer(i4) :: dtype
 
     select case(dtype)

@@ -56,7 +56,7 @@
 !!          \endcode
 module mo_cli
 
-  use mo_kind, only: dp, i4
+  use mo_kind, only: i4
   use mo_message, only: error_message, message
 
   implicit none

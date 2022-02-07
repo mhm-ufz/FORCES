@@ -34,7 +34,6 @@ contains
 
     real(dp), dimension(10) :: dds_should
     real(dp)                :: t = 1.E-4
-    integer :: n 
   
     write(*,*) '--------------------------------------------------'
     write(*,*) '  Dynamically Dimensioned Search (DDS) Algorithm  '
@@ -70,7 +69,6 @@ contains
   
     real(dp), dimension(10) :: mdds_should
     real(dp)                :: t = 1.E-4
-    integer :: n 
 
     dv_ini        = (/ -.226265E+01, -.130187E+01, -.151219E+01, 0.133983E+00, 0.988159E+00, &
                      -.495074E+01, -.126574E+02, 0.572684E+00, 0.303864E+01, 0.343031E+01 /)

@@ -43,8 +43,8 @@ MODULE mo_boxcox
   ! History:
   !   Dec 2019: Robert Schweppe: - removed NR code (get_boxcox)
 
-  USE mo_kind, ONLY : i4, sp, dp
-  USE mo_utils, only : eq, le, ge
+  USE mo_kind, ONLY : sp, dp
+  USE mo_utils, only : le
 
   IMPLICIT NONE
 

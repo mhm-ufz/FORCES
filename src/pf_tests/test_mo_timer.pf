@@ -7,7 +7,6 @@ module test_mo_timer
   
   implicit none
 
-  integer(i4) :: i
   real(dp), dimension(1000000) :: r
   real(sp)    :: timer1, timer2
   
@@ -15,6 +14,8 @@ contains
 
   @test
   subroutine test_timer()
+
+    integer(i4) :: i
 
     ! Initialise timers
     call timers_init

@@ -1,6 +1,6 @@
 module test_mo_message
   use funit
-  use mo_message, only: message, error_message
+  use mo_message, only: message
   use mo_kind, only: i4
 
   implicit none

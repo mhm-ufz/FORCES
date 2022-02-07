@@ -1465,13 +1465,14 @@ CONTAINS
       implicit none
 
       logical, intent(in) :: to_file
+      integer(i4) :: ll
 
       if (to_file) then
         open(999, file = trim(adjustl(istmp_file)), action = 'write', position = 'append', recl = (nn + 6) * 30)
         if (.not. maxit) then
-          write(999, *) nloop, icall, ngs1, bestf_tmp, worstf, gnrng, (bestx(jj), jj = 1, nn)
+          write(999, *) nloop, icall, ngs1, bestf_tmp, worstf, gnrng, (bestx(ll), ll = 1, nn)
         else
-          write(999, *) nloop, icall, ngs1, -bestf_tmp, -worstf, gnrng, (bestx(jj), jj = 1, nn)
+          write(999, *) nloop, icall, ngs1, -bestf_tmp, -worstf, gnrng, (bestx(ll), ll = 1, nn)
         end if
         close(999)
       else
@@ -1481,12 +1482,12 @@ CONTAINS
           write(output_unit, *) ''
           write(output_unit, '(A44)') ' *** PRINT THE RESULTS OF THE SCE SEARCH ***'
           write(output_unit, *) ''
-          write(output_unit, format_str1) ' LOOP TRIALS COMPLXS  BEST F   WORST F   PAR RNG ', (xname(jj), jj = 1, nn)
+          write(output_unit, format_str1) ' LOOP TRIALS COMPLXS  BEST F   WORST F   PAR RNG ', (xname(ll), ll = 1, nn)
         end if
         if (.not. maxit) then
-          write(output_unit, format_str2) nloop, icall, ngs1, bestf_tmp, worstf, gnrng, (bestx(jj), jj = 1, nn)
+          write(output_unit, format_str2) nloop, icall, ngs1, bestf_tmp, worstf, gnrng, (bestx(ll), ll = 1, nn)
         else
-          write(output_unit, format_str2) nloop, icall, ngs1, -bestf_tmp, -worstf, gnrng, (bestx(jj), jj = 1, nn)
+          write(output_unit, format_str2) nloop, icall, ngs1, -bestf_tmp, -worstf, gnrng, (bestx(ll), ll = 1, nn)
         end if
       end if
 
@@ -1496,14 +1497,16 @@ CONTAINS
 
       implicit none
 
+      integer(i4) :: ll
+
       write(format_str1, '(A13,I3,A8)') '( A10, ', nn, '(6X,A4))'
       write(format_str2, '(A14,I3,A8)') '(E22.14, ', nn, '(G10.3))'
 
-      write(output_unit, format_str1) 'CRITERION ', (xname(jj), jj = 1, nn)
+      write(output_unit, format_str1) 'CRITERION ', (xname(ll), ll = 1, nn)
       if (.not. maxit) then
-        write(output_unit, format_str2) bestf_tmp, (bestx(jj), jj = 1, nn)
+        write(output_unit, format_str2) bestf_tmp, (bestx(ll), ll = 1, nn)
       else
-        write(output_unit, format_str2) -bestf_tmp, (bestx(jj), jj = 1, nn)
+        write(output_unit, format_str2) -bestf_tmp, (bestx(ll), ll = 1, nn)
       end if
 
     end subroutine write_best_final
@@ -1512,16 +1515,18 @@ CONTAINS
 
       logical, intent(in) :: to_file
 
+      integer(i4) :: ll, mm
+
       if (to_file) then
         write(format_str2, '(A13,I3,A9)') '(I4, E22.14, ', nn, '(E22.14))'
         open(unit = 999, file = trim(adjustl(ispopul_file)), action = 'write', position = 'append', recl = (nn + 2) * 30)
         if (.not. maxit) then
-          do ii = 1, npt1
-            write(999, *) nloop, xf(ii), (x(ii, jj), jj = 1, nn)
+          do mm = 1, npt1
+            write(999, *) nloop, xf(mm), (x(mm, ll), ll = 1, nn)
           end do
         else
-          do ii = 1, npt1
-            write(999, *) nloop, -xf(ii), (x(ii, jj), jj = 1, nn)
+          do mm = 1, npt1
+            write(999, *) nloop, -xf(mm), (x(mm, ll), ll = 1, nn)
           end do
         end if
         close(999)
@@ -1531,12 +1536,12 @@ CONTAINS
         write(output_unit, '(A22,I3)') '   POPULATION AT LOOP ', nloop
         write(output_unit, '(A27)')    '---------------------------'
         if (.not. maxit) then
-          do ii = 1, npt1
-            write(output_unit, format_str2) nloop, xf(ii), (x(ii, jj), jj = 1, nn)
+          do mm = 1, npt1
+            write(output_unit, format_str2) nloop, xf(mm), (x(mm, ll), ll = 1, nn)
           end do
         else
-          do ii = 1, npt1
-            write(output_unit, format_str2) nloop, -xf(ii), (x(ii, jj), jj = 1, nn)
+          do mm = 1, npt1
+            write(output_unit, format_str2) nloop, -xf(mm), (x(mm, ll), ll = 1, nn)
           end do
         end if
       end if

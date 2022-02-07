@@ -6,7 +6,6 @@ module test_mo_temporal_aggregation
   
   implicit none
 
-  integer(i4)                 :: i
   
 contains
 
@@ -20,7 +19,7 @@ contains
   real(dp)                            :: t = 1.e-7_dp
 
   integer(i4)                 :: year_start, month_start, day_start      
-
+  integer(i4)                 :: i
 
   ! Common year
   open(unit=20, file='./files/year.dat', action='read', status='old')
@@ -71,6 +70,7 @@ contains
   real(dp)                            :: t = 1.e-7_dp
 
   integer(i4)                 :: year_start, month_start, day_start, hour_start  
+  integer(i4)                 :: i
 
   ! Daily average of 10 day hourly data
   open(unit=20, file='./files/period10day.dat', action='read', status='old')
