@@ -2,7 +2,7 @@ module test_mo_utils
 
   use funit
   use mo_kind,  only: sp, dp, i4, i8, i1
-  use mo_utils, only: eq, ge, le, ne
+  use mo_utils, only: eq, ge, le, ne, is_close
   use mo_utils, only: swap, locate, cumsum, arange, linspace
   use mo_utils, only: is_finite, is_nan, is_normal, special_value, unpack_chunkwise
 
@@ -44,10 +44,22 @@ contains
   @test
   subroutine test_utils()
 
+    real(dp) :: atol_dp, rtol_dp
+    real(sp) :: atol_sp, rtol_sp
+
     ! -----------------------------------------------------
     ! DOUBLE PRECISON
     ! -----------------------------------------------------
-
+    
+    write(*,*) ''
+    write(*,*) 'Test: eq/ equal: dp'
+    ! 0.1, 0.1+eps --> .False.
+    a_dp = 0.1_dp
+    b_dp = a_dp + epsilon(1.0_dp)
+    compare = eq(a_dp, b_dp)
+    write(*,'(E24.17,A4,E24.17,A5,L2)') a_dp,', ',b_dp,' --> ',compare
+    @assertFalse(compare)
+    
     write(*,*) ''
     write(*,*) 'Test: eq/ equal: dp'
     ! 0.1, 0.1+eps --> .False.
@@ -141,6 +153,58 @@ contains
     compare = ge(a_dp, b_dp)
     write(*,'(E24.17,A4,E24.17,A5,L2)') a_dp,' >= ',b_dp,' --> ',compare
     @assertFalse(compare)
+
+    write(*,*) ''
+    write(*,*) 'Test: is_close : dp'
+
+    atol_dp = 2.0E-08_dp
+
+    ! 1.0E-05, 1.0E-05+atol --> .False.
+    a_dp = 1.0E-05_dp
+    b_dp = a_dp + atol_dp  
+    compare = is_close(a_dp, b_dp)
+    write(*,'(E24.17,A4,E24.17,A5,L2)')  a_dp,', ',b_dp,' --> ',compare
+    @assertFalse(compare)
+
+    ! 1.0, 1.0+atol --> .True.
+    a_dp = 1.0_dp
+    b_dp = a_dp + atol_dp
+    compare = is_close(a_dp, b_dp)
+    write(*,'(E24.17,A4,E24.17,A5,L2)') a_dp,', ',b_dp,' --> ',compare
+    @assertTrue(compare)
+
+    atol_dp = 5.0E-4_dp
+    rtol_dp = 1.0E-2_dp
+
+    ! 1.0, 1.0+atol --> .True.
+    a_dp = 1.0_dp
+    b_dp = a_dp + atol_dp  
+    compare = is_close(a_dp, b_dp, rtol = rtol_dp, atol = atol_dp)
+    write(*,'(E24.17,A4,E24.17,A5,L2)')  a_dp,', ',b_dp,' --> ',compare
+    @assertTrue(compare)
+
+    ! 1.0E-2, 1.0E-2+atol --> .True.
+    a_dp = 1.0E-2_dp
+    b_dp = a_dp + 0.5_dp*atol_dp  
+    compare = is_close(a_dp, b_dp, rtol = rtol_dp, atol = atol_dp)
+    write(*,'(E24.17,A4,E24.17,A5,L2)')  a_dp,', ',b_dp,' --> ',compare
+    @assertTrue(compare)
+
+    ! 1.0, 1.0+2*rtol --> .False.
+    a_dp = 1.0_dp
+    b_dp = a_dp + 2*rtol_dp
+    compare = is_close(a_dp, b_dp, rtol = rtol_dp, atol = atol_dp)
+    write(*,'(E24.17,A4,E24.17,A5,L2)') a_dp,', ',b_dp,' --> ',compare
+    @assertFalse(compare)
+
+    ! 1.0E-2, 1.0E-2+2*atol --> .False.
+    a_dp = 1.0E-2_dp
+    b_dp = a_dp + 2*atol_dp
+    compare = is_close(a_dp, b_dp, rtol = rtol_dp, atol = atol_dp)
+    write(*,'(E24.17,A4,E24.17,A5,L2)') a_dp,', ',b_dp,' --> ',compare
+    @assertFalse(compare)
+
+
 
     ! -----------------------------------------------------
     ! SINGLE PRECISON
@@ -239,6 +303,57 @@ contains
     compare = ge(a_sp, b_sp)
     write(*,'(E15.8,A4,E15.8,A5,L2)') a_sp,' >= ',b_sp,' --> ',compare
     @assertFalse(compare)
+
+    write(*,*) ''
+    write(*,*) 'Test: is_close : sp'
+
+    atol_sp = 2.0E-08_sp
+
+    ! 1.0E-05, 1.0E-05+atol --> .False.
+    a_sp = 1.0E-05_sp
+    b_sp = a_sp + atol_sp  
+    compare = is_close(a_sp, b_sp)
+    write(*,'(E24.17,A4,E24.17,A5,L2)')  a_sp,', ',b_sp,' --> ',compare
+    @assertFalse(compare)
+
+    ! 1.0, 1.0+atol --> .True.
+    a_sp = 1.0_sp
+    b_sp = a_sp + atol_sp
+    compare = is_close(a_sp, b_sp)
+    write(*,'(E24.17,A4,E24.17,A5,L2)') a_sp,', ',b_sp,' --> ',compare
+    @assertTrue(compare)
+
+    atol_sp = 5.0E-4_sp
+    rtol_sp = 1.0E-2_sp
+
+    ! 1.0, 1.0+atol --> .True.
+    a_sp = 1.0_sp
+    b_sp = a_sp + atol_sp  
+    compare = is_close(a_sp, b_sp, rtol = rtol_sp, atol = atol_sp)
+    write(*,'(E24.17,A4,E24.17,A5,L2)')  a_sp,', ',b_sp,' --> ',compare
+    @assertTrue(compare)
+
+    ! 1.0E-2, 1.0E-2+atol --> .True.
+    a_sp = 1.0E-2_sp
+    b_sp = a_sp + 0.5_sp*atol_sp  
+    compare = is_close(a_sp, b_sp, rtol = rtol_sp, atol = atol_sp)
+    write(*,'(E24.17,A4,E24.17,A5,L2)')  a_sp,', ',b_sp,' --> ',compare
+    @assertTrue(compare)
+
+    ! 1.0, 1.0+2*rtol --> .False.
+    a_sp = 1.0_sp
+    b_sp = a_sp + 2*rtol_sp
+    compare = is_close(a_sp, b_sp, rtol = rtol_sp, atol = atol_sp)
+    write(*,'(E24.17,A4,E24.17,A5,L2)') a_sp,', ',b_sp,' --> ',compare
+    @assertFalse(compare)
+
+    ! 1.0E-2, 1.0E-2+2*atol --> .False.
+    a_sp = 1.0E-2_sp
+    b_sp = a_sp + 2*atol_sp
+    compare = is_close(a_sp, b_sp, rtol = rtol_sp, atol = atol_sp)
+    write(*,'(E24.17,A4,E24.17,A5,L2)') a_sp,', ',b_sp,' --> ',compare
+    @assertFalse(compare)
+
 
     ! -----------------------------------------------------
     ! Swap

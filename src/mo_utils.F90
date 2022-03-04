@@ -47,6 +47,7 @@ MODULE mo_utils
   PUBLIC :: lesserequal   ! a <= b, a .le. b
   PUBLIC :: notequal      ! a /= b, a .ne. b
   PUBLIC :: eq            ! a == b, a .eq. b
+  PUBLIC :: is_close      ! a =~ b, a .eq. b in defined precision
   PUBLIC :: ge            ! a >= b, a .ge. b
   PUBLIC :: le            ! a <= b, a .le. b
   PUBLIC :: ne            ! a /= b, a .ne. b
@@ -193,21 +194,79 @@ MODULE mo_utils
   ! ------------------------------------------------------------------
 
   !>        \brief Comparison of real values.
-  !>        \details Compares two reals if they are numerically equal or not, i.e.
+  !>        \details Compares two reals if they are numerically equal or not, with option for precision, i.e.
+  !!        equal: \f[ |a-b| < \mathrm{max} \{ \epsilon_\mathrm{rel} \mathrm{max} \{ |a|,|b| \}, \epsilon_\mathrm{abs} \} \f]
+  !!
+  !!        \b Example
+  !!
+  !!        Returns ´.false.´ in 5th element of isequal
+  !!        \code{.f90}
+  !!        vec1 = (/ 1., 2., 3., -999., 5., 6. /)
+  !!        vec2 = (/ 1., 1., 3., -999., 10., 6. /)
+  !!        isequal = is_close(vec1, vec2)
+  !!        \endcode
+  !!        Returns ´.true.´ in all elements of isequal
+  !!        \code{.f90}
+  !!        vec1 = (/ 1., 2., 3., -999., 5., 6. /)
+  !!        vec2 = (/ 1., 1., 3., -999., 10., 6. /)
+  !!        isequal = is_close(vec1, vec2, atol = 5.0_dp)
+  !!        \endcode
+  !!        Returns ´.false.´ in 6th element of isequal
+  !!        \code{.f90}
+  !!        vec1 = (/ 1., 2., 3., -999., 5., NaN /)
+  !!        vec2 = (/ 1., 1., 3., -999., 10., NaN /)
+  !!        isequal = is_close(vec1, vec2, atol = 5.0_dp)
+  !!        \endcode
+  !!        Returns ´.true.´ in all elements of isequal
+  !!        \code{.f90}
+  !!        vec1 = (/ 1., 2., 3., -999., 5., NaN /)
+  !!        vec2 = (/ 1., 1., 3., -999., 10., NaN /)
+  !!        isequal = is_close(vec1, vec2, equal_nan = .true.)
+  !!        \endcode
+
+  !>        \param[in] "real(sp/dp) :: a"                   First number to compare
+  !>        \param[in] "real(sp/dp) :: b"                   Second number to compare
+  !>        \param[in] "real(sp/dp), optional :: rtol"      Relative tolerance, will scale with a (DEFAULT : 1.0E-5).
+  !>        \param[in] "real(sp/dp), optional :: atol"      Absolute tolerance (DEFAULT : 1.0E-8).
+  !>        \param[in] "logical, optional    :: equal_nan" If \f$.true.\f$, NaN values will between a and b are considered
+  !!                                                        equal.
+  !>        \retval    "real(sp/dp) :: is_close"            \f$ a == b \f$ logically true or false
+
+  !>        \authors Arya Prasetya
+  !>        \date Jan 2022
+  !!          - add precision arguments and is_close
+  INTERFACE is_close
+    MODULE PROCEDURE is_close_sp, is_close_dp
+  END INTERFACE is_close
+
+  !>        \brief Comparison of real values.
+  !>        \details Compares two reals if they are exactly numerically equal or not, i.e.
   !!        equal: \f[ |\frac{a-b}{b}| < \epsilon \f]
   !!
   !!        \b Example
   !!
-  !!        Returns ´.false.´
+  !!        Returns ´.false.´ in 5th element of isequal
   !!        \code{.f90}
   !!        vec1 = (/ 1., 2., 3., -999., 5., 6. /)
   !!        vec2 = (/ 1., 1., 3., -999., 10., 6. /)
   !!        isequal = equal(vec1, vec2)
   !!        \endcode
+  !!        Returns ´.true.´ in all elements of isequal
+  !!        \code{.f90}
+  !!        vec1 = (/ 1., 2., 3., -999., 5., 6. /)
+  !!        vec2 = (/ 1., 1., 3., -999., 10., 6. /)
+  !!        isequal = equal(vec1, vec2)
+  !!        \endcode
+  !!        Returns ´.false.´ in 6th element of isequal
+  !!        \code{.f90}
+  !!        vec1 = (/ 1., 2., 3., -999., 5., NaN /)
+  !!        vec2 = (/ 1., 1., 3., -999., 10., NaN /)
+  !!        isequal = equal(vec1, vec2)
+  !!        \endcode
 
-  !>        \param[in] "real(sp/dp) :: a"        First number to compare
-  !>        \param[in] "real(sp/dp) :: b"        Second number to compare
-  !>        \retval    "real(sp/dp) :: equal" \f$ a == b \f$ logically true or false
+  !>        \param[in] "real(sp/dp) :: a"                   First number to compare
+  !>        \param[in] "real(sp/dp) :: b"                   Second number to compare
+  !>        \retval    "real(sp/dp) :: equal"            \f$ a == b \f$ logically true or false
 
   !>        \authors Matthias Cuntz, Juliane Mai
   !>        \date Feb 2014
@@ -216,18 +275,20 @@ MODULE mo_utils
     MODULE PROCEDURE equal_sp, equal_dp
   END INTERFACE equal
 
-  !> \brief Comparison of real values for inequality.
+  !> \brief Comparison of real values for inequality. 
   !> \see equal
   INTERFACE notequal
     MODULE PROCEDURE notequal_sp, notequal_dp
   END INTERFACE notequal
 
-  !> \brief Comparison of real values: `a >= b`.
+  !> \brief Comparison of real values: `a >= b`. 
+  !> \see equal
   INTERFACE greaterequal
     MODULE PROCEDURE greaterequal_sp, greaterequal_dp
   END INTERFACE greaterequal
 
   !> \brief Comparison of real values: `a <= b`.
+  !> \see equal
   INTERFACE lesserequal
     MODULE PROCEDURE lesserequal_sp, lesserequal_dp
   END INTERFACE lesserequal
@@ -885,16 +946,74 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
+  logical elemental pure function is_close_dp(a, b, rtol, atol, equal_nan) result(boolean)
+
+    real(dp), intent(in)            :: a
+    real(dp), intent(in)            :: b
+    real(dp), intent(in), optional  :: rtol, atol
+    logical, intent(in), optional   :: equal_nan
+
+    real(dp)  :: rt, at
+    logical   :: n
+
+    rt = 1.0E-05_dp
+    at = 1.0E-08_dp
+    n = .false.
+    if (present(rtol)) rt = rtol
+    if (present(atol)) at = atol
+    if (present(equal_nan)) n = equal_nan
+
+    if ((rt < 0._dp).or.(at < 0._dp)) error stop
+    boolean = (a == b)
+    if (boolean) return
+    boolean = (n.and.(is_nan_dp(a).or.is_nan_dp(b)))
+    if (boolean) return
+    if (.not.is_finite_dp(a) .or. .not.is_finite_dp(b)) return
+
+    boolean = abs(a - b) <= max(rt * max(abs(a),abs(b)), at)
+
+  end function is_close_dp
+
+
+
+  logical elemental pure function is_close_sp(a, b, rtol, atol, equal_nan) result(boolean)
+
+    real(sp), intent(in)            :: a
+    real(sp), intent(in)            :: b
+    real(sp), intent(in), optional  :: rtol, atol
+    logical, intent(in), optional   :: equal_nan
+
+    real(sp)  :: rt, at
+    logical   :: n
+
+    rt = 1.0E-05_sp
+    at = 1.0E-08_sp
+    n = .false.
+    if (present(rtol)) rt = rtol
+    if (present(atol)) at = atol
+    if (present(equal_nan)) n = equal_nan
+
+    if ((rt < 0._sp).or.(at < 0._sp)) error stop
+    boolean = (a == b)
+    if (boolean) return
+    boolean = (n.and.(is_nan_sp(a).or.is_nan_sp(b)))
+    if (boolean) return
+    if (.not.is_finite_sp(a) .or. .not.is_finite_sp(b)) return
+
+    boolean = abs(a - b) <= max(rt * max(abs(a),abs(b)), at)
+
+  end function is_close_sp
+
+  ! ------------------------------------------------------------------
+
   logical elemental pure function equal_dp(a, b) result(boolean)
 
     real(dp), intent(in) :: a
     real(dp), intent(in) :: b
 
-    if ((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) then
-      boolean = .false.
-    else
-      boolean = .true.
-    end if
+    boolean = (a == b)
+    if (boolean) return
+    boolean = .not. ((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp)
 
   end function equal_dp
 
@@ -904,11 +1023,9 @@ CONTAINS
     real(sp), intent(in) :: a
     real(sp), intent(in) :: b
 
-    if ((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) then
-      boolean = .false.
-    else
-      boolean = .true.
-    end if
+    boolean = (a == b)
+    if (boolean) return
+    boolean = .not. ((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp)
 
   end function equal_sp
 
@@ -919,9 +1036,7 @@ CONTAINS
     real(dp), intent(in) :: a
     real(dp), intent(in) :: b
 
-    boolean = .true.
-    ! 1st part is /=, 2nd part is the a<b
-    if (((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) .and. (a < b)) boolean = .false.
+    boolean = equal_dp(a, b).or.(a > b)
 
   end function greaterequal_dp
 
@@ -931,9 +1046,7 @@ CONTAINS
     real(sp), intent(in) :: a
     real(sp), intent(in) :: b
 
-    boolean = .true.
-    ! 1st part is /=, 2nd part is the a<b
-    if (((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) .and. (a < b)) boolean = .false.
+    boolean = equal_sp(a, b).or.(a > b)
 
   end function greaterequal_sp
 
@@ -944,9 +1057,7 @@ CONTAINS
     real(dp), intent(in) :: a
     real(dp), intent(in) :: b
 
-    boolean = .true.
-    ! 1st part is /=, 2nd part is the a>b
-    if (((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) .and. (a > b)) boolean = .false.
+    boolean = equal_dp(a, b).or.(a < b)
 
   end function lesserequal_dp
 
@@ -956,9 +1067,7 @@ CONTAINS
     real(sp), intent(in) :: a
     real(sp), intent(in) :: b
 
-    boolean = .true.
-    ! 1st part is /=, 2nd part is the a>b
-    if (((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) .and. (a > b)) boolean = .false.
+    boolean = equal_sp(a, b).or.(a < b)
 
   end function lesserequal_sp
 
@@ -969,11 +1078,7 @@ CONTAINS
     real(dp), intent(in) :: a
     real(dp), intent(in) :: b
 
-    if ((epsilon(1.0_dp) * abs(b) - abs(a - b)) < 0.0_dp) then
-      boolean = .true.
-    else
-      boolean = .false.
-    end if
+    boolean = .not.equal_dp(a, b)
 
   end function notequal_dp
 
@@ -983,11 +1088,7 @@ CONTAINS
     real(sp), intent(in) :: a
     real(sp), intent(in) :: b
 
-    if ((epsilon(1.0_sp) * abs(b) - abs(a - b)) < 0.0_sp) then
-      boolean = .true.
-    else
-      boolean = .false.
-    end if
+    boolean = .not.equal_sp(a, b)
 
   end function notequal_sp
 
