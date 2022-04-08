@@ -147,7 +147,7 @@ CONTAINS
 
   ! -------------------------------
   !> \brief A Model: p1*x^2 + p2*x + p3
-  subroutine model_dp(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
+  subroutine model_dp(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim, BFI)
 
     use mo_kind, only: dp
     use mo_optimization_types, only: optidata_sim
@@ -160,6 +160,7 @@ CONTAINS
     type(optidata_sim), dimension(:), optional, intent(inout) :: neutronsOptiSim ! dim1=ncells, dim2=time
     type(optidata_sim), dimension(:), optional, intent(inout) :: etOptiSim       ! dim1=ncells, dim2=time
     type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim      ! dim1=ncells, dim2=time
+    real(dp),    dimension(:), allocatable, optional, intent(out) :: BFI         !< baseflow index, dim1=domainID
     integer(i4) :: i, n
     ! for OMP
     !! !$  integer(i4)                           :: n_threads, is_thread
