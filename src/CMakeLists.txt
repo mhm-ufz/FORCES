@@ -2,8 +2,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cmake-modules
 
 set (LIB_NAME forces)
 
-file(GLOB sources ./mo_*.f90 ./mo_*.F90)
-# --- find preprocessor (fypp)
+# find preprocessor (fypp)
 include(fortranpreprocessor)
 find_program(FYPP fypp)
 if(NOT FYPP)
@@ -26,6 +25,7 @@ else()
 endif()
 
 # add sources
+file(GLOB sources ./mo_*.f90 ./mo_*.F90)
 add_library(${LIB_NAME} ${sources} ${fyppOutFiles})
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -50,7 +50,6 @@ target_link_libraries(${LIB_NAME} PUBLIC NetCDF::NetCDF_Fortran)
 
 # add all compile options (MPI, OpenMP, Lapack, Coverage)
 include(compileoptions)
-
 if (CMAKE_WITH_MPI)
   target_compile_definitions(${LIB_NAME} PRIVATE MPI)
   target_link_libraries(${LIB_NAME} PUBLIC MPI::MPI_Fortran)
@@ -65,7 +64,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   target_compile_definitions(${LIB_NAME} PRIVATE "GFORTRAN")
   target_compile_options(${LIB_NAME} PRIVATE
     -ffree-form -ffixed-line-length-132
-    $<$<CONFIG:DEBUG>:-fbacktrace -pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized>
+    $<$<CONFIG:DEBUG>:-Og -g -Wall -Wextra -fimplicit-none -fbacktrace -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=snan -pedantic-errors>
     $<$<CONFIG:RELEASE>:-O3 -fno-peel-loops>
   )
 endif()
