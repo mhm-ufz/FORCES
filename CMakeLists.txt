@@ -19,9 +19,16 @@ project(FORCES
   HOMEPAGE_URL "https://git.ufz.de/chs/forces/"
   LANGUAGES Fortran
 )
+
+# library module specific settings (defined after coverage definition)
+add_subdirectory(./src)
 set (LIB_NAME forces)
+
 # add full version and date to pre-processor flags (qoutes need in before hand)
-add_compile_definitions(FORCESVERSION='${FORCES_VER_DEV}' FORCESDATE='${FORCES_DATE}')
+target_compile_definitions(${LIB_NAME} PRIVATE
+  FORCESVERSION='${FORCES_VER_DEV}'
+  FORCESDATE='${FORCES_DATE}'
+)
 
 # prepare testing
 option(BUILD_TESTING "Build with (pfUnit) tests." OFF)
@@ -31,10 +38,17 @@ if((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OR ${LIB_NAME}_BUILD_TESTING) AND B
 endif()
 include(CTest)
 
+# add test directories
+if(BUILD_FORCES_TESTS)
+  message(STATUS "${PROJECT_NAME}: build tests")
+  add_subdirectory(./src/pf_tests)
+endif()
+
 # prepare coverage
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE AND BUILD_FORCES_TESTS)
   include(CodeCoverage)
-  append_coverage_compiler_flags()
+  target_compile_options(${LIB_NAME} PRIVATE -g --coverage)
+  target_link_libraries(${LIB_NAME} PRIVATE gcov)
   SETUP_TARGET_FOR_COVERAGE_LCOV(
     NAME coverage
     EXECUTABLE ctest
@@ -43,12 +57,4 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE AND BUILD_FOR
     LCOV_ARGS --no-external
     GENHTML_ARGS -t "${LIB_NAME} coverage" --html-prolog ../doc/html_files/cov_header.prolog
   )
-endif()
-
-# library module specific settings (defined after coverage definition)
-add_subdirectory(./src)
-
-if(BUILD_FORCES_TESTS)
-  # add test directories (defined after coverage definition)
-  add_subdirectory(./src/pf_tests)
 endif()
