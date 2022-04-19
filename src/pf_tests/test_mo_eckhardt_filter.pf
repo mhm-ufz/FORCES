@@ -1,0 +1,31 @@
+module test_mo_eckhardt_filter
+  use funit
+  use mo_eckhardt_filter, only: eckhardt_filter, fit_alpha, BFI
+  use mo_io, only: loadtxt
+  use mo_kind, only : dp
+
+  implicit none
+
+  private
+
+  public :: test_fit
+
+contains
+
+  @test
+  subroutine test_fit()
+    real(dp), allocatable :: dat(:,:), baseflow(:)
+    real(dp) :: alpha_out, BFI_out
+
+    call loadtxt("./files/discharge.txt", dat, skiprows=2)
+
+    alpha_out = fit_alpha(dat(:,1))
+    baseflow = eckhardt_filter(alpha_out, dat(:,1))
+    BFI_out = BFI(baseflow, dat(:,1))
+
+    @assertEqual(0.99501_dp, alpha_out, tolerance=0.0001, message='Check alpha')
+    @assertEqual(0.45741_dp, BFI_out, tolerance=0.0001, message='Check BFI')
+
+  end subroutine test_fit
+
+end module test_mo_eckhardt_filter
