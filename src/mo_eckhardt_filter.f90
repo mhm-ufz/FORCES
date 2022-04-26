@@ -168,12 +168,13 @@ contains
     if ( present(mask) ) mask_ = mask
 
     allocate(d7(size(discharge)))
+    d7(:) = 0.0_dp
 
     do i = 1, size(discharge)
       n = max(1,i-3)
       m = min(size(discharge),i+3)
       ! TODO: do we need a threshold for number in mask here?
-      d7(i) = mean(discharge(n : m), mask=mask_(n : m))
+      if ( any(mask_(n : m)) ) d7(i) = mean(discharge(n : m), mask=mask_(n : m))
     end do
 
   end function weekly_average
