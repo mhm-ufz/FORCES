@@ -9,6 +9,7 @@ module test_mo_eckhardt_filter
   private
 
   public :: test_fit
+  public :: test_fit_mask
 
 contains
 
@@ -27,5 +28,25 @@ contains
     @assertEqual(0.45741_dp, BFI_out, tolerance=0.0001, message='Check BFI')
 
   end subroutine test_fit
+
+  @test
+  subroutine test_fit_mask()
+    real(dp), allocatable :: dat(:,:), baseflow(:)
+    logical, allocatable :: mask(:)
+    real(dp) :: alpha_out, BFI_out
+
+    call loadtxt("./files/discharge.txt", dat, skiprows=2)
+    allocate(mask(size(dat(:,1))))
+    mask(:) = .false.
+    ! only first 10 years
+    mask(1: 365*10) = .true.
+    alpha_out = fit_alpha(dat(:,1), mask=mask)
+    baseflow = eckhardt_filter(alpha_out, dat(:,1), mask=mask)
+    BFI_out = BFI(baseflow, dat(:,1), mask=mask)
+
+    @assertEqual(0.99634_dp, alpha_out, tolerance=0.0001, message='Check alpha')
+    @assertEqual(0.43507_dp, BFI_out, tolerance=0.0001, message='Check BFI')
+
+  end subroutine test_fit_mask
 
 end module test_mo_eckhardt_filter
