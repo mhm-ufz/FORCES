@@ -190,7 +190,12 @@ contains
     !> mask for daily discharge
     logical, intent(in), optional :: mask(:)
 
-    BFI = sum(baseflow, mask=mask) / sum(discharge, mask=mask)
+    logical, dimension(size(discharge)) :: mask_
+
+    mask_(:) = .true.
+    if ( present(mask) ) mask_ = mask
+
+    BFI = sum(baseflow, mask=mask_) / sum(discharge, mask=mask_)
 
   end function BFI
 
