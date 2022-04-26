@@ -15,6 +15,7 @@ module mo_eckhardt_filter
   use mo_percentile, only: percentile
   use mo_append,     only: append
   use mo_nelmin,     only: nelminrange
+  use mo_message,    only: error_message
 
   implicit none
   private
@@ -25,46 +26,72 @@ module mo_eckhardt_filter
   public :: BFI
 
   real(dp), allocatable :: temp_d7(:)
-  logical, allocatable :: temp_qmin_mask(:)
+  logical, allocatable :: temp_qmin_mask(:), temp_mask(:)
 
 contains
 
   !> \brief   Eckhardt filter for baseflow calculation from discharge time series with fitting.
   !> \details This filter was proposed in Eckhardt (2008, doi: 10.1016/j.jhydrol.2008.01.005)
   !> \return  baseflow
-  function eckhardt_filter_fit(discharge) result(baseflow)
+  function eckhardt_filter_fit(discharge, mask) result(baseflow)
 
     !> array with daily discharge
     real(dp), intent(in)  :: discharge(:)
+    !> mask for daily discharge
+    logical, intent(in), optional :: mask(:)
 
     real(dp), allocatable :: baseflow(:)
 
     real(dp) :: alpha
 
-    alpha = fit_alpha(discharge)
-    baseflow = eckhardt_filter(alpha, discharge)
+    alpha = fit_alpha(discharge, mask=mask)
+    baseflow = eckhardt_filter(alpha, discharge, mask=mask)
 
   end function eckhardt_filter_fit
 
   !> \brief   Fitted alpha parameter for the Eckhardt filter.
   !> \details This filter was proposed in Eckhardt (2008, doi: 10.1016/j.jhydrol.2008.01.005)
   !> \return  alpha parameter for eckard filter
-  real(dp) function fit_alpha(discharge)
+  real(dp) function fit_alpha(discharge, mask)
 
     !> array with daily discharge
     real(dp), intent(in)  :: discharge(:)
+    !> mask for daily discharge
+    logical, intent(in), optional :: mask(:)
 
     real(dp) :: alpha_out(1)
-    real(dp), allocatable :: q_min(:)
-    integer(i4) :: i
+    real(dp), allocatable :: q_min(:), dummy(:)
+    logical, dimension(size(discharge)) :: mask_
+    integer(i4) :: i, j
 
-    temp_d7 = weekly_average(discharge)
+    mask_(:) = .true.
+    if ( present(mask) ) mask_ = mask
+
+    temp_d7 = weekly_average(discharge, mask=mask)
+    allocate(q_min(0))
     do i = 1, size(temp_d7), 365
-      call append(q_min, minval(temp_d7(i : min(i+364, size(temp_d7)))))
+      j = min(i+364, size(temp_d7))
+      ! only use values in mask
+      ! TODO: do we need a threshold for number in mask here?
+      if ( any(mask_(i : j)) ) call append(q_min, minval(temp_d7(i : j), mask=mask_(i : j)))
     end do
+    if ( size(q_min) < 2 ) call error_message("Eckhardt filter: Less than 2 years of discharge observations! (min. 10 recommended)")
 
     allocate(temp_qmin_mask(size(discharge)))
+    allocate(temp_mask(size(discharge)))
+    temp_mask = mask_
     temp_qmin_mask = (temp_d7 < percentile(q_min, 10.0_dp, mode_in=4))
+    temp_qmin_mask = temp_qmin_mask .and. temp_mask
+
+    ! set values outside of mask to 1 in d7
+    allocate(dummy(count(.not.mask_)))
+    dummy(:) = 1.0_dp  ! [1.0_dp, i=1,count(.not.mask_)]
+    temp_d7 = unpack( &
+      vector=dummy, &
+      mask=.not.mask_, &
+      field=temp_d7 &
+    )
+    deallocate(dummy)
 
     alpha_out = nelminrange( &
       func=func, &
@@ -74,6 +101,7 @@ contains
     fit_alpha = alpha_out(1)
 
     deallocate(temp_qmin_mask)
+    deallocate(temp_mask)
     deallocate(temp_d7)
 
   end function fit_alpha
@@ -81,64 +109,87 @@ contains
   !> \brief   Eckhardt filter for baseflow calculation from discharge time series.
   !> \details This filter was proposed in Eckhardt (2008, doi: 10.1016/j.jhydrol.2008.01.005)
   !> \return  baseflow
-  function eckhardt_filter(alpha, discharge) result(baseflow)
+  function eckhardt_filter(alpha, discharge, mask) result(baseflow)
 
     !> filter parameter
     real(dp), intent(in)  :: alpha
     !> array with daily discharge
     real(dp), intent(in)  :: discharge(:)
+    !> mask for daily discharge
+    logical, intent(in), optional :: mask(:)
 
     real(dp), allocatable :: baseflow(:)
 
-    real(dp), allocatable :: d7(:), d7_perc(:)
+    real(dp), allocatable :: d7(:), d7_perc(:), d_temp(:), b_temp(:)
+    logical, dimension(size(discharge)) :: mask_
     real(dp) :: BFI_max
     integer(i4) :: i
+
+    mask_(:) = .true.
+    if ( present(mask) ) mask_ = mask
 
     allocate(baseflow(size(discharge)))
     allocate(d7_perc(size(discharge)))
 
     ! 20 percent percentile with Linear interpolation
-    d7 = weekly_average(discharge)
-    d7_perc(:) = percentile(d7, 20.0_dp, mode_in=4)
-    BFI_max = BFI(d7_perc, discharge)
+    d7 = weekly_average(discharge, mask=mask)
+    d7_perc(:) = percentile(d7, 20.0_dp, mask=mask, mode_in=4)
+    BFI_max = BFI(d7_perc, discharge, mask=mask)
 
-    ! Applying the equation Eq. (6) from Eckhardt (2008)
-    baseflow(1) = ((1 - alpha)*BFI_max * discharge(1)) / (1 - alpha*BFI_max)
-    do i = 2, size(discharge)
-      baseflow(i) = ((1 - BFI_max)*alpha*baseflow(i-1) + (1 - alpha)*BFI_max*discharge(i)) / (1 - alpha*BFI_max)
+    allocate(b_temp(count(mask_)))
+    allocate(d_temp(count(mask_)))
+    d_temp = pack(discharge, mask=mask_)
+
+    ! Applying the equation Eq. (6) from Eckhardt (2008) (only at mask)
+    b_temp(1) = ((1 - alpha)*BFI_max * d_temp(1)) / (1 - alpha*BFI_max)
+    do i = 2, size(d_temp)
+      b_temp(i) = ((1 - BFI_max)*alpha*b_temp(i-1) + (1 - alpha)*BFI_max*d_temp(i)) / (1 - alpha*BFI_max)
     end do
+    baseflow(:) = 0.0_dp
+    baseflow = unpack(vector=b_temp, mask=mask_, field=baseflow)
 
   end function eckhardt_filter
 
   !> \brief   This function returns the 7days-averaged discharge.
   !> \return  array with weekly moving average
-  function weekly_average(discharge) result(d7)
+  function weekly_average(discharge, mask) result(d7)
 
     !> array with daily discharge
     real(dp), intent(in) :: discharge(:)
+    !> mask for daily discharge
+    logical, intent(in), optional :: mask(:)
 
     real(dp), allocatable :: d7(:)
 
-    integer(i4) :: i
+    logical, dimension(size(discharge)) :: mask_
+    integer(i4) :: i, n, m
+
+    mask_(:) = .true.
+    if ( present(mask) ) mask_ = mask
 
     allocate(d7(size(discharge)))
 
     do i = 1, size(discharge)
-      d7(i) = mean(discharge(max(1,i-3) : min(size(discharge),i+3)))
+      n = max(1,i-3)
+      m = min(size(discharge),i+3)
+      ! TODO: do we need a threshold for number in mask here?
+      d7(i) = mean(discharge(n : m), mask=mask_(n : m))
     end do
 
   end function weekly_average
 
   !> \brief   Calculate the baseflow index as ratio between baseflow and discharge.
   !> \return  baseflow index
-  real(dp) function BFI(baseflow, discharge)
+  real(dp) function BFI(baseflow, discharge, mask)
 
     !> array with daily baseflow values
     real(dp), intent(in) :: baseflow(:)
     !> array with daily discharge
     real(dp), intent(in) :: discharge(:)
+    !> mask for daily discharge
+    logical, intent(in), optional :: mask(:)
 
-    BFI = sum(baseflow) / sum(discharge)
+    BFI = sum(baseflow, mask=mask) / sum(discharge, mask=mask)
 
   end function BFI
 
@@ -152,7 +203,7 @@ contains
 
     real(dp), allocatable :: baseflow(:)
 
-    baseflow = eckhardt_filter(alpha=pp(1), discharge=temp_d7)
+    baseflow = eckhardt_filter(alpha=pp(1), discharge=temp_d7, mask=temp_mask)
     func = mean((baseflow/temp_d7 - 1)**2, mask=temp_qmin_mask)
 
   end function func
