@@ -48,6 +48,7 @@ MODULE mo_string_utils
   PUBLIC :: Replace_Text  ! replaces all text occurences in string
   PUBLIC :: replace_word  ! replaces all word occurences in string
   PUBLIC :: index_word    ! yields starting position of word in string or 0
+  PUBLIC :: is_blank
 
   ! public :: numarray2str
 
@@ -136,6 +137,19 @@ MODULE mo_string_utils
   ! ------------------------------------------------------------------
 
 CONTAINS
+
+  !> \brief   Check for blank characters.
+  !> \details Checks whether or not `c` is a blank character, namely a space and tab character.
+  !> \return  Truth value if `c` is a blank.
+  pure logical function is_blank(c)
+
+    character(len=1), intent(in) :: c !< The character to test.
+    integer :: ic
+
+    ic = iachar(c)             ! TAB
+    is_blank = (c == ' ') .or. (ic == int(z'09'));
+
+  end function is_blank
 
   ! ------------------------------------------------------------------
 

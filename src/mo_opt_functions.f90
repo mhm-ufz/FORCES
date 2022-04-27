@@ -5708,7 +5708,7 @@ CONTAINS
   end function griewank_objective
 
 
- subroutine eval_dummy(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim)
+ subroutine eval_dummy(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim, BFI)
     use mo_kind, only : dp
     use mo_optimization_types, only : optidata_sim, optidata
 
@@ -5721,6 +5721,7 @@ CONTAINS
     type(optidata_sim), dimension(:), optional, intent(inout) :: neutronsOptiSim ! dim1=ncells, dim2=time
     type(optidata_sim), dimension(:), optional, intent(inout) :: etOptiSim       ! dim1=ncells, dim2=time
     type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim      ! dim1=ncells, dim2=time
+    real(dp),    dimension(:), allocatable, optional, intent(out) :: BFI         !< baseflow index, dim1=domainID
 
     type(optidata) :: dummyData
     integer(i4) :: i
@@ -5755,6 +5756,11 @@ CONTAINS
     if (present(runoff)) then
       allocate(runoff(1, 1))
       runoff(:, :) = 0.0_dp
+    end if
+
+    if (present(BFI)) then
+      allocate(BFI(1))
+      BFI(:) = 0.0_dp
     end if
 
   end subroutine eval_dummy
