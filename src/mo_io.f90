@@ -34,12 +34,11 @@ contains
     !> The array 'd' will be automatically allocated with the correct dimensions
     real(dp), allocatable, intent(out) :: d(:,:)
     !> lines to skip at the begining
-    integer, intent(in), optional :: skiprows
+    integer(i4), intent(in), optional :: skiprows
     !> Read max_rows lines of content after skiprows lines. The default is to read all the lines (negative values).
-    integer, intent(in), optional :: max_rows
+    integer(i4), intent(in), optional :: max_rows
 
-    integer :: u, skiprows_, max_rows_
-    integer :: nrow, ncol, i
+    integer(i4) :: u,  nrow, ncol, i, skiprows_, max_rows_
 
     skiprows_ = 0
     if ( present(skiprows) ) skiprows_ = max(skiprows, 0)
@@ -51,9 +50,9 @@ contains
 
     ! determine size
     ncol = number_of_columns(u)
-    nrow = number_of_rows(u) - skiprows_
-    if ( nrow < 0 ) call error_message("loadtxt: skipping more rows than present.")
-    if ( max_rows_ < 0 .or. max_rows_ > nrow) max_rows_ = nrow
+    nrow = number_of_rows(u)
+    skiprows_ = min(skiprows_, nrow)
+    if ( max_rows_ < 0 .or. max_rows_ > (nrow - skiprows_)) max_rows_ = nrow - skiprows_
 
     allocate(d(max_rows_, ncol))
 
@@ -77,12 +76,11 @@ contains
     !> The array 'd' will be automatically allocated with the correct dimensions
     real(sp), allocatable, intent(out) :: d(:,:)
     !> lines to skip at the begining
-    integer, intent(in), optional :: skiprows
+    integer(i4), intent(in), optional :: skiprows
     !> Read max_rows lines of content after skiprows lines. The default is to read all the lines (negative values).
-    integer, intent(in), optional :: max_rows
+    integer(i4), intent(in), optional :: max_rows
 
-    integer :: u, skiprows_, max_rows_
-    integer :: nrow, ncol, i
+    integer(i4) :: u, nrow, ncol, i, skiprows_, max_rows_
 
     skiprows_ = 0
     if ( present(skiprows) ) skiprows_ = max(skiprows, 0)
@@ -94,9 +92,9 @@ contains
 
     ! determine size
     ncol = number_of_columns(u)
-    nrow = number_of_rows(u) - skiprows_
-    if ( nrow < 0 ) call error_message("loadtxt: skipping more rows than present.")
-    if ( max_rows_ < 0 .or. max_rows_ > nrow) max_rows_ = nrow
+    nrow = number_of_rows(u)
+    skiprows_ = min(skiprows_, nrow)
+    if ( max_rows_ < 0 .or. max_rows_ > (nrow - skiprows_)) max_rows_ = nrow - skiprows_
 
     allocate(d(max_rows_, ncol))
 
@@ -116,8 +114,8 @@ contains
   !> \return  Number of columns.
   integer function number_of_columns(u)
 
-    integer,intent(in) :: u !< unit of the open file
-    integer :: ios
+    integer(i4),intent(in) :: u !< unit of the open file
+    integer(i4) :: ios
     character :: c
     logical :: lastblank
 
@@ -138,8 +136,8 @@ contains
   !> \return  Number of rows.
   integer function number_of_rows(u)
 
-    integer, intent(in) :: u !< unit of the open file
-    integer :: ios
+    integer(i4), intent(in) :: u !< unit of the open file
+    integer(i4) :: ios
 
     rewind(u)
     number_of_rows = 0
