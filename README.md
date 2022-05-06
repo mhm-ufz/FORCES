@@ -15,6 +15,51 @@ It is a lightweight fork of the `jams_fortran` library maintained by Matthias Cu
 
 The `jams_fortran` library was formerly developed at the CHS department at the UFZ and is now released under the [MIT license](https://github.com/mcuntz/jams_fortran/blob/master/LICENSE).
 
+## Using FORCES with your Fortran program
+If you want to write a fortran program using forces, like this example `test.f90`:
+```fortran
+program test
+  use mo_message, only : message
+  implicit none
+  call message("This is working!")
+end program test
+```
+
+You can now create a minimal `CMakeLists.txt` file next to the `test.f90` file like this:
+```cmake
+cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
+
+# get CPM (package manager)
+set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_0.35.0.cmake")
+file(DOWNLOAD https://github.com/cpm-cmake/CPM.cmake/releases/download/v0.35.0/CPM.cmake ${CPM_DOWNLOAD_LOCATION})
+include(${CPM_DOWNLOAD_LOCATION})
+
+# create project
+project(MyProject LANGUAGES Fortran)
+
+# add executable
+add_executable(test test.f90)
+
+# add FORCES dependency
+CPMAddPackage("https://git.ufz.de/chs/forces.git@0.3.0")
+
+# link dependencies
+target_link_libraries(test forces)
+```
+
+There, `CPM` (the cmake package manager) is downloaded on the fly and used to get `FORCES` to be able to link against it.
+
+Afterwards you only need to do the following to configure, compile and execute your program:
+```bash
+cmake -B build
+cmake --build build --parallel
+./build/test
+```
+
+And it will happily write:
+```
+This is working!
+```
 
 ## Dependencies
 
