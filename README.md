@@ -16,7 +16,7 @@ It is a lightweight fork of the `jams_fortran` library maintained by Matthias Cu
 The `jams_fortran` library was formerly developed at the CHS department at the UFZ and is now released under the [MIT license](https://github.com/mcuntz/jams_fortran/blob/master/LICENSE).
 
 ## Using FORCES with your Fortran program
-If you want to write a fortran program using forces, like this example `test.f90`:
+Let's assume, you want to write a fortran program using forces, like this example `test.f90`:
 ```fortran
 program test
   use mo_message, only : message
@@ -25,7 +25,7 @@ program test
 end program test
 ```
 
-You can now create a minimal `CMakeLists.txt` file next to the `test.f90` file like this:
+You should create a minimal `CMakeLists.txt` file next to the `test.f90` file like this:
 ```cmake
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
@@ -63,19 +63,19 @@ This is working!
 
 For a more complex project, prepared for unit-tests, documentation and modules, have a look at the [Fortran Template](https://git.ufz.de/chs/fortran-template).
 
-## Dependencies
+## Dependencies and Requirements
 
-NetCDF-Fortran
-
-Recent versions can be downloaded from [here](ftp://ftp.unidata.ucar.edu/pub/netcdf/).
-Instructions can be found [here](https://www.unidata.ucar.edu/software/netcdf/docs/building_netcdf_fortran.html).
+* Fortran compiler: We support [gfortran](https://gcc.gnu.org/fortran/), [nagfor](https://www.nag.com/content/nag-fortran-compiler) and [ifort](https://www.intel.com/content/www/us/en/developer/tools/oneapi/overview.html)
+* Build system: We support [make](https://www.gnu.org/software/make/) and [ninja](https://ninja-build.org/)
+* [cmake](https://cmake.org/): Software for build automation
+* [NetCDF-Fortran](https://github.com/Unidata/netcdf-fortran): NetCDF I/O for Fortran
+* (optional) [fypp](https://github.com/aradi/fypp): Fortran pre-processor written in Python
 
 It is recommended to have a clean installation at a custom location
 for a C compiler, a Fortran compiler, the NetCDF C library and the
 NetCDF Fortran library with consistent compilers.
 
-You can also use a conda environment to get all dependencies:
-
+We recommend to use a [conda](https://docs.conda.io/en/latest/) environment by using [Miniconda](https://docs.conda.io/en/latest/miniconda.html) to get all dependencies easily:
 ```bash
 conda create -y --prefix ./forces_env
 conda activate ./forces_env
