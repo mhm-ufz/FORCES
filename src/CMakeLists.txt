@@ -2,6 +2,8 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cmake-modules
 
 set (LIB_NAME forces)
 
+# add sources
+file(GLOB sources ./mo_*.f90 ./mo_*.F90)
 # find preprocessor (fypp)
 include(fortranpreprocessor)
 find_program(FYPP fypp)
@@ -24,8 +26,7 @@ else()
   list(FILTER sources EXCLUDE REGEX ".*mo_netcdf.f90$")
 endif()
 
-# add sources
-file(GLOB sources ./mo_*.f90 ./mo_*.F90)
+# create library
 add_library(${LIB_NAME} ${sources} ${fyppOutFiles})
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
