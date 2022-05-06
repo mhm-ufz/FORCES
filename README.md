@@ -47,7 +47,7 @@ CPMAddPackage("https://git.ufz.de/chs/forces.git@0.3.0")
 target_link_libraries(test forces)
 ```
 
-There, `CPM` (the cmake package manager) is downloaded on the fly and used to get `FORCES` to be able to link against it.
+There, `CPM` (the [cmake package manager](https://github.com/cpm-cmake/CPM.cmake)) is downloaded on the fly and used to get `FORCES` to be able to link against it.
 
 Afterwards you only need to do the following to configure, compile and execute your program:
 ```bash
@@ -60,6 +60,8 @@ And it will happily write:
 ```
 This is working!
 ```
+
+For a more complex project, prepared for unit-tests, documentation and modules, have a look at the [Fortran Template](https://git.ufz.de/chs/fortran-template).
 
 ## Dependencies
 
@@ -80,9 +82,8 @@ conda activate ./forces_env
 conda config --add channels conda-forge
 conda config --set channel_priority strict
 conda install -y cmake make fortran-compiler netcdf-fortran fypp
-cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
-cmake --build build --parallel
 ```
+With this you could now proceed with the example given above.
 
 ## License
 
