@@ -13,7 +13,7 @@ See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.3.0...v0.3.1) for 
 ### Bugfixes
 - CMake: fix source collection for mo_netcdf if preprocessed ([c2430f5b](https://git.ufz.de/chs/forces/-/commit/c2430f5ba234449f475d9a287239d84171a6fb41))
 
-## v0.3.0 - 2022-05
+## v0.3.0 - 2022-04
 See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.2.0...v0.3.0) for details.
 
 ### Enhancements
