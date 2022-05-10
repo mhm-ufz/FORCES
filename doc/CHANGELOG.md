@@ -54,7 +54,7 @@ See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.1.0...v0.1.1) for 
 - add coverage site
 
 ### Changes
-- FPP/CPP: rename files to be pre-processed to *.F90, so pre-processing is done automatically
+- FPP/CPP: rename files to be pre-processed to `*.F90`, so pre-processing is done automatically
 
 ### Bugfixes
 - refactored mo_message.F90
