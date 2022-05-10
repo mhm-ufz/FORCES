@@ -41,7 +41,7 @@ project(MyProject LANGUAGES Fortran)
 add_executable(test test.f90)
 
 # add FORCES dependency
-CPMAddPackage("https://git.ufz.de/chs/forces.git@0.3.0")
+CPMAddPackage("https://git.ufz.de/chs/forces.git@0.3.1")
 
 # link dependencies
 target_link_libraries(test forces)
