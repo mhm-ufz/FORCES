@@ -12,7 +12,7 @@
 
 #:set KINDS_TYPES = REAL_KINDS_TYPES
 #:set KINDS = REAL_KINDS
-#:set PROCEDURES = ["areapoly", "center_of_mass", "inpoly", "orientpoly", "mod_periodicity"]
+#:set PROCEDURES = ["areapoly", "center_of_mass", "inpoly", "orientpoly", "mod_pole"]
 
 module mo_poly
 
@@ -45,7 +45,7 @@ module mo_poly
 
 
   use mo_kind, only: i4, ${', '.join(KINDS)}$
-  use mo_utils, only: eq, ge, le
+  use mo_utils, only: eq, ge, le, ne
 
   implicit none
 
@@ -234,28 +234,122 @@ contains
   function orientpoly_${kind}$(coord) result(orientpoly)
     !> coordinates of the polygon in question
     ${type}$, dimension(:,:),     intent(in)     :: coord
-    logical :: orientpoly
+    integer(i4) :: orientpoly
+    !> result:
+    !!     inside:         erg =  1
+    !!     outside:        erg = -1
+    !!     on vertex/edge: erg =  0
 
     ! local variables
+    integer(i4) :: n
+    ${type}$ :: sum_edges
 
-    orientpoly = .false.
+    ! calculate sum over the edges, (x2 − x1)(y2 + y1) as in
+    ! https://stackoverflow.com/questions/1165647/how-to-determine-if-a-list-of-polygon-points-are-in-clockwise-order
+    n = size(coord, 1)
+    ! use a vectorized version of sum over all (x2 -x1)*(y2-y1)
+    sum_edges = sum((coord(2:n, 1) - coord(1:n-1, 1)) * (coord(2:n, 2) + coord(1:n-1, 2)))
+    sum_edges = sum_edges + (coord(1, 1) - coord(n, 1)) * (coord(1, 2) + coord(n, 2))
+    if (eq(sum_edges, 0._${kind}$)) then
+      orientpoly = 0_i4
+    else if (sum_edges < 0._${kind}$) then
+      orientpoly = -1_i4
+    else
+      orientpoly = 1_i4
+    end if
 
   end function orientpoly_${kind}$
 #:enddef orientpoly_template
-#:def mod_periodicity_template(kind, type)
-  !>    \brief   Modify polygon so it can be sent to inpoly
-  !>    \details Modifies a polygon (2D, convex or not) to avoid pole singularity and 180 meridian problem.
+#:def mod_pole_template(kind, type)
+  !>    \brief   Modify polygon so it covers pole correctly
+  !>    \details Modifies a polygon (2D, convex or not) to include pole when passed to inpoly
   !>    \return  modified coordinates
-  function mod_periodicity_${kind}$(coord) result(mod_periodicity)
+  function mod_pole_${kind}$(coord, meridian_arg) result(mod_pole)
     !> coordinates of the polygon in question
-    ${type}$, dimension(:,:),     intent(in)     :: coord
-    logical :: mod_periodicity
+    ${type}$, dimension(:,:), intent(in)     :: coord
+    !> meridian that represents discontinuity, defaults to 180.0
+    ${type}$, intent(in), optional :: meridian_arg
+    ${type}$, dimension(:,:), allocatable :: mod_pole
 
     ! local variables
-    mod_periodicity = .false.
+    ${type}$ :: meridian
+    ${type}$ :: break, a
+    integer(i4) :: i, j, k, n
 
-  end function mod_periodicity_${kind}$
-#:enddef mod_periodicity_template
+    if (present(meridian_arg)) then
+      meridian = meridian_arg
+    else
+      meridian = 180._${kind}$
+    end if
+
+    n = size(coord, 1)
+    ! determine location where meridian is crossed
+    ! find the maximum and minimum longitudes
+    i = maxloc(coord(:, 1), 1)
+    j = minloc(coord(:, 1), 1)
+    ! determine size of new coords array
+    k = n + 2
+    if (ne(coord(i, 1), meridian)) then
+      k = k + 1
+    end if
+    if (ne(coord(j, 1), meridian * (-1._${kind}$))) then
+      k = k + 1
+    end if
+    allocate(mod_pole(k, 2))
+    ! polygon covers a pole
+    if (mod(i,n)+1 == j) then
+      ! the coord pair after i is j, so longitudes are ascending, so north pole is contained
+      mod_pole(1:i, :) = coord(1:i, :)
+      k = i
+      ! if the maxval is not meridian, we need to add point at intersection of meridian and points i and j
+      if (ne(coord(i, 1), meridian)) then
+        a = meridian - coord(i, 1)
+        break = coord(i, 2) + a / (a + abs(meridian + coord(j, 1))) * (coord(j, 2) - coord(i, 2))
+        mod_pole(k+1, :) = [meridian, break]
+        k = k + 1
+      end if
+      ! add the points meridian,90 and meridian * -1, 90
+      mod_pole(k+1:k+2, 1) = [meridian, meridian * (-1._${kind}$)]
+      mod_pole(k+1:k+2, 2) = [90._${kind}$, 90._${kind}$]
+      k = k + 2
+      ! if the minval is not meridian * -1, we need to add point at intersection of meridian and points i and j
+      if (ne(coord(j, 1), meridian * (-1._${kind}$))) then
+        a = meridian - coord(i, 1)
+        break = coord(i, 2) + a / (a + abs(meridian + coord(j, 1))) * (coord(j, 2) - coord(i, 2))
+        mod_pole(k+1, :) = [meridian * (-1._${kind}$), break]
+        k = k + 1
+      end if
+      ! add the remaining coordinates
+      if (j > 1) mod_pole(k+1:k+1+n-j, :) = coord(j:n, :)
+    else if (mod(j,n)+1 == i) then
+      ! the coord pair after j is i, so longitudes are descending, so south pole is contained
+      mod_pole(1:j, :) = coord(1:j, :)
+      k = j
+      ! if the minval is not meridian * -1, we need to add point at intersection of meridian and points i and j
+      if (ne(coord(j, 1), meridian * (-1._${kind}$))) then
+        a = abs(meridian + coord(j, 1))
+        break = coord(j, 2) + a / (a + meridian - coord(i, 1)) * (coord(i, 2) - coord(j, 2))
+        mod_pole(k+1, :) = [meridian * (-1._${kind}$), break]
+        k = k + 1
+      end if
+      ! add the points meridian * -1, -90 and meridian, -90
+      mod_pole(k+1:k+2, 1) = [meridian * (-1._${kind}$), meridian]
+      mod_pole(k+1:k+2, 2) = [-90._${kind}$, -90._${kind}$]
+      k = k + 2
+      ! if the maxval is not meridian, we need to add point at intersection of meridian and points i and j
+      if (ne(coord(i, 1), meridian)) then
+        a = abs(meridian + coord(j, 1))
+        break = coord(j, 2) + a / (a + meridian - coord(i, 1)) * (coord(i, 2) - coord(j, 2))
+        mod_pole(k+1, :) = [meridian, break]
+        k = k + 1
+      end if
+      ! add the remaining coordinates
+      if (i > 1) mod_pole(k+1:k+1+n-i, :) = coord(i:n, :)
+    ! else: if there are multiple locations of minval or maxval, this edge case is not covered...
+    end if
+
+  end function mod_pole_${kind}$
+#:enddef mod_pole_template
 
 #:for kind, type in KINDS_TYPES
   $:areapoly_template(kind, type)
@@ -270,7 +364,7 @@ contains
   $:orientpoly_template(kind, type)
 
   ! ------------------------------------------------------------------
-  $:mod_periodicity_template(kind, type)
+  $:mod_pole_template(kind, type)
 
   ! ------------------------------------------------------------------
 #:endfor
