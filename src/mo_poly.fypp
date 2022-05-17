@@ -1,0 +1,244 @@
+!>    \file mo_poly.f90
+!>    \copydoc mo_poly
+
+!>    \brief  polygon calculations.
+!>    \details
+!!    this module determines some topological functions working with polygons,
+!!    and is part of the UFZ CHS Fortran library.
+!>    \author juliane mai
+!>    \date jul 2012
+
+#:include "common.fypp"
+
+#:set KINDS_TYPES = REAL_KINDS_TYPES
+#:set KINDS = REAL_KINDS
+#:set PROCEDURES = ["areapoly", "center_of_mass", "inpoly"]
+! todo: , "orientpoly", "mod_periodicity"]
+
+module mo_poly
+
+  ! this module determines wether a 2D point lies inside, outside, or
+  ! on the vertice/edge of a 2D polygon
+  ! and is part of the UFZ CHS Fortran library.
+  !
+  ! written  juliane mai, july 2012
+  ! modified maren goehler, july 2012 - area & center of mass
+
+  ! license
+  ! -------
+  ! this file is part of the UFZ Fortran library.
+
+  ! the UFZ Fortran library is free software: you can redistribute it and/or modify
+  ! it under the terms of the GNU lesser general public license as published by
+  ! the free software foundation, either version 3 of the license, or
+  ! (at your option) any later version.
+
+  ! the UFZ Fortran library is distributed in the hope that it will be useful,
+  ! but without any warranty; without even the implied warranty of
+  ! merchantability or fitness for a particular purpose. see the
+  ! GNU lesser general public license for more details.
+
+  ! you should have received a copy of the GNU lesser general public license
+  ! along with the UFZ Fortran library (license).
+  ! if not, see <http://www.GNU.org/licenses/>.
+
+  ! copyright 2012 juliane mai
+
+
+  use mo_kind, only: i4, ${', '.join(KINDS)}$
+  use mo_utils, only: eq, ge, le
+
+  implicit none
+
+#:for proc in PROCEDURES
+  public :: ${proc}$
+
+  interface ${proc}$
+  #:for kind, type in KINDS_TYPES
+    module procedure ${proc}$_${kind}$
+  #:endfor
+  end interface
+
+#:endfor
+
+  ! ------------------------------------------------------------------
+
+  private
+
+  ! ------------------------------------------------------------------
+
+contains
+
+  ! ------------------------------------------------------------------
+#:def areapoly_template(kind, type)
+  !>    \brief   Area of polygon
+  !>    \details Function for computing the area of a polygon (2D, convex or not).
+  !>    \return  Area of polygon
+  function areapoly_${kind}$(coord) result(areapoly)
+    !> coordinates of the polygon in question
+    ${type}$, dimension(:,:),     intent(in)     :: coord
+    ${type}$                                     :: areapoly
+
+    ! local variables
+    integer(i4)                                  :: i,k          ! loop
+    integer(i4)                                  :: nedges       ! number of coordinates
+    ${type}$                                     :: xsum         ! for summing up
+    ${type}$                                     :: ysum         ! for summing up
+
+    xsum   = 0.0_${kind}$
+    ysum   = 0.0_${kind}$
+    nedges = size(coord,1)
+
+    do i = 1,  nedges
+       if (i == nedges) then
+          k = 1_i4
+       else
+          k = i + 1_i4
+       end if
+       xsum = xsum + ( coord(i,1) * coord(k,2) )
+       ysum = ysum + ( coord(i,2) * coord(k,1) )
+    end do
+
+    areapoly = 0.5_${kind}$ * (xsum - ysum)
+
+  end function areapoly_${kind}$
+#:enddef areapoly_template
+#:def center_of_mass_template(kind, type)
+  !>    \brief    Center of mass of polygon.
+  !>    \details  Function for computing the center of mass of a polygon (2D, convex or not).
+  !>    \return   Center of mass of polygon.
+  function center_of_mass_${kind}$(coord) result(center_of_mass)
+    !> coordinates of polygon in question
+    ${type}$, dimension(:,:),   intent(in)       :: coord
+    ${type}$, dimension(2)                       :: center_of_mass
+
+    ! local variables
+    integer(i4)                                 :: i,k       ! loop
+    integer(i4)                                 :: nedges    ! number of coordinates
+    ${type}$                                    :: area      ! area of the polygon
+    ${type}$                                    :: xsum      ! for summing up
+    ${type}$                                    :: ysum      ! for summing up
+
+    xsum   = 0.0_${kind}$
+    ysum   = 0.0_${kind}$
+    nedges = size(coord,1)
+
+    area = areapoly_${kind}$(coord)
+
+    do i = 1, nedges
+       if (i == nedges ) then
+          k = 1_i4
+       else
+          k = i + 1_i4
+       end if
+       ! multiply x coord by the y coord of next vertex
+       xsum = xsum + ((coord(i,1) + coord(k,1)) * &
+            ((coord(i,1) * coord(k,2) - coord(k,1) * coord(i,2))))
+
+       ysum = ysum + ((coord(i,2) + coord(k,2)) * &
+            ((coord(i,1) * coord(k,2) - coord(k,1) * coord(i,2))))
+    end do
+
+    center_of_mass(1) = 1.0_${kind}$ / (6.0_${kind}$ * area) * xsum
+    center_of_mass(2) = 1.0_${kind}$ / (6.0_${kind}$ * area) * ysum
+
+  end function center_of_mass_${kind}$
+#:enddef center_of_mass_template
+#:def inpoly_template(kind, type)
+  !>    \brief   Determination point of polygon.
+  !>    \details Determines whether a 2D point is inside, outside or on vertex of a polygon (2D, convex or not).
+  !>    \return  Whether point is inside (=1), outside (=-1) or on a vertex/edge of the polygon (=0)
+  subroutine inpoly_${kind}$(p,coord,erg)
+    !> point in question
+    ${type}$,   dimension(2),   intent(in)   :: p
+    !> coordinates of the polygon
+    ${type}$,   dimension(:, :), intent(in)  :: coord
+    !> result:
+    !!     inside:         erg =  1
+    !!     outside:        erg = -1
+    !!     on vertex/edge: erg =  0
+    integer(i4),                intent(out)  :: erg
+
+    ! local variables
+    ${type}$, dimension(size(coord,1))    :: x, y
+    ${type}$                              :: lx, ly
+    logical                               :: mx,my,nx,ny, test1, test2
+    integer(i4)                           :: n, i, j
+
+    n  = size(coord,1)
+
+    do i=1,n
+       x(i)=coord(i,1)-p(1)
+       y(i)=coord(i,2)-p(2)
+       ! check if point is equal to any coord
+       if ( eq(x(i),0.0_${kind}$) .and. eq(y(i),0.0_${kind}$) ) then
+          erg=0_i4
+          return
+       end if
+    end do
+
+    erg=-1_i4
+
+    do i=1,n
+       j=1+mod(i,n)
+       ! vertical vertex
+       if ( eq(coord(i,1),coord(j,1)) .and. eq(coord(i,1),p(1)) ) then
+          ly = (p(2)-coord(j,2)) / (coord(i,2)-coord(j,2))
+          if ( ge(ly,0.0_${kind}$) .and. le(ly,1.0_${kind}$) ) then
+             erg=0_i4
+             return
+          end if
+       end if
+       ! horizontal vertex
+       if ( eq(coord(i,2),coord(j,2)) .and. eq(coord(i,2),p(2)) ) then
+          lx = (p(1)-coord(j,1)) / (coord(i,1)-coord(j,1))
+          if ( ge(lx,0.0_${kind}$ ) .and. le(lx,1.0_${kind}$) ) then
+             erg=0_i4
+             return
+          end if
+       end if
+       !
+       mx = ge(x(i),0.0_${kind}$)
+       nx = ge(x(j),0.0_${kind}$)
+       my = ge(y(i),0.0_${kind}$)
+       ny = ge(y(j),0.0_${kind}$)
+
+       test1 = .not.((my.or.ny).and.(mx.or.nx)).or.(mx.and.nx)
+       test2 = .not.(my.and.ny.and.(mx.or.nx).and..not.(mx.and.nx))
+
+       if (.not. test1) then
+          if (test2) then
+             if ((y(i)*x(j)-x(i)*y(j))/(x(j)-x(i)) < 0.0_${kind}$) then
+                cycle
+             else
+                if ((y(i)*x(j)-x(i)*y(j))/(x(j)-x(i)) > 0.0_${kind}$) then
+                   erg = -erg
+                   cycle
+                else
+                   erg = 0_i4
+                   return
+                end if
+             end if
+          else
+             erg=-erg
+          end if
+       end if
+
+    end do
+
+  end subroutine inpoly_${kind}$
+#:enddef inpoly_template
+
+#:for kind, type in KINDS_TYPES
+  $:areapoly_template(kind, type)
+
+  ! ------------------------------------------------------------------
+  $:center_of_mass_template(kind, type)
+
+  ! ------------------------------------------------------------------
+  $:inpoly_template(kind, type)
+
+  ! ------------------------------------------------------------------
+#:endfor
+
+end module mo_poly
