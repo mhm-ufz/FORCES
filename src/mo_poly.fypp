@@ -12,8 +12,7 @@
 
 #:set KINDS_TYPES = REAL_KINDS_TYPES
 #:set KINDS = REAL_KINDS
-#:set PROCEDURES = ["areapoly", "center_of_mass", "inpoly"]
-! todo: , "orientpoly", "mod_periodicity"]
+#:set PROCEDURES = ["areapoly", "center_of_mass", "inpoly", "orientpoly", "mod_periodicity"]
 
 module mo_poly
 
@@ -228,6 +227,35 @@ contains
 
   end subroutine inpoly_${kind}$
 #:enddef inpoly_template
+#:def orientpoly_template(kind, type)
+  !>    \brief   Check orientation of polygon
+  !>    \details Function for checking the orientation of a polygon (2D, convex or not).
+  !>    \return  Boolean indicating orientation (counter-clockwise: .true., clockwise: .false.)
+  function orientpoly_${kind}$(coord) result(orientpoly)
+    !> coordinates of the polygon in question
+    ${type}$, dimension(:,:),     intent(in)     :: coord
+    logical :: orientpoly
+
+    ! local variables
+
+    orientpoly = .false.
+
+  end function orientpoly_${kind}$
+#:enddef orientpoly_template
+#:def mod_periodicity_template(kind, type)
+  !>    \brief   Modify polygon so it can be sent to inpoly
+  !>    \details Modifies a polygon (2D, convex or not) to avoid pole singularity and 180 meridian problem.
+  !>    \return  modified coordinates
+  function mod_periodicity_${kind}$(coord) result(mod_periodicity)
+    !> coordinates of the polygon in question
+    ${type}$, dimension(:,:),     intent(in)     :: coord
+    logical :: mod_periodicity
+
+    ! local variables
+    mod_periodicity = .false.
+
+  end function mod_periodicity_${kind}$
+#:enddef mod_periodicity_template
 
 #:for kind, type in KINDS_TYPES
   $:areapoly_template(kind, type)
@@ -237,6 +265,12 @@ contains
 
   ! ------------------------------------------------------------------
   $:inpoly_template(kind, type)
+
+  ! ------------------------------------------------------------------
+  $:orientpoly_template(kind, type)
+
+  ! ------------------------------------------------------------------
+  $:mod_periodicity_template(kind, type)
 
   ! ------------------------------------------------------------------
 #:endfor
