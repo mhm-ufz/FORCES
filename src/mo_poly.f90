@@ -272,7 +272,7 @@ contains
     integer(i4) :: n
     real(sp) :: sum_edges
 
-    ! calculate sum over the edges, (x2 − x1)(y2 + y1) as in
+    ! calculate sum over the edges, (x2 - x1)(y2 + y1) as in
     ! https://stackoverflow.com/questions/1165647/how-to-determine-if-a-list-of-polygon-points-are-in-clockwise-order
     n = size(coord, 1)
     ! use a vectorized version of sum over all (x2 -x1)*(y2-y1)
@@ -580,7 +580,7 @@ contains
     integer(i4) :: n
     real(dp) :: sum_edges
 
-    ! calculate sum over the edges, (x2 − x1)(y2 + y1) as in
+    ! calculate sum over the edges, (x2 - x1)(y2 + y1) as in
     ! https://stackoverflow.com/questions/1165647/how-to-determine-if-a-list-of-polygon-points-are-in-clockwise-order
     n = size(coord, 1)
     ! use a vectorized version of sum over all (x2 -x1)*(y2-y1)
