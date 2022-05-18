@@ -70,12 +70,12 @@ contains
     coord_alt(:,2) = [0._dp,0._dp,0._dp,0._dp]
     orientation = orientpoly(coord_alt)
     @assertEqual(orientation, 0_i4)
-    coord_alt(:,2) = [89._dp,89._dp,89._dp,89._dp]
+    coord_alt(:,2) = [81._dp,82._dp,84._dp,89._dp]
     orientation = orientpoly(coord_alt)
-    @assertEqual(orientation, 0_i4)
+    @assertEqual(orientation, -1_i4)
     ! check a polygon covering the south pole
     orientation = orientpoly(coord_alt(size(coord_alt,1):1:-1,:))
-    @assertEqual(orientation, 0_i4)
+    @assertEqual(orientation, 1_i4)
     coord_alt(:,2) = [0._dp,0._dp,0._dp,0._dp]
     orientation = orientpoly(coord_alt)
     @assertEqual(orientation, 0_i4)
@@ -145,13 +145,14 @@ contains
 
   end subroutine test_poly_mod
 
-  ! modify a given (longitude) value, so it avoids the sphere periodicity
+  ! modify a given (longitude) value, so it avoids the sphere periodicity along a meridian
   @test
   subroutine test_poly_shift()
 
     @assertEqual(0._dp, mod_shift(-180._dp))
     @assertEqual(0._dp, mod_shift(180._dp))
-    @assertEqual(-180._dp, mod_shift(0._dp))
+    ! sign is compiler-dependent
+    @assertEqual(180._dp, abs(mod_shift(0._dp)))
     @assertEqual(-175._dp, mod_shift(5._dp))
     @assertEqual(175._dp, mod_shift(-5._dp))
 
