@@ -2,7 +2,7 @@ module test_mo_poly
   
   use funit
   use mo_kind,   only: dp, i4
-  use mo_poly, only: inpoly, areapoly, center_of_mass, orientpoly, mod_pole
+  use mo_poly, only: inpoly, areapoly, center_of_mass, orientpoly, mod_pole, mod_shift
 
   implicit none
 
@@ -141,38 +141,20 @@ contains
     coord_out = mod_pole(coord_alt)
     @assertEqual(coord_ref, coord_out)
     ! so if this test fails, then we cross the
-    deallocate(coord_alt, coord_ref)
+    deallocate(coord_alt, coord_ref, coord_out)
 
   end subroutine test_poly_mod
 
-  ! modify a polygon to allow for inpoly
-  !@test
-  !subroutine test_poly_shift()
-  !  real(dp), dimension(:, :), allocatable  :: coord_out
-  !  real(dp), dimension(:, :), allocatable  :: coord_alt
-  !  real(dp), dimension(:, :), allocatable  :: coord_ref
-  !
-  !  allocate(coord_alt(4,2))
-  !  allocate(coord_ref(8,2))
-  !  ! assume all valid polygons are counter-clockwise
-  !  coord_alt(:,1) = [175._dp,-175._dp,-175._dp,175._dp]
-  !  coord_alt(:,2) = [0._dp,1._dp,2._dp,3._dp]
-  !  coord_ref(:,1) = [175._dp,180._dp,180._dp,-180._dp,-180._dp,-175._dp,-175._dp,175._dp]
-  !  coord_ref(:,2) = [0._dp,0.5_dp,90._dp,90._dp,0.5_dp,1._dp,2._dp,3._dp]
-  !  coord_out = mod_pole(coord_alt)
-  !  @assertEqual(coord_ref, coord_out)
-  !
-  !  coord_alt(:,1) = [-175._dp,-175._dp,175._dp,175._dp]
-  !  coord_alt(:,2) = [1._dp,2._dp,3._dp,0._dp]
-  !  coord_ref(:,1) = [175._dp,180._dp,180._dp,-180._dp,-180._dp,-175._dp,-175._dp,175._dp]
-  !  coord_ref(:,2) = [0._dp,0.5_dp,90._dp,90._dp,0.5_dp,1._dp,2._dp,3._dp]
-  !  coord_out = mod_pole(coord_alt)
-  !  @assertEqual(coord_ref, coord_out)
-  !  print*, coord_out
-  !  print*, coord_ref
-  !  ! so if this test fails, then we cross the
-  !  deallocate(coord_alt, coord_ref)
-  !
-  !end subroutine test_poly_shift
+  ! modify a given (longitude) value, so it avoids the sphere periodicity
+  @test
+  subroutine test_poly_shift()
+
+    @assertEqual(0._dp, mod_shift(-180._dp))
+    @assertEqual(0._dp, mod_shift(180._dp))
+    @assertEqual(-180._dp, mod_shift(0._dp))
+    @assertEqual(-175._dp, mod_shift(5._dp))
+    @assertEqual(175._dp, mod_shift(-5._dp))
+
+  end subroutine test_poly_shift
 
 end module test_mo_poly

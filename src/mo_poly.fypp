@@ -12,7 +12,7 @@
 
 #:set KINDS_TYPES = REAL_KINDS_TYPES
 #:set KINDS = REAL_KINDS
-#:set PROCEDURES = ["areapoly", "center_of_mass", "inpoly", "orientpoly", "mod_pole"]
+#:set PROCEDURES = ["areapoly", "center_of_mass", "inpoly", "orientpoly", "mod_pole", "mod_shift"]
 
 module mo_poly
 
@@ -263,13 +263,18 @@ contains
 #:def mod_pole_template(kind, type)
   !>    \brief   Modify polygon so it covers pole correctly
   !>    \details Modifies a polygon (2D, convex or not) to include pole when passed to inpoly
+  !!  this function is intended to modify a given polygon, so it can be represented in a Cartesian grid
+  !!  the use case is a polygon (e.g. 120,80, -120,80, 0,80 covering the north pole) that is not represented on
+  !!  Cartesian lat-lon grid as polygon.
+  !!  The script inserts additional coordinates, so the pole is covered (e.g. 180,80, 180,90, -180,90, -180,80)
+  !!  See test cases for examples.
   !>    \return  modified coordinates
-  function mod_pole_${kind}$(coord, meridian_arg) result(mod_pole)
+  function mod_pole_${kind}$(coord, meridian_arg) result(coord_mod)
     !> coordinates of the polygon in question
     ${type}$, dimension(:,:), intent(in)     :: coord
     !> meridian that represents discontinuity, defaults to 180.0
     ${type}$, intent(in), optional :: meridian_arg
-    ${type}$, dimension(:,:), allocatable :: mod_pole
+    ${type}$, dimension(:,:), allocatable :: coord_mod
 
     ! local variables
     ${type}$ :: meridian
@@ -295,61 +300,83 @@ contains
     if (ne(coord(j, 1), meridian * (-1._${kind}$))) then
       k = k + 1
     end if
-    allocate(mod_pole(k, 2))
+    allocate(coord_mod(k, 2))
     ! polygon covers a pole
     if (mod(i,n)+1 == j) then
       ! the coord pair after i is j, so longitudes are ascending, so north pole is contained
-      mod_pole(1:i, :) = coord(1:i, :)
+      coord_mod(1:i, :) = coord(1:i, :)
       k = i
       ! if the maxval is not meridian, we need to add point at intersection of meridian and points i and j
       if (ne(coord(i, 1), meridian)) then
         a = meridian - coord(i, 1)
         break = coord(i, 2) + a / (a + abs(meridian + coord(j, 1))) * (coord(j, 2) - coord(i, 2))
-        mod_pole(k+1, :) = [meridian, break]
+        coord_mod(k+1, :) = [meridian, break]
         k = k + 1
       end if
       ! add the points meridian,90 and meridian * -1, 90
-      mod_pole(k+1:k+2, 1) = [meridian, meridian * (-1._${kind}$)]
-      mod_pole(k+1:k+2, 2) = [90._${kind}$, 90._${kind}$]
+      coord_mod(k+1:k+2, 1) = [meridian, meridian * (-1._${kind}$)]
+      coord_mod(k+1:k+2, 2) = [90._${kind}$, 90._${kind}$]
       k = k + 2
       ! if the minval is not meridian * -1, we need to add point at intersection of meridian and points i and j
       if (ne(coord(j, 1), meridian * (-1._${kind}$))) then
         a = meridian - coord(i, 1)
         break = coord(i, 2) + a / (a + abs(meridian + coord(j, 1))) * (coord(j, 2) - coord(i, 2))
-        mod_pole(k+1, :) = [meridian * (-1._${kind}$), break]
+        coord_mod(k+1, :) = [meridian * (-1._${kind}$), break]
         k = k + 1
       end if
       ! add the remaining coordinates
-      if (j > 1) mod_pole(k+1:k+1+n-j, :) = coord(j:n, :)
+      if (j > 1) coord_mod(k+1:k+1+n-j, :) = coord(j:n, :)
     else if (mod(j,n)+1 == i) then
       ! the coord pair after j is i, so longitudes are descending, so south pole is contained
-      mod_pole(1:j, :) = coord(1:j, :)
+      coord_mod(1:j, :) = coord(1:j, :)
       k = j
       ! if the minval is not meridian * -1, we need to add point at intersection of meridian and points i and j
       if (ne(coord(j, 1), meridian * (-1._${kind}$))) then
         a = abs(meridian + coord(j, 1))
         break = coord(j, 2) + a / (a + meridian - coord(i, 1)) * (coord(i, 2) - coord(j, 2))
-        mod_pole(k+1, :) = [meridian * (-1._${kind}$), break]
+        coord_mod(k+1, :) = [meridian * (-1._${kind}$), break]
         k = k + 1
       end if
       ! add the points meridian * -1, -90 and meridian, -90
-      mod_pole(k+1:k+2, 1) = [meridian * (-1._${kind}$), meridian]
-      mod_pole(k+1:k+2, 2) = [-90._${kind}$, -90._${kind}$]
+      coord_mod(k+1:k+2, 1) = [meridian * (-1._${kind}$), meridian]
+      coord_mod(k+1:k+2, 2) = [-90._${kind}$, -90._${kind}$]
       k = k + 2
       ! if the maxval is not meridian, we need to add point at intersection of meridian and points i and j
       if (ne(coord(i, 1), meridian)) then
         a = abs(meridian + coord(j, 1))
         break = coord(j, 2) + a / (a + meridian - coord(i, 1)) * (coord(i, 2) - coord(j, 2))
-        mod_pole(k+1, :) = [meridian, break]
+        coord_mod(k+1, :) = [meridian, break]
         k = k + 1
       end if
       ! add the remaining coordinates
-      if (i > 1) mod_pole(k+1:k+1+n-i, :) = coord(i:n, :)
+      if (i > 1) coord_mod(k+1:k+1+n-i, :) = coord(i:n, :)
     ! else: if there are multiple locations of minval or maxval, this edge case is not covered...
     end if
 
   end function mod_pole_${kind}$
 #:enddef mod_pole_template
+#:def mod_shift_template(kind, type)
+  !>    \brief   Shifts the (longitude) value 180 degrees
+  !>    \details Modify a coordinate value
+  !>    \return  Shifted value
+  elemental function mod_shift_${kind}$(x_coord, meridian_arg) result(shifted)
+    !> coordinates of the polygon in question
+    ${type}$, intent(in) :: x_coord
+    !> meridian that represents discontinuity, defaults to 180.0
+    ${type}$, intent(in), optional :: meridian_arg
+    ${type}$ :: shifted
+    ${type}$ :: meridian
+
+    ! shift values
+    if (present(meridian_arg)) then
+      meridian = meridian_arg
+    else
+      meridian = 180._${kind}$
+    end if
+    shifted = sign(abs(x_coord) - meridian, x_coord * (-1._${kind}$))
+
+  end function mod_shift_${kind}$
+#:enddef mod_shift_template
 
 #:for kind, type in KINDS_TYPES
   $:areapoly_template(kind, type)
@@ -365,6 +392,9 @@ contains
 
   ! ------------------------------------------------------------------
   $:mod_pole_template(kind, type)
+
+  ! ------------------------------------------------------------------
+  $:mod_shift_template(kind, type)
 
   ! ------------------------------------------------------------------
 #:endfor
