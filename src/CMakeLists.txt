@@ -4,7 +4,6 @@ set (LIB_NAME forces)
 
 # add sources
 file(GLOB sources ./mo_*.f90 ./mo_*.F90)
-
 # find preprocessor (fypp)
 include(fortranpreprocessor)
 find_program(FYPP fypp)

@@ -56,7 +56,7 @@ documentation:
 
 documentation_stable:
   only:
-    - develop
+    - main
   stage: test
   variables:
     GIT_DEPTH: 0
@@ -280,7 +280,7 @@ coverage:
 pages:
   when: always
   only:
-    - develop
+    - main
   stage: deploy
   needs:
     - job: documentation_stable
@@ -299,7 +299,7 @@ pages:
     # copy the doxygen generated html page to the public site
     - cp html_tag/* public/stable/ -R
     - cp html_dev/* public/latest/ -R
-    # create an index.html that redirects to the master documentation (in master folder)
+    # create an index.html that redirects to the stable documentation (in stable folder)
     - cp doc/html_files/index.html public/
     # create the coverage site
     - mkdir -p public/coverage
