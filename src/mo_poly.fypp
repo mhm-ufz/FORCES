@@ -230,16 +230,15 @@ contains
 #:def orientpoly_template(kind, type)
   !>    \brief   Check orientation of polygon
   !>    \details Function for checking the orientation of a polygon (2D, convex or not).
-  !>    \return  Boolean indicating orientation (counter-clockwise: .true., clockwise: .false.)
+  !>    \return  Integer indicating orientation (counter-clockwise: -1, clockwise: 1, none: 0)
   function orientpoly_${kind}$(coord) result(orientpoly)
     !> coordinates of the polygon in question
     ${type}$, dimension(:,:),     intent(in)     :: coord
     integer(i4) :: orientpoly
     !> result:
-    !!     inside:         erg =  1
-    !!     outside:        erg = -1
-    !!     on vertex/edge: erg =  0
-
+    !!     clockwise: orientpoly = 1
+    !!     counter-clockwise: orientpoly = -1
+    !!     flat line or similar irregular shape: orientpoly = 0
     ! local variables
     integer(i4) :: n
     ${type}$ :: sum_edges
