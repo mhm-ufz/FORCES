@@ -2,6 +2,9 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cmake-modules
 
 set (LIB_NAME forces)
 
+# add sources
+file(GLOB sources ./mo_*.f90 ./mo_*.F90)
+
 # find preprocessor (fypp)
 include(fortranpreprocessor)
 find_program(FYPP fypp)
@@ -9,8 +12,8 @@ if(NOT FYPP)
   message(WARNING "Preprocessor fypp not found!")
 else()
   message(STATUS "Preprocessor fypp found!")
-# Create a list of the files to be preprocessed
-  set(fppFiles mo_netcdf.fypp)
+  # Create a list of the files to be preprocessed
+  set(fppFiles mo_netcdf.fypp mo_poly.fypp)
   # Custom preprocessor flags
   if(DEFINED CMAKE_MAXIMUM_RANK)
     set(fyppFlags "-DMAXRANK=${CMAKE_MAXIMUM_RANK}")
@@ -22,10 +25,9 @@ else()
   # Pre-process: .fpp -> .f90 via Fypp
   fypp_f90("${fyppFlags}" "${fppFiles}" fyppOutFiles)
   list(FILTER sources EXCLUDE REGEX ".*mo_netcdf.f90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_poly.f90$")
 endif()
 
-# add sources
-file(GLOB sources ./mo_*.f90 ./mo_*.F90)
 add_library(${LIB_NAME} ${sources} ${fyppOutFiles})
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
