@@ -7,9 +7,9 @@
 #         so the build in the build tree works even after a module purge
 cmake_minimum_required(VERSION 3.14)
 # additional cmake-modules
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake-modules)
+set(FORCES_CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake-modules)
 # get version and date from files (version.txt and version_date.txt)
-include(version)
+include(${FORCES_CMAKE_MODULE_PATH}/version.cmake)
 get_version(FORCES_VER FORCES_VER_DEV FORCES_DATE)
 
 # create the project
@@ -46,7 +46,7 @@ endif()
 
 # prepare coverage
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE AND BUILD_FORCES_TESTS)
-  include(CodeCoverage)
+  include(${FORCES_CMAKE_MODULE_PATH}/CodeCoverage.cmake)
   target_compile_options(${LIB_NAME} PRIVATE -g --coverage)
   target_link_libraries(${LIB_NAME} PRIVATE gcov)
   SETUP_TARGET_FOR_COVERAGE_LCOV(
