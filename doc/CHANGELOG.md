@@ -3,6 +3,13 @@
 All notable changes to **FORCES** will be documented in this file.
 
 
+## v0.3.2 - 2022-06
+See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.3.1...v0.3.2) for details.
+
+### Bugfixes
+- CMake: prevent altering CMAKE_MODULE_PATH to not interfere with down-stream packages ([57](https://git.ufz.de/chs/forces/-/merge_requests/57))
+
+
 ## v0.3.1 - 2022-05
 See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.3.0...v0.3.1) for details.
 
@@ -12,6 +19,7 @@ See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.3.0...v0.3.1) for 
 
 ### Bugfixes
 - CMake: fix source collection for mo_netcdf if preprocessed ([c2430f5b](https://git.ufz.de/chs/forces/-/commit/c2430f5ba234449f475d9a287239d84171a6fb41))
+
 
 ## v0.3.0 - 2022-04
 See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.2.0...v0.3.0) for details.
