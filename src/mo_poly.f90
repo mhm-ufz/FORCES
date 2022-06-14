@@ -1,43 +1,41 @@
 !>    \file mo_poly.f90
 !>    \copydoc mo_poly
 
-!>    \brief  polygon calculations.
+!>    \brief  Polygon calculations.
 !>    \details
-!!    this module determines some topological functions working with polygons,
+!!    This module determines wether a 2D point lies inside, outside, or
+!!    on the vertice/edge of a 2D polygon
 !!    and is part of the UFZ CHS Fortran library.
-!>    \author juliane mai
-!>    \date jul 2012
-
-
-
+!>    \author Juliane Mai
+!>    \date Jul 2012
 module mo_poly
 
-  ! this module determines wether a 2D point lies inside, outside, or
+  ! This module determines wether a 2D point lies inside, outside, or
   ! on the vertice/edge of a 2D polygon
   ! and is part of the UFZ CHS Fortran library.
   !
-  ! written  juliane mai, july 2012
-  ! modified maren goehler, july 2012 - area & center of mass
+  ! Written  Juliane Mai, July 2012
+  ! Modified Maren Goehler, July 2012 - area & center of mass
 
-  ! license
+  ! License
   ! -------
-  ! this file is part of the UFZ Fortran library.
+  ! This file is part of the UFZ Fortran library.
 
-  ! the UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU lesser general public license as published by
-  ! the free software foundation, either version 3 of the license, or
+  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
+  ! it under the terms of the GNU Lesser General Public License as published by
+  ! the Free Software Foundation, either version 3 of the License, or
   ! (at your option) any later version.
 
-  ! the UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but without any warranty; without even the implied warranty of
-  ! merchantability or fitness for a particular purpose. see the
-  ! GNU lesser general public license for more details.
+  ! The UFZ Fortran library is distributed in the hope that it will be useful,
+  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  ! GNU Lesser General Public License for more details.
 
-  ! you should have received a copy of the GNU lesser general public license
-  ! along with the UFZ Fortran library (license).
-  ! if not, see <http://www.GNU.org/licenses/>.
+  ! You should have received a copy of the GNU Lesser General Public License
+  ! along with the UFZ Fortran library (LICENSE).
+  ! If not, see <http://www.gnu.org/licenses/>.
 
-  ! copyright 2012 juliane mai
+  ! Copyright 2012 Juliane Mai
 
 
   use mo_kind, only: i4, sp, dp
@@ -47,11 +45,13 @@ module mo_poly
 
   public :: areapoly
 
+  ! compute the area of a polygon
   interface areapoly
     module procedure areapoly_sp
     module procedure areapoly_dp
   end interface
 
+  ! compute the center of mass of a polygon
   public :: center_of_mass
 
   interface center_of_mass
@@ -59,6 +59,7 @@ module mo_poly
     module procedure center_of_mass_dp
   end interface
 
+  ! Test if 2D point is inside, outside or on vertice/edge of a 2D polygon
   public :: inpoly
 
   interface inpoly

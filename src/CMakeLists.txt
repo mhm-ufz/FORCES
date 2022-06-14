@@ -16,8 +16,9 @@ else()
   # Custom preprocessor flags
   if(DEFINED CMAKE_MAXIMUM_RANK)
     set(fyppFlags "-DMAXRANK=${CMAKE_MAXIMUM_RANK}")
-  elseif(f03rank)
-    set(fyppFlags)
+  # Fortran03 standard supports rank 15 arrays, activate here, if required
+  # elseif(f03rank)
+  #   set(fyppFlags)
   else()
     set(fyppFlags "-DVERSION90")
   endif()

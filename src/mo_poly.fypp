@@ -1,12 +1,11 @@
-!>    \file mo_poly.f90
+!>    \brief  Polygon calculations.
 !>    \copydoc mo_poly
-
-!>    \brief  polygon calculations.
 !>    \details
-!!    this module determines some topological functions working with polygons,
+!!    This module determines wether a 2D point lies inside, outside, or
+!!    on the vertice/edge of a 2D polygon
 !!    and is part of the UFZ CHS Fortran library.
-!>    \author juliane mai
-!>    \date jul 2012
+!>    \author Juliane Mai
+!>    \date Jul 2012
 
 #:include "common.fypp"
 
@@ -16,32 +15,32 @@
 
 module mo_poly
 
-  ! this module determines wether a 2D point lies inside, outside, or
+  ! This module determines wether a 2D point lies inside, outside, or
   ! on the vertice/edge of a 2D polygon
   ! and is part of the UFZ CHS Fortran library.
   !
-  ! written  juliane mai, july 2012
-  ! modified maren goehler, july 2012 - area & center of mass
+  ! Written  Juliane Mai, July 2012
+  ! Modified Maren Goehler, July 2012 - area & center of mass
 
-  ! license
+  ! License
   ! -------
-  ! this file is part of the UFZ Fortran library.
+  ! This file is part of the UFZ Fortran library.
 
-  ! the UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU lesser general public license as published by
-  ! the free software foundation, either version 3 of the license, or
+  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
+  ! it under the terms of the GNU Lesser General Public License as published by
+  ! the Free Software Foundation, either version 3 of the License, or
   ! (at your option) any later version.
 
-  ! the UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but without any warranty; without even the implied warranty of
-  ! merchantability or fitness for a particular purpose. see the
-  ! GNU lesser general public license for more details.
+  ! The UFZ Fortran library is distributed in the hope that it will be useful,
+  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  ! GNU Lesser General Public License for more details.
 
-  ! you should have received a copy of the GNU lesser general public license
-  ! along with the UFZ Fortran library (license).
-  ! if not, see <http://www.GNU.org/licenses/>.
+  ! You should have received a copy of the GNU Lesser General Public License
+  ! along with the UFZ Fortran library (LICENSE).
+  ! If not, see <http://www.gnu.org/licenses/>.
 
-  ! copyright 2012 juliane mai
+  ! Copyright 2012 Juliane Mai
 
 
   use mo_kind, only: i4, ${', '.join(KINDS)}$
@@ -52,6 +51,7 @@ module mo_poly
 #:for proc in PROCEDURES
   public :: ${proc}$
 
+  !> \copydoc mo_poly::${proc}$_template()
   interface ${proc}$
   #:for kind, type in KINDS_TYPES
     module procedure ${proc}$_${kind}$
@@ -72,6 +72,28 @@ contains
 #:def areapoly_template(kind, type)
   !>    \brief   Area of polygon
   !>    \details Function for computing the area of a polygon (2D, convex or not).
+  !!    Function for computing the area of a polygon
+  !!    The polygon can be convex or not.
+  !!
+  !!    The method is only applicable for 2D polygons and points.
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
+  !!    polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
+  !!
+  !!    area = areapoly(polygon )
+  !!
+  !!    --> area = 1
+  !!    \endcode
+  !!
+  !!    See also example in test directory.
+  !!
+  !!    \b Literature
+  !!
+  !!    1. http://de.wikipedia.org/wiki/Geometrischer_Schwerpunkt
+  !!
   !>    \return  Area of polygon
   function areapoly_${kind}$(coord) result(areapoly)
     !> coordinates of the polygon in question
@@ -105,7 +127,30 @@ contains
 #:def center_of_mass_template(kind, type)
   !>    \brief    Center of mass of polygon.
   !>    \details  Function for computing the center of mass of a polygon (2D, convex or not).
+  !!
+  !!    \f[ A = \sum_{i}(x_{i}y_{i+1}-x_{i+1}y_{i}) \f]
+  !!    \f[ x_s = \frac{1}{6A}  \sum_i(x_i+x_{i+1})(x_iy_{i+1}-x_{i+1}y_i) \f]
+  !!    \f[ y_s = \frac{1}{6A}  \sum_i(y_i+y_{i+1})(x_iy_{i+1}-x_{i+1}y_i) \f]
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
+  !!    polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
+  !!
+  !!    com = center_of_mass(polygon)
+  !!
+  !!    --> com = (/1.5_dp, 1.5_dp/)
+  !!    \endcode
+  !!
+  !!    See also example in test directory
+  !!
+  !!    \b Literature
+  !!
+  !!    1. http://de.wikipedia.org/wiki/Geometrischer_Schwerpunkt
+  !!
   !>    \return   Center of mass of polygon.
+
   function center_of_mass_${kind}$(coord) result(center_of_mass)
     !> coordinates of polygon in question
     ${type}$, dimension(:,:),   intent(in)       :: coord
@@ -146,6 +191,29 @@ contains
 #:def inpoly_template(kind, type)
   !>    \brief   Determination point of polygon.
   !>    \details Determines whether a 2D point is inside, outside or on vertex of a polygon (2D, convex or not).
+  !!
+  !!    The original version of the source code (pnpoly) was implemented by
+  !!    W. Randolph Franklin. It was insufficiently assigning vertex/edge points.
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
+  !!    polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
+  !!
+  !!    point = (/ 1.5, 1.5 /)
+  !!
+  !!    call inpoly( point, polygon, inside )
+  !!
+  !!    --> inside = 1 ... point is inside the polygon
+  !!    \endcode
+  !!
+  !!    See also example in test directory
+  !!
+  !!    \b Literature
+  !!
+  !!    1. https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
+  !!
   !>    \return  Whether point is inside (=1), outside (=-1) or on a vertex/edge of the polygon (=0)
   subroutine inpoly_${kind}$(p,coord,erg)
     !> point in question
