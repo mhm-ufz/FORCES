@@ -1,11 +1,11 @@
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cmake-modules)
+set(FORCES_CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cmake-modules)
 
 set (LIB_NAME forces)
 
 # add sources
 file(GLOB sources ./mo_*.f90 ./mo_*.F90)
 # find preprocessor (fypp)
-include(fortranpreprocessor)
+include(${FORCES_CMAKE_MODULE_PATH}/fortranpreprocessor.cmake)
 find_program(FYPP fypp)
 if(NOT FYPP)
   message(WARNING "Preprocessor fypp not found!")
@@ -40,8 +40,14 @@ else()
   message(STATUS "FORCES: use ISO_C_BINDING for mo_kind")
 endif()
 
-# find the netcdf and netcdf-fortran libraries quietly, taken from ecmwf project
+# find the netcdf and netcdf-fortran libraries quietly
+# Temporary replace CMAKE_MODULE_PATH to not alter behavior of down-stream packages
+# https://stackoverflow.com/a/57185195/6696397
+set(FORCES_CMAKE_MODULE_PATH_OLD ${CMAKE_MODULE_PATH})
+set(CMAKE_MODULE_PATH ${FORCES_CMAKE_MODULE_PATH})
 find_package(NetCDF COMPONENTS Fortran QUIET)
+set(CMAKE_MODULE_PATH ${FORCES_CMAKE_MODULE_PATH_OLD})
+unset(FORCES_CMAKE_MODULE_PATH_OLD)
 # Sometimes NetCDF_INCLUDE_DIRS can't be found but NetCDF_Fortran is still usable
 if(NOT NetCDF_Fortran_FOUND)
   message(FATAL_ERROR "FORCES: NetCDF-Fortran not usable")
@@ -51,7 +57,7 @@ endif()
 target_link_libraries(${LIB_NAME} PUBLIC NetCDF::NetCDF_Fortran)
 
 # add all compile options (MPI, OpenMP, Lapack, Coverage)
-include(compileoptions)
+include(${FORCES_CMAKE_MODULE_PATH}/compileoptions.cmake)
 if (CMAKE_WITH_MPI)
   target_compile_definitions(${LIB_NAME} PRIVATE MPI)
   target_link_libraries(${LIB_NAME} PUBLIC MPI::MPI_Fortran)
