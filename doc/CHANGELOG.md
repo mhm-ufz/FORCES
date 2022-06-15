@@ -3,7 +3,7 @@
 All notable changes to **FORCES** will be documented in this file.
 
 ## v0.4.0 - 2022-06
-- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.3.1...v0.4.0) for details.
+- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.3.2...v0.4.0) for details.
 
 ### Enhancements
 - mo_poly: added mo_poly.fypp replacement for mo_poly functions
