@@ -1,11 +1,5 @@
-!>    \brief  Polygon calculations.
-!>    \copydoc mo_poly
-!>    \details
-!!    This module determines wether a 2D point lies inside, outside, or
-!!    on the vertice/edge of a 2D polygon
-!!    and is part of the UFZ CHS Fortran library.
-!>    \author Juliane Mai
-!>    \date Jul 2012
+!> \file    mo_poly.f90
+!> \copydoc mo_poly
 
 #:include "common.fypp"
 
@@ -13,6 +7,13 @@
 #:set KINDS = REAL_KINDS
 #:set PROCEDURES = ["areapoly", "center_of_mass", "inpoly", "orientpoly", "mod_pole", "mod_shift"]
 
+!>    \brief  Polygon calculations.
+!>    \details
+!!    This module determines wether a 2D point lies inside, outside, or
+!!    on the vertice/edge of a 2D polygon
+!!    and is part of the UFZ CHS Fortran library.
+!>    \author Juliane Mai
+!>    \date Jul 2012
 module mo_poly
 
   ! This module determines wether a 2D point lies inside, outside, or
@@ -51,7 +52,7 @@ module mo_poly
 #:for proc in PROCEDURES
   public :: ${proc}$
 
-  !> \copydoc mo_poly::${proc}$_template()
+  !> \copydoc mo_poly::${proc}$_${KINDS_TYPES[0][0]}$
   interface ${proc}$
   #:for kind, type in KINDS_TYPES
     module procedure ${proc}$_${kind}$
@@ -83,9 +84,9 @@ contains
   !!    polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
   !!    polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
   !!
-  !!    area = areapoly(polygon )
+  !!    area = areapoly( polygon )
   !!
-  !!    --> area = 1
+  !!    ! --> area = 1
   !!    \endcode
   !!
   !!    See also example in test directory.
@@ -138,9 +139,9 @@ contains
   !!    polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
   !!    polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
   !!
-  !!    com = center_of_mass(polygon)
+  !!    com = center_of_mass( polygon )
   !!
-  !!    --> com = (/1.5_dp, 1.5_dp/)
+  !!    ! --> com = (/1.5_dp, 1.5_dp/)
   !!    \endcode
   !!
   !!    See also example in test directory
@@ -205,7 +206,7 @@ contains
   !!
   !!    call inpoly( point, polygon, inside )
   !!
-  !!    --> inside = 1 ... point is inside the polygon
+  !!    ! --> inside = 1 ... point is inside the polygon
   !!    \endcode
   !!
   !!    See also example in test directory

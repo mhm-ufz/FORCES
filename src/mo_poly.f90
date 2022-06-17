@@ -1,5 +1,7 @@
-!>    \file mo_poly.f90
-!>    \copydoc mo_poly
+!> \file    mo_poly.f90
+!> \copydoc mo_poly
+
+
 
 !>    \brief  Polygon calculations.
 !>    \details
@@ -45,23 +47,23 @@ module mo_poly
 
   public :: areapoly
 
-  ! compute the area of a polygon
+  !> \copydoc mo_poly::areapoly_sp
   interface areapoly
     module procedure areapoly_sp
     module procedure areapoly_dp
   end interface
 
-  ! compute the center of mass of a polygon
   public :: center_of_mass
 
+  !> \copydoc mo_poly::center_of_mass_sp
   interface center_of_mass
     module procedure center_of_mass_sp
     module procedure center_of_mass_dp
   end interface
 
-  ! Test if 2D point is inside, outside or on vertice/edge of a 2D polygon
   public :: inpoly
 
+  !> \copydoc mo_poly::inpoly_sp
   interface inpoly
     module procedure inpoly_sp
     module procedure inpoly_dp
@@ -69,6 +71,7 @@ module mo_poly
 
   public :: orientpoly
 
+  !> \copydoc mo_poly::orientpoly_sp
   interface orientpoly
     module procedure orientpoly_sp
     module procedure orientpoly_dp
@@ -76,6 +79,7 @@ module mo_poly
 
   public :: mod_pole
 
+  !> \copydoc mo_poly::mod_pole_sp
   interface mod_pole
     module procedure mod_pole_sp
     module procedure mod_pole_dp
@@ -83,6 +87,7 @@ module mo_poly
 
   public :: mod_shift
 
+  !> \copydoc mo_poly::mod_shift_sp
   interface mod_shift
     module procedure mod_shift_sp
     module procedure mod_shift_dp
@@ -101,6 +106,28 @@ contains
 
   !>    \brief   Area of polygon
   !>    \details Function for computing the area of a polygon (2D, convex or not).
+  !!    Function for computing the area of a polygon
+  !!    The polygon can be convex or not.
+  !!
+  !!    The method is only applicable for 2D polygons and points.
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
+  !!    polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
+  !!
+  !!    area = areapoly( polygon )
+  !!
+  !!    ! --> area = 1
+  !!    \endcode
+  !!
+  !!    See also example in test directory.
+  !!
+  !!    \b Literature
+  !!
+  !!    1. http://de.wikipedia.org/wiki/Geometrischer_Schwerpunkt
+  !!
   !>    \return  Area of polygon
   function areapoly_sp(coord) result(areapoly)
     !> coordinates of the polygon in question
@@ -134,7 +161,30 @@ contains
   ! ------------------------------------------------------------------
   !>    \brief    Center of mass of polygon.
   !>    \details  Function for computing the center of mass of a polygon (2D, convex or not).
+  !!
+  !!    \f[ A = \sum_{i}(x_{i}y_{i+1}-x_{i+1}y_{i}) \f]
+  !!    \f[ x_s = \frac{1}{6A}  \sum_i(x_i+x_{i+1})(x_iy_{i+1}-x_{i+1}y_i) \f]
+  !!    \f[ y_s = \frac{1}{6A}  \sum_i(y_i+y_{i+1})(x_iy_{i+1}-x_{i+1}y_i) \f]
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
+  !!    polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
+  !!
+  !!    com = center_of_mass( polygon )
+  !!
+  !!    ! --> com = (/1.5_dp, 1.5_dp/)
+  !!    \endcode
+  !!
+  !!    See also example in test directory
+  !!
+  !!    \b Literature
+  !!
+  !!    1. http://de.wikipedia.org/wiki/Geometrischer_Schwerpunkt
+  !!
   !>    \return   Center of mass of polygon.
+
   function center_of_mass_sp(coord) result(center_of_mass)
     !> coordinates of polygon in question
     real(sp), dimension(:,:),   intent(in)       :: coord
@@ -175,6 +225,29 @@ contains
   ! ------------------------------------------------------------------
   !>    \brief   Determination point of polygon.
   !>    \details Determines whether a 2D point is inside, outside or on vertex of a polygon (2D, convex or not).
+  !!
+  !!    The original version of the source code (pnpoly) was implemented by
+  !!    W. Randolph Franklin. It was insufficiently assigning vertex/edge points.
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
+  !!    polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
+  !!
+  !!    point = (/ 1.5, 1.5 /)
+  !!
+  !!    call inpoly( point, polygon, inside )
+  !!
+  !!    ! --> inside = 1 ... point is inside the polygon
+  !!    \endcode
+  !!
+  !!    See also example in test directory
+  !!
+  !!    \b Literature
+  !!
+  !!    1. https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
+  !!
   !>    \return  Whether point is inside (=1), outside (=-1) or on a vertex/edge of the polygon (=0)
   subroutine inpoly_sp(p,coord,erg)
     !> point in question
@@ -259,16 +332,15 @@ contains
   ! ------------------------------------------------------------------
   !>    \brief   Check orientation of polygon
   !>    \details Function for checking the orientation of a polygon (2D, convex or not).
-  !>    \return  Boolean indicating orientation (counter-clockwise: .true., clockwise: .false.)
+  !>    \return  Integer indicating orientation (counter-clockwise: -1, clockwise: 1, none: 0)
   function orientpoly_sp(coord) result(orientpoly)
     !> coordinates of the polygon in question
     real(sp), dimension(:,:),     intent(in)     :: coord
     integer(i4) :: orientpoly
     !> result:
-    !!     inside:         erg =  1
-    !!     outside:        erg = -1
-    !!     on vertex/edge: erg =  0
-
+    !!     clockwise: orientpoly = 1
+    !!     counter-clockwise: orientpoly = -1
+    !!     flat line or similar irregular shape: orientpoly = 0
     ! local variables
     integer(i4) :: n
     real(sp) :: sum_edges
@@ -409,6 +481,28 @@ contains
   ! ------------------------------------------------------------------
   !>    \brief   Area of polygon
   !>    \details Function for computing the area of a polygon (2D, convex or not).
+  !!    Function for computing the area of a polygon
+  !!    The polygon can be convex or not.
+  !!
+  !!    The method is only applicable for 2D polygons and points.
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
+  !!    polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
+  !!
+  !!    area = areapoly( polygon )
+  !!
+  !!    ! --> area = 1
+  !!    \endcode
+  !!
+  !!    See also example in test directory.
+  !!
+  !!    \b Literature
+  !!
+  !!    1. http://de.wikipedia.org/wiki/Geometrischer_Schwerpunkt
+  !!
   !>    \return  Area of polygon
   function areapoly_dp(coord) result(areapoly)
     !> coordinates of the polygon in question
@@ -442,7 +536,30 @@ contains
   ! ------------------------------------------------------------------
   !>    \brief    Center of mass of polygon.
   !>    \details  Function for computing the center of mass of a polygon (2D, convex or not).
+  !!
+  !!    \f[ A = \sum_{i}(x_{i}y_{i+1}-x_{i+1}y_{i}) \f]
+  !!    \f[ x_s = \frac{1}{6A}  \sum_i(x_i+x_{i+1})(x_iy_{i+1}-x_{i+1}y_i) \f]
+  !!    \f[ y_s = \frac{1}{6A}  \sum_i(y_i+y_{i+1})(x_iy_{i+1}-x_{i+1}y_i) \f]
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
+  !!    polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
+  !!
+  !!    com = center_of_mass( polygon )
+  !!
+  !!    ! --> com = (/1.5_dp, 1.5_dp/)
+  !!    \endcode
+  !!
+  !!    See also example in test directory
+  !!
+  !!    \b Literature
+  !!
+  !!    1. http://de.wikipedia.org/wiki/Geometrischer_Schwerpunkt
+  !!
   !>    \return   Center of mass of polygon.
+
   function center_of_mass_dp(coord) result(center_of_mass)
     !> coordinates of polygon in question
     real(dp), dimension(:,:),   intent(in)       :: coord
@@ -483,6 +600,29 @@ contains
   ! ------------------------------------------------------------------
   !>    \brief   Determination point of polygon.
   !>    \details Determines whether a 2D point is inside, outside or on vertex of a polygon (2D, convex or not).
+  !!
+  !!    The original version of the source code (pnpoly) was implemented by
+  !!    W. Randolph Franklin. It was insufficiently assigning vertex/edge points.
+  !!
+  !!    \b Example
+  !!
+  !!    \code{.f90}
+  !!    polygon(:,1) = (/ 1.0_dp,2.0_dp,2.0_dp,1.0_dp /)
+  !!    polygon(:,2) = (/ 1.0_dp,1.0_dp,2.0_dp,2.0_dp /)
+  !!
+  !!    point = (/ 1.5, 1.5 /)
+  !!
+  !!    call inpoly( point, polygon, inside )
+  !!
+  !!    ! --> inside = 1 ... point is inside the polygon
+  !!    \endcode
+  !!
+  !!    See also example in test directory
+  !!
+  !!    \b Literature
+  !!
+  !!    1. https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
+  !!
   !>    \return  Whether point is inside (=1), outside (=-1) or on a vertex/edge of the polygon (=0)
   subroutine inpoly_dp(p,coord,erg)
     !> point in question
@@ -567,16 +707,15 @@ contains
   ! ------------------------------------------------------------------
   !>    \brief   Check orientation of polygon
   !>    \details Function for checking the orientation of a polygon (2D, convex or not).
-  !>    \return  Boolean indicating orientation (counter-clockwise: .true., clockwise: .false.)
+  !>    \return  Integer indicating orientation (counter-clockwise: -1, clockwise: 1, none: 0)
   function orientpoly_dp(coord) result(orientpoly)
     !> coordinates of the polygon in question
     real(dp), dimension(:,:),     intent(in)     :: coord
     integer(i4) :: orientpoly
     !> result:
-    !!     inside:         erg =  1
-    !!     outside:        erg = -1
-    !!     on vertex/edge: erg =  0
-
+    !!     clockwise: orientpoly = 1
+    !!     counter-clockwise: orientpoly = -1
+    !!     flat line or similar irregular shape: orientpoly = 0
     ! local variables
     integer(i4) :: n
     real(dp) :: sum_edges
