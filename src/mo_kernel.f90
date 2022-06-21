@@ -30,7 +30,7 @@
 !!       - Romberg integration in cumdensity
 MODULE mo_kernel
 
-  USE omp_lib
+  !$ USE omp_lib
   USE mo_kind,      ONLY: i4, sp, dp
   USE mo_moment,    ONLY: stddev
 
