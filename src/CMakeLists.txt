@@ -11,22 +11,23 @@ if(NOT FYPP)
   message(WARNING "Preprocessor fypp not found!")
 else()
   message(STATUS "Preprocessor fypp found!")
-# Create a list of the files to be preprocessed
-  set(fppFiles mo_netcdf.fypp)
+  # Create a list of the files to be preprocessed
+  set(fppFiles mo_netcdf.fypp mo_poly.fypp)
   # Custom preprocessor flags
   if(DEFINED CMAKE_MAXIMUM_RANK)
     set(fyppFlags "-DMAXRANK=${CMAKE_MAXIMUM_RANK}")
-  elseif(f03rank)
-    set(fyppFlags)
+  # Fortran03 standard supports rank 15 arrays, activate here, if required
+  # elseif(f03rank)
+  #   set(fyppFlags)
   else()
     set(fyppFlags "-DVERSION90")
   endif()
   # Pre-process: .fpp -> .f90 via Fypp
   fypp_f90("${fyppFlags}" "${fppFiles}" fyppOutFiles)
   list(FILTER sources EXCLUDE REGEX ".*mo_netcdf.f90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_poly.f90$")
 endif()
 
-# create library
 add_library(${LIB_NAME} ${sources} ${fyppOutFiles})
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
