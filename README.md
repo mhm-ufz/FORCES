@@ -94,6 +94,10 @@ The UFZ Fortran library is free software: you can redistribute it and/or modify 
 
 FORCES is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
 
+### logging
+
+The module `mo_logging` was derived from the [flogging](https://github.com/DaanVanVugt/flogging) project of Daan van Vugt. It is released under the MIT license.
+
 ### Doxygen Awesome
 
 Doxygen Awesome is included as subrepo under `doc/doxygen-awesome-css/` from https://github.com/jothepro/doxygen-awesome-css. It is released under the MIT license.
