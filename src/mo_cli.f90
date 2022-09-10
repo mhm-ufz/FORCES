@@ -619,7 +619,7 @@ contains
     call append(counts, 1_i4)
     do i=3, len(arg)
       ! check if name was already present in this multi option
-      j = findloc(s_names, arg(i:i), dim=1)
+      j = findchar(s_names, arg(i:i))
       if ( j == 0 ) then
         call append(s_names, arg(i:i))
         call append(counts, 1_i4)
@@ -630,5 +630,21 @@ contains
     allocate(character(1) :: names(size(s_names)))
     names = s_names
   end subroutine parse_arg
+
+  integer(i4) function findchar(array, chr)
+    character, intent(in) :: array(:)
+    character, intent(in) :: chr
+
+    integer(i4) :: i
+
+    findchar = 0_i4
+    do i = 1, size(array)
+      if (array(i) == chr) then
+        findchar = i
+        return
+      end if
+    end do
+
+  end function findchar
 
 end module mo_cli
