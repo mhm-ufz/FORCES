@@ -1,13 +1,15 @@
-!> \file mo_message.f90
+#include "logging.h"
+!> \file mo_message.F90
 !> \copydoc mo_message
 
 !> \brief Write out concatenated strings
 !> \details Write out several strings concatenated on standard out or a given unit, either advancing or not.
 !> \author Matthias Cuntz, Sebastian Mueller
 !> \date Jul 2011, Dec 2019
-
 MODULE mo_message
 
+  use mo_logging
+  use mo_string_utils, only : tolower
   USE mo_constants, ONLY : nout, nerr
 
   IMPLICIT NONE
@@ -91,7 +93,7 @@ CONTAINS
 
 
   !> \brief Write out an error message to stdout
-  SUBROUTINE message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uni, advance)
+  SUBROUTINE message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uni, advance, log_level, root_logger)
 
     IMPLICIT NONE
 
@@ -106,11 +108,17 @@ CONTAINS
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t09  !< optional string arguments
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t10  !< optional string arguments
     INTEGER, INTENT(IN), OPTIONAL :: uni  !< Unit to write to (default: stdout)
-    CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< 'add linebreak after message, default: 'yes', else 'no'
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< add linebreak after message, default: 'yes', else 'no'
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: log_level  !< 'fatal', 'error', 'warn', 'info', 'debug', 'trace', 'subtrace'
+    LOGICAL, INTENT(IN), OPTIONAL :: root_logger  !< In case a log-level is given, use the root logger (default: .false.)
 
     CHARACTER(len = 32000) :: outString
     INTEGER :: uniArg
     CHARACTER(len = 3) :: advanceArg
+    logical :: save_show_file_line, root_
+
+    root_ = .false.
+    if ( present(root_logger) ) root_ = root_logger
 
     if (present(uni)) then
       uniArg = uni
@@ -124,12 +132,60 @@ CONTAINS
     end if
 
     outString = process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10)
-    write(uniArg, '(a)', advance = advanceArg) trim(outString)
+    if ( present(log_level) ) then
+      ! disable filename and line output, since it would always be mo_message
+      save_show_file_line = show_file_and_line
+      show_file_and_line = .false.
+      if ( root_ ) then
+        select case(trim(tolower(log_level)))
+          case ("fatal")
+            log_fatal_root(*) trim(outString)
+          case ("error")
+            log_error_root(*) trim(outString)
+          case ("warn")
+            log_warn_root(*) trim(outString)
+          case ("info")
+            log_info_root(*) trim(outString)
+          case ("debug")
+            log_debug_root(*) trim(outString)
+          case ("trace")
+            log_trace_root(*) trim(outString)
+          case ("subtrace")
+            log_subtrace_root(*) trim(outString)
+          case default
+            log_error_root(*) "mo_message::message: unknown log_level '" // log_level // "'"
+            stop 1
+        end select
+      else
+        select case(trim(tolower(log_level)))
+          case ("fatal")
+            log_fatal(*) trim(outString)
+          case ("error")
+            log_error(*) trim(outString)
+          case ("warn")
+            log_warn(*) trim(outString)
+          case ("info")
+            log_info(*) trim(outString)
+          case ("debug")
+            log_debug(*) trim(outString)
+          case ("trace")
+            log_trace(*) trim(outString)
+          case ("subtrace")
+            log_subtrace(*) trim(outString)
+          case default
+            log_error(*) "mo_message::message: unknown log_level '" // log_level // "'"
+            stop 1
+        end select
+      end if
+      show_file_and_line = save_show_file_line
+    else
+      write(uniArg, '(a)', advance = advanceArg) trim(outString)
+    end if
 
   END SUBROUTINE message
 
   !> \brief Write out an error message to stderr and call stop 1.
-  SUBROUTINE error_message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uni, advance)
+  SUBROUTINE error_message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uni, advance, log_level, root_logger)
 
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t01  !< optional string arguments
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t02  !< optional string arguments
@@ -142,7 +198,9 @@ CONTAINS
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t09  !< optional string arguments
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t10  !< optional string arguments
     INTEGER, INTENT(IN), OPTIONAL :: uni  !< Unit to write to (default: stderr)
-    CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< 'add linebreak after message, default: 'yes', else 'no'
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< add linebreak after message, default: 'yes', else 'no'
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: log_level  !< 'fatal', 'error', 'warn', 'info', 'debug', 'trace', 'subtrace'
+    LOGICAL, INTENT(IN), OPTIONAL :: root_logger  !< In case a log-level is given, use the root logger (default: .false.)
 
     INTEGER :: uniArg
 
@@ -151,7 +209,7 @@ CONTAINS
     else
       uniArg = nerr
     end if
-    call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uniArg, advance)
+    call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uniArg, advance, log_level, root_logger)
     stop 1
 
   END SUBROUTINE error_message
