@@ -90,7 +90,7 @@ module mo_logging
   public :: log_set_disable_colors
   public :: log_set_config
 
-  public :: logp, logl
+  public :: logp, logl, stput
 
   private
   !> Control start character

@@ -93,7 +93,7 @@ CONTAINS
 
 
   !> \brief Write out an error message to stdout
-  SUBROUTINE message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uni, advance, log_level, root_logger)
+  SUBROUTINE message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uni, advance, log_level, root_logger, reset_format)
 
     IMPLICIT NONE
 
@@ -111,14 +111,18 @@ CONTAINS
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< add linebreak after message, default: 'yes', else 'no'
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: log_level  !< 'fatal', 'error', 'warn', 'info', 'debug', 'trace', 'subtrace'
     LOGICAL, INTENT(IN), OPTIONAL :: root_logger  !< In case a log-level is given, use the root logger (default: .false.)
+    LOGICAL, INTENT(IN), OPTIONAL :: reset_format  !< Reset formatting (default: .false.)
 
     CHARACTER(len = 32000) :: outString
+    CHARACTER(len = 10) :: format_string
     INTEGER :: uniArg
     CHARACTER(len = 3) :: advanceArg
-    logical :: save_show_file_line, root_
+    logical :: save_show_file_line, root_, reset_format_
 
     root_ = .false.
+    reset_format_ = .false.
     if ( present(root_logger) ) root_ = root_logger
+    if ( present(reset_format) ) reset_format_ = reset_format
 
     if (present(uni)) then
       uniArg = uni
@@ -179,13 +183,18 @@ CONTAINS
       end if
       show_file_and_line = save_show_file_line
     else
+      if ( reset_format_ ) then
+        format_string = ""
+        call stput(format_string, "0")
+        outString = trim(format_string) // outString
+      end if
       write(uniArg, '(a)', advance = advanceArg) trim(outString)
     end if
 
   END SUBROUTINE message
 
   !> \brief Write out an error message to stderr and call stop 1.
-  SUBROUTINE error_message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uni, advance, log_level, root_logger)
+  SUBROUTINE error_message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uni, advance, log_level, root_logger, reset_format)
 
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t01  !< optional string arguments
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t02  !< optional string arguments
@@ -201,6 +210,7 @@ CONTAINS
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< add linebreak after message, default: 'yes', else 'no'
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: log_level  !< 'fatal', 'error', 'warn', 'info', 'debug', 'trace', 'subtrace'
     LOGICAL, INTENT(IN), OPTIONAL :: root_logger  !< In case a log-level is given, use the root logger (default: .false.)
+    LOGICAL, INTENT(IN), OPTIONAL :: reset_format  !< Reset formatting (default: .false.)
 
     INTEGER :: uniArg
 
@@ -209,7 +219,7 @@ CONTAINS
     else
       uniArg = nerr
     end if
-    call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uniArg, advance, log_level, root_logger)
+    call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uniArg, advance, log_level, root_logger, reset_format)
     stop 1
 
   END SUBROUTINE error_message
