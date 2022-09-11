@@ -114,6 +114,8 @@ module mo_cli
     procedure :: cnt_options !< \see mo_cli::cnt_options
     !> \copydoc mo_cli::option_was_read
     procedure :: option_was_read !< \see mo_cli::option_was_read
+    !> \copydoc mo_cli::option_read_count
+    procedure :: option_read_count !< \see mo_cli::option_read_count
     !> \copydoc mo_cli::has_option
     procedure :: has_option !< \see mo_cli::has_option
     !> \copydoc mo_cli::get_blank_option_index
@@ -168,8 +170,8 @@ contains
     if (new_cli_parser%has_help) call new_cli_parser%add_option( &
       name="help", s_name="h", help="Print this help message.")
 
-    if (new_cli_parser%has_version .and. (.not. present(version))) call &
-      error_message("cli_parser: when adding the version option, you need to provide a version")
+    if (new_cli_parser%has_version .and. (.not. present(version))) &
+      call error_message("cli_parser: when adding the version option, you need to provide a version")
     if (new_cli_parser%has_version) call new_cli_parser%add_option( &
       name="version", s_name="V", help="Print the version of the program.")
     new_cli_parser%version = ""
@@ -212,21 +214,21 @@ contains
     new_option%help = "No description"
     if (present(help)) new_option%help = help
 
-    if (len(name) <= 1_i4) call &
-      error_message("option: long-name needs at least 2 characters: " // name)
+    if (len(name) <= 1_i4) &
+      call error_message("option: long-name needs at least 2 characters: " // name)
     new_option%name = name
 
     new_option%has_s_name = present(s_name)
     if (new_option%has_s_name) new_option%s_name = s_name
-    if (new_option%has_s_name .and. (new_option%s_name == " ")) call &
-      error_message("option: short name needs to be non empty: " // name)
+    if (new_option%has_s_name .and. (new_option%s_name == " ")) &
+      call error_message("option: short name needs to be non empty: " // name)
 
     if (present(required)) new_option%required = required
     if (present(blank)) new_option%blank = blank
     if (present(has_value)) then
       new_option%has_value = has_value
-      if ((.not. new_option%has_value) .and. new_option%blank) call &
-        error_message("option: blank option needs a value: " // name)
+      if ((.not. new_option%has_value) .and. new_option%blank) &
+        call error_message("option: blank option needs a value: " // name)
     else
       new_option%has_value = new_option%blank
     end if
@@ -242,15 +244,15 @@ contains
       if (new_option%has_default) new_option%default = default
     end if
 
-    if ((.not. new_option%has_value) .and. new_option%required) call &
-      error_message("option: option without value can't be required: " // name)
+    if ((.not. new_option%has_value) .and. new_option%required) &
+      call error_message("option: option without value can't be required: " // name)
 
-    if (new_option%has_value .and. new_option%has_default .and. new_option%required) call &
-      error_message("option: option with defined default value can't be required: " // name)
+    if (new_option%has_value .and. new_option%has_default .and. new_option%required) &
+      call error_message("option: option with defined default value can't be required: " // name)
 
     if (present(repeated)) new_option%repeated = repeated
-    if (new_option%repeated .and. new_option%has_value) call &
-      error_message("option: repeatedly readable options shouldn't expect a value: " // name)
+    if (new_option%repeated .and. new_option%has_value) &
+      call error_message("option: repeatedly readable options shouldn't expect a value: " // name)
 
   end function new_option
 
@@ -281,11 +283,11 @@ contains
 
     tmp_options = self%options
     do i = 1, size(tmp_options)
-      if (tmp_options(i)%name == added_option%name) call &
-        error_message("cli_parser%add_option: name already present: " // added_option%name)
+      if (tmp_options(i)%name == added_option%name) &
+        call error_message("cli_parser%add_option: name already present: " // added_option%name)
       if (tmp_options(i)%has_s_name .and. added_option%has_s_name &
-          .and. (tmp_options(i)%s_name == added_option%s_name)) call &
-        error_message("cli_parser%add_option: short name already present: " // added_option%s_name)
+          .and. (tmp_options(i)%s_name == added_option%s_name)) &
+        call error_message("cli_parser%add_option: short name already present: " // added_option%s_name)
     end do
 
     deallocate(self%options)
@@ -377,6 +379,20 @@ contains
 
   end function option_was_read
 
+  !> \brief Read count for the \ref option in the \ref cli_parser given by name.
+  !> \return Number of reads for the \ref option.
+  integer(i4) function option_read_count(self, name)
+    implicit none
+    class(cli_parser), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the desired option
+
+    type(option) :: opt
+
+    opt = self%get_option(name)
+    option_read_count = opt%read_count
+
+  end function option_read_count
+
   !> \brief Whether the \ref option is defined in \ref cli_parser given by name.
   !> \return Truth value if the given \ref option was defined.
   logical function has_option(self, name)
@@ -396,8 +412,8 @@ contains
 
     integer(i4) :: i
 
-    if (.not. self%has_blank_option) call &
-      error_message("cli_parser%get_blank_option_index: no blank option defined.")
+    if (.not. self%has_blank_option) &
+      call error_message("cli_parser%get_blank_option_index: no blank option defined.")
 
     ! find the corresponding argument
     do i = 1, self%cnt_options()
@@ -420,6 +436,8 @@ contains
     type(option) :: opt
 
     opt = self%get_option(name)
+    if (.not. opt%has_value) &
+      call error_message("cli_parser%option_value: option has no value: " // name)
     option_value = opt%value
 
   end function option_value
@@ -492,10 +510,9 @@ contains
     class(cli_parser), intent(inout) :: self
 
     logical :: is_multi, long
-    integer(i4) :: i, j, id, n, verbose, quiet
+    integer(i4) :: i, j, id, n
     character(:), allocatable :: arg, val, err_name, names(:)
     integer(i4), allocatable :: counts(:)
-    type(option) :: opt
 
     i = 1_i4
     arg_loop: do while (i <= command_argument_count())
@@ -515,28 +532,28 @@ contains
       end if
       ! check for repeated values with short name (-ooo)
       call parse_arg(arg, names, counts)
-      long = arg(2:2) == "-"
+      long = arg(2:2) == "-" ! after parse_arg, we know size(arg) > 1
       is_multi = sum(counts) > 1
       do j = 1, size(names)
         ! will raise an error if option not present
         id = self%get_option_index(names(j), long=long, short=.not.long)
         ! check repeatedly read options
-        if ((counts(j) > 1 .or. self%options(id)%was_read) .and. .not.self%options(id)%repeated) call &
-          error_message("cli_parser%parse: option given multiple times: " // self%options(id)%name)
+        if ((counts(j) > 1 .or. self%options(id)%was_read) .and. .not.self%options(id)%repeated) &
+          call error_message("cli_parser%parse: option given multiple times: " // self%options(id)%name)
         ! update read counts
         self%options(id)%was_read = .true.
         self%options(id)%read_count = self%options(id)%read_count + counts(j)
         ! check for value
         if (self%options(id)%has_value) then
-          if ( is_multi ) call &
-            error_message("cli_parser%parse: option expects a value: " // self%options(id)%name)
-          if (i == command_argument_count()) call &
-            error_message("cli_parser%parse: required value missing for: " // self%options(id)%name)
+          if ( is_multi ) &
+            call error_message("cli_parser%parse: option expects a value: " // self%options(id)%name)
+          if (i == command_argument_count()) &
+            call error_message("cli_parser%parse: required value missing for: " // self%options(id)%name)
           call get_command_argument(i + 1, length=n)
           if (allocated(val)) deallocate(val)
           allocate(character(n) :: val)
           call get_command_argument(i + 1, value=val)
-          self%options(j)%value = val
+          self%options(id)%value = val
           i = i + 1
         end if
       end do
@@ -576,13 +593,9 @@ contains
 
     ! set logger
     if ( self%has_logger ) then
-      opt = self%get_option("verbose")
-      verbose = opt%read_count
-      opt = self%get_option("quiet")
-      quiet = opt%read_count
       call log_set_config( &
-        verbose = verbose, &
-        quiet = quiet, &
+        verbose = self%option_read_count("verbose"), &
+        quiet = self%option_read_count("quiet"), &
         log_output_hostname = self%option_was_read("log-output-hostname"), &
         log_force_colors = self%option_was_read("log-force-colors"), &
         log_no_colors = self%option_was_read("log-no-colors"), &
