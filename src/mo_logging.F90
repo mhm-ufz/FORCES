@@ -216,6 +216,7 @@ contains
   !> \details The name is shortened to allow for longer log messages without needing continuations.
   !> \return The output log leader.
   function logl(level, filename, linenum)
+    implicit none
     ! Input parameters
     integer                    :: level    !< The log level
     character(len=*), optional :: filename !< An optional filename to add to the log lead
@@ -225,7 +226,7 @@ contains
     ! Internal parameters
     character(len=50), dimension(6) :: log_tmp !< The different parts of the log lead
     integer                         :: fn_len  !< Add extra spaces after part i
-    integer       :: i,j !< The counter for the different parts
+    integer       :: i, j, space_cnt !< The counter for the different parts
     character(4)  :: linenum_lj ! left-justified line number
     character(len=50) :: basename ! basename stripped from filename
 
@@ -291,7 +292,10 @@ contains
     ! Output severity level
     if (output_severity) then
       fn_len = fn_len + len_trim(log_severity(level, .false.))
-      log_tmp(i) = trim(log_tmp(i)) // spaces(mod(7-fn_len,8)+8) // log_severity(level, show_colors)
+      ! correctly set spaces when skipping filename/line
+      space_cnt = mod(7-fn_len,8)+8
+      if (space_cnt >= 8) space_cnt = space_cnt - 8
+      log_tmp(i) = trim(log_tmp(i)) // spaces(space_cnt) // log_severity(level, show_colors)
     endif
 
     ! Set color based on severity level
