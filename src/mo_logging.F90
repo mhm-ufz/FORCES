@@ -109,6 +109,7 @@ module mo_logging
   logical, save :: output_fileline     = .true.
   logical, save :: skip_terminal_check = .false.
   logical, save :: disable_colors      = .false.
+  logical, save :: disable_format      = .false.
 
   !> These are the color codes corresponding to the loglevels above
   character(len=*), dimension(NUM_LOG_LEVELS), parameter :: color_codes = &
@@ -126,7 +127,7 @@ contains
     implicit none
     integer, intent(in) :: lu !< unit
     character(len=*), intent(in) :: code !< format code
-    write(lu, '(a,"[",a,"m")', advance="no") start, code
+    if (.not. disable_format) write(lu, '(a,"[",a,"m")', advance="no") start, code
   end subroutine tput
 
   !> \brief generate format string
@@ -134,7 +135,7 @@ contains
     implicit none
     character(len=*), intent(inout) :: str !< pre string
     character(len=*), intent(in)    :: code !< format code
-    str = trim(str) // start // "[" // trim(code) // "m"
+    if (.not. disable_format) str = trim(str) // start // "[" // trim(code) // "m"
   end subroutine stput
 
   !> \brief Set the default for hostname output
@@ -178,6 +179,12 @@ contains
     logical, intent(in) :: bool
     disable_colors = bool
   end subroutine log_set_disable_colors
+
+  !> \brief Disable formatting altogether
+  subroutine log_set_disable_format(bool)
+    logical, intent(in) :: bool
+    disable_format = bool
+  end subroutine log_set_disable_format
 
   !> \brief Output this log statement or not.
   !> \return true if this log message can be printed.
@@ -415,7 +422,8 @@ contains
   end function log_datetime
 
   !> \brief Set logging configuration
-  subroutine log_set_config(verbose, quiet, log_output_hostname, log_force_colors, log_no_colors, log_output_date, log_output_time)
+  subroutine log_set_config( &
+    verbose, quiet, log_output_hostname, log_force_colors, log_no_colors, log_output_date, log_output_time, log_no_format)
     use mo_kind, only: i4
     implicit none
     integer(i4), optional, intent(in) :: verbose !< increase verbosity level
@@ -425,6 +433,7 @@ contains
     logical, optional, intent(in) :: log_no_colors !< disable colors
     logical, optional, intent(in) :: log_output_date !< add date to output
     logical, optional, intent(in) :: log_output_time !< add time to output
+    logical, optional, intent(in) :: log_no_format !< disable formatting
 
     if ( present(verbose) ) minimum_log_level = min(NUM_LOG_LEVELS, minimum_log_level + verbose)
     if ( present(quiet) ) minimum_log_level = min(NUM_LOG_LEVELS, minimum_log_level - quiet)
@@ -433,6 +442,7 @@ contains
     if ( present(log_no_colors) ) disable_colors = log_no_colors
     if ( present(log_output_date) ) output_date = log_output_date
     if ( present(log_output_time) ) output_time = log_output_time
+    if ( present(log_no_format) ) disable_format = log_no_format
   end subroutine log_set_config
 
 end module mo_logging

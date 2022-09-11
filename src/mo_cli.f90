@@ -187,6 +187,8 @@ contains
       call new_cli_parser%add_option( &
         name="log-no-colors", help="Disable colors while logging.")
       call new_cli_parser%add_option( &
+        name="log-no-format", help="Disable formatting while logging.")
+      call new_cli_parser%add_option( &
         name="log-output-date", help="Output date while logging.")
       call new_cli_parser%add_option( &
         name="log-output-time", help="Output time while logging.")
@@ -584,6 +586,7 @@ contains
         log_output_hostname = self%option_was_read("log-output-hostname"), &
         log_force_colors = self%option_was_read("log-force-colors"), &
         log_no_colors = self%option_was_read("log-no-colors"), &
+        log_no_format = self%option_was_read("log-no-format"), &
         log_output_date = self%option_was_read("log-output-date"), &
         log_output_time = self%option_was_read("log-output-time") &
       )
