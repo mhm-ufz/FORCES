@@ -88,6 +88,7 @@ module mo_logging
   public :: log_set_output_fileline
   public :: log_set_skip_terminal_check
   public :: log_set_disable_colors
+  public :: log_set_disable_format
   public :: log_set_config
 
   public :: logp, logl, stput
