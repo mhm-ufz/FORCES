@@ -1,3 +1,30 @@
+# version.cmake - read version files
+# ==================================
+#
+# MIT License
+# -----------
+#[[
+  Copyright (c) 2020 - 2022 CHS Developers
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+]]
+
 # get_version : get version information form files
 #
 # version.txt - version string
@@ -43,7 +70,10 @@ function(get_version ver_short ver_full ver_date)
   set(ver ${ver_major}.${ver_minor}.${ver_patch})
 
   # whether it is a development version (e.g.: 1.1.0-dev0)
-  set(is_dev_ver (${ver_pre} MATCHES "^dev.*"))
+  set(is_dev_ver FALSE)
+  if(${ver_pre} MATCHES "^dev.*")
+      set(is_dev_ver TRUE)
+  endif()
 
   # use git to get commit SHA and commit date
   find_package(Git QUIET)
