@@ -1,5 +1,6 @@
 !> \file    mo_forces_info.f90
-!> \copydoc mo_forces_info
+!> \brief \copybrief mo_forces_info
+!> \details \copydetails mo_forces_info
 
 #ifndef FORCESVERSION
 #define FORCESVERSION "0.0.0-dev0"
@@ -19,6 +20,8 @@
 !!          if it is a release version, otherwise it will be the current date.
 !> \authors Sebastian Mueller
 !> \date    May 2021
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 module mo_forces_info
 
   implicit none

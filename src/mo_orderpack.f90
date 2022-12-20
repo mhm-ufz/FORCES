@@ -1,5 +1,6 @@
 !> \file mo_orderpack.f90
-!> \copydoc mo_orderpack
+!> \brief \copybrief mo_orderpack
+!> \details \copydetails mo_orderpack
 
 !> \brief Sort and ranking routines
 !> \details
@@ -258,36 +259,19 @@
 !! subroutine uses merge sort unique inverse ranking. It leaves in the
 !! initial set only those entries that are unique, packing the array, and
 !! leaving the order of the retained values unchanged.
-
 !> \authors Michel Olagnon
 !> \date 2000-2012
-
+!> \changelog
+!! - Matthias Cuntz, Apr 2014
+!!   - adapted to UFZ library
+!!   - one module, cleaned all warnings
+!! - Juliane Mai,    Nov 2014
+!!   - replaced floating comparison by ne(), eq(), etc. from mo_utils
+!! - Matthias Cuntz, Jul 2015
+!!   - median -> omedian
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_orderpack
-
-  ! Written,  Matthias Cuntz, Apr 2014 - adapted to UFZ library
-  !                                    - one module, cleaned all warnings
-  ! Modified, Juliane Mai,    Nov 2014 - replaced floating comparison by ne(), eq(), etc. from mo_utils
-  ! Modified, Matthias Cuntz, Jul 2015 - median -> omedian
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2014 Matthias Cuntz
 
   USE mo_kind, ONLY : i4, sp, dp
   USE mo_utils, ONLY : ne, eq, le

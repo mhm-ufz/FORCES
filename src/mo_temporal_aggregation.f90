@@ -1,36 +1,14 @@
 !> \file mo_temporal_aggregation.f90
-!> \copydoc mo_temporal_aggregation
+!> \brief \copybrief mo_temporal_aggregation
+!> \details \copydetails mo_temporal_aggregation
 
 !> \brief Temporal aggregation for time series (averaging)
 !> \details This module does temporal aggregation (averaging) of time series
 !> \authors Oldrich Rakovec, Rohini Kumar
 !> \date October 2015
-
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_temporal_aggregation
-
-  ! This module calculates does temporal aggregation of ot time series
-
-  ! Written  Oldrich Rakovec, October 2015
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2015 Oldrich Rakovec, Rohini Kumar
 
   use mo_kind, ONLY : i4, dp
   use mo_julian, ONLY : julday, dec2date
@@ -76,12 +54,12 @@ MODULE mo_temporal_aggregation
   !>        \param[inout] "real(sp/dp) :: day_average(:)"         array of daily averaged values
   !>        \param[in] "real(sp/dp), optional :: misval"          missing value definition
   !>        \param[in] "logical, optional     :: rm_misval"       switch to exclude missing values
- 
+
   !>        \note Hours values should be from 0 to 23 (NOT from 1 to 24!)
- 
+
   !>        \author Oldrich Rakovec, Rohini Kumar
   !>        \date Oct 2015
- 
+
   INTERFACE hour2day_average
     MODULE PROCEDURE hour2day_average_dp
   END INTERFACE hour2day_average

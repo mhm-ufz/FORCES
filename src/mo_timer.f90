@@ -1,12 +1,19 @@
 !> \file mo_timer.f90
-!> \copydoc mo_timer
+!> \brief \copybrief mo_timer
+!> \details \copydetails mo_timer
 
 !> \brief Timing routines
 !> \details This module uses F90 cpu time routines to allowing setting of
 !!          multiple CPU timers.
+!> \changelog
+!! - Matthias Cuntz, Aug. 2012
+!!   - adapted to UFZ library, called mo_timer.f90
+!! - Matthias Cuntz, Jan. 2013
+!!   - clear one or all timers
 !> \authors Matthias Cuntz - from timers.f (c) the Regents of the University of Californi
 !> \date Dec 2012
-
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 module mo_timer
 
   ! -----------------------------------------------------------------------
@@ -42,29 +49,6 @@ module mo_timer
   !     the version available from Los Alamos National Laboratory.
 
   ! -----------------------------------------------------------------------
-
-  ! Modified, Matthias Cuntz, Aug. 2012 - adapted to UFZ library, called mo_timer.f90
-  !           Matthias Cuntz, Jan. 2013 - clear one or all timers
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2012 Matthias Cuntz
 
   use mo_kind, only : i4, sp
 
@@ -113,18 +97,18 @@ contains
 
   !>        \brief Check a timer
 
-  !>        \details 
+  !>        \details
   !!        This routine checks a given timer. This is primarily used to
   !!        periodically accumulate time in the timer to prevent timer cycles
   !!        from wrapping around max_cycles.
-  !!        
+  !!
   !!        \b Example
-  !!      
+  !!
   !!        Check timer 3
   !!        \code{.f90}
   !!        call timer_check(3)
   !!        \endcode
-  
+
   !>        \param[in] "integer(i4) :: timer"        timer number
 
   !>        \author Matthias Cuntz
@@ -147,7 +131,7 @@ contains
 
   !>        \brief Reset a timer
 
-  !>        \details 
+  !>        \details
   !!        This routine resets a given timer or all timers to 0.
   !!
   !!        \b Example
@@ -227,7 +211,7 @@ contains
   !>        \details This routine prints the accumulated cpu time in given timer.
   !!
   !!        \b Example
-  !!        
+  !!
   !!        Prints timer 3
   !!        \code{.f90}
   !!        call timer_print(3)
@@ -302,7 +286,7 @@ contains
 
   !>        \details This routine stops a given timer.
   !!        \b Example
-  !!        
+  !!
   !!        Stop timer 3
   !!        \code{.f90}
   !!        call timer_stop(3)
@@ -360,7 +344,7 @@ contains
 
   !>        \details This routine initializes some machine parameters necessary for
   !!        computing cpu time from F90 intrinsics.
-  !!        
+  !!
   !!        \b Example
   !!
   !!        Initialize timers (before running timers)

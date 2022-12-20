@@ -1,57 +1,45 @@
 !> \file mo_anneal.f90
-!> \copydoc mo_anneal
+!> \brief \copybrief mo_anneal
+!> \details \copydetails mo_anneal
 
 !> \brief Anneal optimization of cost function.
 !> \details Minimization of cost function and temperature finding of minima.
+!> \changelog
+!! - Juliane Mai, Mar 2012
+!!   - module implementation
+!! - Juliane Mai, May 2012
+!!   - anneal: sp version
+!! - Juliane Mai, May 2012
+!!   - anneal: documentation
+!! - Juliane Mai, May 2012
+!!   - GetTemperature: sp and dp version
+!! - Juliane Mai, Jun 2012
+!!   - weighted parameter selection
+!! - Juliane Mai, Aug 2012
+!!   - function anneal instead of subroutine
+!!   - using new module get_timeseed as default for seeding
+!!   - new optional for minimization or maximization
+!!   - fixed parameter ranges possible instead of interface range
+!! - Juliane Mai, Nov 2012
+!!   - history of achieved objective function values as optional out only in anneal but not anneal_valid
+!! - Juliane Mai, Jan 2013
+!!   - including DDS features in anneal, i.e. reflection at parameter boundaries,
+!!     different parameter selection modes (one, all, neighborhood), and
+!!     different parameter pertubation modes (flexible r=dR (anneal version) or
+!!     constant r=0.2 (dds version))
+!!   - remove sp versions
+!!   - fixed and flexible parameter ranges are now in one function
+!!     using optional arguments
+!!   - undef_funcval instead of anneal_valid function
+!! - Juliane Mai, Feb 2013
+!!   - xor4096 optionals combined in save_state
+!! - Arya Prasetya, Dec 2021
+!!   - doxygen documentation anneal and get_temperature
 !> \author Juliane Mai
 !> \date Mar 2012
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_anneal
-
-  ! This module is minimizing a cost function via Simulated Annealing
-  ! and is part of the UFZ CHS Fortran library.
-
-
-  ! Written  Juliane Mai, Mar 2012 : module implementation
-  ! Modified Juliane Mai, May 2012 : anneal: sp version
-  !          Juliane Mai, May 2012 : anneal: documentation
-  !          Juliane Mai, May 2012 : GetTemperature: sp and dp version
-  !          Juliane Mai, Jun 2012 : weighted parameter selection
-  !          Juliane Mai, Aug 2012 : - function anneal instead of subroutine
-  !                                  - using new module get_timeseed as default for seeding
-  !                                  - new optional for minimization or maximization
-  !                                  - fixed parameter ranges possible instead of interface range
-  !          Juliane Mai, Nov 2012 : history of achieved objective function values as optional out
-  !                                  only in anneal but not anneal_valid
-  !          Juliane Mai, Jan 2013 : - including DDS features in anneal, i.e. reflection at parameter boundaries,
-  !                                    different parameter selection modes (one, all, neighborhood), and
-  !                                    different parameter pertubation modes (flexible r=dR (anneal version) or
-  !                                    constant r=0.2 (dds version))
-  !                                  - remove sp versions
-  !                                  - fixed and flexible parameter ranges are now in one function
-  !                                    using optional arguments
-  !                                  - undef_funcval instead of anneal_valid function
-  !          Juliane Mai, Feb 2013 : - xor4096 optionals combined in save_state
-  !          Arya Prasetya, Dec 2021 : - doxygen documentation anneal and get_temperature
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2012-13 Juliane Mai
 
   USE mo_kind, ONLY : i4, i8, dp
   USE mo_utils, ONLY : le, ge

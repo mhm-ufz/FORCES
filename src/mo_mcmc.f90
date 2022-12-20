@@ -1,32 +1,14 @@
 !> \file mo_mcmc.f90
-!> \copydoc mo_mcmc
+!> \brief \copybrief mo_mcmc
+!> \details \copydetails mo_mcmc
 
 !> \brief Monte Carlo Markov Chain sampling.
 !> \details This module is Monte Carlo Markov Chain sampling of a posterior parameter distribution.
 !> \authors Maren Goehler, Juliane Mai
 !> \date Aug 2012
-
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_mcmc
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2012-14 Juliane Mai, Maren Goehler
 
   USE mo_kind, only : i4, i8, dp
   USE mo_xor4096, only : xor4096, xor4096g, get_timeseed, n_save_state

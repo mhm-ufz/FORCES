@@ -1,34 +1,13 @@
 !> \file mo_opt_functions.f90
-!> \copydoc mo_opt_functions
+!> \brief \copybrief mo_opt_functions
+!> \details \copydetails mo_opt_functions
 
 !> \brief Added for testing purposes of test_mo_sce, test_mo_dds, test_mo_mcmc
 !> \author Matthias Cuntz
 !> \date Jul 2012
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_opt_functions
-
-  ! This modules provides test functions for minimisation routines
-
-  ! Written, Jul 2012 Matthias Cuntz
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2012 Matthias Cuntz
 
   use mo_kind, only: i4, dp
   use mo_optimization_utils, only: eval_interface

@@ -1,7 +1,10 @@
 !> \file mo_optimization_utils.f90
-!> \copydoc mo_optimization_utils
+!> \brief \copybrief mo_optimization_utils
+!> \details \copydetails mo_optimization_utils
 
 !> \brief Utility functions, such as interface definitions, for optimization routines.
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 module mo_optimization_utils
 
   use mo_kind, only : dp

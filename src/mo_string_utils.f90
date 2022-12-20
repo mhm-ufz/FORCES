@@ -1,34 +1,14 @@
 !> \file mo_string_utils.f90
-!> \copydoc mo_string_utils
+!> \brief \copybrief mo_string_utils
+!> \details \copydetails mo_string_utils
 
 !> \brief String utilities
 !> \details This module provides string conversion and checking utilities.
 !> \authors Matthias Cuntz, Matthias Zink, Giovanni Dalmasso, David Schaefer
 !> \date Dec 2011
-
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_string_utils
-
-  ! This module holds string conversion utilities
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2011-2015 Matthias Cuntz
 
   USE mo_kind, ONLY: i4, i8, sp, dp
 

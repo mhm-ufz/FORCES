@@ -1,10 +1,13 @@
 !> \file mo_integrate.f90
-!> \copydoc mo_integrate
+!> \brief \copybrief mo_integrate
+!> \details \copydetails mo_integrate
 
 !> \brief Provides integration routines
 !> \details This module provides routine for numerical integration such a Newton-Cotes formulas, etc.
 !> \authors Matthias Cuntz
 !> \date Mar 2013
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_integrate
 
   USE mo_kind, ONLY: i4, sp, dp

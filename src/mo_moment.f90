@@ -1,57 +1,28 @@
 !> \file    mo_moment.f90
-!> \copydoc mo_moment
+!> \brief \copybrief mo_moment
+!> \details \copydetails mo_moment
 
 !> \brief   Statistical moments.
 !> \details This module contains routines for the masked calculation of
 !! statistical properties such as moments and mixed moments of input vectors
-!> \author Mathias Cuntz
-!> \author Martin Schroen
-!> \author Sebastian Mueller
-!> \date    Nov 2011
-!!      - Written
-!> \date    Dec 2011
-!!      - Added mod. correlation and covariance
-!> \date    Nov 2011
-!!      - Added mean for single value
-!> \date    Dec 2019
-!!      - No citations
+!! \note all except variance and standard deviation are population and not sample moments,
+!!       i.e. they are normally divided by n and not (n-1)
+!> \par Literature
+!!   Central moments and error variances
+!!       LH Benedict & RD Gould, Towards better uncertainty estimates for turbulence statistics,
+!!           Experiments in Fluids 22, 129-136, 1996
+!> \changelog
+!! - Matthias Cuntz, Nov 2011
+!!   - written
+!! - Matthias Cuntz, Dec 2011
+!!   - mod. correlation, covariance
+!! - M. Schroen, Sep 2015
+!!   - average/mean for single value
+!! - S. Mueller, Dec 2019
+!!   - remove citations for common sence
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_moment
-
-  ! This module contains routines for the masked calculation of
-  ! statistical properties such as moments and mixed moments of input vectors
-
-  ! Note: all except variance and standard deviation are population and not sample moments,
-  !       i.e. they are normally divided by n and not (n-1)
-
-  ! Literature
-  !   Central moments and error variances
-  !       LH Benedict & RD Gould, Towards better uncertainty estimates for turbulence statistics,
-  !           Experiments in Fluids 22, 129-136, 1996
-
-  ! Written Nov 2011, Matthias Cuntz
-  !         Modified, MC, Dec 2011 - mod. correlation, covariance
-  !         Modified by M. Schroen, Sep 2015, average/mean for single value
-  !         Modified by S. Mueller, Dec 2019, no citations for common sence
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2011-2012 Matthias Cuntz
 
   USE mo_kind, ONLY : i4, sp, dp
 

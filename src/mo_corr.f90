@@ -1,36 +1,13 @@
 !> \file mo_corr.f90
-!> \copydoc mo_corr
+!> \brief \copybrief mo_corr
+!> \details \copydetails mo_corr
 
 !> \brief Provides autocorrelation function calculations.
 !> \author Sebastian Mueller
 !> \date Dec 2019
-
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_corr
-
-  ! This module provides autocorrelation function calculations
-
-  ! Rewritten December 2019, Sebastian Mueller
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2019 Sebastian Mueller
-
 
   USE mo_kind, ONLY : i4, sp, dp
 
@@ -62,11 +39,11 @@ MODULE mo_corr
   !>        \param[in]  "real(sp/dp) :: x(:)"                 Time series.
   !>        \param[in]  "integer(i4) :: k[(:)]"               Lag for autocorrelation.
   !>        \param[in]  "optional, logical     :: mask(:)"    1D-array of logical values with `size(vec)`.
-  !!                                                          If present, only those locations in vec corresponding 
+  !!                                                          If present, only those locations in vec corresponding
   !!                                                          to the true values in mask are used.
   !>        \retval    "real(sp/dp) :: ak[(:)]"               Coefficient of autocorrelation function at lag k.
 
-  !>        \author Matthias Cuntz 
+  !>        \author Matthias Cuntz
   !>        \date Nov 2011
 
   !>        \author Stephan Thober

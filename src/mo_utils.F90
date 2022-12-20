@@ -1,36 +1,23 @@
 !> \file mo_utils.f90
-!> \copydoc mo_utils
+!> \brief \copybrief mo_utils
+!> \details \copydetails mo_utils
 
 !> \brief General utilities for the CHS library
 !> \details This module provides general utilities such as comparisons of two reals.
+!> \changelog
+!! - Matthias Cuntz, Juliane Mai, Feb 2014
+!!   - written
+!! - Matthias Cuntz, Juliane Mai, Feb 2014
+!!   - equal, notequal
+!! - Matthias Cuntz,              May 2014
+!!   - swap
+!! - Matthias Cuntz,              May 2014
+!!   - is_finite, is_nan, is_normal, special_value
 !> \authors Matthias Cuntz, Juliane Mai
 !> \date 2014 - 2016
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_utils
-
-  ! Written  Matthias Cuntz, Juliane Mai, Feb 2014
-  ! Modified Matthias Cuntz, Juliane Mai, Feb 2014 - equal, notequal
-  !          Matthias Cuntz,              May 2014 - swap
-  !          Matthias Cuntz,              May 2014 - is_finite, is_nan, is_normal, special_value
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2014 Matthias Cuntz, Juliane Mai
 
   USE mo_kind, only : sp, dp, i1, i4, i8, spc, dpc
   USE mo_string_utils, only : toupper
@@ -275,13 +262,13 @@ MODULE mo_utils
     MODULE PROCEDURE equal_sp, equal_dp
   END INTERFACE equal
 
-  !> \brief Comparison of real values for inequality. 
+  !> \brief Comparison of real values for inequality.
   !> \see equal
   INTERFACE notequal
     MODULE PROCEDURE notequal_sp, notequal_dp
   END INTERFACE notequal
 
-  !> \brief Comparison of real values: `a >= b`. 
+  !> \brief Comparison of real values: `a >= b`.
   !> \see equal
   INTERFACE greaterequal
     MODULE PROCEDURE greaterequal_sp, greaterequal_dp

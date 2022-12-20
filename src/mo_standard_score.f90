@@ -1,5 +1,6 @@
 !> \file mo_standard_score.f90
-!> \copydoc mo_standard_score
+!> \brief \copybrief mo_standard_score
+!> \details \copydetails mo_standard_score
 
 !> \brief Routines for calculating the normalization (anomaly)/standard score/z score and the
 !!        deseasonalized (standard score on monthly basis) values of a time series.
@@ -7,35 +8,9 @@
 !!          for characterizing the dynamics of a signal.
 !> \author Matthias Zink
 !> \date May 2015
-
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_standard_score
-
-  ! This module contains routines for the masked calculation of
-  ! the standard_score of a time series (centralized and standarsized time series).
-
-  ! Literature
-
-  ! Written May 2015, Matthias Zink
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2014 Matthias Zink
 
   USE mo_kind, ONLY : i4, sp, dp
 

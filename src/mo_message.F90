@@ -1,11 +1,13 @@
 !> \file mo_message.f90
-!> \copydoc mo_message
+!> \brief \copybrief mo_message
+!> \details \copydetails mo_message
 
 !> \brief Write out concatenated strings
 !> \details Write out several strings concatenated on standard out or a given unit, either advancing or not.
 !> \author Matthias Cuntz, Sebastian Mueller
 !> \date Jul 2011, Dec 2019
-
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_message
 
   USE mo_constants, ONLY : nout, nerr

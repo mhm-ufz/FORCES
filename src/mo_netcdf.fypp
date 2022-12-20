@@ -1,10 +1,6 @@
 !> \file mo_netcdf.f90
-!> \copydoc mo_netcdf
-
-!> \brief NetCDF Fortran 90 interface wrapper
-!> \details A wrapper around the NetCDF Fortran 90 interface.
-!> \authors David Schaefer
-!> \date Jun 2015
+!> \brief \copybrief mo_netcdf
+!> \details \copydetails mo_netcdf
 
 #:include "common.fypp"
 
@@ -12,20 +8,23 @@
 #:set KINDS = REAL_KINDS + INT_KINDS
 #:set RANKS = range(0, MAXRANK)
 
+!> \brief NetCDF Fortran 90 interface wrapper
+!> \details A wrapper around the NetCDF Fortran 90 interface.
+!> \changelog
+!! - David Schaefer, Jun 2015
+!!   - written
+!! - Matthias Cuntz, Jan 2016
+!!   - compiled with PGI Fortran rev 15.9
+!!   - no automatic allocation of left-hand-side
+!! - Ricardo Torres, Feb 2017
+!!   - add derived type NcGroup and NcAttributable. NcAttributable is the base derived type,
+!!     NcGroup and NcVariable are extended from it. NcDataset is extended from NcGroup. No more
+!!     duplicated routines to set attributes.
+!> \authors David Schaefer
+!> \date Jun 2015
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 module mo_netcdf
-
-  ! This module provides a thin wrapper around the NetCDF Fortran 90 interface,
-  ! following a object-oriented approach.
-
-  ! Written  David Schaefer, Jun 2015
-  ! Modified Matthias Cuntz, Jan 2016 - compiled with PGI Fortran rev 15.9 - no automatic allocation of left-hand-side
-  ! Modified Ricardo Torres, Feb 2017 - add derived type NcGroup and NcAttributable. NcAttributable is the base derived type,
-  !                                     NcGroup and NcVariable are extended from it. NcDataset is extended from NcGroup. No more
-  !                                     duplicated routines to set attributes.
-
-  ! License
-  ! -------
-  ! GNU Lesser General Public License http://www.gnu.org/licenses/
 
   use mo_kind, only: ${', '.join(KINDS)}$
   use mo_utils, only: ne
@@ -1045,7 +1044,7 @@ contains
     ${type}$ :: fillValue, minValue, maxValue
 #: if rank > 0
     integer(i4), allocatable :: slcshape(:), datashape(:)
-    
+
     slcshape = self%getSlicingShape(start, cnt, stride)
     datashape = getReadShape(slcshape, size(shape(data)))
 $: '      allocate(data(' + ('datashape({}), '*rank).format(*list(range(1, rank+1)))[:-2] + '))'
