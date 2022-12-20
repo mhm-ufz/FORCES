@@ -10,6 +10,6 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 See the GNU General Public License for more details.
 \n\n
 You received a copy of the GNU Lesser General Public License along
-with the UFZ CHS mesoscale hydrologic model mHM. It can be found
+with the UFZ CHS FORCES code. It can be found
 in the files `COPYING` and `COPYING.LESSER` provided with this software.
 The complete GNU license text can also be found at <http://www.gnu.org/licenses/>.
