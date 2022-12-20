@@ -1,10 +1,10 @@
-# FORtran library for Computational Environmental Systems
+# FORCES library
 
 <div align="center">
 <img src="https://git.ufz.de/chs/logos/-/raw/master/Forces.png" alt="Forces-LOGO" width="251px" style="width:251px;"/>
 </div>
 
-This is the FORTRAN library of the
+This is the FORTRAN library for Computational Environmental Systems of the
 
 > Department Computational Hydrosystems<br/>
 > Helmholtz Centre for Environmental Research - UFZ<br/>
@@ -14,6 +14,8 @@ This is the FORTRAN library of the
 It is a lightweight fork of the `jams_fortran` library maintained by Matthias Cuntz et al: https://github.com/mcuntz/jams_fortran
 
 The `jams_fortran` library was formerly developed at the CHS department at the UFZ and is now released under the [MIT license](https://github.com/mcuntz/jams_fortran/blob/master/LICENSE).
+
+[TOC]
 
 ## Using FORCES with your Fortran program
 Let's assume, you want to write a fortran program using forces, like this example `test.f90`:
