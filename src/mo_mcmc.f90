@@ -400,7 +400,7 @@ MODULE mo_mcmc
 
   !>    \note Restrictions: Likelihood has to be defined as a function interface
 
-  !>    \author Marem Goehler
+  !>    \author Maren Goehler
   !>    \date Sep. 2012
   !!        - Created using copy of Simulated Annealing:\n
   !!          - constant temperature T\n
