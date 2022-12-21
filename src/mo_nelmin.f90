@@ -1,5 +1,6 @@
 !> \file mo_nelmin.f90
-!> \copydoc mo_nelmin
+!> \brief \copybrief mo_nelmin
+!> \details \copydetails mo_nelmin
 
 !> \brief Nelder-Mead algorithm
 !> \details This module provides NELMIN, which minimizes a function using the Nelder-Mead algorithm
@@ -8,6 +9,8 @@
 !!          FORTRAN90 version by John Burkardt.
 !> \author Matthias Cuntz
 !> \date 2012
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_nelmin
 
   USE mo_kind,  ONLY: i4, sp, dp

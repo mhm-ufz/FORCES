@@ -1,34 +1,14 @@
 !> \file mo_ncread.f90
-!> \copydoc mo_ncread
+!> \brief \copybrief mo_ncread
+!> \details \copydetails mo_ncread
 
 !> \brief Reading netcdf files
 !> \details Subroutines for reading arrays from nc file using the netcdf4 library.
 !> \author Stephan Thober, Matthias Cuntz
 !> \date Nov 2011
-
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 module mo_NcRead
-
-  ! This module provides subroutines for reading arrays from nc file using the netcdf4 library
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2011-2014 Stephan Thober, Matthias Cuntz
 
   use mo_kind, only : i4, i8, sp, dp
 

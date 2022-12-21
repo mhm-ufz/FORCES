@@ -1,5 +1,6 @@
 !> \file    mo_cli.f90
-!> \copydoc mo_cli
+!> \brief \copybrief mo_cli
+!> \details \copydetails mo_cli
 
 !> \brief   Module to parse command line arguments.
 !> \version 0.1
@@ -54,6 +55,8 @@
 !!          $ ./prog -h
 !!          $ ./prog -v
 !!          \endcode
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 module mo_cli
 
   use mo_kind, only: i4

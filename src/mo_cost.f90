@@ -1,7 +1,10 @@
-!>  \file mo_cost.f90
-!>  \copydoc mo_cost
+!> \file mo_cost.f90
+!> \brief \copybrief mo_cost
+!> \details \copydetails mo_cost
 
 !>  \brief Added for testing purposes of test_mo_anneal
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 Module mo_cost
 
   use mo_kind, only: sp, dp

@@ -1,42 +1,23 @@
 !> \file mo_append.f90
-!> \copydoc mo_append
+!> \brief \copybrief mo_append
+!> \details \copydetails mo_append
 
 !> \brief Append values on existing arrays.
 !> \details Provides routines to append (rows) and paste (columns) scalars, vectors,
 !!          and matrixes onto existing arrays.
+!> \changelog
+!! - Juliane Mai,    Aug 2012
+!! - Juliane Mai,    Aug 2012
+!!   - character append & paste
+!! - Matthias Cuntz, Jan 2013
+!!   - removed 256 character restriction
+!! - Matthias Cuntz, Feb 2013
+!!   - logical append and paste
 !> \author Juliane Mai
 !> \date Aug 2012
-
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_append
-
-  ! This module is appending and pasting scalars, vectors, and matrixes into one.
-  ! and is part of the UFZ CHS Fortran library.
-
-
-  ! Written  Juliane Mai,    Aug 2012
-  ! Modified Juliane Mai,    Aug 2012 - character append & paste
-  ! Modified Matthias Cuntz, Jan 2013 - removed 256 character restriction
-  ! Modified Matthias Cuntz, Feb 2013 - logical append and paste
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2012-2013 Juliane Mai, Matthias Cuntz
 
   USE mo_kind, only: i4, i8, sp, dp
 
@@ -71,20 +52,20 @@ MODULE mo_append
   !!
   !!        See also test folder for a detailed example, "test/test_mo_append/".
 
-  !>        \param[in] "input2" 
+  !>        \param[in] "input2"
   !!         Values to append. Can be `integer(i4/i8)`, `real(sp/dp)`, `logical`, or `character(len=*)`
   !!         and also scalar, `dimension(:)`, or `dimension(:,:)`.\n
   !!         Includes 3d version, where the append is always done along
   !!         the first dimension.\n
   !!         4d version is available for `real(dp)` and `logical`, where
-  !!         append can be done in any component of the dimension.\n 
+  !!         append can be done in any component of the dimension.\n
   !!         If not scalar then the columns have to agree with `input1`.
-  !>        \param[inout] "`allocatable` :: input1" 
+  !>        \param[inout] "`allocatable` :: input1"
   !!         Array to be appended to. Can be `integer(i4/i8)`, `real(sp/dp)`, `logical`,
   !!         or `character(len=*)`. Must be `dimension(:)` or `dimension(:,:)`, and `allocatable`.\n
   !!         If `input2` is not scalar then it must be `size(input1,2) = size(input2,2)`.
   !>        \param[in] "optional :: fill_value"
-  !!         Filler value if number of columns do not coincide. Then the largest column will 
+  !!         Filler value if number of columns do not coincide. Then the largest column will
   !!         be taken and empty elements from the generated column will be filled by this value.
   !>        \param[in] "integer(i4), optional :: idim"
   !!         Applicable when appending matrix-matrix, 3d, and 4d for `logical` and `real(dp)`.
@@ -96,17 +77,17 @@ MODULE mo_append
 
   !>        \author Juliane Mai
   !>        \date Aug 2012
-  
+
   !>        \author Matthias Cuntz
   !>        \date Jan 2013
-  !!          - removed 256 character restriction.  
+  !!          - removed 256 character restriction.
   !>        \date Feb 2013
   !!          - logical append and paste.
 
   !>        \author Matthias Zink
   !>        \date Feb 2015
   !!          - added optional 'fill_value' for logical append
-  
+
   !>        \author Stephan Thober
   !>        \date Jan 2017
   !!          - added 3d version for append
@@ -156,19 +137,19 @@ MODULE mo_append
   !!        \endcode
   !!        See also test folder for a detailed example, "test/test_mo_append".
 
-  !>        \param[in] "input2" 
+  !>        \param[in] "input2"
   !!         Values to paste. Can be `integer(i4/i8)`, `real(sp/dp)`, `logical`, or `character(len=*)`
   !!         and also scalar, `dimension(:)`, or `dimension(:,:)`.\n
   !!         Includes 3d and 4d version for `real(dp)` and `integer(i4)`, where paste is always done along
   !!         the last dimension.\n
   !!         If not scalar then the rows have to agree with `input1`.\n
-  !>        \param[inout] "allocatable :: input1" 
+  !>        \param[inout] "allocatable :: input1"
   !!         Array to be pasted to. Can be `integer(i4/i8)`, `real(sp/dp)`,
-  !!         or `character(len=*)`. Must be `dimension(:)`, `dimension(:,:)`, `dimension(:,:,:)`, or 
+  !!         or `character(len=*)`. Must be `dimension(:)`, `dimension(:,:)`, `dimension(:,:,:)`, or
   !!         `dimension(:,:,:,:)` and `allocatable`.\n
   !!         If `input2` is not scalar then it must be `size(input1,1) = size(input2,1)`.
   !>        \param[in] "optional :: fill_value"
-  !!         Filler value if number of rows do not coincide. Then the largest row will 
+  !!         Filler value if number of rows do not coincide. Then the largest row will
   !!         be taken and empty elements from the generated rows will be filled by this value.
 
   !>        \note
@@ -199,7 +180,7 @@ MODULE mo_append
 
   !>        \brief Paste a matrix of ones times a value onto an existing matrix.
 
-  !>        \details Pastes a matrix of uniform element and predefined number of columns 
+  !>        \details Pastes a matrix of uniform element and predefined number of columns
   !!        to the columns of another matrix.\n
   !!
   !!        \b Example
@@ -217,11 +198,11 @@ MODULE mo_append
   !!        \endcode
   !!
   !!        See also test folder for a detailed example, "test/test_mo_append/".
-  
-  !>        \param[in,out] "allocatable :: matrix" 
+
+  !>        \param[in,out] "allocatable :: matrix"
   !!         Matrix to be pasted to. Can be `integer(i4)` or `real(dp)`.
   !!         Must be `dimension(:,:)`, `dimension(:,:,:)`, or `dimension(:,:,:,:)` and `allocatable`.\n
-  !>        \param[in] "integer(i4) :: nAdd" 
+  !>        \param[in] "integer(i4) :: nAdd"
   !!         Number of column to paste.\n
   !>        \param[in] "noDataValue"
   !!         Value of elements of the matrix. Can be `integer(i4)` or `real(dp)`.

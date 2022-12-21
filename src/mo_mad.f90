@@ -1,35 +1,14 @@
 !> \file mo_mad.f90
-!> \copydoc mo_mad
+!> \brief \copybrief mo_mad
+!> \details \copydetails mo_mad
 
 !> \brief Median absolute deviation test.
 !> \details This module provides a median absolute deviation (MAD) test.
-!> \authors Mathias Zink
-!> \date Aug 2012
+!> \authors Matthias Cuntz, Mathias Zink
+!> \date 2011 - 2012
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_mad
-
-  ! This module provides a median absolute deviation (MAD) test
-
-  ! Written March 2011, Matthias Cuntz
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2011 Matthias Cuntz
 
   USE mo_kind,       ONLY: i4, sp, dp
   USE mo_percentile, ONLY: median
@@ -80,7 +59,7 @@ MODULE mo_mad
 
   !>       \param[in]  "real(sp/dp) :: vec(:)"               1D-array with input numbers
   !>       \param[in]  "real(sp/dp) :: arr"                  nD-array with input numbers
-  !>       \param[in]  "real(sp/dp), optional :: z"          Input is allowed to deviate maximum z standard deviations 
+  !>       \param[in]  "real(sp/dp), optional :: z"          Input is allowed to deviate maximum z standard deviations
   !!                                                         from the median (default: 7).
   !>       \param[in]  "integer(i4), optional :: deriv"      0: Act on raw input (default: 0)\n
   !!                                                         1: Use first derivatives\n
@@ -92,7 +71,7 @@ MODULE mo_mad
   !!                                                         l: Trim only values below mad\n
   !!                                                          b: Trim values below and above mad
 
-  !>       \retval "logical or real(sp/dp), dimension(size(arr)) :: out"        mask with true everywhere except where input 
+  !>       \retval "logical or real(sp/dp), dimension(size(arr)) :: out"        mask with true everywhere except where input
   !!                                                                            deviates more than z standard deviations from
   !!                                                                            median. If tout five, threshold value is returned.
 

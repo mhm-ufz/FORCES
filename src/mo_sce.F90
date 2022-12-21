@@ -1,37 +1,15 @@
 !> \file mo_sce.f90
-!> \copydoc mo_sce
+!> \brief \copybrief mo_sce
+!> \details \copydetails mo_sce
 
 !> \brief Shuffled Complex Evolution optimization algorithm.
 !> \details Optimization algorithm using Shuffled Complex Evolution strategy.
 !!          Original version 2.1 of Qingyun Duan (1992) rewritten in Fortran 90.
 !> \authors Juliane Mai
 !> \date Feb 2013
-
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_sce
-
-  ! This module is the Shuffled Complex Evolution optimization algorithm.
-
-  ! Written Juliane Mai, Feb 2013
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2011-2014 Juliane Mai, Matthias Cuntz
 
   IMPLICIT NONE
 

@@ -1,5 +1,6 @@
 !> \file mo_kernel.f90
-!> \copydoc mo_kernel
+!> \brief \copybrief mo_kernel
+!> \details \copydetails mo_kernel
 
 !> \brief   Module for kernel regression and kernel density estimation.
 !> \details This module provides routines for kernel regression of data as well as kernel density
@@ -12,22 +13,21 @@
 !!          might be the most costly part of the kernel smoother.
 !!          Therefore, the bandwith estimation is not necessarily part of the kernel smoothing
 !!          but can be determined first and given as an optional argument to the smoother.
-!> \author Juliane Mai
+!> \changelog
+!! - Juliane Mai, Mar 2013
+!! - Stephan Thober, Mar 2013
+!! - Matthias Cuntz, Mar 2013
+!! - Matthias Cuntz, May 2013
+!!   - sort -> qsort
+!!   - module procedure golden
+!! - Stephan Thober, Jul 2015
+!!   - using sort_index in favor of qsort_index
+!! - Matthias Cuntz, Mar 2016
+!!   - Romberg integration in cumdensity
+!> - Juliane Mai
 !> \date Mar 2013
-!> \author Stephan Thober
-!> \date Mar 2013
-!> \author Matthias Cuntz
-!> \date Mar 2013
-!> \author Matthias Cuntz
-!> \date May 2013
-!!       - sort -> qsort
-!!       - module procedure golden
-!> \author Stephan Thober
-!> \date Jul 2015
-!!       - using sort_index in favor of qsort_index
-!> \author Matthias Cuntz
-!> \date Mar 2016
-!!       - Romberg integration in cumdensity
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_kernel
 
   !$ USE omp_lib

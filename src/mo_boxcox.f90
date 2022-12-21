@@ -1,47 +1,20 @@
 !> \file mo_boxcox.f90
-!> \copydoc mo_boxcox
+!> \brief \copybrief mo_boxcox
+!> \details \copydetails mo_boxcox
 
 !> \brief Box-Cox transformation of data.
 !> \details This module contains routines to calculate the Box-Cox transformation
 !!          as well as estimating the best exponent for the Box-Cox transformation
+!> \changelog
+!! - March 2011, Matthias Cuntz
+!!   - modified Python code of Travis Oliphant (2002): boxcox, llf_boxcox
+!! - Dec 2019: Robert Schweppe:
+!!   - removed NR code (get_boxcox)
 !> \author Mathias Cuntz
 !> \date Aug 2011
-
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_boxcox
-
-  ! This module contains routines to calculate the Box-Cox transformation
-  ! as well as estimating the best exponent for the Box-Cox transformation
-
-  ! Usage:
-  ! USE mo_boxcox, ONLY: boxcox, invboxcox
-  ! new_data = boxcox(data, lmbda)
-  ! data     = invboxcox(new_data, lmbda)
-
-  ! Written March 2011, Matthias Cuntz
-  !   - modified Python code of Travis Oliphant (2002): boxcox, llf_boxcox
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2011-2012 Matthias Cuntz, Juliane Mai
-
-  ! History:
-  !   Dec 2019: Robert Schweppe: - removed NR code (get_boxcox)
 
   USE mo_kind, ONLY : sp, dp
   USE mo_utils, only : le
@@ -78,7 +51,7 @@ MODULE mo_boxcox
   !>        \param[in]  "real(sp/dp) :: x"           Scalar/1D-array with input numbers (`>0.`)
   !>        \param[in]  "real(sp/dp) :: lmbda"       Exponent power of Box-Cox transform (`>= 0.`)
   !>        \param[in]  "logical, optional :: mask"  Scalar/1D-array of logical values with `size(x)`.
-  !!                                                 If present, only those locations in vec corresponding 
+  !!                                                 If present, only those locations in vec corresponding
   !!                                                 to the true values in mask are used.
   !>        \retval "real(sp/dp) :: boxcox"     Power transformed values (at `mask=.true.`)
 
@@ -120,7 +93,7 @@ MODULE mo_boxcox
   !>        \param[in]  "real(sp/dp) :: y"              Scalar/1D-array with input numbers (`>0.`)
   !>        \param[in]  "real(sp/dp) :: lmbda"          Exponent power of Box-Cox transform (`>= 0.`)
   !>        \param[in]  "optional, logical :: mask"     1D-array of logical values with `size(x)`.
-  !!                                                    If present, only those locations in vec corresponding to the 
+  !!                                                    If present, only those locations in vec corresponding to the
   !!                                                    true values in mask are used.
   !!                                                    Only applicable if `x` is a 1D-array.
   !>        \retval    "real(sp/dp) :: invboxcox"       Back transformed values (at `mask=.true.`)

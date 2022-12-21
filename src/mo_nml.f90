@@ -1,44 +1,23 @@
 !> \file mo_nml.f90
-!> \copydoc mo_nml
+!> \brief \copybrief mo_nml
+!> \details \copydetails mo_nml
 
 !> \brief Deal with namelist files.
 !> \details This module provides routines to open, close and position namelist files.
+!! - Adapted from Echam5, (C) MPI-MET, Hamburg, Germany
+!> \author L. Kornblueh, MPI, March 2001, original source
+!> \changelog
+!! - Jan 2011, Matthias Cuntz
+!!   - compatible with gfortran <= version 4.3
+!!   - all integer(i4)
+!!   - quiet
+!! - Jan 2013, Matthias Cuntz
+!!   - close_nml with unit, open_nml quiet=.true. default position_nml swap first and status
 !> \authors Matthias Cuntz
 !> \date Jan 2011
-
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_nml
-
-  ! Adapted from Echam5, (C) MPI-MET, Hamburg, Germany
-
-  ! Reading and positioning namelist file
-  ! Author:
-  !     L. Kornblueh, MPI, March 2001, original source
-
-  ! Modified Jan 2011, Matthias Cuntz - compatible with gfortran <= version 4.3
-  !                                     all integer(i4)
-  !                                     quiet
-  !          Jan 2013, Matthias Cuntz - close_nml with unit, open_nml quiet=.true. default
-  !                                     position_nml swap first and status
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2001-2011 Luis Kornblueh, Matthias Cuntz
 
   USE mo_kind, ONLY : i4
   USE mo_string_utils, ONLY : tolower

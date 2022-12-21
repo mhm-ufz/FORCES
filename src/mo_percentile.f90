@@ -1,39 +1,23 @@
-!>    \file mo_percentile.f90
-!>    \copydoc mo_percentile
+!> \file mo_percentile.f90
+!> \brief \copybrief mo_percentile
+!> \details \copydetails mo_percentile
 
-!>    \brief  Median and percentiles.
-!>    \details
-!!    This module provides routines for median and percentiles.
-!>    \author Mathias Cuntz
-!>    \date Mar 2011
+!> \brief  Median and percentiles.
+!> \details This module provides routines for median and percentiles.
+!> \changelog
+!! - Matthias Cuntz, Mar 2011
+!!   - written
+!! - Juliane Mai, Jul 2012
+!!   - different interpolation schemes in percentiles
+!! - Matthias Cuntz, Juliane Mai, Jul 2012
+!!   - uses previous of ksmallest to half execution time
+!! - Matthias Cuntz, May 2014
+!!   - removed numerical recipes
+!> \author Mathias Cuntz
+!> \date Mar 2011
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_percentile
-
-  ! This module provides routines for median and percentiles.
-
-  ! Written   Matthias Cuntz,              Mar 2011
-  ! Modified, Juliane Mai,                 Jul 2012 - different interpolation schemes in percentiles
-  !           Matthias Cuntz, Juliane Mai, Jul 2012 - uses previous of ksmallest to half execution time
-  !           Matthias Cuntz,              May 2014 - removed numerical recipes
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2011-2014 Matthias Cuntz, Juliane Mai, Stephan Thober
 
   USE mo_kind, ONLY : i4, sp, dp
 
@@ -67,7 +51,7 @@ MODULE mo_percentile
 
   !>    \param[in]  "real(sp/dp) :: vec(:)"               1D-array with input numbers
   !>    \param[in]  "logical, optional     :: mask(:)"    1D-array of logical values with size(vec).
-  !!                                                      If present, only those locations in vec 
+  !!                                                      If present, only those locations in vec
   !!                                                      corresponding to the true values in mask are used.
   !>    \retval     "real(sp/dp) :: out"                  Median of values in input array
 
@@ -108,9 +92,9 @@ MODULE mo_percentile
   !>    \param[in]  "real(sp/dp) :: vec(:)"             1D-array with input numbers
   !>    \param[in]  "integer(i4), optional :: n"        Index of sorted array
   !>    \param[in]  "logical, optional     :: mask(:)"  1D-array of logical values with size(vec).
-  !!                                                    If present, only those locations in vec 
+  !!                                                    If present, only those locations in vec
   !!                                                    corresponding to the true values in mask are used.
-  !>    \param[out]  "real(sp/dp) :: before"            (n-1)-th smallest value in input array, e.g. 
+  !>    \param[out]  "real(sp/dp) :: before"            (n-1)-th smallest value in input array, e.g.
   !!                                                    for median/percentile calculations
   !>    \param[out]  "real(sp/dp) :: previous"          Same as before
   !>    \param[out]  "real(sp/dp) :: after"             (n+1)-th smallest value in input array
@@ -163,7 +147,7 @@ MODULE mo_percentile
   !>    \param[in]  "real(sp/dp) :: vec(:)"             1D-array with input numbers
   !>    \param[in]  "real(sp/dp) :: k[(:)]"             Percentage of percentile, can be 1 dimensional
   !>    \param[in]  "logical, optional  :: mask(:)"     1D-array of logical values with size(vec).
-  !!                                                    If present, only those locations in vec 
+  !!                                                    If present, only those locations in vec
   !!                                                    corresponding to the true values in mask are used.
   !>    \param[in]  "integer(i4), optional :: mode_in"  Specifies the interpolation scheme applied.\n
   !!                                                    Default:
