@@ -4,15 +4,20 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
-## v0.4.0 - 2022-06
+## v0.4.0 - 2022-12
 - See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.3.2...v0.4.0) for details.
 
 ### Enhancements
-- mo_poly: added mo_poly.fypp replacement for mo_poly functions
-- mo_poly: added new routines and tests
+- mo_poly: added mo_poly.fypp replacement for mo_poly functions ([55](https://git.ufz.de/chs/forces/-/merge_requests/55))
+- mo_poly: added new routines and tests ([55](https://git.ufz.de/chs/forces/-/merge_requests/55))
   - `orientpoly` (calculate orientation of coords in polygon),
   - `mod_pole` (modify coords of grid to include poles on Cartesian coord system) and
   - `mod_shift` (shift longitude values by 180 degrees)
+- documentation updates ([58](https://git.ufz.de/chs/forces/-/merge_requests/58), [66](https://git.ufz.de/chs/forces/-/merge_requests/66))
+- license clarifications ([66](https://git.ufz.de/chs/forces/-/merge_requests/66))
+
+### Bugfixes
+- mo_kernel: fix for openmp usage (only use openmp if compiled with openmp support) ([59](https://git.ufz.de/chs/forces/-/merge_requests/59))
 
 ## v0.3.2 - 2022-06
 See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.3.1...v0.3.2) for details.
