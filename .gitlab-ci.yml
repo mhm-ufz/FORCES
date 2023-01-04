@@ -137,8 +137,9 @@ documentation_stable:
   stage: test
   script:
     - source $MODULE_LOAD_SCRIPT
-    - cmake -B "$BUILD_DIR" "$CMAKE_FLAGS"
-    - cmake --build "$BUILD_DIR" --parallel --target "$BUILD_TARGET"
+    - cmake -B $BUILD_DIR $CMAKE_FLAGS
+    - cmake --build $BUILD_DIR --parallel
+    - cmake --build $BUILD_DIR --parallel --target $BUILD_TARGET
   artifacts:
     when: always
     paths:
