@@ -1,10 +1,13 @@
 !> \file mo_xor4096.f90
-!> \copydoc mo_xor4096
+!> \brief \copybrief mo_xor4096
+!> \details \copydetails mo_xor4096
 
 !> \brief XOR4096-based random number generator
 !> \details This module provides random number generator based on xor4096 algorithm.
 !> \authors Juliane Mai
 !> \date Nov 2011
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 module mo_xor4096
 
   ! -----------------------------------------------------------------------------
@@ -19,28 +22,6 @@ module mo_xor4096
 
   ! Author: Richard P. Brent (random@rpbrent.co.uk)
   ! -----------------------------------------------------------------------------
-
-  ! Written  Juliane Mai, Nov 2011
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2011-13 Juliane Mai
 
   use mo_kind, only : i4, i8, sp, dp
 

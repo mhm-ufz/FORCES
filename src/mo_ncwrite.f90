@@ -1,33 +1,14 @@
 !> \file mo_ncwrite.f90
-!> \copydoc mo_ncwrite
+!> \brief \copybrief mo_ncwrite
+!> \details \copydetails mo_ncwrite
 
 !> \brief Writing netcdf files
 !> \details Subroutines for writing arrays on nc file using the netcdf4 library.
 !> \author Stephan Thober, Luis Samaniego, Matthias Cuntz
 !> \date Nov 2011
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 module mo_ncwrite
-
-  ! This module provides a structure and subroutines for writing netcdf files.
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2011-2012 Luis Samaniego, Stephan Thober, Matthias Cuntz
 
   use mo_kind, only : i1, i4, sp, dp
   use mo_string_utils, only : nonull

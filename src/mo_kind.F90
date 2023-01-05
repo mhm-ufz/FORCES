@@ -1,16 +1,19 @@
 !> \file mo_kind.f90
-!> \copydoc mo_kind
+!> \brief \copybrief mo_kind
+!> \details \copydetails mo_kind
 
 !> \brief Define number representations
 !> \details This module declares the desired ranges and precisions of the number representations,
 !! such as single precision or double precision, 32-bit or 64-bit integer, etc.
 !> \copyright GNU Lesser General Public License http://www.gnu.org/licenses/
+!> \changelog
+!> - Sebastian Mueller, Jan 2022
+!!   - added option for ISO_FORTRAN ENV
+!!   - added quad precision for real and complex
 !> \authors Juliane Mai, Matthias Cuntz
 !> \date 2011-2014
-!> \author Sebastian Mueller
-!> \date Jan 2022
-!!       - added option for ISO_FORTRAN ENV
-!!       - added quad precision for real and complex
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_kind
 
 #ifdef FORCES_WITH_ISO_FORTRAN_ENV

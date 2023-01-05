@@ -1,5 +1,6 @@
 !> \file mo_dds.f90
-!> \copydoc mo_dds
+!> \brief \copybrief mo_dds
+!> \details \copydetails mo_dds
 
 !> \brief Dynamically Dimensioned Search (DDS)
 !> \details This module provides routines for Dynamically Dimensioned Search (DDS)
@@ -7,33 +8,9 @@
 !! using an n-dimensional continuous global optimization algorithm (DDS).
 !> \authors Bryan Tolson, modified by Rohini Kumar, Matthias Cuntz and Juliane Mai.
 !> \date Jul 2012
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 module mo_dds
-
-  ! This module contains routines for Dynamically Dimensioned Search (DDS)
-
-  ! Written Jul 2012, Matthias Cuntz - module version of modified DDS v1.1 of R. Kumar to
-  ! original DDS of Bryan Tolson
-
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2012 Matthias Cuntz
 
   IMPLICIT NONE
 

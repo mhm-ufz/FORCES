@@ -1,5 +1,6 @@
 !> \file mo_errormeasures.f90
-!> \copydoc mo_errormeasures
+!> \brief \copybrief mo_errormeasures
+!> \details \copydetails mo_errormeasures
 
 !> \brief Calculation of error measures.
 !> \details This module contains routines for the masked calculation of
@@ -8,35 +9,9 @@
 !!       i.e. they are normally divided by n and not (n-1)
 !> \authors Mathias Zink
 !> \date Aug 2012
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_errormeasures
-
-  ! This module contains routines for the masked calculation of
-  ! error measures like MSE, RMSE, BIAS, SSE, NSE, ...
-
-  ! Note: all except variance and standard deviation are population and not sample moments,
-  !       i.e. they are normally divided by n and not (n-1)
-
-  ! Written Aug 2012, Matthias Zink
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2012 Matthias Zink
 
   USE mo_kind, ONLY : i4, sp, dp
 

@@ -1,4 +1,4 @@
-set(FORCES_CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/cmake-modules)
+set(FORCES_CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake)
 
 set (LIB_NAME forces)
 

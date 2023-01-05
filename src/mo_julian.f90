@@ -1,5 +1,6 @@
 !> \file mo_julian.f90
-!> \copydoc mo_julian
+!> \brief \copybrief mo_julian
+!> \details \copydetails mo_julian
 
 !> \brief Julian date conversion routines
 !> \details Julian date to and from day, month, year, and also from day, month, year, hour, minute, and second.
@@ -13,40 +14,23 @@
 !! So date2dec and julday as well as dec2date and caldat are shifted by half a day.\n
 !! Use date2dec with dec2date together for fractional Julian dates
 !! and use julday with caldat together for integer Julian days.
+!> \changelog
+!! - Matthias Cuntz, Dec 2011
+!! - Matthias Cuntz, Jan 2013
+!!   - added date2dec and dec2date
+!! - Matthias Cuntz, May 2014
+!!   - changed to new algorithm with astronomical units removed numerical recipes
+!! - David Schaefer, Oct 2015
+!!   - addded 360 day calendar procedures
+!! - David Schaefer, Jan 2016
+!!   - addded 365 day calendar procedures
+!! - David Schaefer, Feb 2016
+!!   - implemented wrapper function and the module calendar state
 !> \author Matthias Cuntz
 !> \date Dec 2011
-
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_julian
-
-  ! This module provides Julian day conversion routines
-
-  ! Written  Matthias Cuntz, Dec 2011
-  ! Modified Matthias Cuntz, Jan 2013 - added date2dec and dec2date
-  ! Modified Matthias Cuntz, May 2014 - changed to new algorithm with astronomical units
-  !                                     removed numerical recipes
-  ! Modified David Schaefer, Oct 2015 - addded 360 day calendar procedures
-  ! Modified David Schaefer, Jan 2016 - addded 365 day calendar procedures
-  ! Modified David Schaefer, Feb 2016 - implemented wrapper function and the module calendar state
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (LICENSE).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2011-2014 Matthias Cuntz
 
   USE mo_kind, ONLY : i4, i8, dp
 

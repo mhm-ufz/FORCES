@@ -7,7 +7,7 @@
 #         so the build in the build tree works even after a module purge
 cmake_minimum_required(VERSION 3.14)
 # additional cmake-modules
-set(FORCES_CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake-modules)
+set(FORCES_CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 # get version and date from files (version.txt and version_date.txt)
 include(${FORCES_CMAKE_MODULE_PATH}/version.cmake)
 get_version(FORCES_VER FORCES_VER_DEV FORCES_DATE)

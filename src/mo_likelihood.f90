@@ -1,7 +1,10 @@
-!>  \file mo_likelihood.f90
-!>  \copydoc mo_likelihood
+!> \file mo_likelihood.f90
+!> \brief \copybrief mo_likelihood
+!> \details \copydetails mo_likelihood
 
 !>  \brief Added for testing purposes of test_mo_mcmc
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 module mo_likelihood
 
   USE mo_kind,   only: i4, dp

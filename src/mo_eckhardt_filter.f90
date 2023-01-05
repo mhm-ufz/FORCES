@@ -1,5 +1,6 @@
 !> \file    mo_eckhardt_filter.f90
-!> \copydoc mo_eckhardt_filter
+!> \brief \copybrief mo_eckhardt_filter
+!> \details \copydetails mo_eckhardt_filter
 
 !> \brief   Eckhardt filter for baseflow index calculation.
 !> \details This module provides routines for the Eckardt filter to analyse discharge time series and extract the baseflow.
@@ -8,6 +9,8 @@
 !> \authors Sebastian Mueller
 !> \authors Mariaines Di Dato
 !> \date    Apr 2022
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 module mo_eckhardt_filter
 
   use mo_kind,       only: i4, dp

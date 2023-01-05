@@ -1,13 +1,14 @@
 !> \file mo_optimization_types.f90
-!> \copydoc mo_optimization_types
+!> \brief \copybrief mo_optimization_types
+!> \details \copydetails mo_optimization_types
 
 !> \brief Type definitions for optimization routines
 !> \author Maren Kaluza
 !> \date Nov 2019
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_optimization_types
   use mo_kind, only : i4, dp
-
-  ! Written Maren Kaluza, November 2019
 
   IMPLICIT NONE
 
