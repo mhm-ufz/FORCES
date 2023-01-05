@@ -1,4 +1,3 @@
-
 # LICENSE
 
 [TOC]
@@ -172,6 +171,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   - sources: https://git.ufz.de/chs/HPC-Fortran-module-loads
   - authors: CHS Developers
   - license: MIT License (included)
+
+- `flogging` (`src/mo_logging.F90`)
+  - purpose: basis for the logging module
+  - sources: https://github.com/DaanVanVugt/flogging
+  - authors: Daan van Vugt
+  - license: MIT License
 
 - `jams-fortran`
   - purpose: FORCES is a minimal fork of the jams-fortran library that was formerly developed at the CHS department
