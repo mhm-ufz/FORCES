@@ -102,7 +102,7 @@ module mo_cli
     character(:), allocatable :: description !< help text for the cli
     character(:), allocatable :: version !< Program version
     logical :: has_help = .true. !< whether the parser cares about the help text (--help / -h)
-    logical :: has_version = .false. !< whether the parser cares about the version text (--version / -v)
+    logical :: has_version = .false. !< whether the parser cares about the version text (--version / -V)
     logical :: has_blank_option = .false. !< whether the parser has a blank option.
     logical :: has_logger = .false. !< whether the parser should setup the logger.
     type(option), dimension(:), allocatable :: options !< defined options
@@ -145,7 +145,7 @@ contains
     character(*), optional, intent(in) :: prog !< Program name (default will be arg(0))
     character(*), optional, intent(in) :: description !< help text for the cli
     logical, optional, intent(in) :: add_help_option !< whether to add a help option (--help, -h)
-    logical, optional, intent(in) :: add_version_option !< whether to add a version option (--version, -v)
+    logical, optional, intent(in) :: add_version_option !< whether to add a version option (--version, -V)
     character(*), optional, intent(in) :: version !< Program version
     logical, optional, intent(in) :: add_logger_options !< whether to add a logger options (--verbose, --quite, ...)
 
