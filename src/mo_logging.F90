@@ -1,6 +1,7 @@
 #include "logging.h"
 !> \file    mo_logging.F90
-!> \copydoc mo_logging
+!> \brief   \copybrief mo_logging
+!> \details \copydetails mo_logging
 
 !> \brief   Module providing a logging framework.
 !> \version 0.1
@@ -55,6 +56,8 @@
 !!          \code{.sh}
 !!          $ ./prog -h
 !!          \endcode
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 module mo_logging
 #ifdef NAG
   use f90_unix_env, only: isatty
@@ -68,7 +71,7 @@ module mo_logging
 
   implicit none
   ! Log levels
-  integer, public, parameter :: NUM_LOG_LEVELS = 7 !< 1 through 6 (fatal through trace)
+  integer, public, parameter :: NUM_LOG_LEVELS = 7 !< 1 through 7 (fatal through trace)
   integer, public, parameter :: LOG_FATAL = LOG_LEVEL_FATAL_DEF !< = 1, Runtime error causing termination
   integer, public, parameter :: LOG_ERROR = LOG_LEVEL_ERROR_DEF !< = 2, Runtime error
   integer, public, parameter :: LOG_WARN  = LOG_LEVEL_WARN_DEF !< = 3, Warning, but we can continue
@@ -77,7 +80,8 @@ module mo_logging
   integer, public, parameter :: LOG_TRACE = LOG_LEVEL_TRACE_DEF !< = 6, Extremely detailed output, compile your program with -DENABLE_LOG_TRACE to enable
   integer, public, parameter :: LOG_SUBTRACE = LOG_LEVEL_SUBTRACE_DEF !< = 7, More Extremely detailed output, compile your program with -DENABLE_LOG_TRACE to enable
 
-  integer, public, save :: logu = stderr !< By default, log to stderr
+  integer, public, save :: log_unit = stdout !< By default, log to stdout for level > 2
+  integer, public, save :: log_unit_error = stderr !< By default, log to stderr for level <= 2
   integer, public, save :: minimum_log_level = LOG_INFO !< Note that more critical means a lower number
   logical, public, save :: show_file_and_line = .true. !< show file name and line number in log output
 
@@ -91,7 +95,7 @@ module mo_logging
   public :: log_set_disable_format
   public :: log_set_config
 
-  public :: logp, logl, stput
+  public :: logu, logp, logl, stput
 
   private
   !> Control start character
@@ -186,6 +190,19 @@ contains
     logical, intent(in) :: bool
     disable_format = bool
   end subroutine log_set_disable_format
+
+  !> \brief Output unit to log.
+  !> \return unit number.
+  function logu(level)
+    integer, intent(in)           :: level     !< The log level of the current message
+    integer                       :: logu      !< unit to log to (stderr for level <=2 else stdout by default)
+
+    if (level .le. LOG_ERROR) then
+      logu = log_unit_error
+    else
+      logu = log_unit
+    endif
+  end function logu
 
   !> \brief Output this log statement or not.
   !> \return true if this log message can be printed.
