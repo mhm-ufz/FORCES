@@ -22,6 +22,9 @@ MODULE mo_message
   PUBLIC :: message         ! versatile routine to write out strings in file or on screen
   PUBLIC :: error_message   ! write error message to ERROR_UNIT and call stop 1
 
+  logical, public, save :: show_msg = .true. !< global control switch to show normal messages
+  logical, public, save :: show_err = .true. !< global control switch to show error messages
+
   ! ------------------------------------------------------------------
 
 CONTAINS
@@ -41,7 +44,7 @@ CONTAINS
 
     CHARACTER(len = 32000) :: outString
 #ifdef GFORTRAN
-   CHARACTER(len=32000) :: tempString
+    CHARACTER(len=32000) :: tempString
 #endif
 
     outString = ''
@@ -96,7 +99,7 @@ CONTAINS
 
 
   !> \brief Write out an error message to stdout
-  SUBROUTINE message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uni, advance, log_level, root_logger, reset_format)
+  SUBROUTINE message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uni, advance, show, reset_format)
 
     IMPLICIT NONE
 
@@ -112,92 +115,38 @@ CONTAINS
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t10  !< optional string arguments
     INTEGER, INTENT(IN), OPTIONAL :: uni  !< Unit to write to (default: stdout)
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< add linebreak after message, default: 'yes', else 'no'
-    CHARACTER(len = *), INTENT(IN), OPTIONAL :: log_level  !< 'fatal', 'error', 'warn', 'info', 'debug', 'trace', 'subtrace'
-    LOGICAL, INTENT(IN), OPTIONAL :: root_logger  !< In case a log-level is given, use the root logger (default: .false.)
+    LOGICAL, INTENT(IN), OPTIONAL :: show  !< control if message should be shown (show_msg as default)
     LOGICAL, INTENT(IN), OPTIONAL :: reset_format  !< Reset formatting (default: .false.)
 
     CHARACTER(len = 32000) :: outString
     CHARACTER(len = 10) :: format_string
-    INTEGER :: uniArg
-    CHARACTER(len = 3) :: advanceArg
-    logical :: save_show_file_line, root_, reset_format_
+    INTEGER :: uni_
+    CHARACTER(len = 3) :: advance_
+    logical :: reset_format_, show_
 
-    root_ = .false.
+    show_ = show_msg
+    uni_ = nout
+    advance_ = 'yes'
     reset_format_ = .false.
-    if ( present(root_logger) ) root_ = root_logger
+    if ( present(show) ) show_ = show
+    if ( present(uni) ) uni_ = uni
+    if ( present(advance) ) advance_ = advance
     if ( present(reset_format) ) reset_format_ = reset_format
 
-    if (present(uni)) then
-      uniArg = uni
-    else
-      uniArg = nout
-    end if
-    if (present(advance)) then
-      advanceArg = advance
-    else
-      advanceArg = 'yes'
+    outString = process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10)
+
+    if ( reset_format_ ) then
+      format_string = ""
+      call stput(format_string, "0")
+      outString = trim(format_string) // outString
     end if
 
-    outString = process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10)
-    if ( present(log_level) ) then
-      ! disable filename and line output, since it would always be mo_message
-      save_show_file_line = show_file_and_line
-      show_file_and_line = .false.
-      if ( root_ ) then
-        select case(trim(tolower(log_level)))
-          case ("fatal")
-            log_fatal_root(*) trim(outString)
-          case ("error")
-            log_error_root(*) trim(outString)
-          case ("warn")
-            log_warn_root(*) trim(outString)
-          case ("info")
-            log_info_root(*) trim(outString)
-          case ("debug")
-            log_debug_root(*) trim(outString)
-          case ("trace")
-            log_trace_root(*) trim(outString)
-          case ("subtrace")
-            log_subtrace_root(*) trim(outString)
-          case default
-            log_error_root(*) "mo_message::message: unknown log_level '" // log_level // "'"
-            stop 1
-        end select
-      else
-        select case(trim(tolower(log_level)))
-          case ("fatal")
-            log_fatal(*) trim(outString)
-          case ("error")
-            log_error(*) trim(outString)
-          case ("warn")
-            log_warn(*) trim(outString)
-          case ("info")
-            log_info(*) trim(outString)
-          case ("debug")
-            log_debug(*) trim(outString)
-          case ("trace")
-            log_trace(*) trim(outString)
-          case ("subtrace")
-            log_subtrace(*) trim(outString)
-          case default
-            log_error(*) "mo_message::message: unknown log_level '" // log_level // "'"
-            stop 1
-        end select
-      end if
-      show_file_and_line = save_show_file_line
-    else
-      if ( reset_format_ ) then
-        format_string = ""
-        call stput(format_string, "0")
-        outString = trim(format_string) // outString
-      end if
-      write(uniArg, '(a)', advance = advanceArg) trim(outString)
-    end if
+    if( show_ ) write(uni_, '(a)', advance = advance_) trim(outString)
 
   END SUBROUTINE message
 
   !> \brief Write out an error message to stderr and call stop 1.
-  SUBROUTINE error_message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uni, advance, log_level, root_logger, reset_format)
+  SUBROUTINE error_message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uni, advance, show, raise, reset_format)
 
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t01  !< optional string arguments
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t02  !< optional string arguments
@@ -211,19 +160,22 @@ CONTAINS
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t10  !< optional string arguments
     INTEGER, INTENT(IN), OPTIONAL :: uni  !< Unit to write to (default: stderr)
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< add linebreak after message, default: 'yes', else 'no'
-    CHARACTER(len = *), INTENT(IN), OPTIONAL :: log_level  !< 'fatal', 'error', 'warn', 'info', 'debug', 'trace', 'subtrace'
-    LOGICAL, INTENT(IN), OPTIONAL :: root_logger  !< In case a log-level is given, use the root logger (default: .false.)
+    LOGICAL, INTENT(IN), OPTIONAL :: show  !< control if message should be shown (show_err as default)
+    LOGICAL, INTENT(IN), OPTIONAL :: raise  !< control if an exception is raised with error code 1 (.true. as default)
     LOGICAL, INTENT(IN), OPTIONAL :: reset_format  !< Reset formatting (default: .false.)
 
-    INTEGER :: uniArg
+    INTEGER :: uni_
+    logical :: show_, raise_
 
-    if (present(uni)) then
-      uniArg = uni
-    else
-      uniArg = nerr
-    end if
-    call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uniArg, advance, log_level, root_logger, reset_format)
-    stop 1
+    show_ = show_err
+    raise_ = .true.
+    uni_ = nerr
+    if ( present(show) ) show_ = show
+    if ( present(raise) ) raise_ = raise
+    if (present(uni) ) uni_ = uni
+
+    call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uni_, advance, show_, reset_format)
+    if ( raise_ ) stop 1
 
   END SUBROUTINE error_message
 
