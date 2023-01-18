@@ -81,78 +81,70 @@ documentation_stable:
       - doxygen_warn_tag.txt
   when: always
 
-# how the job build directory is erected
-.setup_build: &setup_build_dir
-  - rm -rf $BUILD_DIR
-  - mkdir -p $BUILD_DIR
-  - cd $BUILD_DIR
-
-# make command
-.make: &make
-  - make $MAKE_FLAGS
-
-# make test command
-.make_test: &make_test
-  - make $MAKE_FLAGS test
-
-# make coverage command
-.make_coverage: &make_coverage
-  - make $MAKE_FLAGS coverage
-
-# cleanup after scripts
-.cleanup: &cleanup
-  - cd -
-
-# waiting on https://gitlab.com/groups/gitlab-org/-/epics/3589
-# until this is fixed, we need to additionally set the CMAKE_FLAGS in the jobs as the expansion does not work
 # debug variables
 .debug_vars: &debug_vars
   BUILD_DIR: build_debug
-  CMAKE_FLAGS: '$CMAKE_FLAGS -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug'
+  CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug'
+  BUILD_TARGET: test
+  ARTIFACT_PATH: Testing/Temporary
 
 # release variables
 .release_vars: &release_vars
   BUILD_DIR: build_release
-  CMAKE_FLAGS: '$CMAKE_FLAGS -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
+  CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
+  BUILD_TARGET: test
+  ARTIFACT_PATH: Testing/Temporary
 
 # coverage variables
 .coverage_vars: &coverage_vars
   BUILD_DIR: build_debug
-  CMAKE_FLAGS: '$CMAKE_FLAGS -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON'
+  CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON'
+  BUILD_TARGET: coverage
+  ARTIFACT_PATH: coverage
+
+# module loads for intel fortran compiler
+.intel_vars_18: &intel_vars_18
+  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.intel18
+.intel_vars_19: &intel_vars_19
+  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.intel19
+.intel_vars_19MPI: &intel_vars_19MPI
+  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.intel19MPI
+.intel_vars_2020b: &intel_vars_2020b
+  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.intel2020b
+
+# module loads for gfortran compiler
+.gnu_vars_73MPI: &gfortran_vars_73MPI
+  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran73MPI
+.gnu_vars_83MPI: &gfortran_vars_83MPI
+  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran83MPI
+.gnu_vars_102MPI: &gfortran_vars_102MPI
+  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran102MPI
+
+# module loads for nag fortran compiler
+.nag_vars_62: &nag_vars_62
+  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.nagfor62
+
+# module loads for nag fortran compiler
+.conda_vars_01: &conda_vars_01
+  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.chs-conda01
 
 # #################
 # ### TEMPLATES ###
 # #################
 
 # template for test jobs
-.test_template: &test_template
+.job_template: &job_template
   stage: test
   script:
     - source $MODULE_LOAD_SCRIPT
-    - *setup_build_dir
-    - cmake $CMAKE_FLAGS ..
-    - *make
-    - *make_test
-    - *cleanup
+    - cmake -B $BUILD_DIR $CMAKE_FLAGS
+    - cmake --build $BUILD_DIR --parallel
+    - cmake --build $BUILD_DIR --parallel --target $BUILD_TARGET
   artifacts:
     when: always
     paths:
-    - $BUILD_DIR/Testing/Temporary
+    - $BUILD_DIR/$ARTIFACT_PATH
 
-# template for coverage jobs
-.coverage_template: &coverage_template
-  stage: test
-  script:
-    - source $MODULE_LOAD_SCRIPT
-    - *setup_build_dir
-    - cmake $CMAKE_FLAGS ..
-    - *make
-    - *make_coverage
-    - *cleanup
-  artifacts:
-    when: always
-    paths:
-    - $BUILD_DIR/coverage
 
 # ##################
 # ### BUILD JOBS ###
@@ -166,109 +158,77 @@ documentation_stable:
 # ### TEST JOBS ###
 # #################
 
-# # NAG fails on lightweight_lib
+# # NAG fails on forces
 # test-nag62-debug:
-#   needs:
-#     - job: build-nag62-debug
-#       artifacts: true
 #   variables:
-#     <<: *debug_vars
-#     MODULE_LOAD_SCRIPT: hpc-module-loads/eve.nagfor62
-#     CMAKE_FLAGS: '-DCMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX=64 -DCMAKE_BUILD_TYPE=Debug'
-#   <<: *test_template
+#     <<: [*debug_vars, *nag_vars_62]
+#   <<: *job_template
 
 test-nag62-release:
   variables:
-    <<: *release_vars
-    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.nagfor62
-    CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX=64 -DCMAKE_BUILD_TYPE=Release'
-  <<: *test_template
-
-test-gfortran83MPI-release:
-  variables:
-    <<: *release_vars
-    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran83MPI
-    CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
-  <<: *test_template
+    <<: [*release_vars, *nag_vars_62]
+  <<: *job_template
 
 test-gfortran83MPI-debug:
   variables:
-    <<: *debug_vars
-    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran83MPI
-    CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug'
-  <<: *test_template
+    <<: [*debug_vars, *gfortran_vars_83MPI]
+  <<: *job_template
+
+test-gfortran83MPI-release:
+  variables:
+    <<: [*release_vars, *gfortran_vars_83MPI]
+  <<: *job_template
 
 test-gfortran102MPI-release:
   variables:
-    <<: *release_vars
-    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran102MPI
-    CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
-  <<: *test_template
+    <<: [*release_vars, *gfortran_vars_102MPI]
+  <<: *job_template
 
 test-gfortran102MPI-debug:
   variables:
-    <<: *debug_vars
-    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran102MPI
-    CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug'
-  <<: *test_template
+    <<: [*debug_vars, *gfortran_vars_102MPI]
+  <<: *job_template
 
 test-gfortran73MPI-release:
   variables:
-    <<: *release_vars
-    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran73MPI
-    CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
-  <<: *test_template
+    <<: [*release_vars, *gfortran_vars_73MPI]
+  <<: *job_template
 
 test-gfortran73MPI-debug:
   variables:
-    <<: *debug_vars
-    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran73MPI
-    CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug'
-  <<: *test_template
+    <<: [*debug_vars, *gfortran_vars_83MPI]
+  <<: *job_template
 
 test-intel18-release:
   variables:
-    <<: *release_vars
-    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.intel18
-    CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
-  <<: *test_template
+    <<: [*release_vars, *intel_vars_18]
+  <<: *job_template
 
 # # intel18debug takes ages for test_mcmc
 # test-intel18-debug:
 #   variables:
-#     <<: *debug_vars
-#     MODULE_LOAD_SCRIPT: hpc-module-loads/eve.intel18
-#     CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug'
-#   <<: *test_template
+#    <<: [*debug_vars, *intel_vars_18]
+#   <<: *job_template
 
 test-intel19-release:
   variables:
-    <<: *release_vars
-    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.intel19
-    CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
-  <<: *test_template
+    <<: [*release_vars, *intel_vars_19]
+  <<: *job_template
 
 test-intel19MPI-release:
   variables:
-    <<: *release_vars
-    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.intel19MPI
-    CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
-  <<: *test_template
+    <<: [*release_vars, *intel_vars_19MPI]
+  <<: *job_template
 
 test-intel2020b-release:
   variables:
-    <<: *release_vars
-    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.intel2020b
-    CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
-  <<: *test_template
+    <<: [*release_vars, *intel_vars_2020b]
+  <<: *job_template
 
 coverage:
   variables:
-    <<: *debug_vars
-    <<: *coverage_vars
-    MODULE_LOAD_SCRIPT: hpc-module-loads/eve.chs-conda01
-    CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON'
-  <<: *coverage_template
+    <<: [*coverage_vars, *conda_vars_01]
+  <<: *job_template
 
 # ###################
 # ### DEPLOY JOBS ###
