@@ -30,7 +30,7 @@ else()
 endif()
 
 add_library(${LIB_NAME} ${sources} ${fyppOutFiles})
-target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
 # control mo_kind
 option(FORCES_WITH_ISO_FORTRAN_ENV "build the module with kind definitions of ISO_FORTRAN_ENV instead of ISO_C_BINDING" OFF)
@@ -67,10 +67,17 @@ if (CMAKE_WITH_OpenMP)
   target_link_libraries(${LIB_NAME} PUBLIC OpenMP::OpenMP_Fortran)
 endif()
 
+# log settings
+target_compile_definitions(${LIB_NAME} PUBLIC
+  $<$<CONFIG:DEBUG>:ENABLE_LOG_TRACE>
+  $<$<CONFIG:RELEASE>:DISABLE_LOG_DEBUG>
+)
 # set compiling flags for debug and relese version
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   # set the preprocessor
   target_compile_definitions(${LIB_NAME} PRIVATE "GFORTRAN")
+  # free line length to enable logging (only needed for gfortran)
+  target_compile_options(${LIB_NAME} PUBLIC -ffree-line-length-none)
   target_compile_options(${LIB_NAME} PRIVATE
     -ffree-form -ffixed-line-length-132
     $<$<CONFIG:DEBUG>:-Og -g -Wall -Wextra -fimplicit-none -fbacktrace -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=snan -pedantic-errors>

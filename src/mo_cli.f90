@@ -53,7 +53,7 @@
 !!          As you see, you can automatically create help and version options:
 !!          \code{.sh}
 !!          $ ./prog -h
-!!          $ ./prog -v
+!!          $ ./prog -V
 !!          \endcode
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
@@ -78,6 +78,8 @@ module mo_cli
     logical :: was_read = .false. !< whether the option was read from command line
     logical :: has_value = .false. !< whether the option has a value
     logical :: has_default = .false. !< whether the option has a default value
+    logical :: repeated = .false. !< whether the option can be read repeatedly
+    integer(i4) :: read_count = 0_i4 !< number of reads (-ooo)
     character(:), allocatable :: value !< value of the option (if has one)
     character(:), allocatable :: value_name !< name of the value for the help text (default "value")
     character(:), allocatable :: default !< default value of the option (if has one)
@@ -100,8 +102,9 @@ module mo_cli
     character(:), allocatable :: description !< help text for the cli
     character(:), allocatable :: version !< Program version
     logical :: has_help = .true. !< whether the parser cares about the help text (--help / -h)
-    logical :: has_version = .false. !< whether the parser cares about the version text (--version / -v)
+    logical :: has_version = .false. !< whether the parser cares about the version text (--version / -V)
     logical :: has_blank_option = .false. !< whether the parser has a blank option.
+    logical :: has_logger = .false. !< whether the parser should setup the logger.
     type(option), dimension(:), allocatable :: options !< defined options
   contains
     !> \copydoc mo_cli::add_option
@@ -114,6 +117,8 @@ module mo_cli
     procedure :: cnt_options !< \see mo_cli::cnt_options
     !> \copydoc mo_cli::option_was_read
     procedure :: option_was_read !< \see mo_cli::option_was_read
+    !> \copydoc mo_cli::option_read_count
+    procedure :: option_read_count !< \see mo_cli::option_read_count
     !> \copydoc mo_cli::has_option
     procedure :: has_option !< \see mo_cli::has_option
     !> \copydoc mo_cli::get_blank_option_index
@@ -134,14 +139,15 @@ contains
 
   !> \brief Create a new \ref cli_parser.
   !> \return The new \ref cli_parser.
-  type(cli_parser) function new_cli_parser(prog, description, add_help_option, add_version_option, version)
+  type(cli_parser) function new_cli_parser(prog, description, add_help_option, add_version_option, version, add_logger_options)
     use mo_os, only: path_split
     implicit none
     character(*), optional, intent(in) :: prog !< Program name (default will be arg(0))
     character(*), optional, intent(in) :: description !< help text for the cli
     logical, optional, intent(in) :: add_help_option !< whether to add a help option (--help, -h)
-    logical, optional, intent(in) :: add_version_option !< whether to add a version option (--version, -v)
+    logical, optional, intent(in) :: add_version_option !< whether to add a version option (--version, -V)
     character(*), optional, intent(in) :: version !< Program version
+    logical, optional, intent(in) :: add_logger_options !< whether to add a logger options (--verbose, --quite, ...)
 
     integer(i4) :: n
     character(:), allocatable :: arg, path, prog_
@@ -162,22 +168,41 @@ contains
     if (present(description)) new_cli_parser%description = description
     if (present(add_help_option)) new_cli_parser%has_help = add_help_option
     if (present(add_version_option)) new_cli_parser%has_version = add_version_option
+    if (present(add_logger_options)) new_cli_parser%has_logger = add_logger_options
 
     if (new_cli_parser%has_help) call new_cli_parser%add_option( &
       name="help", s_name="h", help="Print this help message.")
 
-    if (new_cli_parser%has_version .and. (.not. present(version))) call &
-      error_message("cli_parser: when adding the version option, you need to provide a version")
+    if (new_cli_parser%has_version .and. (.not. present(version))) &
+      call error_message("cli_parser: when adding the version option, you need to provide a version")
     if (new_cli_parser%has_version) call new_cli_parser%add_option( &
-      name="version", s_name="v", help="Print the version of the program.")
+      name="version", s_name="V", help="Print the version of the program.")
     new_cli_parser%version = ""
     if (present(version)) new_cli_parser%version = version
-
+    ! add logging options
+    if (new_cli_parser%has_logger) then
+      call new_cli_parser%add_option( &
+        name="verbose", s_name="v", repeated=.true., help="Increase logging verbosity level.")
+      call new_cli_parser%add_option( &
+        name="quiet", s_name="q", repeated=.true., help="Decrease logging verbosity level.")
+      call new_cli_parser%add_option( &
+        name="log-output-hostname", help="Output hostname while logging.")
+      call new_cli_parser%add_option( &
+        name="log-force-colors", help="Forces colors for the logger.")
+      call new_cli_parser%add_option( &
+        name="log-no-colors", help="Disable colors while logging.")
+      call new_cli_parser%add_option( &
+        name="log-no-format", help="Disable formatting while logging.")
+      call new_cli_parser%add_option( &
+        name="log-output-date", help="Output date while logging.")
+      call new_cli_parser%add_option( &
+        name="log-output-time", help="Output time while logging.")
+    end if
   end function new_cli_parser
 
   !> \brief Create a new \ref option.
   !> \return The new \ref option.
-  type(option) function new_option(name, s_name, help, has_value, value_name, default, required, blank)
+  type(option) function new_option(name, s_name, help, has_value, value_name, default, required, blank, repeated)
     implicit none
     character(*), intent(in) :: name !< long name (will be double hyphenated: --opt)
     character(1), optional, intent(in) :: s_name !< short name (will be hyphenated: -o)
@@ -187,25 +212,26 @@ contains
     character(*), optional, intent(in) :: default !< default value for this option
     logical, optional, intent(in) :: required !< whether the option is required
     logical, optional, intent(in) :: blank !< whether the option is passed blank without hyphenated name (only latter one possible)
+    logical, optional, intent(in) :: repeated !< whether the option can be read repeatedly
 
     new_option%help = "No description"
     if (present(help)) new_option%help = help
 
-    if (len(name) <= 1_i4) call &
-      error_message("option: long-name needs at least 2 characters: " // name)
+    if (len(name) <= 1_i4) &
+      call error_message("option: long-name needs at least 2 characters: " // name)
     new_option%name = name
 
     new_option%has_s_name = present(s_name)
     if (new_option%has_s_name) new_option%s_name = s_name
-    if (new_option%has_s_name .and. (new_option%s_name == " ")) call &
-      error_message("option: short name needs to be non empty: " // name)
+    if (new_option%has_s_name .and. (new_option%s_name == " ")) &
+      call error_message("option: short name needs to be non empty: " // name)
 
     if (present(required)) new_option%required = required
     if (present(blank)) new_option%blank = blank
     if (present(has_value)) then
       new_option%has_value = has_value
-      if ((.not. new_option%has_value) .and. new_option%blank) call &
-        error_message("option: blank option needs a value: " // name)
+      if ((.not. new_option%has_value) .and. new_option%blank) &
+        call error_message("option: blank option needs a value: " // name)
     else
       new_option%has_value = new_option%blank
     end if
@@ -221,16 +247,20 @@ contains
       if (new_option%has_default) new_option%default = default
     end if
 
-    if ((.not. new_option%has_value) .and. new_option%required) call &
-      error_message("option: option without value can't be required: " // name)
+    if ((.not. new_option%has_value) .and. new_option%required) &
+      call error_message("option: option without value can't be required: " // name)
 
-    if (new_option%has_value .and. new_option%has_default .and. new_option%required) call &
-      error_message("option: option with defined default value can't be required: " // name)
+    if (new_option%has_value .and. new_option%has_default .and. new_option%required) &
+      call error_message("option: option with defined default value can't be required: " // name)
+
+    if (present(repeated)) new_option%repeated = repeated
+    if (new_option%repeated .and. new_option%has_value) &
+      call error_message("option: repeatedly readable options shouldn't expect a value: " // name)
 
   end function new_option
 
   !> \brief Add a new \ref option to the \ref cli_parser.
-  subroutine add_option(self, name, s_name, help, has_value, value_name, default, required, blank)
+  subroutine add_option(self, name, s_name, help, has_value, value_name, default, required, blank, repeated)
     implicit none
     class(cli_parser), intent(inout) :: self
     character(*), intent(in) :: name !< long name (will be double hyphenated: --opt)
@@ -241,12 +271,13 @@ contains
     character(*), optional, intent(in) :: default !< default value for this option
     logical, optional, intent(in) :: required !< whether the option is required
     logical, optional, intent(in) :: blank !< whether the option is passed blank without hyphenated name (only latter one possible)
+    logical, optional, intent(in) :: repeated !< whether the option can be read repeatedly
 
     type(option), dimension(size(self%options)) :: tmp_options
     type(option) :: added_option
     integer(i4) :: i
 
-    added_option = option(name, s_name, help, has_value, value_name, default, required, blank)
+    added_option = option(name, s_name, help, has_value, value_name, default, required, blank, repeated)
     if (added_option%blank .and. self%has_blank_option) then
       call error_message("cli_parser%add_option: only one blank option possible: " // name)
     else if (added_option%blank) then
@@ -255,11 +286,11 @@ contains
 
     tmp_options = self%options
     do i = 1, size(tmp_options)
-      if (tmp_options(i)%name == added_option%name) call &
-        error_message("cli_parser%add_option: name already present: " // added_option%name)
+      if (tmp_options(i)%name == added_option%name) &
+        call error_message("cli_parser%add_option: name already present: " // added_option%name)
       if (tmp_options(i)%has_s_name .and. added_option%has_s_name &
-          .and. (tmp_options(i)%s_name == added_option%s_name)) call &
-        error_message("cli_parser%add_option: short name already present: " // added_option%s_name)
+          .and. (tmp_options(i)%s_name == added_option%s_name)) &
+        call error_message("cli_parser%add_option: short name already present: " // added_option%s_name)
     end do
 
     deallocate(self%options)
@@ -292,26 +323,34 @@ contains
 
   !> \brief Get the \ref option index from \ref cli_parser by name.
   !> \return The desired \ref option index.
-  integer(i4) function get_option_index(self, name)
+  integer(i4) function get_option_index(self, name, long, short, raise_error)
     implicit none
     class(cli_parser), intent(inout) :: self
     character(*), intent(in) :: name !< name of the desired option
+    logical, intent(in), optional :: long !< whether to check long name (default: .true.)
+    logical, intent(in), optional :: short !< whether to check short name (default: .true.)
+    logical, intent(in), optional :: raise_error !< whether to raise an error if option is not found (default: .true.)
 
     integer(i4) :: i
-    logical :: opt_found
+    logical :: raise_error_, long_, short_
+
+    raise_error_ = .true.
+    long_ = .true.
+    short_ = .true.
+    if ( present(raise_error) ) raise_error_ = raise_error
+    if ( present(long) ) long_ = long
+    if ( present(short) ) short_ = short
 
     ! find the corresponding argument
-    opt_found = .false.
+    get_option_index = 0_i4
     do i = 1, self%cnt_options()
-      if (self%options(i)%name == name .or. self%options(i)%s_name == name) then
-        opt_found = .true.
+      if ((long_ .and. self%options(i)%name == name) .or. (short_ .and. self%options(i)%s_name == name)) then
         get_option_index = i
         exit
       end if
     end do
 
-    if (.not. opt_found) call &
-      error_message("cli_parser%get_option_index: unknown option: " // name)
+    if (get_option_index == 0_i4 .and. raise_error_) call error_message("cli_parser: unknown option: " // name)
 
   end function get_option_index
 
@@ -320,7 +359,7 @@ contains
   type(option) function get_option(self, name)
     implicit none
     class(cli_parser), intent(inout) :: self
-    character(*), intent(in) :: name !< name of the desired option
+    character(*), intent(in) :: name !< name (long or short) of the desired option
 
     integer(i4) :: i
 
@@ -343,6 +382,20 @@ contains
 
   end function option_was_read
 
+  !> \brief Read count for the \ref option in the \ref cli_parser given by name.
+  !> \return Number of reads for the \ref option.
+  integer(i4) function option_read_count(self, name)
+    implicit none
+    class(cli_parser), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the desired option
+
+    type(option) :: opt
+
+    opt = self%get_option(name)
+    option_read_count = opt%read_count
+
+  end function option_read_count
+
   !> \brief Whether the \ref option is defined in \ref cli_parser given by name.
   !> \return Truth value if the given \ref option was defined.
   logical function has_option(self, name)
@@ -350,15 +403,7 @@ contains
     class(cli_parser), intent(inout) :: self
     character(*), intent(in) :: name !< name of the desired option
 
-    integer(i4) :: j
-
-    has_option = .false.
-    find_opt: do j = 1, self%cnt_options()
-      if (self%options(j)%is_given_arg(name)) then
-        has_option = .true.
-        exit find_opt
-      end if
-    end do find_opt
+    has_option = self%get_option_index(name, raise_error=.false.) > 0
 
   end function has_option
 
@@ -370,8 +415,8 @@ contains
 
     integer(i4) :: i
 
-    if (.not. self%has_blank_option) call &
-      error_message("cli_parser%get_blank_option_index: no blank option defined.")
+    if (.not. self%has_blank_option) &
+      call error_message("cli_parser%get_blank_option_index: no blank option defined.")
 
     ! find the corresponding argument
     do i = 1, self%cnt_options()
@@ -394,6 +439,8 @@ contains
     type(option) :: opt
 
     opt = self%get_option(name)
+    if (.not. opt%has_value) &
+      call error_message("cli_parser%option_value: option has no value: " // name)
     option_value = opt%value
 
   end function option_value
@@ -418,6 +465,7 @@ contains
     call message(opt_str)
     call message("      Description: ", self%help)
     if (self%has_default) call message("      Default: ", self%default)
+    if (self%repeated) call message("      Can be repeated.")
     if (self%required) call message("      (required)")
 
   end subroutine print_info
@@ -460,12 +508,14 @@ contains
 
   !> \brief Parse the given command line arguments with the \ref cli_parser.
   subroutine parse(self)
+    use mo_logging, only: log_set_config
     implicit none
     class(cli_parser), intent(inout) :: self
 
-    logical :: opt_found
-    integer(i4) :: i, j, n
-    character(:), allocatable :: arg, val, err_name
+    logical :: is_multi, long
+    integer(i4) :: i, j, id, n
+    character(:), allocatable :: arg, val, err_name, names(:)
+    integer(i4), allocatable :: counts(:)
 
     i = 1_i4
     arg_loop: do while (i <= command_argument_count())
@@ -483,35 +533,35 @@ contains
           call error_message("cli_parser%parse: unknown argument: " // arg)
         end if
       end if
-      ! find the corresponding argument
-      opt_found = .false.
-      find_opt: do j = 1, self%cnt_options()
-        if (self%options(j)%is_given_arg(arg)) then
-          opt_found = .true.
-          exit find_opt
+      ! check for repeated values with short name (-ooo)
+      call parse_arg(arg, names, counts)
+      long = arg(2:2) == "-" ! after parse_arg, we know size(arg) > 1
+      is_multi = sum(counts) > 1
+      do j = 1, size(names)
+        ! will raise an error if option not present
+        id = self%get_option_index(names(j), long=long, short=.not.long)
+        ! check repeatedly read options
+        if ((counts(j) > 1 .or. self%options(id)%was_read) .and. .not.self%options(id)%repeated) &
+          call error_message("cli_parser%parse: option given multiple times: " // self%options(id)%name)
+        ! update read counts
+        self%options(id)%was_read = .true.
+        self%options(id)%read_count = self%options(id)%read_count + counts(j)
+        ! check for value
+        if (self%options(id)%has_value) then
+          if ( is_multi ) &
+            call error_message("cli_parser%parse: option expects a value: " // self%options(id)%name)
+          if (i == command_argument_count()) &
+            call error_message("cli_parser%parse: required value missing for: " // self%options(id)%name)
+          call get_command_argument(i + 1, length=n)
+          if (allocated(val)) deallocate(val)
+          allocate(character(n) :: val)
+          call get_command_argument(i + 1, value=val)
+          self%options(id)%value = val
+          i = i + 1
         end if
-      end do find_opt
-      if (.not. opt_found) call &
-        error_message("cli_parser%parse: unknown argument: " // arg)
-
-      if (self%options(j)%was_read) call &
-        error_message("cli_parser%parse: argument given multiple times: " // arg)
-      self%options(j)%was_read = .true.
-
-      if (self%options(j)%has_value) then
-        if (i == command_argument_count()) call &
-          error_message("cli_parser%parse: required value missing for: " // arg)
-        call get_command_argument(i + 1, length=n)
-        if (allocated(val)) deallocate(val)
-        allocate(character(n) :: val)
-        call get_command_argument(i + 1, value=val)
-        if (val(1:1) == "-") call &
-          error_message("cli_parser%parse: required value must not start with '-': " // arg // ": " // val)
-        self%options(j)%value = val
-        i = i + 2
-      else
-        i = i + 1
-      end if
+      end do
+      i = i + 1
+      deallocate(names, counts)
     end do arg_loop
 
     if (self%has_help) then
@@ -544,6 +594,76 @@ contains
       end if
     end do check_req
 
+    ! set logger
+    if ( self%has_logger ) then
+      call log_set_config( &
+        verbose = self%option_read_count("verbose"), &
+        quiet = self%option_read_count("quiet"), &
+        log_output_hostname = self%option_was_read("log-output-hostname"), &
+        log_force_colors = self%option_was_read("log-force-colors"), &
+        log_no_colors = self%option_was_read("log-no-colors"), &
+        log_no_format = self%option_was_read("log-no-format"), &
+        log_output_date = self%option_was_read("log-output-date"), &
+        log_output_time = self%option_was_read("log-output-time") &
+      )
+    end if
+
   end subroutine parse
+
+  !> \brief Parse given argument.
+  !> \details Parse a given argument, that starts with an "-", to determine the involved options in case of a multi arg (-xyz).
+  subroutine parse_arg(arg, names, counts)
+    use mo_append, only: append
+    implicit none
+    character(*), intent(in) :: arg
+    character(:), intent(out), allocatable :: names(:) !< names of involved options (can be multiple by using combined short names)
+    integer(i4), intent(out), allocatable :: counts(:) !< counts of occurrences of each option
+
+    character, allocatable :: s_names(:) ! needed for "append"
+    integer(i4) :: i, j
+
+    if ( arg(1:1) /= "-" ) call error_message("cli_parser%parse: invalid argument: " // arg)
+    if ( len(arg) < 2 ) call error_message("cli_parser%parse: found empty argument: " // arg)
+
+    ! check for long name (--name)
+    if ( arg(2:2) == "-" ) then
+      if ( len(arg) == 2 ) call error_message("cli_parser%parse: found empty argument: " // arg)
+      allocate(character(len(arg)-2) :: names(1))
+      names(1) = arg(3:len(arg))
+      call append(counts, 1_i4)
+      return
+    end if
+
+    call append(s_names, arg(2:2))
+    call append(counts, 1_i4)
+    do i=3, len(arg)
+      ! check if name was already present in this multi option
+      j = findchar(s_names, arg(i:i))
+      if ( j == 0 ) then
+        call append(s_names, arg(i:i))
+        call append(counts, 1_i4)
+      else
+        counts(j) = counts(j) + 1_i4
+      end if
+    end do
+    allocate(character(1) :: names(size(s_names)))
+    names = s_names
+  end subroutine parse_arg
+
+  integer(i4) function findchar(array, chr)
+    character, intent(in) :: array(:)
+    character, intent(in) :: chr
+
+    integer(i4) :: i
+
+    findchar = 0_i4
+    do i = 1, size(array)
+      if (array(i) == chr) then
+        findchar = i
+        return
+      end if
+    end do
+
+  end function findchar
 
 end module mo_cli

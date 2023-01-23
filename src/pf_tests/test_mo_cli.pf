@@ -40,7 +40,7 @@ contains
     @assertTrue(trim(parser%options(1)%name) == "help")
     @assertTrue(trim(parser%options(1)%s_name) == "h")
     @assertTrue(trim(parser%options(2)%name) == "version")
-    @assertTrue(trim(parser%options(2)%s_name) == "v")
+    @assertTrue(trim(parser%options(2)%s_name) == "V")
     @assertTrue(trim(parser%options(3)%name) == "test")
     @assertTrue(trim(parser%options(3)%s_name) == "t")
 

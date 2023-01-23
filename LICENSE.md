@@ -1,4 +1,3 @@
-
 # LICENSE
 
 [TOC]
@@ -171,6 +170,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   - purpose: module load scripts
   - sources: https://git.ufz.de/chs/HPC-Fortran-module-loads
   - authors: CHS Developers
+  - license: MIT License (included)
+
+- `flogging` (`src/mo_logging.F90`)
+  - purpose: basis for the logging module
+  - sources: https://github.com/DaanVanVugt/flogging
+  - authors: Daan van Vugt
   - license: MIT License (included)
 
 - `jams-fortran`
