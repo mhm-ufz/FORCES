@@ -12,7 +12,6 @@
 MODULE mo_message
 
   use mo_logging
-  use mo_string_utils, only : tolower
   USE mo_constants, ONLY : nout, nerr
 
   IMPLICIT NONE
@@ -125,10 +124,13 @@ CONTAINS
     logical :: reset_format_, show_
 
     show_ = show_msg
+    if ( present(show) ) show_ = show
+    ! short circuit if message should not be shown
+    if (.not. show_ ) return
+
     uni_ = nout
     advance_ = 'yes'
     reset_format_ = .false.
-    if ( present(show) ) show_ = show
     if ( present(uni) ) uni_ = uni
     if ( present(advance) ) advance_ = advance
     if ( present(reset_format) ) reset_format_ = reset_format
@@ -141,7 +143,7 @@ CONTAINS
       outString = trim(format_string) // outString
     end if
 
-    if( show_ ) write(uni_, '(a)', advance = advance_) trim(outString)
+    write(uni_, '(a)', advance = advance_) trim(outString)
 
   END SUBROUTINE message
 
