@@ -12,7 +12,7 @@ if(NOT FYPP)
 else()
   message(STATUS "Preprocessor fypp found!")
   # Create a list of the files to be preprocessed
-  set(fppFiles mo_netcdf.fypp mo_poly.fypp)
+  set(fppFiles mo_netcdf.fypp mo_poly.fypp mo_sentinel.fypp)
   # Custom preprocessor flags
   if(DEFINED CMAKE_MAXIMUM_RANK)
     set(fyppFlags "-DMAXRANK=${CMAKE_MAXIMUM_RANK}")
@@ -26,6 +26,7 @@ else()
   fypp_f90("${fyppFlags}" "${fppFiles}" fyppOutFiles)
   list(FILTER sources EXCLUDE REGEX ".*mo_netcdf.f90$")
   list(FILTER sources EXCLUDE REGEX ".*mo_poly.f90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_sentinel.f90$")
 endif()
 
 add_library(${LIB_NAME} ${sources} ${fyppOutFiles})

@@ -1,0 +1,86 @@
+module test_mo_sentinel
+
+  use funit
+  use mo_sentinel, only : get_sentinel, set_sentinel, check_sentinel
+  use mo_kind, only : i1, i2, i4, i8, sp, dp, spc, dpc
+
+  implicit none
+
+contains
+
+  @test
+  subroutine test_sentinel()
+    integer(i1) :: sent_i1(2)
+    integer(i2) :: sent_i2
+    integer(i4) :: sent_i4
+    integer(i8) :: sent_i8
+    real(sp) :: sent_sp
+    real(dp) :: sent_dp
+    complex(spc) :: sent_spc
+    complex(dpc) :: sent_dpc
+    character :: sent_char
+    character(:), allocatable, dimension(:) :: sent_str
+
+    allocate(character(1) :: sent_str(3))
+
+    call set_sentinel(sent_i1)
+    call set_sentinel(sent_i2)
+    call set_sentinel(sent_i4)
+    call set_sentinel(sent_i8)
+    call set_sentinel(sent_sp)
+    call set_sentinel(sent_dp)
+    call set_sentinel(sent_spc)
+    call set_sentinel(sent_dpc)
+    call set_sentinel(sent_char)
+    call set_sentinel(sent_str)
+
+    @assertAll(check_sentinel(sent_i1), "check sentinel i1")
+    @assertTrue(check_sentinel(sent_i2), "check sentinel i2")
+    @assertTrue(check_sentinel(sent_i4), "check sentinel i4")
+    @assertTrue(check_sentinel(sent_i8), "check sentinel i8")
+    @assertTrue(check_sentinel(sent_sp), "check sentinel sp")
+    @assertTrue(check_sentinel(sent_dp), "check sentinel dp")
+    @assertTrue(check_sentinel(sent_spc), "check sentinel spc")
+    @assertTrue(check_sentinel(sent_dpc), "check sentinel dpc")
+    @assertTrue(check_sentinel(sent_char), "check sentinel char")
+    @assertAll(check_sentinel(sent_str), "check sentinel str")
+
+    @assertAll(check_sentinel(get_sentinel(sent_i1)), "check get sentinel i1")
+    @assertTrue(check_sentinel(get_sentinel(sent_i2)), "check get sentinel i2")
+    @assertTrue(check_sentinel(get_sentinel(sent_i4)), "check get sentinel i4")
+    @assertTrue(check_sentinel(get_sentinel(sent_i8)), "check get sentinel i8")
+    @assertTrue(check_sentinel(get_sentinel(sent_sp)), "check get sentinel sp")
+    @assertTrue(check_sentinel(get_sentinel(sent_dp)), "check get sentinel dp")
+    @assertTrue(check_sentinel(get_sentinel(sent_spc)), "check get sentinel spc")
+    @assertTrue(check_sentinel(get_sentinel(sent_dpc)), "check get sentinel dpc")
+    @assertTrue(check_sentinel(get_sentinel(sent_char)), "check get sentinel char")
+    @assertAll(check_sentinel(get_sentinel(sent_str)), "check get sentinel str")
+
+    deallocate(sent_str)
+    allocate(character(2) :: sent_str(3))
+
+    sent_i1 = 1_i1
+    sent_i2 = 1_i2
+    sent_i4 = 1_i4
+    sent_i8 = 1_i8
+    sent_sp = 1._sp
+    sent_dp = 1._dp
+    sent_spc = (1._sp, 1._sp)
+    sent_dpc = (1._dp, 1._dp)
+    sent_char = "A"
+    sent_str =  "AB"
+
+    @assertNone(check_sentinel(sent_i1), "check not sentinel i1")
+    @assertFalse(check_sentinel(sent_i2), "check not sentinel i2")
+    @assertFalse(check_sentinel(sent_i4), "check not sentinel i4")
+    @assertFalse(check_sentinel(sent_i8), "check not sentinel i8")
+    @assertFalse(check_sentinel(sent_sp), "check not sentinel sp")
+    @assertFalse(check_sentinel(sent_dp), "check not sentinel dp")
+    @assertFalse(check_sentinel(sent_spc), "check not sentinel spc")
+    @assertFalse(check_sentinel(sent_dpc), "check not sentinel dpc")
+    @assertFalse(check_sentinel(sent_char), "check not sentinel char")
+    @assertNone(check_sentinel(sent_str), "check not sentinel str")
+
+  end subroutine test_sentinel
+
+end module test_mo_sentinel

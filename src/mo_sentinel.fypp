@@ -1,0 +1,169 @@
+#:include "common.fypp"
+#:set ALL_KINDS = INT_KINDS + REAL_KINDS + CMPLX_KINDS + CHAR_KINDS
+#:set ALL_KINDS_TYPES = INT_KINDS_TYPES + REAL_KINDS_TYPES + CMPLX_KINDS_TYPES + CHAR_KINDS_TYPES
+#:set NUM_KINDS_TYPES = INT_KINDS_TYPES + REAL_KINDS_TYPES + CMPLX_KINDS_TYPES
+!> \file    mo_sentinel.f90
+!> \brief   \copybrief mo_sentinel
+!> \details \copydetails mo_sentinel
+
+!> \brief   Module to handle sentinels.
+!> \details This module provides standard sentinels for all used types as well as set, get and check routines.
+!!          Sentinels are used to mark variables in order to check if they were accessed by an algorithm.
+!!          A common use case is to check if variables were set by reading a fortran namelist.
+!> \version 0.1
+!> \authors Sebastian Mueller
+!> \date    Sep 2022
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
+module mo_sentinel
+
+  use mo_kind,                       only : ${", ".join(INT_KINDS + REAL_KINDS + CMPLX_KINDS)}$
+  use, intrinsic :: ieee_arithmetic, only : ieee_value, ieee_quiet_nan, ieee_is_nan
+
+  implicit none
+  private
+
+  ! sentinel values
+  #:for kind in ALL_KINDS
+  public :: sentinel_${kind}$
+  #:endfor
+
+  ! sentinel setters
+  public set_sentinel
+  ! sentinel getters
+  public get_sentinel
+  ! sentinel checker
+  public check_sentinel
+
+  !> \brief   Set variable to sentinel value.
+  !> \details This routine will set sentinal values to the given variable.
+  !> \param[in] "integer/real/complex/character :: value"                   value to be set to sentinel
+  interface set_sentinel
+  #:for kind in ALL_KINDS
+    module procedure :: set_sentinel_${kind}$
+  #:endfor
+  end interface
+
+  !> \brief   Get sentinel values of the given kind.
+  !> \details This routine will return sentinal values of the same kind and shape as the given variable.
+  !> \param[in] "integer/real/complex/character :: value"                   value to determine sentinel
+  !> \retval    "integer/real/complex/character :: sentinel_value"          sentinal values of the same kind and shape
+  interface get_sentinel
+  #:for kind in ALL_KINDS
+    module procedure :: get_sentinel_${kind}$
+  #:endfor
+  end interface
+
+  !> \brief   Check given variable to be equal to the sentinel value.
+  !> \details This routine will check the given variable to be equal to the specified sentinel value.
+  !> \param[in] "integer/real/complex/character :: value"                   value to be checked
+  !> \retval    "logical :: is_sentinel"                                    result
+  interface check_sentinel
+    #:for kind in ALL_KINDS
+    module procedure :: check_sentinel_${kind}$
+    #:endfor
+  end interface
+
+  ! use maxval(empty) intrinsic to get lowest possible number for each integer kind
+  #:for kind, type in INT_KINDS_TYPES
+  ${type}$, parameter :: empty_${kind}$(0) = 0_${kind}$
+  #:endfor
+  character, parameter :: sent_char = achar(0) ! NULL character
+
+contains
+
+  !> \brief   Default sentinel value (Null character) for characters.
+  !> \return  Default sentinel value (Null character) for characters.
+  pure character function sentinel_char()
+    sentinel_char = sent_char
+  end function sentinel_char
+
+  #:for kind, type in INT_KINDS_TYPES
+  !> \brief   Default sentinel value (-huge()-1) for ${kind}$.
+  !> \return  Default sentinel value (-huge()-1) for ${kind}$.
+  pure ${type}$ function sentinel_${kind}$()
+    sentinel_${kind}$ = maxval(empty_${kind}$)
+  end function sentinel_${kind}$
+
+  #:endfor
+  #:for kind, type in REAL_KINDS_TYPES
+  !> \brief   Default sentinel value (NaN) for ${kind}$.
+  !> \return  Default sentinel value (NaN) for ${kind}$.
+  pure real(${kind}$) function sentinel_${kind}$()
+    sentinel_${kind}$ = ieee_value(0._${kind}$, ieee_quiet_nan)
+  end function sentinel_${kind}$
+
+  #:endfor
+  #:for kind, type in CMPLX_KINDS_TYPES
+  !> \brief   Default sentinel value (NaN) for ${kind}$.
+  !> \return  Default sentinel value (NaN) for ${kind}$.
+  pure ${type}$ function sentinel_${kind}$()
+    real(${kind[:2]}$) :: sentinel
+    sentinel = sentinel_${kind[:2]}$()
+    sentinel_${kind}$ = cmplx(sentinel, sentinel, ${kind}$)
+  end function sentinel_${kind}$
+
+  #:endfor
+
+  #:for kind, type in ALL_KINDS_TYPES
+  !> \brief   Set sentinel value for ${kind}$.
+  elemental subroutine set_sentinel_${kind}$(value)
+    ${type}$, intent(inout) :: value !< value to be set to sentinel
+    value = sentinel_${kind}$()
+  end subroutine set_sentinel_${kind}$
+
+  #:endfor
+
+  !> \brief   Get sentinel value for char.
+  elemental character function get_sentinel_char(value)
+    character(*), intent(in) :: value !< value to determine sentinel
+    get_sentinel_char = sentinel_char()
+  end function get_sentinel_char
+
+  #:for kind, type in NUM_KINDS_TYPES
+  !> \brief   Get sentinel value for ${kind}$.
+  elemental ${type}$ function get_sentinel_${kind}$(value)
+    ${type}$, intent(in) :: value !< value to determine sentinel
+    get_sentinel_${kind}$ = sentinel_${kind}$()
+  end function get_sentinel_${kind}$
+
+  #:endfor
+
+  !> \brief   Check for sentinel value for string.
+  elemental logical function check_sentinel_char(value)
+    character(*), intent(in) :: value !< value to determine sentinel
+    ! if trimmed string has not exactly one char, return false
+    if ( len_trim(value) /= 1 ) then
+      check_sentinel_char = .false.
+    else
+      check_sentinel_char = value(1:1) == sent_char(1:1)
+    end if
+  end function check_sentinel_char
+
+  #:for kind, type in INT_KINDS_TYPES
+  !> \brief   Check for sentinel value for ${kind}$.
+  elemental logical function check_sentinel_${kind}$(value)
+    ${type}$, intent(in) :: value !< value to determine sentinel
+    ${type}$ :: sentinel
+    sentinel = sentinel_${kind}$()
+    check_sentinel_${kind}$ = sentinel == value
+  end function check_sentinel_${kind}$
+
+  #:endfor
+  #:for kind, type in REAL_KINDS_TYPES
+  !> \brief   Check for sentinel value for ${kind}$.
+  elemental logical function check_sentinel_${kind}$(value)
+    ${type}$, intent(in) :: value !< value to determine sentinel
+    check_sentinel_${kind}$ = ieee_is_nan(value)
+  end function check_sentinel_${kind}$
+
+  #:endfor
+  #:for kind, type in CMPLX_KINDS_TYPES
+  !> \brief   Check for sentinel value for ${kind}$.
+  elemental logical function check_sentinel_${kind}$(value)
+    ${type}$, intent(in) :: value !< value to determine sentinel
+    check_sentinel_${kind}$ = ieee_is_nan(real(value)) .or. ieee_is_nan(aimag(value))
+  end function check_sentinel_${kind}$
+
+  #:endfor
+end module mo_sentinel
