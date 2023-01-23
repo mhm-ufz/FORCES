@@ -176,7 +176,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   - purpose: basis for the logging module
   - sources: https://github.com/DaanVanVugt/flogging
   - authors: Daan van Vugt
-  - license: MIT License
+  - license: MIT License (included)
 
 - `jams-fortran`
   - purpose: FORCES is a minimal fork of the jams-fortran library that was formerly developed at the CHS department
