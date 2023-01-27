@@ -4,7 +4,7 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
-## v0.4.0 - 2022-12
+## v0.4.0 - 2023-01
 - See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.3.2...v0.4.0) for details.
 
 ### Enhancements
@@ -15,9 +15,26 @@ All notable changes to **FORCES** will be documented in this file.
   - `mod_shift` (shift longitude values by 180 degrees)
 - documentation updates ([58](https://git.ufz.de/chs/forces/-/merge_requests/58), [66](https://git.ufz.de/chs/forces/-/merge_requests/66))
 - license clarifications ([66](https://git.ufz.de/chs/forces/-/merge_requests/66))
+- mo_message enhancements ([40](https://git.ufz.de/chs/forces/-/merge_requests/40))
+  - add global switches in `mo_message` to turn of printing with `message` and `error_message`
+    - `SHOW_MSG = .true.`
+    - `SHOW_ERR = .true.`
+    - `message` and `error_message` got a new argument `show`, defaulting to the global setting
+  - add switch to `error_message` to control raising stop error:
+    - `raise=[.true.|.false.]` with `.true.` by default
+- mo_sentinel: added module for sentinel handling ([64](https://git.ufz.de/chs/forces/-/merge_requests/64))
+  - routines to set, get and check sentinels for all types
+    ```fortran
+    value = get_sentinel(mold)
+    call set_sentinel(value)
+    state = check_sentinel(value)
+    ```
+- mo_logging: added logging module based on the [flogging](https://github.com/DaanVanVugt/flogging) project of Daan van Vugt ([63](https://git.ufz.de/chs/forces/-/merge_requests/63))
+  - integration with mo_cli to set log-level from command line
 
 ### Bugfixes
 - mo_kernel: fix for openmp usage (only use openmp if compiled with openmp support) ([59](https://git.ufz.de/chs/forces/-/merge_requests/59))
+
 
 ## v0.3.2 - 2022-06
 See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.3.1...v0.3.2) for details.

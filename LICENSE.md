@@ -9,7 +9,7 @@ This file is part of the UFZ CHS Fortran library for Computational Environmental
 
 ## COPYRIGHT HOLDERS
 
- Copyright(c) 2005-2022, the CHS Developers, Sabine Attinger: All rights reserved.
+ Copyright(c) 2005-2023, the CHS Developers, Sabine Attinger: All rights reserved.
 
 The code is a property of:
 
