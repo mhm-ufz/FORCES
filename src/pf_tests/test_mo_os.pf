@@ -1,12 +1,12 @@
 module test_mo_os
-  
+
   use funit
   use mo_os
 
   implicit none
 
   private
-  
+
   public :: test_exists, test_isfile, test_isdir,test_splitext, test_split
 
 contains
@@ -16,12 +16,12 @@ contains
 
     logical :: r1, r2, r3, r4, r5, r6
 
-    call path_exists('./files/empty.txt', result_=r1)
-    call path_exists('./files', result_=r2)
-    call path_exists('./files/.', result_=r3)
-    call path_exists('xxx', quiet_=.true., result_=r4)
-    call path_exists('./files_withtypo/.', quiet_=.true., result_=r5)
-    call path_exists('./empty_withtypo.txt', quiet_=.true., result_=r6)
+    call path_exists('./files/empty.txt', result=r1)
+    call path_exists('./files', result=r2)
+    call path_exists('./files/.', result=r3)
+    call path_exists('xxx', verbose=.false., result=r4)
+    call path_exists('./files_withtypo/.', verbose=.false., result=r5)
+    call path_exists('./empty_withtypo.txt', verbose=.false., result=r6)
 
     @assertTrue(r1)
     @assertTrue(r2)
@@ -29,57 +29,55 @@ contains
     @assertFalse(r4)
     @assertFalse(r5)
     @assertFalse(r6)
-    
+
   end subroutine test_exists
-   
+
   @test
   subroutine test_isfile()
 
     logical :: r1, r3, r4, r5, r6
 
-    call path_isfile('./files/empty.txt', result_=r1)
-    !call path_isfile('../Makefile', result_=r2)
-    call path_isfile('../pf_tests', quiet_=.true., result_=r3)
-    call path_isfile('../pf_tests/', quiet_=.true., result_=r4)
-    call path_isfile('../files/.', quiet_=.true., result_=r5)
-    call path_isfile('./empty.txt', quiet_=.true., result_=r6)
-   
+    call path_isfile('./files/empty.txt', result=r1)
+    call path_isfile('../pf_tests', verbose=.false., result=r3)
+    call path_isfile('../pf_tests/', verbose=.false., result=r4)
+    call path_isfile('../files/.', verbose=.false., result=r5)
+    call path_isfile('./empty.txt', verbose=.false., result=r6)
+
     @assertTrue(r1)
-    !@assertTrue(r2)
     @assertFalse(r3)
     @assertFalse(r4)
     @assertFalse(r5)
     @assertFalse(r6)
-       
+
   end subroutine test_isfile
-   
+
   @test
   subroutine test_isdir()
 
     logical :: r1, r2, r3, r4, r5, r6
 
-    call path_isdir('./files/.', result_=r1)
-    call path_isdir('./files/', result_=r2)
-    call path_isdir('./files', result_=r3)
-    call path_isdir('../../README', quiet_=.true., result_=r4)
-    call path_isdir('./files/empty.txt', quiet_=.true., result_=r5)
-    call path_isdir('./pf_tests', quiet_=.true., result_=r6)
-   
+    call path_isdir('./files/.', result=r1)
+    call path_isdir('./files/', result=r2)
+    call path_isdir('./files', result=r3)
+    call path_isdir('../../README', verbose=.false., result=r4)
+    call path_isdir('./files/empty.txt', verbose=.false., result=r5)
+    call path_isdir('./pf_tests', verbose=.false., result=r6)
+
     @assertTrue(r1)
     @assertTrue(r2)
     @assertTrue(r3)
     @assertFalse(r4)
     @assertFalse(r5)
     @assertFalse(r6)
-       
+
   end subroutine test_isdir
-   
+
   @test
   subroutine test_splitext()
-   
+
     character(len=100) :: root1, root2, root3
     character(len=100) :: ext1, ext2, ext3
-      
+
     call path_splitext('./files/namelist.txt',root1,ext1)
     call path_splitext('./.',root2,ext2)
     call path_splitext('../../README',root3,ext3)
@@ -112,6 +110,4 @@ contains
 
   end subroutine test_split
 
-
 end module test_mo_os
-
