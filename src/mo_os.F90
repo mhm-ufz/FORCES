@@ -45,11 +45,8 @@ CONTAINS
     LOGICAL, INTENT(IN), OPTIONAL :: verbose !< Be verbose or not (default: setting of SHOW_MSG/SHOW_ERR)
     LOGICAL, INTENT(IN), OPTIONAL :: raise !< Throw an error if path does not exist (default: .false.)
 
-    LOGICAL :: isfile, isdir, exists, raise_
+    LOGICAL :: isfile, isdir, exists
     character(:), allocatable :: t_path
-
-    raise_ = .false.
-    if (present(raise)) raise_ = raise
 
     t_path = trim(path)
 
@@ -57,8 +54,7 @@ CONTAINS
     call path_isdir(t_path, answer=isdir, verbose=.false., raise=.false.)
     exists = isfile .or. isdir
 
-    if (.not. exists) call path_msg("Path does not exist: ", t_path, raise_, verbose)
-
+    if (.not. exists) call path_msg("Path does not exist: ", t_path, verbose, raise)
     if (present(answer)) answer = exists
 
   END SUBROUTINE path_exists
@@ -77,11 +73,8 @@ CONTAINS
     LOGICAL, INTENT(IN), OPTIONAL :: verbose !< Be verbose or not (default: setting of SHOW_MSG/SHOW_ERR)
     LOGICAL, INTENT(IN), OPTIONAL :: raise !< Throw an error if file does not exist (default: .false.)
 
-    LOGICAL :: isfile, isdir, raise_
+    LOGICAL :: isfile, isdir
     CHARACTER(:), allocatable :: t_path
-
-    raise_ = .false.
-    if (present(raise)) raise_ = raise
 
     t_path = trim(path)
 
@@ -90,7 +83,7 @@ CONTAINS
     call path_isdir(t_path, answer=isdir, verbose=.false., raise=.false.)
     isfile = isfile .and. (.not. isdir)
 
-    if (.not. isfile) call path_msg("File does not exist: ", t_path, raise_, verbose)
+    if (.not. isfile) call path_msg("File does not exist: ", t_path, verbose, raise)
     if (present(answer)) answer = isfile
 
   END SUBROUTINE path_isfile
@@ -109,11 +102,8 @@ CONTAINS
     LOGICAL, INTENT(IN), OPTIONAL :: verbose !< Be verbose or not (default: setting of SHOW_MSG/SHOW_ERR)
     LOGICAL, INTENT(IN), OPTIONAL :: raise !< Throw an error if dir does not exist (default: .false.)
 
-    LOGICAL :: isdir, raise_
+    LOGICAL :: isdir
     CHARACTER(:), allocatable :: t_path
-
-    raise_ = .false.
-    if (present(raise)) raise_ = raise
 
     t_path = trim(path)
 
@@ -125,7 +115,7 @@ CONTAINS
     inquire(file=t_path//'/', exist=isdir)
 #endif
 
-    if (.not. isdir) call path_msg("Directory does not exist: ", t_path, raise_, verbose)
+    if (.not. isdir) call path_msg("Directory does not exist: ", t_path, verbose, raise)
     if (present(answer)) answer = isdir
 
   END SUBROUTINE path_isdir
@@ -175,7 +165,6 @@ CONTAINS
 
     root = t_path(1:i)
     ext = t_path(i + 1:len(t_path))
-    return
 
   END SUBROUTINE path_splitext
 
@@ -218,18 +207,19 @@ CONTAINS
       tail = t_path(i + 2:len(t_path))
     endif
 
-    return
-
   END SUBROUTINE path_split
 
   ! ------------------------------------------------------------------
 
-  subroutine path_msg(msg, path, raise, verbose)
+  subroutine path_msg(msg, path, verbose, raise)
     CHARACTER(LEN=*), intent(in) :: msg
     CHARACTER(LEN=*), intent(in) :: path
-    logical, intent(in) ::  raise
     logical, intent(in), optional ::  verbose
-    if (raise) then
+    logical, intent(in), optional ::  raise
+    logical :: raise_
+    raise_ = .false.
+    if (present(raise)) raise_ = raise
+    if (raise_) then
       call error_message(msg, path, show=verbose)
     else
       call message(msg, path, show=verbose)
