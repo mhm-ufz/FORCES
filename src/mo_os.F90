@@ -3,6 +3,13 @@
 !> \details \copydetails mo_os
 
 !> \brief Path and directory management.
+!> \details Path handling and existence checks for files and directories.
+!> \changelog
+!! - Nicola Doering, Aug 2020
+!!   - module implementation
+!! - Sebastian Mueller, Jan 2023
+!!   - changed signatures (path, result, verbose, raise) for path_exists, path_isfile and path_isdir
+!!   - respect show_msg and show_err from mo_message
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_os

@@ -32,6 +32,11 @@ All notable changes to **FORCES** will be documented in this file.
 - mo_logging: added logging module based on the [flogging](https://github.com/DaanVanVugt/flogging) project of Daan van Vugt ([63](https://git.ufz.de/chs/forces/-/merge_requests/63))
   - integration with mo_cli to set log-level from command line
 
+### Changes
+- mo_os refactoring ([72](https://git.ufz.de/chs/forces/-/merge_requests/72))
+  - changed signatures `(path, result, verbose, raise)` for path_exists, path_isfile and path_isdir
+  - respect show_msg and show_err from mo_message
+
 ### Bugfixes
 - mo_kernel: fix for openmp usage (only use openmp if compiled with openmp support) ([59](https://git.ufz.de/chs/forces/-/merge_requests/59))
 
