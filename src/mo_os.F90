@@ -3,11 +3,19 @@
 !> \details \copydetails mo_os
 
 !> \brief Path and directory management.
+!> \details Path handling and existence checks for files and directories.
+!> \changelog
+!! - Nicola Doering, Aug 2020
+!!   - module implementation
+!! - Sebastian Mueller, Jan 2023
+!!   - changed signatures (path, answer, verbose, raise) for path_exists, path_isfile and path_isdir
+!!   - respect show_msg and show_err from mo_message
+!!   - simplify inquire logic
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_os
 
-  USE mo_message, ONLY: message
+  USE mo_message, ONLY: error_message, message
 
   IMPLICIT NONE
 
@@ -28,45 +36,26 @@ CONTAINS
   !>        \details Checks whether a given path exists.
   !>        \author Nicola Doering
   !>        \date Aug 2020
-  SUBROUTINE path_exists(path, quiet_, throwError_, dirOrFile_, result_)
+  SUBROUTINE path_exists(path, answer, verbose, raise)
 
     IMPLICIT NONE
 
     CHARACTER(LEN=*), INTENT(IN)  :: path !< given path
-    LOGICAL, INTENT(IN), OPTIONAL :: quiet_ !< Be verbose or not (default: .false.)
-    LOGICAL, INTENT(IN), OPTIONAL :: throwError_ !< Throw an error if path does not exist (default: .false.)
-    LOGICAL, INTENT(IN), OPTIONAL :: dirOrFile_ !< whether it's a directory (.true.) or a file (.false.)
-    LOGICAL, INTENT(OUT), OPTIONAL :: result_ !< result
+    LOGICAL, INTENT(OUT), OPTIONAL :: answer !< result
+    LOGICAL, INTENT(IN), OPTIONAL :: verbose !< Be verbose or not (default: setting of SHOW_MSG/SHOW_ERR)
+    LOGICAL, INTENT(IN), OPTIONAL :: raise !< Throw an error if path does not exist (default: .false.)
 
-    LOGICAL :: quiet = .false.
-    LOGICAL :: throwError = .false.
-    LOGICAL :: exists
-    CHARACTER(LEN=40) :: messagetext
-    CHARACTER(LEN=len_trim(path)) :: t_path
+    LOGICAL :: isfile, isdir, exists
+    character(:), allocatable :: t_path
 
     t_path = trim(path)
-    inquire (file=t_path, exist=exists)
 
-#ifdef INTEL
-    if (.not. exists) inquire (directory=t_path, exist=exists)
-#endif
+    call path_isfile(t_path, answer=isfile, verbose=.false., raise=.false.)
+    call path_isdir(t_path, answer=isdir, verbose=.false., raise=.false.)
+    exists = isfile .or. isdir
 
-    if (present(quiet_)) quiet = quiet_
-    if (present(throwError_)) throwError = throwError_
-    if (.not. present(dirOrFile_)) then
-      messagetext = "Cannot find the file or directory: "
-    else if (dirOrFile_) then
-      messagetext = "Cannot find the directory: "
-    else
-      messagetext = "Cannot find the file: "
-    endif
-
-    if (.not. exists) then
-      if (.not. quiet .or. throwError) call message(trim(messagetext), t_path)
-      if (throwError) stop 1
-    endif
-
-    if (present(result_)) result_ = exists
+    if (.not. exists) call path_msg("Path does not exist: ", t_path, verbose, raise)
+    if (present(answer)) answer = exists
 
   END SUBROUTINE path_exists
 
@@ -75,52 +64,27 @@ CONTAINS
   !>        \details Checks whether a given path exists and describes a file.
   !>        \author Nicola Doering
   !>        \date Aug 2020
-  SUBROUTINE path_isfile(path, quiet_, throwError_, result_)
+  SUBROUTINE path_isfile(path, answer, verbose, raise)
 
     IMPLICIT NONE
 
     CHARACTER(LEN=*), INTENT(IN)  :: path !< given path
-    LOGICAL, INTENT(IN), OPTIONAL :: quiet_ !< Be verbose or not (default: .false.)
-    LOGICAL, INTENT(IN), OPTIONAL :: throwError_ !< Throw an error if file does not exist (default: .false.)
-    LOGICAL, INTENT(OUT), OPTIONAL :: result_ !< result
+    LOGICAL, INTENT(OUT), OPTIONAL :: answer !< result
+    LOGICAL, INTENT(IN), OPTIONAL :: verbose !< Be verbose or not (default: setting of SHOW_MSG/SHOW_ERR)
+    LOGICAL, INTENT(IN), OPTIONAL :: raise !< Throw an error if file does not exist (default: .false.)
 
-    LOGICAL :: quiet
-    LOGICAL :: throwError
-    LOGICAL :: exists
-    LOGICAL :: isfile
-    CHARACTER(LEN=len_trim(path)) :: t_path
+    LOGICAL :: isfile, isdir
+    CHARACTER(:), allocatable :: t_path
 
     t_path = trim(path)
-    quiet = .false.
-    throwError = .false.
-    isfile = .true.
 
-    if (present(quiet_)) quiet = quiet_
-    if (present(throwError_)) throwError = throwError_
+    inquire(file=t_path, exist=isfile)
+    ! gfortran/NAG need the check if it is not a directory explicitly
+    call path_isdir(t_path, answer=isdir, verbose=.false., raise=.false.)
+    isfile = isfile .and. (.not. isdir)
 
-    call path_exists(t_path, quiet, throwError, .false., exists)
-    if (exists) then
-      !checking whether the path is ending with '/' or '/.' which would indicates a directory
-      if (t_path(len(t_path):len(t_path)) .eq. '/' .or. t_path(len(t_path) - 1:len(t_path)) .eq. '/.') then
-        isfile = .false.
-      else
-        !checking whether would still exist if '/.' is added to the end, in this case it is a directory
-#ifdef INTEL
-        inquire (directory=t_path//'/.', exist=exists)
-#else
-        inquire (file=t_path//'/.', exist=exists)
-#endif
-        if (exists) then
-          isfile = .false.
-          if (.not. quiet .or. throwError) call message('The following path describes a directory and not a file: ', t_path)
-          if (throwError) stop 1
-        endif
-      endif
-    else
-      isfile = .false.
-    endif
-
-    if (present(result_)) result_ = isfile
+    if (.not. isfile) call path_msg("File does not exist: ", t_path, verbose, raise)
+    if (present(answer)) answer = isfile
 
   END SUBROUTINE path_isfile
 
@@ -129,42 +93,30 @@ CONTAINS
   !>        \details Checks whether a given path exists and describes a directory.
   !>        \author Nicola Doering
   !>        \date Aug 2020
-  SUBROUTINE path_isdir(path, quiet_, throwError_, result_)
+  SUBROUTINE path_isdir(path, answer, verbose, raise)
 
     IMPLICIT NONE
 
     CHARACTER(LEN=*), INTENT(IN)  :: path !< given path
-    LOGICAL, INTENT(IN), OPTIONAL :: quiet_ !< Be verbose or not (default: .false.)
-    LOGICAL, INTENT(IN), OPTIONAL :: throwError_ !< Throw an error if dir does not exist (default: .false.)
-    LOGICAL, INTENT(OUT), OPTIONAL :: result_ !< result
+    LOGICAL, INTENT(OUT), OPTIONAL :: answer !< result
+    LOGICAL, INTENT(IN), OPTIONAL :: verbose !< Be verbose or not (default: setting of SHOW_MSG/SHOW_ERR)
+    LOGICAL, INTENT(IN), OPTIONAL :: raise !< Throw an error if dir does not exist (default: .false.)
 
-    LOGICAL :: quiet
-    LOGICAL :: throwError
     LOGICAL :: isdir
-    LOGICAL :: exists
-    CHARACTER(LEN=len_trim(path)) :: t_path
+    CHARACTER(:), allocatable :: t_path
 
     t_path = trim(path)
-    quiet = .false.
-    throwError = .false.
-    isdir = .true.
 
-    if (present(quiet_)) quiet = quiet_
-    if (present(throwError_)) throwError = throwError_
+#ifdef INTEL
+    ! intel has non-standard 'directory' argument
+    inquire(directory=t_path, exist=isdir)
+#else
+    ! append "/" and check if it still exists
+    inquire(file=t_path//'/', exist=isdir)
+#endif
 
-    call path_exists(t_path, quiet, throwError, .true., exists)
-    if (exists) then
-      call path_isfile(t_path, .true., .false., exists)
-      if (exists) then
-        isdir = .false.
-        if (.not. quiet .or. throwError) call message('The following path describes a file and not a directory: ', t_path)
-        if (throwError) stop 1
-      endif
-    else
-      isdir = .false.
-    endif
-
-    if (present(result_)) result_ = isdir
+    if (.not. isdir) call path_msg("Directory does not exist: ", t_path, verbose, raise)
+    if (present(answer)) answer = isdir
 
   END SUBROUTINE path_isdir
 
@@ -192,8 +144,8 @@ CONTAINS
     i = len(t_path) - 1
     c = t_path(len(t_path):len(t_path))
 
-    !Checking, whether the path describes a directory so it cannot ends with an extension.
-    call path_isdir(t_path, .true., .false., isdir)
+    !Checking, whether the path describes a directory so it cannot end with an extension
+    call path_isdir(t_path, answer=isdir, verbose=.false., raise=.false.)
     if (isdir) then
       i = len(t_path)
     else
@@ -213,7 +165,6 @@ CONTAINS
 
     root = t_path(1:i)
     ext = t_path(i + 1:len(t_path))
-    return
 
   END SUBROUTINE path_splitext
 
@@ -256,11 +207,23 @@ CONTAINS
       tail = t_path(i + 2:len(t_path))
     endif
 
-    return
-
   END SUBROUTINE path_split
 
   ! ------------------------------------------------------------------
 
-END MODULE mo_os
+  subroutine path_msg(msg, path, verbose, raise)
+    CHARACTER(LEN=*), intent(in) :: msg
+    CHARACTER(LEN=*), intent(in) :: path
+    logical, intent(in), optional ::  verbose
+    logical, intent(in), optional ::  raise
+    logical :: raise_
+    raise_ = .false.
+    if (present(raise)) raise_ = raise
+    if (raise_) then
+      call error_message(msg, path, show=verbose)
+    else
+      call message(msg, path, show=verbose)
+    endif
+  end subroutine path_msg
 
+END MODULE mo_os
