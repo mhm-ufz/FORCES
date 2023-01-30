@@ -34,8 +34,9 @@ All notable changes to **FORCES** will be documented in this file.
 
 ### Changes
 - mo_os refactoring ([72](https://git.ufz.de/chs/forces/-/merge_requests/72))
-  - changed signatures `(path, result, verbose, raise)` for path_exists, path_isfile and path_isdir
+  - changed signatures `(path, answer, verbose, raise)` for path_exists, path_isfile and path_isdir
   - respect show_msg and show_err from mo_message
+  - simplify inquire logic
 
 ### Bugfixes
 - mo_kernel: fix for openmp usage (only use openmp if compiled with openmp support) ([59](https://git.ufz.de/chs/forces/-/merge_requests/59))
