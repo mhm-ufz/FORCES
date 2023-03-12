@@ -25,6 +25,19 @@ MODULE mo_os
   PUBLIC :: path_splitext
   PUBLIC :: path_split
 
+  !> The constant string used by the operating system to refer to the current directory.
+  CHARACTER(len = *), PUBLIC, PARAMETER :: curdir = '.'
+  !> The constant string used by the operating system to refer to the parent directory.
+  CHARACTER(len = *), PUBLIC, PARAMETER :: pardir = '..'
+  !> The character used by the operating system to separate pathname components.
+  CHARACTER(len = *), PUBLIC, PARAMETER :: sep = '/'
+  !> The character which separates the base filename from the extension.
+  CHARACTER(len = *), PUBLIC, PARAMETER :: extsep = '.'
+  !> The string used to separate (or, rather, terminate) lines on the current platform.
+  CHARACTER(len = *), PUBLIC, PARAMETER :: linesep = '\n'
+  !> The file path of the null device.
+  CHARACTER(len = *), PUBLIC, PARAMETER :: devnull = '/dev/null'
+
   PRIVATE
 
   ! ------------------------------------------------------------------
@@ -168,7 +181,7 @@ CONTAINS
     inquire(directory=t_path, exist=isdir)
 #else
     ! append "/" and check if it still exists
-    inquire(file=t_path//'/', exist=isdir)
+    inquire(file=t_path//sep, exist=isdir)
 #endif
 
     if (.not. isdir) call path_msg("Directory does not exist: ", t_path, verbose, raise)
@@ -210,13 +223,13 @@ CONTAINS
       !running through the path, beginning at the end until a point is found that probably indicates
       !the seperation of a file name and its extension or a '/' occurs what means that the rest of the
       !path is consisting of directories
-      do while (.not. (c .eq. '.' .or. c .eq. '/' .or. i .eq. 0))
+      do while (.not. (c == extsep .or. c == sep .or. i == 0))
         c = t_path(i:i)
         i = i - 1
       end do
       !checking whether the last symbol of the path is a point or the while-loop run through the whole path
       !without finding a point or ended at a '/'. In any case it is not possible to seperate an extension.
-      if (i .eq. len(t_path) - 1 .or. i .eq. 0 .or. c .eq. '/') then
+      if (i == len(t_path) - 1 .or. i == 0 .or. c == sep) then
         i = len(t_path)
       endif
     endif
@@ -254,12 +267,12 @@ CONTAINS
     !running through the path, beginning at the end until a point is found that probably indicates
     !the seperation of a file name and its extension or a '/' occurs what means that the rest of the
     !path is consisting of directories
-    do while (.not. (c .eq. '/' .or. i .eq. 0))
+    do while (.not. (c == sep .or. i == 0))
       c = t_path(i:i)
       i = i - 1
     end do
     !checking whether the while-loop run through the whole path without finding a '/'
-    if (i .eq. 0) then
+    if (i == 0) then
       head = ''
       tail = t_path
     else
