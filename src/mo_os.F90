@@ -15,10 +15,9 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_os
 
-  USE mo_message, ONLY: error_message, message
-
   IMPLICIT NONE
 
+  PUBLIC :: change_dir
   PUBLIC :: path_exists
   PUBLIC :: path_isfile
   PUBLIC :: path_isdir
@@ -30,6 +29,34 @@ MODULE mo_os
   ! ------------------------------------------------------------------
 
 CONTAINS
+
+  ! ------------------------------------------------------------------
+  !> \brief Change current working directory.
+  !> \author Sebastian Müller
+  !> \date Mar 2023
+  subroutine change_dir(path)
+#ifdef NAG
+    use f90_unix_dir, only : CHDIR
+#endif
+#ifdef INTEL
+    use ifport, only : CHDIR
+#endif
+    USE mo_message, ONLY: error_message
+    use mo_kind, only: i4
+    implicit none
+
+    character(*), intent(in) :: path !< path to change CWD to
+
+    integer(i4) :: chdir_error
+
+#ifdef INTEL
+    chdir_error = chdir(path)
+#else
+    call chdir(path, chdir_error)
+#endif
+    if (chdir_error /= 0) call error_message("Can't open directory: ", path)
+
+  end subroutine change_dir
 
   ! ------------------------------------------------------------------
   !>        \brief Existence of a path
@@ -131,6 +158,8 @@ CONTAINS
   !>        \date Aug 2020
   SUBROUTINE path_splitext(path, root, ext)
 
+    IMPLICIT NONE
+
     CHARACTER(LEN=*), INTENT(IN)  :: path !< given path
     CHARACTER(LEN=*), INTENT(OUT) :: root !< root part of path without extension
     CHARACTER(LEN=*), INTENT(OUT) :: ext  !< extension of given path (starting with ".")
@@ -179,6 +208,8 @@ CONTAINS
   !>        \date Aug 2020
   SUBROUTINE path_split(path, head, tail)
 
+    IMPLICIT NONE
+
     CHARACTER(LEN=*), INTENT(IN)  :: path !< given path
     CHARACTER(LEN=*), INTENT(OUT) :: head !< everything leading up to the last path component
     CHARACTER(LEN=*), INTENT(OUT) :: tail !< last pathname component
@@ -212,6 +243,9 @@ CONTAINS
   ! ------------------------------------------------------------------
 
   subroutine path_msg(msg, path, verbose, raise)
+    USE mo_message, ONLY: error_message, message
+    implicit none
+
     CHARACTER(LEN=*), intent(in) :: msg
     CHARACTER(LEN=*), intent(in) :: path
     logical, intent(in), optional ::  verbose
