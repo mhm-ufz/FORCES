@@ -17,6 +17,7 @@ MODULE mo_os
 
   IMPLICIT NONE
 
+  PUBLIC :: get_cwd
   PUBLIC :: change_dir
   PUBLIC :: path_exists
   PUBLIC :: path_isfile
@@ -29,6 +30,34 @@ MODULE mo_os
   ! ------------------------------------------------------------------
 
 CONTAINS
+
+  ! ------------------------------------------------------------------
+  !> \brief Get the current working directory.
+  !> \author Sebastian Müller
+  !> \date Mar 2023
+  subroutine get_cwd(path)
+#ifdef NAG
+    use f90_unix_dir, only : GETCWD
+#endif
+#ifdef INTEL
+    use ifport, only : GETCWD
+#endif
+    USE mo_message, ONLY: error_message
+    use mo_kind, only: i4
+    implicit none
+
+    character(*), intent(out) :: path !< the current working directory
+
+    integer(i4) :: cwd_error
+
+#ifdef INTEL
+    cwd_error = getcwd(path)
+#else
+    call getcwd(path, cwd_error)
+#endif
+    if (cwd_error /= 0) call error_message("Can't determine current working directory.")
+
+  end subroutine get_cwd
 
   ! ------------------------------------------------------------------
   !> \brief Change current working directory.
