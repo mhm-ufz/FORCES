@@ -296,16 +296,11 @@ CONTAINS
     integer   :: i
     character(len=len_trim(path)) :: head_
 
-    !running through the path, beginning at the end until a point is found that probably indicates
-    !the seperation of a file name and its extension or a '/' occurs what means that the rest of the
-    !path is consisting of directories
-    do i=len_trim(path), 0, -1
-      if (i == 0) exit ! no sep found
-      if (path(i:i) == sep) exit
-    end do
+    ! find last '/'
+    i = index(trim(path), sep, back=.true.)
 
-    !checking whether the while-loop run through the whole path without finding a '/'
     if (i == 0) then
+      ! no '/' found
       if (present(tail)) tail = trim(path)
       if (present(head)) head = ''
     else
