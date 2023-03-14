@@ -150,7 +150,7 @@ contains
     logical, optional, intent(in) :: add_logger_options !< whether to add a logger options (--verbose, --quite, ...)
 
     integer(i4) :: n
-    character(:), allocatable :: arg, path, prog_
+    character(:), allocatable :: arg, prog_
 
     allocate(new_cli_parser%options(0))
 
@@ -158,9 +158,9 @@ contains
       new_cli_parser%prog = prog
     else
       call get_command_argument(0, length=n)
-      allocate(character(n) :: arg, path, prog_)
+      allocate(character(n) :: arg, prog_)
       call get_command_argument(0, value=arg)
-      call path_split(arg, path, prog_)
+      call path_split(arg, tail=prog_)
       new_cli_parser%prog = trim(prog_)
     end if
 
