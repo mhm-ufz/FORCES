@@ -48,7 +48,7 @@ CONTAINS
   !> \brief Get the current working directory.
   !> \author Sebastian Müller
   !> \date Mar 2023
-  subroutine get_cwd(path)
+  subroutine get_cwd(path, status, verbose, raise)
 #ifdef NAG
     use f90_unix_dir, only : GETCWD
 #endif
@@ -60,15 +60,26 @@ CONTAINS
     implicit none
 
     character(*), intent(out) :: path !< the current working directory
+    integer(i4), intent(out), optional :: status !< error status (will prevent error raise if present)
+    logical, intent(in), optional :: verbose !< Be verbose or not (default: setting of SHOW_MSG/SHOW_ERR)
+    logical, intent(in), optional :: raise !< Throw an error if current directory can't be determined (default: .true.)
 
-    integer(i4) :: cwd_error
+    integer(i4) :: status_
+    logical :: raise_
+
+    raise_ = .true.
+    if ( present(raise) ) raise_ = raise
+    ! prevent raise if error code should be returned
+    raise_ = raise_ .and. .not. present(status)
 
 #ifdef INTEL
-    cwd_error = getcwd(path)
+    status_ = getcwd(path)
 #else
-    call getcwd(path, cwd_error)
+    call getcwd(path, status_)
 #endif
-    if (cwd_error /= 0) call error_message("Can't determine current working directory.")
+
+    if (status_ /= 0) call path_msg("Can't determine current working directory.", verbose=verbose, raise=raise_)
+    if ( present(status) ) status = status_
 
   end subroutine get_cwd
 
@@ -76,7 +87,7 @@ CONTAINS
   !> \brief Change current working directory.
   !> \author Sebastian Müller
   !> \date Mar 2023
-  subroutine change_dir(path)
+  subroutine change_dir(path, status, verbose, raise)
 #ifdef NAG
     use f90_unix_dir, only : CHDIR
 #endif
@@ -88,15 +99,26 @@ CONTAINS
     implicit none
 
     character(*), intent(in) :: path !< path to change CWD to
+    integer(i4), intent(out), optional :: status !< error status (will prevent error raise if present)
+    logical, intent(in), optional :: verbose !< Be verbose or not (default: setting of SHOW_MSG/SHOW_ERR)
+    logical, intent(in), optional :: raise !< Throw an error if directory can't be opened (default: .true.)
 
-    integer(i4) :: chdir_error
+    integer(i4) :: status_
+    logical :: raise_
+
+    raise_ = .true.
+    if ( present(raise) ) raise_ = raise
+    ! prevent raise if error code should be returned
+    raise_ = raise_ .and. .not. present(status)
 
 #ifdef INTEL
-    chdir_error = chdir(path)
+    status_ = chdir(path)
 #else
-    call chdir(path, chdir_error)
+    call chdir(path, status_)
 #endif
-    if (chdir_error /= 0) call error_message("Can't open directory: ", path)
+
+    if (status_ /= 0) call path_msg("Can't open directory: ", trim(path), verbose, raise_)
+    if ( present(status) ) status = status_
 
   end subroutine change_dir
 
@@ -288,8 +310,8 @@ CONTAINS
     USE mo_message, ONLY: error_message, message
     implicit none
 
-    CHARACTER(LEN=*), intent(in) :: msg
-    CHARACTER(LEN=*), intent(in) :: path
+    CHARACTER(LEN=*), intent(in), optional :: msg
+    CHARACTER(LEN=*), intent(in), optional :: path
     logical, intent(in), optional ::  verbose
     logical, intent(in), optional ::  raise
     logical :: raise_
