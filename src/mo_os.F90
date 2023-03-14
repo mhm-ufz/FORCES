@@ -220,6 +220,7 @@ CONTAINS
   !! - Sebastian Müller Mar 2023
   !!   - don't check for folder
   !!   - ignore leading dots in tail of the path
+  !!   - make root and ext optional
   !> \author Nicola Doering
   !> \date Aug 2020
   subroutine path_splitext(path, root, ext)
@@ -245,12 +246,7 @@ CONTAINS
 
     ! ignore leading dots of the tail ("...a" has no extension)
     do lead_i = 1, len_trim(tail) + 1
-      if ( lead_i > len_trim(tail) ) then
-        ! only dots in tail
-        if (present(ext)) ext = ""
-        if (present(root)) root = trim(lead) // trim(tail)
-        return
-      end if
+      if ( lead_i > len_trim(tail) ) exit ! only dots
       if ( tail(lead_i:lead_i) /= extsep ) exit
     end do
 
