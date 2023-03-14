@@ -231,26 +231,24 @@ CONTAINS
     character(len=*), intent(out), optional :: ext  !< extension of given path (starting with ".")
 
     integer   :: lead_i, dot_i
-    logical :: isdir, is_root_head
-    character(len=len_trim(path)) :: head, tail, root_
+    character(len=len_trim(path)) :: head, tail, lead
 
     ! only deal with tail of the path
     call path_split(path, head, tail)
 
-    ! check if head is root (ends with "/")
-    is_root_head = .false.
-    if (len_trim(head) > 0) is_root_head = head(len_trim(head):len_trim(head)) == sep
-
-    ! add sep if not a root head or an empty head
-    root_ = trim(head)
-    if (len_trim(head) > 0 .and. .not. is_root_head) root_ = trim(head) // sep
+    ! check if sep should be added (head not empty and not root)
+    if ( (len_trim(head) > 0) .and. (head(len_trim(head):len_trim(head)) /= sep) ) then
+      lead = trim(head) // sep
+    else
+      lead = trim(head)
+    end if
 
     ! ignore leading dots of the tail ("...a" has no extension)
     do lead_i = 1, len_trim(tail) + 1
       if ( lead_i > len_trim(tail) ) then
         ! only dots in tail
         if (present(ext)) ext = ""
-        if (present(root)) root = trim(root_) // tail
+        if (present(root)) root = trim(lead) // trim(tail)
         return
       end if
       if ( tail(lead_i:lead_i) /= extsep ) exit
@@ -262,11 +260,11 @@ CONTAINS
     if ( dot_i > lead_i ) then
       ! dot_i is at least 2 here
       if (present(ext)) ext = tail(dot_i:len_trim(tail))
-      if (present(root)) root = trim(root_) // tail(1:dot_i-1)
+      if (present(root)) root = trim(lead) // tail(1:dot_i-1)
     else
       ! no dot found at all or the leading dots are found
       if (present(ext)) ext = ""
-      if (present(root)) root = trim(root_) // tail
+      if (present(root)) root = trim(lead) // trim(tail)
     end if
 
   end subroutine path_splitext
