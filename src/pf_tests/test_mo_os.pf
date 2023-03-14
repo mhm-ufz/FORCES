@@ -110,4 +110,13 @@ contains
 
   end subroutine test_split
 
+  @test
+  subroutine test_isabs()
+
+    @assertTrue(path_isabs("/a"))
+    @assertFalse(path_isabs("a"))
+    @assertFalse(path_isabs(""))
+
+  end subroutine test_isabs
+
 end module test_mo_os
