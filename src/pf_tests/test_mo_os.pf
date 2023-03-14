@@ -101,9 +101,9 @@ contains
     call path_split('/home/user/Desktop/', head2, tail2)
     call path_split('file.txt', head3, tail3)
 
-    @assertEqual('/home/user/Desktop/', head1)
+    @assertEqual('/home/user/Desktop', head1)
     @assertEqual('file.txt', tail1)
-    @assertEqual('/home/user/Desktop/',head2)
+    @assertEqual('/home/user/Desktop', head2)
     @assertEqual('', tail2)
     @assertEqual('', head3)
     @assertEqual('file.txt', tail3)

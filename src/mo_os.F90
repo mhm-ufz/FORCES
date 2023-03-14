@@ -123,10 +123,10 @@ CONTAINS
   end subroutine change_dir
 
   ! ------------------------------------------------------------------
-  !>        \brief Existence of a path
-  !>        \details Checks whether a given path exists.
-  !>        \author Nicola Doering
-  !>        \date Aug 2020
+  !> \brief Existence of a path
+  !> \details Checks whether a given path exists.
+  !> \author Nicola Doering
+  !> \date Aug 2020
   SUBROUTINE path_exists(path, answer, verbose, raise)
 
     IMPLICIT NONE
@@ -151,10 +151,10 @@ CONTAINS
   END SUBROUTINE path_exists
 
   ! ------------------------------------------------------------------
-  !>        \brief Whether the path describes a file.
-  !>        \details Checks whether a given path exists and describes a file.
-  !>        \author Nicola Doering
-  !>        \date Aug 2020
+  !> \brief Whether the path describes a file.
+  !> \details Checks whether a given path exists and describes a file.
+  !> \author Nicola Doering
+  !> \date Aug 2020
   SUBROUTINE path_isfile(path, answer, verbose, raise)
 
     IMPLICIT NONE
@@ -180,10 +180,10 @@ CONTAINS
   END SUBROUTINE path_isfile
 
   ! ------------------------------------------------------------------
-  !>        \brief Whether the path describes a directory.
-  !>        \details Checks whether a given path exists and describes a directory.
-  !>        \author Nicola Doering
-  !>        \date Aug 2020
+  !> \brief Whether the path describes a directory.
+  !> \details Checks whether a given path exists and describes a directory.
+  !> \author Nicola Doering
+  !> \date Aug 2020
   SUBROUTINE path_isdir(path, answer, verbose, raise)
 
     IMPLICIT NONE
@@ -212,14 +212,14 @@ CONTAINS
   END SUBROUTINE path_isdir
 
   ! ------------------------------------------------------------------
-  !>        \brief Splitting the path into root and ext
-  !>        \details Splitting the path name into a pair root and ext.
-  !!                 Here, ext stands for extension and has the extension portion
-  !!                 of the specified path while root is everything except ext part.
-  !!                 If the path describes a directory or there is no extension
-  !!                 portion ext is returned empty.
-  !>        \author Nicola Doering
-  !>        \date Aug 2020
+  !> \brief Splitting the path into root and ext
+  !> \details Splitting the path name into a pair root and ext.
+  !!          Here, ext stands for extension and has the extension portion
+  !!          of the specified path while root is everything except ext part.
+  !!          If the path describes a directory or there is no extension
+  !!          portion ext is returned empty.
+  !> \author Nicola Doering
+  !> \date Aug 2020
   SUBROUTINE path_splitext(path, root, ext)
 
     IMPLICIT NONE
@@ -262,47 +262,56 @@ CONTAINS
   END SUBROUTINE path_splitext
 
   ! ------------------------------------------------------------------
-  !>        \brief Splitting the path into head and tail
-  !>        \details Splitting the path name into a pair head and tail.
-  !!                 Here, tail is the last path name component and head is
-  !!                 everything leading up to that.
-  !!                 If the path ends with an '/' tail is returned empty and
-  !!                 if there is no '/' in path head is returned empty.
-  !>        \author Nicola Doering
-  !>        \date Aug 2020
-  SUBROUTINE path_split(path, head, tail)
+  !>\brief Splitting the path into head and tail
+  !>\details Splitting the path name into a pair head and tail.
+  !!         Here, tail is the last path name component and head is
+  !!         everything leading up to that.
+  !!         If the path ends with an '/' tail is returned empty and
+  !!         if there is no '/' in path head is returned empty.
+  !!         Trailing '/'es are stripped from head unless it is the root.
+  !> \changelog
+  !! - Sebastian Müller Mar 2023
+  !!   - remove trailing '/' from head unleass it is root (e.g. '/' or '//' or '///' and so on)
+  !!   - make head and tail optional
+  !>\author Nicola Doering
+  !>\date Aug 2020
+  subroutine path_split(path, head, tail)
 
-    IMPLICIT NONE
+    implicit none
 
-    CHARACTER(LEN=*), INTENT(IN)  :: path !< given path
-    CHARACTER(LEN=*), INTENT(OUT) :: head !< everything leading up to the last path component
-    CHARACTER(LEN=*), INTENT(OUT) :: tail !< last pathname component
+    character(len=*), intent(in)  :: path !< given path
+    character(len=*), intent(out), optional :: head !< everything leading up to the last path component
+    character(len=*), intent(out), optional :: tail !< last pathname component
 
-    INTEGER   :: i
-    CHARACTER :: c
-    CHARACTER(LEN=len_trim(path)) :: t_path
-
-    t_path = trim(path)
-    i = len(t_path) - 1
-    c = t_path(len(t_path):len(t_path))
+    integer   :: i
+    character(len=len_trim(path)) :: head_
 
     !running through the path, beginning at the end until a point is found that probably indicates
     !the seperation of a file name and its extension or a '/' occurs what means that the rest of the
     !path is consisting of directories
-    do while (.not. (c == sep .or. i == 0))
-      c = t_path(i:i)
-      i = i - 1
+    do i=len_trim(path), 0, -1
+      if (i == 0) exit ! no sep found
+      if (path(i:i) == sep) exit
     end do
+
     !checking whether the while-loop run through the whole path without finding a '/'
     if (i == 0) then
-      head = ''
-      tail = t_path
+      if (present(tail)) tail = trim(path)
+      if (present(head)) head = ''
     else
-      head = t_path(1:i + 1)
-      tail = t_path(i + 2:len(t_path))
+      if (present(tail)) tail = path((i+1):len_trim(path))
+      if (.not. present(head)) return
+      head_ = path(1:i)
+      ! remove trailing '/' from head unless it is root
+      do i=len_trim(head_), 0, -1
+        if (i == 0) exit ! no sep found
+        if (head_(i:i) /= sep) exit
+      end do
+      if (i == 0) i = len_trim(head_) ! all characters are '/'
+      head = head_(1:i)
     endif
 
-  END SUBROUTINE path_split
+  end subroutine path_split
 
   ! ------------------------------------------------------------------
 
