@@ -214,52 +214,62 @@ CONTAINS
   ! ------------------------------------------------------------------
   !> \brief Splitting the path into root and ext
   !> \details Splitting the path name into a pair root and ext.
-  !!          Here, ext stands for extension and has the extension portion
-  !!          of the specified path while root is everything except ext part.
-  !!          If the path describes a directory or there is no extension
-  !!          portion ext is returned empty.
+  !!          Here, ext stands for extension and has the extension string
+  !!          of the specified path while root is everything except this extension.
+  !> \changelog
+  !! - Sebastian Müller Mar 2023
+  !!   - don't check for folder
+  !!   - ignore leading dots in tail of the path
   !> \author Nicola Doering
   !> \date Aug 2020
-  SUBROUTINE path_splitext(path, root, ext)
+  subroutine path_splitext(path, root, ext)
 
-    IMPLICIT NONE
+    implicit none
 
-    CHARACTER(LEN=*), INTENT(IN)  :: path !< given path
-    CHARACTER(LEN=*), INTENT(OUT) :: root !< root part of path without extension
-    CHARACTER(LEN=*), INTENT(OUT) :: ext  !< extension of given path (starting with ".")
+    character(len=*), intent(in)  :: path !< given path
+    character(len=*), intent(out), optional :: root !< root part of path without extension
+    character(len=*), intent(out), optional :: ext  !< extension of given path (starting with ".")
 
-    INTEGER   :: i
-    CHARACTER :: c
-    LOGICAL :: isdir
-    CHARACTER(LEN=len_trim(path)) :: t_path
+    integer   :: lead_i, dot_i
+    logical :: isdir, is_root_head
+    character(len=len_trim(path)) :: head, tail, root_
 
-    t_path = trim(path)
-    i = len(t_path) - 1
-    c = t_path(len(t_path):len(t_path))
+    ! only deal with tail of the path
+    call path_split(path, head, tail)
 
-    !Checking, whether the path describes a directory so it cannot end with an extension
-    call path_isdir(t_path, answer=isdir, verbose=.false., raise=.false.)
-    if (isdir) then
-      i = len(t_path)
+    ! check if head is root (ends with "/")
+    is_root_head = .false.
+    if (len_trim(head) > 0) is_root_head = head(len_trim(head):len_trim(head)) == sep
+
+    ! add sep if not a root head or an empty head
+    root_ = trim(head)
+    if (len_trim(head) > 0 .and. .not. is_root_head) root_ = trim(head) // sep
+
+    ! ignore leading dots of the tail ("...a" has no extension)
+    do lead_i = 1, len_trim(tail) + 1
+      if ( lead_i > len_trim(tail) ) then
+        ! only dots in tail
+        if (present(ext)) ext = ""
+        if (present(root)) root = trim(root_) // tail
+        return
+      end if
+      if ( tail(lead_i:lead_i) /= extsep ) exit
+    end do
+
+    ! check for last dot in tail to split extension
+    dot_i = index(trim(tail), extsep, back=.true.)
+    ! last dot needs to come after leading dots to indicate an extension
+    if ( dot_i > lead_i ) then
+      ! dot_i is at least 2 here
+      if (present(ext)) ext = tail(dot_i:len_trim(tail))
+      if (present(root)) root = trim(root_) // tail(1:dot_i-1)
     else
-      !running through the path, beginning at the end until a point is found that probably indicates
-      !the seperation of a file name and its extension or a '/' occurs what means that the rest of the
-      !path is consisting of directories
-      do while (.not. (c == extsep .or. c == sep .or. i == 0))
-        c = t_path(i:i)
-        i = i - 1
-      end do
-      !checking whether the last symbol of the path is a point or the while-loop run through the whole path
-      !without finding a point or ended at a '/'. In any case it is not possible to seperate an extension.
-      if (i == len(t_path) - 1 .or. i == 0 .or. c == sep) then
-        i = len(t_path)
-      endif
-    endif
+      ! no dot found at all or the leading dots are found
+      if (present(ext)) ext = ""
+      if (present(root)) root = trim(root_) // tail
+    end if
 
-    root = t_path(1:i)
-    ext = t_path(i + 1:len(t_path))
-
-  END SUBROUTINE path_splitext
+  end subroutine path_splitext
 
   ! ------------------------------------------------------------------
   !>\brief Splitting the path into head and tail
