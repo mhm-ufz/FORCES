@@ -503,21 +503,17 @@ CONTAINS
   !>    \author David Schaefer
   !>    \date Mar 2015
 
-  function startsWith(string, start)
+  logical function startsWith(string, start)
 
     implicit none
 
     character(len=*), intent(in)     :: string, start
-    integer(i4), allocatable         :: string_array(:), start_array(:)
-    logical                          :: startsWith
 
-    string_array = str2num(string)
-    start_array = str2num(start)
+    integer(i4) :: i
 
-    startsWith = .false.
-    if (all(string_array(1:1+size(start_array)-1) == start_array)) then
-       startsWith = .true.
-    end if
+    i = index(string, start)
+    startsWith = i == 1
+
   end function startsWith
 
   ! ------------------------------------------------------------------

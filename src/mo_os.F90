@@ -15,6 +15,8 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_os
 
+  use mo_kind, only: i4
+
   IMPLICIT NONE
 
   PUBLIC :: get_cwd
@@ -24,6 +26,7 @@ MODULE mo_os
   PUBLIC :: path_isdir
   PUBLIC :: path_splitext
   PUBLIC :: path_split
+  PUBLIC :: path_isabs
 
   !> The constant string used by the operating system to refer to the current directory.
   CHARACTER(len = *), PUBLIC, PARAMETER :: curdir = '.'
@@ -55,8 +58,6 @@ CONTAINS
 #ifdef INTEL
     use ifport, only : GETCWD
 #endif
-    USE mo_message, ONLY: error_message
-    use mo_kind, only: i4
     implicit none
 
     character(*), intent(out) :: path !< the current working directory
@@ -94,8 +95,6 @@ CONTAINS
 #ifdef INTEL
     use ifport, only : CHDIR
 #endif
-    USE mo_message, ONLY: error_message
-    use mo_kind, only: i4
     implicit none
 
     character(*), intent(in) :: path !< path to change CWD to
@@ -311,6 +310,23 @@ CONTAINS
     endif
 
   end subroutine path_split
+
+  ! ------------------------------------------------------------------
+  !> \brief Return whether a path is absolute.
+  !> \author Sebastian Müller
+  !> \date Mar 2023
+  logical function path_isabs(path)
+
+    use mo_string_utils, only : startswith
+
+    implicit none
+
+    character(len=*), intent(in)  :: path !< given path
+
+    ! absolute posix path starts with '/'
+    path_isabs = startswith(path, sep)
+
+  end function path_isabs
 
   ! ------------------------------------------------------------------
 
