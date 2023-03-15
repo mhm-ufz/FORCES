@@ -224,6 +224,7 @@ CONTAINS
   !> \date Aug 2020
   subroutine path_splitext(path, root, ext)
 
+    use mo_string_utils, only: endswith
     implicit none
 
     character(len=*), intent(in)  :: path !< given path
@@ -237,7 +238,7 @@ CONTAINS
     call path_split(path, head, tail)
 
     ! check if sep should be added (head not empty and not root)
-    if ( (len_trim(head) > 0) .and. (head(len_trim(head):len_trim(head)) /= sep) ) then
+    if ( (len_trim(head) > 0) .and. .not. endswith(head, sep) ) then
       lead = trim(head) // sep
     else
       lead = trim(head)
