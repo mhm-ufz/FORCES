@@ -135,6 +135,6 @@ contains
     @assertEqual(path_join("/a", "b", "/c"), "/c")
     @assertEqual(path_join(["/a", "b ", "/c"]), "/c")
 
-  end subroutine test_isabs
+  end subroutine test_join
 
 end module test_mo_os
