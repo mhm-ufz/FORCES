@@ -28,10 +28,16 @@ module mo_os
   public :: path_isfile
   public :: path_isdir
   public :: path_isabs
+  public :: path_isroot
   public :: path_splitext
   public :: path_split
   public :: path_dirname
   public :: path_basename
+  public :: path_root
+  public :: path_ext
+  public :: path_stem
+  public :: path_normpath
+  public :: path_abspath
   public :: path_join
 
   !> \brief Join given path segments with separator if needed.
@@ -57,6 +63,7 @@ module mo_os
   character(len = *), public, parameter :: devnull = '/dev/null'
   !> Maximum length of a path component (folder/file names).
   integer(i4), public, save :: max_path_comp_len = 256_i4
+  !> Maximum length of a path (16 max.s length components).
   integer(i4), public, save :: max_path_len = 4096_i4
 
   private
@@ -261,6 +268,25 @@ contains
   end function path_isabs
 
   ! ------------------------------------------------------------------
+  !> \brief Return .true. if path is root ('/' or '//' or '///' and so on).
+  !> \author Sebastian Müller
+  !> \date Mar 2023
+  logical function path_isroot(path)
+    use mo_string_utils, only : startswith
+    implicit none
+    character(len=*), intent(in)  :: path !< given path
+
+    integer   :: i
+
+    do i=len_trim(path), 0, -1
+      if (i == 0) exit ! only sep found or empty
+      if (path(i:i) /= sep) exit
+    end do
+    path_isroot = (i == 0) .and. (len_trim(path) > 0)
+
+  end function path_isroot
+
+  ! ------------------------------------------------------------------
   !> \brief Splitting the path into root and ext
   !> \details Splitting the path name into a pair root and ext.
   !!          Here, ext stands for extension and has the extension string
@@ -348,7 +374,7 @@ contains
       head_ = path(1:i)
       ! remove trailing '/' from head unless it is root
       do i=len_trim(head_), 0, -1
-        if (i == 0) exit ! no sep found
+        if (i == 0) exit ! only sep found
         if (head_(i:i) /= sep) exit
       end do
       if (i == 0) i = len_trim(head_) ! all characters are '/'
@@ -390,6 +416,151 @@ contains
     basename = trim(temp)
 
   end function path_basename
+
+  ! ------------------------------------------------------------------
+  !> \brief Return the path without its suffix.
+  !> \author Sebastian Müller
+  !> \date Mar 2023
+  function path_root(path) result(root)
+    implicit none
+    character(len=*), intent(in)  :: path !< given path
+    character(:), allocatable     :: root !< root
+
+    character(len=len_trim(path)) :: temp
+
+    call path_splitext(path, root=temp)
+    root = trim(temp)
+
+  end function path_root
+
+  ! ------------------------------------------------------------------
+  !> \brief Return the file extension of the final path component.
+  !> \author Sebastian Müller
+  !> \date Mar 2023
+  function path_ext(path) result(ext)
+    implicit none
+    character(len=*), intent(in)  :: path !< given path
+    character(:), allocatable     :: ext !< ext
+
+    character(len=len_trim(path)) :: temp
+
+    call path_splitext(path, ext=temp)
+    ext = trim(temp)
+
+  end function path_ext
+
+  ! ------------------------------------------------------------------
+  !> \brief Return the final path component without its suffix.
+  !> \author Sebastian Müller
+  !> \date Mar 2023
+  function path_stem(path) result(stem)
+    implicit none
+    character(len=*), intent(in)  :: path !< given path
+    character(:), allocatable     :: stem !< stem
+
+    character(len=len_trim(path)) :: temp, tail
+
+    call path_split(path, tail=tail)
+    call path_splitext(tail, root=temp)
+    stem = trim(temp)
+
+  end function path_stem
+
+  ! ------------------------------------------------------------------
+  !> \brief Normalize a pathname by collapsing redundant separators and up-level references.
+  !> \details Normalize a pathname by collapsing redundant separators and up-level references so that
+  !! A//B, A/B/, A/./B and A/foo/../B all become A/B.
+  !! This string manipulation may change the meaning of a path that contains symbolic links.
+  !> \author Sebastian Müller
+  !> \date Mar 2023
+  function path_normpath(path) result(normpath)
+    use mo_append, only : append
+    implicit none
+    character(len=*), intent(in)  :: path !< given path
+    character(:), allocatable     :: normpath !< normalized path
+
+    character(len=len_trim(path)) :: temp, comp, root
+    character(len=len_trim(path)), allocatable :: comps_raw(:), comps(:)
+    integer :: i
+    logical :: has_root ! flag to indicate an absolute path
+
+    if (len_trim(path) == 0) then
+      normpath = curdir
+      return
+    end if
+
+    has_root = .false.
+    ! create array to join
+    temp = path
+    allocate(comps_raw(0))
+    ! stop if we can't further split the path
+    do while (len_trim(temp) > 0)
+      if (path_isroot(temp)) then
+        has_root = .true.
+        ! POSIX allows one or two initial slashes, but treats three or more as single slash.
+        if (len_trim(temp) == 2) then
+          call append(comps_raw, temp)
+        else
+          call append(comps_raw, sep)
+        end if
+        exit
+      end if
+      call path_split(temp, temp, comp)
+      if (len_trim(comp) > 0) call append(comps_raw, comp)
+    end do
+
+    ! reverse
+    comps_raw = [(comps_raw(i), i = size(comps_raw), 1, -1)]
+
+    allocate(comps(0))
+    ! care about '.' and '..'
+    do i = 1, size(comps_raw)
+      comp = comps_raw(i)
+      if ( len_trim(comp) == 0 ) cycle ! skip empty
+      if ( trim(comp) == curdir ) cycle ! skip '.'
+      ! handle '..'
+      if ( trim(comp) /= pardir ) then
+        ! append normal component
+        call append(comps, comp)
+      else if (.not. has_root .and. (size(comps) == 0)) then
+        ! if '..' but we can't pop anything, append
+        call append(comps, comp)
+      else if ( size(comps) > 0 ) then
+        if (comps(size(comps)) == pardir) then
+          ! if '..' but previous is also '..', append
+          call append(comps, comp)
+        else if (.not. path_isroot(comps(size(comps)))) then
+          ! if '..' pop previous folder if it is not root
+          call pop(comps)
+        end if
+      end if
+      ! in all other cases, don't append anything
+    end do
+
+    if (size(comps) > 0) then
+      normpath = path_join_arr(comps)
+    else
+      ! '.' if no components given
+      normpath = curdir
+    end if
+
+  end function path_normpath
+
+  ! ------------------------------------------------------------------
+  !> \brief Return a normalized absolutized version of the given path.
+  !> \author Sebastian Müller
+  !> \date Mar 2023
+  function path_abspath(path) result(abspath)
+    implicit none
+    character(len=*), intent(in)  :: path !< given path
+    character(:), allocatable     :: abspath !< stem
+
+    character(len=max_path_len) :: cwd
+
+    call get_cwd(cwd)
+    abspath = path_normpath(path_join_char(cwd, path))
+
+  end function path_abspath
 
   ! ------------------------------------------------------------------
   !> \brief Join two path segments with separator if needed.
@@ -486,5 +657,21 @@ contains
     endif
 
   end subroutine path_msg
+
+  !> \brief character array pop
+  subroutine pop(arr)
+    implicit none
+    character(len=*), allocatable, intent(inout) :: arr(:)
+
+    character(:), allocatable :: temp(:)
+
+    if (.not.allocated(arr)) return
+    if (size(arr) == 0) return
+
+    allocate(character(len(arr(1))) :: temp(size(arr)-1))
+    temp(:) = arr(1:size(arr)-1)
+    call move_alloc(temp, arr)
+
+  end subroutine pop
 
 end module mo_os

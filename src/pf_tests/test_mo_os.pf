@@ -7,7 +7,7 @@ module test_mo_os
 
   private
 
-  public :: test_exists, test_isfile, test_isdir,test_splitext, test_split, test_isabs, test_join
+  public :: test_exists, test_isfile, test_isdir,test_splitext, test_split, test_isabs, test_join, test_normpath, test_abspath
 
 contains
 
@@ -136,5 +136,31 @@ contains
     @assertEqual(path_join(["/a", "b ", "/c"]), "/c")
 
   end subroutine test_join
+
+  @test
+  subroutine test_normpath
+
+    @assertEqual(path_normpath('here/..'), ".")
+    @assertEqual(path_normpath('///../..'), "/")
+    @assertEqual(path_normpath('//../..'), "//")
+    @assertEqual(path_normpath('a//b'), "a/b")
+    @assertEqual(path_normpath('a/./b'), "a/b")
+    @assertEqual(path_normpath('a/b/'), "a/b")
+    @assertEqual(path_normpath('a/foo/../b//'), "a/b")
+
+  end subroutine test_normpath
+
+  @test
+  subroutine test_abspath
+
+    character(len=max_path_len) :: cwd
+
+    call get_cwd(cwd)
+    @assertEqual(path_abspath(curdir), trim(cwd))
+    @assertEqual(path_abspath(pardir), path_dirname(cwd))
+    @assertEqual(path_abspath("forces/.."), trim(cwd))
+    @assertEqual(path_abspath(cwd), trim(cwd))
+
+  end subroutine test_abspath
 
 end module test_mo_os
