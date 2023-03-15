@@ -108,6 +108,11 @@ contains
     @assertEqual('', head3)
     @assertEqual('file.txt', tail3)
 
+    tail1 = path_basename('/home/user/Desktop/file.txt')
+    head1 = path_dirname('/home/user/Desktop/file.txt')
+    @assertEqual('/home/user/Desktop', head1)
+    @assertEqual('file.txt', tail1)
+
   end subroutine test_split
 
   @test

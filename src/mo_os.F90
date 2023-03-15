@@ -359,9 +359,12 @@ contains
   function path_dirname(path) result(dirname)
     implicit none
     character(len=*), intent(in)  :: path !< given path
-    character(len=*)              :: dirname !< dirname
+    character(:), allocatable     :: dirname !< dirname
 
-    call path_split(path, head=dirname)
+    character(len=len_trim(path)) :: temp
+
+    call path_split(path, head=temp)
+    dirname = trim(temp)
 
   end function path_dirname
 
@@ -373,9 +376,12 @@ contains
   function path_basename(path) result(basename)
     implicit none
     character(len=*), intent(in)  :: path !< given path
-    character(len=*)              :: basename !< basename
+    character(:), allocatable     :: basename !< basename
 
-    call path_split(path, tail=basename)
+    character(len=len_trim(path)) :: temp
+
+    call path_split(path, tail=temp)
+    basename = trim(temp)
 
   end function path_basename
 
