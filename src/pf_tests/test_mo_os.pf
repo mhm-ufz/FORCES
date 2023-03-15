@@ -7,7 +7,7 @@ module test_mo_os
 
   private
 
-  public :: test_exists, test_isfile, test_isdir,test_splitext, test_split, test_isabs
+  public :: test_exists, test_isfile, test_isdir,test_splitext, test_split, test_isabs, test_join
 
 contains
 
