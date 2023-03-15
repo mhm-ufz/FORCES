@@ -13,39 +13,46 @@
 !!   - simplify inquire logic
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
-MODULE mo_os
+module mo_os
 
   use mo_kind, only: i4
 
-  IMPLICIT NONE
+  implicit none
 
-  PUBLIC :: get_cwd
-  PUBLIC :: change_dir
-  PUBLIC :: path_exists
-  PUBLIC :: path_isfile
-  PUBLIC :: path_isdir
-  PUBLIC :: path_splitext
-  PUBLIC :: path_split
-  PUBLIC :: path_isabs
+  public :: get_cwd
+  public :: change_dir
+  public :: check_path_exists
+  public :: check_path_isfile
+  public :: check_path_isdir
+  public :: path_exists
+  public :: path_isfile
+  public :: path_isdir
+  public :: path_isabs
+  public :: path_splitext
+  public :: path_split
+  public :: path_dirname
+  public :: path_basename
 
   !> The constant string used by the operating system to refer to the current directory.
-  CHARACTER(len = *), PUBLIC, PARAMETER :: curdir = '.'
+  character(len = *), public, parameter :: curdir = '.'
   !> The constant string used by the operating system to refer to the parent directory.
-  CHARACTER(len = *), PUBLIC, PARAMETER :: pardir = '..'
+  character(len = *), public, parameter :: pardir = '..'
   !> The character used by the operating system to separate pathname components.
-  CHARACTER(len = *), PUBLIC, PARAMETER :: sep = '/'
+  character(len = *), public, parameter :: sep = '/'
   !> The character which separates the base filename from the extension.
-  CHARACTER(len = *), PUBLIC, PARAMETER :: extsep = '.'
+  character(len = *), public, parameter :: extsep = '.'
   !> The string used to separate (or, rather, terminate) lines on the current platform.
-  CHARACTER(len = *), PUBLIC, PARAMETER :: linesep = '\n'
+  character(len = *), public, parameter :: linesep = '\n'
   !> The file path of the null device.
-  CHARACTER(len = *), PUBLIC, PARAMETER :: devnull = '/dev/null'
+  character(len = *), public, parameter :: devnull = '/dev/null'
+  !> Maximum length of a path component (folder/file names).
+  integer(i4), public, save :: max_path_comp_len = 256_i4
 
-  PRIVATE
+  private
 
   ! ------------------------------------------------------------------
 
-CONTAINS
+contains
 
   ! ------------------------------------------------------------------
   !> \brief Get the current working directory.
@@ -53,10 +60,10 @@ CONTAINS
   !> \date Mar 2023
   subroutine get_cwd(path, status, verbose, raise)
 #ifdef NAG
-    use f90_unix_dir, only : GETCWD
+    use f90_unix_dir, only : getcwd
 #endif
 #ifdef INTEL
-    use ifport, only : GETCWD
+    use ifport, only : getcwd
 #endif
     implicit none
 
@@ -90,10 +97,10 @@ CONTAINS
   !> \date Mar 2023
   subroutine change_dir(path, status, verbose, raise)
 #ifdef NAG
-    use f90_unix_dir, only : CHDIR
+    use f90_unix_dir, only : chdir
 #endif
 #ifdef INTEL
-    use ifport, only : CHDIR
+    use ifport, only : chdir
 #endif
     implicit none
 
@@ -122,93 +129,125 @@ CONTAINS
   end subroutine change_dir
 
   ! ------------------------------------------------------------------
-  !> \brief Existence of a path
-  !> \details Checks whether a given path exists.
+  !> \brief Checks whether a given path exists.
   !> \author Nicola Doering
   !> \date Aug 2020
-  SUBROUTINE path_exists(path, answer, verbose, raise)
+  subroutine check_path_exists(path, answer, verbose, raise)
 
-    IMPLICIT NONE
+    implicit none
 
-    CHARACTER(LEN=*), INTENT(IN)  :: path !< given path
-    LOGICAL, INTENT(OUT), OPTIONAL :: answer !< result
-    LOGICAL, INTENT(IN), OPTIONAL :: verbose !< Be verbose or not (default: setting of SHOW_MSG/SHOW_ERR)
-    LOGICAL, INTENT(IN), OPTIONAL :: raise !< Throw an error if path does not exist (default: .false.)
+    character(len=*), intent(in)  :: path !< given path
+    logical, intent(out), optional :: answer !< result
+    logical, intent(in), optional :: verbose !< Be verbose or not (default: setting of SHOW_MSG/SHOW_ERR)
+    logical, intent(in), optional :: raise !< Throw an error if path does not exist (default: .false.)
 
-    LOGICAL :: isfile, isdir, exists
-    character(:), allocatable :: t_path
+    LOGICAL :: exists
 
-    t_path = trim(path)
-
-    call path_isfile(t_path, answer=isfile, verbose=.false., raise=.false.)
-    call path_isdir(t_path, answer=isdir, verbose=.false., raise=.false.)
-    exists = isfile .or. isdir
-
-    if (.not. exists) call path_msg("Path does not exist: ", t_path, verbose, raise)
+    exists = path_exists(path)
+    if (.not. exists) call path_msg("Path does not exist: ", path, verbose, raise)
     if (present(answer)) answer = exists
 
-  END SUBROUTINE path_exists
+  end subroutine check_path_exists
 
   ! ------------------------------------------------------------------
-  !> \brief Whether the path describes a file.
-  !> \details Checks whether a given path exists and describes a file.
+  !> \brief Checks whether a given path exists and describes a file.
   !> \author Nicola Doering
   !> \date Aug 2020
-  SUBROUTINE path_isfile(path, answer, verbose, raise)
+  subroutine check_path_isfile(path, answer, verbose, raise)
 
-    IMPLICIT NONE
+    implicit none
 
-    CHARACTER(LEN=*), INTENT(IN)  :: path !< given path
-    LOGICAL, INTENT(OUT), OPTIONAL :: answer !< result
-    LOGICAL, INTENT(IN), OPTIONAL :: verbose !< Be verbose or not (default: setting of SHOW_MSG/SHOW_ERR)
-    LOGICAL, INTENT(IN), OPTIONAL :: raise !< Throw an error if file does not exist (default: .false.)
+    character(len=*), intent(in)  :: path !< given path
+    logical, intent(out), optional :: answer !< result
+    logical, intent(in), optional :: verbose !< Be verbose or not (default: setting of SHOW_MSG/SHOW_ERR)
+    logical, intent(in), optional :: raise !< Throw an error if file does not exist (default: .false.)
 
-    LOGICAL :: isfile, isdir
-    CHARACTER(:), allocatable :: t_path
+    LOGICAL :: isfile
 
-    t_path = trim(path)
-
-    inquire(file=t_path, exist=isfile)
-    ! gfortran/NAG need the check if it is not a directory explicitly
-    call path_isdir(t_path, answer=isdir, verbose=.false., raise=.false.)
-    isfile = isfile .and. (.not. isdir)
-
-    if (.not. isfile) call path_msg("File does not exist: ", t_path, verbose, raise)
+    isfile = path_isfile(path)
+    if (.not. isfile) call path_msg("File does not exist: ", path, verbose, raise)
     if (present(answer)) answer = isfile
 
-  END SUBROUTINE path_isfile
+  end subroutine check_path_isfile
 
   ! ------------------------------------------------------------------
-  !> \brief Whether the path describes a directory.
-  !> \details Checks whether a given path exists and describes a directory.
+  !> \brief Checks whether a given path exists and describes a directory.
   !> \author Nicola Doering
   !> \date Aug 2020
-  SUBROUTINE path_isdir(path, answer, verbose, raise)
+  subroutine check_path_isdir(path, answer, verbose, raise)
 
-    IMPLICIT NONE
+    implicit none
 
-    CHARACTER(LEN=*), INTENT(IN)  :: path !< given path
-    LOGICAL, INTENT(OUT), OPTIONAL :: answer !< result
-    LOGICAL, INTENT(IN), OPTIONAL :: verbose !< Be verbose or not (default: setting of SHOW_MSG/SHOW_ERR)
-    LOGICAL, INTENT(IN), OPTIONAL :: raise !< Throw an error if dir does not exist (default: .false.)
+    character(len=*), intent(in)  :: path !< given path
+    logical, intent(out), optional :: answer !< result
+    logical, intent(in), optional :: verbose !< Be verbose or not (default: setting of SHOW_MSG/SHOW_ERR)
+    logical, intent(in), optional :: raise !< Throw an error if dir does not exist (default: .false.)
 
-    LOGICAL :: isdir
-    CHARACTER(:), allocatable :: t_path
+    logical :: isdir
 
-    t_path = trim(path)
+    isdir = path_isdir(path)
+    if (.not. isdir) call path_msg("Directory does not exist: ", path, verbose, raise)
+    if (present(answer)) answer = isdir
+
+  end subroutine check_path_isdir
+
+  ! ------------------------------------------------------------------
+  !> \brief Return .true. if path refers to an existing path.
+  !> \author Sebastian Mueller
+  !> \date Mar 2023
+  logical function path_exists(path)
+    implicit none
+    character(len=*), intent(in)  :: path !< given path
+
+    path_exists = path_isfile(path) .or. path_isdir(path)
+
+  end function path_exists
+
+  ! ------------------------------------------------------------------
+  !> \brief Return .true. if path is an existing regular file.
+  !> \author Sebastian Mueller
+  !> \date Mar 2023
+  logical function path_isfile(path)
+    implicit none
+    character(len=*), intent(in)  :: path !< given path
+
+    inquire(file=trim(path), exist=path_isfile)
+    ! gfortran/NAG need the check if it is not a directory explicitly
+    path_isfile = path_isfile .and. (.not. path_isdir(path))
+
+  end function path_isfile
+
+  ! ------------------------------------------------------------------
+  !> \brief Return .true. if path is an existing directory.
+  !> \author Sebastian Mueller
+  !> \date Mar 2023
+  logical function path_isdir(path)
+    implicit none
+    character(len=*), intent(in)  :: path !< given path
 
 #ifdef INTEL
     ! intel has non-standard 'directory' argument
-    inquire(directory=t_path, exist=isdir)
+    inquire(directory=trim(path), exist=path_isdir)
 #else
     ! append "/" and check if it still exists
-    inquire(file=t_path//sep, exist=isdir)
+    inquire(file=trim(path)//sep, exist=path_isdir)
 #endif
 
-    if (.not. isdir) call path_msg("Directory does not exist: ", t_path, verbose, raise)
-    if (present(answer)) answer = isdir
+  end function path_isdir
 
-  END SUBROUTINE path_isdir
+  ! ------------------------------------------------------------------
+  !> \brief Return .true. if path is an absolute pathname.
+  !> \author Sebastian Müller
+  !> \date Mar 2023
+  logical function path_isabs(path)
+    use mo_string_utils, only : startswith
+    implicit none
+    character(len=*), intent(in)  :: path !< given path
+
+    ! absolute posix path starts with '/'
+    path_isabs = startswith(path, sep)
+
+  end function path_isabs
 
   ! ------------------------------------------------------------------
   !> \brief Splitting the path into root and ext
@@ -313,40 +352,53 @@ CONTAINS
   end subroutine path_split
 
   ! ------------------------------------------------------------------
-  !> \brief Return whether a path is absolute.
+  !> \brief Return the directory name of pathname path.
+  !> \details This is the first element of the pair returned by passing path to the subroutine path_split.
   !> \author Sebastian Müller
   !> \date Mar 2023
-  logical function path_isabs(path)
-
-    use mo_string_utils, only : startswith
-
+  function path_dirname(path) result(dirname)
     implicit none
-
     character(len=*), intent(in)  :: path !< given path
+    character(len=*)              :: dirname !< dirname
 
-    ! absolute posix path starts with '/'
-    path_isabs = startswith(path, sep)
+    call path_split(path, head=dirname)
 
-  end function path_isabs
+  end function path_dirname
+
+  ! ------------------------------------------------------------------
+  !> \brief Return the directory name of pathname path.
+  !> \details This is the first element of the pair returned by passing path to the subroutine path_split.
+  !> \author Sebastian Müller
+  !> \date Mar 2023
+  function path_basename(path) result(basename)
+    implicit none
+    character(len=*), intent(in)  :: path !< given path
+    character(len=*)              :: basename !< basename
+
+    call path_split(path, tail=basename)
+
+  end function path_basename
 
   ! ------------------------------------------------------------------
 
   subroutine path_msg(msg, path, verbose, raise)
-    USE mo_message, ONLY: error_message, message
+    use mo_message, only: error_message, message
     implicit none
-
-    CHARACTER(LEN=*), intent(in), optional :: msg
-    CHARACTER(LEN=*), intent(in), optional :: path
+    character(len=*), intent(in), optional :: msg
+    character(len=*), intent(in), optional :: path
     logical, intent(in), optional ::  verbose
     logical, intent(in), optional ::  raise
+
     logical :: raise_
+
     raise_ = .false.
     if (present(raise)) raise_ = raise
     if (raise_) then
-      call error_message(msg, path, show=verbose)
+      call error_message(msg, trim(path), show=verbose)
     else
-      call message(msg, path, show=verbose)
+      call message(msg, trim(path), show=verbose)
     endif
+
   end subroutine path_msg
 
-END MODULE mo_os
+end module mo_os
