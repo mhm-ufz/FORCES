@@ -281,18 +281,13 @@ contains
     character(len=*), intent(out), optional :: root !< root part of path without extension
     character(len=*), intent(out), optional :: ext  !< extension of given path (starting with ".")
 
-    integer   :: lead_i, dot_i
-    character(len=len_trim(path)) :: head, tail, lead
+    integer   :: lead_i, dot_i, sep_i
+    character(len=len_trim(path)) :: head, tail
 
-    ! only deal with tail of the path
-    call path_split(path, head, tail)
-
-    ! check if sep should be added (head not empty and not root)
-    if ( (len_trim(head) > 0) .and. .not. endswith(head, sep) ) then
-      lead = trim(head) // sep
-    else
-      lead = trim(head)
-    end if
+    ! find last '/' and split there
+    sep_i = index(trim(path), sep, back=.true.)
+    head = path(1:sep_i)
+    tail = path(sep_i+1:len_trim(path))
 
     ! ignore leading dots of the tail ("...a" has no extension)
     do lead_i = 1, len_trim(tail) + 1
@@ -306,11 +301,11 @@ contains
     if ( dot_i > lead_i ) then
       ! dot_i is at least 2 here
       if (present(ext)) ext = tail(dot_i:len_trim(tail))
-      if (present(root)) root = trim(lead) // tail(1:dot_i-1)
+      if (present(root)) root = trim(head) // tail(1:dot_i-1)
     else
       ! no dot found at all or the leading dots are found
       if (present(ext)) ext = ""
-      if (present(root)) root = trim(lead) // trim(tail)
+      if (present(root)) root = trim(head) // trim(tail)
     end if
 
   end subroutine path_splitext
