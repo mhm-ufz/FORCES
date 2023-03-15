@@ -32,6 +32,16 @@ module mo_os
   public :: path_split
   public :: path_dirname
   public :: path_basename
+  public :: path_join
+
+  !> \brief Join given path segments with separator if needed.
+  !> \details If a segment is an absolute path, the previous ones will be ignored.
+  !> \author Sebastian Müller
+  !> \date Mar 2023
+  interface path_join
+    module procedure :: path_join_char_opt
+    module procedure :: path_join_arr
+  end interface
 
   !> The constant string used by the operating system to refer to the current directory.
   character(len = *), public, parameter :: curdir = '.'
@@ -47,6 +57,7 @@ module mo_os
   character(len = *), public, parameter :: devnull = '/dev/null'
   !> Maximum length of a path component (folder/file names).
   integer(i4), public, save :: max_path_comp_len = 256_i4
+  integer(i4), public, save :: max_path_len = 4096_i4
 
   private
 
@@ -384,6 +395,80 @@ contains
     basename = trim(temp)
 
   end function path_basename
+
+  ! ------------------------------------------------------------------
+  !> \brief Join two path segments with separator if needed.
+  !> \details If the second segment is an absolute path, the first one will be ignored.
+  !> \author Sebastian Müller
+  !> \date Mar 2023
+  function path_join_char(p1, p2) result(join)
+    use mo_string_utils, only : endswith
+    implicit none
+    character(len=*), intent(in)  :: p1, p2 ! given paths
+    character(:), allocatable     :: join !< joined paths
+
+    if (path_isabs(p2)) then
+      ! if second path is absolute, first path gets ignored
+      join = trim(p2)
+    else
+      ! check if sep should be added (p1 not empty and not ending with sep)
+      if ( (len_trim(p1) > 0) .and. .not. endswith(p1, sep) ) then
+        join = trim(p1) // sep // trim(p2)
+      else
+        join = trim(p1) // trim(p2)
+      end if
+    end if
+
+  end function path_join_char
+
+  ! ------------------------------------------------------------------
+  !> \brief Join given path segments with separator if needed.
+  !> \details If a segment is an absolute path, the previous ones will be ignored.
+  !> \author Sebastian Müller
+  !> \date Mar 2023
+  function path_join_char_opt(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16) result(join)
+    use mo_string_utils, only : endswith
+    implicit none
+    character(len=*), intent(in)           :: p1 !< initial path
+    character(len=*), intent(in), optional :: p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16 ! given paths
+    character(:), allocatable              :: join !< joined paths
+
+    join = p1
+    if (present(p2)) join = path_join_char(join, p2)
+    if (present(p3)) join = path_join_char(join, p3)
+    if (present(p4)) join = path_join_char(join, p4)
+    if (present(p5)) join = path_join_char(join, p5)
+    if (present(p6)) join = path_join_char(join, p6)
+    if (present(p7)) join = path_join_char(join, p7)
+    if (present(p8)) join = path_join_char(join, p8)
+    if (present(p9)) join = path_join_char(join, p9)
+    if (present(p10)) join = path_join_char(join, p10)
+    if (present(p11)) join = path_join_char(join, p11)
+    if (present(p12)) join = path_join_char(join, p12)
+    if (present(p13)) join = path_join_char(join, p13)
+    if (present(p14)) join = path_join_char(join, p14)
+    if (present(p15)) join = path_join_char(join, p15)
+    if (present(p16)) join = path_join_char(join, p16)
+
+  end function path_join_char_opt
+
+  ! ------------------------------------------------------------------
+  !> \brief Join given path segments with separator if needed.
+  !> \details If a segment is an absolute path, the previous ones will be ignored.
+  !> \author Sebastian Müller
+  !> \date Mar 2023
+  function path_join_arr(paths) result(join)
+    implicit none
+    character(len=*), dimension(:), intent(in)  :: paths !< given paths
+    character(:), allocatable                   :: join !< joined paths
+
+    integer(i4) :: i
+
+    join = ""
+    do i = 1, size(paths)
+      join = path_join_char(join, paths(i))
+    end do
+  end function path_join_arr
 
   ! ------------------------------------------------------------------
 

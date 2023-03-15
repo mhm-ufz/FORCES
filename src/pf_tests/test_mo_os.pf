@@ -124,4 +124,17 @@ contains
 
   end subroutine test_isabs
 
+  @test
+  subroutine test_join()
+
+    @assertEqual(path_join("/a"), "/a")
+    @assertEqual(path_join(["/a", "b ", "c "]), "/a/b/c")
+    @assertEqual(path_join("/a", "b", "c"), "/a/b/c")
+    @assertEqual(path_join(["/a/", "b  ", "c  "]), "/a/b/c")
+    @assertEqual(path_join("/a/", "b", "c"), "/a/b/c")
+    @assertEqual(path_join("/a", "b", "/c"), "/c")
+    @assertEqual(path_join(["/a", "b ", "/c"]), "/c")
+
+  end subroutine test_isabs
+
 end module test_mo_os
