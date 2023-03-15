@@ -98,10 +98,11 @@ contains
     ! prevent raise if error code should be returned
     raise_ = raise_ .and. .not. present(status)
 
-#ifdef INTEL
-    status_ = getcwd(path)
+#ifdef NAG
+    call getcwd(path, errno=status_)
 #else
-    call getcwd(path, status_)
+    ! gfortran and intel can use a function
+    status_ = getcwd(path)
 #endif
 
     if (status_ /= 0) call path_msg("Can't determine current working directory.", verbose=verbose, raise=raise_)
