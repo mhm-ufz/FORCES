@@ -17,6 +17,7 @@ module test_mo_os
   public :: test_normpath
   public :: test_abspath
   public :: test_change_dir
+  public :: test_posix
 
 contains
 
@@ -208,5 +209,11 @@ contains
     @assertEqual(trim(parent), trim(parent2))
 
   end subroutine test_change_dir
+
+  subroutine test_posix
+
+    @assertEqual(path_as_posix("\\a\\b"), "/a/b")
+
+  end subroutine test_posix
 
 end module test_mo_os

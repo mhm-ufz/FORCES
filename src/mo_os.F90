@@ -37,6 +37,7 @@ module mo_os
   public :: path_root
   public :: path_ext
   public :: path_stem
+  public :: path_as_posix
   public :: path_normpath
   public :: path_abspath
   public :: path_join
@@ -507,6 +508,20 @@ contains
   end function path_stem
 
   ! ------------------------------------------------------------------
+  !> \brief Return the string representation of the path with forward (/) slashes.
+  !> \author Sebastian Müller
+  !> \date Mar 2023
+  function path_as_posix(path) result(posix)
+    use mo_string_utils, only : replace_text
+    implicit none
+    character(len=*), intent(in)  :: path !< given path
+    character(:), allocatable     :: posix !< posix version of the path
+
+    posix = trim(replace_text(path, "\\", sep))
+
+  end function path_as_posix
+
+  ! ------------------------------------------------------------------
   !> \brief Normalize a pathname by collapsing redundant separators and up-level references.
   !> \details Normalize a pathname by collapsing redundant separators and up-level references so that
   !! A//B, A/B/, A/./B and A/foo/../B all become A/B.
@@ -672,8 +687,8 @@ contains
 
     raise_ = .false.
     if (present(raise)) raise_ = raise
-    if (raise_) then
-      call error_message(msg, trim(path), show=verbose)
+    if (raise_) then                                    ! LCOV_EXCL_LINE
+      call error_message(msg, trim(path), show=verbose) ! LCOV_EXCL_LINE
     else
       call message(msg, trim(path), show=verbose)
     endif
