@@ -188,7 +188,7 @@ contains
   @test
   subroutine test_change_dir
 
-    character(len=max_path_len) :: cwd, parent, cwd2, parent2, cwd_dir, cwd3
+    character(len=max_path_len) :: cwd, parent, cwd2, parent2, cwd_dir, cwd3, cwd4
 
     call get_cwd(cwd)                            ! here we are
     cwd_dir = path_basename(cwd)                 ! current folder name
@@ -198,9 +198,12 @@ contains
     cwd2 = path_abspath(cwd_dir)                 ! absolute sub-folder path
     call change_dir(cwd_dir, raise=.false.)      ! go there
     call get_cwd(cwd3, raise=.false.)            ! we should be back again
+    call change_dir(curdir)                      ! do we stay here?
+    call get_cwd(cwd4)                           ! hope so
 
     @assertEqual(trim(cwd), trim(cwd2))
     @assertEqual(trim(cwd), trim(cwd3))
+    @assertEqual(trim(cwd), trim(cwd4))
     @assertEqual(trim(parent), trim(parent2))
 
   end subroutine test_change_dir
