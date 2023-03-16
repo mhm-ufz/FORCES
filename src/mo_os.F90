@@ -31,6 +31,7 @@ module mo_os
   public :: path_isroot
   public :: path_splitext
   public :: path_split
+  public :: path_parts
   public :: path_dirname
   public :: path_basename
   public :: path_root
@@ -385,6 +386,43 @@ contains
   end subroutine path_split
 
   ! ------------------------------------------------------------------
+  !>\brief Splitting the path into its components.
+  !>\author Sebastian Müller
+  !>\date Mar 2023
+  subroutine path_parts(path, parts)
+    use mo_append, only : append
+    implicit none
+    character(len=*), intent(in)  :: path !< given path
+    character(len=len_trim(path)), allocatable, intent(out) :: parts(:) !< parts of the given path
+
+    integer   :: i
+    character(len=len_trim(path)) :: temp, comp
+
+    ! create array to join
+    temp = trim(path)
+    allocate(parts(0))
+    ! stop if we can't further split the path
+    do while (len_trim(temp) > 0)
+      if (path_isroot(temp)) then
+        ! POSIX allows one or two initial slashes, but treats three or more as single slash.
+        if (len_trim(temp) == 2) then
+          call append(parts, temp)
+        else
+          call append(parts, sep)
+        end if
+        exit
+      end if
+      ! get next component
+      call path_split(temp, temp, comp)
+      if (len_trim(comp) > 0) call append(parts, comp)
+    end do
+
+    ! reverse
+    parts = [(parts(i), i = size(parts), 1, -1)]
+
+  end subroutine path_parts
+
+  ! ------------------------------------------------------------------
   !> \brief Return the directory name of pathname path.
   !> \details This is the first element of the pair returned by passing path to the subroutine path_split.
   !> \author Sebastian Müller
@@ -485,33 +523,15 @@ contains
     integer :: i
     logical :: has_root ! flag to indicate an absolute path
 
-    if (len_trim(path) == 0) then
+    ! get path components
+    call path_parts(path, comps_raw)
+    ! return '.' for empty path
+    if (size(comps_raw) == 0) then
       normpath = curdir
       return
     end if
 
-    has_root = .false.
-    ! create array to join
-    temp = path
-    allocate(comps_raw(0))
-    ! stop if we can't further split the path
-    do while (len_trim(temp) > 0)
-      if (path_isroot(temp)) then
-        has_root = .true.
-        ! POSIX allows one or two initial slashes, but treats three or more as single slash.
-        if (len_trim(temp) == 2) then
-          call append(comps_raw, temp)
-        else
-          call append(comps_raw, sep)
-        end if
-        exit
-      end if
-      call path_split(temp, temp, comp)
-      if (len_trim(comp) > 0) call append(comps_raw, comp)
-    end do
-
-    ! reverse
-    comps_raw = [(comps_raw(i), i = size(comps_raw), 1, -1)]
+    has_root = path_isroot(comps_raw(1))
 
     allocate(comps(0))
     ! care about '.' and '..'
@@ -661,6 +681,7 @@ contains
 
   !> \brief character array pop
   subroutine pop(arr)
+    ! TODO: move to mo_utils; add other type versions
     implicit none
     character(len=*), allocatable, intent(inout) :: arr(:)
 
