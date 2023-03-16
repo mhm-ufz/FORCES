@@ -4,6 +4,42 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
+## unreleased - 2023-?
+- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.4.0...main) for details.
+
+### Enhancements
+
+- mo_os ([73](https://git.ufz.de/chs/forces/-/merge_requests/73))
+  - added `change_dir` to have a compiler independent `chdir` routine
+  - added `get_cwd` to have a compiler independent `getcwd` routine
+  - added path constants `curdir`, `pardir`, `sep`, `extsep`, `linesep` and `devnull`
+  - added `path_dirname` and `path_basename` (`path_split`'s head and tail)
+  - added `path_root` and `path_ext` (`path_splitext`'s root and ext)
+  - added `path_stem` (final path component without suffix)
+  - added `path_isabs` and `path_isroot` checking functions
+  - added `path_normpath` to normalize path
+  - added `path_abspath` to get absolute path
+  - added `path_parts` subroutine to split path into all components
+  - added `path_as_posix` function to replace `\\` with `/` in given path
+
+- mo_string_utils ([73](https://git.ufz.de/chs/forces/-/merge_requests/73))
+  - added optional `strip` argument to `startswith`
+  - added `endswith` function
+
+### changes
+
+- mo_os ([73](https://git.ufz.de/chs/forces/-/merge_requests/73))
+  - `path_splitext`:
+    - don't check for folder
+    - ignore leading dots in tail of path
+    - made root and ext optional
+  - `path_split`:
+    - remove trailing '/' from head unleass it is root (e.g. '/' or '//' or '///' and so on)
+    - made head and tail optional
+  - converted `path_[exists|isfile|isdir]` to lowlevel functions
+    - original subroutines are now called `check_path_[exists|isfile|isdir]`
+
+
 ## v0.4.0 - 2023-01
 - See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.3.2...v0.4.0) for details.
 
