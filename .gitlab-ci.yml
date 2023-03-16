@@ -228,7 +228,22 @@ test-intel2020b-release:
 coverage:
   variables:
     <<: [*coverage_vars, *conda_vars_01]
-  <<: *job_template
+  stage: test
+  script:
+    - source $MODULE_LOAD_SCRIPT
+    - cmake -B $BUILD_DIR $CMAKE_FLAGS
+    - cmake --build $BUILD_DIR --parallel
+    - cmake --build $BUILD_DIR --parallel --target $BUILD_TARGET
+    - lcov_cobertura build_debug/coverage.info
+  coverage: '/lines[\.]+\: (\d+\.\d+)\%/'
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    paths:
+    - $BUILD_DIR/$ARTIFACT_PATH
 
 # ###################
 # ### DEPLOY JOBS ###
