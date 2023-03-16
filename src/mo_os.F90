@@ -137,10 +137,11 @@ contains
     ! prevent raise if error code should be returned
     raise_ = raise_ .and. .not. present(status)
 
-#ifdef INTEL
-    status_ = chdir(path)
+#ifdef NAG
+    call chdir(trim(path), errno=status_)
 #else
-    call chdir(path, status_)
+    ! gfortran and intel can use a function
+    status_ = chdir(path)
 #endif
 
     if (status_ /= 0) call path_msg("Can't open directory: ", trim(path), verbose, raise_)
