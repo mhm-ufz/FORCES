@@ -418,8 +418,8 @@ contains
       if (len_trim(comp) > 0) call append(parts, comp)
     end do
 
-    ! reverse
-    parts = [(parts(i), i = size(parts), 1, -1)]
+    ! reverse only if 2 or more elements
+    if (size(parts) > 1) parts = [(parts(i), i = size(parts), 1, -1)]
 
   end subroutine path_parts
 
