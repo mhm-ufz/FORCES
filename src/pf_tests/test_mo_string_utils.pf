@@ -1,13 +1,13 @@
 module test_mo_string_utils
-  
+
   use funit
   USE mo_kind,   ONLY: i4, i8, dp, sp
   USE mo_string_utils, ONLY: tolower, toupper, separator, num2str, nonull, compress
-  USE mo_string_utils, ONLY: startsWith, equalStrings, splitString
+  USE mo_string_utils, ONLY: startswith, equalStrings, splitString
   USE mo_string_utils, ONLY: DIVIDE_STRING
-  
+
   implicit none
-  
+
   character(len=100)                        :: sout, sundef
   character(256), dimension(:), allocatable :: strArr
 
@@ -15,7 +15,7 @@ contains
 
   @test
   subroutine test_string_utils()
-  
+
     Write(*,*) ''
     Write(*,*) 'Test mo_string_utils.f90'
 
@@ -44,9 +44,9 @@ contains
     ! compress
     sout = compress('H a      l l o       ')
     @assertEqual('Hallo', sout)
-    ! startsWith
-    @assertTrue(startsWith("Thisisatest","T") .and. startsWith("Thisisatest","This"))
-    @assertFalse(startsWith("Thisisatest","t") .or. startsWith("Thisisatest","test_*"))
+    ! startswith
+    @assertTrue(startswith("Thisisatest","T") .and. startswith("Thisisatest","This"))
+    @assertFalse(startswith("Thisisatest","t") .or. startswith("Thisisatest","test_*"))
     ! equalStrings
     @assertTrue(equalStrings("Thisis","Thisis") .and. equalStrings("test*_<","test*_<"))
     @assertFalse(equalStrings("Thisis","THISIS") .or. equalStrings("test*_<","est*_<"))
@@ -97,5 +97,5 @@ contains
     @assertEqual(strArr(4), 'chara<cte>rs?')
 
   end subroutine test_string_utils
-  
+
 end module test_mo_string_utils

@@ -7,7 +7,17 @@ module test_mo_os
 
   private
 
-  public :: test_exists, test_isfile, test_isdir,test_splitext, test_split
+  public :: test_exists
+  public :: test_isfile
+  public :: test_isdir
+  public :: test_splitext
+  public :: test_split
+  public :: test_isabs
+  public :: test_join
+  public :: test_normpath
+  public :: test_abspath
+  public :: test_change_dir
+  public :: test_posix
 
 contains
 
@@ -16,12 +26,12 @@ contains
 
     logical :: r1, r2, r3, r4, r5, r6
 
-    call path_exists('./files/empty.txt', answer=r1)
-    call path_exists('./files', answer=r2)
-    call path_exists('./files/.', answer=r3)
-    call path_exists('xxx', verbose=.false., answer=r4)
-    call path_exists('./files_withtypo/.', verbose=.false., answer=r5)
-    call path_exists('./empty_withtypo.txt', verbose=.false., answer=r6)
+    call check_path_exists('./files/empty.txt', answer=r1)
+    call check_path_exists('./files', answer=r2)
+    call check_path_exists('./files/.', answer=r3)
+    call check_path_exists('xxx', verbose=.false., answer=r4)
+    call check_path_exists('./files_withtypo/.', verbose=.false., answer=r5)
+    call check_path_exists('./empty_withtypo.txt', verbose=.false., answer=r6)
 
     @assertTrue(r1)
     @assertTrue(r2)
@@ -37,11 +47,11 @@ contains
 
     logical :: r1, r3, r4, r5, r6
 
-    call path_isfile('./files/empty.txt', answer=r1)
-    call path_isfile('../pf_tests', verbose=.false., answer=r3)
-    call path_isfile('../pf_tests/', verbose=.false., answer=r4)
-    call path_isfile('../files/.', verbose=.false., answer=r5)
-    call path_isfile('./empty.txt', verbose=.false., answer=r6)
+    call check_path_isfile('./files/empty.txt', answer=r1)
+    call check_path_isfile('../pf_tests', verbose=.false., answer=r3)
+    call check_path_isfile('../pf_tests/', verbose=.false., answer=r4)
+    call check_path_isfile('../files/.', verbose=.false., answer=r5)
+    call check_path_isfile('./empty.txt', verbose=.false., answer=r6)
 
     @assertTrue(r1)
     @assertFalse(r3)
@@ -56,12 +66,12 @@ contains
 
     logical :: r1, r2, r3, r4, r5, r6
 
-    call path_isdir('./files/.', answer=r1)
-    call path_isdir('./files/', answer=r2)
-    call path_isdir('./files', answer=r3)
-    call path_isdir('../../README', verbose=.false., answer=r4)
-    call path_isdir('./files/empty.txt', verbose=.false., answer=r5)
-    call path_isdir('./pf_tests', verbose=.false., answer=r6)
+    call check_path_isdir('./files/.', answer=r1)
+    call check_path_isdir('./files/', answer=r2)
+    call check_path_isdir('./files', answer=r3)
+    call check_path_isdir('../../README', verbose=.false., answer=r4)
+    call check_path_isdir('./files/empty.txt', verbose=.false., answer=r5)
+    call check_path_isdir('./pf_tests', verbose=.false., answer=r6)
 
     @assertTrue(r1)
     @assertTrue(r2)
@@ -94,20 +104,117 @@ contains
   @test
   subroutine test_split()
 
+    character(len=100) :: path, stem, ext, root
     character(len=100) :: head1, head2, head3
     character(len=100) :: tail1,tail2,tail3
 
-    call path_split('/home/user/Desktop/file.txt', head1, tail1)
+    path = '/home/user/Desktop/file.txt'
+    call path_split(path, head1, tail1)
     call path_split('/home/user/Desktop/', head2, tail2)
     call path_split('file.txt', head3, tail3)
 
-    @assertEqual('/home/user/Desktop/', head1)
+    @assertEqual('/home/user/Desktop', head1)
     @assertEqual('file.txt', tail1)
-    @assertEqual('/home/user/Desktop/',head2)
+    @assertEqual('/home/user/Desktop', head2)
     @assertEqual('', tail2)
     @assertEqual('', head3)
     @assertEqual('file.txt', tail3)
 
+    tail1 = path_basename(path)
+    head1 = path_dirname(path)
+    @assertEqual('/home/user/Desktop', head1)
+    @assertEqual('file.txt', tail1)
+
+    ! other splitting routines
+    root = path_root(path)
+    stem = path_stem(path)
+    ext = path_ext(path)
+
+    @assertEqual('/home/user/Desktop/file', root)
+    @assertEqual('file', stem)
+    @assertEqual('.txt', ext)
+
+
   end subroutine test_split
+
+  @test
+  subroutine test_isabs()
+
+    @assertTrue(path_isabs("/a"))
+    @assertFalse(path_isabs("a"))
+    @assertFalse(path_isabs(""))
+
+  end subroutine test_isabs
+
+  @test
+  subroutine test_join()
+
+    @assertEqual(path_join("/a"), "/a")
+    @assertEqual(path_join(["/a", "b ", "c "]), "/a/b/c")
+    @assertEqual(path_join("/a", "b", "c"), "/a/b/c")
+    @assertEqual(path_join(["/a/", "b  ", "c  "]), "/a/b/c")
+    @assertEqual(path_join("/a/", "b", "c"), "/a/b/c")
+    @assertEqual(path_join("/a", "b", "/c"), "/c")
+    @assertEqual(path_join(["/a", "b ", "/c"]), "/c")
+
+  end subroutine test_join
+
+  @test
+  subroutine test_normpath
+
+    @assertEqual(path_normpath('here/..'), ".")
+    @assertEqual(path_normpath('///../..'), "/")
+    @assertEqual(path_normpath('//../..'), "//")
+    @assertEqual(path_normpath('a//b'), "a/b")
+    @assertEqual(path_normpath('a/./b'), "a/b")
+    @assertEqual(path_normpath('a/b/'), "a/b")
+    @assertEqual(path_normpath('a/foo/../b//'), "a/b")
+    @assertEqual(path_normpath('./.././..//'), "../..")
+    @assertEqual(path_normpath(''), ".")
+
+  end subroutine test_normpath
+
+  @test
+  subroutine test_abspath
+
+    character(len=max_path_len) :: cwd
+
+    call get_cwd(cwd)
+    @assertEqual(path_abspath(curdir), trim(cwd))
+    @assertEqual(path_abspath(pardir), path_dirname(cwd))
+    @assertEqual(path_abspath("forces/.."), trim(cwd))
+    @assertEqual(path_abspath(cwd), trim(cwd))
+
+  end subroutine test_abspath
+
+  @test
+  subroutine test_change_dir
+
+    character(len=max_path_len) :: cwd, parent, cwd2, parent2, cwd_dir, cwd3, cwd4
+
+    call get_cwd(cwd)                            ! here we are
+    cwd_dir = path_basename(cwd)                 ! current folder name
+    parent = path_abspath(pardir)                ! absolute parent path
+    call change_dir(pardir)                      ! enter parent
+    call get_cwd(parent2)                        ! here we are now
+    cwd2 = path_abspath(cwd_dir)                 ! absolute sub-folder path
+    call change_dir(cwd_dir, raise=.false.)      ! go there
+    call get_cwd(cwd3, raise=.false.)            ! we should be back again
+    call change_dir(curdir)                      ! do we stay here?
+    call get_cwd(cwd4)                           ! hope so
+
+    @assertEqual(trim(cwd), trim(cwd2))
+    @assertEqual(trim(cwd), trim(cwd3))
+    @assertEqual(trim(cwd), trim(cwd4))
+    @assertEqual(trim(parent), trim(parent2))
+
+  end subroutine test_change_dir
+
+  @test
+  subroutine test_posix
+
+    @assertEqual(path_as_posix("\\a\\b"), "/a/b")
+
+  end subroutine test_posix
 
 end module test_mo_os

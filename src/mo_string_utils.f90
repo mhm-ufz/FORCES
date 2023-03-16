@@ -21,7 +21,8 @@ MODULE mo_string_utils
   PUBLIC :: num2str       ! Convert a number to a string
   PUBLIC :: separator     ! Format string: '-----...-----'
   PUBLIC :: splitString   ! splits string at given delimiter
-  PUBLIC :: startsWith    ! checks if string starts with a certain string
+  PUBLIC :: startswith    ! checks if string starts with a certain prefix
+  PUBLIC :: endswith      ! checks if string ends with a certain suffix
   PUBLIC :: str2num       ! Converts string into an array of its numerical representation
   PUBLIC :: tolower       ! Conversion   : 'ABCXYZ' -> 'abcxyz'
   PUBLIC :: toupper       ! Conversion   : 'abcxyz' -> 'ABCXYZ'
@@ -490,35 +491,64 @@ CONTAINS
   ! ------------------------------------------------------------------
 
   !>    \brief Checks if string starts with character(s)
-
-  !>    \details Returns true if string starts with characters, flase otherwise
-  !!
-  !!    CALLING SEQUENCE
-  !!    starts_with = startsWith(string,start)
-
-  !>    \param[in] "character(len=*) :: string"   String
-  !>    \param[in] "character(len=*) :: start"    String
-  !>    \retval    "logical :: startsWith"        Logical if start is equal to string
-
+  !>    \details Returns true if string starts with given characters, flase otherwise
   !>    \author David Schaefer
   !>    \date Mar 2015
-
-  function startsWith(string, start)
+  logical function startswith(string, start, strip)
 
     implicit none
 
-    character(len=*), intent(in)     :: string, start
-    integer(i4), allocatable         :: string_array(:), start_array(:)
-    logical                          :: startsWith
+    character(len=*), intent(in)     :: string !< string to check
+    character(len=*), intent(in)     :: start  !< starting string
+    logical, optional, intent(in)    :: strip  !< whether to strip trailing white-spaces (.false. by default)
 
-    string_array = str2num(string)
-    start_array = str2num(start)
+    integer(i4) :: i
+    logical :: strip_
 
-    startsWith = .false.
-    if (all(string_array(1:1+size(start_array)-1) == start_array)) then
-       startsWith = .true.
+    strip_ = .false.
+    if ( present(strip) ) strip_ = strip
+
+    if (strip_) then
+      i = index(trim(string), trim(start))
+    else
+      i = index(string, start)
     end if
-  end function startsWith
+
+    startswith = i == 1
+
+  end function startswith
+
+  ! ------------------------------------------------------------------
+
+  !>    \brief Checks if (maybe trimmed) string ends with given character(s)
+  !>    \retval "endswith" if string ends with given end
+  !>    \author Sebastian Müller
+  !>    \date Mar 2023
+  logical function endswith(string, suffix, strip)
+
+    implicit none
+
+    character(len=*), intent(in)     :: string !< string to check
+    character(len=*), intent(in)     :: suffix !< ending string
+    logical, optional, intent(in)    :: strip  !< whether to strip trailing white-spaces (.true. by default)
+
+    integer(i4) :: i, ref
+    logical :: strip_
+
+    strip_ = .true.
+    if ( present(strip) ) strip_ = strip
+
+    if (strip_) then
+      i = index(trim(string), trim(suffix), back=.true.)
+      ref = len_trim(string) - len_trim(suffix) + 1_i4
+    else
+      i = index(string, suffix, back=.true.)
+      ref = len(string) - len(suffix) + 1_i4
+    end if
+
+    endswith = i == ref
+
+  end function endswith
 
   ! ------------------------------------------------------------------
 
@@ -715,7 +745,7 @@ CONTAINS
   !!
   !!    Convert is string into numerical array of the letters
   !!    \code{.f90}
-  !!    str2num = startsWith(string)
+  !!    num = str2num(string)
   !!    \endcode
 
   !>    \param[in] "character(len=*) :: string"    String
