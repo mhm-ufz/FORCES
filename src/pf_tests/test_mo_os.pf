@@ -7,7 +7,16 @@ module test_mo_os
 
   private
 
-  public :: test_exists, test_isfile, test_isdir,test_splitext, test_split, test_isabs, test_join, test_normpath, test_abspath
+  public :: test_exists
+  public :: test_isfile
+  public :: test_isdir
+  public :: test_splitext
+  public :: test_split
+  public :: test_isabs
+  public :: test_join
+  public :: test_normpath
+  public :: test_abspath
+  public :: test_change_dir
 
 contains
 
@@ -94,10 +103,12 @@ contains
   @test
   subroutine test_split()
 
+    character(len=100) :: path, stem, ext, root
     character(len=100) :: head1, head2, head3
     character(len=100) :: tail1,tail2,tail3
 
-    call path_split('/home/user/Desktop/file.txt', head1, tail1)
+    path = '/home/user/Desktop/file.txt'
+    call path_split(path, head1, tail1)
     call path_split('/home/user/Desktop/', head2, tail2)
     call path_split('file.txt', head3, tail3)
 
@@ -108,10 +119,20 @@ contains
     @assertEqual('', head3)
     @assertEqual('file.txt', tail3)
 
-    tail1 = path_basename('/home/user/Desktop/file.txt')
-    head1 = path_dirname('/home/user/Desktop/file.txt')
+    tail1 = path_basename(path)
+    head1 = path_dirname(path)
     @assertEqual('/home/user/Desktop', head1)
     @assertEqual('file.txt', tail1)
+
+    ! other splitting routines
+    root = path_root(path)
+    stem = path_stem(path)
+    ext = path_ext(path)
+
+    @assertEqual('/home/user/Desktop/file', root)
+    @assertEqual('file', stem)
+    @assertEqual('.txt', ext)
+
 
   end subroutine test_split
 
@@ -147,6 +168,7 @@ contains
     @assertEqual(path_normpath('a/./b'), "a/b")
     @assertEqual(path_normpath('a/b/'), "a/b")
     @assertEqual(path_normpath('a/foo/../b//'), "a/b")
+    @assertEqual(path_normpath('./.././..//'), "../..")
 
   end subroutine test_normpath
 
@@ -162,5 +184,25 @@ contains
     @assertEqual(path_abspath(cwd), trim(cwd))
 
   end subroutine test_abspath
+
+  @test
+  subroutine test_change_dir
+
+    character(len=max_path_len) :: cwd, parent, cwd2, parent2, cwd_dir, cwd3
+
+    call get_cwd(cwd)                            ! here we are
+    cwd_dir = path_basename(cwd)                 ! current folder name
+    parent = path_abspath(pardir)                ! absolute parent path
+    call change_dir(pardir)                      ! enter parent
+    call get_cwd(parent2)                        ! here we are now
+    cwd2 = path_abspath(cwd_dir)                 ! absolute sub-folder path
+    call change_dir(cwd_dir, raise=.false.)      ! go there
+    call get_cwd(cwd3, raise=.false.)            ! we should be back again
+
+    @assertEqual(trim(cwd), trim(cwd2))
+    @assertEqual(trim(cwd), trim(cwd3))
+    @assertEqual(trim(parent), trim(parent2))
+
+  end subroutine test_change_dir
 
 end module test_mo_os

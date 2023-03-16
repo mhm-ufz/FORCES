@@ -63,7 +63,7 @@ module mo_os
   character(len = *), public, parameter :: devnull = '/dev/null'
   !> Maximum length of a path component (folder/file names).
   integer(i4), public, save :: max_path_comp_len = 256_i4
-  !> Maximum length of a path (16 max.s length components).
+  !> Maximum length of a path (16 max. length components).
   integer(i4), public, save :: max_path_len = 4096_i4
 
   private
@@ -402,8 +402,8 @@ contains
   end function path_dirname
 
   ! ------------------------------------------------------------------
-  !> \brief Return the directory name of pathname path.
-  !> \details This is the first element of the pair returned by passing path to the subroutine path_split.
+  !> \brief Return the base name of pathname path.
+  !> \details This is the second element of the pair returned by passing path to the subroutine path_split.
   !> \author Sebastian Müller
   !> \date Mar 2023
   function path_basename(path) result(basename)
