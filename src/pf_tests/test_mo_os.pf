@@ -169,6 +169,7 @@ contains
     @assertEqual(path_normpath('a/b/'), "a/b")
     @assertEqual(path_normpath('a/foo/../b//'), "a/b")
     @assertEqual(path_normpath('./.././..//'), "../..")
+    @assertEqual(path_normpath(''), ".")
 
   end subroutine test_normpath
 
