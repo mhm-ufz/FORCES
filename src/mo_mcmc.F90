@@ -15,8 +15,11 @@ MODULE mo_mcmc
   USE mo_append, only : append
   USE mo_moment, only : stddev
   !$ USE omp_lib,    only: OMP_GET_NUM_THREADS
-  use mo_ncwrite, only : dump_netcdf
   use mo_optimization_utils, only : eval_interface, objective_interface
+  use mo_message, only : error_message
+#ifdef FORCES_WITH_NETCDF
+  use mo_ncwrite, only : dump_netcdf
+#endif
 
   IMPLICIT NONE
 
@@ -1130,6 +1133,7 @@ CONTAINS
       !$OMP end do
       !$OMP end parallel
 
+#ifdef FORCES_WITH_NETCDF
       ! write parameter sets to temporal file
       if (itmp_file) then
         ! splitting into path and filename
@@ -1166,6 +1170,10 @@ CONTAINS
           end if
         end do
       end if
+#else
+      if (itmp_file) &
+        call error_message("MCMC: FORCES was compiled without NetCDF support but you set 'tmp_file'")
+#endif
 
       ! test for convergence: Gelman et. al: Baysian Data Analysis, p. 331ff
       !    sqrt(R) = sqrt( ( (n-1)/n * W + 1/n * B ) / W ) < 1.1 for each parameter
@@ -1876,6 +1884,7 @@ CONTAINS
       !$OMP end do
       !$OMP end parallel
 
+#ifdef FORCES_WITH_NETCDF
       ! write parameter sets to temporal file
       if (present(tmp_file)) then
         ! splitting into path and filename
@@ -1912,6 +1921,10 @@ CONTAINS
           end if
         end do
       end if
+#else
+      if (present(tmp_file)) &
+        call error_message("MCMC: FORCES was compiled without NetCDF support but you set 'tmp_file'")
+#endif
 
       ! test for convergence: Gelman et. al: Baysian Data Analysis, p. 331ff
       !    sqrt(R) = sqrt( ( (n-1)/n * W + 1/n * B ) / W ) < 1.1 for each parameter

@@ -3,7 +3,6 @@ module test_mo_nelmin
   use funit
   use mo_kind,   only: i4, dp
   use mo_nelmin, only: nelmin, nelminxy
-  use mo_opt_functions, only: rosenbrock
 
   implicit none
 
@@ -28,6 +27,16 @@ module test_mo_nelmin
   real(dp), parameter ::  tt=1.0E-2_dp
 
 contains
+
+  real(dp) function rosenbrock(x)
+    real(dp), dimension(:), intent(in) :: x
+    rosenbrock = 100._dp * (x(2) - x(1) ** 2 ) ** 2 + (1._dp - x(1)) ** 2
+  end function rosenbrock
+
+  real(dp) function rosenbrockxy(p, x, y)
+    real(dp), dimension(:), intent(in) :: p, x, y
+    rosenbrockxy = rosenbrock(p)
+  end function rosenbrockxy
 
   @test
   subroutine test_nelmin()
@@ -77,16 +86,5 @@ contains
     @assertEqual(xmin, [1._dp, 1._dp], tolerance=tt, message='rosenbrock minimum 7')
 
   end subroutine test_nelmin
-
-  function rosenbrockxy(p, xx, yy)
-
-      real(dp), dimension(:), intent(in) :: p
-      real(dp), dimension(:), intent(in) :: xx
-      real(dp), dimension(:), intent(in) :: yy
-      real(dp) :: rosenbrockxy
-
-      rosenbrockxy = rosenbrock(p)
-
-    end function rosenbrockxy
 
 end module test_mo_nelmin

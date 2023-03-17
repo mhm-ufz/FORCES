@@ -245,6 +245,12 @@ coverage:
     paths:
     - $BUILD_DIR/$ARTIFACT_PATH
 
+conditional_coverage:
+  variables:
+    <<: [*coverage_vars, *conda_vars_01]
+    CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON -DFORCES_WITH_OPTIMIZATION=OFF -DFORCES_WITH_NETCDF=OFF'
+  <<: *job_template
+
 # ###################
 # ### DEPLOY JOBS ###
 # ###################
