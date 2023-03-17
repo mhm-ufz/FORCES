@@ -29,6 +29,37 @@ else()
   list(FILTER sources EXCLUDE REGEX ".*mo_sentinel.f90$")
 endif()
 
+# option for optimization routines
+option(FORCES_WITH_OPTIMIZATION "Building FORCES with optimization routines." ON)
+if (FORCES_WITH_OPTIMIZATION)
+  message(STATUS "FORCES: provide optimization routines")
+else()
+  message(STATUS "FORCES: optimization routines not wanted")
+  list(FILTER sources EXCLUDE REGEX ".*mo_sce.F90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_mcmc.F90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_anneal.f90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_dds.F90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_errormeasures.f90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_likelihood.f90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_opt_functions.f90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_cost.f90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_optimization_types.f90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_optimization_utils.f90$")
+endif()
+
+# option for NetCDF support
+option(FORCES_WITH_NETCDF "Building FORCES with NetCDF support." ON)
+if (FORCES_WITH_NETCDF)
+  message(STATUS "FORCES: use NetCDF")
+else()
+  message(STATUS "FORCES: no NetCDF support wanted")
+  list(FILTER fyppOutFiles EXCLUDE REGEX ".*mo_netcdf.f90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_netcdf.f90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_ncwrite.f90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_ncread.f90$")
+endif()
+
+# create library
 add_library(${LIB_NAME} ${sources} ${fyppOutFiles})
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
@@ -41,21 +72,24 @@ else()
   message(STATUS "FORCES: use ISO_C_BINDING for mo_kind")
 endif()
 
-# find the netcdf and netcdf-fortran libraries quietly
-# Temporary replace CMAKE_MODULE_PATH to not alter behavior of down-stream packages
-# https://stackoverflow.com/a/57185195/6696397
-set(FORCES_CMAKE_MODULE_PATH_OLD ${CMAKE_MODULE_PATH})
-set(CMAKE_MODULE_PATH ${FORCES_CMAKE_MODULE_PATH})
-find_package(NetCDF COMPONENTS Fortran QUIET)
-set(CMAKE_MODULE_PATH ${FORCES_CMAKE_MODULE_PATH_OLD})
-unset(FORCES_CMAKE_MODULE_PATH_OLD)
-# Sometimes NetCDF_INCLUDE_DIRS can't be found but NetCDF_Fortran is still usable
-if(NOT NetCDF_Fortran_FOUND)
-  message(FATAL_ERROR "FORCES: NetCDF-Fortran not usable")
-else()
-  message(STATUS "FORCES: NetCDF-Fortran usable: ${NetCDF_Fortran_LIBRARY}")
+if (FORCES_WITH_NETCDF)
+  # find the netcdf and netcdf-fortran libraries quietly
+  # Temporary replace CMAKE_MODULE_PATH to not alter behavior of down-stream packages
+  # https://stackoverflow.com/a/57185195/6696397
+  set(FORCES_CMAKE_MODULE_PATH_OLD ${CMAKE_MODULE_PATH})
+  set(CMAKE_MODULE_PATH ${FORCES_CMAKE_MODULE_PATH})
+  find_package(NetCDF COMPONENTS Fortran QUIET)
+  set(CMAKE_MODULE_PATH ${FORCES_CMAKE_MODULE_PATH_OLD})
+  unset(FORCES_CMAKE_MODULE_PATH_OLD)
+  # Sometimes NetCDF_INCLUDE_DIRS can't be found but NetCDF_Fortran is still usable
+  if(NOT NetCDF_Fortran_FOUND)
+    message(FATAL_ERROR "FORCES: NetCDF-Fortran not usable")
+  else()
+    message(STATUS "FORCES: NetCDF-Fortran usable: ${NetCDF_Fortran_LIBRARY}")
+  endif()
+  target_link_libraries(${LIB_NAME} PUBLIC NetCDF::NetCDF_Fortran)
+  target_compile_definitions(${LIB_NAME} PRIVATE FORCES_WITH_NETCDF)
 endif()
-target_link_libraries(${LIB_NAME} PUBLIC NetCDF::NetCDF_Fortran)
 
 # add all compile options (MPI, OpenMP, Lapack, Coverage)
 include(${FORCES_CMAKE_MODULE_PATH}/compileoptions.cmake)
