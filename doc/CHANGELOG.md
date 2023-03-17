@@ -4,6 +4,10 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
+## unreleased - 2023-?
+- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.5.0...main) for details.
+
+
 ## v0.5.0 - 2023-03
 - See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.4.0...v0.5.0) for details.
 
