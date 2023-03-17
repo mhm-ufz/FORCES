@@ -4,10 +4,15 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
-## unreleased - 2023-?
-- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.4.0...main) for details.
+## v0.5.0 - 2023-03
+- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.4.0...v0.5.0) for details.
 
 ### Enhancements
+- added capability of conditional compilation ([60](https://git.ufz.de/chs/forces/-/merge_requests/60)). Two cmake options were added, that are enabled by default:
+  - `-DFORCES_WITH_OPTIMIZATION=[ON|OFF]`: include all modules used for optimization (sce, mcmc, anneal, dds, errormeasures, likelihood, opt_functions, cost, optimization_types, optimization_utils)
+  - `-DFORCES_WITH_NETCDF=[ON|OFF]`: include all modules using NetCDF (netcdf, ncwrite, ncread)
+    - Here, `mo_mcmc` throws an error if you want to have a `tmp_file` written out.
+    - This option can be used to drop the NetCDF dependency, if netcdf io is not needed for your program
 
 - mo_os ([73](https://git.ufz.de/chs/forces/-/merge_requests/73))
   - added `change_dir` to have a compiler independent `chdir` routine
