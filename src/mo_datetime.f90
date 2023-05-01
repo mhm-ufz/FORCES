@@ -117,14 +117,14 @@ module mo_datetime
     procedure init_timedelta
   end interface timedelta
 
-  type(timedelta), parameter :: max_delta = timedelta(days=999999999_i4, seconds=86399_i4) !< max time delta
-  type(timedelta), parameter :: min_delta = timedelta(days=-999999999_i4, seconds=0_i4)    !< min time delta
-  type(timedelta), parameter :: zero_delta = timedelta(days=0_i4, seconds=0_i4)            !< zero time delta
-  type(timedelta), parameter :: one_week = timedelta(days=7_i4, seconds=0_i4)              !< one week time delta
-  type(timedelta), parameter :: one_day = timedelta(days=1_i4, seconds=0_i4)               !< one day time delta
-  type(timedelta), parameter :: one_hour = timedelta(days=0_i4, seconds=3600_i4)           !< one hour time delta
-  type(timedelta), parameter :: one_minute = timedelta(days=0_i4, seconds=60_i4)           !< one minute time delta
-  type(timedelta), parameter :: one_second = timedelta(days=0_i4, seconds=1_i4)            !< one second time delta
+  type(timedelta), save, protected :: max_delta = timedelta(days=999999999_i4, seconds=86399_i4) !< max time delta
+  type(timedelta), save, protected :: min_delta = timedelta(days=-999999999_i4, seconds=0_i4)    !< min time delta
+  type(timedelta), save, protected :: zero_delta = timedelta(days=0_i4, seconds=0_i4)            !< zero time delta
+  type(timedelta), save, protected :: one_week = timedelta(days=7_i4, seconds=0_i4)              !< one week time delta
+  type(timedelta), save, protected :: one_day = timedelta(days=1_i4, seconds=0_i4)               !< one day time delta
+  type(timedelta), save, protected :: one_hour = timedelta(days=0_i4, seconds=3600_i4)           !< one hour time delta
+  type(timedelta), save, protected :: one_minute = timedelta(days=0_i4, seconds=60_i4)           !< one minute time delta
+  type(timedelta), save, protected :: one_second = timedelta(days=0_i4, seconds=1_i4)            !< one second time delta
 
 contains
 
