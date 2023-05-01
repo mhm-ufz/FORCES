@@ -107,6 +107,15 @@ module mo_datetime
     generic, public :: operator(/) => td_div, td_div_dp, td_div_td
   end type timedelta
 
+  type(timedelta), parameter :: max_delta = timedelta(999999999_i4, 86399_i4) !< max time delta
+  type(timedelta), parameter :: min_delta = timedelta(-999999999_i4, 0_i4)    !< min time delta
+  type(timedelta), parameter :: zero_delta = timedelta(0_i4, 0_i4)            !< zero time delta
+  type(timedelta), parameter :: one_week = timedelta(7_i4, 0_i4)              !< one week time delta
+  type(timedelta), parameter :: one_day = timedelta(1_i4, 0_i4)               !< one day time delta
+  type(timedelta), parameter :: one_hour = timedelta(0_i4, 3600_i4)           !< one hour time delta
+  type(timedelta), parameter :: one_minute = timedelta(0_i4, 60_i4)           !< one minute time delta
+  type(timedelta), parameter :: one_second = timedelta(0_i4, 1_i4)            !< one second time delta
+
   ! constructor interface for datetime
   interface datetime
     procedure init_datetime
@@ -116,15 +125,6 @@ module mo_datetime
   interface timedelta
     procedure init_timedelta
   end interface timedelta
-
-  type(timedelta), save, protected :: max_delta = timedelta(days=999999999_i4, seconds=86399_i4) !< max time delta
-  type(timedelta), save, protected :: min_delta = timedelta(days=-999999999_i4, seconds=0_i4)    !< min time delta
-  type(timedelta), save, protected :: zero_delta = timedelta(days=0_i4, seconds=0_i4)            !< zero time delta
-  type(timedelta), save, protected :: one_week = timedelta(days=7_i4, seconds=0_i4)              !< one week time delta
-  type(timedelta), save, protected :: one_day = timedelta(days=1_i4, seconds=0_i4)               !< one day time delta
-  type(timedelta), save, protected :: one_hour = timedelta(days=0_i4, seconds=3600_i4)           !< one hour time delta
-  type(timedelta), save, protected :: one_minute = timedelta(days=0_i4, seconds=60_i4)           !< one minute time delta
-  type(timedelta), save, protected :: one_second = timedelta(days=0_i4, seconds=1_i4)            !< one second time delta
 
 contains
 
