@@ -391,7 +391,7 @@ contains
     class(datetime), intent(in) :: this
     class(timedelta), intent(in) :: that
     type(timedelta) :: temp
-    integer(i4) :: new_year, new_month, new_day, new_hour, new_minute, new_second, temp_seconds, day_delta, diy, doy
+    integer(i4) :: new_year, new_month, new_day, new_hour, new_minute, new_second, temp_seconds, day_delta, diy
 
     ! handle sub-day timing
     temp = timedelta(days=that%days, seconds=this%second+that%seconds, minutes=this%minute, hours=this%hour)
