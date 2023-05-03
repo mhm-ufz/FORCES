@@ -20,6 +20,7 @@ module mo_datetime
 
   public :: datetime
   public :: timedelta
+  public :: now
   public :: max_delta
   public :: min_delta
   public :: zero_delta
@@ -34,25 +35,35 @@ module mo_datetime
   integer(i4), parameter :: MINYEAR = 1_i4
   integer(i4), parameter :: MAXYEAR = 9999_i4
   integer(i4), parameter :: MAXDELTADAYS = 999999999_i4
+
   !> \class   datetime
   !> \brief   This is a container to hold a date-time.
   type datetime
-    integer(i4) :: year                     !< MINYEAR <= year <= MAXYEAR
-    integer(i4) :: month                    !< 1 <= month <= 12
-    integer(i4) :: day                      !< 1 <= day <= number of days in the given month and year
-    integer(i4) :: hour                     !< 1 <= hour < 24
-    integer(i4) :: minute                   !< 1 <= minute < 60
-    integer(i4) :: second                   !< 1 <= second < 60
+    integer(i4), public :: year                     !< MINYEAR <= year <= MAXYEAR
+    integer(i4), public :: month                    !< 1 <= month <= 12
+    integer(i4), public :: day                      !< 1 <= day <= number of days in the given month and year
+    integer(i4), public :: hour                     !< 1 <= hour < 24
+    integer(i4), public :: minute                   !< 1 <= minute < 60
+    integer(i4), public :: second                   !< 1 <= second < 60
   contains
-    procedure, public :: str => dt_str
-    procedure, public :: weekday => dt_weekday
-    procedure, public :: doy => dt_doy
-    procedure, public :: is_new_year
-    procedure, public :: is_new_month
-    procedure, public :: is_new_week
-    procedure, public :: is_new_day
-    procedure, public :: is_new_hour
-    procedure, public :: is_new_minute
+    !> \copydoc mo_datetime::dt_str
+    procedure, public :: str => dt_str !< \see mo_datetime::dt_str
+    !> \copydoc mo_datetime::dt_weekday
+    procedure, public :: weekday => dt_weekday !< \see mo_datetime::dt_weekday
+    !> \copydoc mo_datetime::dt_doy
+    procedure, public :: doy => dt_doy !< \see mo_datetime::dt_doy
+    !> \copydoc mo_datetime::is_new_year
+    procedure, public :: is_new_year !< \see mo_datetime::is_new_year
+    !> \copydoc mo_datetime::is_new_month
+    procedure, public :: is_new_month !< \see mo_datetime::is_new_month
+    !> \copydoc mo_datetime::is_new_week
+    procedure, public :: is_new_week !< \see mo_datetime::is_new_week
+    !> \copydoc mo_datetime::is_new_day
+    procedure, public :: is_new_day !< \see mo_datetime::is_new_day
+    !> \copydoc mo_datetime::is_new_hour
+    procedure, public :: is_new_hour !< \see mo_datetime::is_new_hour
+    !> \copydoc mo_datetime::is_new_minute
+    procedure, public :: is_new_minute !< \see mo_datetime::is_new_minute
     procedure, private :: dt_eq
     generic, public :: operator(==) => dt_eq
     procedure, private :: dt_neq
@@ -76,11 +87,13 @@ module mo_datetime
   !> \class   timedelta
   !> \brief   This is a container to hold a defined time span.
   type timedelta
-    integer(i4) :: days                     !< days of the time-span
-    integer(i4) :: seconds                  !< second of the time-span
+    integer(i4), public :: days                     !< days of the time-span
+    integer(i4), public :: seconds                  !< second of the time-span
   contains
-    procedure, public :: abs => td_abs
-    procedure, public :: total_seconds => td_total_seconds
+    !> \copydoc mo_datetime::td_abs
+    procedure, public :: abs => td_abs !< \see mo_datetime::td_abs
+    !> \copydoc mo_datetime::td_total_seconds
+    procedure, public :: total_seconds => td_total_seconds !< \see mo_datetime::td_total_seconds
     procedure, private :: td_eq
     generic :: operator(==) => td_eq
     procedure, private :: td_neq
@@ -137,6 +150,13 @@ module mo_datetime
   end interface timedelta
 
 contains
+
+  !> \brief get current datetime
+  type(datetime) function now()
+    integer(i4) :: values(8)
+    call date_and_time(values=values)
+    now = datetime(year=values(1), month=values(2), day=values(3), hour=values(5), minute=values(6), second=values(7))
+  end function now
 
   !> \brief number of days in a given year
   logical function is_leap_year(year)
