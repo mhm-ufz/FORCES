@@ -107,14 +107,19 @@ module mo_datetime
     generic, public :: operator(/) => td_div, td_div_dp, td_div_td
   end type timedelta
 
-  type(timedelta), parameter :: max_delta = timedelta(999999999_i4, 86399_i4) !< max time delta
-  type(timedelta), parameter :: min_delta = timedelta(-999999999_i4, 0_i4)    !< min time delta
-  type(timedelta), parameter :: zero_delta = timedelta(0_i4, 0_i4)            !< zero time delta
-  type(timedelta), parameter :: one_week = timedelta(7_i4, 0_i4)              !< one week time delta
-  type(timedelta), parameter :: one_day = timedelta(1_i4, 0_i4)               !< one day time delta
-  type(timedelta), parameter :: one_hour = timedelta(0_i4, 3600_i4)           !< one hour time delta
-  type(timedelta), parameter :: one_minute = timedelta(0_i4, 60_i4)           !< one minute time delta
-  type(timedelta), parameter :: one_second = timedelta(0_i4, 1_i4)            !< one second time delta
+  !> \class   timedelta_c
+  !> \brief   This is a container to hold a constant time span.
+  type, extends(timedelta) :: timedelta_c
+  end type timedelta_c
+
+  type(timedelta_c), parameter :: max_delta = timedelta_c(999999999_i4, 86399_i4) !< max time delta
+  type(timedelta_c), parameter :: min_delta = timedelta_c(-999999999_i4, 0_i4)    !< min time delta
+  type(timedelta_c), parameter :: zero_delta = timedelta_c(0_i4, 0_i4)            !< zero time delta
+  type(timedelta_c), parameter :: one_week = timedelta_c(7_i4, 0_i4)              !< one week time delta
+  type(timedelta_c), parameter :: one_day = timedelta_c(1_i4, 0_i4)               !< one day time delta
+  type(timedelta_c), parameter :: one_hour = timedelta_c(0_i4, 3600_i4)           !< one hour time delta
+  type(timedelta_c), parameter :: one_minute = timedelta_c(0_i4, 60_i4)           !< one minute time delta
+  type(timedelta_c), parameter :: one_second = timedelta_c(0_i4, 1_i4)            !< one second time delta
 
   ! constructor interface for datetime
   interface datetime
