@@ -31,9 +31,9 @@ module mo_datetime
 
   private
 
-  integer(i4), parameter :: MINYEAR = 1
-  integer(i4), parameter :: MAXYEAR = 9999
-
+  integer(i4), parameter :: MINYEAR = 1_i4
+  integer(i4), parameter :: MAXYEAR = 9999_i4
+  integer(i4), parameter :: MAXDELTADAYS = 999999999_i4
   !> \class   datetime
   !> \brief   This is a container to hold a date-time.
   type datetime
@@ -107,14 +107,14 @@ module mo_datetime
     generic, public :: operator(/) => td_div, td_div_dp, td_div_td
   end type timedelta
 
-  type(timedelta), save, protected :: max_delta = timedelta(999999999_i4, 86399_i4) !< max time delta
-  type(timedelta), save, protected :: min_delta = timedelta(-999999999_i4, 0_i4)    !< min time delta
-  type(timedelta), save, protected :: zero_delta = timedelta(0_i4, 0_i4)            !< zero time delta
-  type(timedelta), save, protected :: one_week = timedelta(7_i4, 0_i4)              !< one week time delta
-  type(timedelta), save, protected :: one_day = timedelta(1_i4, 0_i4)               !< one day time delta
-  type(timedelta), save, protected :: one_hour = timedelta(0_i4, 3600_i4)           !< one hour time delta
-  type(timedelta), save, protected :: one_minute = timedelta(0_i4, 60_i4)           !< one minute time delta
-  type(timedelta), save, protected :: one_second = timedelta(0_i4, 1_i4)            !< one second time delta
+  type(timedelta), parameter :: max_delta = timedelta(999999999_i4, 86399_i4) !< max time delta
+  type(timedelta), parameter :: min_delta = timedelta(-999999999_i4, 0_i4)    !< min time delta
+  type(timedelta), parameter :: zero_delta = timedelta(0_i4, 0_i4)            !< zero time delta
+  type(timedelta), parameter :: one_week = timedelta(7_i4, 0_i4)              !< one week time delta
+  type(timedelta), parameter :: one_day = timedelta(1_i4, 0_i4)               !< one day time delta
+  type(timedelta), parameter :: one_hour = timedelta(0_i4, 3600_i4)           !< one hour time delta
+  type(timedelta), parameter :: one_minute = timedelta(0_i4, 60_i4)           !< one minute time delta
+  type(timedelta), parameter :: one_second = timedelta(0_i4, 1_i4)            !< one second time delta
 
   ! constructor interface for datetime
   interface datetime
@@ -132,7 +132,7 @@ contains
   logical function is_leap_year(year)
     implicit none
     integer(i4), intent(in) :: year                     !< MINYEAR <= year <= MAXYEAR
-    call check_datetime(year=year)
+    call check_year(year)
     is_leap_year = mod(year, 4_i4) == 0_i4 .and. (mod(year, 100_i4) /= 0_i4 .or. mod(year, 400_i4) == 0_i4)
   end function is_leap_year
 
@@ -141,7 +141,8 @@ contains
     implicit none
     integer(i4), intent(in) :: year                     !< MINYEAR <= year <= MAXYEAR
     integer(i4), intent(in) :: month                    !< 1 <= month <= 12
-    call check_datetime(year=year, month=month)
+    call check_year(year)
+    call check_month(month)
     ! february is the special case
     if (month == 2_i4) then
       days_in_month = 28_i4
@@ -160,6 +161,7 @@ contains
   integer(i4) function days_in_year(year)
     implicit none
     integer(i4), intent(in) :: year                     !< MINYEAR <= year <= MAXYEAR
+    call check_year(year)
     days_in_year = 365_i4
     if (is_leap_year(year)) days_in_year = 366_i4
   end function days_in_year
@@ -185,6 +187,56 @@ contains
     if (present(day)) day = remain
   end subroutine doy_to_month_day
 
+  !> \brief check if a given year is valid
+  subroutine check_year(year)
+    implicit none
+    integer(i4), intent(in) :: year            !< MINYEAR <= year <= MAXYEAR
+    if (year < MINYEAR .or. year > MAXYEAR) &
+      call error_message("datetime: year is out of range. Got: ", num2str(year))
+  end subroutine check_year
+
+  !> \brief check if a given month is valid
+  subroutine check_month(month)
+    implicit none
+    integer(i4), intent(in) :: month           !< 1 <= month <= 12
+    if (month < 1 .or. month > 12) &
+      call error_message("datetime: month is out of range. Got: ", num2str(month))
+  end subroutine check_month
+
+  !> \brief check if a given day is valid
+  subroutine check_day(year, month, day)
+    implicit none
+    integer(i4), intent(in) :: year           !< MINYEAR <= year <= MAXYEAR
+    integer(i4), intent(in) :: month          !< 1 <= month <= 12
+    integer(i4), intent(in) :: day            !< 1 <= day <= number of days in the given month and year
+    if (day < 1 .or. day > days_in_month(year, month)) &
+      call error_message("datetime: day is out of range. Got: ", num2str(day))
+  end subroutine check_day
+
+  !> \brief check if a given hour is valid
+  subroutine check_hour(hour)
+    implicit none
+    integer(i4), intent(in), optional :: hour           !< 1 <= hour < 24
+    if (hour < 0 .or. hour > 23) &
+      call error_message("datetime: hour is out of range. Got: ", num2str(hour))
+end subroutine check_hour
+
+  !> \brief check if a given minute is valid
+  subroutine check_minute(minute)
+    implicit none
+    integer(i4), intent(in), optional :: minute         !< 1 <= minute < 60
+    if (minute < 0 .or. minute > 59) &
+      call error_message("datetime: minute is out of range. Got: ", num2str(minute))
+end subroutine check_minute
+
+  !> \brief check if a given second is valid
+  subroutine check_second(second)
+    implicit none
+    integer(i4), intent(in), optional :: second         !< 1 <= second < 60
+    if (second < 0 .or. second > 59) &
+      call error_message("datetime: second is out of range. Got: ", num2str(second))
+end subroutine check_second
+
   !> \brief check if a datetime is valid
   subroutine check_datetime(year, month, day, hour, minute, second)
     implicit none
@@ -194,39 +246,16 @@ contains
     integer(i4), intent(in), optional :: hour           !< 1 <= hour < 24
     integer(i4), intent(in), optional :: minute         !< 1 <= minute < 60
     integer(i4), intent(in), optional :: second         !< 1 <= second < 60
-
-    ! year
-    if (present(year)) then
-      if (year < MINYEAR .or. year > MAXYEAR) &
-        call error_message("datetime: year is out of range. Got: ", num2str(year))
-    end if
-    ! month
-    if (present(month)) then
-      if (month < 1 .or. month > 12) &
-        call error_message("datetime: month is out of range. Got: ", num2str(month))
-    end if
-    ! day
-    if (present(day)) then
-      if (.not. (present(year) .and. present(month))) &
-        call error_message("check_datetime: to validate a given 'day', 'year' and 'month' are required.")
-      if (day < 1 .or. day > days_in_month(year, month)) &
-        call error_message("datetime: day is out of range. Got: ", num2str(day))
-    end if
-    ! hour
-    if (present(hour)) then
-      if (hour < 0 .or. hour > 23) &
-        call error_message("datetime: hour is out of range. Got: ", num2str(hour))
-    end if
-    ! minute
-    if (present(minute)) then
-      if (minute < 0 .or. minute > 59) &
-        call error_message("datetime: minute is out of range. Got: ", num2str(minute))
-    end if
-    ! second
-    if (present(second)) then
-      if (second < 0 .or. second > 59) &
-        call error_message("datetime: second is out of range. Got: ", num2str(second))
-    end if
+    ! sanity check for day
+    if (present(day) .and. .not. (present(year) .and. present(month))) &
+      call error_message("check_datetime: to validate a given 'day', 'year' and 'month' are required.")
+    ! check components
+    if (present(year)) call check_year(year)
+    if (present(month)) call check_month(month)
+    if (present(day)) call check_day(year, month, day)
+    if (present(hour)) call check_hour(hour)
+    if (present(minute)) call check_minute(minute)
+    if (present(second)) call check_second(second)
   end subroutine check_datetime
 
   !> \brief initialize a datetime
@@ -502,8 +531,7 @@ contains
       out%seconds = out%seconds - neg_days * 86400_i4
       out%days = out%days + neg_days
     end if
-    if (out < min_delta .or. out > max_delta) &
-      call error_message("timedelta out of range.")
+    if (abs(out%days) > MAXDELTADAYS) call error_message("timedelta out of range.")
   end function init_timedelta
 
   !> \brief absolute timedelta
@@ -530,8 +558,6 @@ contains
 
   type(timedelta) function from_total_seconds(total_seconds)
     integer(i8), intent(in) :: total_seconds
-    if (total_seconds > max_delta%total_seconds() .or. total_seconds < min_delta%total_seconds()) &
-      call error_message("timedelta: given total seconds are out of range. Got: ", num2str(total_seconds))
     from_total_seconds = timedelta(days=int(total_seconds / 86400_i8, i4), seconds=int(mod(total_seconds, 86400_i8), i4))
   end function from_total_seconds
 
