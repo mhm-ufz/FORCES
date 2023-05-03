@@ -44,6 +44,7 @@ module mo_datetime
     integer(i4) :: minute                   !< 1 <= minute < 60
     integer(i4) :: second                   !< 1 <= second < 60
   contains
+    procedure, public :: str => dt_str
     procedure, public :: weekday => dt_weekday
     procedure, public :: doy => dt_doy
     procedure, public :: is_new_year
@@ -127,6 +128,7 @@ module mo_datetime
   ! constructor interface for datetime
   interface datetime
     procedure init_datetime
+    procedure datetime_from_string
   end interface datetime
 
   ! constructor interface timedelta
@@ -289,6 +291,39 @@ end subroutine check_second
     ! check if datetime is valid
     call check_datetime(year=out%year, month=out%month, day=out%day, hour=out%hour, minute=out%minute, second=out%second)
   end function init_datetime
+
+  !> \brief datetime from string
+  type(datetime) function datetime_from_string(string)
+    use mo_string_utils, only : divide_string
+    character(*), intent(in) :: string
+    character(256), dimension(:), allocatable :: str_arr, date, time
+    integer(i4) :: year, month, day, hour, minute, second
+    call divide_string(trim(string), ' ', str_arr)
+    ! determine reference time at '-' and convert to integer
+    call divide_string(trim(str_arr(1)), '-', date)
+    read(date(1), *) year
+    read(date(2), *) month
+    read(date(3), *) day
+    ! if existing also read in the time
+    hour = 0_i4
+    minute = 0_i4
+    second = 0_i4
+    if(size(str_arr) > 1_i4) then
+      call divide_string(trim(str_arr(2)), ':', time)
+      read(time(1), *) hour
+      read(time(2), *) minute
+      read(time(3), *) second
+    end if
+    datetime_from_string = datetime(year=year, month=month, day=day, hour=hour, minute=minute, second=second)
+  end function datetime_from_string
+
+  !> \brief string representation of the datetime
+  character(19) function dt_str(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    write(dt_str, "(i4.4, '-' ,i2.2, '-', i2.2, 1x, i2.2, ':', i2.2, ':', i2.2)") &
+      this%year, this%month, this%day, this%hour, this%minute, this%second
+  end function dt_str
 
   !> \brief day of the week
   integer(i4) function dt_weekday(this)
