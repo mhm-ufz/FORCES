@@ -44,9 +44,11 @@ module mo_datetime
     integer(i4) :: minute                   !< 1 <= minute < 60
     integer(i4) :: second                   !< 1 <= second < 60
   contains
+    procedure, public :: weekday => dt_weekday
     procedure, public :: doy => dt_doy
     procedure, public :: is_new_year
     procedure, public :: is_new_month
+    procedure, public :: is_new_week
     procedure, public :: is_new_day
     procedure, public :: is_new_hour
     procedure, public :: is_new_minute
@@ -112,6 +114,7 @@ module mo_datetime
   type, extends(timedelta) :: timedelta_c
   end type timedelta_c
 
+  ! intel fortran compiler can't use type with interface to construct parameter variables
   type(timedelta_c), parameter :: max_delta = timedelta_c(999999999_i4, 86399_i4) !< max time delta
   type(timedelta_c), parameter :: min_delta = timedelta_c(-999999999_i4, 0_i4)    !< min time delta
   type(timedelta_c), parameter :: zero_delta = timedelta_c(0_i4, 0_i4)            !< zero time delta
@@ -287,6 +290,27 @@ end subroutine check_second
     call check_datetime(year=out%year, month=out%month, day=out%day, hour=out%hour, minute=out%minute, second=out%second)
   end function init_datetime
 
+  !> \brief day of the week
+  integer(i4) function dt_weekday(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    integer(i4) :: year_j, year_k, mon, year
+    ! Zeller's congruence
+    year = this%year
+    mon = this%month
+    ! jan + feb are 13. and 14. month of previous year
+    if (mon < 3_i4) then
+      mon = mon + 12_i4
+      year = year - 1_i4
+    end if
+    year_j = year / 100_i4
+    year_k = mod(year, 100_i4)
+    dt_weekday = mod(this%day + (13_i4*(mon+1_i4))/5_i4 + year_k + year_k/4_i4 + year_j/4_i4 + 5_i4*year_j, 7_i4)
+    ! convert counting
+    dt_weekday = dt_weekday - 1_i4
+    if (dt_weekday < 1_i4) dt_weekday = dt_weekday + 7_i4
+  end function dt_weekday
+
   !> \brief day of the year
   integer(i4) function dt_doy(this)
     implicit none
@@ -311,6 +335,13 @@ end subroutine check_second
     class(datetime), intent(in) :: this
     is_new_month = this%is_new_day() .and. this%day == 1_i4
   end function is_new_month
+
+  !> \brief datetime is a new week
+  logical function is_new_week(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    is_new_week = this%is_new_day() .and. this%weekday() == 1_i4
+  end function is_new_week
 
   !> \brief datetime is a new day
   logical function is_new_day(this)
