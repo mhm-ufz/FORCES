@@ -348,7 +348,7 @@ contains
   end function dt_str
 
   !> \brief day of the week
-  integer(i4) function dt_weekday(this)
+  pure integer(i4) function dt_weekday(this)
     implicit none
     class(datetime), intent(in) :: this
     integer(i4) :: year_j, year_k, mon, year
@@ -380,49 +380,49 @@ contains
   end function dt_doy
 
   !> \brief datetime is a new year
-  logical function is_new_year(this)
+  pure logical function is_new_year(this)
     implicit none
     class(datetime), intent(in) :: this
     is_new_year = this%is_new_month() .and. this%month == 1_i4
   end function is_new_year
 
   !> \brief datetime is a new month
-  logical function is_new_month(this)
+  pure logical function is_new_month(this)
     implicit none
     class(datetime), intent(in) :: this
     is_new_month = this%is_new_day() .and. this%day == 1_i4
   end function is_new_month
 
   !> \brief datetime is a new week
-  logical function is_new_week(this)
+  pure logical function is_new_week(this)
     implicit none
     class(datetime), intent(in) :: this
     is_new_week = this%is_new_day() .and. this%weekday() == 1_i4
   end function is_new_week
 
   !> \brief datetime is a new day
-  logical function is_new_day(this)
+  pure logical function is_new_day(this)
     implicit none
     class(datetime), intent(in) :: this
     is_new_day = this%is_new_hour() .and. this%hour == 0_i4
   end function is_new_day
 
   !> \brief datetime is a new hour
-  logical function is_new_hour(this)
+  pure logical function is_new_hour(this)
     implicit none
     class(datetime), intent(in) :: this
     is_new_hour = this%is_new_minute() .and. this%minute == 0_i4
   end function is_new_hour
 
   !> \brief datetime is a new month
-  logical function is_new_minute(this)
+  pure logical function is_new_minute(this)
     implicit none
     class(datetime), intent(in) :: this
     is_new_minute = this%second == 0_i4
   end function is_new_minute
 
   !> \brief equal comparison of datetimes
-  logical function dt_eq(this, that)
+  pure logical function dt_eq(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
     dt_eq = this%year == that%year &
@@ -434,14 +434,14 @@ contains
   end function dt_eq
 
   !> \brief not equal comparison of datetimes
-  logical function dt_neq(this, that)
+  pure logical function dt_neq(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
     dt_neq = .not. dt_eq(this, that)
   end function dt_neq
 
   !> \brief less than comparison of datetimes
-  logical function dt_lt(this, that)
+  pure logical function dt_lt(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
     ! they need to be unequal
@@ -487,21 +487,21 @@ contains
   end function dt_lt
 
   !> \brief greater than comparison of datetimes
-  logical function dt_gt(this, that)
+  pure logical function dt_gt(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
     dt_gt = dt_neq(this, that) .and. .not. dt_lt(this, that)
   end function dt_gt
 
   !> \brief less than or equal comparison of datetimes
-  logical function dt_leq(this, that)
+  pure logical function dt_leq(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
     dt_leq = dt_lt(this, that) .or. dt_eq(this, that)
   end function dt_leq
 
   !> \brief greater than or equal comparison of datetimes
-  logical function dt_geq(this, that)
+  pure logical function dt_geq(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
     dt_geq = dt_gt(this, that) .or. dt_eq(this, that)
@@ -643,7 +643,7 @@ contains
   end function td_abs
 
   !> \brief timedelta in seconds (may need i8)
-  integer(i8) function td_total_seconds(this)
+  pure integer(i8) function td_total_seconds(this)
     implicit none
     class(timedelta), intent(in) :: this
     td_total_seconds = int(this%days, i8) * 86400_i8 + int(this%seconds, i8)
@@ -655,7 +655,7 @@ contains
   end function from_total_seconds
 
   !> \brief copy a timedelta
-  subroutine td_copy(this, that)
+  pure subroutine td_copy(this, that)
     implicit none
     class(timedelta), intent(inout) :: this
     class(timedelta), intent(in) :: that
@@ -664,42 +664,42 @@ contains
   end subroutine td_copy
 
   !> \brief equal comparison of timedeltas
-  logical function td_eq(this, that)
+  pure logical function td_eq(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
     td_eq = this%total_seconds() == that%total_seconds()
   end function td_eq
 
   !> \brief not equal comparison of timedeltas
-  logical function td_neq(this, that)
+  pure logical function td_neq(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
     td_neq = .not. td_eq(this, that)
   end function td_neq
 
   !> \brief less than comparison of timedeltas
-  logical function td_lt(this, that)
+  pure logical function td_lt(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
     td_lt = this%total_seconds() < that%total_seconds()
   end function td_lt
 
   !> \brief greater than comparison of timedeltas
-  logical function td_gt(this, that)
+  pure logical function td_gt(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
     td_gt = this%total_seconds() > that%total_seconds()
   end function td_gt
 
   !> \brief less than or equal comparison of timedeltas
-  logical function td_leq(this, that)
+  pure logical function td_leq(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
     td_leq = this%total_seconds() <= that%total_seconds()
   end function td_leq
 
   !> \brief greater than or equal comparison of timedeltas
-  logical function td_geq(this, that)
+  pure logical function td_geq(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
     td_geq = this%total_seconds() >= that%total_seconds()
@@ -782,7 +782,7 @@ contains
   end function td_div_dp
 
   !> \brief divide a timedelta by a timedelta
-  real(dp) function td_div_td(this, that)
+  pure real(dp) function td_div_td(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
     td_div_td = real(this%total_seconds(), dp) / real(that%total_seconds(), dp)
