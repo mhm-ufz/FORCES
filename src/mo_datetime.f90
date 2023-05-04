@@ -94,6 +94,8 @@ module mo_datetime
     procedure, public :: abs => td_abs !< \see mo_datetime::td_abs
     !> \copydoc mo_datetime::td_total_seconds
     procedure, public :: total_seconds => td_total_seconds !< \see mo_datetime::td_total_seconds
+    procedure, private :: td_copy
+    generic :: assignment(=) => td_copy
     procedure, private :: td_eq
     generic :: operator(==) => td_eq
     procedure, private :: td_neq
@@ -249,7 +251,7 @@ contains
     integer(i4), intent(in), optional :: hour           !< 1 <= hour < 24
     if (hour < 0 .or. hour > 23) &
       call error_message("datetime: hour is out of range. Got: ", num2str(hour))
-end subroutine check_hour
+  end subroutine check_hour
 
   !> \brief check if a given minute is valid
   subroutine check_minute(minute)
@@ -257,7 +259,7 @@ end subroutine check_hour
     integer(i4), intent(in), optional :: minute         !< 1 <= minute < 60
     if (minute < 0 .or. minute > 59) &
       call error_message("datetime: minute is out of range. Got: ", num2str(minute))
-end subroutine check_minute
+  end subroutine check_minute
 
   !> \brief check if a given second is valid
   subroutine check_second(second)
@@ -265,7 +267,7 @@ end subroutine check_minute
     integer(i4), intent(in), optional :: second         !< 1 <= second < 60
     if (second < 0 .or. second > 59) &
       call error_message("datetime: second is out of range. Got: ", num2str(second))
-end subroutine check_second
+  end subroutine check_second
 
   !> \brief check if a datetime is valid
   subroutine check_datetime(year, month, day, hour, minute, second)
@@ -651,6 +653,15 @@ end subroutine check_second
     integer(i8), intent(in) :: total_seconds
     from_total_seconds = timedelta(days=int(total_seconds / 86400_i8, i4), seconds=int(mod(total_seconds, 86400_i8), i4))
   end function from_total_seconds
+
+  !> \brief copy a timedelta
+  subroutine td_copy(this, that)
+    implicit none
+    class(timedelta), intent(inout) :: this
+    class(timedelta), intent(in) :: that
+    this%days=that%days
+    this%seconds=that%seconds
+  end subroutine td_copy
 
   !> \brief equal comparison of timedeltas
   logical function td_eq(this, that)

@@ -30,7 +30,7 @@ contains
     @assertTrue((one_day / 24.0_dp) == one_hour)
     @assertTrue((one_day * 1.23456_dp) == delta1)
     @assertTrue((one_day * 100000_i4) == (one_day * 100000._dp))
-    @assertTrue((one_week / (-7_i4)) == -one_day)
+    @assertTrue((one_week / (-7_i4)) == (-1_i4 * one_day))
     @assertFalse(is_leap_year(1900))
     @assertFalse(is_leap_year(1901))
     @assertFalse(is_leap_year(1902))
