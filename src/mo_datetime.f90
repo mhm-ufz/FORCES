@@ -21,8 +21,6 @@ module mo_datetime
   public :: datetime
   public :: timedelta
   public :: now
-  public :: max_delta
-  public :: min_delta
   public :: zero_delta
   public :: one_day
   public :: one_hour
@@ -34,7 +32,6 @@ module mo_datetime
 
   integer(i4), parameter :: MINYEAR = 1_i4
   integer(i4), parameter :: MAXYEAR = 9999_i4
-  integer(i4), parameter :: MAXDELTADAYS = 999999999_i4
 
   !> \class   datetime
   !> \brief   This is a container to hold a date-time.
@@ -131,8 +128,6 @@ module mo_datetime
   end type timedelta_c
 
   ! intel fortran compiler can't use type with interface to construct parameter variables
-  type(timedelta_c), parameter :: max_delta = timedelta_c(999999999_i4, 86399_i4) !< max time delta
-  type(timedelta_c), parameter :: min_delta = timedelta_c(-999999999_i4, 0_i4)    !< min time delta
   type(timedelta_c), parameter :: zero_delta = timedelta_c(0_i4, 0_i4)            !< zero time delta
   type(timedelta_c), parameter :: one_week = timedelta_c(7_i4, 0_i4)              !< one week time delta
   type(timedelta_c), parameter :: one_day = timedelta_c(1_i4, 0_i4)               !< one day time delta
@@ -588,7 +583,7 @@ contains
   end function dt_sub_dt
 
   !> \brief initialize a timedelta
-  function init_timedelta(days, seconds, minutes, hours, weeks) result(out)
+  pure function init_timedelta(days, seconds, minutes, hours, weeks) result(out)
     implicit none
     integer(i4), intent(in), optional :: days           !< days defining time-span
     integer(i4), intent(in), optional :: seconds        !< seconds defining time-span
@@ -624,11 +619,10 @@ contains
       out%seconds = out%seconds - neg_days * 86400_i4
       out%days = out%days + neg_days
     end if
-    if (abs(out%days) > MAXDELTADAYS) call error_message("timedelta out of range.")
   end function init_timedelta
 
   !> \brief absolute timedelta
-  type(timedelta) function td_abs(this)
+  pure type(timedelta) function td_abs(this)
     implicit none
     class(timedelta), intent(in) :: this
     integer(i4) :: days, seconds
@@ -649,7 +643,7 @@ contains
     td_total_seconds = int(this%days, i8) * 86400_i8 + int(this%seconds, i8)
   end function td_total_seconds
 
-  type(timedelta) function from_total_seconds(total_seconds)
+  pure type(timedelta) function from_total_seconds(total_seconds)
     integer(i8), intent(in) :: total_seconds
     from_total_seconds = timedelta(days=int(total_seconds / 86400_i8, i4), seconds=int(mod(total_seconds, 86400_i8), i4))
   end function from_total_seconds
@@ -706,35 +700,35 @@ contains
   end function td_geq
 
   !> \brief adding two timedeltas
-  type(timedelta) function td_add(this, that)
+  pure type(timedelta) function td_add(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
     td_add = timedelta(days=this%days+that%days, seconds=this%seconds+that%seconds)
   end function td_add
 
   !> \brief adding two timedeltas
-  type(timedelta) function td_sub(this, that)
+  pure type(timedelta) function td_sub(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
     td_sub = timedelta(days=this%days-that%days, seconds=this%seconds-that%seconds)
   end function td_sub
 
   !> \brief negative timedelta
-  type(timedelta) function td_neg(this)
+  pure type(timedelta) function td_neg(this)
     implicit none
     class(timedelta), intent(in) :: this
     td_neg = timedelta(days=-this%days, seconds=-this%seconds)
   end function td_neg
 
   !> \brief positive timedelta
-  type(timedelta) function td_pos(this)
+  pure type(timedelta) function td_pos(this)
     implicit none
     class(timedelta), intent(in) :: this
     td_pos = this
   end function td_pos
 
   !> \brief multiply a timedelta with an integer
-  type(timedelta) function td_mul1(this, that)
+  pure type(timedelta) function td_mul1(this, that)
     implicit none
     class(timedelta), intent(in) :: this
     integer(i4), intent(in) :: that
@@ -742,7 +736,7 @@ contains
   end function td_mul1
 
   !> \brief multiply a timedelta with an integer
-  type(timedelta) function td_mul2(that, this)
+  pure type(timedelta) function td_mul2(that, this)
     implicit none
     class(timedelta), intent(in) :: this
     integer(i4), intent(in) :: that
@@ -750,7 +744,7 @@ contains
   end function td_mul2
 
   !> \brief multiply a timedelta with a real
-  type(timedelta) function td_mul1_dp(this, that)
+  pure type(timedelta) function td_mul1_dp(this, that)
     implicit none
     class(timedelta), intent(in) :: this
     real(dp), intent(in) :: that
@@ -758,7 +752,7 @@ contains
   end function td_mul1_dp
 
   !> \brief multiply a timedelta with a real
-  type(timedelta) function td_mul2_dp(that, this)
+  pure type(timedelta) function td_mul2_dp(that, this)
     implicit none
     class(timedelta), intent(in) :: this
     real(dp), intent(in) :: that
@@ -766,7 +760,7 @@ contains
   end function td_mul2_dp
 
   !> \brief divide a timedelta by an integer
-  type(timedelta) function td_div(this, that)
+  pure type(timedelta) function td_div(this, that)
     implicit none
     class(timedelta), intent(in) :: this
     integer(i4), intent(in) :: that
@@ -774,7 +768,7 @@ contains
   end function td_div
 
   !> \brief divide a timedelta by a real
-  type(timedelta) function td_div_dp(this, that)
+  pure type(timedelta) function td_div_dp(this, that)
     implicit none
     class(timedelta), intent(in) :: this
     real(dp), intent(in) :: that

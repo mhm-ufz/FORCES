@@ -2,7 +2,7 @@ module test_mo_datetime
   use funit
   use mo_kind, only: i4, i8, dp
   use mo_datetime, only: datetime, timedelta, one_hour, one_day, one_week, one_minute, one_second, is_leap_year
-  use mo_datetime, only: days_in_month, days_in_year, max_delta, min_delta, now
+  use mo_datetime, only: days_in_month, days_in_year, now
 
   implicit none
 
