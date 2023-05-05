@@ -79,6 +79,26 @@ contains
 
     @assertTrue(date4 == datetime(string))
 
+    date4 = datetime(2023_i4, 2_i4, 10_i4, 4_i4, 5_i4, 6_i4)
+    @assertFalse(date4%is_new_minute())
+    date4%second = 0_i4
+    @assertTrue(date4%is_new_minute())
+    @assertFalse(date4%is_new_hour())
+    date4%minute = 0_i4
+    @assertTrue(date4%is_new_hour())
+    @assertFalse(date4%is_new_day())
+    date4%hour = 0_i4
+    @assertTrue(date4%is_new_day())
+    @assertFalse(date4%is_new_week())
+    date4 = date4 - timedelta(days=date4%weekday()-1_i4)
+    @assertTrue(date4%is_new_week())
+    @assertFalse(date4%is_new_month())
+    date4%day = 1_i4
+    @assertTrue(date4%is_new_month())
+    @assertFalse(date4%is_new_year())
+    date4%month = 1_i4
+    @assertTrue(date4%is_new_year())
+
   end subroutine test_datetime_types
 
 end module test_mo_datetime

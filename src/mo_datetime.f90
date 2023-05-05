@@ -156,20 +156,17 @@ contains
   end function now
 
   !> \brief number of days in a given year
-  logical function is_leap_year(year)
+  pure logical function is_leap_year(year)
     implicit none
     integer(i4), intent(in) :: year                     !< MINYEAR <= year <= MAXYEAR
-    call check_year(year)
     is_leap_year = mod(year, 4_i4) == 0_i4 .and. (mod(year, 100_i4) /= 0_i4 .or. mod(year, 400_i4) == 0_i4)
   end function is_leap_year
 
   !> \brief number of days in a given month
-  integer(i4) function days_in_month(year, month)
+  pure integer(i4) function days_in_month(year, month)
     implicit none
     integer(i4), intent(in) :: year                     !< MINYEAR <= year <= MAXYEAR
     integer(i4), intent(in) :: month                    !< 1 <= month <= 12
-    call check_year(year)
-    call check_month(month)
     ! february is the special case
     if (month == 2_i4) then
       days_in_month = 28_i4
@@ -185,26 +182,23 @@ contains
   end function days_in_month
 
   !> \brief number of days in a given year
-  integer(i4) function days_in_year(year)
+  pure integer(i4) function days_in_year(year)
     implicit none
     integer(i4), intent(in) :: year                     !< MINYEAR <= year <= MAXYEAR
-    call check_year(year)
     days_in_year = 365_i4
     if (is_leap_year(year)) days_in_year = 366_i4
   end function days_in_year
 
   !> \brief get date from day of the year
-  subroutine doy_to_month_day(year, doy, month, day)
+  pure subroutine doy_to_month_day(year, doy, month, day)
     implicit none
     integer(i4), intent(in) :: year                     !< MINYEAR <= year <= MAXYEAR
     integer(i4), intent(in) :: doy                      !< 1 <= doy <= days_in_year
     integer(i4), intent(out), optional :: month         !< month for the given doy
     integer(i4), intent(out), optional :: day           !< day in month for the given doy
     integer(i4) :: i, dim, remain
-
-    if (doy < 1_i4 .or. doy > days_in_year(year)) &
-      call error_message("Given day of the year is out of range. Got: ", num2str(doy)) ! LCOV_EXCL_LINE
-    remain = doy
+    ! for pure function, we can't raise errors, so we force doy to be valid
+    remain = min(max(doy, 1_i4), days_in_year(year))
     do i=1_i4, 12_i4
       dim = days_in_month(year=year, month=i)
       if (remain <= dim) exit
@@ -364,7 +358,7 @@ contains
   end function dt_weekday
 
   !> \brief day of the year
-  integer(i4) function dt_doy(this)
+  pure integer(i4) function dt_doy(this)
     implicit none
     class(datetime), intent(in) :: this
     integer(i4) :: i
@@ -503,7 +497,7 @@ contains
   end function dt_geq
 
   !> \brief add a timedelta to a datetime
-  type(datetime) function dt_add1(this, that)
+  pure type(datetime) function dt_add1(this, that)
     implicit none
     class(datetime), intent(in) :: this
     class(timedelta), intent(in) :: that
@@ -540,11 +534,16 @@ contains
     new_minute = temp_seconds / 60_i4
     new_second = mod(temp_seconds, 60_i4)
     ! create datetime
-    dt_add1 = datetime(year=new_year, month=new_month, day=new_day, hour=new_hour, minute=new_minute, second=new_second)
+    dt_add1%year = new_year
+    dt_add1%month = new_month
+    dt_add1%day = new_day
+    dt_add1%hour = new_hour
+    dt_add1%minute = new_minute
+    dt_add1%second = new_second
   end function dt_add1
 
   !> \brief add a timedelta to a datetime
-  type(datetime) function dt_add2(that, this)
+  pure type(datetime) function dt_add2(that, this)
     implicit none
     class(datetime), intent(in) :: this
     class(timedelta), intent(in) :: that
@@ -552,7 +551,7 @@ contains
   end function dt_add2
 
   !> \brief subtract a timedelta from a datetime
-  type(datetime) function dt_sub_td(this, that)
+  pure type(datetime) function dt_sub_td(this, that)
     implicit none
     class(datetime), intent(in) :: this
     class(timedelta), intent(in) :: that
@@ -560,7 +559,7 @@ contains
   end function dt_sub_td
 
   !> \brief difference between two datetimes
-  type(timedelta) function dt_sub_dt(this, that)
+  pure type(timedelta) function dt_sub_dt(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
     type(timedelta) :: tmp_this, tmp_that
