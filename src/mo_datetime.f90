@@ -203,7 +203,7 @@ contains
     integer(i4) :: i, dim, remain
 
     if (doy < 1_i4 .or. doy > days_in_year(year)) &
-      call error_message("Given day of the year is out of range. Got: ", num2str(doy))
+      call error_message("Given day of the year is out of range. Got: ", num2str(doy)) ! LCOV_EXCL_LINE
     remain = doy
     do i=1_i4, 12_i4
       dim = days_in_month(year=year, month=i)
@@ -219,7 +219,7 @@ contains
     implicit none
     integer(i4), intent(in) :: year            !< MINYEAR <= year <= MAXYEAR
     if (year < MINYEAR .or. year > MAXYEAR) &
-      call error_message("datetime: year is out of range. Got: ", num2str(year))
+      call error_message("datetime: year is out of range. Got: ", num2str(year)) ! LCOV_EXCL_LINE
   end subroutine check_year
 
   !> \brief check if a given month is valid
@@ -227,7 +227,7 @@ contains
     implicit none
     integer(i4), intent(in) :: month           !< 1 <= month <= 12
     if (month < 1 .or. month > 12) &
-      call error_message("datetime: month is out of range. Got: ", num2str(month))
+      call error_message("datetime: month is out of range. Got: ", num2str(month)) ! LCOV_EXCL_LINE
   end subroutine check_month
 
   !> \brief check if a given day is valid
@@ -237,7 +237,7 @@ contains
     integer(i4), intent(in) :: month          !< 1 <= month <= 12
     integer(i4), intent(in) :: day            !< 1 <= day <= number of days in the given month and year
     if (day < 1 .or. day > days_in_month(year, month)) &
-      call error_message("datetime: day is out of range. Got: ", num2str(day))
+      call error_message("datetime: day is out of range. Got: ", num2str(day)) ! LCOV_EXCL_LINE
   end subroutine check_day
 
   !> \brief check if a given hour is valid
@@ -245,7 +245,7 @@ contains
     implicit none
     integer(i4), intent(in), optional :: hour           !< 1 <= hour < 24
     if (hour < 0 .or. hour > 23) &
-      call error_message("datetime: hour is out of range. Got: ", num2str(hour))
+      call error_message("datetime: hour is out of range. Got: ", num2str(hour)) ! LCOV_EXCL_LINE
   end subroutine check_hour
 
   !> \brief check if a given minute is valid
@@ -253,7 +253,7 @@ contains
     implicit none
     integer(i4), intent(in), optional :: minute         !< 1 <= minute < 60
     if (minute < 0 .or. minute > 59) &
-      call error_message("datetime: minute is out of range. Got: ", num2str(minute))
+      call error_message("datetime: minute is out of range. Got: ", num2str(minute)) ! LCOV_EXCL_LINE
   end subroutine check_minute
 
   !> \brief check if a given second is valid
@@ -261,7 +261,7 @@ contains
     implicit none
     integer(i4), intent(in), optional :: second         !< 1 <= second < 60
     if (second < 0 .or. second > 59) &
-      call error_message("datetime: second is out of range. Got: ", num2str(second))
+      call error_message("datetime: second is out of range. Got: ", num2str(second)) ! LCOV_EXCL_LINE
   end subroutine check_second
 
   !> \brief check if a datetime is valid
@@ -275,7 +275,7 @@ contains
     integer(i4), intent(in), optional :: second         !< 1 <= second < 60
     ! sanity check for day
     if (present(day) .and. .not. (present(year) .and. present(month))) &
-      call error_message("check_datetime: to validate a given 'day', 'year' and 'month' are required.")
+      call error_message("check_datetime: to validate a given 'day', 'year' and 'month' are required.") ! LCOV_EXCL_LINE
     ! check components
     if (present(year)) call check_year(year)
     if (present(month)) call check_month(month)
