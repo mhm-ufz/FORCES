@@ -2,7 +2,7 @@ module test_mo_datetime
   use funit
   use mo_kind, only: i4, i8, dp
   use mo_datetime, only: datetime, timedelta, one_hour, one_day, one_week, one_minute, one_second, is_leap_year
-  use mo_datetime, only: days_in_month, days_in_year, now
+  use mo_datetime, only: days_in_month, days_in_year, now, zero_delta
 
   implicit none
 
@@ -27,16 +27,21 @@ contains
     delta = timedelta(days=1, seconds=-100000)
     delta1 = timedelta(1_i4, 20265_i4)
 
+    @assertEqual(one_week / one_day, 7.0_dp, tolerance=0.0001)
+
     @assertTrue((one_day / 24.0_dp) == one_hour)
     @assertTrue((one_day * 1.23456_dp) == delta1)
+    @assertTrue((one_day * 1.23456_dp) == (1.23456_dp * one_day))
     @assertTrue((one_day * 100000_i4) == (one_day * 100000._dp))
     @assertTrue((one_week / (-7_i4)) == (-1_i4 * one_day))
+
     @assertFalse(is_leap_year(1900))
     @assertFalse(is_leap_year(1901))
     @assertFalse(is_leap_year(1902))
     @assertFalse(is_leap_year(1903))
     @assertTrue(is_leap_year(1904))
     @assertTrue(is_leap_year(2000))
+
     @assertTrue((date1 - date2) == one_day)
     @assertTrue((date1 - date3) == timedelta(1095_i4))
     @assertTrue((date3 - date2) == timedelta(-1094_i4))
@@ -48,13 +53,20 @@ contains
     @assertTrue(date1 /= date2)
     @assertTrue(date1 == date1)
 
+    @assertTrue(delta%abs() >= zero_delta)
+    @assertTrue(delta%abs() > delta)
+    @assertTrue(delta1 < (2.0_dp * delta1))
+    @assertTrue(delta1 <= (2.0_dp * delta1))
+    @assertTrue((2_i4 * delta1) > delta1)
+    @assertTrue((2_i4 * delta1) >= delta1)
     @assertTrue(+delta == delta)
     @assertTrue(-delta /= delta)
     @assertEqual(int(delta%total_seconds(), i4), -13600_i4)
     @assertTrue(date1+delta < date1)
+    @assertTrue(date1+delta == delta+date1)
     @assertTrue(date1-delta > date1)
     @assertTrue((delta+delta) == (2*delta))
-    @assertTrue(14*one_day == 2*one_week)
+    @assertTrue((14*one_day) == (2*one_week))
 
     @assertEqual(days_in_month(1900, 2), 28)
     @assertEqual(days_in_month(2000, 2), 29)
