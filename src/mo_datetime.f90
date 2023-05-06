@@ -32,13 +32,26 @@ module mo_datetime
 
   private
 
-  integer(i4), parameter :: MINYEAR = 1_i4
-  integer(i4), parameter :: MAXYEAR = 9999_i4
+  integer(i4), parameter, public :: YEAR_DAYS = 365_i4 !< days in standard year
+  integer(i4), parameter, public :: LEAP_YEAR_DAYS = 366_i4 !< days in leap year
+  integer(i4), parameter, public :: YEAR_MONTHS = 12_i4 !< months in year
+  integer(i4), parameter, public :: WEEK_DAYS = 7_i4 !< days in week
+  integer(i4), parameter, public :: DAY_HOURS = 24_i4 !< hours in day
+  integer(i4), parameter, public :: HOUR_MINUTES = 60_i4 !< minutes in hour
+  integer(i4), parameter, public :: MINUTE_SECONDS = 60_i4 !< seconds in minute
+  integer(i4), parameter, public :: DAY_MINUTES = DAY_HOURS * HOUR_MINUTES !< minutes in day
+  integer(i4), parameter, public :: DAY_SECONDS = DAY_MINUTES * MINUTE_SECONDS !< seconds in day
+  integer(i4), parameter, public :: HOUR_SECONDS = HOUR_MINUTES * MINUTE_SECONDS !< seconds in hour
+  integer(i4), parameter, public :: WEEK_HOURS = WEEK_DAYS * DAY_HOURS !< hours in week
+  integer(i4), parameter, public :: WEEK_MINUTES = WEEK_DAYS * DAY_MINUTES !< minutes in week
+  integer(i4), parameter, public :: WEEK_SECONDS = WEEK_DAYS * DAY_SECONDS !< seconds in week
+  integer(i4), parameter :: MIN_YEAR = 1_i4 !< minimum for year
+  integer(i4), parameter :: MAX_YEAR = 9999_i4 !< maximum for year
 
   !> \class   date
   !> \brief   This is a container to hold a date.
   type date
-    integer(i4), public :: year                     !< MINYEAR <= year <= MAXYEAR
+    integer(i4), public :: year                     !< 1 <= year <= 9999
     integer(i4), public :: month                    !< 1 <= month <= 12
     integer(i4), public :: day                      !< 1 <= day <= number of days in the given month and year
   contains
@@ -80,7 +93,7 @@ module mo_datetime
   !> \class   datetime
   !> \brief   This is a container to hold a date-time.
   type datetime
-    integer(i4), public :: year                     !< MINYEAR <= year <= MAXYEAR
+    integer(i4), public :: year                     !< 1 <= year <= 9999
     integer(i4), public :: month                    !< 1 <= month <= 12
     integer(i4), public :: day                      !< 1 <= day <= number of days in the given month and year
     integer(i4), public :: hour                     !< 1 <= hour < 24
@@ -178,10 +191,10 @@ module mo_datetime
 
   ! intel fortran compiler can't use type with interface to construct parameter variables
   type(timedelta_c), parameter :: zero_delta = timedelta_c(0_i4, 0_i4)            !< zero time delta
-  type(timedelta_c), parameter :: one_week = timedelta_c(7_i4, 0_i4)              !< one week time delta
+  type(timedelta_c), parameter :: one_week = timedelta_c(WEEK_DAYS, 0_i4)         !< one week time delta
   type(timedelta_c), parameter :: one_day = timedelta_c(1_i4, 0_i4)               !< one day time delta
-  type(timedelta_c), parameter :: one_hour = timedelta_c(0_i4, 3600_i4)           !< one hour time delta
-  type(timedelta_c), parameter :: one_minute = timedelta_c(0_i4, 60_i4)           !< one minute time delta
+  type(timedelta_c), parameter :: one_hour = timedelta_c(0_i4, HOUR_SECONDS)      !< one hour time delta
+  type(timedelta_c), parameter :: one_minute = timedelta_c(0_i4, MINUTE_SECONDS)  !< one minute time delta
   type(timedelta_c), parameter :: one_second = timedelta_c(0_i4, 1_i4)            !< one second time delta
 
   ! constructor interface for date
@@ -220,7 +233,7 @@ contains
   !> \brief day of the week
   pure integer(i4) function weekday(year, month, day)
     implicit none
-    integer(i4), intent(in) :: year           !< MINYEAR <= year <= MAXYEAR
+    integer(i4), intent(in) :: year           !< 1 <= year <= 9999
     integer(i4), intent(in) :: month          !< 1 <= month <= 12
     integer(i4), intent(in) :: day            !< 1 <= day <= number of days in the given month and year
     integer(i4) :: year_j, year_k, mon, yea
@@ -229,28 +242,28 @@ contains
     mon = month
     ! jan + feb are 13. and 14. month of previous year
     if (mon < 3_i4) then
-      mon = mon + 12_i4
+      mon = mon + YEAR_MONTHS
       yea = yea - 1_i4
     end if
     year_j = yea / 100_i4
     year_k = mod(yea, 100_i4)
-    weekday = mod(day + (13_i4*(mon+1_i4))/5_i4 + year_k + year_k/4_i4 + year_j/4_i4 + 5_i4*year_j, 7_i4)
+    weekday = mod(day + (13_i4*(mon+1_i4))/5_i4 + year_k + year_k/4_i4 + year_j/4_i4 + 5_i4*year_j, WEEK_DAYS)
     ! convert counting
     weekday = weekday - 1_i4
-    if (weekday < 1_i4) weekday = weekday + 7_i4
+    if (weekday < 1_i4) weekday = weekday + WEEK_DAYS
   end function weekday
 
   !> \brief number of days in a given year
   pure logical function is_leap_year(year)
     implicit none
-    integer(i4), intent(in) :: year                     !< MINYEAR <= year <= MAXYEAR
+    integer(i4), intent(in) :: year                     !< 1 <= year <= 9999
     is_leap_year = mod(year, 4_i4) == 0_i4 .and. (mod(year, 100_i4) /= 0_i4 .or. mod(year, 400_i4) == 0_i4)
   end function is_leap_year
 
   !> \brief number of days in a given month
   pure integer(i4) function days_in_month(year, month)
     implicit none
-    integer(i4), intent(in) :: year                     !< MINYEAR <= year <= MAXYEAR
+    integer(i4), intent(in) :: year                     !< 1 <= year <= 9999
     integer(i4), intent(in) :: month                    !< 1 <= month <= 12
     ! february is the special case
     if (month == 2_i4) then
@@ -269,22 +282,22 @@ contains
   !> \brief number of days in a given year
   pure integer(i4) function days_in_year(year)
     implicit none
-    integer(i4), intent(in) :: year                     !< MINYEAR <= year <= MAXYEAR
-    days_in_year = 365_i4
-    if (is_leap_year(year)) days_in_year = 366_i4
+    integer(i4), intent(in) :: year                     !< 1 <= year <= 9999
+    days_in_year = YEAR_DAYS
+    if (is_leap_year(year)) days_in_year = LEAP_YEAR_DAYS
   end function days_in_year
 
   !> \brief get date from day of the year
   pure subroutine doy_to_month_day(year, doy, month, day)
     implicit none
-    integer(i4), intent(in) :: year                     !< MINYEAR <= year <= MAXYEAR
+    integer(i4), intent(in) :: year                     !< 1 <= year <= 9999
     integer(i4), intent(in) :: doy                      !< 1 <= doy <= days_in_year (will be capped)
     integer(i4), intent(out), optional :: month         !< month for the given doy
     integer(i4), intent(out), optional :: day           !< day in month for the given doy
     integer(i4) :: i, dim, remain
     ! for pure function, we can't raise errors, so we force doy to be valid
     remain = min(max(doy, 1_i4), days_in_year(year))
-    do i=1_i4, 12_i4
+    do i=1_i4, YEAR_MONTHS
       dim = days_in_month(year=year, month=i)
       if (remain <= dim) exit
       remain = remain - dim
@@ -296,8 +309,8 @@ contains
   !> \brief check if a given year is valid
   subroutine check_year(year)
     implicit none
-    integer(i4), intent(in) :: year            !< MINYEAR <= year <= MAXYEAR
-    if (year < MINYEAR .or. year > MAXYEAR) &
+    integer(i4), intent(in) :: year            !< 1 <= year <= 9999
+    if (year < MIN_YEAR .or. year > MAX_YEAR) &
       call error_message("datetime: year is out of range. Got: ", num2str(year)) ! LCOV_EXCL_LINE
   end subroutine check_year
 
@@ -305,17 +318,17 @@ contains
   subroutine check_month(month)
     implicit none
     integer(i4), intent(in) :: month           !< 1 <= month <= 12
-    if (month < 1 .or. month > 12) &
+    if (month < 1_i4 .or. month > YEAR_MONTHS) &
       call error_message("datetime: month is out of range. Got: ", num2str(month)) ! LCOV_EXCL_LINE
   end subroutine check_month
 
   !> \brief check if a given day is valid
   subroutine check_day(year, month, day)
     implicit none
-    integer(i4), intent(in) :: year           !< MINYEAR <= year <= MAXYEAR
+    integer(i4), intent(in) :: year           !< 1 <= year <= 9999
     integer(i4), intent(in) :: month          !< 1 <= month <= 12
     integer(i4), intent(in) :: day            !< 1 <= day <= number of days in the given month and year
-    if (day < 1 .or. day > days_in_month(year, month)) &
+    if (day < 1_i4 .or. day > days_in_month(year, month)) &
       call error_message("datetime: day is out of range. Got: ", num2str(day)) ! LCOV_EXCL_LINE
   end subroutine check_day
 
@@ -323,7 +336,7 @@ contains
   subroutine check_hour(hour)
     implicit none
     integer(i4), intent(in), optional :: hour           !< 1 <= hour < 24
-    if (hour < 0 .or. hour > 23) &
+    if (hour < 0_i4 .or. hour >= DAY_HOURS) &
       call error_message("datetime: hour is out of range. Got: ", num2str(hour)) ! LCOV_EXCL_LINE
   end subroutine check_hour
 
@@ -331,7 +344,7 @@ contains
   subroutine check_minute(minute)
     implicit none
     integer(i4), intent(in), optional :: minute         !< 1 <= minute < 60
-    if (minute < 0 .or. minute > 59) &
+    if (minute < 0_i4 .or. minute >= HOUR_MINUTES) &
       call error_message("datetime: minute is out of range. Got: ", num2str(minute)) ! LCOV_EXCL_LINE
   end subroutine check_minute
 
@@ -339,14 +352,14 @@ contains
   subroutine check_second(second)
     implicit none
     integer(i4), intent(in), optional :: second         !< 1 <= second < 60
-    if (second < 0 .or. second > 59) &
+    if (second < 0_i4 .or. second >= MINUTE_SECONDS) &
       call error_message("datetime: second is out of range. Got: ", num2str(second)) ! LCOV_EXCL_LINE
   end subroutine check_second
 
   !> \brief check if a datetime is valid
   subroutine check_datetime(year, month, day, hour, minute, second)
     implicit none
-    integer(i4), intent(in), optional :: year           !< MINYEAR <= year <= MAXYEAR
+    integer(i4), intent(in), optional :: year           !< 1 <= year <= 9999
     integer(i4), intent(in), optional :: month          !< 1 <= month <= 12
     integer(i4), intent(in), optional :: day            !< 1 <= day <= number of days in the given month and year
     integer(i4), intent(in), optional :: hour           !< 1 <= hour < 24
@@ -369,7 +382,7 @@ contains
   !> \brief initialize a datetime
   function init_datetime(year, month, day, hour, minute, second) result(out)
     implicit none
-    integer(i4), intent(in) :: year                     !< MINYEAR <= year <= MAXYEAR
+    integer(i4), intent(in) :: year                     !< 1 <= year <= 9999
     integer(i4), intent(in) :: month                    !< 1 <= month <= 12
     integer(i4), intent(in) :: day                      !< 1 <= day <= number of days in the given month and year
     integer(i4), intent(in), optional :: hour           !< 1 <= hour < 24
@@ -419,7 +432,7 @@ contains
   type(datetime) function dt_replace(this, year, month, day, hour, minute, second)
     implicit none
     class(datetime), intent(in) :: this
-    integer(i4), intent(in), optional :: year           !< MINYEAR <= year <= MAXYEAR
+    integer(i4), intent(in), optional :: year           !< 1 <= year <= 9999
     integer(i4), intent(in), optional :: month          !< 1 <= month <= 12
     integer(i4), intent(in), optional :: day            !< 1 <= day <= number of days in the given month and year
     integer(i4), intent(in), optional :: hour           !< 1 <= hour < 24
@@ -711,10 +724,10 @@ contains
 
     ! remaining seconds are less than a day and are always positive
     temp_seconds = temp%seconds
-    new_hour = temp_seconds / 3600_i4
-    temp_seconds = mod(temp_seconds, 3600_i4)
-    new_minute = temp_seconds / 60_i4
-    new_second = mod(temp_seconds, 60_i4)
+    new_hour = temp_seconds / HOUR_SECONDS
+    temp_seconds = mod(temp_seconds, HOUR_SECONDS)
+    new_minute = temp_seconds / MINUTE_SECONDS
+    new_second = mod(temp_seconds, MINUTE_SECONDS)
     ! create datetime
     dt_add_td%year = new_year
     dt_add_td%month = new_month
@@ -776,7 +789,7 @@ contains
   !> \brief initialize a date
   function init_date(year, month, day) result(out)
     implicit none
-    integer(i4), intent(in) :: year                     !< MINYEAR <= year <= MAXYEAR
+    integer(i4), intent(in) :: year                     !< 1 <= year <= 9999
     integer(i4), intent(in) :: month                    !< 1 <= month <= 12
     integer(i4), intent(in) :: day                      !< 1 <= day <= number of days in the given month and year
     type(date) :: out
@@ -803,7 +816,7 @@ contains
   type(date) function d_replace(this, year, month, day)
     implicit none
     class(date), intent(in) :: this
-    integer(i4), intent(in), optional :: year                     !< MINYEAR <= year <= MAXYEAR
+    integer(i4), intent(in), optional :: year                     !< 1 <= year <= 9999
     integer(i4), intent(in), optional :: month                    !< 1 <= month <= 12
     integer(i4), intent(in), optional :: day                      !< 1 <= day <= number of days in the given month and year
     integer(i4) :: new_year, new_month, new_day
@@ -1048,28 +1061,28 @@ contains
 
     out%days = 0
     if (present(days)) out%days = days
-    if (present(weeks)) out%days = out%days + weeks * 7_i4
+    if (present(weeks)) out%days = out%days + weeks * WEEK_DAYS
     out%seconds = 0
     if (present(seconds)) out%seconds = seconds
-    if (present(minutes)) out%seconds = out%seconds + minutes * 60_i4
-    if (present(hours)) out%seconds = out%seconds + hours * 3600_i4
+    if (present(minutes)) out%seconds = out%seconds + minutes * MINUTE_SECONDS
+    if (present(hours)) out%seconds = out%seconds + hours * HOUR_SECONDS
 
     ! force: 0 <= seconds < 86400
     if (out%seconds < 0) then
-      neg_days = abs(out%seconds) / 86400_i4
-      remain_sec = mod(abs(out%seconds), 86400_i4)
+      neg_days = abs(out%seconds) / DAY_SECONDS
+      remain_sec = mod(abs(out%seconds), DAY_SECONDS)
       ! add full days in negative seconds
-      out%seconds = out%seconds + neg_days * 86400_i4
+      out%seconds = out%seconds + neg_days * DAY_SECONDS
       out%days = out%days - neg_days
       ! add one days to remaining seconds if still negative
       if (remain_sec > 0) then
-        out%seconds = out%seconds + 86400_i4
+        out%seconds = out%seconds + DAY_SECONDS
         out%days = out%days - 1_i4
       end if
     end if
-    if (out%seconds >= 86400_i4) then
-      neg_days = out%seconds / 86400_i4
-      out%seconds = out%seconds - neg_days * 86400_i4
+    if (out%seconds >= DAY_SECONDS) then
+      neg_days = out%seconds / DAY_SECONDS
+      out%seconds = out%seconds - neg_days * DAY_SECONDS
       out%days = out%days + neg_days
     end if
   end function init_timedelta
@@ -1093,12 +1106,14 @@ contains
   pure integer(i8) function td_total_seconds(this)
     implicit none
     class(timedelta), intent(in) :: this
-    td_total_seconds = int(this%days, i8) * 86400_i8 + int(this%seconds, i8)
+    td_total_seconds = int(this%days, i8) * int(DAY_SECONDS, i8) + int(this%seconds, i8)
   end function td_total_seconds
 
   pure type(timedelta) function from_total_seconds(total_seconds)
     integer(i8), intent(in) :: total_seconds
-    from_total_seconds = timedelta(days=int(total_seconds / 86400_i8, i4), seconds=int(mod(total_seconds, 86400_i8), i4))
+    integer(i8) :: daysec
+    daysec = int(DAY_SECONDS, i8)
+    from_total_seconds = timedelta(days=int(total_seconds / daysec, i4), seconds=int(mod(total_seconds, daysec), i4))
   end function from_total_seconds
 
   !> \brief copy a timedelta
