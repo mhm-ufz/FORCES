@@ -18,8 +18,10 @@ module mo_datetime
 
   public :: is_leap_year, days_in_month, days_in_year
 
+  public :: date
   public :: datetime
   public :: timedelta
+  public :: today
   public :: now
   public :: zero_delta
   public :: one_day
@@ -33,6 +35,46 @@ module mo_datetime
   integer(i4), parameter :: MINYEAR = 1_i4
   integer(i4), parameter :: MAXYEAR = 9999_i4
 
+  !> \class   date
+  !> \brief   This is a container to hold a date.
+  type date
+    integer(i4), public :: year                     !< MINYEAR <= year <= MAXYEAR
+    integer(i4), public :: month                    !< 1 <= month <= 12
+    integer(i4), public :: day                      !< 1 <= day <= number of days in the given month and year
+  contains
+    !> \copydoc mo_datetime::to_datetime
+    procedure, public :: to_datetime !< \see mo_datetime::to_datetime
+    !> \copydoc mo_datetime::d_str
+    procedure, public :: str => d_str !< \see mo_datetime::d_str
+    !> \copydoc mo_datetime::d_weekday
+    procedure, public :: weekday => d_weekday !< \see mo_datetime::d_weekday
+    !> \copydoc mo_datetime::d_doy
+    procedure, public :: doy => d_doy !< \see mo_datetime::d_doy
+    !> \copydoc mo_datetime::is_new_year
+    procedure, public :: is_new_year => d_is_new_year !< \see mo_datetime::is_new_year
+    !> \copydoc mo_datetime::is_new_month
+    procedure, public :: is_new_month => d_is_new_month !< \see mo_datetime::is_new_month
+    !> \copydoc mo_datetime::is_new_week
+    procedure, public :: is_new_week => d_is_new_week !< \see mo_datetime::is_new_week
+    procedure, private :: d_eq, d_eq_dt
+    generic, public :: operator(==) => d_eq, d_eq_dt
+    procedure, private :: d_neq, d_neq_dt
+    generic, public :: operator(/=) => d_neq, d_neq_dt
+    procedure, private :: d_lt, d_lt_dt
+    generic, public :: operator(<) => d_lt, d_lt_dt
+    procedure, private :: d_gt, d_gt_dt
+    generic, public :: operator(>) => d_gt, d_gt_dt
+    procedure, private :: d_leq, d_leq_dt
+    generic, public :: operator(<=) => d_leq, d_leq_dt
+    procedure, private :: d_geq, d_geq_dt
+    generic, public :: operator(>=) => d_geq, d_geq_dt
+    procedure, private :: d_add_td
+    procedure, pass(this), private :: td_add_d
+    generic, public :: operator(+) => d_add_td, td_add_d
+    procedure, private :: d_sub_td, d_sub_d, d_sub_dt
+    generic, public :: operator(-) => d_sub_td, d_sub_d, d_sub_dt
+  end type date
+
   !> \class   datetime
   !> \brief   This is a container to hold a date-time.
   type datetime
@@ -43,6 +85,8 @@ module mo_datetime
     integer(i4), public :: minute                   !< 1 <= minute < 60
     integer(i4), public :: second                   !< 1 <= second < 60
   contains
+    !> \copydoc mo_datetime::get_date
+    procedure, public :: date => get_date !< \see mo_datetime::get_date
     !> \copydoc mo_datetime::dt_str
     procedure, public :: str => dt_str !< \see mo_datetime::dt_str
     !> \copydoc mo_datetime::dt_weekday
@@ -61,24 +105,25 @@ module mo_datetime
     procedure, public :: is_new_hour !< \see mo_datetime::is_new_hour
     !> \copydoc mo_datetime::is_new_minute
     procedure, public :: is_new_minute !< \see mo_datetime::is_new_minute
-    procedure, private :: dt_eq
-    generic, public :: operator(==) => dt_eq
-    procedure, private :: dt_neq
-    generic, public :: operator(/=) => dt_neq
-    procedure, private :: dt_lt
-    generic, public :: operator(<) => dt_lt
-    procedure, private :: dt_gt
-    generic, public :: operator(>) => dt_gt
-    procedure, private :: dt_leq
-    generic, public :: operator(<=) => dt_leq
-    procedure, private :: dt_geq
-    generic, public :: operator(>=) => dt_geq
-    procedure, private :: dt_add1
-    procedure, pass(this), private :: dt_add2
-    generic, public :: operator(+) => dt_add1, dt_add2
-    procedure, private :: dt_sub_td
-    procedure, private :: dt_sub_dt
-    generic, public :: operator(-) => dt_sub_td, dt_sub_dt
+    procedure, private :: dt_copy_dt, dt_copy_d
+    generic :: assignment(=) => dt_copy_dt, dt_copy_d
+    procedure, private :: dt_eq, dt_eq_d
+    generic, public :: operator(==) => dt_eq, dt_eq_d
+    procedure, private :: dt_neq, dt_neq_d
+    generic, public :: operator(/=) => dt_neq, dt_neq_d
+    procedure, private :: dt_lt, dt_lt_d
+    generic, public :: operator(<) => dt_lt, dt_lt_d
+    procedure, private :: dt_gt, dt_gt_d
+    generic, public :: operator(>) => dt_gt, dt_gt_d
+    procedure, private :: dt_leq, dt_leq_d
+    generic, public :: operator(<=) => dt_leq, dt_leq_d
+    procedure, private :: dt_geq, dt_geq_d
+    generic, public :: operator(>=) => dt_geq, dt_geq_d
+    procedure, private :: dt_add_td
+    procedure, pass(this), private :: td_add_dt
+    generic, public :: operator(+) => dt_add_td, td_add_dt
+    procedure, private :: dt_sub_td, dt_sub_dt, dt_sub_d
+    generic, public :: operator(-) => dt_sub_td, dt_sub_dt, dt_sub_d
   end type datetime
 
   !> \class   timedelta
@@ -135,6 +180,12 @@ module mo_datetime
   type(timedelta_c), parameter :: one_minute = timedelta_c(0_i4, 60_i4)           !< one minute time delta
   type(timedelta_c), parameter :: one_second = timedelta_c(0_i4, 1_i4)            !< one second time delta
 
+  ! constructor interface for date
+  interface date
+    procedure init_date
+    procedure date_from_string
+  end interface date
+
   ! constructor interface for datetime
   interface datetime
     procedure init_datetime
@@ -148,12 +199,42 @@ module mo_datetime
 
 contains
 
+  !> \brief get current date
+  type(date) function today()
+    integer(i4) :: values(8)
+    call date_and_time(values=values)
+    today = date(year=values(1), month=values(2), day=values(3))
+  end function today
+
   !> \brief get current datetime
   type(datetime) function now()
     integer(i4) :: values(8)
     call date_and_time(values=values)
     now = datetime(year=values(1), month=values(2), day=values(3), hour=values(5), minute=values(6), second=values(7))
   end function now
+
+  !> \brief day of the week
+  pure integer(i4) function weekday(year, month, day)
+    implicit none
+    integer(i4), intent(in) :: year           !< MINYEAR <= year <= MAXYEAR
+    integer(i4), intent(in) :: month          !< 1 <= month <= 12
+    integer(i4), intent(in) :: day            !< 1 <= day <= number of days in the given month and year
+    integer(i4) :: year_j, year_k, mon, yea
+    ! Zeller's congruence
+    yea = year
+    mon = month
+    ! jan + feb are 13. and 14. month of previous year
+    if (mon < 3_i4) then
+      mon = mon + 12_i4
+      yea = yea - 1_i4
+    end if
+    year_j = yea / 100_i4
+    year_k = mod(yea, 100_i4)
+    weekday = mod(day + (13_i4*(mon+1_i4))/5_i4 + year_k + year_k/4_i4 + year_j/4_i4 + 5_i4*year_j, 7_i4)
+    ! convert counting
+    weekday = weekday - 1_i4
+    if (weekday < 1_i4) weekday = weekday + 7_i4
+  end function weekday
 
   !> \brief number of days in a given year
   pure logical function is_leap_year(year)
@@ -193,7 +274,7 @@ contains
   pure subroutine doy_to_month_day(year, doy, month, day)
     implicit none
     integer(i4), intent(in) :: year                     !< MINYEAR <= year <= MAXYEAR
-    integer(i4), intent(in) :: doy                      !< 1 <= doy <= days_in_year
+    integer(i4), intent(in) :: doy                      !< 1 <= doy <= days_in_year (will be capped)
     integer(i4), intent(out), optional :: month         !< month for the given doy
     integer(i4), intent(out), optional :: day           !< day in month for the given doy
     integer(i4) :: i, dim, remain
@@ -279,6 +360,8 @@ contains
     if (present(second)) call check_second(second)
   end subroutine check_datetime
 
+  ! DATETIME
+
   !> \brief initialize a datetime
   function init_datetime(year, month, day, hour, minute, second) result(out)
     implicit none
@@ -307,29 +390,64 @@ contains
   type(datetime) function datetime_from_string(string)
     use mo_string_utils, only : divide_string
     character(*), intent(in) :: string
-    character(256), dimension(:), allocatable :: str_arr, date, time
+    character(256), dimension(:), allocatable :: str_arr, date_str, time_str
     integer(i4) :: year, month, day, hour, minute, second
     call divide_string(trim(string), ' ', str_arr)
     ! determine reference time at '-' and convert to integer
-    call divide_string(trim(str_arr(1)), '-', date)
-    read(date(1), *) year
-    read(date(2), *) month
-    read(date(3), *) day
+    call divide_string(trim(str_arr(1)), '-', date_str)
+    read(date_str(1), *) year
+    read(date_str(2), *) month
+    read(date_str(3), *) day
     ! if existing also read in the time
     hour = 0_i4
     minute = 0_i4
     second = 0_i4
     if(size(str_arr) > 1_i4) then
-      call divide_string(trim(str_arr(2)), ':', time)
-      read(time(1), *) hour
-      read(time(2), *) minute
-      read(time(3), *) second
+      call divide_string(trim(str_arr(2)), ':', time_str)
+      read(time_str(1), *) hour
+      read(time_str(2), *) minute
+      read(time_str(3), *) second
     end if
     datetime_from_string = datetime(year=year, month=month, day=day, hour=hour, minute=minute, second=second)
   end function datetime_from_string
 
+  !> \brief copy a datetime
+  pure subroutine dt_copy_dt(this, that)
+    implicit none
+    class(datetime), intent(inout) :: this
+    class(datetime), intent(in) :: that
+    this%year = that%year
+    this%month = that%month
+    this%day = that%day
+    this%hour = that%hour
+    this%minute = that%minute
+    this%second = that%second
+  end subroutine dt_copy_dt
+
+  !> \brief copy a datetime from a date
+  pure subroutine dt_copy_d(this, that)
+    implicit none
+    class(datetime), intent(inout) :: this
+    class(date), intent(in) :: that
+    this%year = that%year
+    this%month = that%month
+    this%day = that%day
+    this%hour = 0_i4
+    this%minute = 0_i4
+    this%second = 0_i4
+  end subroutine dt_copy_d
+
+  !> \brief date of the datetime
+  pure type(date) function get_date(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    get_date%year = this%year
+    get_date%month = this%month
+    get_date%day = this%day
+  end function get_date
+
   !> \brief string representation of the datetime
-  character(19) function dt_str(this)
+  pure character(19) function dt_str(this)
     implicit none
     class(datetime), intent(in) :: this
     write(dt_str, "(i4.4, '-' ,i2.2, '-', i2.2, 1x, i2.2, ':', i2.2, ':', i2.2)") &
@@ -340,32 +458,14 @@ contains
   pure integer(i4) function dt_weekday(this)
     implicit none
     class(datetime), intent(in) :: this
-    integer(i4) :: year_j, year_k, mon, year
-    ! Zeller's congruence
-    year = this%year
-    mon = this%month
-    ! jan + feb are 13. and 14. month of previous year
-    if (mon < 3_i4) then
-      mon = mon + 12_i4
-      year = year - 1_i4
-    end if
-    year_j = year / 100_i4
-    year_k = mod(year, 100_i4)
-    dt_weekday = mod(this%day + (13_i4*(mon+1_i4))/5_i4 + year_k + year_k/4_i4 + year_j/4_i4 + 5_i4*year_j, 7_i4)
-    ! convert counting
-    dt_weekday = dt_weekday - 1_i4
-    if (dt_weekday < 1_i4) dt_weekday = dt_weekday + 7_i4
+    dt_weekday = weekday(this%year, this%month, this%day)
   end function dt_weekday
 
   !> \brief day of the year
   pure integer(i4) function dt_doy(this)
     implicit none
     class(datetime), intent(in) :: this
-    integer(i4) :: i
-    dt_doy = this%day
-    do i=1_i4, this%month-1_i4
-      dt_doy = dt_doy + days_in_month(year=this%year, month=i)
-    end do
+    dt_doy = d_doy(this%date())
   end function dt_doy
 
   !> \brief datetime is a new year
@@ -422,12 +522,28 @@ contains
       .and. this%second == that%second
   end function dt_eq
 
+  !> \brief equal comparison of datetime and date
+  pure logical function dt_eq_d(this, that)
+    implicit none
+    class(datetime), intent(in) :: this
+    class(date), intent(in) :: that
+    dt_eq_d = dt_eq(this, that%to_datetime())
+  end function dt_eq_d
+
   !> \brief not equal comparison of datetimes
   pure logical function dt_neq(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
     dt_neq = .not. dt_eq(this, that)
   end function dt_neq
+
+  !> \brief not equal comparison of datetime and date
+  pure logical function dt_neq_d(this, that)
+    implicit none
+    class(datetime), intent(in) :: this
+    class(date), intent(in) :: that
+    dt_neq_d = .not. dt_eq_d(this, that)
+  end function dt_neq_d
 
   !> \brief less than comparison of datetimes
   pure logical function dt_lt(this, that)
@@ -475,12 +591,30 @@ contains
     ! they can't be all equal since that was checked first
   end function dt_lt
 
+  !> \brief less than comparison of datetime and date
+  pure logical function dt_lt_d(this, that)
+    implicit none
+    class(datetime), intent(in) :: this
+    class(date), intent(in) :: that
+    ! they need to be unequal
+    dt_lt_d = dt_lt(this, that%to_datetime())
+  end function dt_lt_d
+
   !> \brief greater than comparison of datetimes
   pure logical function dt_gt(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
     dt_gt = dt_neq(this, that) .and. .not. dt_lt(this, that)
   end function dt_gt
+
+  !> \brief greater than comparison of datetime and date
+  pure logical function dt_gt_d(this, that)
+    implicit none
+    class(datetime), intent(in) :: this
+    class(date), intent(in) :: that
+    ! they need to be unequal
+    dt_gt_d = dt_gt(this, that%to_datetime())
+  end function dt_gt_d
 
   !> \brief less than or equal comparison of datetimes
   pure logical function dt_leq(this, that)
@@ -489,6 +623,15 @@ contains
     dt_leq = dt_lt(this, that) .or. dt_eq(this, that)
   end function dt_leq
 
+  !> \brief less than or equal comparison of datetime and date
+  pure logical function dt_leq_d(this, that)
+    implicit none
+    class(datetime), intent(in) :: this
+    class(date), intent(in) :: that
+    ! they need to be unequal
+    dt_leq_d = dt_leq(this, that%to_datetime())
+  end function dt_leq_d
+
   !> \brief greater than or equal comparison of datetimes
   pure logical function dt_geq(this, that)
     implicit none
@@ -496,8 +639,17 @@ contains
     dt_geq = dt_gt(this, that) .or. dt_eq(this, that)
   end function dt_geq
 
+  !> \brief less than or equal comparison of datetime and date
+  pure logical function dt_geq_d(this, that)
+    implicit none
+    class(datetime), intent(in) :: this
+    class(date), intent(in) :: that
+    ! they need to be unequal
+    dt_geq_d = dt_geq(this, that%to_datetime())
+  end function dt_geq_d
+
   !> \brief add a timedelta to a datetime
-  pure type(datetime) function dt_add1(this, that)
+  pure type(datetime) function dt_add_td(this, that)
     implicit none
     class(datetime), intent(in) :: this
     class(timedelta), intent(in) :: that
@@ -534,21 +686,21 @@ contains
     new_minute = temp_seconds / 60_i4
     new_second = mod(temp_seconds, 60_i4)
     ! create datetime
-    dt_add1%year = new_year
-    dt_add1%month = new_month
-    dt_add1%day = new_day
-    dt_add1%hour = new_hour
-    dt_add1%minute = new_minute
-    dt_add1%second = new_second
-  end function dt_add1
+    dt_add_td%year = new_year
+    dt_add_td%month = new_month
+    dt_add_td%day = new_day
+    dt_add_td%hour = new_hour
+    dt_add_td%minute = new_minute
+    dt_add_td%second = new_second
+  end function dt_add_td
 
   !> \brief add a timedelta to a datetime
-  pure type(datetime) function dt_add2(that, this)
+  pure type(datetime) function td_add_dt(that, this)
     implicit none
     class(datetime), intent(in) :: this
     class(timedelta), intent(in) :: that
-    dt_add2 = dt_add1(this, that)
-  end function dt_add2
+    td_add_dt = dt_add_td(this, that)
+  end function td_add_dt
 
   !> \brief subtract a timedelta from a datetime
   pure type(datetime) function dt_sub_td(this, that)
@@ -580,6 +732,261 @@ contains
     tmp_that = timedelta(days=days_that, seconds=that%second, minutes=that%minute, hours=that%hour)
     dt_sub_dt = tmp_this - tmp_that
   end function dt_sub_dt
+
+  !> \brief difference between datetime and date
+  pure type(timedelta) function dt_sub_d(this, that)
+    implicit none
+    class(datetime), intent(in) :: this
+    class(date), intent(in) :: that
+    dt_sub_d = dt_sub_dt(this, that%to_datetime())
+  end function dt_sub_d
+
+  ! DATE
+
+  !> \brief initialize a date
+  function init_date(year, month, day) result(out)
+    implicit none
+    integer(i4), intent(in) :: year                     !< MINYEAR <= year <= MAXYEAR
+    integer(i4), intent(in) :: month                    !< 1 <= month <= 12
+    integer(i4), intent(in) :: day                      !< 1 <= day <= number of days in the given month and year
+    type(date) :: out
+    out%year = year
+    out%month = month
+    out%day = day
+    call check_datetime(year=out%year, month=out%month, day=out%day)
+  end function init_date
+
+  !> \brief date from string
+  type(date) function date_from_string(string)
+    use mo_string_utils, only : divide_string
+    character(*), intent(in) :: string
+    character(256), dimension(:), allocatable :: date_str
+    integer(i4) :: year, month, day
+    call divide_string(trim(string), '-', date_str)
+    read(date_str(1), *) year
+    read(date_str(2), *) month
+    read(date_str(3), *) day
+    date_from_string = date(year=year, month=month, day=day)
+  end function date_from_string
+
+  !> \brief convert date to a datetime
+  pure type(datetime) function to_datetime(this)
+    implicit none
+    class(date), intent(in) :: this
+    to_datetime%year = this%year
+    to_datetime%month = this%month
+    to_datetime%day = this%day
+    to_datetime%hour = 0_i4
+    to_datetime%minute = 0_i4
+    to_datetime%second = 0_i4
+  end function to_datetime
+
+  !> \brief string representation of the date
+  pure character(19) function d_str(this)
+    implicit none
+    class(date), intent(in) :: this
+    write(d_str, "(i4.4, '-' ,i2.2, '-', i2.2)") this%year, this%month, this%day
+  end function d_str
+
+  !> \brief day of the week
+  pure integer(i4) function d_weekday(this)
+    implicit none
+    class(date), intent(in) :: this
+    d_weekday = weekday(this%year, this%month, this%day)
+  end function d_weekday
+
+  !> \brief day of the year
+  pure integer(i4) function d_doy(this)
+    implicit none
+    class(date), intent(in) :: this
+    integer(i4) :: i
+    d_doy = this%day
+    do i=1_i4, this%month-1_i4
+      d_doy = d_doy + days_in_month(year=this%year, month=i)
+    end do
+  end function d_doy
+
+  !> \brief date is a new year
+  pure logical function d_is_new_year(this)
+    implicit none
+    class(date), intent(in) :: this
+    d_is_new_year = this%is_new_month() .and. this%month == 1_i4
+  end function d_is_new_year
+
+  !> \brief date is a new month
+  pure logical function d_is_new_month(this)
+    implicit none
+    class(date), intent(in) :: this
+    d_is_new_month = this%day == 1_i4
+  end function d_is_new_month
+
+  !> \brief date is a new week
+  pure logical function d_is_new_week(this)
+    implicit none
+    class(date), intent(in) :: this
+    d_is_new_week = this%weekday() == 1_i4
+  end function d_is_new_week
+
+  !> \brief equal comparison of dates
+  pure logical function d_eq(this, that)
+    implicit none
+    class(date), intent(in) :: this, that
+    d_eq = this%year == that%year &
+      .and. this%month == that%month &
+      .and. this%day == that%day
+  end function d_eq
+
+  !> \brief equal comparison of date and datetime
+  pure logical function d_eq_dt(this, that)
+    implicit none
+    class(date), intent(in) :: this
+    class(datetime), intent(in) :: that
+    d_eq_dt = dt_eq(this%to_datetime(), that)
+  end function d_eq_dt
+
+  !> \brief not equal comparison of dates
+  pure logical function d_neq(this, that)
+    implicit none
+    class(date), intent(in) :: this, that
+    d_neq = .not. d_eq(this, that)
+  end function d_neq
+
+  !> \brief not equal comparison of date and datetime
+  pure logical function d_neq_dt(this, that)
+    implicit none
+    class(date), intent(in) :: this
+    class(datetime), intent(in) :: that
+    d_neq_dt = dt_neq(this%to_datetime(), that)
+  end function d_neq_dt
+
+  !> \brief less than comparison of dates
+  pure logical function d_lt(this, that)
+    implicit none
+    class(date), intent(in) :: this, that
+    ! they need to be unequal
+    d_lt = d_neq(this, that)
+    if (.not. d_lt) return
+    ! now check each component from biggest to smallest
+    if (this%year < that%year) return ! true
+    if (this%year > that%year) then
+      d_lt = .false.
+      return
+    endif
+    ! year equal
+    if (this%month < that%month) return ! true
+    if (this%month > that%month) then
+      d_lt = .false.
+      return
+    endif
+    ! year+month equal
+    if (this%day < that%day) return ! true
+    if (this%day > that%day) then
+      d_lt = .false.
+      return
+    endif
+    ! they can't be all equal since that was checked first
+  end function d_lt
+
+  !> \brief less than comparison of date and datetime
+  pure logical function d_lt_dt(this, that)
+    implicit none
+    class(date), intent(in) :: this
+    class(datetime), intent(in) :: that
+    d_lt_dt = dt_lt(this%to_datetime(), that)
+  end function d_lt_dt
+
+  !> \brief greater than comparison of dates
+  pure logical function d_gt(this, that)
+    implicit none
+    class(date), intent(in) :: this, that
+    d_gt = d_neq(this, that) .and. .not. d_lt(this, that)
+  end function d_gt
+
+  !> \brief greater than comparison of date and datetime
+  pure logical function d_gt_dt(this, that)
+    implicit none
+    class(date), intent(in) :: this
+    class(datetime), intent(in) :: that
+    d_gt_dt = dt_gt(this%to_datetime(), that)
+  end function d_gt_dt
+
+  !> \brief less than or equal comparison of dates
+  pure logical function d_leq(this, that)
+    implicit none
+    class(date), intent(in) :: this, that
+    d_leq = d_lt(this, that) .or. d_eq(this, that)
+  end function d_leq
+
+  !> \brief less than or equal comparison of date and datetime
+  pure logical function d_leq_dt(this, that)
+    implicit none
+    class(date), intent(in) :: this
+    class(datetime), intent(in) :: that
+    d_leq_dt = dt_leq(this%to_datetime(), that)
+  end function d_leq_dt
+
+  !> \brief greater than or equal comparison of dates
+  pure logical function d_geq(this, that)
+    implicit none
+    class(date), intent(in) :: this, that
+    d_geq = d_gt(this, that) .or. d_eq(this, that)
+  end function d_geq
+
+  !> \brief greater than or equal comparison of date and datetime
+  pure logical function d_geq_dt(this, that)
+    implicit none
+    class(date), intent(in) :: this
+    class(datetime), intent(in) :: that
+    d_geq_dt = dt_geq(this%to_datetime(), that)
+  end function d_geq_dt
+
+  !> \brief add a timedelta to a date
+  pure type(date) function d_add_td(this, that)
+    implicit none
+    class(date), intent(in) :: this
+    class(timedelta), intent(in) :: that
+    type(datetime) :: temp
+    ! use datetime routines
+    temp = this%to_datetime()
+    temp = temp + that
+    ! ignore seconds
+    d_add_td = temp%date()
+  end function d_add_td
+
+  !> \brief add a timedelta to a date
+  pure type(date) function td_add_d(that, this)
+    implicit none
+    class(date), intent(in) :: this
+    class(timedelta), intent(in) :: that
+    td_add_d = d_add_td(this, that)
+  end function td_add_d
+
+  !> \brief subtract a timedelta from a date
+  pure type(date) function d_sub_td(this, that)
+    implicit none
+    class(date), intent(in) :: this
+    class(timedelta), intent(in) :: that
+    d_sub_td = this + (-that)
+  end function d_sub_td
+
+  !> \brief difference between two dates
+  pure type(timedelta) function d_sub_d(this, that)
+    implicit none
+    class(date), intent(in) :: this, that
+    ! use datetime routine
+    d_sub_d = this%to_datetime() - that%to_datetime()
+  end function d_sub_d
+
+  !> \brief difference between date and datetime
+  pure type(timedelta) function d_sub_dt(this, that)
+    implicit none
+    class(date), intent(in) :: this
+    class(datetime), intent(in) :: that
+    ! use datetime routine
+    d_sub_dt = this%to_datetime() - that
+  end function d_sub_dt
+
+  ! TIMEDELTA
 
   !> \brief initialize a timedelta
   pure function init_timedelta(days, seconds, minutes, hours, weeks) result(out)
