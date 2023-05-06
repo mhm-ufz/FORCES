@@ -42,6 +42,8 @@ module mo_datetime
     integer(i4), public :: month                    !< 1 <= month <= 12
     integer(i4), public :: day                      !< 1 <= day <= number of days in the given month and year
   contains
+    !> \copydoc mo_datetime::d_replace
+    procedure, public :: replace => d_replace !< \see mo_datetime::d_replace
     !> \copydoc mo_datetime::to_datetime
     procedure, public :: to_datetime !< \see mo_datetime::to_datetime
     !> \copydoc mo_datetime::d_str
@@ -85,6 +87,8 @@ module mo_datetime
     integer(i4), public :: minute                   !< 1 <= minute < 60
     integer(i4), public :: second                   !< 1 <= second < 60
   contains
+    !> \copydoc mo_datetime::dt_replace
+    procedure, public :: replace => dt_replace !< \see mo_datetime::dt_replace
     !> \copydoc mo_datetime::get_date
     procedure, public :: date => get_date !< \see mo_datetime::get_date
     !> \copydoc mo_datetime::dt_str
@@ -410,6 +414,32 @@ contains
     end if
     datetime_from_string = datetime(year=year, month=month, day=day, hour=hour, minute=minute, second=second)
   end function datetime_from_string
+
+  !> \brief new datetime with specified fields
+  type(datetime) function dt_replace(this, year, month, day, hour, minute, second)
+    implicit none
+    class(datetime), intent(in) :: this
+    integer(i4), intent(in), optional :: year           !< MINYEAR <= year <= MAXYEAR
+    integer(i4), intent(in), optional :: month          !< 1 <= month <= 12
+    integer(i4), intent(in), optional :: day            !< 1 <= day <= number of days in the given month and year
+    integer(i4), intent(in), optional :: hour           !< 1 <= hour < 24
+    integer(i4), intent(in), optional :: minute         !< 1 <= minute < 60
+    integer(i4), intent(in), optional :: second         !< 1 <= second < 60
+    integer(i4) :: new_year, new_month, new_day, new_hour, new_minute, new_second
+    new_year = this%year
+    new_month = this%month
+    new_day = this%day
+    new_hour = this%hour
+    new_minute = this%minute
+    new_second = this%second
+    if (present(year)) new_year = year
+    if (present(month)) new_month = month
+    if (present(day)) new_day = day
+    if (present(hour)) new_hour = hour
+    if (present(minute)) new_minute = minute
+    if (present(second)) new_second = second
+    dt_replace = datetime(new_year, new_month, new_day, new_hour, new_minute, new_second)
+  end function dt_replace
 
   !> \brief copy a datetime
   pure subroutine dt_copy_dt(this, that)
@@ -768,6 +798,23 @@ contains
     read(date_str(3), *) day
     date_from_string = date(year=year, month=month, day=day)
   end function date_from_string
+
+  !> \brief new date with specified fields
+  type(date) function d_replace(this, year, month, day)
+    implicit none
+    class(date), intent(in) :: this
+    integer(i4), intent(in), optional :: year                     !< MINYEAR <= year <= MAXYEAR
+    integer(i4), intent(in), optional :: month                    !< 1 <= month <= 12
+    integer(i4), intent(in), optional :: day                      !< 1 <= day <= number of days in the given month and year
+    integer(i4) :: new_year, new_month, new_day
+    new_year = this%year
+    new_month = this%month
+    new_day = this%day
+    if (present(year)) new_year = year
+    if (present(month)) new_month = month
+    if (present(day)) new_day = day
+    d_replace = date(new_year, new_month, new_day)
+  end function d_replace
 
   !> \brief convert date to a datetime
   pure type(datetime) function to_datetime(this)
