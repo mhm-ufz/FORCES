@@ -199,19 +199,19 @@ module mo_datetime
 
 contains
 
-  !> \brief get current date
-  type(date) function today()
-    integer(i4) :: values(8)
-    call date_and_time(values=values)
-    today = date(year=values(1), month=values(2), day=values(3))
-  end function today
-
   !> \brief get current datetime
   type(datetime) function now()
     integer(i4) :: values(8)
     call date_and_time(values=values)
     now = datetime(year=values(1), month=values(2), day=values(3), hour=values(5), minute=values(6), second=values(7))
   end function now
+
+  !> \brief get current date
+  type(date) function today()
+    type(datetime) :: temp
+    temp = now()
+    today = temp%date()
+  end function today
 
   !> \brief day of the week
   pure integer(i4) function weekday(year, month, day)
