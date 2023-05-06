@@ -19,6 +19,7 @@ module mo_datetime
   public :: is_leap_year, days_in_month, days_in_year
 
   public :: date
+  public :: time
   public :: datetime
   public :: timedelta
   public :: today
@@ -90,6 +91,41 @@ module mo_datetime
     generic, public :: operator(-) => d_sub_td, d_sub_d, d_sub_dt
   end type date
 
+  !> \class   time
+  !> \brief   This is a container to hold a time.
+  type time
+    integer(i4), public :: hour                     !< 1 <= hour < 24
+    integer(i4), public :: minute                   !< 1 <= minute < 60
+    integer(i4), public :: second                   !< 1 <= second < 60
+  contains
+    !> \copydoc mo_datetime::t_replace
+    procedure, public :: replace => t_replace !< \see mo_datetime::t_replace
+    !> \copydoc mo_datetime::d_str
+    procedure, public :: str => t_str !< \see mo_datetime::t_str
+    !> \copydoc mo_datetime::day_second
+    procedure, public :: day_second !< \see mo_datetime::day_second
+    !> \copydoc mo_datetime::t_is_new_day
+    procedure, public :: is_midnight => t_is_new_day !< \see mo_datetime::t_is_new_day
+    !> \copydoc mo_datetime::t_is_new_day
+    procedure, public :: is_new_day => t_is_new_day !< \see mo_datetime::t_is_new_day
+    !> \copydoc mo_datetime::t_is_new_hour
+    procedure, public :: is_new_hour => t_is_new_hour !< \see mo_datetime::t_is_new_hour
+    !> \copydoc mo_datetime::t_is_new_minute
+    procedure, public :: is_new_minute => t_is_new_minute !< \see mo_datetime::t_is_new_minute
+    procedure, private :: t_eq
+    generic, public :: operator(==) => t_eq
+    procedure, private :: t_neq
+    generic, public :: operator(/=) => t_neq
+    procedure, private :: t_lt
+    generic, public :: operator(<) => t_lt
+    procedure, private :: t_gt
+    generic, public :: operator(>) => t_gt
+    procedure, private :: t_leq
+    generic, public :: operator(<=) => t_leq
+    procedure, private :: t_geq
+    generic, public :: operator(>=) => t_geq
+  end type time
+
   !> \class   datetime
   !> \brief   This is a container to hold a date-time.
   type datetime
@@ -104,6 +140,8 @@ module mo_datetime
     procedure, public :: replace => dt_replace !< \see mo_datetime::dt_replace
     !> \copydoc mo_datetime::get_date
     procedure, public :: date => get_date !< \see mo_datetime::get_date
+    !> \copydoc mo_datetime::get_time
+    procedure, public :: time => get_time !< \see mo_datetime::get_time
     !> \copydoc mo_datetime::dt_str
     procedure, public :: str => dt_str !< \see mo_datetime::dt_str
     !> \copydoc mo_datetime::dt_weekday
@@ -202,6 +240,12 @@ module mo_datetime
     procedure init_date
     procedure date_from_string
   end interface date
+
+  ! constructor interface for time
+  interface time
+    procedure init_time
+    procedure time_from_string
+  end interface time
 
   ! constructor interface for datetime
   interface datetime
@@ -488,6 +532,15 @@ contains
     get_date%month = this%month
     get_date%day = this%day
   end function get_date
+
+  !> \brief time of the datetime
+  pure type(time) function get_time(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    get_time%hour = this%hour
+    get_time%minute = this%minute
+    get_time%second = this%second
+  end function get_time
 
   !> \brief string representation of the datetime
   pure character(19) function dt_str(this)
@@ -1045,6 +1098,132 @@ contains
     ! use datetime routine
     d_sub_dt = this%to_datetime() - that
   end function d_sub_dt
+
+  ! TIME
+
+  !> \brief initialize a time
+  function init_time(hour, minute, second) result(out)
+    implicit none
+    integer(i4), intent(in), optional :: hour           !< 1 <= hour < 24
+    integer(i4), intent(in), optional :: minute         !< 1 <= minute < 60
+    integer(i4), intent(in), optional :: second         !< 1 <= second < 60
+    type(time) :: out
+    out%hour = 0_i4
+    if (present(hour)) out%hour = hour
+    out%minute = 0_i4
+    if (present(minute)) out%minute = minute
+    out%second = 0_i4
+    if (present(second)) out%second = second
+    ! check if datetime is valid
+    call check_datetime(hour=out%hour, minute=out%minute, second=out%second)
+  end function init_time
+
+  !> \brief time from string
+  type(time) function time_from_string(string)
+    use mo_string_utils, only : divide_string
+    character(*), intent(in) :: string
+    character(256), dimension(:), allocatable :: time_str
+    integer(i4) :: hour, minute, second
+    call divide_string(trim(string), ':', time_str)
+    read(time_str(1), *) hour
+    read(time_str(2), *) minute
+    read(time_str(3), *) second
+    time_from_string = time(hour=hour, minute=minute, second=second)
+  end function time_from_string
+
+  !> \brief new time with specified fields
+  type(time) function t_replace(this, hour, minute, second)
+    implicit none
+    class(time), intent(in) :: this
+    integer(i4), intent(in), optional :: hour           !< 1 <= hour < 24
+    integer(i4), intent(in), optional :: minute         !< 1 <= minute < 60
+    integer(i4), intent(in), optional :: second         !< 1 <= second < 60
+    integer(i4) :: new_hour, new_minute, new_second
+    new_hour = this%hour
+    new_minute = this%minute
+    new_second = this%second
+    if (present(hour)) new_hour = hour
+    if (present(minute)) new_minute = minute
+    if (present(second)) new_second = second
+    t_replace = time(new_hour, new_minute, new_second)
+  end function t_replace
+
+  !> \brief string representation of the time
+  pure character(19) function t_str(this)
+    implicit none
+    class(time), intent(in) :: this
+    write(t_str, "(i2.2, ':', i2.2, ':', i2.2)") this%hour, this%minute, this%second
+  end function t_str
+
+  !> \brief time to second of the day
+  pure integer(i4) function day_second(this)
+    implicit none
+    class(time), intent(in) :: this
+    day_second = this%hour * HOUR_SECONDS + this%minute * MINUTE_SECONDS + this%second
+  end function day_second
+
+  !> \brief time is a new day / midnight
+  pure logical function t_is_new_day(this)
+    implicit none
+    class(time), intent(in) :: this
+    t_is_new_day = this%is_new_hour() .and. this%hour == 0_i4
+  end function t_is_new_day
+
+  !> \brief time is a new hour
+  pure logical function t_is_new_hour(this)
+    implicit none
+    class(time), intent(in) :: this
+    t_is_new_hour = this%is_new_minute() .and. this%minute == 0_i4
+  end function t_is_new_hour
+
+  !> \brief time is a new month
+  pure logical function t_is_new_minute(this)
+    implicit none
+    class(time), intent(in) :: this
+    t_is_new_minute = this%second == 0_i4
+  end function t_is_new_minute
+
+  !> \brief equal comparison of times
+  pure logical function t_eq(this, that)
+    implicit none
+    class(time), intent(in) :: this, that
+    t_eq = this%day_second() == that%day_second()
+  end function t_eq
+
+  !> \brief not equal comparison of times
+  pure logical function t_neq(this, that)
+    implicit none
+    class(time), intent(in) :: this, that
+    t_neq = .not. t_eq(this, that)
+  end function t_neq
+
+  !> \brief less than comparison of times
+  pure logical function t_lt(this, that)
+    implicit none
+    class(time), intent(in) :: this, that
+    t_lt = this%day_second() < that%day_second()
+  end function t_lt
+
+  !> \brief greater than comparison of times
+  pure logical function t_gt(this, that)
+    implicit none
+    class(time), intent(in) :: this, that
+    t_gt = this%day_second() > that%day_second()
+  end function t_gt
+
+  !> \brief less than or equal comparison of times
+  pure logical function t_leq(this, that)
+    implicit none
+    class(time), intent(in) :: this, that
+    t_leq = this%day_second() <= that%day_second()
+  end function t_leq
+
+  !> \brief greater than or equal comparison of times
+  pure logical function t_geq(this, that)
+    implicit none
+    class(time), intent(in) :: this, that
+    t_geq = this%day_second() >= that%day_second()
+  end function t_geq
 
   ! TIMEDELTA
 
