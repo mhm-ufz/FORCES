@@ -566,8 +566,7 @@ contains
   pure character(19) function dt_str(this)
     implicit none
     class(datetime), intent(in) :: this
-    write(dt_str, "(i4.4, '-' ,i2.2, '-', i2.2, 1x, i2.2, ':', i2.2, ':', i2.2)") &
-      this%year, this%month, this%day, this%hour, this%minute, this%second
+    dt_str = d_str(this%date()) // " " // t_str(this%time())
   end function dt_str
 
   !> \brief day of the week
@@ -870,7 +869,7 @@ contains
   end function to_datetime
 
   !> \brief string representation of the date
-  pure character(19) function d_str(this)
+  pure character(10) function d_str(this)
     implicit none
     class(date), intent(in) :: this
     write(d_str, "(i4.4, '-' ,i2.2, '-', i2.2)") this%year, this%month, this%day
@@ -1134,7 +1133,7 @@ contains
   end function t_replace
 
   !> \brief string representation of the time
-  pure character(19) function t_str(this)
+  pure character(8) function t_str(this)
     implicit none
     class(time), intent(in) :: this
     write(t_str, "(i2.2, ':', i2.2, ':', i2.2)") this%hour, this%minute, this%second
