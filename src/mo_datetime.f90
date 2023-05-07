@@ -65,8 +65,8 @@ module mo_datetime
   contains
     !> \copydoc mo_datetime::d_replace
     procedure, public :: replace => d_replace !< \see mo_datetime::d_replace
-    !> \copydoc mo_datetime::d_with_time
-    procedure, public :: with_time => d_with_time !< \see mo_datetime::d_with_time
+    !> \copydoc mo_datetime::dt_from_date_time
+    procedure, public :: with_time => dt_from_date_time !< \see mo_datetime::dt_from_date_time
     !> \copydoc mo_datetime::to_datetime
     procedure, public :: to_datetime !< \see mo_datetime::to_datetime
     !> \copydoc mo_datetime::to_ordinal
@@ -111,8 +111,8 @@ module mo_datetime
   contains
     !> \copydoc mo_datetime::t_replace
     procedure, public :: replace => t_replace !< \see mo_datetime::t_replace
-    !> \copydoc mo_datetime::t_with_date
-    procedure, public :: with_date => t_with_date !< \see mo_datetime::t_with_date
+    !> \copydoc mo_datetime::dt_from_date_time
+    procedure, public, pass(in_time) :: with_date => dt_from_date_time !< \see mo_datetime::dt_from_date_time
     !> \copydoc mo_datetime::t_str
     procedure, public :: str => t_str !< \see mo_datetime::t_str
     !> \copydoc mo_datetime::t_day_second
@@ -250,7 +250,7 @@ module mo_datetime
   end type time_c
 
   type(time_c), parameter :: midnight = time_c(0_i4, 0_i4, 0_i4)                  !< midnight
-  type(time_c), parameter :: midday = time_c(12_i4, 0_i4, 0_i4)                   !< midday
+  type(time_c), parameter :: midday = time_c(DAY_HOURS/2_i4, 0_i4, 0_i4)          !< midday
 
   ! constructor interface for date
   interface date
@@ -363,7 +363,7 @@ contains
     integer(i4), intent(in) :: year                     !< 1 <= year <= 9999
     integer(i4) :: y
     y = year - 1_i4
-    days_before_year = y*365_i4 + y/4_i4 - y/100_i4 + y/400_i4
+    days_before_year = y*YEAR_DAYS + y/4_i4 - y/100_i4 + y/400_i4
   end function days_before_year
 
   !> \brief get date from day of the year
@@ -861,14 +861,6 @@ contains
     to_ordinal = days_before_year(this%year) + this%doy()
   end function to_ordinal
 
-  !> \brief date with time
-  pure type(datetime) function d_with_time(this, in_time)
-    implicit none
-    class(date), intent(in) :: this
-    class(time), intent(in), optional :: in_time
-    d_with_time = dt_from_date_time(this, in_time)
-  end function d_with_time
-
   !> \brief string representation of the date
   pure character(10) function d_str(this)
     implicit none
@@ -1140,14 +1132,6 @@ contains
     t_replace = t_init(new_hour, new_minute, new_second)
   end function t_replace
 
-  !> \brief time with date
-  pure type(datetime) function t_with_date(this, in_date)
-    implicit none
-    class(time), intent(in) :: this
-    class(date), intent(in) :: in_date
-    t_with_date = dt_from_date_time(in_date, this)
-  end function t_with_date
-
   !> \brief string representation of the time
   pure character(8) function t_str(this)
     implicit none
@@ -1300,8 +1284,8 @@ contains
     implicit none
     class(timedelta), intent(inout) :: this
     class(timedelta), intent(in) :: that
-    this%days=that%days
-    this%seconds=that%seconds
+    this%days = that%days
+    this%seconds = that%seconds
   end subroutine td_copy
 
   !> \brief equal comparison of timedeltas
