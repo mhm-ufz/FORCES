@@ -16,15 +16,15 @@ module mo_datetime
 
   implicit none
 
-  public :: is_leap_year, days_in_month, days_in_year
-
   public :: date
   public :: time
   public :: datetime
   public :: timedelta
+  ! system time
   public :: today
   public :: now
   public :: currently
+  ! constants
   public :: midnight
   public :: midday
   public :: zero_delta
@@ -33,6 +33,10 @@ module mo_datetime
   public :: one_minute
   public :: one_second
   public :: one_week
+  ! checking
+  public :: is_leap_year
+  public :: days_in_month
+  public :: days_in_year
 
   private
 
@@ -61,6 +65,8 @@ module mo_datetime
   contains
     !> \copydoc mo_datetime::d_replace
     procedure, public :: replace => d_replace !< \see mo_datetime::d_replace
+    !> \copydoc mo_datetime::d_with_time
+    procedure, public :: with_time => d_with_time !< \see mo_datetime::d_with_time
     !> \copydoc mo_datetime::to_datetime
     procedure, public :: to_datetime !< \see mo_datetime::to_datetime
     !> \copydoc mo_datetime::d_str
@@ -103,7 +109,9 @@ module mo_datetime
   contains
     !> \copydoc mo_datetime::t_replace
     procedure, public :: replace => t_replace !< \see mo_datetime::t_replace
-    !> \copydoc mo_datetime::d_str
+    !> \copydoc mo_datetime::t_with_date
+    procedure, public :: with_date => t_with_date !< \see mo_datetime::t_with_date
+    !> \copydoc mo_datetime::t_str
     procedure, public :: str => t_str !< \see mo_datetime::t_str
     !> \copydoc mo_datetime::day_second
     procedure, public :: day_second !< \see mo_datetime::day_second
@@ -250,20 +258,21 @@ module mo_datetime
 
   ! constructor interface for date
   interface date
-    procedure init_date
-    procedure date_from_string
+    procedure d_init
+    procedure d_from_string
   end interface date
 
   ! constructor interface for time
   interface time
-    procedure init_time
-    procedure time_from_string
+    procedure t_init
+    procedure t_from_string
   end interface time
 
   ! constructor interface for datetime
   interface datetime
-    procedure init_datetime
-    procedure datetime_from_string
+    procedure dt_init
+    procedure dt_from_string
+    procedure dt_from_date_time
   end interface datetime
 
   ! constructor interface timedelta
@@ -444,7 +453,7 @@ contains
   ! DATETIME
 
   !> \brief initialize a datetime
-  function init_datetime(year, month, day, hour, minute, second) result(out)
+  function dt_init(year, month, day, hour, minute, second) result(out)
     implicit none
     integer(i4), intent(in) :: year                     !< 1 <= year <= 9999
     integer(i4), intent(in) :: month                    !< 1 <= month <= 12
@@ -453,7 +462,6 @@ contains
     integer(i4), intent(in), optional :: minute         !< 1 <= minute < 60
     integer(i4), intent(in), optional :: second         !< 1 <= second < 60
     type(datetime) :: out
-
     out%year = year
     out%month = month
     out%day = day
@@ -465,32 +473,38 @@ contains
     if (present(second)) out%second = second
     ! check if datetime is valid
     call check_datetime(year=out%year, month=out%month, day=out%day, hour=out%hour, minute=out%minute, second=out%second)
-  end function init_datetime
+  end function dt_init
 
   !> \brief datetime from string
-  type(datetime) function datetime_from_string(string)
+  type(datetime) function dt_from_string(string)
     use mo_string_utils, only : divide_string
     character(*), intent(in) :: string
-    character(256), dimension(:), allocatable :: str_arr, date_str, time_str
-    integer(i4) :: year, month, day, hour, minute, second
+    type(date) :: in_date
+    type(time) :: in_time
+    character(256), dimension(:), allocatable :: str_arr
     call divide_string(trim(string), ' ', str_arr)
-    ! determine reference time at '-' and convert to integer
-    call divide_string(trim(str_arr(1)), '-', date_str)
-    read(date_str(1), *) year
-    read(date_str(2), *) month
-    read(date_str(3), *) day
-    ! if existing also read in the time
-    hour = 0_i4
-    minute = 0_i4
-    second = 0_i4
-    if(size(str_arr) > 1_i4) then
-      call divide_string(trim(str_arr(2)), ':', time_str)
-      read(time_str(1), *) hour
-      read(time_str(2), *) minute
-      read(time_str(3), *) second
-    end if
-    datetime_from_string = datetime(year=year, month=month, day=day, hour=hour, minute=minute, second=second)
-  end function datetime_from_string
+    in_date = date(str_arr(1))
+    in_time = midnight
+    if(size(str_arr) > 1_i4) in_time = time(str_arr(2))
+    dt_from_string = datetime(in_date, in_time)
+  end function dt_from_string
+
+  !> \brief datetime from date and time
+  pure function dt_from_date_time(in_date, in_time) result(out)
+    implicit none
+    class(date), intent(in) :: in_date                !< date to use
+    class(time), intent(in), optional :: in_time      !< time to use (midnight by default)
+    type(datetime) :: out
+    type(time) :: in_time_
+    in_time_ = midnight
+    if (present(in_time)) in_time_ = in_time
+    out%year = in_date%year
+    out%month = in_date%month
+    out%day = in_date%day
+    out%hour = in_time%hour
+    out%minute = in_time%minute
+    out%second = in_time%second
+  end function dt_from_date_time
 
   !> \brief new datetime with specified fields
   type(datetime) function dt_replace(this, year, month, day, hour, minute, second)
@@ -814,7 +828,7 @@ contains
   ! DATE
 
   !> \brief initialize a date
-  function init_date(year, month, day) result(out)
+  function d_init(year, month, day) result(out)
     implicit none
     integer(i4), intent(in) :: year                     !< 1 <= year <= 9999
     integer(i4), intent(in) :: month                    !< 1 <= month <= 12
@@ -824,10 +838,10 @@ contains
     out%month = month
     out%day = day
     call check_datetime(year=out%year, month=out%month, day=out%day)
-  end function init_date
+  end function d_init
 
   !> \brief date from string
-  type(date) function date_from_string(string)
+  type(date) function d_from_string(string)
     use mo_string_utils, only : divide_string
     character(*), intent(in) :: string
     character(256), dimension(:), allocatable :: date_str
@@ -836,8 +850,8 @@ contains
     read(date_str(1), *) year
     read(date_str(2), *) month
     read(date_str(3), *) day
-    date_from_string = date(year=year, month=month, day=day)
-  end function date_from_string
+    d_from_string = date(year=year, month=month, day=day)
+  end function d_from_string
 
   !> \brief new date with specified fields
   type(date) function d_replace(this, year, month, day)
@@ -860,13 +874,16 @@ contains
   pure type(datetime) function to_datetime(this)
     implicit none
     class(date), intent(in) :: this
-    to_datetime%year = this%year
-    to_datetime%month = this%month
-    to_datetime%day = this%day
-    to_datetime%hour = 0_i4
-    to_datetime%minute = 0_i4
-    to_datetime%second = 0_i4
+    to_datetime = dt_from_date_time(this)
   end function to_datetime
+
+  !> \brief date with time
+  pure type(datetime) function d_with_time(this, in_time)
+    implicit none
+    class(date), intent(in) :: this
+    class(time), intent(in), optional :: in_time
+    d_with_time = dt_from_date_time(this, in_time)
+  end function d_with_time
 
   !> \brief string representation of the date
   pure character(10) function d_str(this)
@@ -1076,7 +1093,7 @@ contains
   ! TIME
 
   !> \brief initialize a time
-  function init_time(hour, minute, second) result(out)
+  function t_init(hour, minute, second) result(out)
     implicit none
     integer(i4), intent(in), optional :: hour           !< 1 <= hour < 24
     integer(i4), intent(in), optional :: minute         !< 1 <= minute < 60
@@ -1090,10 +1107,10 @@ contains
     if (present(second)) out%second = second
     ! check if datetime is valid
     call check_datetime(hour=out%hour, minute=out%minute, second=out%second)
-  end function init_time
+  end function t_init
 
   !> \brief time from string
-  type(time) function time_from_string(string)
+  type(time) function t_from_string(string)
     use mo_string_utils, only : divide_string
     character(*), intent(in) :: string
     character(256), dimension(:), allocatable :: time_str
@@ -1102,8 +1119,8 @@ contains
     read(time_str(1), *) hour
     read(time_str(2), *) minute
     read(time_str(3), *) second
-    time_from_string = time(hour=hour, minute=minute, second=second)
-  end function time_from_string
+    t_from_string = time(hour=hour, minute=minute, second=second)
+  end function t_from_string
 
   !> \brief copy a time
   pure subroutine t_copy(this, that)
@@ -1131,6 +1148,14 @@ contains
     if (present(second)) new_second = second
     t_replace = time(new_hour, new_minute, new_second)
   end function t_replace
+
+  !> \brief time with date
+  pure type(datetime) function t_with_date(this, in_date)
+    implicit none
+    class(time), intent(in) :: this
+    class(date), intent(in) :: in_date
+    t_with_date = dt_from_date_time(in_date, this)
+  end function t_with_date
 
   !> \brief string representation of the time
   pure character(8) function t_str(this)
