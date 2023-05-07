@@ -283,7 +283,7 @@ contains
   type(datetime) function now()
     integer(i4) :: values(8)
     call date_and_time(values=values)
-    now = datetime(year=values(1), month=values(2), day=values(3), hour=values(5), minute=values(6), second=values(7))
+    now = dt_init(year=values(1), month=values(2), day=values(3), hour=values(5), minute=values(6), second=values(7))
   end function now
 
   !> \brief get current date
@@ -492,7 +492,7 @@ contains
     in_date = d_from_string(str_arr(1))
     in_time = midnight
     if(size(str_arr) > 1_i4) in_time = t_from_string(str_arr(2))
-    dt_from_string = datetime(in_date, in_time)
+    dt_from_string = dt_from_date_time(in_date, in_time)
   end function dt_from_string
 
   !> \brief datetime from date and time
@@ -535,7 +535,7 @@ contains
     if (present(hour)) new_hour = hour
     if (present(minute)) new_minute = minute
     if (present(second)) new_second = second
-    dt_replace = datetime(new_year, new_month, new_day, new_hour, new_minute, new_second)
+    dt_replace = dt_init(new_year, new_month, new_day, new_hour, new_minute, new_second)
   end function dt_replace
 
   !> \brief copy a datetime
@@ -827,7 +827,7 @@ contains
     read(date_str(1), *) year
     read(date_str(2), *) month
     read(date_str(3), *) day
-    d_from_string = date(year=year, month=month, day=day)
+    d_from_string = d_init(year=year, month=month, day=day)
   end function d_from_string
 
   !> \brief new date with specified fields
@@ -844,7 +844,7 @@ contains
     if (present(year)) new_year = year
     if (present(month)) new_month = month
     if (present(day)) new_day = day
-    d_replace = date(new_year, new_month, new_day)
+    d_replace = d_init(new_year, new_month, new_day)
   end function d_replace
 
   !> \brief convert date to a datetime
@@ -1096,7 +1096,7 @@ contains
     read(time_str(1), *) hour
     read(time_str(2), *) minute
     read(time_str(3), *) second
-    t_from_string = time(hour=hour, minute=minute, second=second)
+    t_from_string = t_init(hour=hour, minute=minute, second=second)
   end function t_from_string
 
   !> \brief time from day second
@@ -1137,7 +1137,7 @@ contains
     if (present(hour)) new_hour = hour
     if (present(minute)) new_minute = minute
     if (present(second)) new_second = second
-    t_replace = time(new_hour, new_minute, new_second)
+    t_replace = t_init(new_hour, new_minute, new_second)
   end function t_replace
 
   !> \brief time with date
