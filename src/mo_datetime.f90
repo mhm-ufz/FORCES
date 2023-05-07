@@ -24,6 +24,9 @@ module mo_datetime
   public :: timedelta
   public :: today
   public :: now
+  public :: currently
+  public :: midnight
+  public :: midday
   public :: zero_delta
   public :: one_day
   public :: one_hour
@@ -112,6 +115,8 @@ module mo_datetime
     procedure, public :: is_new_hour => t_is_new_hour !< \see mo_datetime::t_is_new_hour
     !> \copydoc mo_datetime::t_is_new_minute
     procedure, public :: is_new_minute => t_is_new_minute !< \see mo_datetime::t_is_new_minute
+    procedure, private :: t_copy
+    generic :: assignment(=) => t_copy
     procedure, private :: t_eq
     generic, public :: operator(==) => t_eq
     procedure, private :: t_neq
@@ -235,6 +240,14 @@ module mo_datetime
   type(timedelta_c), parameter :: one_minute = timedelta_c(0_i4, MINUTE_SECONDS)  !< one minute time delta
   type(timedelta_c), parameter :: one_second = timedelta_c(0_i4, 1_i4)            !< one second time delta
 
+  !> \class   time_c
+  !> \brief   This is a container to hold a constant time.
+  type, extends(time) :: time_c
+  end type time_c
+
+  type(time_c), parameter :: midnight = time_c(0_i4, 0_i4, 0_i4)                  !< midnight
+  type(time_c), parameter :: midday = time_c(12_i4, 0_i4, 0_i4)                   !< midday
+
   ! constructor interface for date
   interface date
     procedure init_date
@@ -273,6 +286,13 @@ contains
     temp = now()
     today = temp%date()
   end function today
+
+  !> \brief get current time
+  type(time) function currently()
+    type(datetime) :: temp
+    temp = now()
+    currently = temp%time()
+  end function currently
 
   !> \brief day of the week
   pure integer(i4) function weekday(year, month, day)
@@ -610,12 +630,7 @@ contains
   pure logical function dt_eq(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
-    dt_eq = this%year == that%year &
-      .and. this%month == that%month &
-      .and. this%day == that%day &
-      .and. this%hour == that%hour &
-      .and. this%minute == that%minute &
-      .and. this%second == that%second
+    dt_eq = this%date() == that%date()  .and. this%time() == that%time()
   end function dt_eq
 
   !> \brief equal comparison of datetime and date
@@ -645,46 +660,7 @@ contains
   pure logical function dt_lt(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
-    ! they need to be unequal
-    dt_lt = dt_neq(this, that)
-    if (.not. dt_lt) return
-    ! now check each component from biggest to smallest
-    if (this%year < that%year) return ! true
-    if (this%year > that%year) then
-      dt_lt = .false.
-      return
-    endif
-    ! year equal
-    if (this%month < that%month) return ! true
-    if (this%month > that%month) then
-      dt_lt = .false.
-      return
-    endif
-    ! year+month equal
-    if (this%day < that%day) return ! true
-    if (this%day > that%day) then
-      dt_lt = .false.
-      return
-    endif
-    ! year+month+day equal
-    if (this%hour < that%hour) return ! true
-    if (this%hour > that%hour) then
-      dt_lt = .false.
-      return
-    endif
-    ! year+month+day+hour equal
-    if (this%minute < that%minute) return ! true
-    if (this%minute > that%minute) then
-      dt_lt = .false.
-      return
-    endif
-    ! year+month+day+hour+minute equal
-    if (this%second < that%second) return ! true
-    if (this%second > that%second) then
-      dt_lt = .false.
-      return
-    endif
-    ! they can't be all equal since that was checked first
+    dt_lt = this%date() < that%date() .or. (this%date() == that%date() .and. this%time() < that%time())
   end function dt_lt
 
   !> \brief less than comparison of datetime and date
@@ -751,7 +727,6 @@ contains
     class(timedelta), intent(in) :: that
     type(timedelta) :: temp
     integer(i4) :: new_year, new_month, new_day, new_hour, new_minute, new_second, temp_seconds, day_delta, diy
-
     ! handle sub-day timing
     temp = timedelta(days=that%days, seconds=this%second+that%seconds, minutes=this%minute, hours=this%hour)
     ! find the new year
@@ -811,12 +786,12 @@ contains
     implicit none
     class(datetime), intent(in) :: this, that
     type(timedelta) :: tmp_this, tmp_that
-    integer(i4) :: min_year, max_year, days_this, days_that, day_year_diff, i
-    min_year = min(this%year, that%year)
-    max_year = max(this%year, that%year)
+    integer(i4) :: minyear, maxyear, days_this, days_that, day_year_diff, i
+    minyear = min(this%year, that%year)
+    maxyear = max(this%year, that%year)
     ! get year difference in days
     day_year_diff = 0_i4
-    do i=min_year, max_year-1_i4
+    do i=minyear, maxyear-1_i4
       day_year_diff = day_year_diff + days_in_year(i)
     end do
     days_this = this%doy()
@@ -1130,6 +1105,16 @@ contains
     read(time_str(3), *) second
     time_from_string = time(hour=hour, minute=minute, second=second)
   end function time_from_string
+
+  !> \brief copy a time
+  pure subroutine t_copy(this, that)
+    implicit none
+    class(time), intent(inout) :: this
+    class(time), intent(in) :: that
+    this%hour = that%hour
+    this%minute = that%minute
+    this%second = that%second
+  end subroutine t_copy
 
   !> \brief new time with specified fields
   type(time) function t_replace(this, hour, minute, second)
