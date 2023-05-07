@@ -69,6 +69,8 @@ module mo_datetime
     procedure, public :: with_time => d_with_time !< \see mo_datetime::d_with_time
     !> \copydoc mo_datetime::to_datetime
     procedure, public :: to_datetime !< \see mo_datetime::to_datetime
+    !> \copydoc mo_datetime::to_ordinal
+    procedure, public :: to_ordinal !< \see mo_datetime::to_ordinal
     !> \copydoc mo_datetime::d_str
     procedure, public :: str => d_str !< \see mo_datetime::d_str
     !> \copydoc mo_datetime::d_weekday
@@ -359,6 +361,15 @@ contains
     days_in_year = YEAR_DAYS
     if (is_leap_year(year)) days_in_year = LEAP_YEAR_DAYS
   end function days_in_year
+
+  !> \brief number of days before a given year since year 1
+  pure integer(i4) function days_before_year(year)
+    implicit none
+    integer(i4), intent(in) :: year                     !< 1 <= year <= 9999
+    integer(i4) :: y
+    y = year - 1_i4
+    days_before_year = y*365_i4 + y/4_i4 - y/100_i4 + y/400_i4
+  end function days_before_year
 
   !> \brief get date from day of the year
   pure subroutine doy_to_month_day(year, doy, month, day)
@@ -877,6 +888,13 @@ contains
     to_datetime = dt_from_date_time(this)
   end function to_datetime
 
+  !> \brief convert date to number of days since year 1
+  pure integer(i4) function to_ordinal(this)
+    implicit none
+    class(date), intent(in) :: this
+    to_ordinal = days_before_year(this%year) + this%doy()
+  end function to_ordinal
+
   !> \brief date with time
   pure type(datetime) function d_with_time(this, in_time)
     implicit none
@@ -935,9 +953,7 @@ contains
   pure logical function d_eq(this, that)
     implicit none
     class(date), intent(in) :: this, that
-    d_eq = this%year == that%year &
-      .and. this%month == that%month &
-      .and. this%day == that%day
+    d_eq = this%to_ordinal() == that%to_ordinal()
   end function d_eq
 
   !> \brief equal comparison of date and datetime
@@ -967,28 +983,7 @@ contains
   pure logical function d_lt(this, that)
     implicit none
     class(date), intent(in) :: this, that
-    ! they need to be unequal
-    d_lt = d_neq(this, that)
-    if (.not. d_lt) return
-    ! now check each component from biggest to smallest
-    if (this%year < that%year) return ! true
-    if (this%year > that%year) then
-      d_lt = .false.
-      return
-    endif
-    ! year equal
-    if (this%month < that%month) return ! true
-    if (this%month > that%month) then
-      d_lt = .false.
-      return
-    endif
-    ! year+month equal
-    if (this%day < that%day) return ! true
-    if (this%day > that%day) then
-      d_lt = .false.
-      return
-    endif
-    ! they can't be all equal since that was checked first
+    d_lt = this%to_ordinal() < that%to_ordinal()
   end function d_lt
 
   !> \brief less than comparison of date and datetime
@@ -1051,8 +1046,7 @@ contains
     class(timedelta), intent(in) :: that
     type(datetime) :: temp
     ! use datetime routines
-    temp = this%to_datetime()
-    temp = temp + that
+    temp = this%to_datetime() + that
     ! ignore seconds
     d_add_td = temp%date()
   end function d_add_td
