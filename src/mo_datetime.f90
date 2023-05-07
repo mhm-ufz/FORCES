@@ -220,20 +220,14 @@ module mo_datetime
     generic :: operator(<=) => td_leq
     procedure, private :: td_geq
     generic :: operator(>=) => td_geq
-    procedure, private :: td_add
-    procedure, private :: td_pos
+    procedure, private :: td_add, td_pos
     generic :: operator(+) => td_add, td_pos
-    procedure, private :: td_sub
-    procedure, private :: td_neg
+    procedure, private :: td_sub, td_neg
     generic :: operator(-) => td_sub, td_neg
-    procedure, private :: td_mul1
-    procedure, pass(this), private :: td_mul2
-    procedure, private :: td_mul1_dp
-    procedure, pass(this), private :: td_mul2_dp
+    procedure, private :: td_mul1, td_mul1_dp
+    procedure, pass(this), private :: td_mul2, td_mul2_dp
     generic, public :: operator(*) => td_mul1, td_mul2, td_mul1_dp, td_mul2_dp
-    procedure, private :: td_div
-    procedure, private :: td_div_dp
-    procedure, private :: td_div_td
+    procedure, private :: td_div, td_div_dp, td_div_td
     generic, public :: operator(/) => td_div, td_div_dp, td_div_td
   end type timedelta
 
@@ -495,9 +489,9 @@ contains
     type(time) :: in_time
     character(256), dimension(:), allocatable :: str_arr
     call divide_string(trim(string), ' ', str_arr)
-    in_date = date(str_arr(1))
+    in_date = d_from_string(str_arr(1))
     in_time = midnight
-    if(size(str_arr) > 1_i4) in_time = time(str_arr(2))
+    if(size(str_arr) > 1_i4) in_time = t_from_string(str_arr(2))
     dt_from_string = datetime(in_date, in_time)
   end function dt_from_string
 
