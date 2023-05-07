@@ -115,8 +115,8 @@ module mo_datetime
     procedure, public :: with_date => t_with_date !< \see mo_datetime::t_with_date
     !> \copydoc mo_datetime::t_str
     procedure, public :: str => t_str !< \see mo_datetime::t_str
-    !> \copydoc mo_datetime::day_second
-    procedure, public :: day_second !< \see mo_datetime::day_second
+    !> \copydoc mo_datetime::t_day_second
+    procedure, public :: day_second => t_day_second !< \see mo_datetime::t_day_second
     !> \copydoc mo_datetime::t_is_new_day
     procedure, public :: is_midnight => t_is_new_day !< \see mo_datetime::t_is_new_day
     !> \copydoc mo_datetime::t_is_new_day
@@ -268,6 +268,7 @@ module mo_datetime
   interface time
     procedure t_init
     procedure t_from_string
+    procedure t_from_day_second
   end interface time
 
   ! constructor interface for datetime
@@ -279,7 +280,7 @@ module mo_datetime
 
   ! constructor interface timedelta
   interface timedelta
-    procedure init_timedelta
+    procedure td_init
   end interface timedelta
 
 contains
@@ -750,43 +751,14 @@ contains
     class(datetime), intent(in) :: this
     class(timedelta), intent(in) :: that
     type(timedelta) :: temp
-    integer(i4) :: new_year, new_month, new_day, new_hour, new_minute, new_second, temp_seconds, day_delta, diy
+    type(date) :: new_date
+    type(time) :: new_time
     ! handle sub-day timing
-    temp = timedelta(days=that%days, seconds=this%second+that%seconds, minutes=this%minute, hours=this%hour)
-    ! find the new year
-    new_year = this%year
-    day_delta = this%doy() + temp%days
-    if (day_delta > 0_i4) then
-      do while (.true.)
-        diy = days_in_year(new_year)
-        if (day_delta <= diy) exit
-        new_year = new_year + 1_i4
-        day_delta = day_delta - diy
-      end do
-    else
-      do while (.true.)
-        new_year = new_year - 1_i4
-        diy = days_in_year(new_year)
-        day_delta = day_delta + diy
-        if (day_delta > 0_i4) exit
-      end do
-    end if
-    ! get date from new year and doy
-    call doy_to_month_day(year=new_year, doy=day_delta, month=new_month, day=new_day)
-
-    ! remaining seconds are less than a day and are always positive
-    temp_seconds = temp%seconds
-    new_hour = temp_seconds / HOUR_SECONDS
-    temp_seconds = mod(temp_seconds, HOUR_SECONDS)
-    new_minute = temp_seconds / MINUTE_SECONDS
-    new_second = mod(temp_seconds, MINUTE_SECONDS)
-    ! create datetime
-    dt_add_td%year = new_year
-    dt_add_td%month = new_month
-    dt_add_td%day = new_day
-    dt_add_td%hour = new_hour
-    dt_add_td%minute = new_minute
-    dt_add_td%second = new_second
+    temp = td_init(days=that%days, seconds=this%second+that%seconds, minutes=this%minute, hours=this%hour)
+    ! use date/time methods
+    new_date = this%date() + temp
+    new_time = t_from_day_second(temp%seconds)
+    dt_add_td = dt_from_date_time(new_date, new_time)
   end function dt_add_td
 
   !> \brief add a timedelta to a datetime
@@ -1044,11 +1016,30 @@ contains
     implicit none
     class(date), intent(in) :: this
     class(timedelta), intent(in) :: that
-    type(datetime) :: temp
-    ! use datetime routines
-    temp = this%to_datetime() + that
-    ! ignore seconds
-    d_add_td = temp%date()
+    integer(i4) :: new_year, new_month, new_day, day_delta, diy
+    ! find the new year
+    new_year = this%year
+    day_delta = this%doy() + that%days
+    if (day_delta > 0_i4) then
+      do while (.true.)
+        diy = days_in_year(new_year)
+        if (day_delta <= diy) exit
+        new_year = new_year + 1_i4
+        day_delta = day_delta - diy
+      end do
+    else
+      do while (.true.)
+        new_year = new_year - 1_i4
+        diy = days_in_year(new_year)
+        day_delta = day_delta + diy
+        if (day_delta > 0_i4) exit
+      end do
+    end if
+    ! get date from new year and doy
+    call doy_to_month_day(year=new_year, doy=day_delta, month=new_month, day=new_day)
+    d_add_td%year = new_year
+    d_add_td%month = new_month
+    d_add_td%day = new_day
   end function d_add_td
 
   !> \brief add a timedelta to a date
@@ -1089,14 +1080,12 @@ contains
   !> \brief initialize a time
   function t_init(hour, minute, second) result(out)
     implicit none
-    integer(i4), intent(in), optional :: hour           !< 1 <= hour < 24
-    integer(i4), intent(in), optional :: minute         !< 1 <= minute < 60
+    integer(i4), intent(in) :: hour                     !< 1 <= hour < 24
+    integer(i4), intent(in) :: minute                   !< 1 <= minute < 60
     integer(i4), intent(in), optional :: second         !< 1 <= second < 60
     type(time) :: out
-    out%hour = 0_i4
-    if (present(hour)) out%hour = hour
-    out%minute = 0_i4
-    if (present(minute)) out%minute = minute
+    out%hour = hour
+    out%minute = minute
     out%second = 0_i4
     if (present(second)) out%second = second
     ! check if datetime is valid
@@ -1115,6 +1104,20 @@ contains
     read(time_str(3), *) second
     t_from_string = time(hour=hour, minute=minute, second=second)
   end function t_from_string
+
+  !> \brief time from day second
+  pure type(time) function t_from_day_second(day_second)
+    implicit none
+    integer(i4), intent(in) :: day_second !< second of the day (will be capped)
+    integer(i4) :: temp_seconds
+    ! cap second for pure function (no error raise possible)
+    temp_seconds = min(max(day_second, 0_i4), DAY_SECONDS-1_i4)
+    ! calculate hour, minute and second
+    t_from_day_second%hour = temp_seconds / HOUR_SECONDS
+    temp_seconds = mod(temp_seconds, HOUR_SECONDS)
+    t_from_day_second%minute = temp_seconds / MINUTE_SECONDS
+    t_from_day_second%second = mod(temp_seconds, MINUTE_SECONDS)
+  end function t_from_day_second
 
   !> \brief copy a time
   pure subroutine t_copy(this, that)
@@ -1159,11 +1162,11 @@ contains
   end function t_str
 
   !> \brief time to second of the day
-  pure integer(i4) function day_second(this)
+  pure integer(i4) function t_day_second(this)
     implicit none
     class(time), intent(in) :: this
-    day_second = this%hour * HOUR_SECONDS + this%minute * MINUTE_SECONDS + this%second
-  end function day_second
+    t_day_second = this%hour * HOUR_SECONDS + this%minute * MINUTE_SECONDS + this%second
+  end function t_day_second
 
   !> \brief time is a new day / midnight
   pure logical function t_is_new_day(this)
@@ -1231,7 +1234,7 @@ contains
   ! TIMEDELTA
 
   !> \brief initialize a timedelta
-  pure function init_timedelta(days, seconds, minutes, hours, weeks) result(out)
+  pure function td_init(days, seconds, minutes, hours, weeks) result(out)
     implicit none
     integer(i4), intent(in), optional :: days           !< days defining time-span
     integer(i4), intent(in), optional :: seconds        !< seconds defining time-span
@@ -1267,7 +1270,7 @@ contains
       out%seconds = out%seconds - neg_days * DAY_SECONDS
       out%days = out%days + neg_days
     end if
-  end function init_timedelta
+  end function td_init
 
   !> \brief absolute timedelta
   pure type(timedelta) function td_abs(this)
