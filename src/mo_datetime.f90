@@ -3,9 +3,82 @@
 !> \details \copydetails mo_datetime
 
 !> \brief   Types to deal with datetimes.
+!> \details This module provides four types to deal with date and time
+!!          1. \ref date : containing year, month and day
+!!          2. \ref time : containing hour, minute and second
+!!          3. \ref datetime : combination of date and time
+!!          4. \ref timedelta : difference between two datetimes (or dates) in days and (sub-day) seconds
+!!
+!!          These type can be used in arithmetic operations (+, -, *, /) and can be compared (<, >, <=, >=, ==, /=)
+!!          where it makes sense.
+!!
+!!          The following example demonstrates the functionality:
+!!          \code{.f90}
+!!          program main
+!!            use mo_datetime, only: date, time, datetime, timedelta, one_day, midday, DAY_SECONDS, HOUR_SECONDS
+!!            implicit none
+!!            type(datetime) :: date1, date2, date3, date4, date5
+!!            type(date) :: date6
+!!            type(time) :: time1
+!!            type(timedelta) :: delta1
+!!
+!!            ! create dates add time-deltas
+!!            date1 = datetime(2000, 2, 28)
+!!            date2 = date1 + one_day
+!!            print*, date2%str()
+!!            date3 = date1 + 2 * one_day
+!!            print*, date3%str()
+!!
+!!            ! substract half a day
+!!            delta1 = one_day / 2
+!!            date4 = date3 - delta1
+!!
+!!            ! compare dates/times
+!!            print*, "is midday: ", date4%time() == midday
+!!            print*, "date4 after date2: ", date4 > date2
+!!
+!!            ! create from date and time
+!!            date5 = datetime(date1%date(), date4%time())
+!!            print*, date5%str()
+!!
+!!            ! create from datetime string
+!!            date5 = datetime("2023-05-08 12:32:30")
+!!            date6 = date("2023-05-08")
+!!            time1 = time("12:32:30")
+!!            print*, date5 == time1%with_date(date6)
+!!            print*, date5 == date6%with_time(time1)
+!!            print*, date5 == datetime(date6, time1)
+!!
+!!            ! use cf-convention string and value
+!!            date5 = datetime("seconds since 1992-10-8 15:15:42", DAY_SECONDS - HOUR_SECONDS)
+!!            print*, date5%str()
+!!          end program main
+!!          \endcode
+!!
+!!          Several special constants are provided as well:
+!!          - \ref midnight and \ref midday : \ref time for special day times
+!!          - \ref zero_delta , \ref one_week , \ref one_day , \ref one_hour , \ref one_minute and \ref one_second :
+!!            special \ref timedelta values
+!!          - several integer constants for duration ratios (e.g. \ref day_hours , \ref week_days , ...)
+!!
+!!          Provided convenience routines:
+!!          - \ref currently : current \ref time of the day
+!!          - \ref today : todays \ref date
+!!          - \ref now : current date and time as \ref datetime
+!!
+!!          A date is assumed to be given in the gregorian calender.
+!!          That means, there is a leap year (February has 29 days instead of 28) if:
+!!          - year is divisible by 4
+!!          - year *is not* divisible by 100 or it *is* divisible by 400
+!!
+!!          \note Dates before 1582-10-15 should be used with caution.
+!!          The gregorian calender replaced the julian calender and advanced the date by
+!!          10 days: Thursday 4 October 1582 was followed by Friday 15 October 1582.
+!!          Using this module for erlier dates will assume the *proleptic gregorian* calendar.
+!!
 !> \version 0.1
 !> \authors Sebastian Mueller
-!> \date    Apr 2023
+!> \date    May 2023
 !> \copyright Copyright 2005-\today, the mHM Developers, Luis Samaniego, Sabine Attinger: All rights reserved.
 !! mHM is released under the LGPLv3+ license \license_note
 module mo_datetime
@@ -270,6 +343,7 @@ module mo_datetime
     procedure dt_init
     procedure dt_from_string
     procedure dt_from_date_time
+    procedure dt_from_cf
   end interface datetime
 
   ! constructor interface timedelta
@@ -494,6 +568,35 @@ contains
     if(size(str_arr) > 1_i4) in_time = t_from_string(str_arr(2))
     dt_from_string = dt_from_date_time(in_date, in_time)
   end function dt_from_string
+
+  !> \brief datetime from cf-string and value
+  type(datetime) function dt_from_cf(string, value)
+    use mo_string_utils, only : divide_string
+    character(*), intent(in) :: string
+    integer(i4), intent(in) :: value
+    type(date) :: in_date
+    type(time) :: in_time
+    type(timedelta) :: delta
+    character(256), dimension(:), allocatable :: str_arr
+    call divide_string(trim(string), ' ', str_arr)
+    select case(trim(str_arr(1)))
+      case("days")
+        delta = td_init(days=value)
+      case("hours")
+        delta = td_init(hours=value)
+      case("minutes")
+        delta = td_init(minutes=value)
+      case("seconds")
+        delta = td_init(seconds=value)
+      case default
+        call error_message("datetime: units not valid for a cf-convetion time. Got: ", trim(str_arr(1)))
+    end select
+    if (trim(str_arr(2)) /= "since") call error_message("datetime: expected 'since' for cf-convetion. Got: ", trim(str_arr(2)))
+    in_date = d_from_string(str_arr(3))
+    in_time = midnight
+    if(size(str_arr) > 3_i4) in_time = t_from_string(str_arr(4))
+    dt_from_cf = dt_from_date_time(in_date, in_time) + delta
+  end function dt_from_cf
 
   !> \brief datetime from date and time
   pure function dt_from_date_time(in_date, in_time) result(out)
