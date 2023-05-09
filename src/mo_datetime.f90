@@ -57,14 +57,31 @@
 !!
 !!          Several special constants are provided as well:
 !!          - \ref midnight and \ref midday : \ref time for special day times
+!!          - \ref hour_times and hour_X : \ref time for each hour of the day (0-23)
 !!          - \ref zero_delta , \ref one_week , \ref one_day , \ref one_hour , \ref one_minute and \ref one_second :
 !!            special \ref timedelta values
-!!          - several integer constants for duration ratios (e.g. \ref day_hours , \ref week_days , ...)
+!!          - integer constants for duration ratios:
+!!            - \ref year_days : days in standard year (365)
+!!            - \ref leap_year_days : days in leap year (366)
+!!            - \ref year_months : months in year (12)
+!!            - \ref week_days : days in week (7)
+!!            - \ref day_hours : hours in day (24)
+!!            - \ref hour_minutes : minutes in hour (60)
+!!            - \ref minute_seconds : seconds in minute (60)
+!!            - \ref day_minutes : minutes in day (1440)
+!!            - \ref day_seconds : seconds in day (86400)
+!!            - \ref hour_seconds : seconds in hour (3600)
+!!            - \ref week_hours : hours in week (168)
+!!            - \ref week_minutes : minutes in week (10080)
+!!            - \ref week_seconds : seconds in week (604800)
 !!
 !!          Provided convenience routines:
-!!          - \ref currently : current \ref time of the day
-!!          - \ref today : todays \ref date
-!!          - \ref now : current date and time as \ref datetime
+!!          - \ref currently : \copybrief currently
+!!          - \ref today : \copybrief today
+!!          - \ref now : \copybrief now
+!!          - \ref is_leap_year : \copybrief is_leap_year
+!!          - \ref days_in_month : \copybrief days_in_month
+!!          - \ref days_in_year : \copybrief days_in_year
 !!
 !!          A date is assumed to be given in the gregorian calender.
 !!          That means, there is a leap year (February has 29 days instead of 28) if:
@@ -98,8 +115,6 @@ module mo_datetime
   public :: now
   public :: currently
   ! constants
-  public :: midnight
-  public :: midday
   public :: zero_delta
   public :: one_day
   public :: one_hour
@@ -322,8 +337,35 @@ module mo_datetime
   type, extends(time) :: time_c
   end type time_c
 
-  type(time_c), parameter :: midnight = time_c(0_i4, 0_i4, 0_i4)                  !< midnight
-  type(time_c), parameter :: midday = time_c(DAY_HOURS/2_i4, 0_i4, 0_i4)          !< midday
+  type(time_c), public, parameter :: midnight = time_c(0_i4, 0_i4, 0_i4)                  !< midnight (00:00)
+  type(time_c), public, parameter :: midday = time_c(DAY_HOURS/2_i4, 0_i4, 0_i4)          !< midday (12:00)
+  type(time_c), public, parameter :: hour_0 = time_c(0_i4, 0_i4, 0_i4)                    !< 00:00
+  type(time_c), public, parameter :: hour_1 = time_c(1_i4, 0_i4, 0_i4)                    !< 01:00
+  type(time_c), public, parameter :: hour_2 = time_c(2_i4, 0_i4, 0_i4)                    !< 02:00
+  type(time_c), public, parameter :: hour_3 = time_c(3_i4, 0_i4, 0_i4)                    !< 03:00
+  type(time_c), public, parameter :: hour_4 = time_c(4_i4, 0_i4, 0_i4)                    !< 04:00
+  type(time_c), public, parameter :: hour_5 = time_c(5_i4, 0_i4, 0_i4)                    !< 05:00
+  type(time_c), public, parameter :: hour_6 = time_c(6_i4, 0_i4, 0_i4)                    !< 06:00
+  type(time_c), public, parameter :: hour_7 = time_c(7_i4, 0_i4, 0_i4)                    !< 07:00
+  type(time_c), public, parameter :: hour_8 = time_c(8_i4, 0_i4, 0_i4)                    !< 08:00
+  type(time_c), public, parameter :: hour_9 = time_c(9_i4, 0_i4, 0_i4)                    !< 09:00
+  type(time_c), public, parameter :: hour_10 = time_c(10_i4, 0_i4, 0_i4)                  !< 10:00
+  type(time_c), public, parameter :: hour_11 = time_c(11_i4, 0_i4, 0_i4)                  !< 11:00
+  type(time_c), public, parameter :: hour_12 = time_c(12_i4, 0_i4, 0_i4)                  !< 12:00
+  type(time_c), public, parameter :: hour_13 = time_c(13_i4, 0_i4, 0_i4)                  !< 13:00
+  type(time_c), public, parameter :: hour_14 = time_c(14_i4, 0_i4, 0_i4)                  !< 14:00
+  type(time_c), public, parameter :: hour_15 = time_c(15_i4, 0_i4, 0_i4)                  !< 15:00
+  type(time_c), public, parameter :: hour_16 = time_c(16_i4, 0_i4, 0_i4)                  !< 16:00
+  type(time_c), public, parameter :: hour_17 = time_c(17_i4, 0_i4, 0_i4)                  !< 17:00
+  type(time_c), public, parameter :: hour_18 = time_c(18_i4, 0_i4, 0_i4)                  !< 18:00
+  type(time_c), public, parameter :: hour_19 = time_c(19_i4, 0_i4, 0_i4)                  !< 19:00
+  type(time_c), public, parameter :: hour_20 = time_c(20_i4, 0_i4, 0_i4)                  !< 20:00
+  type(time_c), public, parameter :: hour_21 = time_c(21_i4, 0_i4, 0_i4)                  !< 21:00
+  type(time_c), public, parameter :: hour_22 = time_c(22_i4, 0_i4, 0_i4)                  !< 22:00
+  type(time_c), public, parameter :: hour_23 = time_c(23_i4, 0_i4, 0_i4)                  !< 23:00
+  type(time_c), dimension(0:23), public, parameter :: hour_times = &
+    [hour_0, hour_1, hour_2, hour_3, hour_4, hour_5, hour_6, hour_7, hour_8, hour_9, hour_10, hour_11, &
+     hour_12, hour_13, hour_14, hour_15, hour_16, hour_17, hour_18, hour_19, hour_20, hour_21, hour_22, hour_23] !< day hour times
 
   ! constructor interface for date
   interface date
@@ -353,21 +395,21 @@ module mo_datetime
 
 contains
 
-  !> \brief get current datetime
+  !> \brief get current \ref datetime
   type(datetime) function now()
     integer(i4) :: values(8)
     call date_and_time(values=values)
     now = dt_init(year=values(1), month=values(2), day=values(3), hour=values(5), minute=values(6), second=values(7))
   end function now
 
-  !> \brief get current date
+  !> \brief get todays \ref date
   type(date) function today()
     type(datetime) :: temp
     temp = now()
     today = temp%date()
   end function today
 
-  !> \brief get current time
+  !> \brief get current \ref time
   type(time) function currently()
     type(datetime) :: temp
     temp = now()
@@ -397,7 +439,7 @@ contains
     if (weekday < 1_i4) weekday = weekday + WEEK_DAYS
   end function weekday
 
-  !> \brief number of days in a given year
+  !> \brief whether a given year is a leap year
   pure logical function is_leap_year(year)
     implicit none
     integer(i4), intent(in) :: year                     !< 1 <= year <= 9999
