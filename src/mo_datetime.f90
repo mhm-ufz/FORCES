@@ -652,9 +652,9 @@ contains
     out%year = in_date%year
     out%month = in_date%month
     out%day = in_date%day
-    out%hour = in_time%hour
-    out%minute = in_time%minute
-    out%second = in_time%second
+    out%hour = in_time_%hour
+    out%minute = in_time_%minute
+    out%second = in_time_%second
   end function dt_from_date_time
 
   !> \brief new datetime with specified fields
