@@ -1,7 +1,7 @@
 module test_mo_datetime
   use funit
   use mo_kind, only: i4, i8, dp
-  use mo_datetime, only: datetime, timedelta, soledate, soletime, one_hour, one_day, one_week, one_minute, one_second, is_leap_year
+  use mo_datetime, only: datetime, timedelta, puredate, puretime, one_hour, one_day, one_week, one_minute, one_second, is_leap_year
   use mo_datetime, only: days_in_month, days_in_year, now, today, currently, zero_delta
   use mo_datetime, only: day_seconds, hour_seconds, day_minutes, hour_minutes, day_hours
 
@@ -17,8 +17,8 @@ contains
   subroutine test_datetime_types()
 
     type(datetime) :: date1, date2, date3, date4, date5
-    type(soledate) :: day1, day2
-    type(soletime) :: time1, time2
+    type(puredate) :: day1, day2
+    type(puretime) :: time1, time2
     type(timedelta) :: delta, delta1
     character(:), allocatable :: string
 
@@ -146,8 +146,8 @@ contains
     ! more string tests
     ! create from datetime string
     date5 = datetime("2023-05-08 12:32:30")
-    day2 = soledate("2023-05-08")
-    time1 = soletime("12:32:30")
+    day2 = puredate("2023-05-08")
+    time1 = puretime("12:32:30")
     @assertTrue(date5 == time1%with_date(day2))
     @assertTrue(date5 == day2%with_time(time1))
     @assertTrue(date5 == datetime(day2, time1))
