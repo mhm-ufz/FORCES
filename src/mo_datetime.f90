@@ -15,11 +15,11 @@
 !!          The following example demonstrates the functionality:
 !!          \code{.f90}
 !!          program main
-!!            use mo_datetime, only: date, time, datetime, timedelta, one_day, midday, DAY_SECONDS, HOUR_SECONDS
+!!            use mo_datetime, only: soledate, soletime, datetime, timedelta, one_day, midday, DAY_SECONDS, HOUR_SECONDS
 !!            implicit none
 !!            type(datetime) :: date1, date2, date3, date4, date5
-!!            type(date) :: date6
-!!            type(time) :: time1
+!!            type(soledate) :: date6
+!!            type(soletime) :: time1
 !!            type(timedelta) :: delta1
 !!
 !!            ! create dates add time-deltas
