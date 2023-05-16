@@ -1,8 +1,9 @@
 module test_mo_datetime
   use funit
   use mo_kind, only: i4, i8, dp
-  use mo_datetime, only: datetime, timedelta, one_hour, one_day, one_week, one_minute, one_second, is_leap_year
-  use mo_datetime, only: days_in_month, days_in_year, now, zero_delta
+  use mo_datetime, only: datetime, timedelta, date, time, one_hour, one_day, one_week, one_minute, one_second, is_leap_year
+  use mo_datetime, only: days_in_month, days_in_year, now, today, currently, zero_delta
+  use mo_datetime, only: day_seconds, hour_seconds, day_minutes, hour_minutes, day_hours
 
   implicit none
 
@@ -15,7 +16,9 @@ contains
   @test
   subroutine test_datetime_types()
 
-    type(datetime) :: date1, date2, date3, date4
+    type(datetime) :: date1, date2, date3, date4, date5
+    type(date) :: day1, day2
+    type(time) :: time1, time2
     type(timedelta) :: delta, delta1
     character(:), allocatable :: string
 
@@ -53,6 +56,7 @@ contains
     @assertTrue(date1 /= date2)
     @assertTrue(date1 == date1)
 
+    @assertTrue(one_day%abs() == one_day)
     @assertTrue(delta%abs() >= zero_delta)
     @assertTrue(delta%abs() > delta)
     @assertTrue(delta1 < (2.0_dp * delta1))
@@ -73,6 +77,8 @@ contains
     @assertEqual(days_in_month(2000, 4), 30)
     @assertEqual(days_in_month(2000, 8), 31)
 
+    day1 = date1%date()
+    @assertEqual(day1%weekday(), 5)
     @assertEqual(date1%weekday(), 5)
     @assertEqual(date2%weekday(), 4)
     @assertEqual(date3%weekday(), 2)
@@ -80,24 +86,120 @@ contains
     @assertTrue(date4 == datetime(string))
 
     date4 = datetime(2023_i4, 2_i4, 10_i4, 4_i4, 5_i4, 6_i4)
+    time2 = currently()
+
+    time1 = date4%time()
+    time2 = time2%replace(hour=time1%hour, minute=time1%minute, second=time1%second)
+    @assertTrue(time1 == time2)
+    @assertFalse(time1 /= time2)
+    time2 = time2%replace(hour=time2%hour+1)
+    @assertTrue(time1 /= time2)
+    @assertTrue(time1 < time2)
+    @assertTrue(time2 > time1)
+    @assertTrue(time1 <= time2)
+    @assertTrue(time2 >= time1)
+
+    @assertFalse(time1%is_new_minute())
     @assertFalse(date4%is_new_minute())
     date4%second = 0_i4
+    time1 = date4%time()
+    @assertTrue(time1%is_new_minute())
     @assertTrue(date4%is_new_minute())
+
+    @assertFalse(time1%is_new_hour())
     @assertFalse(date4%is_new_hour())
     date4%minute = 0_i4
+    time1 = date4%time()
+    @assertTrue(time1%is_new_hour())
     @assertTrue(date4%is_new_hour())
+
+    @assertFalse(time1%is_new_day())
     @assertFalse(date4%is_new_day())
     date4%hour = 0_i4
+    time1 = date4%time()
+    @assertTrue(time1%is_new_day())
     @assertTrue(date4%is_new_day())
+
+    day1 = date4%date()
+
+    @assertFalse(day1%is_new_week())
     @assertFalse(date4%is_new_week())
     date4 = date4 - timedelta(days=date4%weekday()-1_i4)
+    day1 = date4%date()
+    @assertTrue(day1%is_new_week())
     @assertTrue(date4%is_new_week())
+
+    @assertFalse(day1%is_new_month())
     @assertFalse(date4%is_new_month())
     date4%day = 1_i4
+    day1 = date4%date()
+    @assertTrue(day1%is_new_month())
     @assertTrue(date4%is_new_month())
+
+    @assertFalse(day1%is_new_year())
     @assertFalse(date4%is_new_year())
     date4%month = 1_i4
+    day1 = date4%date()
+    @assertTrue(day1%is_new_year())
     @assertTrue(date4%is_new_year())
+
+    ! more string tests
+    ! create from datetime string
+    date5 = datetime("2023-05-08 12:32:30")
+    day2 = date("2023-05-08")
+    time1 = time("12:32:30")
+    @assertTrue(date5 == time1%with_date(day2))
+    @assertTrue(date5 == day2%with_time(time1))
+    @assertTrue(date5 == datetime(day2, time1))
+
+    ! use cf-convention string and value
+    date5 = datetime("seconds since 1992-10-8 15:15:42", day_seconds - hour_seconds)
+    @assertTrue(date5%str() == "1992-10-09 14:15:42")
+    date5 = datetime("minutes since 1992-10-8 15:15:42", DAY_MINUTES - HOUR_MINUTES)
+    @assertTrue(date5%str() == "1992-10-09 14:15:42")
+    date5 = datetime("hours since 1992-10-8 15:15:42", DAY_HOURS - 1)
+    @assertTrue(date5%str() == "1992-10-09 14:15:42")
+    date5 = datetime("days since 1992-10-8 15:15:42", 1)
+    @assertTrue(date5%str() == "1992-10-09 15:15:42")
+
+    ! test now, today, currently
+    day1 = today()
+    time1 = currently()
+    date1 = now()
+    date3 = date2%replace(year=day1%year, month=day1%month, day=day1%day, hour=time1%hour, minute=time1%minute, second=time1%second)
+    ! "today" + "currently" was called before "now"
+    @assertTrue(date3 <= date1)
+
+    ! copy dt from date, compare dt and date
+    date2 = day1
+    @assertTrue(date2 <= date3)
+    @assertTrue(date2 == day1)
+    @assertTrue(day1 == date2)
+    @assertFalse(date2 /= day1)
+    @assertFalse(day1 /= date2)
+    @assertTrue(date3 < day1 + one_day)
+    @assertTrue(day1 + one_day > date3)
+    @assertTrue(date3 <= day1 + one_day)
+    @assertTrue(day1 + one_day >= date3)
+    @assertTrue(date3 + one_day > day1)
+    @assertTrue(day1 < date3 + one_day)
+    @assertTrue(date3 + one_day >= day1)
+    @assertTrue(day1 <= date3 + one_day)
+    @assertTrue(date3 - day1 > zero_delta)
+    @assertTrue(day1 <= day1 + one_day)
+    @assertTrue(day1 + one_day >= day1)
+
+    ! date replace
+    @assertTrue(day1%replace(day1%year+1, day=1) > day1)
+
+    ! date manipulation
+    day2 = 731 * one_day + day1
+    @assertTrue(day2%year >= day1%year+2)
+    @assertTrue(day2-day1 == 731*one_day)
+    @assertTrue(day2-day1%with_time() == 731*one_day)
+
+    day2 = day1 - 731 * one_day
+    @assertTrue(day2%year <= day1%year-2)
 
   end subroutine test_datetime_types
 
