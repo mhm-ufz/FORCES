@@ -227,6 +227,11 @@ module mo_datetime
     generic, public :: operator(<=) => t_leq
     procedure, private :: t_geq
     generic, public :: operator(>=) => t_geq
+    procedure, private :: t_add_td
+    procedure, pass(this), private :: td_add_t
+    generic, public :: operator(+) => t_add_td, td_add_t
+    procedure, private :: t_sub_td, t_sub_t
+    generic, public :: operator(-) => t_sub_td, t_sub_t
   end type puretime
 
   !> \class   datetime
@@ -1353,6 +1358,39 @@ contains
     class(puretime), intent(in) :: this, that
     t_geq = this%day_second() >= that%day_second()
   end function t_geq
+
+  !> \brief add a timedelta to a time
+  pure type(puretime) function t_add_td(this, that)
+    implicit none
+    class(puretime), intent(in) :: this
+    class(timedelta), intent(in) :: that
+    ! ignore days in timedelta and do a module 24h
+    t_add_td = t_from_day_second(int(modulo(int(this%day_second(), i8) + that%total_seconds(), int(DAY_SECONDS, i8)), i4))
+  end function t_add_td
+
+  !> \brief add a timedelta to a time
+  pure type(puretime) function td_add_t(that, this)
+    implicit none
+    class(puretime), intent(in) :: this
+    class(timedelta), intent(in) :: that
+    td_add_t = t_add_td(this, that)
+  end function td_add_t
+
+  !> \brief subtract a timedelta from a time
+  pure type(puretime) function t_sub_td(this, that)
+    implicit none
+    class(puretime), intent(in) :: this
+    class(timedelta), intent(in) :: that
+    t_sub_td = this + (-that)
+  end function t_sub_td
+
+  !> \brief difference between two times
+  pure type(timedelta) function t_sub_t(this, that)
+    implicit none
+    class(puretime), intent(in) :: this, that
+    ! use datetime routine
+    t_sub_t = timedelta(seconds=this%day_second() - that%day_second())
+  end function t_sub_t
 
   ! TIMEDELTA
 

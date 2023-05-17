@@ -4,6 +4,7 @@ module test_mo_datetime
   use mo_datetime, only: datetime, timedelta, puredate, puretime, one_hour, one_day, one_week, one_minute, one_second, is_leap_year
   use mo_datetime, only: days_in_month, days_in_year, now, today, currently, zero_delta
   use mo_datetime, only: day_seconds, hour_seconds, day_minutes, hour_minutes, day_hours
+  use mo_datetime, only: hour_23, hour_1, midday, midnight, hour_times
 
   implicit none
 
@@ -200,6 +201,19 @@ contains
 
     day2 = day1 - 731 * one_day
     @assertTrue(day2%year <= day1%year-2)
+
+    ! time arithmetics
+    @assertTrue(hour_23 + 2*one_hour == hour_1)
+    @assertTrue(2*one_hour + hour_23 == hour_1)
+    @assertTrue(hour_times(0) - one_hour == hour_times(23))
+    @assertTrue(midday + one_day == midday)
+    @assertTrue(midday - one_day == midday)
+    @assertTrue(midday + (one_day+one_hour) == hour_times(13))
+    @assertTrue(midday - (one_day+one_hour) == hour_times(11))
+    @assertTrue(midday + (one_hour-2*one_day) == hour_times(13))
+    @assertTrue(midday - (one_hour-2*one_day) == hour_times(11))
+    @assertTrue(midday - midnight == 12*one_hour)
+    @assertTrue(midnight - midday == -12*one_hour)
 
   end subroutine test_datetime_types
 
