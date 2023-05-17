@@ -1,8 +1,8 @@
 module test_mo_datetime
   use funit
-  use mo_kind, only: i4, i8, dp
-  use mo_datetime, only: datetime, timedelta, puredate, puretime, one_hour, one_day, one_week, one_minute, one_second, is_leap_year
-  use mo_datetime, only: days_in_month, days_in_year, now, today, currently, zero_delta
+  use mo_kind, only: i4, dp
+  use mo_datetime, only: datetime, timedelta, puredate, puretime, one_hour, one_day, one_week, is_leap_year
+  use mo_datetime, only: days_in_month, now, today, currently, zero_delta
   use mo_datetime, only: day_seconds, hour_seconds, day_minutes, hour_minutes, day_hours
   use mo_datetime, only: hour_23, hour_1, midday, midnight, hour_times
 
@@ -208,10 +208,12 @@ contains
     @assertTrue(hour_times(0) - one_hour == hour_times(23))
     @assertTrue(midday + one_day == midday)
     @assertTrue(midday - one_day == midday)
-    @assertTrue(midday + (one_day+one_hour) == hour_times(13))
-    @assertTrue(midday - (one_day+one_hour) == hour_times(11))
-    @assertTrue(midday + (one_hour-2*one_day) == hour_times(13))
-    @assertTrue(midday - (one_hour-2*one_day) == hour_times(11))
+    delta = one_day + one_hour
+    @assertTrue(midday + delta == hour_times(13))
+    @assertTrue(midday - delta == hour_times(11))
+    delta = one_hour - 2*one_day
+    @assertTrue(midday + delta == hour_times(13))
+    @assertTrue(midday - delta == hour_times(11))
     @assertTrue(midday - midnight == 12*one_hour)
     @assertTrue(midnight - midday == -12*one_hour)
 
