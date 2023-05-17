@@ -1604,6 +1604,7 @@ contains
     td_div_td = real(this%total_seconds(), dp) / real(that%total_seconds(), dp)
   end function td_div_td
 
+#ifdef INTEL
   ! INTEL COMPAT ROUTINES for derived types
 
   !> \brief adding two timedeltas
@@ -1665,5 +1666,6 @@ contains
     class(timedelta_c), intent(in) :: this
     ctd_pos = timedelta(days=this%days, seconds=this%seconds)
   end function ctd_pos
+#endif
 
 end module mo_datetime
