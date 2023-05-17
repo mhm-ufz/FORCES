@@ -202,6 +202,20 @@ contains
     day2 = day1 - 731 * one_day
     @assertTrue(day2%year <= day1%year-2)
 
+    ! try operations
+    delta = -one_day
+    @assertTrue(delta < zero_delta)
+    delta = +one_day
+    @assertTrue(delta > zero_delta)
+    delta = one_day + 1*one_hour
+    @assertTrue(delta > one_day)
+    delta = 1*one_day + one_hour
+    @assertTrue(delta > one_day)
+    delta = one_hour - one_day
+    @assertTrue(delta < zero_delta)
+    delta = 1*one_hour - one_day
+    @assertTrue(delta < zero_delta)
+
     ! time arithmetics
     @assertTrue(hour_23 + 2*one_hour == hour_1)
     @assertTrue(2*one_hour + hour_23 == hour_1)

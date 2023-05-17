@@ -327,6 +327,12 @@ module mo_datetime
   !> \class   timedelta_c
   !> \brief   This is a container to hold a constant time span.
   type, extends(timedelta) :: timedelta_c
+  contains
+    ! intel fortran needs these routines
+    procedure, private :: ctd_add_td, ctd_pos, ctd_sub_td, ctd_neg, ctd_add, ctd_sub
+    procedure, pass(this), private :: td_add_ctd, td_sub_ctd
+    generic :: operator(+) => td_add_ctd, ctd_add_td, ctd_pos, ctd_add
+    generic :: operator(-) => td_sub_ctd, ctd_sub_td, ctd_neg, ctd_sub
   end type timedelta_c
 
   ! intel fortran compiler can't use type with interface to construct parameter variables
@@ -1595,5 +1601,67 @@ contains
     class(timedelta), intent(in) :: this, that
     td_div_td = real(this%total_seconds(), dp) / real(that%total_seconds(), dp)
   end function td_div_td
+
+  ! INTEL COMPAT ROUTINES for derived types
+
+  !> \brief adding two timedeltas
+  pure type(timedelta) function ctd_add(this, that)
+    implicit none
+    class(timedelta_c), intent(in) :: this, that
+    ctd_add = timedelta(days=this%days+that%days, seconds=this%seconds+that%seconds)
+  end function ctd_add
+
+  !> \brief adding two timedeltas
+  pure type(timedelta) function ctd_add_td(this, that)
+    implicit none
+    class(timedelta_c), intent(in) :: this
+    class(timedelta), intent(in) :: that
+    ctd_add_td = timedelta(days=this%days+that%days, seconds=this%seconds+that%seconds)
+  end function ctd_add_td
+
+  !> \brief adding two timedeltas
+  pure type(timedelta) function td_add_ctd(that, this)
+    implicit none
+    class(timedelta), intent(in) :: that
+    class(timedelta_c), intent(in) :: this
+    td_add_ctd = ctd_add_td(this, that)
+  end function td_add_ctd
+
+  !> \brief adding two timedeltas
+  pure type(timedelta) function ctd_sub(this, that)
+    implicit none
+    class(timedelta_c), intent(in) :: this, that
+    ctd_sub = timedelta(days=this%days-that%days, seconds=this%seconds-that%seconds)
+  end function ctd_sub
+
+  !> \brief adding two timedeltas
+  pure type(timedelta) function ctd_sub_td(this, that)
+    implicit none
+    class(timedelta_c), intent(in) :: this
+    class(timedelta), intent(in) :: that
+    ctd_sub_td = timedelta(days=this%days-that%days, seconds=this%seconds-that%seconds)
+  end function ctd_sub_td
+
+  !> \brief adding two timedeltas
+  pure type(timedelta) function td_sub_ctd(that, this)
+    implicit none
+    class(timedelta), intent(in) :: that
+    class(timedelta_c), intent(in) :: this
+    td_sub_ctd = timedelta(days=that%days-this%days, seconds=that%seconds-this%seconds)
+  end function td_sub_ctd
+
+  !> \brief negative timedelta
+  pure type(timedelta) function ctd_neg(this)
+    implicit none
+    class(timedelta_c), intent(in) :: this
+    ctd_neg = timedelta(days=-this%days, seconds=-this%seconds)
+  end function ctd_neg
+
+  !> \brief positive timedelta
+  pure type(timedelta) function ctd_pos(this)
+    implicit none
+    class(timedelta_c), intent(in) :: this
+    ctd_pos = timedelta(days=this%days, seconds=this%seconds)
+  end function ctd_pos
 
 end module mo_datetime
