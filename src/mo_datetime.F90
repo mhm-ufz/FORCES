@@ -327,12 +327,14 @@ module mo_datetime
   !> \class   timedelta_c
   !> \brief   This is a container to hold a constant time span.
   type, extends(timedelta) :: timedelta_c
+#ifdef INTEL
   contains
     ! intel fortran needs these routines
     procedure, private :: ctd_add_td, ctd_pos, ctd_sub_td, ctd_neg, ctd_add, ctd_sub
     procedure, pass(this), private :: td_add_ctd, td_sub_ctd
     generic :: operator(+) => td_add_ctd, ctd_add_td, ctd_pos, ctd_add
     generic :: operator(-) => td_sub_ctd, ctd_sub_td, ctd_neg, ctd_sub
+#endif
   end type timedelta_c
 
   ! intel fortran compiler can't use type with interface to construct parameter variables
