@@ -18,7 +18,7 @@
 !!            use mo_datetime, only: puredate, puretime, datetime, timedelta, one_day, midday, DAY_SECONDS, HOUR_SECONDS
 !!            implicit none
 !!            type(datetime) :: date1, date2, date3, date4, date5
-!!            type(puredate) :: date6
+!!            type(puredate) :: day1
 !!            type(puretime) :: time1
 !!            type(timedelta) :: delta1
 !!
@@ -43,11 +43,11 @@
 !!
 !!            ! create from datetime string
 !!            date5 = datetime("2023-05-08 12:32:30")
-!!            date6 = date("2023-05-08")
+!!            day1 = date("2023-05-08")
 !!            time1 = time("12:32:30")
-!!            print*, date5 == time1%with_date(date6)
-!!            print*, date5 == date6%with_time(time1)
-!!            print*, date5 == datetime(date6, time1)
+!!            print*, date5 == time1%with_date(day1)
+!!            print*, date5 == day1%with_time(time1)
+!!            print*, date5 == datetime(day1, time1)
 !!
 !!            ! use cf-convention string and value
 !!            date5 = datetime("seconds since 1992-10-8 15:15:42", DAY_SECONDS - HOUR_SECONDS)
@@ -193,9 +193,9 @@ module mo_datetime
   !> \class   puretime
   !> \brief   This is a container to hold only a time.
   type puretime
-    integer(i4), public :: hour                     !< 1 <= hour < 24
-    integer(i4), public :: minute                   !< 1 <= minute < 60
-    integer(i4), public :: second                   !< 1 <= second < 60
+    integer(i4), public :: hour                     !< 0 <= hour < 24
+    integer(i4), public :: minute                   !< 0 <= minute < 60
+    integer(i4), public :: second                   !< 0 <= second < 60
   contains
     !> \copydoc mo_datetime::t_replace
     procedure, public :: replace => t_replace !< \see mo_datetime::t_replace
@@ -214,7 +214,7 @@ module mo_datetime
     !> \copydoc mo_datetime::t_is_new_minute
     procedure, public :: is_new_minute => t_is_new_minute !< \see mo_datetime::t_is_new_minute
     procedure, private :: t_copy
-    generic :: assignment(=) => t_copy
+    generic, public :: assignment(=) => t_copy
     procedure, private :: t_eq
     generic, public :: operator(==) => t_eq
     procedure, private :: t_neq
@@ -240,9 +240,9 @@ module mo_datetime
     integer(i4), public :: year                     !< 1 <= year <= 9999
     integer(i4), public :: month                    !< 1 <= month <= 12
     integer(i4), public :: day                      !< 1 <= day <= number of days in the given month and year
-    integer(i4), public :: hour                     !< 1 <= hour < 24
-    integer(i4), public :: minute                   !< 1 <= minute < 60
-    integer(i4), public :: second                   !< 1 <= second < 60
+    integer(i4), public :: hour                     !< 0 <= hour < 24
+    integer(i4), public :: minute                   !< 0 <= minute < 60
+    integer(i4), public :: second                   !< 0 <= second < 60
   contains
     !> \copydoc mo_datetime::dt_replace
     procedure, public :: replace => dt_replace !< \see mo_datetime::dt_replace
@@ -269,7 +269,7 @@ module mo_datetime
     !> \copydoc mo_datetime::is_new_minute
     procedure, public :: is_new_minute !< \see mo_datetime::is_new_minute
     procedure, private :: dt_copy_dt, dt_copy_d
-    generic :: assignment(=) => dt_copy_dt, dt_copy_d
+    generic, public :: assignment(=) => dt_copy_dt, dt_copy_d
     procedure, private :: dt_eq, dt_eq_d
     generic, public :: operator(==) => dt_eq, dt_eq_d
     procedure, private :: dt_neq, dt_neq_d
@@ -300,23 +300,23 @@ module mo_datetime
     !> \copydoc mo_datetime::td_total_seconds
     procedure, public :: total_seconds => td_total_seconds !< \see mo_datetime::td_total_seconds
     procedure, private :: td_copy
-    generic :: assignment(=) => td_copy
+    generic, public :: assignment(=) => td_copy
     procedure, private :: td_eq
-    generic :: operator(==) => td_eq
+    generic, public :: operator(==) => td_eq
     procedure, private :: td_neq
-    generic :: operator(/=) => td_neq
+    generic, public :: operator(/=) => td_neq
     procedure, private :: td_lt
-    generic :: operator(<) => td_lt
+    generic, public :: operator(<) => td_lt
     procedure, private :: td_gt
-    generic :: operator(>) => td_gt
+    generic, public :: operator(>) => td_gt
     procedure, private :: td_leq
-    generic :: operator(<=) => td_leq
+    generic, public :: operator(<=) => td_leq
     procedure, private :: td_geq
-    generic :: operator(>=) => td_geq
+    generic, public :: operator(>=) => td_geq
     procedure, private :: td_add, td_pos
-    generic :: operator(+) => td_add, td_pos
+    generic, public :: operator(+) => td_add, td_pos
     procedure, private :: td_sub, td_neg
-    generic :: operator(-) => td_sub, td_neg
+    generic, public :: operator(-) => td_sub, td_neg
     procedure, private :: td_mul1, td_mul1_dp
     procedure, pass(this), private :: td_mul2, td_mul2_dp
     generic, public :: operator(*) => td_mul1, td_mul2, td_mul1_dp, td_mul2_dp
@@ -329,11 +329,11 @@ module mo_datetime
   type, extends(timedelta) :: timedelta_c
 #ifdef INTEL
   contains
-    ! intel fortran needs these routines
+    ! intel fortran needs these routines (bug with overloading binary AND unary operators)
     procedure, private :: ctd_add_td, ctd_pos, ctd_sub_td, ctd_neg, ctd_add, ctd_sub
     procedure, pass(this), private :: td_add_ctd, td_sub_ctd
-    generic :: operator(+) => td_add_ctd, ctd_add_td, ctd_pos, ctd_add
-    generic :: operator(-) => td_sub_ctd, ctd_sub_td, ctd_neg, ctd_sub
+    generic, public :: operator(+) => td_add_ctd, ctd_add_td, ctd_pos, ctd_add
+    generic, public :: operator(-) => td_sub_ctd, ctd_sub_td, ctd_neg, ctd_sub
 #endif
   end type timedelta_c
 
@@ -543,7 +543,7 @@ contains
   !> \brief check if a given hour is valid
   subroutine check_hour(hour)
     implicit none
-    integer(i4), intent(in), optional :: hour           !< 1 <= hour < 24
+    integer(i4), intent(in), optional :: hour           !< 0 <= hour < 24
     if (hour < 0_i4 .or. hour >= DAY_HOURS) &
       call error_message("datetime: hour is out of range. Got: ", num2str(hour)) ! LCOV_EXCL_LINE
   end subroutine check_hour
@@ -551,7 +551,7 @@ contains
   !> \brief check if a given minute is valid
   subroutine check_minute(minute)
     implicit none
-    integer(i4), intent(in), optional :: minute         !< 1 <= minute < 60
+    integer(i4), intent(in), optional :: minute         !< 0 <= minute < 60
     if (minute < 0_i4 .or. minute >= HOUR_MINUTES) &
       call error_message("datetime: minute is out of range. Got: ", num2str(minute)) ! LCOV_EXCL_LINE
   end subroutine check_minute
@@ -559,7 +559,7 @@ contains
   !> \brief check if a given second is valid
   subroutine check_second(second)
     implicit none
-    integer(i4), intent(in), optional :: second         !< 1 <= second < 60
+    integer(i4), intent(in), optional :: second         !< 0 <= second < 60
     if (second < 0_i4 .or. second >= MINUTE_SECONDS) &
       call error_message("datetime: second is out of range. Got: ", num2str(second)) ! LCOV_EXCL_LINE
   end subroutine check_second
@@ -570,9 +570,9 @@ contains
     integer(i4), intent(in), optional :: year           !< 1 <= year <= 9999
     integer(i4), intent(in), optional :: month          !< 1 <= month <= 12
     integer(i4), intent(in), optional :: day            !< 1 <= day <= number of days in the given month and year
-    integer(i4), intent(in), optional :: hour           !< 1 <= hour < 24
-    integer(i4), intent(in), optional :: minute         !< 1 <= minute < 60
-    integer(i4), intent(in), optional :: second         !< 1 <= second < 60
+    integer(i4), intent(in), optional :: hour           !< 0 <= hour < 24
+    integer(i4), intent(in), optional :: minute         !< 0 <= minute < 60
+    integer(i4), intent(in), optional :: second         !< 0 <= second < 60
     ! sanity check for day
     if (present(day) .and. .not. (present(year) .and. present(month))) &
       call error_message("check_datetime: to validate a given 'day', 'year' and 'month' are required.") ! LCOV_EXCL_LINE
@@ -593,9 +593,9 @@ contains
     integer(i4), intent(in) :: year                     !< 1 <= year <= 9999
     integer(i4), intent(in) :: month                    !< 1 <= month <= 12
     integer(i4), intent(in) :: day                      !< 1 <= day <= number of days in the given month and year
-    integer(i4), intent(in), optional :: hour           !< 1 <= hour < 24
-    integer(i4), intent(in), optional :: minute         !< 1 <= minute < 60
-    integer(i4), intent(in), optional :: second         !< 1 <= second < 60
+    integer(i4), intent(in), optional :: hour           !< 0 (default) <= hour < 24
+    integer(i4), intent(in), optional :: minute         !< 0 (default) <= minute < 60
+    integer(i4), intent(in), optional :: second         !< 0 (default) <= second < 60
     type(datetime) :: out
     out%year = year
     out%month = month
@@ -677,9 +677,9 @@ contains
     integer(i4), intent(in), optional :: year           !< 1 <= year <= 9999
     integer(i4), intent(in), optional :: month          !< 1 <= month <= 12
     integer(i4), intent(in), optional :: day            !< 1 <= day <= number of days in the given month and year
-    integer(i4), intent(in), optional :: hour           !< 1 <= hour < 24
-    integer(i4), intent(in), optional :: minute         !< 1 <= minute < 60
-    integer(i4), intent(in), optional :: second         !< 1 <= second < 60
+    integer(i4), intent(in), optional :: hour           !< 0 <= hour < 24
+    integer(i4), intent(in), optional :: minute         !< 0 <= minute < 60
+    integer(i4), intent(in), optional :: second         !< 0 <= second < 60
     integer(i4) :: new_year, new_month, new_day, new_hour, new_minute, new_second
     new_year = this%year
     new_month = this%month
@@ -1224,9 +1224,9 @@ contains
   !> \brief initialize a time
   function t_init(hour, minute, second) result(out)
     implicit none
-    integer(i4), intent(in) :: hour                     !< 1 <= hour < 24
-    integer(i4), intent(in) :: minute                   !< 1 <= minute < 60
-    integer(i4), intent(in), optional :: second         !< 1 <= second < 60
+    integer(i4), intent(in) :: hour                     !< 0 <= hour < 24
+    integer(i4), intent(in) :: minute                   !< 0 <= minute < 60
+    integer(i4), intent(in), optional :: second         !< 0 (default) <= second < 60
     type(puretime) :: out
     out%hour = hour
     out%minute = minute
@@ -1277,9 +1277,9 @@ contains
   type(puretime) function t_replace(this, hour, minute, second)
     implicit none
     class(puretime), intent(in) :: this
-    integer(i4), intent(in), optional :: hour           !< 1 <= hour < 24
-    integer(i4), intent(in), optional :: minute         !< 1 <= minute < 60
-    integer(i4), intent(in), optional :: second         !< 1 <= second < 60
+    integer(i4), intent(in), optional :: hour           !< 0 <= hour < 24
+    integer(i4), intent(in), optional :: minute         !< 0 <= minute < 60
+    integer(i4), intent(in), optional :: second         !< 0 <= second < 60
     integer(i4) :: new_hour, new_minute, new_second
     new_hour = this%hour
     new_minute = this%minute
