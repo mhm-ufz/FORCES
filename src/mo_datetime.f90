@@ -56,10 +56,6 @@
 !!          \endcode
 !!
 !!          Several special constants are provided as well:
-!!          - \ref midnight and \ref midday : \ref puretime for special day times
-!!          - \ref hour_times and hour_X : \ref puretime for each hour of the day (0-23)
-!!          - \ref zero_delta , \ref one_week , \ref one_day , \ref one_hour , \ref one_minute and \ref one_second :
-!!            special \ref timedelta values
 !!          - integer constants for duration ratios:
 !!            - \ref year_days : days in standard year (365)
 !!            - \ref leap_year_days : days in leap year (366)
@@ -76,6 +72,10 @@
 !!            - \ref week_seconds : seconds in week (604800)
 !!
 !!          Provided convenience routines:
+!!          - \ref midnight and \ref midday : \ref puretime for special day times
+!!          - \ref day_hour : \ref puretime for each hour of the day (0-23)
+!!          - \ref zero_delta , \ref one_week , \ref one_day , \ref one_hour , \ref one_minute and \ref one_second :
+!!            special \ref timedelta values
 !!          - \ref currently : \copybrief currently
 !!          - \ref today : \copybrief today
 !!          - \ref now : \copybrief now
@@ -121,6 +121,9 @@ module mo_datetime
   public :: one_minute
   public :: one_second
   public :: one_week
+  public :: midnight
+  public :: midday
+  public :: day_hour
   ! checking
   public :: is_leap_year
   public :: days_in_month
@@ -133,6 +136,7 @@ module mo_datetime
   integer(i4), parameter, public :: YEAR_MONTHS = 12_i4 !< months in year
   integer(i4), parameter, public :: WEEK_DAYS = 7_i4 !< days in week
   integer(i4), parameter, public :: DAY_HOURS = 24_i4 !< hours in day
+  integer(i4), parameter, public :: CLOCK_HOURS = 12_i4 !< hours on a clock
   integer(i4), parameter, public :: HOUR_MINUTES = 60_i4 !< minutes in hour
   integer(i4), parameter, public :: MINUTE_SECONDS = 60_i4 !< seconds in minute
   integer(i4), parameter, public :: DAY_MINUTES = DAY_HOURS * HOUR_MINUTES !< minutes in day
@@ -147,9 +151,9 @@ module mo_datetime
   !> \class   puredate
   !> \brief   This is a container to hold only a date.
   type puredate
-    integer(i4), public :: year                     !< 1 <= year <= 9999
-    integer(i4), public :: month                    !< 1 <= month <= 12
-    integer(i4), public :: day                      !< 1 <= day <= number of days in the given month and year
+    integer(i4), public :: year = 1_i4                     !< 1 <= year <= 9999
+    integer(i4), public :: month = 1_i4                    !< 1 <= month <= 12
+    integer(i4), public :: day = 1_i4                      !< 1 <= day <= number of days in the given month and year
   contains
     !> \copydoc mo_datetime::d_replace
     procedure, public :: replace => d_replace !< \see mo_datetime::d_replace
@@ -193,9 +197,9 @@ module mo_datetime
   !> \class   puretime
   !> \brief   This is a container to hold only a time.
   type puretime
-    integer(i4), public :: hour                     !< 0 <= hour < 24
-    integer(i4), public :: minute                   !< 0 <= minute < 60
-    integer(i4), public :: second                   !< 0 <= second < 60
+    integer(i4), public :: hour = 0_i4                     !< 0 <= hour < 24
+    integer(i4), public :: minute = 0_i4                   !< 0 <= minute < 60
+    integer(i4), public :: second = 0_i4                   !< 0 <= second < 60
   contains
     !> \copydoc mo_datetime::t_replace
     procedure, public :: replace => t_replace !< \see mo_datetime::t_replace
@@ -237,12 +241,12 @@ module mo_datetime
   !> \class   datetime
   !> \brief   This is a container to hold a date-time.
   type datetime
-    integer(i4), public :: year                     !< 1 <= year <= 9999
-    integer(i4), public :: month                    !< 1 <= month <= 12
-    integer(i4), public :: day                      !< 1 <= day <= number of days in the given month and year
-    integer(i4), public :: hour                     !< 0 <= hour < 24
-    integer(i4), public :: minute                   !< 0 <= minute < 60
-    integer(i4), public :: second                   !< 0 <= second < 60
+    integer(i4), public :: year = 1_i4                     !< 1 <= year <= 9999
+    integer(i4), public :: month = 1_i4                    !< 1 <= month <= 12
+    integer(i4), public :: day = 1_i4                      !< 1 <= day <= number of days in the given month and year
+    integer(i4), public :: hour = 0_i4                     !< 0 <= hour < 24
+    integer(i4), public :: minute = 0_i4                   !< 0 <= minute < 60
+    integer(i4), public :: second = 0_i4                   !< 0 <= second < 60
   contains
     !> \copydoc mo_datetime::dt_replace
     procedure, public :: replace => dt_replace !< \see mo_datetime::dt_replace
@@ -292,8 +296,8 @@ module mo_datetime
   !> \class   timedelta
   !> \brief   This is a container to hold a defined time span.
   type timedelta
-    integer(i4), public :: days                     !< days of the time-span
-    integer(i4), public :: seconds                  !< second of the time-span
+    integer(i4), public :: days = 0_i4                     !< days of the time-span
+    integer(i4), public :: seconds = 0_i4                  !< second of the time-span
   contains
     !> \copydoc mo_datetime::td_abs
     procedure, public :: abs => td_abs !< \see mo_datetime::td_abs
@@ -324,62 +328,6 @@ module mo_datetime
     generic, public :: operator(/) => td_div, td_div_dp, td_div_td
   end type timedelta
 
-  !> \class   timedelta_c
-  !> \brief   This is a container to hold a constant time span.
-  type, extends(timedelta) :: timedelta_c
-#ifdef INTEL
-  contains
-    ! intel fortran needs these routines (bug with overloading binary AND unary operators)
-    procedure, private :: ctd_add_td, ctd_pos, ctd_sub_td, ctd_neg, ctd_add, ctd_sub
-    procedure, pass(this), private :: td_add_ctd, td_sub_ctd
-    generic, public :: operator(+) => td_add_ctd, ctd_add_td, ctd_pos, ctd_add
-    generic, public :: operator(-) => td_sub_ctd, ctd_sub_td, ctd_neg, ctd_sub
-#endif
-  end type timedelta_c
-
-  ! intel fortran compiler can't use type with interface to construct parameter variables
-  type(timedelta_c), parameter :: zero_delta = timedelta_c(0_i4, 0_i4)            !< zero time delta
-  type(timedelta_c), parameter :: one_week = timedelta_c(WEEK_DAYS, 0_i4)         !< one week time delta
-  type(timedelta_c), parameter :: one_day = timedelta_c(1_i4, 0_i4)               !< one day time delta
-  type(timedelta_c), parameter :: one_hour = timedelta_c(0_i4, HOUR_SECONDS)      !< one hour time delta
-  type(timedelta_c), parameter :: one_minute = timedelta_c(0_i4, MINUTE_SECONDS)  !< one minute time delta
-  type(timedelta_c), parameter :: one_second = timedelta_c(0_i4, 1_i4)            !< one second time delta
-
-  !> \class   time_c
-  !> \brief   This is a container to hold a constant time.
-  type, extends(puretime) :: time_c
-  end type time_c
-
-  type(time_c), public, parameter :: midnight = time_c(0_i4, 0_i4, 0_i4)                  !< midnight (00:00)
-  type(time_c), public, parameter :: midday = time_c(DAY_HOURS/2_i4, 0_i4, 0_i4)          !< midday (12:00)
-  type(time_c), public, parameter :: hour_0 = time_c(0_i4, 0_i4, 0_i4)                    !< 00:00
-  type(time_c), public, parameter :: hour_1 = time_c(1_i4, 0_i4, 0_i4)                    !< 01:00
-  type(time_c), public, parameter :: hour_2 = time_c(2_i4, 0_i4, 0_i4)                    !< 02:00
-  type(time_c), public, parameter :: hour_3 = time_c(3_i4, 0_i4, 0_i4)                    !< 03:00
-  type(time_c), public, parameter :: hour_4 = time_c(4_i4, 0_i4, 0_i4)                    !< 04:00
-  type(time_c), public, parameter :: hour_5 = time_c(5_i4, 0_i4, 0_i4)                    !< 05:00
-  type(time_c), public, parameter :: hour_6 = time_c(6_i4, 0_i4, 0_i4)                    !< 06:00
-  type(time_c), public, parameter :: hour_7 = time_c(7_i4, 0_i4, 0_i4)                    !< 07:00
-  type(time_c), public, parameter :: hour_8 = time_c(8_i4, 0_i4, 0_i4)                    !< 08:00
-  type(time_c), public, parameter :: hour_9 = time_c(9_i4, 0_i4, 0_i4)                    !< 09:00
-  type(time_c), public, parameter :: hour_10 = time_c(10_i4, 0_i4, 0_i4)                  !< 10:00
-  type(time_c), public, parameter :: hour_11 = time_c(11_i4, 0_i4, 0_i4)                  !< 11:00
-  type(time_c), public, parameter :: hour_12 = time_c(12_i4, 0_i4, 0_i4)                  !< 12:00
-  type(time_c), public, parameter :: hour_13 = time_c(13_i4, 0_i4, 0_i4)                  !< 13:00
-  type(time_c), public, parameter :: hour_14 = time_c(14_i4, 0_i4, 0_i4)                  !< 14:00
-  type(time_c), public, parameter :: hour_15 = time_c(15_i4, 0_i4, 0_i4)                  !< 15:00
-  type(time_c), public, parameter :: hour_16 = time_c(16_i4, 0_i4, 0_i4)                  !< 16:00
-  type(time_c), public, parameter :: hour_17 = time_c(17_i4, 0_i4, 0_i4)                  !< 17:00
-  type(time_c), public, parameter :: hour_18 = time_c(18_i4, 0_i4, 0_i4)                  !< 18:00
-  type(time_c), public, parameter :: hour_19 = time_c(19_i4, 0_i4, 0_i4)                  !< 19:00
-  type(time_c), public, parameter :: hour_20 = time_c(20_i4, 0_i4, 0_i4)                  !< 20:00
-  type(time_c), public, parameter :: hour_21 = time_c(21_i4, 0_i4, 0_i4)                  !< 21:00
-  type(time_c), public, parameter :: hour_22 = time_c(22_i4, 0_i4, 0_i4)                  !< 22:00
-  type(time_c), public, parameter :: hour_23 = time_c(23_i4, 0_i4, 0_i4)                  !< 23:00
-  type(time_c), dimension(0:23), public, parameter :: hour_times = &
-    [hour_0, hour_1, hour_2, hour_3, hour_4, hour_5, hour_6, hour_7, hour_8, hour_9, hour_10, hour_11, &
-     hour_12, hour_13, hour_14, hour_15, hour_16, hour_17, hour_18, hour_19, hour_20, hour_21, hour_22, hour_23] !< day hour times
-
   ! constructor interface for date
   interface puredate
     procedure d_init
@@ -407,6 +355,58 @@ module mo_datetime
   end interface timedelta
 
 contains
+
+  ! CONSTANT DELTAS
+
+  !> \brief zero time delta
+  pure type(timedelta) function zero_delta()
+    ! zeros by default
+  end function zero_delta
+
+  !> \brief one week time delta
+  pure type(timedelta) function one_week()
+    one_week%days = WEEK_DAYS
+  end function one_week
+
+  !> \brief one day time delta
+  pure type(timedelta) function one_day()
+    one_day%days = 1_i4
+  end function one_day
+
+  !> \brief one hour time delta
+  pure type(timedelta) function one_hour()
+    one_hour%seconds = HOUR_SECONDS
+  end function one_hour
+
+  !> \brief one minute time delta
+  pure type(timedelta) function one_minute()
+    one_minute%seconds = MINUTE_SECONDS
+  end function one_minute
+
+  !> \brief one second time delta
+  pure type(timedelta) function one_second()
+    one_second%seconds = 1_i4
+  end function one_second
+
+  ! DAYTIMES
+
+  !> \brief midnight (00:00)
+  pure type(puretime) function midnight()
+    ! midnight by default
+  end function midnight
+
+  !> \brief midday (12:00)
+  pure type(puretime) function midday()
+    midday%hour = CLOCK_HOURS
+  end function midday
+
+  !> \brief time for given hour
+  pure type(puretime) function day_hour(hour)
+    integer(i4), intent(in) :: hour           !< hour
+    day_hour%hour = modulo(hour, DAY_HOURS)
+  end function day_hour
+
+  ! CURRENT TIME/DATE
 
   !> \brief get current \ref datetime
   type(datetime) function now()
@@ -590,21 +590,18 @@ contains
   !> \brief initialize a datetime
   function dt_init(year, month, day, hour, minute, second) result(out)
     implicit none
-    integer(i4), intent(in) :: year                     !< 1 <= year <= 9999
-    integer(i4), intent(in) :: month                    !< 1 <= month <= 12
-    integer(i4), intent(in) :: day                      !< 1 <= day <= number of days in the given month and year
+    integer(i4), intent(in), optional :: year           !< 1 (default) <= year <= 9999
+    integer(i4), intent(in), optional :: month          !< 1 (default) <= month <= 12
+    integer(i4), intent(in), optional :: day            !< 1 (default) <= day <= number of days in the given month and year
     integer(i4), intent(in), optional :: hour           !< 0 (default) <= hour < 24
     integer(i4), intent(in), optional :: minute         !< 0 (default) <= minute < 60
     integer(i4), intent(in), optional :: second         !< 0 (default) <= second < 60
     type(datetime) :: out
-    out%year = year
-    out%month = month
-    out%day = day
-    out%hour = 0_i4
+    if (present(year)) out%year = year
+    if (present(month)) out%month = month
+    if (present(day)) out%day = day
     if (present(hour)) out%hour = hour
-    out%minute = 0_i4
     if (present(minute)) out%minute = minute
-    out%second = 0_i4
     if (present(second)) out%second = second
     ! check if datetime is valid
     call check_datetime(year=out%year, month=out%month, day=out%day, hour=out%hour, minute=out%minute, second=out%second)
@@ -619,7 +616,6 @@ contains
     character(256), dimension(:), allocatable :: str_arr
     call divide_string(trim(string), ' ', str_arr)
     in_date = d_from_string(str_arr(1))
-    in_time = midnight
     if(size(str_arr) > 1_i4) in_time = t_from_string(str_arr(2))
     dt_from_string = dt_from_date_time(in_date, in_time)
   end function dt_from_string
@@ -648,7 +644,7 @@ contains
     end select
     if (trim(str_arr(2)) /= "since") call error_message("datetime: expected 'since' for cf-convetion. Got: ", trim(str_arr(2)))
     in_date = d_from_string(str_arr(3))
-    in_time = midnight
+    ! in_time midnight by default
     if(size(str_arr) > 3_i4) in_time = t_from_string(str_arr(4))
     dt_from_cf = dt_from_date_time(in_date, in_time) + delta
   end function dt_from_cf
@@ -660,7 +656,7 @@ contains
     class(puretime), intent(in), optional :: in_time      !< time to use (midnight by default)
     type(datetime) :: out
     type(puretime) :: in_time_
-    in_time_ = midnight
+    ! in_time_ midnight by default
     if (present(in_time)) in_time_ = in_time
     out%year = in_date%year
     out%month = in_date%month
@@ -965,13 +961,13 @@ contains
   !> \brief initialize a date
   function d_init(year, month, day) result(out)
     implicit none
-    integer(i4), intent(in) :: year                     !< 1 <= year <= 9999
-    integer(i4), intent(in) :: month                    !< 1 <= month <= 12
-    integer(i4), intent(in) :: day                      !< 1 <= day <= number of days in the given month and year
+    integer(i4), intent(in), optional :: year                     !< 1 (default) <= year <= 9999
+    integer(i4), intent(in), optional :: month                    !< 1 (default) <= month <= 12
+    integer(i4), intent(in), optional :: day                      !< 1 (default) <= day <= number of days for given month and year
     type(puredate) :: out
-    out%year = year
-    out%month = month
-    out%day = day
+    if (present(year)) out%year = year
+    if (present(month)) out%month = month
+    if (present(day)) out%day = day
     call check_datetime(year=out%year, month=out%month, day=out%day)
   end function d_init
 
@@ -1230,7 +1226,6 @@ contains
     type(puretime) :: out
     out%hour = hour
     out%minute = minute
-    out%second = 0_i4
     if (present(second)) out%second = second
     ! check if datetime is valid
     call check_datetime(hour=out%hour, minute=out%minute, second=out%second)
@@ -1413,10 +1408,8 @@ contains
     type(timedelta) :: out
     integer(i4) :: neg_days, remain_sec
 
-    out%days = 0
     if (present(days)) out%days = days
     if (present(weeks)) out%days = out%days + weeks * WEEK_DAYS
-    out%seconds = 0
     if (present(seconds)) out%seconds = seconds
     if (present(minutes)) out%seconds = out%seconds + minutes * MINUTE_SECONDS
     if (present(hours)) out%seconds = out%seconds + hours * HOUR_SECONDS
@@ -1603,69 +1596,5 @@ contains
     class(timedelta), intent(in) :: this, that
     td_div_td = real(this%total_seconds(), dp) / real(that%total_seconds(), dp)
   end function td_div_td
-
-#ifdef INTEL
-  ! INTEL COMPAT ROUTINES for derived types
-
-  !> \brief adding two timedeltas
-  pure type(timedelta) function ctd_add(this, that)
-    implicit none
-    class(timedelta_c), intent(in) :: this, that
-    ctd_add = timedelta(days=this%days+that%days, seconds=this%seconds+that%seconds)
-  end function ctd_add
-
-  !> \brief adding two timedeltas
-  pure type(timedelta) function ctd_add_td(this, that)
-    implicit none
-    class(timedelta_c), intent(in) :: this
-    class(timedelta), intent(in) :: that
-    ctd_add_td = timedelta(days=this%days+that%days, seconds=this%seconds+that%seconds)
-  end function ctd_add_td
-
-  !> \brief adding two timedeltas
-  pure type(timedelta) function td_add_ctd(that, this)
-    implicit none
-    class(timedelta), intent(in) :: that
-    class(timedelta_c), intent(in) :: this
-    td_add_ctd = ctd_add_td(this, that)
-  end function td_add_ctd
-
-  !> \brief adding two timedeltas
-  pure type(timedelta) function ctd_sub(this, that)
-    implicit none
-    class(timedelta_c), intent(in) :: this, that
-    ctd_sub = timedelta(days=this%days-that%days, seconds=this%seconds-that%seconds)
-  end function ctd_sub
-
-  !> \brief adding two timedeltas
-  pure type(timedelta) function ctd_sub_td(this, that)
-    implicit none
-    class(timedelta_c), intent(in) :: this
-    class(timedelta), intent(in) :: that
-    ctd_sub_td = timedelta(days=this%days-that%days, seconds=this%seconds-that%seconds)
-  end function ctd_sub_td
-
-  !> \brief adding two timedeltas
-  pure type(timedelta) function td_sub_ctd(that, this)
-    implicit none
-    class(timedelta), intent(in) :: that
-    class(timedelta_c), intent(in) :: this
-    td_sub_ctd = timedelta(days=that%days-this%days, seconds=that%seconds-this%seconds)
-  end function td_sub_ctd
-
-  !> \brief negative timedelta
-  pure type(timedelta) function ctd_neg(this)
-    implicit none
-    class(timedelta_c), intent(in) :: this
-    ctd_neg = timedelta(days=-this%days, seconds=-this%seconds)
-  end function ctd_neg
-
-  !> \brief positive timedelta
-  pure type(timedelta) function ctd_pos(this)
-    implicit none
-    class(timedelta_c), intent(in) :: this
-    ctd_pos = timedelta(days=this%days, seconds=this%seconds)
-  end function ctd_pos
-#endif
 
 end module mo_datetime
