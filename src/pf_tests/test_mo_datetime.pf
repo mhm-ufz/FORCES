@@ -4,7 +4,7 @@ module test_mo_datetime
   use mo_datetime, only: datetime, timedelta, puredate, puretime, one_hour, one_day, one_week, is_leap_year
   use mo_datetime, only: days_in_month, now, today, currently, zero_delta
   use mo_datetime, only: day_seconds, hour_seconds, day_minutes, hour_minutes, day_hours
-  use mo_datetime, only: hour_23, hour_1, midday, midnight, hour_times
+  use mo_datetime, only: midday, midnight, day_hour
 
   implicit none
 
@@ -20,9 +20,10 @@ contains
     type(datetime) :: date1, date2, date3, date4, date5
     type(puredate) :: day1, day2
     type(puretime) :: time1, time2
-    type(timedelta) :: delta, delta1
+    type(timedelta) :: delta, delta1, a_day
     character(:), allocatable :: string
 
+    a_day = one_day()
     date1 = datetime(2003, 2, 28)
     date2 = datetime(2003, 2, 27)
     date3 = datetime(2000, 2, 29)
@@ -31,13 +32,13 @@ contains
     delta = timedelta(days=1, seconds=-100000)
     delta1 = timedelta(1_i4, 20265_i4)
 
-    @assertEqual(one_week / one_day, 7.0_dp, tolerance=0.0001)
+    @assertEqual(one_week() / one_day(), 7.0_dp, tolerance=0.0001)
 
-    @assertTrue((one_day / 24.0_dp) == one_hour)
-    @assertTrue((one_day * 1.23456_dp) == delta1)
-    @assertTrue((one_day * 1.23456_dp) == (1.23456_dp * one_day))
-    @assertTrue((one_day * 100000_i4) == (one_day * 100000._dp))
-    @assertTrue((one_week / (-7_i4)) == (-1_i4 * one_day))
+    @assertTrue((one_day() / 24.0_dp) == one_hour())
+    @assertTrue((one_day() * 1.23456_dp) == delta1)
+    @assertTrue((one_day() * 1.23456_dp) == (1.23456_dp * one_day()))
+    @assertTrue((one_day() * 100000_i4) == (one_day() * 100000._dp))
+    @assertTrue((one_week() / (-7_i4)) == (-1_i4 * one_day()))
 
     @assertFalse(is_leap_year(1900))
     @assertFalse(is_leap_year(1901))
@@ -46,7 +47,7 @@ contains
     @assertTrue(is_leap_year(1904))
     @assertTrue(is_leap_year(2000))
 
-    @assertTrue((date1 - date2) == one_day)
+    @assertTrue((date1 - date2) == one_day())
     @assertTrue((date1 - date3) == timedelta(1095_i4))
     @assertTrue((date3 - date2) == timedelta(-1094_i4))
     @assertFalse(date1 < date2)
@@ -57,8 +58,8 @@ contains
     @assertTrue(date1 /= date2)
     @assertTrue(date1 == date1)
 
-    @assertTrue(one_day%abs() == one_day)
-    @assertTrue(delta%abs() >= zero_delta)
+    @assertTrue(a_day%abs() == one_day())
+    @assertTrue(delta%abs() >= zero_delta())
     @assertTrue(delta%abs() > delta)
     @assertTrue(delta1 < (2.0_dp * delta1))
     @assertTrue(delta1 <= (2.0_dp * delta1))
@@ -71,7 +72,7 @@ contains
     @assertTrue(date1+delta == delta+date1)
     @assertTrue(date1-delta > date1)
     @assertTrue((delta+delta) == (2*delta))
-    @assertTrue((14*one_day) == (2*one_week))
+    @assertTrue((14*one_day()) == (2*one_week()))
 
     @assertEqual(days_in_month(1900, 2), 28)
     @assertEqual(days_in_month(2000, 2), 29)
@@ -178,58 +179,58 @@ contains
     @assertTrue(day1 == date2)
     @assertFalse(date2 /= day1)
     @assertFalse(day1 /= date2)
-    @assertTrue(date3 < day1 + one_day)
-    @assertTrue(day1 + one_day > date3)
-    @assertTrue(date3 <= day1 + one_day)
-    @assertTrue(day1 + one_day >= date3)
-    @assertTrue(date3 + one_day > day1)
-    @assertTrue(day1 < date3 + one_day)
-    @assertTrue(date3 + one_day >= day1)
-    @assertTrue(day1 <= date3 + one_day)
-    @assertTrue(date3 - day1 > zero_delta)
-    @assertTrue(day1 <= day1 + one_day)
-    @assertTrue(day1 + one_day >= day1)
+    @assertTrue(date3 < day1 + one_day())
+    @assertTrue(day1 + one_day() > date3)
+    @assertTrue(date3 <= day1 + one_day())
+    @assertTrue(day1 + one_day() >= date3)
+    @assertTrue(date3 + one_day() > day1)
+    @assertTrue(day1 < date3 + one_day())
+    @assertTrue(date3 + one_day() >= day1)
+    @assertTrue(day1 <= date3 + one_day())
+    @assertTrue(date3 - day1 >= zero_delta())
+    @assertTrue(day1 <= day1 + one_day())
+    @assertTrue(day1 + one_day() >= day1)
 
     ! date replace
     @assertTrue(day1%replace(day1%year+1, day=1) > day1)
 
     ! date manipulation
-    day2 = 731 * one_day + day1
+    day2 = 731 * one_day() + day1
     @assertTrue(day2%year >= day1%year+2)
-    @assertTrue(day2-day1 == 731*one_day)
-    @assertTrue(day2-day1%with_time() == 731*one_day)
+    @assertTrue(day2-day1 == 731*one_day())
+    @assertTrue(day2-day1%with_time() == 731*one_day())
 
-    day2 = day1 - 731 * one_day
+    day2 = day1 - 731 * one_day()
     @assertTrue(day2%year <= day1%year-2)
 
     ! try operations
-    delta = -one_day
-    @assertTrue(delta < zero_delta)
-    delta = +one_day
-    @assertTrue(delta > zero_delta)
-    delta = one_day + 1*one_hour
-    @assertTrue(delta > one_day)
-    delta = 1*one_day + one_hour
-    @assertTrue(delta > one_day)
-    delta = one_hour - one_day
-    @assertTrue(delta < zero_delta)
-    delta = 1*one_hour - one_day
-    @assertTrue(delta < zero_delta)
+    delta = -one_day()
+    @assertTrue(delta < zero_delta())
+    delta = +one_day()
+    @assertTrue(delta > zero_delta())
+    delta = one_day() + 1*one_hour()
+    @assertTrue(delta > one_day())
+    delta = 1*one_day() + one_hour()
+    @assertTrue(delta > one_day())
+    delta = one_hour() - one_day()
+    @assertTrue(delta < zero_delta())
+    delta = 1*one_hour() - one_day()
+    @assertTrue(delta < zero_delta())
 
     ! time arithmetics
-    @assertTrue(hour_23 + 2*one_hour == hour_1)
-    @assertTrue(2*one_hour + hour_23 == hour_1)
-    @assertTrue(hour_times(0) - one_hour == hour_times(23))
-    @assertTrue(midday + one_day == midday)
-    @assertTrue(midday - one_day == midday)
-    delta = one_day + one_hour
-    @assertTrue(midday + delta == hour_times(13))
-    @assertTrue(midday - delta == hour_times(11))
-    delta = one_hour - 2*one_day
-    @assertTrue(midday + delta == hour_times(13))
-    @assertTrue(midday - delta == hour_times(11))
-    @assertTrue(midday - midnight == 12*one_hour)
-    @assertTrue(midnight - midday == -12*one_hour)
+    @assertTrue(day_hour(23) + 2*one_hour() == day_hour(1))
+    @assertTrue(2*one_hour() + day_hour(23) == day_hour(1))
+    @assertTrue(day_hour(0) - one_hour() == day_hour(23))
+    @assertTrue(midday() + one_day() == midday())
+    @assertTrue(midday() - one_day() == midday())
+    delta = one_day() + one_hour()
+    @assertTrue(midday() + delta == day_hour(13))
+    @assertTrue(midday() - delta == day_hour(11))
+    delta = one_hour() - 2*one_day()
+    @assertTrue(midday() + delta == day_hour(13))
+    @assertTrue(midday() - delta == day_hour(11))
+    @assertTrue(midday() - midnight() == 12*one_hour())
+    @assertTrue(midnight() - midday() == -12*one_hour())
 
   end subroutine test_datetime_types
 
