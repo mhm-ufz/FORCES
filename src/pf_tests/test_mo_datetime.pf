@@ -2,8 +2,8 @@ module test_mo_datetime
   use funit
   use mo_kind, only: i4, dp
   use mo_datetime, only: datetime, timedelta, puredate, puretime, one_hour, one_day, one_week, is_leap_year
-  use mo_datetime, only: days_in_month, now, today, currently, zero_delta
-  use mo_datetime, only: day_seconds, hour_seconds, day_minutes, hour_minutes, day_hours
+  use mo_datetime, only: days_in_month, now, today, currently, zero_delta, one_minute, one_second
+  use mo_datetime, only: day_seconds, hour_seconds, day_minutes, hour_minutes, day_hours, minute_seconds
   use mo_datetime, only: midday, midnight, day_hour
 
   implicit none
@@ -216,6 +216,7 @@ contains
     @assertTrue(delta < zero_delta())
     delta = 1*one_hour() - one_day()
     @assertTrue(delta < zero_delta())
+    @assertTrue(one_minute() == minute_seconds * one_second())
 
     ! time arithmetics
     @assertTrue(day_hour(23) + 2*one_hour() == day_hour(1))
