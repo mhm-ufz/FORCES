@@ -609,11 +609,17 @@ contains
     integer(i4), intent(in), optional :: minute         !< 0 (default) <= minute < 60
     integer(i4), intent(in), optional :: second         !< 0 (default) <= second < 60
     type(datetime) :: out
+    out%year = 1_i4
     if (present(year)) out%year = year
+    out%month = 1_i4
     if (present(month)) out%month = month
+    out%day = 1_i4
     if (present(day)) out%day = day
+    out%hour = 0_i4
     if (present(hour)) out%hour = hour
+    out%minute = 0_i4
     if (present(minute)) out%minute = minute
+    out%second = 0_i4
     if (present(second)) out%second = second
     ! check if datetime is valid
     call check_datetime(year=out%year, month=out%month, day=out%day, hour=out%hour, minute=out%minute, second=out%second)
@@ -628,6 +634,7 @@ contains
     character(256), dimension(:), allocatable :: str_arr
     call divide_string(trim(string), ' ', str_arr)
     in_date = d_from_string(str_arr(1))
+    in_time = midnight()
     if(size(str_arr) > 1_i4) in_time = t_from_string(str_arr(2))
     dt_from_string = dt_from_date_time(in_date, in_time)
   end function dt_from_string
@@ -656,7 +663,7 @@ contains
     end select
     if (trim(str_arr(2)) /= "since") call error_message("datetime: expected 'since' for cf-convetion. Got: ", trim(str_arr(2)))
     in_date = d_from_string(str_arr(3))
-    ! in_time midnight by default
+    in_time = midnight()
     if(size(str_arr) > 3_i4) in_time = t_from_string(str_arr(4))
     dt_from_cf = dt_from_date_time(in_date, in_time) + delta
   end function dt_from_cf
@@ -668,7 +675,7 @@ contains
     class(puretime), intent(in), optional :: in_time      !< time to use (midnight by default)
     type(datetime) :: out
     type(puretime) :: in_time_
-    ! in_time_ midnight by default
+    in_time_ = midnight()
     if (present(in_time)) in_time_ = in_time
     out%year = in_date%year
     out%month = in_date%month
@@ -977,8 +984,11 @@ contains
     integer(i4), intent(in), optional :: month                    !< 1 (default) <= month <= 12
     integer(i4), intent(in), optional :: day                      !< 1 (default) <= day <= number of days for given month and year
     type(puredate) :: out
+    out%year = 1_i4
     if (present(year)) out%year = year
+    out%month = 1_i4
     if (present(month)) out%month = month
+    out%day = 1_i4
     if (present(day)) out%day = day
     call check_datetime(year=out%year, month=out%month, day=out%day)
   end function d_init
@@ -1238,6 +1248,7 @@ contains
     type(puretime) :: out
     out%hour = hour
     out%minute = minute
+    out%second = 0_i4
     if (present(second)) out%second = second
     ! check if datetime is valid
     call check_datetime(hour=out%hour, minute=out%minute, second=out%second)
