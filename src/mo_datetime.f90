@@ -24,17 +24,17 @@
 !!
 !!            ! create dates add time-deltas
 !!            date1 = datetime(2000, 2, 28)
-!!            date2 = date1 + one_day
+!!            date2 = date1 + one_day()
 !!            print*, date2%str()
-!!            date3 = date1 + 2 * one_day
+!!            date3 = date1 + 2 * one_day()
 !!            print*, date3%str()
 !!
 !!            ! substract half a day
-!!            delta1 = one_day / 2
+!!            delta1 = one_day() / 2
 !!            date4 = date3 - delta1
 !!
 !!            ! compare dates/times
-!!            print*, "is midday: ", date4%time() == midday
+!!            print*, "is midday: ", date4%time() == midday()
 !!            print*, "date4 after date2: ", date4 > date2
 !!
 !!            ! create from date and time
@@ -360,31 +360,37 @@ contains
 
   !> \brief zero time delta
   pure type(timedelta) function zero_delta()
-    ! zeros by default
+    zero_delta%days = 0_i4
+    zero_delta%seconds = 0_i4
   end function zero_delta
 
   !> \brief one week time delta
   pure type(timedelta) function one_week()
     one_week%days = WEEK_DAYS
+    one_week%seconds = 0_i4
   end function one_week
 
   !> \brief one day time delta
   pure type(timedelta) function one_day()
     one_day%days = 1_i4
+    one_day%seconds = 0_i4
   end function one_day
 
   !> \brief one hour time delta
   pure type(timedelta) function one_hour()
+    one_hour%days = 0_i4
     one_hour%seconds = HOUR_SECONDS
   end function one_hour
 
   !> \brief one minute time delta
   pure type(timedelta) function one_minute()
+    one_minute%days = 0_i4
     one_minute%seconds = MINUTE_SECONDS
   end function one_minute
 
   !> \brief one second time delta
   pure type(timedelta) function one_second()
+    one_second%days = 0_i4
     one_second%seconds = 1_i4
   end function one_second
 
@@ -392,18 +398,24 @@ contains
 
   !> \brief midnight (00:00)
   pure type(puretime) function midnight()
-    ! midnight by default
+    midnight%hour = 0_i4
+    midnight%minute = 0_i4
+    midnight%second = 0_i4
   end function midnight
 
   !> \brief midday (12:00)
   pure type(puretime) function midday()
     midday%hour = CLOCK_HOURS
+    midday%minute = 0_i4
+    midday%second = 0_i4
   end function midday
 
   !> \brief time for given hour
   pure type(puretime) function day_hour(hour)
     integer(i4), intent(in) :: hour           !< hour
     day_hour%hour = modulo(hour, DAY_HOURS)
+    day_hour%minute = 0_i4
+    day_hour%second = 0_i4
   end function day_hour
 
   ! CURRENT TIME/DATE
