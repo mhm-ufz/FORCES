@@ -22,6 +22,7 @@ contains
     type(puretime) :: time1, time2
     type(timedelta) :: delta, delta1, a_day
     character(:), allocatable :: string
+    real(dp) :: julian, julian2
 
     a_day = one_day()
     date1 = datetime(2003, 2, 28)
@@ -232,6 +233,16 @@ contains
     @assertTrue(midday() - delta == day_hour(11))
     @assertTrue(midday() - midnight() == 12*one_hour())
     @assertTrue(midnight() - midday() == -12*one_hour())
+
+    ! interaction with julian
+    date1 = now()
+    julian = date1%julian(calendar=1)
+    day1 = puredate(julian, calendar=1)
+    julian2 = day1%julian(calendar=1)
+    date2 = datetime(julian, calendar=1)
+    @assertTrue(date1 == date2)       ! conversion should not alter the date
+    @assertTrue(day1 == date2%date()) ! date and date from datetime need to match
+    @assertTrue(julian >= julian2)    ! date with time has higher julian day fraction
 
   end subroutine test_datetime_types
 

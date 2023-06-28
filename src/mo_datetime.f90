@@ -103,6 +103,7 @@ module mo_datetime
   use mo_kind, only: i4, i8, dp
   use mo_message, only: error_message
   use mo_string_utils, only : num2str
+  use mo_julian, only : dec2date, date2dec
 
   implicit none
 
@@ -165,6 +166,8 @@ module mo_datetime
     procedure, public :: to_ordinal !< \see mo_datetime::to_ordinal
     !> \copydoc mo_datetime::d_str
     procedure, public :: str => d_str !< \see mo_datetime::d_str
+    !> \copydoc mo_datetime::d_julian
+    procedure, public :: julian => d_julian !< \see mo_datetime::d_julian
     !> \copydoc mo_datetime::d_weekday
     procedure, public :: weekday => d_weekday !< \see mo_datetime::d_weekday
     !> \copydoc mo_datetime::d_doy
@@ -256,6 +259,8 @@ module mo_datetime
     procedure, public :: time => get_time !< \see mo_datetime::get_time
     !> \copydoc mo_datetime::dt_str
     procedure, public :: str => dt_str !< \see mo_datetime::dt_str
+    !> \copydoc mo_datetime::dt_julian
+    procedure, public :: julian => dt_julian !< \see mo_datetime::dt_julian
     !> \copydoc mo_datetime::dt_weekday
     procedure, public :: weekday => dt_weekday !< \see mo_datetime::dt_weekday
     !> \copydoc mo_datetime::dt_doy
@@ -332,6 +337,7 @@ module mo_datetime
   interface puredate
     procedure d_init
     procedure d_from_string
+    procedure d_from_julian
   end interface puredate
 
   ! constructor interface for time
@@ -347,6 +353,7 @@ module mo_datetime
     procedure dt_from_string
     procedure dt_from_date_time
     procedure dt_from_cf
+    procedure dt_from_julian
   end interface datetime
 
   ! constructor interface timedelta
@@ -685,6 +692,20 @@ contains
     out%second = in_time_%second
   end function dt_from_date_time
 
+  !> \brief datetime from fractional julian day
+  pure type(datetime) function dt_from_julian(julian, calendar)
+    real(dp), intent(in) :: julian                !< fractional julian day
+    integer(i4), intent(in), optional :: calendar !< The calendar to use, the global calendar will be used by default
+    integer(i4) :: year, month, day, hour, minute, second
+    call dec2date(julian, yy=year, mm=month, dd=day, hh=hour, nn=minute, ss=second, calendar=calendar)
+    dt_from_julian%year = year
+    dt_from_julian%month = month
+    dt_from_julian%day = day
+    dt_from_julian%hour = hour
+    dt_from_julian%minute = minute
+    dt_from_julian%second = second
+  end function dt_from_julian
+
   !> \brief new datetime with specified fields
   type(datetime) function dt_replace(this, year, month, day, hour, minute, second)
     implicit none
@@ -761,6 +782,14 @@ contains
     class(datetime), intent(in) :: this
     dt_str = d_str(this%date()) // " " // t_str(this%time())
   end function dt_str
+
+  !> \brief datetime as fractional julian day
+  pure real(dp) function dt_julian(this, calendar)
+    implicit none
+    class(datetime), intent(in) :: this
+    integer(i4), intent(in), optional :: calendar !< The calendar to use, the global calendar will be used by default
+    dt_julian = date2dec(yy=this%year, mm=this%month, dd=this%day, hh=this%hour, nn=this%minute, ss=this%second, calendar=calendar)
+  end function dt_julian
 
   !> \brief day of the week
   pure integer(i4) function dt_weekday(this)
@@ -1006,6 +1035,17 @@ contains
     d_from_string = d_init(year=year, month=month, day=day)
   end function d_from_string
 
+  !> \brief date from fractional julian day
+  pure type(puredate) function d_from_julian(julian, calendar)
+    real(dp), intent(in) :: julian                !< fractional julian day
+    integer(i4), intent(in), optional :: calendar !< The calendar to use, the global calendar will be used by default
+    integer(i4) :: year, month, day
+    call dec2date(julian, yy=year, mm=month, dd=day, calendar=calendar)
+    d_from_julian%year = year
+    d_from_julian%month = month
+    d_from_julian%day = day
+  end function d_from_julian
+
   !> \brief new date with specified fields
   type(puredate) function d_replace(this, year, month, day)
     implicit none
@@ -1043,6 +1083,14 @@ contains
     class(puredate), intent(in) :: this
     write(d_str, "(i4.4, '-' ,i2.2, '-', i2.2)") this%year, this%month, this%day
   end function d_str
+
+  !> \brief date as fractional julian day
+  pure real(dp) function d_julian(this, calendar)
+    implicit none
+    class(puredate), intent(in) :: this
+    integer(i4), intent(in), optional :: calendar !< The calendar to use, the global calendar will be used by default
+    d_julian = date2dec(yy=this%year, mm=this%month, dd=this%day, calendar=calendar)
+  end function d_julian
 
   !> \brief day of the week
   pure integer(i4) function d_weekday(this)
