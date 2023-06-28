@@ -240,9 +240,12 @@ contains
     day1 = puredate(julian, calendar=1)
     julian2 = day1%julian(calendar=1)
     date2 = datetime(julian, calendar=1)
-    @assertTrue(date1 == date2)       ! conversion should not alter the date
-    @assertTrue(day1 == date2%date()) ! date and date from datetime need to match
-    @assertTrue(julian >= julian2)    ! date with time has higher julian day fraction
+    ! conversion should not alter the date
+    @assertTrue(date1 == date2)
+    ! date and date from datetime need to match
+    @assertTrue(day1 == date2%date())
+    ! date with time has higher julian day fraction
+    @assertTrue(julian >= julian2)
 
   end subroutine test_datetime_types
 
