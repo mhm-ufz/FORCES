@@ -4,8 +4,17 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
-## unreleased - 2023-?
-- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.5.0...main) for details.
+## v0.6.0 - 2023-07
+- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.5.0...v0.6.0) for details.
+
+### Enhancements
+- added `mo_datetime` ([76](https://git.ufz.de/chs/forces/-/merge_requests/76))
+  - This module provides four types to deal with date and time:
+    1. `puredate` : containing year, month and day
+    2. `puretime` : containing hour, minute and second
+    3. `datetime` : combination of date and time
+    4. `timedelta` : difference between two datetimes (or dates) in days and (sub-day) seconds
+  - these type can be used in arithmetic operations (+, -, *, /) and can be compared (<, >, <=, >=, ==, /=) where it makes sense
 
 
 ## v0.5.0 - 2023-03

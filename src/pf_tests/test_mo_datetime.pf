@@ -1,0 +1,252 @@
+module test_mo_datetime
+  use funit
+  use mo_kind, only: i4, dp
+  use mo_datetime, only: datetime, timedelta, puredate, puretime, one_hour, one_day, one_week, is_leap_year
+  use mo_datetime, only: days_in_month, now, today, currently, zero_delta, one_minute, one_second
+  use mo_datetime, only: day_seconds, hour_seconds, day_minutes, hour_minutes, day_hours, minute_seconds
+  use mo_datetime, only: midday, midnight, day_hour
+
+  implicit none
+
+  private
+
+  public :: test_datetime_types
+
+contains
+
+  @test
+  subroutine test_datetime_types()
+
+    type(datetime) :: date1, date2, date3, date4, date5
+    type(puredate) :: day1, day2
+    type(puretime) :: time1, time2
+    type(timedelta) :: delta, delta1, a_day
+    character(:), allocatable :: string
+    real(dp) :: julian, julian2
+
+    a_day = one_day()
+    date1 = datetime(2003, 2, 28)
+    date2 = datetime(2003, 2, 27)
+    date3 = datetime(2000, 2, 29)
+    date4 = now()
+    string = date4%str()
+    delta = timedelta(days=1, seconds=-100000)
+    delta1 = timedelta(1_i4, 20265_i4)
+
+    @assertEqual(one_week() / one_day(), 7.0_dp, tolerance=0.0001)
+
+    @assertTrue((one_day() / 24.0_dp) == one_hour())
+    @assertTrue((one_day() * 1.23456_dp) == delta1)
+    @assertTrue((one_day() * 1.23456_dp) == (1.23456_dp * one_day()))
+    @assertTrue((one_day() * 100000_i4) == (one_day() * 100000._dp))
+    @assertTrue((one_week() / (-7_i4)) == (-1_i4 * one_day()))
+
+    @assertFalse(is_leap_year(1900))
+    @assertFalse(is_leap_year(1901))
+    @assertFalse(is_leap_year(1902))
+    @assertFalse(is_leap_year(1903))
+    @assertTrue(is_leap_year(1904))
+    @assertTrue(is_leap_year(2000))
+
+    @assertTrue((date1 - date2) == one_day())
+    @assertTrue((date1 - date3) == timedelta(1095_i4))
+    @assertTrue((date3 - date2) == timedelta(-1094_i4))
+    @assertFalse(date1 < date2)
+    @assertFalse(date1 <= date2)
+    @assertTrue(date1 > date2)
+    @assertTrue(date1 >= date2)
+    @assertFalse(date1 == date2)
+    @assertTrue(date1 /= date2)
+    @assertTrue(date1 == date1)
+
+    @assertTrue(a_day%abs() == one_day())
+    @assertTrue(delta%abs() >= zero_delta())
+    @assertTrue(delta%abs() > delta)
+    @assertTrue(delta1 < (2.0_dp * delta1))
+    @assertTrue(delta1 <= (2.0_dp * delta1))
+    @assertTrue((2_i4 * delta1) > delta1)
+    @assertTrue((2_i4 * delta1) >= delta1)
+    @assertTrue(+delta == delta)
+    @assertTrue(-delta /= delta)
+    @assertEqual(int(delta%total_seconds(), i4), -13600_i4)
+    @assertTrue(date1+delta < date1)
+    @assertTrue(date1+delta == delta+date1)
+    @assertTrue(date1-delta > date1)
+    @assertTrue((delta+delta) == (2*delta))
+    @assertTrue((14*one_day()) == (2*one_week()))
+
+    @assertEqual(days_in_month(1900, 2), 28)
+    @assertEqual(days_in_month(2000, 2), 29)
+    @assertEqual(days_in_month(2000, 4), 30)
+    @assertEqual(days_in_month(2000, 8), 31)
+
+    day1 = date1%date()
+    @assertEqual(day1%weekday(), 5)
+    @assertEqual(date1%weekday(), 5)
+    @assertEqual(date2%weekday(), 4)
+    @assertEqual(date3%weekday(), 2)
+
+    @assertTrue(date4 == datetime(string))
+
+    date4 = datetime(2023_i4, 2_i4, 10_i4, 4_i4, 5_i4, 6_i4)
+    time2 = currently()
+
+    time1 = date4%time()
+    time2 = time2%replace(hour=time1%hour, minute=time1%minute, second=time1%second)
+    @assertTrue(time1 == time2)
+    @assertFalse(time1 /= time2)
+    time2 = time2%replace(hour=time2%hour+1)
+    @assertTrue(time1 /= time2)
+    @assertTrue(time1 < time2)
+    @assertTrue(time2 > time1)
+    @assertTrue(time1 <= time2)
+    @assertTrue(time2 >= time1)
+
+    @assertFalse(time1%is_new_minute())
+    @assertFalse(date4%is_new_minute())
+    date4%second = 0_i4
+    time1 = date4%time()
+    @assertTrue(time1%is_new_minute())
+    @assertTrue(date4%is_new_minute())
+
+    @assertFalse(time1%is_new_hour())
+    @assertFalse(date4%is_new_hour())
+    date4%minute = 0_i4
+    time1 = date4%time()
+    @assertTrue(time1%is_new_hour())
+    @assertTrue(date4%is_new_hour())
+
+    @assertFalse(time1%is_new_day())
+    @assertFalse(date4%is_new_day())
+    date4%hour = 0_i4
+    time1 = date4%time()
+    @assertTrue(time1%is_new_day())
+    @assertTrue(date4%is_new_day())
+
+    day1 = date4%date()
+
+    @assertFalse(day1%is_new_week())
+    @assertFalse(date4%is_new_week())
+    date4 = date4 - timedelta(days=date4%weekday()-1_i4)
+    day1 = date4%date()
+    @assertTrue(day1%is_new_week())
+    @assertTrue(date4%is_new_week())
+
+    @assertFalse(day1%is_new_month())
+    @assertFalse(date4%is_new_month())
+    date4%day = 1_i4
+    day1 = date4%date()
+    @assertTrue(day1%is_new_month())
+    @assertTrue(date4%is_new_month())
+
+    @assertFalse(day1%is_new_year())
+    @assertFalse(date4%is_new_year())
+    date4%month = 1_i4
+    day1 = date4%date()
+    @assertTrue(day1%is_new_year())
+    @assertTrue(date4%is_new_year())
+
+    ! more string tests
+    ! create from datetime string
+    date5 = datetime("2023-05-08 12:32:30")
+    day2 = puredate("2023-05-08")
+    time1 = puretime("12:32:30")
+    @assertTrue(date5 == time1%with_date(day2))
+    @assertTrue(date5 == day2%with_time(time1))
+    @assertTrue(date5 == datetime(day2, time1))
+
+    ! use cf-convention string and value
+    date5 = datetime("seconds since 1992-10-8 15:15:42", day_seconds - hour_seconds)
+    @assertTrue(date5%str() == "1992-10-09 14:15:42")
+    date5 = datetime("minutes since 1992-10-8 15:15:42", DAY_MINUTES - HOUR_MINUTES)
+    @assertTrue(date5%str() == "1992-10-09 14:15:42")
+    date5 = datetime("hours since 1992-10-8 15:15:42", DAY_HOURS - 1)
+    @assertTrue(date5%str() == "1992-10-09 14:15:42")
+    date5 = datetime("days since 1992-10-8 15:15:42", 1)
+    @assertTrue(date5%str() == "1992-10-09 15:15:42")
+
+    ! test now, today, currently
+    day1 = today()
+    time1 = currently()
+    date1 = now()
+    date3 = date2%replace(year=day1%year, month=day1%month, day=day1%day, hour=time1%hour, minute=time1%minute, second=time1%second)
+    ! "today" + "currently" was called before "now"
+    @assertTrue(date3 <= date1)
+
+    ! copy dt from date, compare dt and date
+    date2 = day1
+    @assertTrue(date2 <= date3)
+    @assertTrue(date2 == day1)
+    @assertTrue(day1 == date2)
+    @assertFalse(date2 /= day1)
+    @assertFalse(day1 /= date2)
+    @assertTrue(date3 < day1 + one_day())
+    @assertTrue(day1 + one_day() > date3)
+    @assertTrue(date3 <= day1 + one_day())
+    @assertTrue(day1 + one_day() >= date3)
+    @assertTrue(date3 + one_day() > day1)
+    @assertTrue(day1 < date3 + one_day())
+    @assertTrue(date3 + one_day() >= day1)
+    @assertTrue(day1 <= date3 + one_day())
+    @assertTrue(date3 - day1 >= zero_delta())
+    @assertTrue(day1 <= day1 + one_day())
+    @assertTrue(day1 + one_day() >= day1)
+
+    ! date replace
+    @assertTrue(day1%replace(day1%year+1, day=1) > day1)
+
+    ! date manipulation
+    day2 = 731 * one_day() + day1
+    @assertTrue(day2%year >= day1%year+2)
+    @assertTrue(day2-day1 == 731*one_day())
+    @assertTrue(day2-day1%with_time() == 731*one_day())
+
+    day2 = day1 - 731 * one_day()
+    @assertTrue(day2%year <= day1%year-2)
+
+    ! try operations
+    delta = -one_day()
+    @assertTrue(delta < zero_delta())
+    delta = +one_day()
+    @assertTrue(delta > zero_delta())
+    delta = one_day() + 1*one_hour()
+    @assertTrue(delta > one_day())
+    delta = 1*one_day() + one_hour()
+    @assertTrue(delta > one_day())
+    delta = one_hour() - one_day()
+    @assertTrue(delta < zero_delta())
+    delta = 1*one_hour() - one_day()
+    @assertTrue(delta < zero_delta())
+    @assertTrue(one_minute() == minute_seconds * one_second())
+
+    ! time arithmetics
+    @assertTrue(day_hour(23) + 2*one_hour() == day_hour(1))
+    @assertTrue(2*one_hour() + day_hour(23) == day_hour(1))
+    @assertTrue(day_hour(0) - one_hour() == day_hour(23))
+    @assertTrue(midday() + one_day() == midday())
+    @assertTrue(midday() - one_day() == midday())
+    delta = one_day() + one_hour()
+    @assertTrue(midday() + delta == day_hour(13))
+    @assertTrue(midday() - delta == day_hour(11))
+    delta = one_hour() - 2*one_day()
+    @assertTrue(midday() + delta == day_hour(13))
+    @assertTrue(midday() - delta == day_hour(11))
+    @assertTrue(midday() - midnight() == 12*one_hour())
+    @assertTrue(midnight() - midday() == -12*one_hour())
+
+    ! interaction with julian
+    date1 = now()
+    julian = date1%julian(calendar=1)
+    day1 = puredate(julian, calendar=1)
+    julian2 = day1%julian(calendar=1)
+    date2 = datetime(julian, calendar=1)
+    ! conversion should not alter the date
+    @assertTrue(date1 == date2)
+    ! date and date from datetime need to match
+    @assertTrue(day1 == date2%date())
+    ! date with time has higher julian day fraction
+    @assertTrue(julian >= julian2)
+
+  end subroutine test_datetime_types
+
+end module test_mo_datetime

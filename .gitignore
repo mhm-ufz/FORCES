@@ -3,6 +3,7 @@ html
 latex
 doxygen_warn.txt
 forces_env/
+info
 
 # VSCode
 .vscode/

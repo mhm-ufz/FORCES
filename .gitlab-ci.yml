@@ -119,6 +119,8 @@ documentation_stable:
   MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran83MPI
 .gnu_vars_102MPI: &gfortran_vars_102MPI
   MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran102MPI
+.gnu_vars_122MPI: &gfortran_vars_122MPI
+  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran122MPI
 
 # module loads for nag fortran compiler
 .nag_vars_62: &nag_vars_62
@@ -169,6 +171,16 @@ test-nag62-release:
     <<: [*release_vars, *nag_vars_62]
   <<: *job_template
 
+test-gfortran73MPI-release:
+  variables:
+    <<: [*release_vars, *gfortran_vars_73MPI]
+  <<: *job_template
+
+test-gfortran73MPI-debug:
+  variables:
+    <<: [*debug_vars, *gfortran_vars_83MPI]
+  <<: *job_template
+
 test-gfortran83MPI-debug:
   variables:
     <<: [*debug_vars, *gfortran_vars_83MPI]
@@ -189,14 +201,14 @@ test-gfortran102MPI-debug:
     <<: [*debug_vars, *gfortran_vars_102MPI]
   <<: *job_template
 
-test-gfortran73MPI-release:
+test-gfortran122MPI-release:
   variables:
-    <<: [*release_vars, *gfortran_vars_73MPI]
+    <<: [*release_vars, *gfortran_vars_122MPI]
   <<: *job_template
 
-test-gfortran73MPI-debug:
+test-gfortran122MPI-debug:
   variables:
-    <<: [*debug_vars, *gfortran_vars_83MPI]
+    <<: [*debug_vars, *gfortran_vars_122MPI]
   <<: *job_template
 
 test-intel18-release:
