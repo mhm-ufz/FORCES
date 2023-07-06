@@ -31,6 +31,7 @@ contains
       help="A beautiful option")
     call parser%add_option("opt")
     call parser%add_option("blank", blank=.true., default="none")
+    call parser%add_option("verbose") ! fix for pFUnit v4.7 (gcc12.2 workflow)
     call parser%parse()
 
     @assertTrue(parser%has_help)
