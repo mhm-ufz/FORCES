@@ -75,7 +75,7 @@ module mo_timer
 
   ! Save variables
   !> max number of timers allowed
-  integer(i4), parameter :: max_timers = 99
+  integer(i4), parameter :: max_timers = 500
   !> max value of clock allowed by system
   integer(i4), save :: cycles_max
   !> clock_rate in seconds for each cycle
