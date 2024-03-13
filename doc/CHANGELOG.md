@@ -4,6 +4,24 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
+## v0.6.1 - 2024-03
+- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.6.0...v0.6.1) for details.
+
+### Enhancements
+- updates related to the merge of mLM into mHM ([78](https://git.ufz.de/chs/forces/-/merge_requests/78))
+  - `mo_temporal_aggregation`: add day2mon_sum; make mon_avg intent(out)
+  - `mo_timer`: increase max_timers to 500
+  - `mo_optimization_utils`: added reservoir/ lake volume as optional argument to eval_interface
+  - `mo_message`: cleanup; add t11..t16 optionals
+  - `mo_dds`: Added 'dds_results.out.current' output file
+  - `mo_constants`: add ONETHIRD
+- updated the CI workflow ([77](https://git.ufz.de/chs/forces/-/merge_requests/77))
+  - added doc template
+  - refactored coverage job
+  - removed unsupported toolchains
+  - added new toolchains for intel and conda
+
+
 ## v0.6.0 - 2023-07
 - See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.5.0...v0.6.0) for details.
 
