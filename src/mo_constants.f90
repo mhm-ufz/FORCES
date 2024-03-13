@@ -38,6 +38,10 @@ module mo_constants
   real(dp), parameter :: TWOTHIRD_dp = 0.6666666666666666666666666666666666667_dp      ! 2/3
   !> 2/3 in single precision
   real(sp), parameter :: TWOTHIRD_sp = 0.6666666666666666666666666666666666667_sp
+  !> 1/3 in double precision
+  real(dp), parameter :: ONETHIRD_dp = 0.3333333333333333333333333333333333333_dp      ! 1/3
+  !> 1/3 in single precision
+  real(sp), parameter :: ONETHIRD_sp = 0.3333333333333333333333333333333333333_sp      ! 1/3
   !> degree to radian conversion (pi/180) in double precision
   real(dp), parameter :: deg2rad_dp = PI_dp / 180._dp                       ! deg2rad
   !> degree to radian conversion (pi/180) in double precision
