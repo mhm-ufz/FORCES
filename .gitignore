@@ -4,6 +4,7 @@ latex
 doxygen_warn.txt
 forces_env/
 info
+*.bak
 
 # VSCode
 .vscode/
