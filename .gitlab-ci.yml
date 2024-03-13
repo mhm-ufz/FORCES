@@ -88,7 +88,7 @@ show-env-vars:
 .gnu_vars_122: &gfortran_vars_122
   MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran122
 
-# module loads for nag fortran compiler
+# module loads for gfortran compiler from conda
 .conda_vars_02: &conda_vars_02
   MODULE_LOAD_SCRIPT: hpc-module-loads/eve.chs-conda02
 
