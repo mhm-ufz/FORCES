@@ -109,7 +109,7 @@ show-env-vars:
     - if [ $(git rev-list --tags --max-count=1) ] && [ $DOC_TYPE == "stable" ]; then git checkout $(git describe --tags $(git rev-list --tags --max-count=1)); fi
     - export PROJECT_NUMBER="$(cat version.txt)"
     # create html documentation
-    - sed -i '/GENERATE_LATEX.*=/s/^.*$/GENERATE_LATEX = NO/' doc/doxygen.config
+    - sed -i '/GENERATE_LATEX.*=/s/^.*$/GENERATE_LATEX = NO/'         doc/doxygen.config
     - doxygen doc/doxygen.config > doxygen_log_${DOC_TYPE}_html.txt 2>&1
     # create pdf documentation (no files and namespaces there)
     - sed -i '/GENERATE_HTML.*=/s/^.*$/GENERATE_HTML = NO/'           doc/doxygen.config
