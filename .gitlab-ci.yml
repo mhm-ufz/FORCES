@@ -83,10 +83,10 @@ show-env-vars:
   MODULE_LOAD_SCRIPT: hpc-module-loads/eve.intel2023b-llvm
 
 # module loads for gfortran compiler
-.gnu_vars_102MPI: &gfortran_vars_102MPI
-  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran102MPI
-.gnu_vars_122MPI: &gfortran_vars_122MPI
-  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran122MPI
+.gnu_vars_102: &gfortran_vars_102
+  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran102
+.gnu_vars_122: &gfortran_vars_122
+  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran122
 
 # module loads for nag fortran compiler
 .conda_vars_02: &conda_vars_02
@@ -149,24 +149,24 @@ show-env-vars:
 # ### TEST JOBS ###
 # #################
 
-test-gfortran102MPI-release:
+test-gfortran102-release:
   variables:
-    <<: [*release_vars, *gfortran_vars_102MPI]
+    <<: [*release_vars, *gfortran_vars_102]
   <<: *job_template
 
-test-gfortran102MPI-debug:
+test-gfortran102-debug:
   variables:
-    <<: [*debug_vars, *gfortran_vars_102MPI]
+    <<: [*debug_vars, *gfortran_vars_102]
   <<: *job_template
 
-test-gfortran122MPI-release:
+test-gfortran122-release:
   variables:
-    <<: [*release_vars, *gfortran_vars_122MPI]
+    <<: [*release_vars, *gfortran_vars_122]
   <<: *job_template
 
-test-gfortran122MPI-debug:
+test-gfortran122-debug:
   variables:
-    <<: [*debug_vars, *gfortran_vars_122MPI]
+    <<: [*debug_vars, *gfortran_vars_122]
   <<: *job_template
 
 test-intel2020b-release:
