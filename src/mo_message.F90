@@ -28,7 +28,7 @@ MODULE mo_message
 
 CONTAINS
 
-  function process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10) result(outString)
+  function process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16) result(outString)
 
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t01
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t02
@@ -40,44 +40,23 @@ CONTAINS
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t08
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t09
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t10
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t11
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t12
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t13
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t14
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t15
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t16
 
     CHARACTER(len = 32000) :: outString
-#ifdef GFORTRAN
-    CHARACTER(len=32000) :: tempString
-#endif
 
     outString = ''
     ! start from back so that trim does not remove user desired blanks
-#ifdef GFORTRAN
-   ! GFORTRAN has problems with concatenation operator //
-   ! It is also weird in write:
-   !    write(outString,'(A,A)') t10, trim(outString)
-   ! writes t10 twice into outString.
-   tempString = outString
-   if (present(t10)) write(outString,'(A,A)') t10, trim(tempString)
-   tempString = outString
-   if (present(t09)) write(outString,'(A,A)') t09, trim(tempString)
-   tempString = outString
-   if (present(t08)) write(outString,'(A,A)') t08, trim(tempString)
-   tempString = outString
-   if (present(t07)) write(outString,'(A,A)') t07, trim(tempString)
-   tempString = outString
-   if (present(t06)) write(outString,'(A,A)') t06, trim(tempString)
-   tempString = outString
-   if (present(t05)) write(outString,'(A,A)') t05, trim(tempString)
-   tempString = outString
-   if (present(t04)) write(outString,'(A,A)') t04, trim(tempString)
-   tempString = outString
-   if (present(t03)) write(outString,'(A,A)') t03, trim(tempString)
-   tempString = outString
-   if (present(t02)) write(outString,'(A,A)') t02, trim(tempString)
-   tempString = outString
-   if (present(t01)) write(outString,'(A,A)') t01, trim(tempString)
-   tempString = outString
-   if ((lle(trim(tempString),'') .and. lge(trim(tempString),''))) then
-      write(outString,'(A,A)') trim(tempString), ' '
-   end if
-#else
+    if (present(t16)) outString = t16 // trim(outString)
+    if (present(t15)) outString = t15 // trim(outString)
+    if (present(t14)) outString = t14 // trim(outString)
+    if (present(t13)) outString = t13 // trim(outString)
+    if (present(t12)) outString = t12 // trim(outString)
+    if (present(t11)) outString = t11 // trim(outString)
     if (present(t10)) outString = t10 // trim(outString)
     if (present(t09)) outString = t09 // trim(outString)
     if (present(t08)) outString = t08 // trim(outString)
@@ -88,17 +67,13 @@ CONTAINS
     if (present(t03)) outString = t03 // trim(outString)
     if (present(t02)) outString = t02 // trim(outString)
     if (present(t01)) outString = t01 // trim(outString)
-    ! output at least one space otherwise some compilers get confused on Mac (empty assembler statement)
-    if ((lle(trim(outString), '') .and. lge(trim(outString), ''))) then
-      write(outString, '(A,A)') trim(outString) // ' '
-    end if
-#endif
 
   end function process_arguments
 
 
   !> \brief Write out an error message to stdout
-  SUBROUTINE message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uni, advance, show, reset_format)
+  SUBROUTINE message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, &
+    uni, advance, show, reset_format)
 
     IMPLICIT NONE
 
@@ -112,6 +87,12 @@ CONTAINS
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t08  !< optional string arguments
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t09  !< optional string arguments
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t10  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t11  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t12  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t13  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t14  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t15  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t16  !< optional string arguments
     INTEGER, INTENT(IN), OPTIONAL :: uni  !< Unit to write to (default: stdout)
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< add linebreak after message, default: 'yes', else 'no'
     LOGICAL, INTENT(IN), OPTIONAL :: show  !< control if message should be shown (show_msg as default)
@@ -135,7 +116,7 @@ CONTAINS
     if ( present(advance) ) advance_ = advance
     if ( present(reset_format) ) reset_format_ = reset_format
 
-    outString = process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10)
+    outString = process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16)
 
     if ( reset_format_ ) then
       format_string = ""
@@ -148,7 +129,8 @@ CONTAINS
   END SUBROUTINE message
 
   !> \brief Write out an error message to stderr and call stop 1.
-  SUBROUTINE error_message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uni, advance, show, raise, reset_format)
+  SUBROUTINE error_message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, &
+    uni, advance, show, raise, reset_format)
 
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t01  !< optional string arguments
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t02  !< optional string arguments
@@ -160,6 +142,12 @@ CONTAINS
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t08  !< optional string arguments
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t09  !< optional string arguments
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t10  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t11  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t12  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t13  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t14  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t15  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t16  !< optional string arguments
     INTEGER, INTENT(IN), OPTIONAL :: uni  !< Unit to write to (default: stderr)
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< add linebreak after message, default: 'yes', else 'no'
     LOGICAL, INTENT(IN), OPTIONAL :: show  !< control if message should be shown (show_err as default)
@@ -176,7 +164,7 @@ CONTAINS
     if ( present(raise) ) raise_ = raise
     if (present(uni) ) uni_ = uni
 
-    call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, uni_, advance, show_, reset_format)
+    call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, uni_, advance, show_, reset_format)
     if ( raise_ ) stop 1
 
   END SUBROUTINE error_message
