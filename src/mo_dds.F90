@@ -99,6 +99,10 @@ CONTAINS
   !>        \date Dec 2012
   !!          - history output
 
+  !>        \author Pallav Kumar Shrestha
+  !>        \date Jun 2019
+  !!          - Added "dds_results.out.current" output file with current iteration (non-updated) parameters
+
 #ifdef MPI
   function DDS(eval, obj_func, pini, prange, r, seed, maxiter, maxit, mask, tmp_file, comm, funcbest, history)
 #else
@@ -223,6 +227,17 @@ CONTAINS
       write(999, *) ir
       write(999, *) '# iter   bestf   (bestx(j),j=1,nopt)'
       close(999)
+
+      ! Second file writing with corresponding parameter set for each iteration rather than the current best
+      open(unit = 998, file = trim(adjustl( tmp_file )) // ".current" , action = 'write', status = 'unknown')
+      write(998, *) '# settings :: general'
+      write(998, *) '# nIterations    iseed'
+      write(998, *) imaxiter, iseed
+      write(998, *) '# settings :: dds specific'
+      write(998, *) '# dds_r'
+      write(998, *) ir
+      write(998, *) '# iter   bestf   (bestx(j),j=1,nopt)'
+      close(998)
     end if
 
     ! Evaluate initial solution and return objective function value
@@ -243,14 +258,19 @@ CONTAINS
 
     file_write : if (present(tmp_file)) then
       open(unit = 999, file = trim(adjustl(tmp_file)), action = 'write', position = 'append', recl = (pnum + 2) * 30)
+      open(unit = 998, file = trim(adjustl( tmp_file )) // ".current" , action = 'write', position = 'append', &
+        recl = (pnum + 2) * 30)
       if (imaxit .lt. 0.0_dp) then
         ! Maximize
         write(999, *) '0', -of_best, pini
+        write(998, *) '0', -of_best, pini
       else
         ! Minimize
         write(999, *) '0', of_best, pini
+        write(998, *) '0', of_best, pini
       end if
       close(999)
+      close(998)
     end if file_write
 
     ! Code below is now the DDS algorithm as presented in Figure 1 of Tolson and Shoemaker (2007)
@@ -301,14 +321,19 @@ CONTAINS
 
       file_write2 : if (present(tmp_file)) then
         open(unit = 999, file = trim(adjustl(tmp_file)), action = 'write', position = 'append', recl = (pnum + 2) * 30)
+        open(unit = 998, file = trim(adjustl( tmp_file )) // ".current" , action = 'write', position = 'append', &
+          recl = (pnum + 2) * 30)
         if (imaxit .lt. 0.0_dp) then
           ! Maximize
           write(999, *) i, -of_best, dds
+          write(998, *) i, -of_new, pnew
         else
           ! Minimize
           write(999, *) i, of_best, dds
+          write(998, *) i, of_new, pnew
         end if
         close(999)
+        close(998)
       end if file_write2
 
     end do

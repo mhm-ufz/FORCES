@@ -5648,7 +5648,7 @@ CONTAINS
     s2 = sum(cos(c*parameterset))
     ackley_objective = -a * exp(-b*sqrt(1.0_dp/real(n,dp)*s1)) - exp(1.0_dp/real(n,dp)*s2) + a + exp(1.0_dp)
 
- end function ackley_objective
+  end function ackley_objective
 
   function griewank_objective(parameterset, eval, arg1, arg2, arg3)
 
@@ -5687,7 +5687,8 @@ CONTAINS
   end function griewank_objective
 
 
- subroutine eval_dummy(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim, BFI)
+  subroutine eval_dummy(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim, &
+    lake_level, lake_volume, lake_area, lake_spill, lake_outflow, BFI)
     use mo_kind, only : dp
     use mo_optimization_types, only : optidata_sim, optidata
 
@@ -5700,7 +5701,12 @@ CONTAINS
     type(optidata_sim), dimension(:), optional, intent(inout) :: neutronsOptiSim ! dim1=ncells, dim2=time
     type(optidata_sim), dimension(:), optional, intent(inout) :: etOptiSim       ! dim1=ncells, dim2=time
     type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim      ! dim1=ncells, dim2=time
-    real(dp),    dimension(:), allocatable, optional, intent(out) :: BFI         !< baseflow index, dim1=domainID
+    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_level    !< dim1=time dim2=lake
+    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_volume   !< dim1=time dim2=lake
+    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_area     !< dim1=time dim2=lake
+    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_spill    !< dim1=time dim2=lake
+    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_outflow  !< dim1=time dim2=lake
+  real(dp),    dimension(:), allocatable, optional, intent(out) :: BFI         !< baseflow index, dim1=domainID
 
     type(optidata) :: dummyData
     integer(i4) :: i
@@ -5740,6 +5746,31 @@ CONTAINS
     if (present(BFI)) then
       allocate(BFI(1))
       BFI(:) = 0.0_dp
+    end if
+
+    if (present(lake_level)) then
+      allocate(lake_level(1, 1))
+      lake_level(:, :) = 0.0_dp
+    end if
+
+    if (present(lake_volume)) then
+      allocate(lake_volume(1, 1))
+      lake_volume(:, :) = 0.0_dp
+    end if
+
+    if (present(lake_area)) then
+      allocate(lake_area(1, 1))
+      lake_area(:, :) = 0.0_dp
+    end if
+
+    if (present(lake_spill)) then
+      allocate(lake_spill(1, 1))
+      lake_spill(:, :) = 0.0_dp
+    end if
+
+    if (present(lake_outflow)) then
+      allocate(lake_outflow(1, 1))
+      lake_outflow(:, :) = 0.0_dp
     end if
 
   end subroutine eval_dummy
