@@ -108,7 +108,17 @@ show-env-vars:
     # checkout latest tag if there is at least one (and only for stable docs)
     - if [ $(git rev-list --tags --max-count=1) ] && [ $DOC_TYPE == "stable" ]; then git checkout $(git describe --tags $(git rev-list --tags --max-count=1)); fi
     - export PROJECT_NUMBER="$(cat version.txt)"
-    - doxygen doc/doxygen.config > doxygen_log_${DOC_TYPE}.txt 2>&1 # doxygen_log_stable.txt
+    # create html documentation
+    - sed -i '/GENERATE_LATEX.*=/s/^.*$/GENERATE_LATEX = NO/' doc/doxygen.config
+    - doxygen doc/doxygen.config > doxygen_log_${DOC_TYPE}_html.txt 2>&1
+    # create pdf documentation (no files and namespaces there)
+    - sed -i '/GENERATE_HTML.*=/s/^.*$/GENERATE_HTML = NO/'           doc/doxygen.config
+    - sed -i '/GENERATE_LATEX.*=/s/^.*$/GENERATE_LATEX = YES/'        doc/doxygen.config
+    - sed -i '/SHOW_FILES.*=/s/^.*$/SHOW_FILES = NO/'                 doc/doxygen.config
+    - sed -i '/SHOW_NAMESPACES.*=/s/^.*$/SHOW_NAMESPACES = NO/'       doc/doxygen.config
+    - sed -i '/ALPHABETICAL_INDEX.*=/s/^.*$/ALPHABETICAL_INDEX = NO/' doc/doxygen.config
+    - doxygen doc/doxygen.config > doxygen_log_${DOC_TYPE}_latex.txt 2>&1
+    # copy files
     - cd latex/ && make > ../doxygen_latex_${DOC_TYPE}.txt 2>&1     # ../doxygen_latex_stable.txt
     - cp refman.pdf ../html/forces_doc.pdf                          # same name always
     - cp refman.pdf ../forces_doc_${DOC_TYPE}.pdf                   # ../forces_doc_stable.pdf
