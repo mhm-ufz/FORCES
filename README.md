@@ -90,4 +90,4 @@ With this you could now proceed with the example given above.
 
 ## License
 
-LGPLv3 (c) 2005-2023 CHS-Developers
+LGPLv3 (c) 2005-2024 CHS-Developers
