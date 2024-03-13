@@ -174,29 +174,14 @@ test-intel2020b-release:
     <<: [*release_vars, *intel_vars_2020b]
   <<: *job_template
 
-test-intel2020b-debug:
-  variables:
-    <<: [*debug_vars, *intel_vars_2020b]
-  <<: *job_template
-
 test-intel2023b-classic-release:
   variables:
     <<: [*release_vars, *intel_vars_2023b-classic]
   <<: *job_template
 
-test-intel2023b-classic-debug:
-  variables:
-    <<: [*debug_vars, *intel_vars_2023b-classic]
-  <<: *job_template
-
 test-intel2023b-llvm-release:
   variables:
     <<: [*release_vars, *intel_vars_2023b-llvm]
-  <<: *job_template
-
-test-intel2023b-llvm-debug:
-  variables:
-    <<: [*debug_vars, *intel_vars_2023b-llvm]
   <<: *job_template
 
 coverage:
