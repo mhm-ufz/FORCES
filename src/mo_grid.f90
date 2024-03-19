@@ -43,6 +43,68 @@ module mo_grid
   end type align_t
   type(align_t), public, parameter :: align = align_t(0_i4, 1_i4, 2_i4, 3_i4) !< Supported aligning corners (ll, lr, tl, tr).
 
+  ! -------------------------------------------------------------------
+  ! GRID description
+  ! -------------------------------------------------------------------
+  !> \class   grid
+  !> \brief   grid description following the ESRI grid convention with a bottom up y-axis.
+  type, public :: grid
+    integer(i4) :: coordsys = coordsys%cart !< Coordinate system for x and y. 0 -> Cartesian (default), 1 -> Spherical
+    ! general domain information
+    integer(i4) :: nx        !< size of x-axis (number of cols in ascii grid file)
+    integer(i4) :: ny        !< size of y-axis (number of rows in ascii grid file)
+    integer(i4) :: ncells    !< number of cells in mask
+    real(dp) :: xllcorner    !< x coordinate of the lowerleft corner
+    real(dp) :: yllcorner    !< y coordinate of the lowerleft corner
+    real(dp) :: cellsize     !< cellsize x = cellsize y
+    real(dp) :: nodata_value !< code to define the mask
+    integer(i4), dimension(:), allocatable :: id    !< IDs of cells in mask (1..ncells)
+    real(dp), dimension(:), allocatable :: cellarea !< area of the cell in sqare m, size (ncells)
+    logical, dimension(:, :), allocatable :: mask   !< the mask for valid cells in the original grid, size (nx, ny)
+    real(dp), dimension(:, :), allocatable :: lat   !< 2d longitude array (auxiliary coordinate for X axis), size (nx, ny)
+    real(dp), dimension(:, :), allocatable :: lon   !< 2d latitude  array (auxiliary coordinate for Y axis), size (nx, ny)
+    real(dp), dimension(:, :), allocatable :: lat_vertices  !< latitude coordinates or the grid nodes, size (nx+1, ny+1)
+    real(dp), dimension(:, :), allocatable :: lon_vertices  !< longitude coordinates or the grid nodes, size (nx+1, ny+1)
+    integer(i4), dimension(:, :), allocatable :: cellids    !< matrix IDs (i, j) per cell in mask, size (ncells, 2)
+  ! contains
+  !   !> \copydoc mo_grid::from_ascii_file
+  !   procedure :: from_ascii_file !< \see mo_grid::from_ascii_file
+  !   !> \copydoc mo_grid::from_nc_file
+  !   procedure :: from_nc_file !< \see mo_grid::from_nc_file
+  !   !> \copydoc mo_grid::x_axis
+  !   procedure :: x_axis !< \see mo_grid::x_axis
+  !   !> \copydoc mo_grid::y_axis
+  !   procedure :: y_axis !< \see mo_grid::y_axis
+  !   !> \copydoc mo_grid::x_bounds
+  !   procedure :: x_bounds !< \see mo_grid::x_bounds
+  !   !> \copydoc mo_grid::y_bounds
+  !   procedure :: y_bounds !< \see mo_grid::y_bounds
+  !   !> \copydoc mo_grid::estimate_aux_vertices
+  !   procedure :: estimate_aux_vertices !< \see mo_grid::estimate_aux_vertices
+  !   !> \copydoc mo_grid::derive_level
+  !   procedure :: derive_level !< \see mo_grid::derive_level
+  !   !> \copydoc mo_grid::check_compatibility
+  !   procedure :: check_compatibility !< \see mo_grid::check_compatibility
+  !   !> \copydoc mo_grid::calculate_cellarea
+  !   procedure :: calculate_cellarea !< \see mo_grid::calculate_cellarea
+  end type grid
+
+  !> \class   gridremapper
+  !> \brief   grid remapper
+  type, public :: gridremapper
+    type(grid), pointer :: high_res_grid !< high resolution grid
+    type(grid), pointer :: low_res_grid !< low resolution grid
+
+    ! dimension ncells
+    integer(i4), dimension(:), allocatable :: lower_bound  !< 1d index of lower side subgrid
+    integer(i4), dimension(:), allocatable :: upper_bound  !< 1d index of upper side subgrid
+    integer(i4), dimension(:), allocatable :: left_bound   !< 1d index of left side subgrid
+    integer(i4), dimension(:), allocatable :: right_bound  !< 1d index of right side subgrid
+    integer(i4), dimension(:), allocatable :: n_subcells   !< 1d numberof valid subgrid cells
+    integer(i4), dimension(:, :), allocatable :: lowres_id_on_highres   !< 2d index array of lowres id
+
+  end type gridremapper
+
   !>       \brief Reads spatial data files of ASCII format.
   !>       \details Reads spatial input data, e.g. dem, aspect, flow direction.
   !>       \authors Juliane Mai
