@@ -135,10 +135,10 @@ contains
   ! ------------------------------------------------------------------
 
   !>       \brief Read spatial data.
-  !>       \details Read spatial data from ascii file. Data will be transposed to be in xy order with decreasing y-axis.
+  !>       \details Read spatial data from ascii file. Data will be transposed to be in xy order.
   !>       \authors Robert Schweppe
   !>       \date Jun 2018
-  subroutine read_spatial_data_ascii_dp(path, ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, data, mask)
+  subroutine read_spatial_data_ascii_dp(path, ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, data, mask, flip_y)
     implicit none
 
     character(len = *), intent(in) :: path !< path with location
@@ -147,8 +147,9 @@ contains
     real(dp), intent(in) :: ref_xllcorner !< reference lower left corner
     real(dp), intent(in) :: ref_yllcorner !< reference lower left corner
     real(dp), intent(in) :: ref_cellsize !< reference cellsize
-    real(dp), dimension(:, :), allocatable, intent(out), optional :: data !< data, size (nx, ny)
+    real(dp), dimension(:, :), allocatable, intent(out) :: data !< data, size (nx, ny)
     logical, dimension(:, :), allocatable, intent(out), optional :: mask !< mask, size (nx, ny)
+    logical, intent(in), optional :: flip_y !< whether to flip data along dim 2 to have an increasing y-axis (default: .true.)
 
     integer(i4) :: file_nrows ! number of rows of data fields (ny)
     integer(i4) :: file_ncols ! number of columns of data fields (nx)
@@ -159,6 +160,10 @@ contains
     real(dp), dimension(:, :), allocatable :: tmp_data ! data to be transposed, size (ny, nx)
     logical, dimension(:, :), allocatable :: tmp_mask ! mask to be transposed, size (ny, nx)
     integer(i4) :: i, j, fileunit
+    logical :: flip_y_
+
+    flip_y_ = .true.
+    if (present(flip_y)) flip_y_ = flip_y
 
     ! compare headers always with reference header (intent in)
     call read_header_ascii(path, file_ncols, file_nrows, file_xllcorner, file_yllcorner, file_cellsize, file_nodata)
@@ -172,9 +177,6 @@ contains
       call error_message('read_spatial_data_ascii: header not matching with reference header: yllcorner')
     if ((abs(file_cellsize - ref_cellsize)   .gt. tiny(1.0_dp))) &
       call error_message('read_spatial_data_ascii: header not matching with reference header: cellsize')
-
-    ! don't read data, if not requested (this is basically just checking grid compatibility)
-    if ( .not. (present(data) .or. present(mask)) ) return
 
     ! allocation and initialization of matrices
     allocate(tmp_data(file_nrows, file_ncols))
@@ -194,11 +196,10 @@ contains
     end do
     close(fileunit)
 
-    if ( present(data) ) then
-      ! transpose of data due to longitude-latitude ordering
-      allocate(data(file_ncols, file_nrows))
-      data = transpose(tmp_data)
-    end if
+    ! transpose of data due to longitude-latitude ordering
+    allocate(data(file_ncols, file_nrows))
+    data = transpose(tmp_data)
+    if (flip_y_) call flip(data, idim=2)
 
     if ( present(mask) ) then
       allocate(tmp_mask(file_nrows, file_ncols))
@@ -209,6 +210,7 @@ contains
       ! set mask .false. if nodata value appeared
       allocate(mask(file_ncols, file_nrows))
       mask = transpose(tmp_mask)
+      if (flip_y_) call flip(mask, idim=2)
       deallocate(tmp_mask)
     end if
 
@@ -217,10 +219,10 @@ contains
   end subroutine read_spatial_data_ascii_dp
 
   !>       \brief Read spatial data.
-  !>       \details Read spatial data from ascii file. Data will be transposed to be in xy order with decreasing y-axis.
+  !>       \details Read spatial data from ascii file. Data will be transposed to be in xy order.
   !>       \authors Robert Schweppe
   !>       \date Jun 2018
-  subroutine read_spatial_data_ascii_i4(path, ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, data, mask)
+  subroutine read_spatial_data_ascii_i4(path, ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, data, mask, flip_y)
     implicit none
 
     character(len = *), intent(in) :: path !< path with location
@@ -229,8 +231,9 @@ contains
     real(dp), intent(in) :: ref_xllcorner !< reference lower left corner
     real(dp), intent(in) :: ref_yllcorner !< reference lower left corner
     real(dp), intent(in) :: ref_cellsize !< reference cellsize
-    integer(i4), dimension(:, :), allocatable, intent(out), optional :: data !< data (nx, ny)
+    integer(i4), dimension(:, :), allocatable, intent(out) :: data !< data (nx, ny)
     logical, dimension(:, :), allocatable, intent(out), optional :: mask !< mask (nx, ny)
+    logical, intent(in), optional :: flip_y !< whether to flip data along dim 2 to have an increasing y-axis (default: .true.)
 
     integer(i4) :: file_nrows ! number of rows of data fields
     integer(i4) :: file_ncols ! number of columns of data fields
@@ -241,6 +244,10 @@ contains
     integer(i4), dimension(:, :), allocatable :: tmp_data ! data
     logical, dimension(:, :), allocatable :: tmp_mask ! mask
     integer(i4) :: i, j, fileunit
+    logical :: flip_y_
+
+    flip_y_ = .true.
+    if (present(flip_y)) flip_y_ = flip_y
 
     ! compare headers always with reference header (intent in)
     call read_header_ascii(path, file_ncols, file_nrows, file_xllcorner, file_yllcorner, file_cellsize, file_nodata)
@@ -254,9 +261,6 @@ contains
       call error_message('read_spatial_data_ascii: header not matching with reference header: yllcorner')
     if ((abs(file_cellsize - ref_cellsize)   .gt. tiny(1.0_dp))) &
       call error_message('read_spatial_data_ascii: header not matching with reference header: cellsize')
-
-    ! don't read data, if not requested
-    if ( .not. (present(data) .or. present(mask)) ) return
 
     ! allocation and initialization of matrices
     allocate(tmp_data(file_nrows, file_ncols))
@@ -276,11 +280,10 @@ contains
     end do
     close(fileunit)
 
-    if ( present(data) ) then
-      ! transpose of data due to longitude-latitude ordering
-      allocate(data(file_ncols, file_nrows))
-      data = transpose(tmp_data)
-    end if
+    ! transpose of data due to longitude-latitude ordering
+    allocate(data(file_ncols, file_nrows))
+    data = transpose(tmp_data)
+    if (flip_y_) call flip(data, idim=2)
 
     if ( present(mask) ) then
       allocate(tmp_mask(file_nrows, file_ncols))
@@ -291,6 +294,7 @@ contains
       ! set mask .false. if nodata value appeared
       allocate(mask(file_ncols, file_nrows))
       mask = transpose(tmp_mask)
+      if (flip_y_) call flip(mask, idim=2)
       deallocate(tmp_mask)
     end if
 
