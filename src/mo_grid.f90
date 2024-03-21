@@ -46,26 +46,31 @@ module mo_grid
   ! -------------------------------------------------------------------
   ! GRID description
   ! -------------------------------------------------------------------
-  !> \class   grid
-  !> \brief   grid description following the ESRI grid convention with a bottom up y-axis.
-  type, public :: grid
+  !> \class   grid_t
+  !> \brief   2D grid description with data in xy order with strictly increasing axis.
+  !!
+  !!          ASCII grid files have the exact oposite behavior: yx order, with decreasing y-axis.
+  !!          NetCDF files nativly have yx order, but since Fortran arrays are column-major order,
+  !!          the data read from .nc files is in xy order. If the y axis is decreasing, data arrays
+  !!          should be flipped.
+  type, public :: grid_t
     integer(i4) :: coordsys = coordsys%cart !< Coordinate system for x and y. 0 -> Cartesian (default), 1 -> Spherical
     ! general domain information
     integer(i4) :: nx        !< size of x-axis (number of cols in ascii grid file)
     integer(i4) :: ny        !< size of y-axis (number of rows in ascii grid file)
-    integer(i4) :: ncells    !< number of cells in mask
+    integer(i4) :: n_cells   !< number of cells in mask
     real(dp) :: xllcorner    !< x coordinate of the lowerleft corner
     real(dp) :: yllcorner    !< y coordinate of the lowerleft corner
     real(dp) :: cellsize     !< cellsize x = cellsize y
     real(dp) :: nodata_value !< code to define the mask
-    integer(i4), dimension(:), allocatable :: id    !< IDs of cells in mask (1..ncells)
-    real(dp), dimension(:), allocatable :: cellarea !< area of the cell in sqare m, size (ncells)
-    logical, dimension(:, :), allocatable :: mask   !< the mask for valid cells in the original grid, size (nx, ny)
-    real(dp), dimension(:, :), allocatable :: lat   !< 2d longitude array (auxiliary coordinate for X axis), size (nx, ny)
-    real(dp), dimension(:, :), allocatable :: lon   !< 2d latitude  array (auxiliary coordinate for Y axis), size (nx, ny)
+    integer(i4), dimension(:), allocatable :: id     !< IDs of cells in mask (1..ncells)
+    real(dp), dimension(:), allocatable :: cell_area !< area of the cell in sqare m, size (ncells)
+    logical, dimension(:, :), allocatable :: mask    !< the mask for valid cells in the original grid, size (nx, ny)
+    real(dp), dimension(:, :), allocatable :: lat    !< 2d longitude array (auxiliary coordinate for X axis), size (nx, ny)
+    real(dp), dimension(:, :), allocatable :: lon    !< 2d latitude  array (auxiliary coordinate for Y axis), size (nx, ny)
     real(dp), dimension(:, :), allocatable :: lat_vertices  !< latitude coordinates or the grid nodes, size (nx+1, ny+1)
     real(dp), dimension(:, :), allocatable :: lon_vertices  !< longitude coordinates or the grid nodes, size (nx+1, ny+1)
-    integer(i4), dimension(:, :), allocatable :: cellids    !< matrix IDs (i, j) per cell in mask, size (ncells, 2)
+    integer(i4), dimension(:, :), allocatable :: cell_ij    !< matrix IDs (i, j) per cell in mask, size (ncells, 2)
   ! contains
   !   !> \copydoc mo_grid::from_ascii_file
   !   procedure :: from_ascii_file !< \see mo_grid::from_ascii_file
@@ -75,6 +80,10 @@ module mo_grid
   !   procedure :: x_axis !< \see mo_grid::x_axis
   !   !> \copydoc mo_grid::y_axis
   !   procedure :: y_axis !< \see mo_grid::y_axis
+  !   !> \copydoc mo_grid::x_vertices
+  !   procedure :: x_vertices !< \see mo_grid::x_vertices
+  !   !> \copydoc mo_grid::y_vertices
+  !   procedure :: y_vertices !< \see mo_grid::y_vertices
   !   !> \copydoc mo_grid::x_bounds
   !   procedure :: x_bounds !< \see mo_grid::x_bounds
   !   !> \copydoc mo_grid::y_bounds
@@ -85,9 +94,9 @@ module mo_grid
   !   procedure :: derive_level !< \see mo_grid::derive_level
   !   !> \copydoc mo_grid::check_compatibility
   !   procedure :: check_compatibility !< \see mo_grid::check_compatibility
-  !   !> \copydoc mo_grid::calculate_cellarea
-  !   procedure :: calculate_cellarea !< \see mo_grid::calculate_cellarea
-  end type grid
+  !   !> \copydoc mo_grid::calculate_grid_properties
+  !   procedure :: calculate_grid_properties !< \see mo_grid::calculate_grid_properties
+  end type grid_t
 
   !> \class   gridremapper
   !> \brief   grid remapper
