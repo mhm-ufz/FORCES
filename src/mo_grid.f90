@@ -13,6 +13,7 @@
 module mo_grid
 
   use mo_kind, only: i4, dp, sp
+  use mo_utils, only: flip
 
   implicit none
   private
@@ -126,7 +127,8 @@ module mo_grid
   !!       - Sebastian Müller, Mar 2024
   !!         - moving to FORCES
   !!         - remove fileunit input (use newunit)
-  !!         - make data and mask optional output
+  !!         - make mask optional output
+  !!         - add flip_y argument
   interface  read_spatial_data_ascii
     module procedure read_spatial_data_ascii_i4, read_spatial_data_ascii_dp
   end interface read_spatial_data_ascii
