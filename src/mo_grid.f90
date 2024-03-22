@@ -76,10 +76,10 @@ module mo_grid
     procedure, public :: x_vertices !< \see mo_grid::x_vertices
     !> \copydoc mo_grid::y_vertices
     procedure, public :: y_vertices !< \see mo_grid::y_vertices
-  !   !> \copydoc mo_grid::x_bounds
-  !   procedure, public :: x_bounds !< \see mo_grid::x_bounds
-  !   !> \copydoc mo_grid::y_bounds
-  !   procedure, public :: y_bounds !< \see mo_grid::y_bounds
+    !> \copydoc mo_grid::x_bounds
+    procedure, public :: x_bounds !< \see mo_grid::x_bounds
+    !> \copydoc mo_grid::y_bounds
+    procedure, public :: y_bounds !< \see mo_grid::y_bounds
   !   !> \copydoc mo_grid::estimate_aux_coords
   !   procedure, public :: estimate_aux_coords !< \see mo_grid::estimate_aux_coords
   !   !> \copydoc mo_grid::estimate_aux_vertices
@@ -405,6 +405,34 @@ contains
     y_vertices = [ (i * this%cellsize + this%yllcorner, i=0_i4, this%ny) ]
 
   end function y_vertices
+
+  !> \brief x-bounds of the grid cell following cf-conventions (2, nx).
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  function x_bounds(this)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), allocatable, dimension(:,:) :: x_bounds
+    real(dp), allocatable, dimension(:) :: x_ax
+    x_ax = this%x_vertices()
+    allocate(x_bounds(2, this%nx))
+    x_bounds(1,:) = x_ax(1:this%nx)
+    x_bounds(2,:) = x_ax(2:this%nx+1)
+  end function x_bounds
+
+  !> \brief y-bounds of the grid cells following cf-conventions .
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  function y_bounds(this)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), allocatable, dimension(:,:) :: y_bounds
+    real(dp), allocatable, dimension(:) :: y_ax
+    y_ax = this%y_vertices()
+    allocate(y_bounds(2, this%ny))
+    y_bounds(1,:) = y_ax(1:this%ny)
+    y_bounds(2,:) = y_ax(2:this%ny+1)
+  end function y_bounds
 
   ! ------------------------------------------------------------------
 
