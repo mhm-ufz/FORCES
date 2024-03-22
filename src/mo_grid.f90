@@ -327,19 +327,17 @@ contains
 
     integer(i4) :: i, j, k
 
-    !--------------------------------------------------------
-    ! 1) Estimate each variable locally for a given domain
-    ! 2) Pad each variable to its corresponding global one
-    !--------------------------------------------------------
-    this%n_cells = count(this%mask)
+    ! if mask not allocated create one with only .true. values
+    if (.not. allocated(this%mask)) then
+      allocate(this%mask(this%nx, this%ny))
+      this%mask = .true.
+    end if
 
+    this%n_cells = count(this%mask)
     allocate(this%cell_ij(this%n_cells, 2))
     allocate(this%id(this%n_cells))
     this%id = [ (k, k = 1, this%n_cells) ]
 
-    !------------------------------------------------
-    ! start looping for cell cordinates and ids
-    !------------------------------------------------
     k = 0
     do j = 1, this%ny
       do i = 1, this%nx
