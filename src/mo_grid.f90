@@ -68,14 +68,14 @@ module mo_grid
   !   procedure, public :: from_file !< \see mo_grid::from_file
     !> \copydoc mo_grid::extend
     procedure, public :: extend !< \see mo_grid::extend
-  !   !> \copydoc mo_grid::x_axis
-  !   procedure, public :: x_axis !< \see mo_grid::x_axis
-  !   !> \copydoc mo_grid::y_axis
-  !   procedure, public :: y_axis !< \see mo_grid::y_axis
-  !   !> \copydoc mo_grid::x_vertices
-  !   procedure, public :: x_vertices !< \see mo_grid::x_vertices
-  !   !> \copydoc mo_grid::y_vertices
-  !   procedure, public :: y_vertices !< \see mo_grid::y_vertices
+    !> \copydoc mo_grid::x_axis
+    procedure, public :: x_axis !< \see mo_grid::x_axis
+    !> \copydoc mo_grid::y_axis
+    procedure, public :: y_axis !< \see mo_grid::y_axis
+    !> \copydoc mo_grid::x_vertices
+    procedure, public :: x_vertices !< \see mo_grid::x_vertices
+    !> \copydoc mo_grid::y_vertices
+    procedure, public :: y_vertices !< \see mo_grid::y_vertices
   !   !> \copydoc mo_grid::x_bounds
   !   procedure, public :: x_bounds !< \see mo_grid::x_bounds
   !   !> \copydoc mo_grid::y_bounds
@@ -349,6 +349,62 @@ contains
     if ( present(y_max) ) y_max = this%yllcorner + this%ny * this%cellsize
 
   end subroutine extend
+
+  !> \brief x-axis of the grid cell centers
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  function x_axis(this)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), allocatable, dimension(:) :: x_axis
+
+    integer(i4) :: i
+
+    x_axis = [ ((i-0.5_dp) * this%cellsize + this%xllcorner, i=1_i4, this%nx) ]
+
+  end function x_axis
+
+  !> \brief y-axis of the grid cell centers
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  function y_axis(this)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), allocatable, dimension(:) :: y_axis
+
+    integer(i4) :: i
+
+    y_axis = [ ((i-0.5_dp) * this%cellsize + this%yllcorner, i=1_i4, this%ny) ]
+
+  end function y_axis
+
+  !> \brief x-vertices of the grid cell edges
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  function x_vertices(this)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), allocatable, dimension(:) :: x_vertices
+
+    integer(i4) :: i
+
+    x_vertices = [ (i * this%cellsize + this%xllcorner, i=0_i4, this%nx) ]
+
+  end function x_vertices
+
+  !> \brief y-vertices of the grid cell edges
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  function y_vertices(this)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), allocatable, dimension(:) :: y_vertices
+
+    integer(i4) :: i
+
+    y_vertices = [ (i * this%cellsize + this%yllcorner, i=0_i4, this%ny) ]
+
+  end function y_vertices
 
   ! ------------------------------------------------------------------
 
