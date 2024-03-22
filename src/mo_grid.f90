@@ -86,10 +86,12 @@ module mo_grid
   !   procedure, public :: estimate_aux_vertices !< \see mo_grid::estimate_aux_vertices
   !   !> \copydoc mo_grid::derive_level
   !   procedure, public :: derive_level !< \see mo_grid::derive_level
-  !   !> \copydoc mo_grid::is_covered_by
-  !   procedure, public :: is_covered_by !< \see mo_grid::is_covered_by
-  !   !> \copydoc mo_grid::is_masked
-  !   procedure, public :: is_masked !< \see mo_grid::is_masked
+    !> \copydoc mo_grid::is_masked
+    procedure, public :: is_masked !< \see mo_grid::is_masked
+    !> \copydoc mo_grid::is_covered_by
+    procedure, public :: is_covered_by !< \see mo_grid::is_covered_by
+    !> \copydoc mo_grid::is_covering
+    procedure, public :: is_covering !< \see mo_grid::is_covering
   !   !> \copydoc mo_grid::read_aux_coords
   !   procedure, public :: read_aux_coords !< \see mo_grid::read_aux_coords
   !   !> \copydoc mo_grid::has_aux_coords
@@ -106,6 +108,8 @@ module mo_grid
   !   procedure, public :: pack_data !< \see mo_grid::pack_data
   !   !> \copydoc mo_grid::unpack_data
   !   procedure, public :: unpack_data !< \see mo_grid::unpack_data
+  !   !> \copydoc mo_grid::flip_packed_data
+  !   procedure, public :: flip_packed_data !< \see mo_grid::flip_packed_data
   end type grid_t
 
   !> \class   upscaler_t
@@ -420,7 +424,7 @@ contains
     x_bounds(2,:) = x_ax(2:this%nx+1)
   end function x_bounds
 
-  !> \brief y-bounds of the grid cells following cf-conventions .
+  !> \brief y-bounds of the grid cells following cf-conventions (2, ny).
   !> \authors Sebastian Müller
   !> \date Mar 2024
   function y_bounds(this)
@@ -433,6 +437,80 @@ contains
     y_bounds(1,:) = y_ax(1:this%ny)
     y_bounds(2,:) = y_ax(2:this%ny+1)
   end function y_bounds
+
+  !> \brief check if given grid is masked (mask allocated and any value .false.)
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  logical function is_masked(this)
+    implicit none
+    class(grid_t), intent(in) :: this
+    if (.not. allocated(this%mask)) then
+      is_masked = .false.
+      return
+    end if
+    is_masked = .not. all(this%mask)
+  end function is_masked
+
+  !> \brief check if given grid is covered by coarser grid
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  logical function is_covered_by(this, coarse_grid, tol, check_mask)
+    use mo_utils, only: eq
+    implicit none
+    class(grid_t), intent(in) :: this
+    type(grid_t), intent(in) :: coarse_grid !< coarse grid that should cover this grid
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    logical, optional, intent(in) :: check_mask !< whether to check if coarse mask covers fine mask
+
+    integer(i4) :: factor, i, j, i_lb, i_ub, j_lb, j_ub
+    logical :: check_mask_
+
+    check_mask_ = .true.
+    if ( present(check_mask) ) check_mask_ = check_mask
+
+    call check_factor(this%cellsize, coarse_grid%cellsize, factor=factor, tol=tol)
+
+    ! check ll corner
+    if ( .not. (eq(this%xllcorner, coarse_grid%xllcorner) .and. eq(this%yllcorner, coarse_grid%yllcorner)) ) then
+      call error_message("grid % is_covered_by: coarse grid lower-left corner is not matching.")
+    end if
+    ! check extend
+    if (.not. ((coarse_grid%nx - 1) * factor <= this%nx .and. this%nx <= coarse_grid%nx * factor .and. &
+               (coarse_grid%ny - 1) * factor <= this%ny .and. this%ny <= coarse_grid%ny * factor)) then
+      call error_message("grid % is_covered_by: coarse grid extend is not matching.")
+    end if
+
+    if ( check_mask_ .and. coarse_grid%is_masked()) then
+      if (.not. this%is_masked()) call error_message("grid % is_covered_by: coarse grid is masked, this grid not.")
+      do j = 1, coarse_grid%ny
+        do i = 1, coarse_grid%nx
+          if ( coarse_grid%mask(i, j)) cycle
+          ! coord. of all corners -> of finer scale
+          i_lb = (i - 1) * factor + 1
+          ! constrain the range to fine grid extend
+          i_ub = min(i * factor, coarse_grid%nx)
+          j_lb = (j - 1) * factor + 1
+          ! constrain the range to fine grid extend
+          j_ub = min(j * factor, coarse_grid%ny)
+          if (any(this%mask(i_lb:i_ub, j_lb:j_ub))) call error_message("grid % is_covered_by: fine cells outside of coarse mask.")
+        end do
+      end do
+    end if
+    is_covered_by = .true.
+  end function is_covered_by
+
+  !> \brief check if given grid is covering finer grid
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  logical function is_covering(this, fine_grid, tol, check_mask)
+    use mo_utils, only: eq
+    implicit none
+    class(grid_t), intent(in) :: this
+    type(grid_t), intent(in) :: fine_grid !< finer grid that should be covered by this grid
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    logical, optional, intent(in) :: check_mask !< whether to check if coarse mask covers fine mask
+    is_covering = fine_grid%is_covered_by(coarse_grid=this, tol=tol, check_mask=check_mask)
+  end function is_covering
 
   ! ------------------------------------------------------------------
 
