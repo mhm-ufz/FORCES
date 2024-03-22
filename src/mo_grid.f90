@@ -64,39 +64,49 @@ module mo_grid
     real(dp) :: yllcorner    !< y coordinate of the lowerleft corner
     real(dp) :: cellsize     !< cellsize x = cellsize y
     real(dp) :: nodata_value !< code to define the mask
-    integer(i4), dimension(:), allocatable :: id     !< IDs of cells in mask (1..ncells)
-    real(dp), dimension(:), allocatable :: cell_area !< area of the cell in sqare m, size (ncells)
+    integer(i4), dimension(:), allocatable :: id     !< IDs of cells in mask (1..n_cells)
+    real(dp), dimension(:), allocatable :: cell_area !< area of the cell in sqare m, size (n_cells)
     logical, dimension(:, :), allocatable :: mask    !< the mask for valid cells in the original grid, size (nx, ny)
     real(dp), dimension(:, :), allocatable :: lat    !< 2d longitude array (auxiliary coordinate for X axis), size (nx, ny)
     real(dp), dimension(:, :), allocatable :: lon    !< 2d latitude  array (auxiliary coordinate for Y axis), size (nx, ny)
     real(dp), dimension(:, :), allocatable :: lat_vertices  !< latitude coordinates or the grid nodes, size (nx+1, ny+1)
     real(dp), dimension(:, :), allocatable :: lon_vertices  !< longitude coordinates or the grid nodes, size (nx+1, ny+1)
-    integer(i4), dimension(:, :), allocatable :: cell_ij    !< matrix IDs (i, j) per cell in mask, size (ncells, 2)
+    integer(i4), dimension(:, :), allocatable :: cell_ij    !< matrix IDs (i, j) per cell in mask, size (n_cells, 2)
   ! contains
-  !   !> \copydoc mo_grid::from_ascii_file
-  !   procedure :: from_ascii_file !< \see mo_grid::from_ascii_file
-  !   !> \copydoc mo_grid::from_nc_file
-  !   procedure :: from_nc_file !< \see mo_grid::from_nc_file
+  !   !> \copydoc mo_grid::from_header_info
+  !   procedure, public :: from_header_info !< \see mo_grid::from_header_info
+  !   !> \copydoc mo_grid::from_file
+  !   procedure, public :: from_file !< \see mo_grid::from_file
+  !   !> \copydoc mo_grid::extend
+  !   procedure, public :: extend !< \see mo_grid::extend
   !   !> \copydoc mo_grid::x_axis
-  !   procedure :: x_axis !< \see mo_grid::x_axis
+  !   procedure, public :: x_axis !< \see mo_grid::x_axis
   !   !> \copydoc mo_grid::y_axis
-  !   procedure :: y_axis !< \see mo_grid::y_axis
+  !   procedure, public :: y_axis !< \see mo_grid::y_axis
   !   !> \copydoc mo_grid::x_vertices
-  !   procedure :: x_vertices !< \see mo_grid::x_vertices
+  !   procedure, public :: x_vertices !< \see mo_grid::x_vertices
   !   !> \copydoc mo_grid::y_vertices
-  !   procedure :: y_vertices !< \see mo_grid::y_vertices
+  !   procedure, public :: y_vertices !< \see mo_grid::y_vertices
   !   !> \copydoc mo_grid::x_bounds
-  !   procedure :: x_bounds !< \see mo_grid::x_bounds
+  !   procedure, public :: x_bounds !< \see mo_grid::x_bounds
   !   !> \copydoc mo_grid::y_bounds
-  !   procedure :: y_bounds !< \see mo_grid::y_bounds
+  !   procedure, public :: y_bounds !< \see mo_grid::y_bounds
+  !   !> \copydoc mo_grid::estimate_aux_coords
+  !   procedure, public :: estimate_aux_coords !< \see mo_grid::estimate_aux_coords
   !   !> \copydoc mo_grid::estimate_aux_vertices
-  !   procedure :: estimate_aux_vertices !< \see mo_grid::estimate_aux_vertices
+  !   procedure, public :: estimate_aux_vertices !< \see mo_grid::estimate_aux_vertices
   !   !> \copydoc mo_grid::derive_level
-  !   procedure :: derive_level !< \see mo_grid::derive_level
+  !   procedure, public :: derive_level !< \see mo_grid::derive_level
   !   !> \copydoc mo_grid::check_compatibility
-  !   procedure :: check_compatibility !< \see mo_grid::check_compatibility
+  !   procedure, public :: check_compatibility !< \see mo_grid::check_compatibility
   !   !> \copydoc mo_grid::calculate_grid_properties
-  !   procedure :: calculate_grid_properties !< \see mo_grid::calculate_grid_properties
+  !   procedure, public :: calculate_grid_properties !< \see mo_grid::calculate_grid_properties
+  !   !> \copydoc mo_grid::read_data
+  !   procedure, public :: read_data !< \see mo_grid::read_data
+  !   !> \copydoc mo_grid::pack_data
+  !   procedure, public :: pack_data !< \see mo_grid::pack_data
+  !   !> \copydoc mo_grid::unpack_data
+  !   procedure, public :: unpack_data !< \see mo_grid::unpack_data
   end type grid_t
 
   !> \class   upscaler_t
