@@ -136,6 +136,85 @@ module mo_grid
 contains
   ! ------------------------------------------------------------------
 
+  !>       \brief calculate coarse grid extend
+  !>       \details Calculates basic grid properties at a required coarser level using
+  !!       information of a given finer level.
+  !!       Calculates basic grid properties at a required coarser level (e.g., L11) using
+  !!       information of a given finer level (e.g., L0). Basic grid properties such as
+  !!       nx, ny, xllcorner, yllcorner cellsize are estimated in this
+  !!       routine.
+  !>       \authors Matthias Zink & Rohini Kumar
+  !>       \date Feb 2013
+  subroutine calculate_coarse_extend(nx_in,  ny_in,  xllcorner_in,  yllcorner_in,  cellsize_in,  target_resolution, &
+                                     nx_out, ny_out, xllcorner_out, yllcorner_out, cellsize_out, tol, aligning)
+
+    use mo_message, only : error_message
+    use mo_string_utils, only : num2str
+
+    implicit none
+
+    integer(i4), intent(in) :: nx_in !< no. of cells in x direction at an input level
+    integer(i4), intent(in) :: ny_in !< no. of cells in y direction at an input level
+    real(dp), intent(in) :: xllcorner_in !< xllcorner at an input level
+    real(dp), intent(in) :: yllcorner_in !< yllcorner at an input level
+    real(dp), intent(in) :: cellsize_in !< cell size at an input level
+    real(dp), intent(in) :: target_resolution !< resolution of an output level
+    integer(i4), intent(out) :: nx_out !< no. of cells in x direction at an output level
+    integer(i4), intent(out) :: ny_out !< no. of cells in y direction at an output level
+    real(dp), intent(out) :: xllcorner_out !< xllcorner at an output level
+    real(dp), intent(out) :: yllcorner_out !< yllcorner at an output level
+    real(dp), intent(out) :: cellsize_out !< cell size at an output level
+    real(dp), intent(in), optional :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    integer(i4), intent(in), optional :: aligning !< aligning selector (corner: ll -> 0 (default), lr -> 1, tl -> 2, tr -> 3)
+
+    real(dp) :: cellFactor, rounded, tol_
+    integer(i4) :: rounded_int, align_
+
+    tol_ = 1.e-7_dp
+    if ( present(tol) ) tol_ = tol
+
+    align_ = align%ll
+    if ( present(aligning) ) align_ = aligning
+
+    cellFactor = target_resolution / cellsize_in
+    rounded = anint(cellFactor)
+    rounded_int = nint(cellFactor)
+
+    if (abs(rounded - cellFactor) > tol_) then
+      call error_message( &
+        '***ERROR: Two resolutions size do not confirm: ', &
+        trim(adjustl(num2str(nint(target_resolution)))), &
+        trim(adjustl(num2str(nint(cellsize_in)))))
+    end if
+
+    if (rounded_int < 1_i4) call error_message("***ERROR: cell factor needs to be >= 1 to setup an upscaler.")
+
+    cellsize_out = target_resolution
+    ny_out = nint(real(ny_in, dp) / cellFactor)
+    nx_out = nint(real(nx_in, dp) / cellFactor)
+
+    ! if we rounded down, but now we would miss cells, add rows and/or cols
+    if ( ny_out * rounded_int < ny_in ) ny_out = ny_out + 1_i4
+    if ( nx_out * rounded_int < nx_in ) nx_out = nx_out + 1_i4
+
+    ! align grids based on the selected aligning corner
+    ! keep yll if aligning in (lower)-left or (lower)-right
+    if (align_ == align%ll .or. align_ == align%lr) then
+      yllcorner_out = yllcorner_in
+    else
+      yllcorner_out = yllcorner_in + real(ny_in, dp) * target_resolution / rounded - real(ny_out, dp) * cellsize_out
+    endif
+    ! keep xll if aligning in lower-(left) or top-(left)
+    if (align_ == align%ll .or. align_ == align%tl) then
+      xllcorner_out = xllcorner_in
+    else
+      xllcorner_out = xllcorner_in + real(nx_in, dp) * target_resolution / rounded - real(nx_out, dp) * cellsize_out
+    endif
+
+  end subroutine calculate_coarse_extend
+
+  ! ------------------------------------------------------------------
+
   !>       \brief Read spatial data.
   !>       \details Read spatial data from ascii file. Data will be transposed to be in xy order.
   !>       \authors Robert Schweppe
