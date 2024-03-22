@@ -18,6 +18,9 @@ module mo_grid
   use mo_string_utils, only : num2str
 
   implicit none
+
+  public :: read_spatial_data_ascii
+
   private
   ! coordsys selector
   integer(i4), public, parameter :: coordsys_cart = 0_i4 !< Cartesian coordinate system.
