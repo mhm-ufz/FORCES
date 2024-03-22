@@ -5,6 +5,8 @@
 !> \brief   Grid handling utils.
 !> \details This module provides routines deal with uniform grids based on ESRI grids, also know as ascii grids.
 !!          This means, the grids have a constant cell size along axis and are assumed to be 2D.
+!!          In contrast to ascii grids, data will be assumed to follow xy axis order and increasing axis.
+!!          Ascii grids actually represent data with a decreasing y-axis and in yx order.
 !> \version 0.1
 !> \authors Sebastian Mueller
 !> \date    Mar 2024
@@ -37,7 +39,7 @@ module mo_grid
   ! -------------------------------------------------------------------
   !> \class   grid_t
   !> \brief   2D grid description with data in xy order with strictly increasing axis.
-  !!
+  !> \details This type represents uniform grids with data in xy order with strictly increasing axis.
   !!          ASCII grid files have the exact oposite behavior: yx order, with decreasing y-axis.
   !!          NetCDF files nativly have yx order, but since Fortran arrays are column-major order,
   !!          the data read from .nc files is in xy order. If the y axis is decreasing, data arrays
@@ -124,43 +126,43 @@ module mo_grid
   !   procedure, public :: from_grids !< \see mo_grid::from_grids
   end type upscaler_t
 
-  !>       \brief Reads spatial data files of ASCII format.
-  !>       \details Reads spatial input data, e.g. dem, aspect, flow direction.
-  !>       \authors Juliane Mai
-  !>       \date Jan 2013
-  !>       \changelog
-  !!       - Matthias Zink, Feb 2013
-  !!         - added interface and routine for datatype i4
-  !!       - David Schaefer, Mar 2015
-  !!         - removed double allocation of temporary data
-  !!       - Robert Schweppe, Jun 2018
-  !!         - refactoring and reformatting
-  !!       - Sebastian Müller, Mar 2024
-  !!         - moving to FORCES
-  !!         - remove fileunit input (use newunit)
-  !!         - make mask optional output
-  !!         - add flip_y argument
-  interface  read_spatial_data_ascii
+  !> \brief Reads spatial data files of ASCII format.
+  !> \details Reads spatial input data, e.g. dem, aspect, flow direction.
+  !> \authors Juliane Mai
+  !> \date Jan 2013
+  !> \changelog
+  !! - Matthias Zink, Feb 2013
+  !!   - added interface and routine for datatype i4
+  !! - David Schaefer, Mar 2015
+  !!   - removed double allocation of temporary data
+  !! - Robert Schweppe, Jun 2018
+  !!   - refactoring and reformatting
+  !! - Sebastian Müller, Mar 2024
+  !!   - moving to FORCES
+  !!   - remove fileunit input (use newunit)
+  !!   - make mask optional output
+  !!   - add flip_y argument
+  interface read_spatial_data_ascii
     module procedure read_spatial_data_ascii_i4, read_spatial_data_ascii_dp
   end interface read_spatial_data_ascii
 
 contains
 
-  !>       \brief Setup upscaler and coarse grid from given target resolution
-  !>       \details following attributes are calculated for the coarse grid:
-  !!       -  cell id & numbering
-  !!       -  mask creation
-  !!       -  storage of cell cordinates (row and coloum indizes)
-  !!       -  sorage of four sub-cell corner cordinates
+  !> \brief Setup upscaler and coarse grid from given target resolution
+  !> \details following attributes are calculated for the coarse grid:
+  !!          -  cell id & numbering
+  !!          -  mask creation
+  !!          -  storage of cell cordinates (row and coloum indizes)
+  !!          -  sorage of four sub-cell corner cordinates
   !!
-  !!       fine_grid and coarse_grid need to be targets, since the upscaler will only
-  !!       hold pointers to the associated grids.
-  !>       \authors Rohini Kumar
-  !>       \date Jan 2013
-  !>       \changelog
-  !!       - Sebastian Müller, Mar 2024
-  !!         - moving to FORCES
-  !!         - is now a method of the upscaler type
+  !!          fine_grid and coarse_grid need to be targets, since the upscaler will only
+  !!          hold pointers to the associated grids.
+  !> \authors Rohini Kumar
+  !> \date    Jan 2013
+  !> \changelog
+  !! - Sebastian Müller, Mar 2024
+  !!   - moving to FORCES
+  !!   - is now a method of the upscaler type
   subroutine from_target_resolution(this, target_resolution, fine_grid, coarse_grid, estimate_aux)
 
     use mo_constants, only : nodata_dp, nodata_i4
@@ -295,10 +297,10 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !>       \brief initialize grid from ascii header content
-  !>       \details initialize grid from standard ascii header content (nx (cols), ny (rows), cellsize, lower-left corner)
-  !>       \authors Sebastian Müller
-  !>       \date Mar 2024
+  !> \brief initialize grid from ascii header content
+  !> \details initialize grid from standard ascii header content (nx (cols), ny (rows), cellsize, lower-left corner)
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
   subroutine grid_init(this, nx, ny, xllcorner, yllcorner, cellsize, coordsys)
     implicit none
     class(grid_t), intent(inout) :: this
@@ -330,9 +332,9 @@ contains
 
   end subroutine grid_init
 
-  !>       \brief get grid extend
-  !>       \authors Sebastian Müller
-  !>       \date Mar 2024
+  !> \brief get grid extend
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
   subroutine extend(this, x_min, x_max, y_min, y_max)
     implicit none
     class(grid_t), intent(in) :: this
@@ -350,25 +352,25 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !>       \brief calculate grid properties regarding cell ids
-  !>       \details following tasks are performed:
-  !!       -  cell ids & numbering
-  !!       -  storage of cell cordinates (row and coloum id)
-  !>       \authors Rohini Kumar
-  !>       \date Jan 2013
-  !>       \changelog
-  !!       - Rohini Kumar & Matthias Cuntz, May 2014
-  !!         - cell area calulation based on a regular lat-lon grid or on a regular X-Y coordinate system
-  !!       - Matthias Cuntz, May 2014
-  !!         - changed empirical distribution function so that doubles get the same value
-  !!       - Matthias Zink & Matthias Cuntz, Feb 2016
-  !!         - code speed up due to reformulation of CDF calculation
-  !!       - Rohini Kumar, Mar 2016
-  !!         - changes for handling multiple soil database options
-  !!       - Robert Schweppe, Jun 2018
-  !!         - refactoring and reformatting
-  !!       - Sebastian Müller, Mar 2024
-  !!         - moved to FORCES
+  !> \brief   calculate grid properties regarding cell ids
+  !> \details following tasks are performed:
+  !!          -  cell ids & numbering
+  !!          -  storage of cell cordinates (row and coloum id)
+  !> \authors Rohini Kumar
+  !> \date Jan 2013
+  !> \changelog
+  !! - Rohini Kumar & Matthias Cuntz, May 2014
+  !!   - cell area calulation based on a regular lat-lon grid or on a regular X-Y coordinate system
+  !! - Matthias Cuntz, May 2014
+  !!   - changed empirical distribution function so that doubles get the same value
+  !! - Matthias Zink & Matthias Cuntz, Feb 2016
+  !!   - code speed up due to reformulation of CDF calculation
+  !! - Rohini Kumar, Mar 2016
+  !!   - changes for handling multiple soil database options
+  !! - Robert Schweppe, Jun 2018
+  !!   - refactoring and reformatting
+  !! - Sebastian Müller, Mar 2024
+  !!   - moved to FORCES
   subroutine calculate_cell_ids(this)
     implicit none
 
@@ -400,24 +402,24 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !>       \brief estimate cell area
-  !>       \details following tasks are performed:
-  !!       - estimate cell area based on coordinate system
-  !>       \authors Rohini Kumar
-  !>       \date Jan 2013
-  !>       \changelog
-  !!       - Rohini Kumar & Matthias Cuntz, May 2014
-  !!         - cell area calulation based on a regular lat-lon grid or on a regular X-Y coordinate system
-  !!       - Matthias Cuntz, May 2014
-  !!         - changed empirical distribution function so that doubles get the same value
-  !!       - Matthias Zink & Matthias Cuntz, Feb 2016
-  !!         - code speed up due to reformulation of CDF calculation
-  !!       - Rohini Kumar, Mar 2016
-  !!         - changes for handling multiple soil database options
-  !!       - Robert Schweppe, Jun 2018
-  !!         - refactoring and reformatting
-  !!       - Sebastian Müller, Mar 2024
-  !!         - moved to FORCES
+  !> \brief estimate cell area
+  !> \details following tasks are performed:
+  !!          - estimate cell area based on coordinate system
+  !> \authors Rohini Kumar
+  !> \date Jan 2013
+  !> \changelog
+  !! - Rohini Kumar & Matthias Cuntz, May 2014
+  !!   - cell area calulation based on a regular lat-lon grid or on a regular X-Y coordinate system
+  !! - Matthias Cuntz, May 2014
+  !!   - changed empirical distribution function so that doubles get the same value
+  !! - Matthias Zink & Matthias Cuntz, Feb 2016
+  !!   - code speed up due to reformulation of CDF calculation
+  !! - Rohini Kumar, Mar 2016
+  !!   - changes for handling multiple soil database options
+  !! - Robert Schweppe, Jun 2018
+  !!   - refactoring and reformatting
+  !! - Sebastian Müller, Mar 2024
+  !!   - moved to FORCES
   subroutine estimate_cell_area(this)
 
     use mo_constants, only : RadiusEarth_dp, TWOPI_dp
@@ -461,15 +463,14 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !>       \brief calculate coarse grid extend
-  !>       \details Calculates basic grid properties at a required coarser level using
-  !!       information of a given finer level.
-  !!       Calculates basic grid properties at a required coarser level (e.g., L11) using
-  !!       information of a given finer level (e.g., L0). Basic grid properties such as
-  !!       nx, ny, xllcorner, yllcorner cellsize are estimated in this
-  !!       routine.
-  !>       \authors Matthias Zink & Rohini Kumar
-  !>       \date Feb 2013
+  !> \brief calculate coarse grid extend
+  !> \details Calculates basic grid properties at a required coarser level using
+  !!          information of a given finer level.
+  !!          Calculates basic grid properties at a required coarser level (e.g., L11) using
+  !!          information of a given finer level (e.g., L0). Basic grid properties such as
+  !!          nx, ny, xllcorner, yllcorner cellsize are estimated in this routine.
+  !> \authors Matthias Zink & Rohini Kumar
+  !> \date Feb 2013
   subroutine calculate_coarse_extend(nx_in,  ny_in,  xllcorner_in,  yllcorner_in,  cellsize_in,  target_resolution, &
                                      nx_out, ny_out, xllcorner_out, yllcorner_out, cellsize_out, tol, aligning)
 
@@ -537,10 +538,10 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !>       \brief Read spatial data.
-  !>       \details Read spatial data from ascii file. Data will be transposed to be in xy order.
-  !>       \authors Robert Schweppe
-  !>       \date Jun 2018
+  !> \brief Read spatial data.
+  !> \details Read spatial data from ascii file. Data will be transposed to be in xy order.
+  !> \authors Robert Schweppe
+  !> \date Jun 2018
   subroutine read_spatial_data_ascii_dp(path, ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, data, mask, flip_y)
     implicit none
 
@@ -621,10 +622,10 @@ contains
 
   end subroutine read_spatial_data_ascii_dp
 
-  !>       \brief Read spatial data.
-  !>       \details Read spatial data from ascii file. Data will be transposed to be in xy order.
-  !>       \authors Robert Schweppe
-  !>       \date Jun 2018
+  !> \brief Read spatial data.
+  !> \details Read spatial data from ascii file. Data will be transposed to be in xy order.
+  !> \authors Robert Schweppe
+  !> \date Jun 2018
   subroutine read_spatial_data_ascii_i4(path, ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, data, mask, flip_y)
     implicit none
 
@@ -707,10 +708,10 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !>       \brief Reads header lines of ASCII files.
-  !>       \details Reads header lines of ASCII files, e.g. dem, aspect, flow direction.
-  !>       \authors Juliane Mai
-  !>       \date Jan 2013
+  !> \brief Reads header lines of ASCII files.
+  !> \details Reads header lines of ASCII files, e.g. dem, aspect, flow direction.
+  !> \authors Juliane Mai
+  !> \date Jan 2013
   subroutine read_header_ascii(path, ncols, nrows, xllcorner, yllcorner, cellsize, nodata)
 
     use mo_os, only : check_path_isfile
