@@ -14,6 +14,8 @@ module mo_grid
 
   use mo_kind, only: i4, dp, sp
   use mo_utils, only: flip
+  use mo_message, only : error_message
+  use mo_string_utils, only : num2str
 
   implicit none
   private
@@ -72,7 +74,7 @@ module mo_grid
     real(dp), dimension(:, :), allocatable :: lat_vertices  !< latitude coordinates or the grid nodes, size (nx+1, ny+1)
     real(dp), dimension(:, :), allocatable :: lon_vertices  !< longitude coordinates or the grid nodes, size (nx+1, ny+1)
     integer(i4), dimension(:, :), allocatable :: cell_ij    !< matrix IDs (i, j) per cell in mask, size (n_cells, 2)
-  ! contains
+  contains
   !   !> \copydoc mo_grid::from_header_info
   !   procedure, public :: from_header_info !< \see mo_grid::from_header_info
   !   !> \copydoc mo_grid::from_file
@@ -97,10 +99,12 @@ module mo_grid
   !   procedure, public :: estimate_aux_vertices !< \see mo_grid::estimate_aux_vertices
   !   !> \copydoc mo_grid::derive_level
   !   procedure, public :: derive_level !< \see mo_grid::derive_level
-  !   !> \copydoc mo_grid::check_compatibility
-  !   procedure, public :: check_compatibility !< \see mo_grid::check_compatibility
-  !   !> \copydoc mo_grid::calculate_grid_properties
-  !   procedure, public :: calculate_grid_properties !< \see mo_grid::calculate_grid_properties
+  !   !> \copydoc mo_grid::is_covered_by
+  !   procedure, public :: is_covered_by !< \see mo_grid::is_covered_by
+    !> \copydoc mo_grid::calculate_cell_ids
+    procedure, public :: calculate_cell_ids !< \see mo_grid::calculate_cell_ids
+    !> \copydoc mo_grid::estimate_cell_area
+    procedure, public :: estimate_cell_area !< \see mo_grid::estimate_cell_area
   !   !> \copydoc mo_grid::read_data
   !   procedure, public :: read_data !< \see mo_grid::read_data
   !   !> \copydoc mo_grid::pack_data
@@ -311,6 +315,119 @@ contains
 
   ! ------------------------------------------------------------------
 
+  !>       \brief calculate grid properties regarding cell ids
+  !>       \details following tasks are performed:
+  !!       -  cell ids & numbering
+  !!       -  storage of cell cordinates (row and coloum id)
+  !>       \authors Rohini Kumar
+  !>       \date Jan 2013
+  !>       \changelog
+  !!       - Rohini Kumar & Matthias Cuntz, May 2014
+  !!         - cell area calulation based on a regular lat-lon grid or on a regular X-Y coordinate system
+  !!       - Matthias Cuntz, May 2014
+  !!         - changed empirical distribution function so that doubles get the same value
+  !!       - Matthias Zink & Matthias Cuntz, Feb 2016
+  !!         - code speed up due to reformulation of CDF calculation
+  !!       - Rohini Kumar, Mar 2016
+  !!         - changes for handling multiple soil database options
+  !!       - Robert Schweppe, Jun 2018
+  !!         - refactoring and reformatting
+  !!       - Sebastian Müller, Mar 2024
+  !!         - moved to FORCES
+  subroutine calculate_cell_ids(this)
+    implicit none
+
+    class(grid_t), intent(inout) :: this
+
+    integer(i4) :: i, j, k
+
+    !--------------------------------------------------------
+    ! 1) Estimate each variable locally for a given domain
+    ! 2) Pad each variable to its corresponding global one
+    !--------------------------------------------------------
+    this%n_cells = count(this%mask)
+
+    allocate(this%cell_ij(this%n_cells, 2))
+    allocate(this%id(this%n_cells))
+    this%id = [ (k, k = 1, this%n_cells) ]
+
+    !------------------------------------------------
+    ! start looping for cell cordinates and ids
+    !------------------------------------------------
+    k = 0
+    do j = 1, this%ny
+      do i = 1, this%nx
+        if (.NOT. this%mask(i, j)) cycle
+        k = k + 1
+        this%cell_ij(k, 1) = i
+        this%cell_ij(k, 2) = j
+      end do
+    end do
+  end subroutine calculate_cell_ids
+
+  ! ------------------------------------------------------------------
+
+  !>       \brief estimate cell area
+  !>       \details following tasks are performed:
+  !!       - estimate cell area based on coordinate system
+  !>       \authors Rohini Kumar
+  !>       \date Jan 2013
+  !>       \changelog
+  !!       - Rohini Kumar & Matthias Cuntz, May 2014
+  !!         - cell area calulation based on a regular lat-lon grid or on a regular X-Y coordinate system
+  !!       - Matthias Cuntz, May 2014
+  !!         - changed empirical distribution function so that doubles get the same value
+  !!       - Matthias Zink & Matthias Cuntz, Feb 2016
+  !!         - code speed up due to reformulation of CDF calculation
+  !!       - Rohini Kumar, Mar 2016
+  !!         - changes for handling multiple soil database options
+  !!       - Robert Schweppe, Jun 2018
+  !!         - refactoring and reformatting
+  !!       - Sebastian Müller, Mar 2024
+  !!         - moved to FORCES
+  subroutine estimate_cell_area(this)
+
+    use mo_constants, only : RadiusEarth_dp, TWOPI_dp
+    implicit none
+
+    class(grid_t), intent(inout) :: this
+
+    real(dp), dimension(:, :), allocatable :: areaCell_2D
+    integer(i4) :: j
+    real(dp) :: rdum, degree_to_radian, degree_to_metre
+
+    if (.not. allocated(this%cell_area)) allocate(this%cell_area(this%n_cells))
+
+    ! regular X-Y coordinate system
+    if(this%coordsys .eq. coordsys%cart) then
+      this%cell_area(:) = this%cellsize * this%cellsize
+
+    ! regular lat-lon coordinate system
+    else if(this%coordsys .eq. coordsys%sph_deg) then
+      allocate(areaCell_2D(this%nx, this%ny))
+
+      degree_to_radian = TWOPI_dp / 360.0_dp
+      degree_to_metre = RadiusEarth_dp * degree_to_radian
+      do j = 1, this%ny
+        ! get latitude in degrees (y-axis is increasing!)
+        rdum = this%yllcorner + (real(j, dp) - 0.5_dp) * this%cellsize
+        ! convert to radians
+        rdum = rdum * degree_to_radian
+        !    AREA [m2]
+        areaCell_2D(:, j) = (this%cellsize * cos(rdum) * degree_to_metre) * (this%cellsize * degree_to_metre)
+      end do
+      this%cell_area(:) = pack(areaCell_2D(:, :), this%mask)
+
+      ! free space
+      deallocate(areaCell_2D)
+    else
+      call error_message("estimate_cell_area: unknown coordsys value: ", num2str(this%coordsys))
+    end if
+
+  end subroutine estimate_cell_area
+
+  ! ------------------------------------------------------------------
+
   !>       \brief calculate coarse grid extend
   !>       \details Calculates basic grid properties at a required coarser level using
   !!       information of a given finer level.
@@ -322,9 +439,6 @@ contains
   !>       \date Feb 2013
   subroutine calculate_coarse_extend(nx_in,  ny_in,  xllcorner_in,  yllcorner_in,  cellsize_in,  target_resolution, &
                                      nx_out, ny_out, xllcorner_out, yllcorner_out, cellsize_out, tol, aligning)
-
-    use mo_message, only : error_message
-    use mo_string_utils, only : num2str
 
     implicit none
 
