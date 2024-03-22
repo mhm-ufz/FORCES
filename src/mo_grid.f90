@@ -111,8 +111,9 @@ module mo_grid
   !> \class   upscaler_t
   !> \brief   Upscaler type to remap data on regular grids with an integer cellsize ratio.
   type, public :: upscaler_t
-    type(grid_t), pointer :: fine_grid !< high resolution grid
+    type(grid_t), pointer :: fine_grid   !< high resolution grid
     type(grid_t), pointer :: coarse_grid !< low resolution grid
+    integer(i4) :: factor                !< coarse_grid % cellsize / fine_grid % cellsize
     integer(i4), dimension(:), allocatable :: y_lb              !< lower bound for y-id on fine grid (coarse%n_cells)
     integer(i4), dimension(:), allocatable :: y_ub              !< upper bound for y-id on fine grid (coarse%n_cells)
     integer(i4), dimension(:), allocatable :: x_lb              !< lower bound for x-id on fine grid (coarse%n_cells)
@@ -177,7 +178,6 @@ contains
 
     real(dp), dimension(:, :), allocatable :: areaCell0_2D
     real(dp) :: cellFactor
-    integer(i4) :: cellFactor_i
     integer(i4) :: i_ub, i_lb, j_lb, j_ub
     integer(i4) :: i, j, k, ic, jc
     logical :: estimate_aux_
@@ -207,7 +207,7 @@ contains
     coarse_grid%coordsys = fine_grid%coordsys
 
     cellFactor = anint(coarse_grid%cellsize / fine_grid%cellsize, dp)
-    cellFactor_i = nint(cellFactor, i4)
+    this%factor = nint(cellFactor, i4)
 
     ! allocation and initalization of mask at coarse grid
     allocate(coarse_grid%mask(coarse_grid%nx, coarse_grid%ny))
@@ -216,10 +216,10 @@ contains
     ! create mask at coarse grid
     do j = 1_i4, fine_grid%ny
       ! everything would be better with 0-based ids
-      jc = (j-1_i4) / cellfactor_i + 1_i4
+      jc = (j-1_i4) / this%factor + 1_i4
       do i = 1, fine_grid%nx
         if (.not. fine_grid%mask(i, j)) cycle
-        ic = (i-1_i4) / cellfactor_i + 1_i4
+        ic = (i-1_i4) / this%factor + 1_i4
         coarse_grid%mask(ic, jc) = .true.
       end do
     end do
@@ -248,13 +248,13 @@ contains
         if (.NOT. coarse_grid%mask(ic, jc)) cycle
         k = k + 1
         ! coord. of all corners -> of finer scale
-        i_lb = (ic - 1) * cellFactor_i + 1
+        i_lb = (ic - 1) * this%factor + 1
         ! constrain the range to fine grid extend
-        i_ub = min(ic * cellFactor_i, fine_grid%nx)
+        i_ub = min(ic * this%factor, fine_grid%nx)
 
-        j_lb = (jc - 1) * cellFactor_i + 1
+        j_lb = (jc - 1) * this%factor + 1
         ! constrain the range to fine grid extend
-        j_ub = min(jc * cellFactor_i, fine_grid%ny)
+        j_ub = min(jc * this%factor, fine_grid%ny)
 
         this%x_lb(k) = i_lb
         this%x_ub(k) = i_ub
@@ -280,12 +280,12 @@ contains
       do jc = 1, coarse_grid%ny
         do ic = 1, coarse_grid%nx
           ! coord. of all corners -> of finer scale
-          i_lb = (ic - 1) * cellFactor_i + 1
+          i_lb = (ic - 1) * this%factor + 1
           ! constrain the range to fine grid extend
-          i_ub = min(ic * cellFactor_i, fine_grid%nx)
-          j_lb = (jc - 1) * cellFactor_i + 1
+          i_ub = min(ic * this%factor, fine_grid%nx)
+          j_lb = (jc - 1) * this%factor + 1
           ! constrain the range to fine grid extend
-          j_ub = min(jc * cellFactor_i, fine_grid%ny)
+          j_ub = min(jc * this%factor, fine_grid%ny)
           ! estimate lat-lon coords by averaging sub-cell coordinates (even if fine grid is "a bit" smaller)
           coarse_grid%lat(ic, jc) = sum(fine_grid%lat(i_lb:i_ub, j_lb:j_ub)) / real(size(fine_grid%lat(i_lb:i_ub, j_lb:j_ub)), dp)
           coarse_grid%lon(ic, jc) = sum(fine_grid%lon(i_lb:i_ub, j_lb:j_ub)) / real(size(fine_grid%lon(i_lb:i_ub, j_lb:j_ub)), dp)
@@ -575,7 +575,7 @@ contains
     integer(i4), intent(in), optional :: aligning !< aligning selector (corner: ll -> 0 (default), lr -> 1, tl -> 2, tr -> 3)
 
     real(dp) :: cellFactor, rounded, tol_
-    integer(i4) :: rounded_int, align_
+    integer(i4) :: factor, align_
 
     tol_ = 1.e-7_dp
     if ( present(tol) ) tol_ = tol
@@ -585,7 +585,7 @@ contains
 
     cellFactor = target_resolution / cellsize_in
     rounded = anint(cellFactor)
-    rounded_int = nint(cellFactor)
+    factor = nint(cellFactor)
 
     if (abs(rounded - cellFactor) > tol_) then
       call error_message( &
@@ -594,15 +594,15 @@ contains
         trim(adjustl(num2str(nint(cellsize_in)))))
     end if
 
-    if (rounded_int < 1_i4) call error_message("***ERROR: cell factor needs to be >= 1 to setup an upscaler.")
+    if (factor < 1_i4) call error_message("***ERROR: cell factor needs to be >= 1 to setup an upscaler.")
 
     cellsize_out = target_resolution
     ny_out = nint(real(ny_in, dp) / cellFactor)
     nx_out = nint(real(nx_in, dp) / cellFactor)
 
     ! if we rounded down, but now we would miss cells, add rows and/or cols
-    if ( ny_out * rounded_int < ny_in ) ny_out = ny_out + 1_i4
-    if ( nx_out * rounded_int < nx_in ) nx_out = nx_out + 1_i4
+    if ( ny_out * factor < ny_in ) ny_out = ny_out + 1_i4
+    if ( nx_out * factor < nx_in ) nx_out = nx_out + 1_i4
 
     ! align grids based on the selected aligning corner
     ! keep yll if aligning in (lower)-left or (lower)-right
