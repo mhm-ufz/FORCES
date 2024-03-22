@@ -114,13 +114,17 @@ module mo_grid
   type, public :: upscaler_t
     type(grid_t), pointer :: fine_grid !< high resolution grid
     type(grid_t), pointer :: coarse_grid !< low resolution grid
-    ! dimension ncells
-    integer(i4), dimension(:), allocatable :: y_lb           !< lower bound for y-id on fine grid (coarse%ncells)
-    integer(i4), dimension(:), allocatable :: y_ub           !< upper bound for y-id on fine grid (coarse%ncells)
-    integer(i4), dimension(:), allocatable :: x_lb           !< lower bound for x-id on fine grid (coarse%ncells)
-    integer(i4), dimension(:), allocatable :: x_ub           !< upper bound for x-id on fine grid (coarse%ncells)
-    integer(i4), dimension(:), allocatable :: n_subcells     !< valid fine grid cells in coarse cell (coarse%ncells)
-    integer(i4), dimension(:, :), allocatable :: coarse_id_map   !< 2d index array of coarse ids (fine%nx, fine%ny)
+    integer(i4), dimension(:), allocatable :: y_lb              !< lower bound for y-id on fine grid (coarse%n_cells)
+    integer(i4), dimension(:), allocatable :: y_ub              !< upper bound for y-id on fine grid (coarse%n_cells)
+    integer(i4), dimension(:), allocatable :: x_lb              !< lower bound for x-id on fine grid (coarse%n_cells)
+    integer(i4), dimension(:), allocatable :: x_ub              !< upper bound for x-id on fine grid (coarse%n_cells)
+    integer(i4), dimension(:), allocatable :: n_subcells        !< valid fine grid cells in coarse cell (coarse%n_cells)
+    integer(i4), dimension(:, :), allocatable :: coarse_id_map  !< 2d index array of coarse ids (fine%nx, fine%ny)
+  contains
+    !> \copydoc mo_grid::from_target_resolution
+    procedure, public :: from_target_resolution !< \see mo_grid::from_target_resolution
+  !   !> \copydoc mo_grid::from_grids
+  !   procedure, public :: from_grids !< \see mo_grid::from_grids
   end type upscaler_t
 
   !>       \brief Reads spatial data files of ASCII format.
