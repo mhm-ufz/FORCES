@@ -213,39 +213,28 @@ contains
     cellFactor = anint(coarse_grid%cellsize / fine_grid%cellsize, dp)
     cellFactor_i = nint(cellFactor, i4)
 
-    ! only re-calculate mask if not given externally
-    if (.not. allocated(coarse_grid%mask)) then
-      ! allocation and initalization of mask at coarse grid
-      allocate(coarse_grid%mask(coarse_grid%nx, coarse_grid%ny))
-      coarse_grid%mask(:, :) = .false.
+    ! allocation and initalization of mask at coarse grid
+    allocate(coarse_grid%mask(coarse_grid%nx, coarse_grid%ny))
+    coarse_grid%mask(:, :) = .false.
 
-      ! create mask at coarse grid
-      do j = 1_i4, fine_grid%ny
-        ! everything would be better with 0-based ids
-        jc = (j-1_i4) / cellfactor_i + 1_i4
-        do i = 1, fine_grid%nx
-          if (.not. fine_grid%mask(i, j)) cycle
-          ic = (i-1_i4) / cellfactor_i + 1_i4
-          coarse_grid%mask(ic, jc) = .true.
-        end do
+    ! create mask at coarse grid
+    do j = 1_i4, fine_grid%ny
+      ! everything would be better with 0-based ids
+      jc = (j-1_i4) / cellfactor_i + 1_i4
+      do i = 1, fine_grid%nx
+        if (.not. fine_grid%mask(i, j)) cycle
+        ic = (i-1_i4) / cellfactor_i + 1_i4
+        coarse_grid%mask(ic, jc) = .true.
       end do
+    end do
 
-      ! estimate n_cells and initalize related variables
-      coarse_grid%n_cells = count(coarse_grid%mask)
-      ! allocate and initalize cell1 related variables
-      allocate(coarse_grid%id(coarse_grid%n_cells))
-      coarse_grid%id = [ (k, k = 1, coarse_grid%n_cells) ]
-    end if
+    call coarse_grid%calculate_cell_ids()
 
     ! lowres additional properties
     allocate(areaCell0_2D(fine_grid%nx, fine_grid%ny))
     areaCell0_2D(:, :) = unpack(fine_grid%cell_area, fine_grid%mask, nodata_dp)
 
-    if (.not. allocated(coarse_grid%cell_ij)) then
-      allocate(coarse_grid%cell_ij  (coarse_grid%n_cells, 2))
-      allocate(coarse_grid%cell_area  (coarse_grid%n_cells))
-    end if
-
+    allocate(coarse_grid%cell_area(coarse_grid%n_cells))
     allocate(this%y_lb(coarse_grid%n_cells))
     allocate(this%y_ub(coarse_grid%n_cells))
     allocate(this%x_lb(coarse_grid%n_cells))
@@ -262,10 +251,6 @@ contains
       do ic = 1, coarse_grid%nx
         if (.NOT. coarse_grid%mask(ic, jc)) cycle
         k = k + 1
-
-        coarse_grid%cell_ij(k, 1) = ic
-        coarse_grid%cell_ij(k, 2) = jc
-
         ! coord. of all corners -> of finer scale
         i_lb = (ic - 1) * cellFactor_i + 1
         ! constrain the range to fine grid extend
