@@ -65,7 +65,6 @@ module mo_grid
     real(dp) :: xllcorner    !< x coordinate of the lowerleft corner
     real(dp) :: yllcorner    !< y coordinate of the lowerleft corner
     real(dp) :: cellsize     !< cellsize x = cellsize y
-    real(dp) :: nodata_value !< code to define the mask
     integer(i4), dimension(:), allocatable :: id     !< IDs of cells in mask (1..n_cells)
     real(dp), dimension(:), allocatable :: cell_area !< area of the cell in sqare m, size (n_cells)
     logical, dimension(:, :), allocatable :: mask    !< the mask for valid cells in the original grid, size (nx, ny)
