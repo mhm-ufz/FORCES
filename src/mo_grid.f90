@@ -23,28 +23,11 @@ module mo_grid
   integer(i4), public, parameter :: coordsys_cart = 0_i4 !< Cartesian coordinate system.
   integer(i4), public, parameter :: coordsys_sph_deg = 1_i4 !< Spherical coordinates in degrees.
   ! integer(i4), public, parameter :: coordsys_sph_rad = 2_i4
-  !> \class   coordsys_t
-  !> \brief   Supported coordniate systems (cart, sph_deg).
-  type, private :: coordsys_t
-    integer(i4) :: cart = 0_i4 !< Cartesian coordinate system.
-    integer(i4) :: sph_deg = 1_i4 !< Spherical coordinates in degrees.
-    ! integer(i4), public :: sph_rad = 2_i4
-  end type coordsys_t
-  type(coordsys_t), public, parameter :: coordsys = coordsys_t(0_i4, 1_i4) !< Supported coordniate systems (cart, sph_deg).
   ! align selector
   integer(i4), public, parameter :: align_ll = 0_i4 !< align in lower left corner
   integer(i4), public, parameter :: align_lr = 1_i4 !< align in lower right corner
   integer(i4), public, parameter :: align_tl = 2_i4 !< align in top left corner
   integer(i4), public, parameter :: align_tr = 3_i4 !< align in top right corner
-  !> \class   align_t
-  !> \brief   Supported aligning corners (ll, lr, tl, tr).
-  type, private :: align_t
-    integer(i4) :: ll = 0_i4 !< align in lower left corner
-    integer(i4) :: lr = 1_i4 !< align in lower right corner
-    integer(i4) :: tl = 2_i4 !< align in top left corner
-    integer(i4) :: tr = 3_i4 !< align in top right corner
-  end type align_t
-  type(align_t), public, parameter :: align = align_t(0_i4, 1_i4, 2_i4, 3_i4) !< Supported aligning corners (ll, lr, tl, tr).
 
   ! -------------------------------------------------------------------
   ! GRID description
@@ -57,7 +40,7 @@ module mo_grid
   !!          the data read from .nc files is in xy order. If the y axis is decreasing, data arrays
   !!          should be flipped.
   type, public :: grid_t
-    integer(i4) :: coordsys = coordsys%cart !< Coordinate system for x and y. 0 -> Cartesian (default), 1 -> Spherical
+    integer(i4) :: coordsys = coordsys_cart !< Coordinate system for x and y. 0 -> Cartesian (default), 1 -> Spherical
     ! general domain information
     integer(i4) :: nx        !< size of x-axis (number of cols in ascii grid file)
     integer(i4) :: ny        !< size of y-axis (number of rows in ascii grid file)
@@ -74,8 +57,8 @@ module mo_grid
     real(dp), dimension(:, :), allocatable :: lon_vertices  !< longitude coordinates or the grid nodes, size (nx+1, ny+1)
     integer(i4), dimension(:, :), allocatable :: cell_ij    !< matrix IDs (i, j) per cell in mask, size (n_cells, 2)
   contains
-  !   !> \copydoc mo_grid::from_header_info
-  !   procedure, public :: from_header_info !< \see mo_grid::from_header_info
+    !> \copydoc mo_grid::from_header_info
+    procedure, public :: init => grid_init !< \see mo_grid::from_header_info
   !   !> \copydoc mo_grid::from_file
   !   procedure, public :: from_file !< \see mo_grid::from_file
   !   !> \copydoc mo_grid::extend
@@ -100,6 +83,14 @@ module mo_grid
   !   procedure, public :: derive_level !< \see mo_grid::derive_level
   !   !> \copydoc mo_grid::is_covered_by
   !   procedure, public :: is_covered_by !< \see mo_grid::is_covered_by
+  !   !> \copydoc mo_grid::is_masked
+  !   procedure, public :: is_masked !< \see mo_grid::is_masked
+  !   !> \copydoc mo_grid::read_aux_coords
+  !   procedure, public :: read_aux_coords !< \see mo_grid::read_aux_coords
+  !   !> \copydoc mo_grid::has_aux_coords
+  !   procedure, public :: has_aux_coords !< \see mo_grid::has_aux_coords
+  !   !> \copydoc mo_grid::has_aux_vertices
+  !   procedure, public :: has_aux_vertices !< \see mo_grid::has_aux_vertices
     !> \copydoc mo_grid::calculate_cell_ids
     procedure, public :: calculate_cell_ids !< \see mo_grid::calculate_cell_ids
     !> \copydoc mo_grid::estimate_cell_area
@@ -278,7 +269,7 @@ contains
     deallocate(areaCell0_2D)
 
     ! only estimate aux coords if we are on a projected grid
-    if ( estimate_aux_ .and. fine_grid%coordsys == coordsys%cart .and. allocated(fine_grid%lat) .and. allocated(fine_grid%lon)) then
+    if ( estimate_aux_ .and. fine_grid%coordsys == coordsys_cart .and. allocated(fine_grid%lat) .and. allocated(fine_grid%lon)) then
       allocate(coarse_grid%lat(coarse_grid%nx, coarse_grid%ny))
       allocate(coarse_grid%lon(coarse_grid%nx, coarse_grid%ny))
       do jc = 1, coarse_grid%ny
@@ -290,7 +281,7 @@ contains
           j_lb = (jc - 1) * cellFactor_i + 1
           ! constrain the range to fine grid extend
           j_ub = min(jc * cellFactor_i, fine_grid%ny)
-          ! estimate lat-lon coords by averaging sub-cell coordinates
+          ! estimate lat-lon coords by averaging sub-cell coordinates (even if fine grid is "a bit" smaller)
           coarse_grid%lat(ic, jc) = sum(fine_grid%lat(i_lb:i_ub, j_lb:j_ub)) / real(size(fine_grid%lat(i_lb:i_ub, j_lb:j_ub)), dp)
           coarse_grid%lon(ic, jc) = sum(fine_grid%lon(i_lb:i_ub, j_lb:j_ub)) / real(size(fine_grid%lon(i_lb:i_ub, j_lb:j_ub)), dp)
         end do
@@ -298,6 +289,43 @@ contains
     end if
 
   end subroutine from_target_resolution
+
+  ! ------------------------------------------------------------------
+
+  !>       \brief initialize grid from ascii header content
+  !>       \details initialize grid from standard ascii header content (nx (cols), ny (rows), cellsize, lower-left corner)
+  !>       \authors Sebastian Müller
+  !>       \date Mar 2024
+  subroutine grid_init(this, nx, ny, xllcorner, yllcorner, cellsize, coordsys)
+    implicit none
+    class(grid_t), intent(inout) :: this
+    integer(i4), intent(in) :: nx !< Number of x-axis subdivisions
+    integer(i4), intent(in) :: ny !< Number of y-axis subdivisions
+    real(dp), optional, intent(in) :: xllcorner !< lower left corner (x) (default 0)
+    real(dp), optional, intent(in) :: yllcorner !< lower left corner (y) (default 0)
+    real(dp), optional, intent(in) :: cellsize !< cell size [m] or [deg] (default 1.0)
+    integer(i4), optional, intent(in) :: coordsys !< desired coordinate system (default 0 for cartesian)
+
+    this%nx = nx
+    this%ny = ny
+    this%xllcorner = 0_i4
+    if ( present(xllcorner) ) this%xllcorner = xllcorner
+    this%yllcorner = 0_i4
+    if ( present(yllcorner) ) this%yllcorner = yllcorner
+    this%cellsize = 1.0_dp
+    if ( present(cellsize) ) this%cellsize = cellsize
+    ! check if coordsys is supported
+    this%coordsys = coordsys_cart
+    if ( present(coordsys) ) then
+      if (coordsys /= coordsys_cart .and. coordsys /= coordsys_sph_deg) &
+        call error_message("grid % init: unknown coordsys value: ", num2str(coordsys))
+      this%coordsys = coordsys
+    end if
+
+    call this%calculate_cell_ids()
+    call this%estimate_cell_area()
+
+  end subroutine grid_init
 
   ! ------------------------------------------------------------------
 
@@ -383,11 +411,11 @@ contains
     if (.not. allocated(this%cell_area)) allocate(this%cell_area(this%n_cells))
 
     ! regular X-Y coordinate system
-    if(this%coordsys .eq. coordsys%cart) then
+    if(this%coordsys .eq. coordsys_cart) then
       this%cell_area(:) = this%cellsize * this%cellsize
 
     ! regular lat-lon coordinate system
-    else if(this%coordsys .eq. coordsys%sph_deg) then
+    else if(this%coordsys .eq. coordsys_sph_deg) then
       allocate(areaCell_2D(this%nx, this%ny))
 
       degree_to_radian = TWOPI_dp / 360.0_dp
@@ -446,7 +474,7 @@ contains
     tol_ = 1.e-7_dp
     if ( present(tol) ) tol_ = tol
 
-    align_ = align%ll
+    align_ = align_ll
     if ( present(aligning) ) align_ = aligning
 
     cellFactor = target_resolution / cellsize_in
@@ -472,13 +500,13 @@ contains
 
     ! align grids based on the selected aligning corner
     ! keep yll if aligning in (lower)-left or (lower)-right
-    if (align_ == align%ll .or. align_ == align%lr) then
+    if (align_ == align_ll .or. align_ == align_lr) then
       yllcorner_out = yllcorner_in
     else
       yllcorner_out = yllcorner_in + real(ny_in, dp) * target_resolution / rounded - real(ny_out, dp) * cellsize_out
     endif
     ! keep xll if aligning in lower-(left) or top-(left)
-    if (align_ == align%ll .or. align_ == align%tl) then
+    if (align_ == align_ll .or. align_ == align_tl) then
       xllcorner_out = xllcorner_in
     else
       xllcorner_out = xllcorner_in + real(nx_in, dp) * target_resolution / rounded - real(nx_out, dp) * cellsize_out
