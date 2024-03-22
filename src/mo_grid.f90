@@ -148,6 +148,167 @@ module mo_grid
   end interface read_spatial_data_ascii
 
 contains
+
+  !>       \brief Setup upscaler and coarse grid from given target resolution
+  !>       \details following attributes are calculated for the coarse grid:
+  !!       -  cell id & numbering
+  !!       -  mask creation
+  !!       -  storage of cell cordinates (row and coloum indizes)
+  !!       -  sorage of four sub-cell corner cordinates
+  !!
+  !!       fine_grid and coarse_grid need to be targets, since the upscaler will only
+  !!       hold pointers to the associated grids.
+  !>       \authors Rohini Kumar
+  !>       \date Jan 2013
+  !>       \changelog
+  !!       - Sebastian Müller, Mar 2024
+  !!         - moving to FORCES
+  !!         - is now a method of the upscaler type
+  subroutine from_target_resolution(this, target_resolution, fine_grid, coarse_grid, estimate_aux)
+
+    use mo_constants, only : nodata_dp, nodata_i4
+
+    implicit none
+
+    class(upscaler_t), intent(inout) :: this !< remapper type for given grids
+    real(dp), intent(in) :: target_resolution !< desired target resolution
+    type(grid_t), target, intent(in) :: fine_grid !< given high resolution grid
+    type(grid_t), target, intent(inout) :: coarse_grid !< resulting low resolution grid
+    logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
+
+    real(dp), dimension(:, :), allocatable :: areaCell0_2D
+    real(dp) :: cellFactor
+    integer(i4) :: cellFactor_i
+    integer(i4) :: i_ub, i_lb, j_lb, j_ub
+    integer(i4) :: i, j, k, ic, jc
+    logical :: estimate_aux_
+
+    estimate_aux_ = .true.
+    if (present(estimate_aux)) estimate_aux_ = estimate_aux
+
+    !--------------------------------------------------------
+    ! 1) Estimate each variable locally for a given domain
+    ! 2) Pad each variable to its corresponding global one
+    !--------------------------------------------------------
+    ! grid properties
+    call calculate_coarse_extend( &
+      nx_in=fine_grid%nx, &
+      ny_in=fine_grid%ny, &
+      xllcorner_in=fine_grid%xllcorner, &
+      yllcorner_in=fine_grid%yllcorner, &
+      cellsize_in=fine_grid%cellsize, &
+      target_resolution=target_resolution, &
+      nx_out=coarse_grid%nx, &
+      ny_out=coarse_grid%ny, &
+      xllcorner_out=coarse_grid%xllcorner, &
+      yllcorner_out=coarse_grid%yllcorner, &
+      cellsize_out=coarse_grid%cellsize &
+    )
+
+    cellFactor = anint(coarse_grid%cellsize / fine_grid%cellsize, dp)
+    cellFactor_i = nint(cellFactor, i4)
+
+    ! only re-calculate mask if not given externally
+    if (.not. allocated(coarse_grid%mask)) then
+      ! allocation and initalization of mask at coarse grid
+      allocate(coarse_grid%mask(coarse_grid%nx, coarse_grid%ny))
+      coarse_grid%mask(:, :) = .false.
+
+      ! create mask at coarse grid
+      do j = 1_i4, fine_grid%ny
+        ! everything would be better with 0-based ids
+        jc = (j-1_i4) / cellfactor_i + 1_i4
+        do i = 1, fine_grid%nx
+          if (.not. fine_grid%mask(i, j)) cycle
+          ic = (i-1_i4) / cellfactor_i + 1_i4
+          coarse_grid%mask(ic, jc) = .true.
+        end do
+      end do
+
+      ! estimate n_cells and initalize related variables
+      coarse_grid%n_cells = count(coarse_grid%mask)
+      ! allocate and initalize cell1 related variables
+      allocate(coarse_grid%id(coarse_grid%n_cells))
+      coarse_grid%id = [ (k, k = 1, coarse_grid%n_cells) ]
+    end if
+
+    ! lowres additional properties
+    allocate(areaCell0_2D(fine_grid%nx, fine_grid%ny))
+    areaCell0_2D(:, :) = unpack(fine_grid%cell_area, fine_grid%mask, nodata_dp)
+
+    if (.not. allocated(coarse_grid%cell_ij)) then
+      allocate(coarse_grid%cell_ij  (coarse_grid%n_cells, 2))
+      allocate(coarse_grid%cell_area  (coarse_grid%n_cells))
+    end if
+
+    allocate(this%y_lb(coarse_grid%n_cells))
+    allocate(this%y_ub(coarse_grid%n_cells))
+    allocate(this%x_lb(coarse_grid%n_cells))
+    allocate(this%x_ub(coarse_grid%n_cells))
+    allocate(this%n_subcells(coarse_grid%n_cells))
+    allocate(this%coarse_id_map(fine_grid%nx, fine_grid%ny))
+    this%coarse_id_map = nodata_i4
+
+    this%fine_grid => fine_grid
+    this%coarse_grid => coarse_grid
+
+    k = 0
+    do jc = 1, coarse_grid%ny
+      do ic = 1, coarse_grid%nx
+        if (.NOT. coarse_grid%mask(ic, jc)) cycle
+        k = k + 1
+
+        coarse_grid%cell_ij(k, 1) = ic
+        coarse_grid%cell_ij(k, 2) = jc
+
+        ! coord. of all corners -> of finer scale
+        i_lb = (ic - 1) * cellFactor_i + 1
+        ! constrain the range to fine grid extend
+        i_ub = min(ic * cellFactor_i, fine_grid%nx)
+
+        j_lb = (jc - 1) * cellFactor_i + 1
+        ! constrain the range to fine grid extend
+        j_ub = min(jc * cellFactor_i, fine_grid%ny)
+
+        this%x_lb(k) = i_lb
+        this%x_ub(k) = i_ub
+
+        this%y_lb(k) = j_lb
+        this%y_ub(k) = j_ub
+
+        ! effective area [km2] & total no. of fine grid cells within a given coarse grid cell
+        coarse_grid%cell_area(k) = sum(areacell0_2D(i_lb : i_ub, j_lb : j_ub), fine_grid%mask(i_lb : i_ub, j_lb : j_ub))
+        this%n_subcells(k) = count(fine_grid%mask(i_lb : i_ub, j_lb : j_ub))
+        ! Delimitation of level-11 cells on level-0
+        this%coarse_id_map(i_lb : i_ub, j_lb : j_ub) = k
+      end do
+    end do
+
+    ! free space
+    deallocate(areaCell0_2D)
+
+    ! only estimate aux coords if we are on a projected grid
+    if ( estimate_aux_ .and. fine_grid%coordsys == coordsys%cart .and. allocated(fine_grid%lat) .and. allocated(fine_grid%lon)) then
+      allocate(coarse_grid%lat(coarse_grid%nx, coarse_grid%ny))
+      allocate(coarse_grid%lon(coarse_grid%nx, coarse_grid%ny))
+      do jc = 1, coarse_grid%ny
+        do ic = 1, coarse_grid%nx
+          ! coord. of all corners -> of finer scale
+          i_lb = (ic - 1) * cellFactor_i + 1
+          ! constrain the range to fine grid extend
+          i_ub = min(ic * cellFactor_i, fine_grid%nx)
+          j_lb = (jc - 1) * cellFactor_i + 1
+          ! constrain the range to fine grid extend
+          j_ub = min(jc * cellFactor_i, fine_grid%ny)
+          ! estimate lat-lon coords by averaging sub-cell coordinates
+          coarse_grid%lat(ic, jc) = sum(fine_grid%lat(i_lb:i_ub, j_lb:j_ub)) / real(size(fine_grid%lat(i_lb:i_ub, j_lb:j_ub)), dp)
+          coarse_grid%lon(ic, jc) = sum(fine_grid%lon(i_lb:i_ub, j_lb:j_ub)) / real(size(fine_grid%lon(i_lb:i_ub, j_lb:j_ub)), dp)
+        end do
+      end do
+    end if
+
+  end subroutine from_target_resolution
+
   ! ------------------------------------------------------------------
 
   !>       \brief calculate coarse grid extend
