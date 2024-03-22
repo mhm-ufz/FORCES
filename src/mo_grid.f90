@@ -208,6 +208,8 @@ contains
       cellsize_out=coarse_grid%cellsize &
     )
 
+    coarse_grid%coordsys = fine_grid%coordsys
+
     cellFactor = anint(coarse_grid%cellsize / fine_grid%cellsize, dp)
     cellFactor_i = nint(cellFactor, i4)
 
