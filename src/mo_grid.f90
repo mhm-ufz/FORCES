@@ -574,27 +574,13 @@ contains
     real(dp), intent(in), optional :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     integer(i4), intent(in), optional :: aligning !< aligning selector (corner: ll -> 0 (default), lr -> 1, tl -> 2, tr -> 3)
 
-    real(dp) :: cellFactor, rounded, tol_
+    real(dp) :: cellFactor, rounded
     integer(i4) :: factor, align_
-
-    tol_ = 1.e-7_dp
-    if ( present(tol) ) tol_ = tol
 
     align_ = align_ll
     if ( present(aligning) ) align_ = aligning
 
-    cellFactor = target_resolution / cellsize_in
-    rounded = anint(cellFactor)
-    factor = nint(cellFactor)
-
-    if (abs(rounded - cellFactor) > tol_) then
-      call error_message( &
-        '***ERROR: Two resolutions size do not confirm: ', &
-        trim(adjustl(num2str(nint(target_resolution)))), &
-        trim(adjustl(num2str(nint(cellsize_in)))))
-    end if
-
-    if (factor < 1_i4) call error_message("***ERROR: cell factor needs to be >= 1 to setup an upscaler.")
+    call check_factor(cellsize_in, target_resolution, cellFactor, rounded, factor, tol)
 
     cellsize_out = target_resolution
     ny_out = nint(real(ny_in, dp) / cellFactor)
@@ -619,6 +605,35 @@ contains
     endif
 
   end subroutine calculate_coarse_extend
+
+  subroutine check_factor(fine_cellsize, coarse_cellsize, cellfactor, rounded, factor, tol)
+    real(dp), intent(in) :: fine_cellsize !< cellsize of fine grid
+    real(dp), intent(in) :: coarse_cellsize !< cellsize of coarse grid
+    real(dp), optional, intent(out) :: cellfactor !< raw real cellfactor
+    real(dp), optional, intent(out) :: rounded !< rounded real cellfactor
+    integer(i4), optional, intent(out) :: factor !< integer cellfactor
+    real(dp), intent(in), optional :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    real(dp) :: cellfactor_, rounded_, tol_
+    integer(i4) :: factor_
+
+    tol_ = 1.e-7_dp
+    if ( present(tol) ) tol_ = tol
+
+    cellfactor_ = coarse_cellsize / fine_cellsize
+    rounded_ = anint(cellfactor_)
+    factor_ = nint(cellfactor_)
+
+    if (abs(rounded_ - cellfactor_) > tol_) then
+      call error_message( &
+        'check_factor: Two resolutions size do not confirm: ', &
+        trim(adjustl(num2str(nint(coarse_cellsize)))), &
+        trim(adjustl(num2str(nint(fine_cellsize)))))
+    end if
+    if (factor_ < 1_i4) call error_message("check_factor: cell factor needs to be >= 1 to setup an upscaler.")
+    if ( present(cellfactor) ) cellfactor = cellfactor_
+    if ( present(rounded) ) rounded = rounded_
+    if ( present(factor) ) factor = factor_
+  end subroutine check_factor
 
   ! ------------------------------------------------------------------
 
