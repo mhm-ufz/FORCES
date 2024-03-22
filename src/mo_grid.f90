@@ -306,16 +306,16 @@ contains
     class(grid_t), intent(inout) :: this
     integer(i4), intent(in) :: nx !< Number of x-axis subdivisions
     integer(i4), intent(in) :: ny !< Number of y-axis subdivisions
-    real(dp), optional, intent(in) :: xllcorner !< lower left corner (x) (default 0)
-    real(dp), optional, intent(in) :: yllcorner !< lower left corner (y) (default 0)
+    real(dp), optional, intent(in) :: xllcorner !< lower left corner (x) (default 0.0)
+    real(dp), optional, intent(in) :: yllcorner !< lower left corner (y) (default 0.0)
     real(dp), optional, intent(in) :: cellsize !< cell size [m] or [deg] (default 1.0)
     integer(i4), optional, intent(in) :: coordsys !< desired coordinate system (default 0 for cartesian)
 
     this%nx = nx
     this%ny = ny
-    this%xllcorner = 0_i4
+    this%xllcorner = 0.0_dp
     if ( present(xllcorner) ) this%xllcorner = xllcorner
-    this%yllcorner = 0_i4
+    this%yllcorner = 0.0_dp
     if ( present(yllcorner) ) this%yllcorner = yllcorner
     this%cellsize = 1.0_dp
     if ( present(cellsize) ) this%cellsize = cellsize
