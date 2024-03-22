@@ -61,8 +61,8 @@ module mo_grid
     procedure, public :: init => grid_init !< \see mo_grid::from_header_info
   !   !> \copydoc mo_grid::from_file
   !   procedure, public :: from_file !< \see mo_grid::from_file
-  !   !> \copydoc mo_grid::extend
-  !   procedure, public :: extend !< \see mo_grid::extend
+    !> \copydoc mo_grid::extend
+    procedure, public :: extend !< \see mo_grid::extend
   !   !> \copydoc mo_grid::x_axis
   !   procedure, public :: x_axis !< \see mo_grid::x_axis
   !   !> \copydoc mo_grid::y_axis
@@ -326,6 +326,24 @@ contains
     call this%estimate_cell_area()
 
   end subroutine grid_init
+
+  !>       \brief get grid extend
+  !>       \authors Sebastian Müller
+  !>       \date Mar 2024
+  subroutine extend(this, x_min, x_max, y_min, y_max)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), optional, intent(out) :: x_min !< left bound (x)
+    real(dp), optional, intent(out) :: x_max !< right bound (x)
+    real(dp), optional, intent(out) :: y_min !< lower bound (y)
+    real(dp), optional, intent(out) :: y_max !< upper bound (y)
+
+    if ( present(x_min) ) x_min = this%xllcorner
+    if ( present(x_max) ) x_max = this%xllcorner + this%nx * this%cellsize
+    if ( present(y_min) ) y_min = this%yllcorner
+    if ( present(y_max) ) y_max = this%yllcorner + this%ny * this%cellsize
+
+  end subroutine extend
 
   ! ------------------------------------------------------------------
 
