@@ -80,8 +80,8 @@ module mo_grid
     procedure, public :: x_bounds !< \see mo_grid::x_bounds
     !> \copydoc mo_grid::y_bounds
     procedure, public :: y_bounds !< \see mo_grid::y_bounds
-  !   !> \copydoc mo_grid::estimate_aux_coords
-  !   procedure, public :: estimate_aux_coords !< \see mo_grid::estimate_aux_coords
+    !> \copydoc mo_grid::estimate_aux_coords
+    procedure, public :: estimate_aux_coords !< \see mo_grid::estimate_aux_coords
   !   !> \copydoc mo_grid::estimate_aux_vertices
   !   procedure, public :: estimate_aux_vertices !< \see mo_grid::estimate_aux_vertices
   !   !> \copydoc mo_grid::derive_level
@@ -168,7 +168,7 @@ contains
   !! - Sebastian Müller, Mar 2024
   !!   - moving to FORCES
   !!   - is now a method of the upscaler type
-  subroutine from_target_resolution(this, target_resolution, fine_grid, coarse_grid, estimate_aux)
+  subroutine from_target_resolution(this, target_resolution, fine_grid, coarse_grid, estimate_aux, tol)
 
     use mo_constants, only : nodata_dp, nodata_i4
 
@@ -179,6 +179,7 @@ contains
     type(grid_t), target, intent(in) :: fine_grid !< given high resolution grid
     type(grid_t), target, intent(inout) :: coarse_grid !< resulting low resolution grid
     logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
 
     real(dp), dimension(:, :), allocatable :: areaCell0_2D
     real(dp) :: cellFactor
@@ -205,7 +206,8 @@ contains
       ny_out=coarse_grid%ny, &
       xllcorner_out=coarse_grid%xllcorner, &
       yllcorner_out=coarse_grid%yllcorner, &
-      cellsize_out=coarse_grid%cellsize &
+      cellsize_out=coarse_grid%cellsize, &
+      tol=tol &
     )
 
     coarse_grid%coordsys = fine_grid%coordsys
@@ -279,22 +281,7 @@ contains
 
     ! only estimate aux coords if we are on a projected grid
     if ( estimate_aux_ .and. fine_grid%coordsys == coordsys_cart .and. allocated(fine_grid%lat) .and. allocated(fine_grid%lon)) then
-      allocate(coarse_grid%lat(coarse_grid%nx, coarse_grid%ny))
-      allocate(coarse_grid%lon(coarse_grid%nx, coarse_grid%ny))
-      do jc = 1, coarse_grid%ny
-        do ic = 1, coarse_grid%nx
-          ! coord. of all corners -> of finer scale
-          i_lb = (ic - 1) * this%factor + 1
-          ! constrain the range to fine grid extend
-          i_ub = min(ic * this%factor, fine_grid%nx)
-          j_lb = (jc - 1) * this%factor + 1
-          ! constrain the range to fine grid extend
-          j_ub = min(jc * this%factor, fine_grid%ny)
-          ! estimate lat-lon coords by averaging sub-cell coordinates (even if fine grid is "a bit" smaller)
-          coarse_grid%lat(ic, jc) = sum(fine_grid%lat(i_lb:i_ub, j_lb:j_ub)) / real(size(fine_grid%lat(i_lb:i_ub, j_lb:j_ub)), dp)
-          coarse_grid%lon(ic, jc) = sum(fine_grid%lon(i_lb:i_ub, j_lb:j_ub)) / real(size(fine_grid%lon(i_lb:i_ub, j_lb:j_ub)), dp)
-        end do
-      end do
+      call coarse_grid%estimate_aux_coords(fine_grid, tol=tol)
     end if
 
   end subroutine from_target_resolution
@@ -438,6 +425,46 @@ contains
     y_bounds(2,:) = y_ax(2:this%ny+1)
   end function y_bounds
 
+  !> \brief estimate auxilliar coordinates (lat, lon) from finer grid
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine estimate_aux_coords(this, fine_grid, tol)
+    implicit none
+    class(grid_t), intent(inout) :: this
+    type(grid_t), intent(in) :: fine_grid !< finer grid to estimate the auxilliar coordinates from
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    real(dp) :: n_subcells
+    integer(i4) :: i_ub, i_lb, j_lb, j_ub, i, j, factor
+
+    call this%check_is_covering(fine_grid, tol=tol, check_mask=.false.)
+    call check_factor(fine_grid%cellsize, this%cellsize, factor=factor, tol=tol)
+
+    if (this % coordsys /= coordsys_cart) &
+      call error_message("grid % estimate_aux_coords: grids allready use spherical coordinate system.")
+
+    if (.not.(allocated(fine_grid%lat) .and. allocated(fine_grid%lon))) &
+      call error_message("grid % estimate_aux_coords: fine grid has no auxilliar coordinates defined.")
+
+    allocate(this%lat(this%nx, this%ny))
+    allocate(this%lon(this%nx, this%ny))
+    do j = 1, this%ny
+      do i = 1, this%nx
+        ! coord. of all corners -> of finer scale
+        i_lb = (i - 1) * factor + 1
+        ! constrain the range to fine grid extend
+        i_ub = min(i * factor, fine_grid%nx)
+        j_lb = (j - 1) * factor + 1
+        ! constrain the range to fine grid extend
+        j_ub = min(j * factor, fine_grid%ny)
+        n_subcells = real(size(fine_grid%lat(i_lb:i_ub, j_lb:j_ub)), dp)
+        ! estimate lat-lon coords by averaging sub-cell coordinates (even if fine grid is "a bit" smaller)
+        this%lat(i, j) = sum(fine_grid%lat(i_lb:i_ub, j_lb:j_ub)) / n_subcells
+        this%lon(i, j) = sum(fine_grid%lon(i_lb:i_ub, j_lb:j_ub)) / n_subcells
+      end do
+    end do
+
+  end subroutine estimate_aux_coords
+
   !> \brief check if given grid is masked (mask allocated and any value .false.)
   !> \authors Sebastian Müller
   !> \date Mar 2024
@@ -469,6 +496,9 @@ contains
 
     check_mask_ = .true.
     if ( present(check_mask) ) check_mask_ = check_mask
+
+    if (this%coordsys /= coarse_grid%coordsys) &
+      call error_message("grid % check_is_covered_by: grids don't use the same coordinate system.")
 
     call check_factor(this%cellsize, coarse_grid%cellsize, factor=factor, tol=tol)
 
@@ -505,7 +535,6 @@ contains
   !> \authors Sebastian Müller
   !> \date Mar 2024
   subroutine check_is_covering(this, fine_grid, tol, check_mask)
-    use mo_utils, only: eq
     implicit none
     class(grid_t), intent(in) :: this
     type(grid_t), intent(in) :: fine_grid !< finer grid that should be covered by this grid
