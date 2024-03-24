@@ -94,8 +94,8 @@ module mo_grid
     procedure, public :: check_is_covering !< \see mo_grid::check_is_covering
   !   !> \copydoc mo_grid::read_aux_coords
   !   procedure, public :: read_aux_coords !< \see mo_grid::read_aux_coords
-  !   !> \copydoc mo_grid::has_aux_coords
-  !   procedure, public :: has_aux_coords !< \see mo_grid::has_aux_coords
+    !> \copydoc mo_grid::has_aux_coords
+    procedure, public :: has_aux_coords !< \see mo_grid::has_aux_coords
   !   !> \copydoc mo_grid::has_aux_vertices
   !   procedure, public :: has_aux_vertices !< \see mo_grid::has_aux_vertices
     !> \copydoc mo_grid::calculate_cell_ids
@@ -280,7 +280,7 @@ contains
     deallocate(areaCell0_2D)
 
     ! only estimate aux coords if we are on a projected grid
-    if ( estimate_aux_ .and. fine_grid%coordsys == coordsys_cart .and. allocated(fine_grid%lat) .and. allocated(fine_grid%lon)) then
+    if ( estimate_aux_ .and. fine_grid%coordsys == coordsys_cart .and. fine_grid%has_aux_coords()) then
       call coarse_grid%estimate_aux_coords(fine_grid, tol=tol)
     end if
 
@@ -442,7 +442,7 @@ contains
     if (this % coordsys /= coordsys_cart) &
       call error_message("grid % estimate_aux_coords: grids allready use spherical coordinate system.")
 
-    if (.not.(allocated(fine_grid%lat) .and. allocated(fine_grid%lon))) &
+    if (.not. fine_grid%has_aux_coords()) &
       call error_message("grid % estimate_aux_coords: fine grid has no auxilliar coordinates defined.")
 
     allocate(this%lat(this%nx, this%ny))
@@ -542,6 +542,15 @@ contains
     logical, optional, intent(in) :: check_mask !< whether to check if coarse mask covers fine mask
     call fine_grid%check_is_covered_by(coarse_grid=this, tol=tol, check_mask=check_mask)
   end subroutine check_is_covering
+
+  !> \brief check if given grid has auxilliar coordinates allocated.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  logical function has_aux_coords(this)
+    implicit none
+    class(grid_t), intent(in) :: this
+    has_aux_coords = allocated(this%lat) .and. allocated(this%lon)
+  end function has_aux_coords
 
   ! ------------------------------------------------------------------
 
