@@ -88,10 +88,10 @@ module mo_grid
   !   procedure, public :: derive_level !< \see mo_grid::derive_level
     !> \copydoc mo_grid::is_masked
     procedure, public :: is_masked !< \see mo_grid::is_masked
-    !> \copydoc mo_grid::is_covered_by
-    procedure, public :: is_covered_by !< \see mo_grid::is_covered_by
-    !> \copydoc mo_grid::is_covering
-    procedure, public :: is_covering !< \see mo_grid::is_covering
+    !> \copydoc mo_grid::check_is_covered_by
+    procedure, public :: check_is_covered_by !< \see mo_grid::check_is_covered_by
+    !> \copydoc mo_grid::check_is_covering
+    procedure, public :: check_is_covering !< \see mo_grid::check_is_covering
   !   !> \copydoc mo_grid::read_aux_coords
   !   procedure, public :: read_aux_coords !< \see mo_grid::read_aux_coords
   !   !> \copydoc mo_grid::has_aux_coords
@@ -452,11 +452,11 @@ contains
   end function is_masked
 
   !> \brief check if given grid is covered by coarser grid
-  !> \details check if given grid is covered by coarser grid and raise an error if this is not the case.
+  !> \details check if given grid is compatible and covered by coarser grid and raise an error if this is not the case.
   !! \note The coarse grid is allowed to have valid cells outside of the fine grids masked region.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  logical function is_covered_by(this, coarse_grid, tol, check_mask)
+  subroutine check_is_covered_by(this, coarse_grid, tol, check_mask)
     use mo_utils, only: eq
     implicit none
     class(grid_t), intent(in) :: this
@@ -474,16 +474,16 @@ contains
 
     ! check ll corner
     if ( .not. (eq(this%xllcorner, coarse_grid%xllcorner) .and. eq(this%yllcorner, coarse_grid%yllcorner)) ) then
-      call error_message("grid % is_covered_by: coarse grid lower-left corner is not matching.")
+      call error_message("grid % check_is_covered_by: coarse grid lower-left corner is not matching.")
     end if
     ! check extend
     if (.not. ((coarse_grid%nx - 1) * factor <= this%nx .and. this%nx <= coarse_grid%nx * factor .and. &
                (coarse_grid%ny - 1) * factor <= this%ny .and. this%ny <= coarse_grid%ny * factor)) then
-      call error_message("grid % is_covered_by: coarse grid extend is not matching.")
+      call error_message("grid % check_is_covered_by: coarse grid extend is not matching.")
     end if
 
     if ( check_mask_ .and. coarse_grid%is_masked()) then
-      if (.not. this%is_masked()) call error_message("grid % is_covered_by: coarse grid is masked, this grid not.")
+      if (.not. this%is_masked()) call error_message("grid % check_is_covered_by: coarse grid is masked, this grid not.")
       do j = 1, coarse_grid%ny
         do i = 1, coarse_grid%nx
           if ( coarse_grid%mask(i, j)) cycle
@@ -492,27 +492,27 @@ contains
           i_ub = min(i * factor, coarse_grid%nx)
           j_lb = (j - 1) * factor + 1
           j_ub = min(j * factor, coarse_grid%ny)
-          if (any(this%mask(i_lb:i_ub, j_lb:j_ub))) call error_message("grid % is_covered_by: fine cells outside of coarse mask.")
+          if (any(this%mask(i_lb:i_ub, j_lb:j_ub))) &
+            call error_message("grid % check_is_covered_by: fine cells outside of coarse mask.")
         end do
       end do
     end if
-    is_covered_by = .true.
-  end function is_covered_by
+  end subroutine check_is_covered_by
 
   !> \brief check if given grid is covering finer grid
-  !> \details check if given grid is covering finer grid and raise an error if this is not the case.
+  !> \details check if given grid is compatible with and covering finer grid and raise an error if this is not the case.
   !! \note The coarse grid is allowed to have valid cells outside of the fine grids masked region.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  logical function is_covering(this, fine_grid, tol, check_mask)
+  subroutine check_is_covering(this, fine_grid, tol, check_mask)
     use mo_utils, only: eq
     implicit none
     class(grid_t), intent(in) :: this
     type(grid_t), intent(in) :: fine_grid !< finer grid that should be covered by this grid
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     logical, optional, intent(in) :: check_mask !< whether to check if coarse mask covers fine mask
-    is_covering = fine_grid%is_covered_by(coarse_grid=this, tol=tol, check_mask=check_mask)
-  end function is_covering
+    call fine_grid%check_is_covered_by(coarse_grid=this, tol=tol, check_mask=check_mask)
+  end subroutine check_is_covering
 
   ! ------------------------------------------------------------------
 
