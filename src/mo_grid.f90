@@ -452,6 +452,8 @@ contains
   end function is_masked
 
   !> \brief check if given grid is covered by coarser grid
+  !> \details check if given grid is covered by coarser grid and raise an error if this is not the case.
+  !! \note The coarse grid is allowed to have valid cells outside of the fine grids masked region.
   !> \authors Sebastian Müller
   !> \date Mar 2024
   logical function is_covered_by(this, coarse_grid, tol, check_mask)
@@ -487,10 +489,8 @@ contains
           if ( coarse_grid%mask(i, j)) cycle
           ! coord. of all corners -> of finer scale
           i_lb = (i - 1) * factor + 1
-          ! constrain the range to fine grid extend
           i_ub = min(i * factor, coarse_grid%nx)
           j_lb = (j - 1) * factor + 1
-          ! constrain the range to fine grid extend
           j_ub = min(j * factor, coarse_grid%ny)
           if (any(this%mask(i_lb:i_ub, j_lb:j_ub))) call error_message("grid % is_covered_by: fine cells outside of coarse mask.")
         end do
@@ -500,6 +500,8 @@ contains
   end function is_covered_by
 
   !> \brief check if given grid is covering finer grid
+  !> \details check if given grid is covering finer grid and raise an error if this is not the case.
+  !! \note The coarse grid is allowed to have valid cells outside of the fine grids masked region.
   !> \authors Sebastian Müller
   !> \date Mar 2024
   logical function is_covering(this, fine_grid, tol, check_mask)
