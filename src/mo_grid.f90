@@ -64,8 +64,8 @@ module mo_grid
   contains
     !> \copydoc mo_grid::from_header_info
     procedure, public :: init => grid_init !< \see mo_grid::from_header_info
-  !   !> \copydoc mo_grid::from_file
-  !   procedure, public :: from_file !< \see mo_grid::from_file
+    ! !> \copydoc mo_grid::from_file
+    ! procedure, public :: from_file !< \see mo_grid::from_file
     !> \copydoc mo_grid::extend
     procedure, public :: extend !< \see mo_grid::extend
     !> \copydoc mo_grid::x_axis
@@ -82,34 +82,34 @@ module mo_grid
     procedure, public :: y_bounds !< \see mo_grid::y_bounds
     !> \copydoc mo_grid::estimate_aux_coords
     procedure, public :: estimate_aux_coords !< \see mo_grid::estimate_aux_coords
-  !   !> \copydoc mo_grid::estimate_aux_vertices
-  !   procedure, public :: estimate_aux_vertices !< \see mo_grid::estimate_aux_vertices
-  !   !> \copydoc mo_grid::derive_level
-  !   procedure, public :: derive_level !< \see mo_grid::derive_level
+    ! !> \copydoc mo_grid::estimate_aux_vertices
+    ! procedure, public :: estimate_aux_vertices !< \see mo_grid::estimate_aux_vertices
+    ! !> \copydoc mo_grid::derive_level
+    ! procedure, public :: derive_level !< \see mo_grid::derive_level
     !> \copydoc mo_grid::is_masked
     procedure, public :: is_masked !< \see mo_grid::is_masked
     !> \copydoc mo_grid::check_is_covered_by
     procedure, public :: check_is_covered_by !< \see mo_grid::check_is_covered_by
     !> \copydoc mo_grid::check_is_covering
     procedure, public :: check_is_covering !< \see mo_grid::check_is_covering
-  !   !> \copydoc mo_grid::read_aux_coords
-  !   procedure, public :: read_aux_coords !< \see mo_grid::read_aux_coords
+    ! !> \copydoc mo_grid::read_aux_coords
+    ! procedure, public :: read_aux_coords !< \see mo_grid::read_aux_coords
     !> \copydoc mo_grid::has_aux_coords
     procedure, public :: has_aux_coords !< \see mo_grid::has_aux_coords
-  !   !> \copydoc mo_grid::has_aux_vertices
-  !   procedure, public :: has_aux_vertices !< \see mo_grid::has_aux_vertices
+    ! !> \copydoc mo_grid::has_aux_vertices
+    ! procedure, public :: has_aux_vertices !< \see mo_grid::has_aux_vertices
     !> \copydoc mo_grid::calculate_cell_ids
     procedure, public :: calculate_cell_ids !< \see mo_grid::calculate_cell_ids
     !> \copydoc mo_grid::estimate_cell_area
     procedure, public :: estimate_cell_area !< \see mo_grid::estimate_cell_area
-  !   !> \copydoc mo_grid::read_data
-  !   procedure, public :: read_data !< \see mo_grid::read_data
-  !   !> \copydoc mo_grid::pack_data
-  !   procedure, public :: pack_data !< \see mo_grid::pack_data
-  !   !> \copydoc mo_grid::unpack_data
-  !   procedure, public :: unpack_data !< \see mo_grid::unpack_data
-  !   !> \copydoc mo_grid::flip_packed_data
-  !   procedure, public :: flip_packed_data !< \see mo_grid::flip_packed_data
+    ! !> \copydoc mo_grid::read_data
+    ! procedure, public :: read_data !< \see mo_grid::read_data
+    ! !> \copydoc mo_grid::pack_data
+    ! procedure, public :: pack_data !< \see mo_grid::pack_data
+    ! !> \copydoc mo_grid::unpack_data
+    ! procedure, public :: unpack_data !< \see mo_grid::unpack_data
+    ! !> \copydoc mo_grid::flip_packed_data
+    ! procedure, public :: flip_packed_data !< \see mo_grid::flip_packed_data
   end type grid_t
 
   !> \class   upscaler_t
@@ -127,8 +127,8 @@ module mo_grid
   contains
     !> \copydoc mo_grid::from_target_resolution
     procedure, public :: from_target_resolution !< \see mo_grid::from_target_resolution
-  !   !> \copydoc mo_grid::from_grids
-  !   procedure, public :: from_grids !< \see mo_grid::from_grids
+    ! !> \copydoc mo_grid::from_grids
+    ! procedure, public :: from_grids !< \see mo_grid::from_grids
   end type upscaler_t
 
   !> \brief Reads spatial data files of ASCII format.
@@ -724,6 +724,9 @@ contains
 
   end subroutine calculate_coarse_extend
 
+  !> \brief calculate and check cell-size factor for validity.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
   subroutine check_factor(fine_cellsize, coarse_cellsize, cellfactor, rounded, factor, tol)
     real(dp), intent(in) :: fine_cellsize !< cellsize of fine grid
     real(dp), intent(in) :: coarse_cellsize !< cellsize of coarse grid
