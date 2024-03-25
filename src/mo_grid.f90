@@ -296,7 +296,7 @@ contains
   !> \details initialize grid from standard ascii header content (nx (cols), ny (rows), cellsize, lower-left corner)
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine grid_init(this, nx, ny, xllcorner, yllcorner, cellsize, coordsys)
+  subroutine grid_init(this, nx, ny, xllcorner, yllcorner, cellsize, coordsys, mask)
     implicit none
     class(grid_t), intent(inout) :: this
     integer(i4), intent(in) :: nx !< Number of x-axis subdivisions
@@ -305,6 +305,7 @@ contains
     real(dp), optional, intent(in) :: yllcorner !< lower left corner (y) (default 0.0)
     real(dp), optional, intent(in) :: cellsize !< cell size [m] or [deg] (default 1.0)
     integer(i4), optional, intent(in) :: coordsys !< desired coordinate system (default 0 for cartesian)
+    logical, dimension(:,:), optional, intent(in) :: mask !< desired mask for the grid (default: all .true.)
 
     this%nx = nx
     this%ny = ny
@@ -321,7 +322,17 @@ contains
         call error_message("grid % init: unknown coordsys value: ", num2str(coordsys))
       this%coordsys = coordsys
     end if
-
+    if ( present(mask) ) then
+      if (size(mask, dim=1) /= nx .or. size(mask, dim=2) /= ny) &
+        call error_message("grid % init: mask has wrong shape: mask(", &
+                           trim(adjustl(num2str(size(mask, dim=1)))), ",", &
+                           trim(adjustl(num2str(size(mask, dim=2)))), ") =/= grid(", &
+                           trim(adjustl(num2str(nx))), ",", &
+                           trim(adjustl(num2str(ny))), ")")
+      allocate(this%mask(this%nx, this%ny))
+      this%mask = mask
+    end if
+    ! if no mask given, this will initialize the default mask
     call this%calculate_cell_ids()
     call this%estimate_cell_area()
 
@@ -477,7 +488,6 @@ contains
     implicit none
     class(grid_t), intent(inout) :: this
     integer(i4) :: i, j
-    real(dp) :: avg_lat, avg_lon
 
     if (.not. this%has_aux_coords()) &
       call error_message("grid % estimate_aux_vertices: grid has no auxilliar coordinates defined.")
