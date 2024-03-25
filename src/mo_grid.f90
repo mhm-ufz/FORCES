@@ -64,8 +64,8 @@ module mo_grid
   contains
     !> \copydoc mo_grid::from_header_info
     procedure, public :: init => grid_init !< \see mo_grid::from_header_info
-    ! !> \copydoc mo_grid::from_file
-    ! procedure, public :: from_file !< \see mo_grid::from_file
+    !> \copydoc mo_grid::from_ascii_file
+    procedure, public :: from_ascii_file !< \see mo_grid::from_ascii_file
     !> \copydoc mo_grid::extend
     procedure, public :: extend !< \see mo_grid::extend
     !> \copydoc mo_grid::x_axis
@@ -337,6 +337,44 @@ contains
     call this%estimate_cell_area()
 
   end subroutine grid_init
+
+  !> \brief initialize grid from ascii grid file
+  !> \details initialize grid from a given ascii grid file.
+  !!          If mask should be read, it will be in xy order with increasing y-axis.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine from_ascii_file(this, path, coordsys, read_mask)
+    use mo_os, only: check_path_isfile
+    implicit none
+    class(grid_t), intent(inout) :: this
+    character(*), intent(in) :: path !< path to the ascii grid file
+    integer(i4), optional, intent(in) :: coordsys !< desired coordinate system (default 0 for cartesian)
+    logical, optional, intent(in) :: read_mask !< Whether to read the mask from the given file (default: .true.)
+
+    integer(i4) :: nx, ny
+    real(dp) :: xll, yll, cellsize
+    real(dp), allocatable, dimension(:,:) :: dummy
+    logical, allocatable, dimension(:,:) :: mask
+    logical :: read_mask_
+
+    read_mask_ = .true.
+    if ( present(read_mask) ) read_mask_ = read_mask
+
+    call check_path_isfile(path=path, raise=.true.)
+    call read_header_ascii(path, nx ,ny, xll, yll, cellsize)
+
+    if (read_mask_) then
+      call read_spatial_data_ascii_dp(path, nx, ny, xll, yll, cellsize, dummy, mask, flip_y=.true.)
+      deallocate(dummy)
+    else
+      allocate(mask(nx, ny))
+      mask(:,:) = .true.
+    end if
+
+    call this%init(nx, ny, xll, yll, cellsize, coordsys, mask)
+    deallocate(mask)
+
+  end subroutine from_ascii_file
 
   !> \brief get grid extend
   !> \authors Sebastian Müller
@@ -1067,7 +1105,7 @@ contains
     real(dp), intent(out) :: xllcorner !< lower left corner (x)
     real(dp), intent(out) :: yllcorner !< lower left corner (y)
     real(dp), intent(out) :: cellsize !< cell size [m]
-    real(dp), intent(out) :: nodata !< nodata value (default -9999.0)
+    real(dp), intent(out), optional :: nodata !< nodata value (default -9999.0)
 
     character(5) :: dummy
     integer(i4) :: io, fileunit
@@ -1081,9 +1119,11 @@ contains
     read (fileunit, *) dummy, xllcorner
     read (fileunit, *) dummy, yllcorner
     read (fileunit, *) dummy, cellsize
-    read (fileunit, *, iostat=io) dummy, nodata
-    ! EOF reached (nodata not present, use default value)
-    if (io < 0) nodata = nodata_dp
+    if (present(nodata)) then
+      read (fileunit, *, iostat=io) dummy, nodata
+      ! EOF reached (nodata not present, use default value)
+      if (io < 0) nodata = nodata_dp
+    end if
     close(fileunit)
   end subroutine read_header_ascii
 
