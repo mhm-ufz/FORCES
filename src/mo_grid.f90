@@ -82,8 +82,12 @@ module mo_grid
     procedure, public :: y_bounds !< \see mo_grid::y_bounds
     !> \copydoc mo_grid::estimate_aux_coords
     procedure, public :: estimate_aux_coords !< \see mo_grid::estimate_aux_coords
-    ! !> \copydoc mo_grid::estimate_aux_vertices
-    ! procedure, public :: estimate_aux_vertices !< \see mo_grid::estimate_aux_vertices
+    !> \copydoc mo_grid::estimate_aux_vertices
+    procedure, public :: estimate_aux_vertices !< \see mo_grid::estimate_aux_vertices
+    !> \copydoc mo_grid::lat_bounds
+    procedure, public :: lat_bounds !< \see mo_grid::lat_bounds
+    !> \copydoc mo_grid::lon_bounds
+    procedure, public :: lon_bounds !< \see mo_grid::lon_bounds
     ! !> \copydoc mo_grid::derive_level
     ! procedure, public :: derive_level !< \see mo_grid::derive_level
     !> \copydoc mo_grid::is_masked
@@ -96,8 +100,8 @@ module mo_grid
     ! procedure, public :: read_aux_coords !< \see mo_grid::read_aux_coords
     !> \copydoc mo_grid::has_aux_coords
     procedure, public :: has_aux_coords !< \see mo_grid::has_aux_coords
-    ! !> \copydoc mo_grid::has_aux_vertices
-    ! procedure, public :: has_aux_vertices !< \see mo_grid::has_aux_vertices
+    !> \copydoc mo_grid::has_aux_vertices
+    procedure, public :: has_aux_vertices !< \see mo_grid::has_aux_vertices
     !> \copydoc mo_grid::calculate_cell_ids
     procedure, public :: calculate_cell_ids !< \see mo_grid::calculate_cell_ids
     !> \copydoc mo_grid::estimate_cell_area
@@ -465,6 +469,105 @@ contains
 
   end subroutine estimate_aux_coords
 
+  !> \brief estimate vertices of auxilliar coordinate cells
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine estimate_aux_vertices(this)
+    implicit none
+    class(grid_t), intent(inout) :: this
+    integer(i4) :: i, j
+    real(dp) :: avg_lat, avg_lon
+
+    if (.not. this%has_aux_coords()) &
+      call error_message("grid % estimate_aux_vertices: grid has no auxilliar coordinates defined.")
+
+    if (.not. this%has_aux_vertices()) &
+      call error_message("grid % estimate_aux_vertices: grid already has auxilliar vertices defined.")
+
+    if (this%nx == 1_i4 .or. this%ny == 1_i4) &
+      call error_message("grid % estimate_aux_vertices: grid needs at least 2 cells in both directions.")
+
+    allocate(this%lat_vertices(this%nx+1_i4, this%ny+1_i4))
+    allocate(this%lon_vertices(this%nx+1_i4, this%ny+1_i4))
+    ! first calculate the inner vertices as mean of surrounding cell centers
+    do j = 2, this%ny
+      do i = 2, this%nx
+        this%lat_vertices(i, j) = sum(this%lat(i-1:i, j-1:j)) / 4.0_dp
+        this%lon_vertices(i, j) = sum(this%lon(i-1:i, j-1:j)) / 4.0_dp
+      end do
+    end do
+    ! these formulas seem off, but are correct: extrapolate from next inner point on line with mean of two connected cell centers.
+    do j = 2, this%ny
+      ! left side
+      this%lat_vertices(1, j) = sum(this%lat(1, j-1:j)) - this%lat_vertices(2, j)
+      this%lon_vertices(1, j) = sum(this%lon(1, j-1:j)) - this%lon_vertices(2, j)
+      ! right side
+      this%lat_vertices(this%nx+1, j) = sum(this%lat(this%nx, j-1:j)) - this%lat_vertices(this%nx, j)
+      this%lon_vertices(this%nx+1, j) = sum(this%lon(this%nx, j-1:j)) - this%lon_vertices(this%nx, j)
+    end do
+    do i = 2, this%nx
+      ! upper side
+      this%lat_vertices(i, 1) = sum(this%lat(i-1:i, 1)) - this%lat_vertices(i, 2)
+      this%lon_vertices(i, 1) = sum(this%lon(i-1:i, 1)) - this%lon_vertices(i, 2)
+      ! lower side
+      this%lat_vertices(i, this%ny+1) = sum(this%lat(i-1:i, this%ny)) - this%lat_vertices(i, this%ny)
+      this%lon_vertices(i, this%ny+1) = sum(this%lon(i-1:i, this%ny)) - this%lon_vertices(i, this%ny)
+    end do
+    ! lower left corner
+    this%lat_vertices(1, 1) = this%lat_vertices(2, 1) ! from right neighbor
+    this%lon_vertices(1, 1) = this%lon_vertices(1, 2) ! from upper neighbor
+    ! upper left corner
+    this%lat_vertices(1, this%ny+1) = this%lat_vertices(2, this%ny+1) ! from right neighbor
+    this%lon_vertices(1, this%ny+1) = this%lon_vertices(1, this%ny) ! from lower neighbor
+    ! lower right corner
+    this%lat_vertices(this%nx+1, 1) = this%lat_vertices(this%nx, 1) ! from left neighbor
+    this%lon_vertices(this%nx+1, 1) = this%lon_vertices(this%nx+1, 2) ! from upper neighbor
+    ! upper right corner
+    this%lat_vertices(this%nx+1, this%ny+1) = this%lat_vertices(this%nx, this%ny+1) ! from left neighbor
+    this%lon_vertices(this%nx+1, this%ny+1) = this%lon_vertices(this%nx+1, this%ny) ! from lower neighbor
+
+  end subroutine estimate_aux_vertices
+
+  !> \brief lat-bounds of the grid cell following cf-conventions (4, nx, ny).
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  function lat_bounds(this)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), allocatable, dimension(:,:,:) :: lat_bounds
+    if (.not.this%has_aux_vertices()) &
+      call error_message("grid % lat_bounds: grid has no auxilliar vertices defined.")
+    allocate(lat_bounds(4, this%nx, this%ny))
+    ! lower-left corner of the cells
+    lat_bounds(1,:,:) = this%lat_vertices(1:this%nx, 1:this%ny)
+    ! lower-right corner of the cells
+    lat_bounds(2,:,:) = this%lat_vertices(2:this%nx+1, 1:this%ny)
+    ! upper-right corner of the cells
+    lat_bounds(3,:,:) = this%lat_vertices(2:this%nx+1, 2:this%ny+1)
+    ! upper-left corner of the cells
+    lat_bounds(4,:,:) = this%lat_vertices(1:this%nx, 2:this%ny+1)
+  end function lat_bounds
+
+  !> \brief lon-bounds of the grid cell following cf-conventions (4, nx, ny).
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  function lon_bounds(this)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), allocatable, dimension(:,:,:) :: lon_bounds
+    if (.not.this%has_aux_vertices()) &
+      call error_message("grid % lon_bounds: grid has no auxilliar vertices defined.")
+    allocate(lon_bounds(4, this%nx, this%ny))
+    ! lower-left corner of the cells
+    lon_bounds(1,:,:) = this%lon_vertices(1:this%nx, 1:this%ny)
+    ! lower-right corner of the cells
+    lon_bounds(2,:,:) = this%lon_vertices(2:this%nx+1, 1:this%ny)
+    ! upper-right corner of the cells
+    lon_bounds(3,:,:) = this%lon_vertices(2:this%nx+1, 2:this%ny+1)
+    ! upper-left corner of the cells
+    lon_bounds(4,:,:) = this%lon_vertices(1:this%nx, 2:this%ny+1)
+  end function lon_bounds
+
   !> \brief check if given grid is masked (mask allocated and any value .false.)
   !> \authors Sebastian Müller
   !> \date Mar 2024
@@ -551,6 +654,15 @@ contains
     class(grid_t), intent(in) :: this
     has_aux_coords = allocated(this%lat) .and. allocated(this%lon)
   end function has_aux_coords
+
+  !> \brief check if given grid has auxilliar vertices allocated.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  logical function has_aux_vertices(this)
+    implicit none
+    class(grid_t), intent(in) :: this
+    has_aux_vertices = allocated(this%lat_vertices) .and. allocated(this%lon_vertices)
+  end function has_aux_vertices
 
   ! ------------------------------------------------------------------
 
