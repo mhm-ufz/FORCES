@@ -444,10 +444,13 @@ contains
     call check_factor(fine_grid%cellsize, this%cellsize, factor=factor, tol=tol)
 
     if (this % coordsys /= coordsys_cart) &
-      call error_message("grid % estimate_aux_coords: grids allready use spherical coordinate system.")
+      call error_message("grid % estimate_aux_coords: grids allready use spherical coordinate system for axis.")
 
     if (.not. fine_grid%has_aux_coords()) &
       call error_message("grid % estimate_aux_coords: fine grid has no auxilliar coordinates defined.")
+
+    if (this%has_aux_coords()) &
+      call error_message("grid % estimate_aux_coords: grid already has auxilliar coordinates defined.")
 
     allocate(this%lat(this%nx, this%ny))
     allocate(this%lon(this%nx, this%ny))
@@ -455,10 +458,8 @@ contains
       do i = 1, this%nx
         ! coord. of all corners -> of finer scale
         i_lb = (i - 1) * factor + 1
-        ! constrain the range to fine grid extend
         i_ub = min(i * factor, fine_grid%nx)
         j_lb = (j - 1) * factor + 1
-        ! constrain the range to fine grid extend
         j_ub = min(j * factor, fine_grid%ny)
         n_subcells = real(size(fine_grid%lat(i_lb:i_ub, j_lb:j_ub)), dp)
         ! estimate lat-lon coords by averaging sub-cell coordinates (even if fine grid is "a bit" smaller)
