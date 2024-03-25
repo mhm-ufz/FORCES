@@ -31,8 +31,8 @@ module mo_grid
   ! align selector
   integer(i4), public, parameter :: align_ll = 0_i4 !< align in lower left corner
   integer(i4), public, parameter :: align_lr = 1_i4 !< align in lower right corner
-  integer(i4), public, parameter :: align_tl = 2_i4 !< align in top left corner
-  integer(i4), public, parameter :: align_tr = 3_i4 !< align in top right corner
+  integer(i4), public, parameter :: align_ul = 2_i4 !< align in upper left corner
+  integer(i4), public, parameter :: align_ur = 3_i4 !< align in upper right corner
 
   ! -------------------------------------------------------------------
   ! GRID description
@@ -716,7 +716,7 @@ contains
       yllcorner_out = yllcorner_in + real(ny_in, dp) * target_resolution / rounded - real(ny_out, dp) * cellsize_out
     endif
     ! keep xll if aligning in lower-(left) or top-(left)
-    if (align_ == align_ll .or. align_ == align_tl) then
+    if (align_ == align_ll .or. align_ == align_ul) then
       xllcorner_out = xllcorner_in
     else
       xllcorner_out = xllcorner_in + real(nx_in, dp) * target_resolution / rounded - real(nx_out, dp) * cellsize_out
