@@ -62,64 +62,44 @@ module mo_grid
     real(dp), dimension(:, :), allocatable :: lon_vertices  !< longitude coordinates or the grid nodes, size (nx+1, ny+1)
     integer(i4), dimension(:, :), allocatable :: cell_ij    !< matrix IDs (i, j) per cell in mask, size (n_cells, 2)
   contains
-    !> \copydoc mo_grid::from_header_info
-    procedure, public :: init => grid_init !< \see mo_grid::from_header_info
-    !> \copydoc mo_grid::from_ascii_file
-    procedure, public :: from_ascii_file !< \see mo_grid::from_ascii_file
+    procedure, public :: init => grid_init !< \copydoc mo_grid::grid_init
+    procedure, public :: from_ascii_file !< \copydoc mo_grid::from_ascii_file
 #ifdef FORCES_WITH_NETCDF
     procedure, private :: from_nc_dataset, from_nc_file
     !> \brief initialize grid from a netcdf file/dataset with a reference variable.
-    generic, public :: from_netcdf => from_nc_dataset, from_nc_file !< \see mo_grid::from_nc_file
+    generic, public :: from_netcdf => from_nc_dataset, from_nc_file
     procedure, private :: aux_from_nc_dataset, aux_from_nc_file
     !> \brief read auxilliar coordinates from netcdf file/dataset.
-    generic, public :: aux_from_netcdf => aux_from_nc_dataset, aux_from_nc_file !< \see mo_grid::aux_from_nc_file
+    generic, public :: aux_from_netcdf => aux_from_nc_dataset, aux_from_nc_file
 #endif
-    !> \copydoc mo_grid::extend
-    procedure, public :: extend !< \see mo_grid::extend
-    !> \copydoc mo_grid::x_axis
-    procedure, public :: x_axis !< \see mo_grid::x_axis
-    !> \copydoc mo_grid::y_axis
-    procedure, public :: y_axis !< \see mo_grid::y_axis
-    !> \copydoc mo_grid::x_vertices
-    procedure, public :: x_vertices !< \see mo_grid::x_vertices
-    !> \copydoc mo_grid::y_vertices
-    procedure, public :: y_vertices !< \see mo_grid::y_vertices
-    !> \copydoc mo_grid::x_bounds
-    procedure, public :: x_bounds !< \see mo_grid::x_bounds
-    !> \copydoc mo_grid::y_bounds
-    procedure, public :: y_bounds !< \see mo_grid::y_bounds
-    !> \copydoc mo_grid::estimate_aux_coords
-    procedure, public :: estimate_aux_coords !< \see mo_grid::estimate_aux_coords
-    !> \copydoc mo_grid::estimate_aux_vertices
-    procedure, public :: estimate_aux_vertices !< \see mo_grid::estimate_aux_vertices
-    !> \copydoc mo_grid::lat_bounds
-    procedure, public :: lat_bounds !< \see mo_grid::lat_bounds
-    !> \copydoc mo_grid::lon_bounds
-    procedure, public :: lon_bounds !< \see mo_grid::lon_bounds
+    procedure, public :: extend !< \copydoc mo_grid::extend
+    procedure, public :: x_axis !< \copydoc mo_grid::x_axis
+    procedure, public :: y_axis !< \copydoc mo_grid::y_axis
+    procedure, public :: x_vertices !< \copydoc mo_grid::x_vertices
+    procedure, public :: y_vertices !< \copydoc mo_grid::y_vertices
+    procedure, public :: x_bounds !< \copydoc mo_grid::x_bounds
+    procedure, public :: y_bounds !< \copydoc mo_grid::y_bounds
+    procedure, public :: estimate_aux_coords !< \copydoc mo_grid::estimate_aux_coords
+    procedure, public :: estimate_aux_vertices !< \copydoc mo_grid::estimate_aux_vertices
+    procedure, public :: lat_bounds !< \copydoc mo_grid::lat_bounds
+    procedure, public :: lon_bounds !< \copydoc mo_grid::lon_bounds
     ! !> \copydoc mo_grid::derive_level
-    ! procedure, public :: derive_level !< \see mo_grid::derive_level
-    !> \copydoc mo_grid::is_masked
-    procedure, public :: is_masked !< \see mo_grid::is_masked
-    !> \copydoc mo_grid::check_is_covered_by
-    procedure, public :: check_is_covered_by !< \see mo_grid::check_is_covered_by
-    !> \copydoc mo_grid::check_is_covering
-    procedure, public :: check_is_covering !< \see mo_grid::check_is_covering
-    !> \copydoc mo_grid::has_aux_coords
-    procedure, public :: has_aux_coords !< \see mo_grid::has_aux_coords
-    !> \copydoc mo_grid::has_aux_vertices
-    procedure, public :: has_aux_vertices !< \see mo_grid::has_aux_vertices
-    !> \copydoc mo_grid::calculate_cell_ids
-    procedure, public :: calculate_cell_ids !< \see mo_grid::calculate_cell_ids
-    !> \copydoc mo_grid::estimate_cell_area
-    procedure, public :: estimate_cell_area !< \see mo_grid::estimate_cell_area
+    ! procedure, public :: derive_level
+    procedure, public :: is_masked !< \copydoc mo_grid::is_masked
+    procedure, public :: check_is_covered_by !< \copydoc mo_grid::check_is_covered_by
+    procedure, public :: check_is_covering !< \copydoc mo_grid::check_is_covering
+    procedure, public :: has_aux_coords !< \copydoc mo_grid::has_aux_coords
+    procedure, public :: has_aux_vertices !< \copydoc mo_grid::has_aux_vertices
+    procedure, public :: calculate_cell_ids !< \copydoc mo_grid::calculate_cell_ids
+    procedure, public :: estimate_cell_area !< \copydoc mo_grid::estimate_cell_area
     ! !> \copydoc mo_grid::read_data
-    ! procedure, public :: read_data !< \see mo_grid::read_data
+    ! procedure, public :: read_data
     ! !> \copydoc mo_grid::pack_data
-    ! procedure, public :: pack_data !< \see mo_grid::pack_data
+    ! procedure, public :: pack_data
     ! !> \copydoc mo_grid::unpack_data
-    ! procedure, public :: unpack_data !< \see mo_grid::unpack_data
+    ! procedure, public :: unpack_data
     ! !> \copydoc mo_grid::flip_packed_data
-    ! procedure, public :: flip_packed_data !< \see mo_grid::flip_packed_data
+    ! procedure, public :: flip_packed_data
   end type grid_t
 
   !> \class   upscaler_t
@@ -135,10 +115,9 @@ module mo_grid
     integer(i4), dimension(:), allocatable :: n_subcells        !< valid fine grid cells in coarse cell (coarse%n_cells)
     integer(i4), dimension(:, :), allocatable :: coarse_id_map  !< 2d index array of coarse ids (fine%nx, fine%ny)
   contains
-    !> \copydoc mo_grid::from_target_resolution
-    procedure, public :: from_target_resolution !< \see mo_grid::from_target_resolution
+    procedure, public :: from_target_resolution !< \copydoc mo_grid::from_target_resolution
     ! !> \copydoc mo_grid::from_grids
-    ! procedure, public :: from_grids !< \see mo_grid::from_grids
+    ! procedure, public :: from_grids
   end type upscaler_t
 
   !> \brief Reads spatial data files of ASCII format.
