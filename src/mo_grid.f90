@@ -885,6 +885,185 @@ contains
 
   end subroutine calculate_coarse_extend
 
+  ! ------------------------------------------------------------------
+
+  !> \brief check if given axis is a uniform axis.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine check_uniform_axis(var, cellsize, origin, increasing, tol)
+    use mo_netcdf, only : NcVariable
+    use mo_utils, only: is_close
+    implicit none
+    type(NcVariable), intent(in) :: var !< NetCDF variable for corresponding axis
+    real(dp), optional, intent(out) :: cellsize !< cellsize of the uniform axis
+    real(dp), optional, intent(out) :: origin !< origin of the axis vertices
+    logical, optional, intent(out) :: increasing !< whether the axis has increasing values
+    real(dp), intent(in), optional :: tol !< tolerance for cell size comparisson (default: 1.e-7)
+    real(dp), dimension(:), allocatable :: axis
+    real(dp), dimension(:,:), allocatable :: bounds
+    real(dp) :: diff, tol_
+    integer(i4) :: i_ub, i_lb
+    logical :: has_bnds
+    type(NcVariable) :: bnds
+    character(len=256) :: name
+
+    call var%getData(axis)
+    if (var%hasAttribute("bounds")) then
+      has_bnds = .true.
+      call var%getAttribute("bounds", name)
+      bnds = var%parent%getVariable(trim(name))
+      call bnds%getData(bounds)
+    else
+      has_bnds = .false.
+    end if
+    ! store var name for error messages
+    name = var%getName()
+
+    tol_ = 1.e-7_dp
+    if ( present(tol) ) tol_ = tol
+
+    if (size(axis) == 0_i4) &
+      call error_message("check_uniform_axis: axis is empty: ", name)
+
+    if (size(axis) > 1_i4) then
+      diff = (axis(size(axis)) - axis(1)) / real(size(axis) - 1_i4, dp)
+      if (.not.all(is_close(axis(2:size(axis))-axis(1:size(axis)-1), diff, rtol=0.0_dp, atol=tol_))) &
+        call error_message("check_uniform_axis: given axis is not uniform: ", name)
+    else
+      if (.not. has_bnds) &
+        call error_message("check_uniform_axis: can't check axis of size 1 when no bounds are given: ", name)
+      diff = bounds(2,1) - bounds(1,1)
+    end if
+
+    if (has_bnds) then
+      ! be forgiving if the bounds don't have the same monotonicity as the axis (cf-convetion is hard)
+      i_lb = 1
+      i_ub = 2
+      if (size(bounds, dim=2)>1) then
+        if (.not. is_close(bounds(2,1), bounds(1,2), rtol=0.0_dp, atol=tol_) &
+            .and. is_close(bounds(1,1), bounds(2,2), rtol=0.0_dp, atol=tol_)) then
+          call warn_message("check_uniform_axis: bounds actually have wrong monotonicity: ", name)
+          i_lb = 2
+          i_ub = 1
+        end if
+      end if
+      if (.not.all(is_close(bounds(i_ub,:)-bounds(i_lb,:), diff, rtol=0.0_dp, atol=tol_))) &
+        call error_message("check_uniform_axis: given bounds are not uniform: ", name)
+      if (.not.all(is_close(axis(:)-bounds(i_lb,:), 0.5_dp*diff, rtol=0.0_dp, atol=tol_))) &
+        call error_message("check_uniform_axis: given bounds are not centered around axis points: ", name)
+    end if
+
+    if ( present(cellsize) ) cellsize = abs(diff)
+    if ( present(origin) ) origin = minval(axis) - 0.5_dp * abs(diff)
+    if ( present(increasing) ) increasing = diff > 0.0_dp
+
+  end subroutine check_uniform_axis
+
+  !> \brief check if given variable is a x-axis.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  logical function is_x_axis(var)
+    use mo_netcdf, only : NcVariable
+    implicit none
+    type(NcVariable), intent(in) :: var !< NetCDF variable to check
+    character(len=256) :: tmp_str
+
+    is_x_axis = .false.
+    if (var%hasAttribute("standard_name")) then
+      call var%getAttribute("standard_name", tmp_str)
+      if (trim(tmp_str) == "projection_x_coordinate") is_x_axis = .true.
+    else if (var%hasAttribute("axis")) then
+      call var%getAttribute("axis", tmp_str)
+      if (trim(tmp_str) == "X") is_x_axis = .true.
+    else if (var%hasAttribute("_CoordinateAxisType")) then
+      call var%getAttribute("_CoordinateAxisType", tmp_str)
+      if (trim(tmp_str) == "GeoX") is_x_axis = .true.
+    end if
+  end function is_x_axis
+
+  !> \brief check if given variable is a y-axis.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  logical function is_y_axis(var)
+    use mo_netcdf, only : NcVariable
+    implicit none
+    type(NcVariable), intent(in) :: var !< NetCDF variable to check
+    character(len=256) :: tmp_str
+
+    is_y_axis = .false.
+    if (var%hasAttribute("standard_name")) then
+      call var%getAttribute("standard_name", tmp_str)
+      if (trim(tmp_str) == "projection_y_coordinate") is_y_axis = .true.
+    else if (var%hasAttribute("axis")) then
+      call var%getAttribute("axis", tmp_str)
+      if (trim(tmp_str) == "Y") is_y_axis = .true.
+    else if (var%hasAttribute("_CoordinateAxisType")) then
+      call var%getAttribute("_CoordinateAxisType", tmp_str)
+      if (trim(tmp_str) == "GeoY") is_y_axis = .true.
+    end if
+  end function is_y_axis
+
+  !> \brief check if given variable is a lon coordinate.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  logical function is_lon_coord(var)
+    use mo_netcdf, only : NcVariable
+    implicit none
+    type(NcVariable), intent(in) :: var !< NetCDF variable to check
+    character(len=256) :: tmp_str
+
+    is_lon_coord = .false.
+    if (var%hasAttribute("standard_name")) then
+      call var%getAttribute("standard_name", tmp_str)
+      if (trim(tmp_str) == "longitude") is_lon_coord = .true.
+    else if (var%hasAttribute("units")) then
+      call var%getAttribute("units", tmp_str)
+      if (trim(tmp_str) == "degreeE") is_lon_coord = .true.
+      if (trim(tmp_str) == "degree_E") is_lon_coord = .true.
+      if (trim(tmp_str) == "degree_east") is_lon_coord = .true.
+      if (trim(tmp_str) == "degreesE") is_lon_coord = .true.
+      if (trim(tmp_str) == "degrees_E") is_lon_coord = .true.
+      if (trim(tmp_str) == "degrees_east") is_lon_coord = .true.
+    else if (var%hasAttribute("_CoordinateAxisType")) then
+      call var%getAttribute("_CoordinateAxisType", tmp_str)
+      if (trim(tmp_str) == "Lon") is_lon_coord = .true.
+    else if (var%hasAttribute("long_name")) then
+      call var%getAttribute("long_name", tmp_str)
+      if (trim(tmp_str) == "longitude") is_lon_coord = .true.
+    end if
+
+  end function is_lon_coord
+
+  !> \brief check if given variable is a lat coordinate.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  logical function is_lat_coord(var)
+    use mo_netcdf, only : NcVariable
+    implicit none
+    type(NcVariable), intent(in) :: var !< NetCDF variable to check
+    character(len=256) :: tmp_str
+
+    is_lat_coord = .false.
+    if (var%hasAttribute("standard_name")) then
+      call var%getAttribute("standard_name", tmp_str)
+      if (trim(tmp_str) == "latitude") is_lat_coord = .true.
+    else if (var%hasAttribute("units")) then
+      call var%getAttribute("units", tmp_str)
+      if (trim(tmp_str) == "degreeN") is_lat_coord = .true.
+      if (trim(tmp_str) == "degree_N") is_lat_coord = .true.
+      if (trim(tmp_str) == "degree_north") is_lat_coord = .true.
+      if (trim(tmp_str) == "degreesN") is_lat_coord = .true.
+      if (trim(tmp_str) == "degrees_N") is_lat_coord = .true.
+      if (trim(tmp_str) == "degrees_north") is_lat_coord = .true.
+    else if (var%hasAttribute("_CoordinateAxisType")) then
+      call var%getAttribute("_CoordinateAxisType", tmp_str)
+      if (trim(tmp_str) == "Lat") is_lat_coord = .true.
+    else if (var%hasAttribute("long_name")) then
+      call var%getAttribute("long_name", tmp_str)
+      if (trim(tmp_str) == "latitude") is_lat_coord = .true.
+    end if
+  end function is_lat_coord
+
   !> \brief calculate and check cell-size factor for validity.
   !> \authors Sebastian Müller
   !> \date Mar 2024
