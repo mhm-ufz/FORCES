@@ -16,7 +16,7 @@ module mo_grid
 
   use mo_kind, only: i4, dp, sp
   use mo_utils, only: flip
-  use mo_message, only : error_message
+  use mo_message, only : error_message, warn_message
   use mo_string_utils, only : num2str
 
   implicit none
@@ -66,6 +66,12 @@ module mo_grid
     procedure, public :: init => grid_init !< \see mo_grid::from_header_info
     !> \copydoc mo_grid::from_ascii_file
     procedure, public :: from_ascii_file !< \see mo_grid::from_ascii_file
+    procedure, private :: from_nc_dataset, from_nc_file
+    !> \brief initialize grid from a netcdf file/dataset with a reference variable.
+    generic, public :: from_netcdf => from_nc_dataset, from_nc_file !< \see mo_grid::from_nc_file
+    procedure, private :: aux_from_nc_dataset, aux_from_nc_file
+    !> \brief read auxilliar coordinates from netcdf file/dataset.
+    generic, public :: aux_from_netcdf => aux_from_nc_dataset, aux_from_nc_file !< \see mo_grid::aux_from_nc_file
     !> \copydoc mo_grid::extend
     procedure, public :: extend !< \see mo_grid::extend
     !> \copydoc mo_grid::x_axis
@@ -375,6 +381,212 @@ contains
     deallocate(mask)
 
   end subroutine from_ascii_file
+
+  !> \brief initialize grid from a netcdf file
+  !> \details initialize grid from a netcdf file and a reference variable.
+  !!          If mask should be read, it will be in xy order with increasing y-axis.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine from_nc_file(this, path, var, read_mask, read_aux, tol)
+    use mo_netcdf, only : NcDataset
+    implicit none
+    class(grid_t), intent(inout) :: this
+    character(*), intent(in) :: path !< NetCDF file path
+    character(*), intent(in) :: var !< nc variable name to determine the grid from
+    logical, optional, intent(in) :: read_mask !< Whether to read the mask from the given variable (default: .true.)
+    logical, optional, intent(in) :: read_aux !< Whether to read auxilliar coordinates if possible (default: .true.)
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    type(NcDataset) :: nc
+    nc = NcDataset(path, "r")
+    call this%from_nc_dataset(nc, var, read_mask, read_aux, tol)
+    call nc%close()
+  end subroutine from_nc_file
+
+  !> \brief initialize grid from a netcdf dataset
+  !> \details initialize grid from a netcdf dataset and a reference variable.
+  !!          If mask should be read, it will be in xy order with increasing y-axis.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine from_nc_dataset(this, nc, var, read_mask, read_aux, tol)
+    use mo_netcdf, only : NcDataset, NcVariable, NcDimension
+    use mo_utils, only : is_close
+    use mo_string_utils, only : splitString
+    implicit none
+    class(grid_t), intent(inout) :: this
+    type(NcDataset), intent(in) :: nc !< NetCDF Dataset
+    character(*), intent(in) :: var !< nc variable name to determine the grid from
+    logical, optional, intent(in) :: read_mask !< Whether to read the mask from the given variable (default: .true.)
+    logical, optional, intent(in) :: read_aux !< Whether to read auxilliar coordinates if possible (default: .true.)
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+
+    type(NcVariable) :: ncvar, xvar, yvar, latvar, lonvar
+    type(NcDimension), dimension(:), allocatable :: dims
+
+    integer(i4), dimension(:), allocatable :: shp, start, cnt
+    integer(i4) :: nx, ny, rnk, coordsys
+    real(dp) :: xll, yll, cellsize, cs_x, cs_y, tol_
+    real(dp), allocatable, dimension(:,:) :: dummy
+    character(len=256) :: tmp_str
+    character(len=256), allocatable, dimension(:) :: coords_str
+    logical, allocatable, dimension(:,:) :: mask
+    logical :: y_inc, read_mask_, read_aux_, x_sph, y_sph, x_cart, y_cart
+
+    tol_ = 1.e-7_dp
+    read_mask_ = .true.
+    read_aux_ = .true.
+    if ( present(tol) ) tol_ = tol
+    if ( present(read_mask) ) read_mask_ = read_mask
+    if ( present(read_aux) ) read_aux_ = read_aux
+
+    ncvar = nc%getVariable(var)
+    rnk = ncvar%getRank()
+    if (rnk < 2) call error_message("grid % from_netcdf: given variable has too few dimensions: ", trim(nc%fname), ":", var)
+
+    dims = ncvar%getDimensions()
+    nx = dims(1)%getLength()
+    ny = dims(2)%getLength()
+    xvar = nc%getVariable(trim(dims(1)%getName()))
+    yvar = nc%getVariable(trim(dims(2)%getName()))
+
+    ! check if x/y axis are x/y/lon/lat by standard_name, units, axistype or long_name
+    if (is_x_axis(yvar).or.is_lon_coord(yvar).or.is_y_axis(xvar).or.is_lat_coord(xvar)) &
+      call error_message("grid % from_netcdf: variable seems to have wrong axis order (not y-x): ", trim(nc%fname), ":", var)
+
+    x_cart = is_x_axis(xvar)
+    y_cart = is_y_axis(yvar)
+    x_sph = is_lon_coord(xvar)
+    y_sph = is_lat_coord(yvar)
+
+    if (.not.(x_cart.or.x_sph)) &
+      call error_message("grid % from_netcdf: can't determine coordinate system from x-axis: ", trim(nc%fname), ":", var)
+    if (.not.(y_cart.or.y_sph)) &
+      call error_message("grid % from_netcdf: can't determine coordinate system from y-axis: ", trim(nc%fname), ":", var)
+    if (.not.(x_sph.eqv.y_sph)) &
+      call error_message("grid % from_netcdf: x and y axis seem to have different coordinate systems: ", trim(nc%fname), ":", var)
+
+    coordsys = coordsys_cart
+    if (x_sph) coordsys = coordsys_sph_deg
+
+    ! check axis uniformity and monotonicity
+    call check_uniform_axis(xvar, cellsize=cs_x, origin=xll, tol=tol)
+    call check_uniform_axis(yvar, cellsize=cs_y, origin=yll, increasing=y_inc, tol=tol)
+    if (.not.y_inc) call warn_message("grid % from_netcdf: y axis is decreasing which results in inefficient data flipping. ", &
+                                      "You could flip the file with: 'cdo invertlat <ifile> <ofile>'. ", trim(nc%fname), ":", var)
+    ! check cellsize in x and y direction
+    if (.not.is_close(cs_x, cs_y, rtol=0.0_dp, atol=tol_)) &
+      call error_message("grid % from_netcdf: x and y axis have different cell sizes: ", trim(nc%fname), ":", var)
+    cellsize = cs_x
+
+    ! get mask from variable mask (assumed to be constant over time)
+    if (read_mask_) then
+      shp = ncvar%getShape()
+      allocate(start(rnk), source=1_i4)
+      allocate(cnt(rnk), source=1_i4)
+      ! only use first 2 dims and use first layer of potential other dims (z, time, soil-layer etc.)
+      cnt(:2) = shp(:2)
+      call ncvar%getData(dummy, start=start, cnt=cnt, mask=mask)
+      ! flip mask if y-axis is decreasing in nc-file
+      if (.not.y_inc) call flip(mask, iDim=2)
+      deallocate(dummy)
+    else
+      allocate(mask(nx, ny))
+      mask(:,:) = .true.
+    end if
+
+    call this%init(nx, ny, xll, yll, cellsize, coordsys, mask)
+    deallocate(mask)
+
+    if (read_aux_ .and. coordsys == coordsys_cart .and. ncvar%hasAttribute("coordinates")) then
+      call ncvar%getAttribute("coordinates", tmp_str)
+      coords_str = splitString(trim(tmp_str), " ")
+      if (size(coords_str) < 2) &
+        call error_message("grid % from_netcdf: to few auxilliar coordinates: ", trim(nc%fname), ":", var, " - ", trim(tmp_str))
+      call this%aux_from_netcdf(nc, lat=trim(coords_str(size(coords_str)-1)), lon=trim(coords_str(size(coords_str))))
+    end if
+
+  end subroutine from_nc_dataset
+
+  !> \brief read auxilliar coordinates from a netcdf file
+  !> \details read auxilliar coordinates (lat, lon) from a netcdf file.
+  !!          If mask should be read, it will be in xy order with increasing y-axis.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine aux_from_nc_file(this, path, lat, lon)
+    use mo_netcdf, only : NcDataset
+    implicit none
+    class(grid_t), intent(inout) :: this
+    character(*), intent(in) :: path !< NetCDF file path
+    character(*), intent(in) :: lat !< nc variable name for latitude
+    character(*), intent(in) :: lon !< nc variable name for longitude
+    type(NcDataset) :: nc
+    nc = NcDataset(path, "r")
+    call this%aux_from_nc_dataset(nc, lat, lon)
+    call nc%close()
+  end subroutine aux_from_nc_file
+
+  !> \brief read auxilliar coordinates from a netcdf file
+  !> \details read auxilliar coordinates (lat, lon) from a netcdf file.
+  !!          lat and lon will be read in xy order with increasing y-axis.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine aux_from_nc_dataset(this, nc, lat, lon)
+    use mo_netcdf, only : NcDataset, NcVariable
+    implicit none
+    class(grid_t), intent(inout) :: this
+    type(NcDataset), intent(in) :: nc !< NetCDF Dataset
+    character(*), intent(in) :: lat !< nc variable name for latitude
+    character(*), intent(in) :: lon !< nc variable name for longitude
+
+    type(NcVariable) :: latvar, lonvar
+    integer(i4) :: rnk
+    real(dp), allocatable, dimension(:,:) :: dummy
+    logical :: y_inc
+    character(:), allocatable :: lon_, lat_
+
+    if (this%coordsys /= coordsys_cart) &
+      call error_message("grid % aux_from_netcdf: need projected axis to have auxilliar coordinates.")
+
+    lon_ = lon
+    lat_ = lat
+
+    latvar = nc%getVariable(lat_)
+    if (is_lon_coord(latvar)) then
+      ! be forgiving when coordinate order is wrong
+      call warn_message("grid % aux_from_netcdf: auxilliar coordinates seem to be given in wrong order: ", &
+                        trim(nc%fname), ":", lat, "/", lon)
+      lat_ = lon
+      lon_ = lat
+      latvar = nc%getVariable(lat_)
+    end if
+
+    if (.not.is_lat_coord(latvar)) &
+      call error_message("grid % aux_from_netcdf: auxilliar latitude coordinate is not valid: ", trim(nc%fname), ":", lat_)
+    rnk = latvar%getRank()
+    if (rnk /= 2) call &
+      error_message("grid % from_netcdf: auxilliar latitude coordinate is not 2 dimensional: ", trim(nc%fname), ":", lat_)
+
+    call latvar%getData(dummy)
+    y_inc = .true.
+    if (size(dummy, dim=2)>1) y_inc = dummy(1,1) < dummy(1,2)
+    allocate(this%lat(this%nx, this%ny))
+    if (.not.y_inc) call flip(dummy, iDim=2)
+    this%lat = dummy
+    deallocate(dummy)
+
+    lonvar = nc%getVariable(lon_)
+    if (.not.is_lon_coord(lonvar)) &
+      call error_message("grid % aux_from_netcdf: auxilliar longitude coordinate is not valid: ", trim(nc%fname), ":", lon_)
+    rnk = lonvar%getRank()
+    if (rnk /= 2) &
+      call error_message("grid % aux_from_netcdf: auxilliar longitude coordinate is not 2 dimensional: ", trim(nc%fname), ":", lon_)
+
+    call lonvar%getData(dummy)
+    allocate(this%lon(this%nx, this%ny))
+    if (.not.y_inc) call flip(dummy, iDim=2)
+    this%lon = dummy
+    deallocate(dummy)
+
+  end subroutine aux_from_nc_dataset
 
   !> \brief get grid extend
   !> \authors Sebastian Müller
@@ -1265,8 +1477,6 @@ contains
     deallocate(tmp_data)
 
   end subroutine read_spatial_data_ascii_i4
-
-  ! ------------------------------------------------------------------
 
   !> \brief Reads header lines of ASCII files.
   !> \details Reads header lines of ASCII files, e.g. dem, aspect, flow direction.
