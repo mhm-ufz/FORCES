@@ -66,12 +66,14 @@ module mo_grid
     procedure, public :: init => grid_init !< \see mo_grid::from_header_info
     !> \copydoc mo_grid::from_ascii_file
     procedure, public :: from_ascii_file !< \see mo_grid::from_ascii_file
+#ifdef FORCES_WITH_NETCDF
     procedure, private :: from_nc_dataset, from_nc_file
     !> \brief initialize grid from a netcdf file/dataset with a reference variable.
     generic, public :: from_netcdf => from_nc_dataset, from_nc_file !< \see mo_grid::from_nc_file
     procedure, private :: aux_from_nc_dataset, aux_from_nc_file
     !> \brief read auxilliar coordinates from netcdf file/dataset.
     generic, public :: aux_from_netcdf => aux_from_nc_dataset, aux_from_nc_file !< \see mo_grid::aux_from_nc_file
+#endif
     !> \copydoc mo_grid::extend
     procedure, public :: extend !< \see mo_grid::extend
     !> \copydoc mo_grid::x_axis
@@ -380,6 +382,8 @@ contains
 
   end subroutine from_ascii_file
 
+#ifdef FORCES_WITH_NETCDF
+
   !> \brief initialize grid from a netcdf file
   !> \details initialize grid from a netcdf file and a reference variable.
   !!          If mask should be read, it will be in xy order with increasing y-axis.
@@ -641,6 +645,8 @@ contains
     end if
 
   end subroutine aux_from_nc_dataset
+
+#endif
 
   !> \brief get grid extend
   !> \authors Sebastian Müller
@@ -1153,6 +1159,8 @@ contains
 
   ! ------------------------------------------------------------------
 
+#ifdef FORCES_WITH_NETCDF
+
   !> \brief check if given axis is a uniform axis.
   !> \authors Sebastian Müller
   !> \date Mar 2024
@@ -1329,6 +1337,8 @@ contains
       if (trim(tmp_str) == "latitude") is_lat_coord = .true.
     end if
   end function is_lat_coord
+
+#endif
 
   !> \brief calculate and check cell-size factor for validity.
   !> \authors Sebastian Müller
