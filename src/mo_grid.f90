@@ -742,7 +742,7 @@ contains
     if (.not. this%has_aux_coords()) &
       call error_message("grid % estimate_aux_vertices: grid has no auxilliar coordinates defined.")
 
-    if (.not. this%has_aux_vertices()) &
+    if (this%has_aux_vertices()) &
       call error_message("grid % estimate_aux_vertices: grid already has auxilliar vertices defined.")
 
     if (this%nx == 1_i4 .or. this%ny == 1_i4) &
