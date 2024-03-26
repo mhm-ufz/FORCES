@@ -102,8 +102,6 @@ module mo_grid
     procedure, public :: check_is_covered_by !< \see mo_grid::check_is_covered_by
     !> \copydoc mo_grid::check_is_covering
     procedure, public :: check_is_covering !< \see mo_grid::check_is_covering
-    ! !> \copydoc mo_grid::read_aux_coords
-    ! procedure, public :: read_aux_coords !< \see mo_grid::read_aux_coords
     !> \copydoc mo_grid::has_aux_coords
     procedure, public :: has_aux_coords !< \see mo_grid::has_aux_coords
     !> \copydoc mo_grid::has_aux_vertices
@@ -419,7 +417,7 @@ contains
     logical, optional, intent(in) :: read_aux !< Whether to read auxilliar coordinates if possible (default: .true.)
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
 
-    type(NcVariable) :: ncvar, xvar, yvar, latvar, lonvar
+    type(NcVariable) :: ncvar, xvar, yvar
     type(NcDimension), dimension(:), allocatable :: dims
 
     integer(i4), dimension(:), allocatable :: shp, start, cnt
@@ -500,7 +498,8 @@ contains
       call ncvar%getAttribute("coordinates", tmp_str)
       coords_str = splitString(trim(tmp_str), " ")
       if (size(coords_str) < 2) &
-        call error_message("grid % from_netcdf: to few auxilliar coordinates: ", trim(nc%fname), ":", var, " - ", trim(tmp_str))
+        call error_message("grid % from_netcdf: too few auxilliar coordinates: ", trim(nc%fname), ":", var, " - ", trim(tmp_str))
+      ! lon should be last coordinate and lat second last
       call this%aux_from_netcdf(nc, lat=trim(coords_str(size(coords_str)-1)), lon=trim(coords_str(size(coords_str))))
     end if
 
@@ -531,17 +530,20 @@ contains
   !> \date Mar 2024
   subroutine aux_from_nc_dataset(this, nc, lat, lon)
     use mo_netcdf, only : NcDataset, NcVariable
+    use mo_utils, only : swap
     implicit none
     class(grid_t), intent(inout) :: this
     type(NcDataset), intent(in) :: nc !< NetCDF Dataset
     character(*), intent(in) :: lat !< nc variable name for latitude
     character(*), intent(in) :: lon !< nc variable name for longitude
 
-    type(NcVariable) :: latvar, lonvar
-    integer(i4) :: rnk
+    type(NcVariable) :: latvar, lonvar, latbvar, lonbvar
+    integer(i4) :: rnk, i_ll, i_lr, i_ur, i_ul
     real(dp), allocatable, dimension(:,:) :: dummy
-    logical :: y_inc
+    real(dp), allocatable, dimension(:,:,:) :: latbnds, lonbnds
+    logical :: y_inc, flip_v, flip_h
     character(:), allocatable :: lon_, lat_
+    character(len=256) :: name
 
     if (this%coordsys /= coordsys_cart) &
       call error_message("grid % aux_from_netcdf: need projected axis to have auxilliar coordinates.")
@@ -562,12 +564,14 @@ contains
     if (.not.is_lat_coord(latvar)) &
       call error_message("grid % aux_from_netcdf: auxilliar latitude coordinate is not valid: ", trim(nc%fname), ":", lat_)
     rnk = latvar%getRank()
-    if (rnk /= 2) call &
-      error_message("grid % from_netcdf: auxilliar latitude coordinate is not 2 dimensional: ", trim(nc%fname), ":", lat_)
+    if (rnk /= 2) &
+      call error_message("grid % from_netcdf: auxilliar latitude coordinate is not 2 dimensional: ", trim(nc%fname), ":", lat_)
 
     call latvar%getData(dummy)
     y_inc = .true.
     if (size(dummy, dim=2)>1) y_inc = dummy(1,1) < dummy(1,2)
+    if (size(dummy, dim=1) /= this%nx .or. size(dummy, dim=2) /= this%ny) &
+      call error_message("grid % from_netcdf: auxilliar latitude coordinate has wrong shape: ", trim(nc%fname), ":", lat_)
     allocate(this%lat(this%nx, this%ny))
     if (.not.y_inc) call flip(dummy, iDim=2)
     this%lat = dummy
@@ -581,10 +585,60 @@ contains
       call error_message("grid % aux_from_netcdf: auxilliar longitude coordinate is not 2 dimensional: ", trim(nc%fname), ":", lon_)
 
     call lonvar%getData(dummy)
+    if (size(dummy, dim=1) /= this%nx .or. size(dummy, dim=2) /= this%ny) &
+      call error_message("grid % from_netcdf: auxilliar longitude coordinate has wrong shape: ", trim(nc%fname), ":", lon_)
     allocate(this%lon(this%nx, this%ny))
     if (.not.y_inc) call flip(dummy, iDim=2)
     this%lon = dummy
     deallocate(dummy)
+
+    ! read aux vertices if present
+    if (latvar%hasAttribute("bounds") .and. lonvar%hasAttribute("bounds")) then
+      ! indices for lower-left, lower-right, upper-right and upper-left
+      i_ll = 1_i4
+      i_lr = 2_i4
+      i_ur = 3_i4
+      i_ul = 4_i4
+      ! lat bounds (4, nx, ny)
+      call latvar%getAttribute("bounds", name)
+      latbvar = latvar%parent%getVariable(trim(name))
+      call latbvar%getData(latbnds)
+      if (.not.y_inc) call flip(latbnds, iDim=3)
+      ! lon bounds (4, nx, ny)
+      call lonvar%getAttribute("bounds", name)
+      lonbvar = lonvar%parent%getVariable(trim(name))
+      call lonbvar%getData(lonbnds)
+      if (.not.y_inc) call flip(lonbnds, iDim=3)
+
+      ! check if bounds need to be flipped
+      ! should look like this:      if y is decreasing:     if x is decreasing:     if x and y are decreasing:
+      ! 4 -- 3   ul--ur             1 -- 2                  3 -- 4                  2 -- 1
+      ! |    |   |    |             |    |                  |    |                  |    |
+      ! 1 -- 2   ll--lr             4 -- 3                  2 -- 1                  3 -- 4
+      flip_h = lonbnds(2,1,1) > lonbnds(1,1,1) ! .true. if x decreasing
+      flip_v = latbnds(2,1,1) > latbnds(3,1,1) ! .true. if y decreasing
+      if (flip_h) then
+        call swap(i_ll, i_lr)
+        call swap(i_ul, i_ur)
+      end if
+      if (flip_v) then
+        call swap(i_ll, i_ul)
+        call swap(i_lr, i_ur)
+      end if
+      allocate(this%lat_vertices(this%nx+1_i4, this%ny+1_i4))
+      allocate(this%lon_vertices(this%nx+1_i4, this%ny+1_i4))
+      ! lower left corner is the desired vertex
+      this%lat_vertices(1:this%nx, 1:this%ny) = latbnds(i_ll,:,:)
+      this%lon_vertices(1:this%nx, 1:this%ny) = lonbnds(i_ll,:,:)
+      ! lower right corner for right end of vertices map
+      this%lat_vertices(this%nx+1_i4, 1:this%ny) = latbnds(i_lr,this%nx,:)
+      this%lon_vertices(this%nx+1_i4, 1:this%ny) = lonbnds(i_lr,this%nx,:)
+      ! upper right corner of upper right cell for upper right end of vertices map
+      this%lat_vertices(this%nx+1_i4, this%ny+1_i4) = latbnds(i_ur,this%nx,this%ny)
+      this%lon_vertices(this%nx+1_i4, this%ny+1_i4) = lonbnds(i_ur,this%nx,this%ny)
+      deallocate(lonbnds)
+      deallocate(latbnds)
+    end if
 
   end subroutine aux_from_nc_dataset
 
