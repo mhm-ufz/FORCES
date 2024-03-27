@@ -610,12 +610,15 @@ contains
       end if
       allocate(this%lat_vertices(this%nx+1_i4, this%ny+1_i4))
       allocate(this%lon_vertices(this%nx+1_i4, this%ny+1_i4))
-      ! lower left corner is the desired vertex
+      ! lower left corner for matrix excluding right and upper side
       this%lat_vertices(1:this%nx, 1:this%ny) = latbnds(i_ll,:,:)
       this%lon_vertices(1:this%nx, 1:this%ny) = lonbnds(i_ll,:,:)
       ! lower right corner for right end of vertices map
       this%lat_vertices(this%nx+1_i4, 1:this%ny) = latbnds(i_lr,this%nx,:)
       this%lon_vertices(this%nx+1_i4, 1:this%ny) = lonbnds(i_lr,this%nx,:)
+      ! upper left corner for upper end of vertices map
+      this%lat_vertices(1:this%nx, this%ny+1_i4) = latbnds(i_ul,:,this%ny)
+      this%lon_vertices(1:this%nx, this%ny+1_i4) = lonbnds(i_ul,:,this%ny)
       ! upper right corner of upper right cell for upper right end of vertices map
       this%lat_vertices(this%nx+1_i4, this%ny+1_i4) = latbnds(i_ur,this%nx,this%ny)
       this%lon_vertices(this%nx+1_i4, this%ny+1_i4) = lonbnds(i_ur,this%nx,this%ny)
