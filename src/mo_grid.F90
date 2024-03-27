@@ -69,6 +69,8 @@ module mo_grid
     generic, public :: from_netcdf => from_nc_dataset, from_nc_file
     procedure, private :: aux_from_nc_dataset, aux_from_nc_file
     generic, public :: aux_from_netcdf => aux_from_nc_dataset, aux_from_nc_file
+    procedure, private :: to_nc_dataset, to_nc_file
+    generic, public :: to_netcdf => to_nc_dataset, to_nc_file
 #endif
     procedure, public :: extend
     procedure, public :: x_axis
@@ -89,9 +91,12 @@ module mo_grid
     procedure, public :: calculate_cell_ids
     procedure, public :: estimate_cell_area
     ! procedure, public :: derive_level
-    ! procedure, public :: read_data
-    ! procedure, public :: pack_data
-    ! procedure, public :: unpack_data
+    ! procedure, private :: read_data_dp, read_data_i4
+    ! generic, public :: read_data => read_data_dp, read_data_i4
+    ! procedure, private :: pack_data_dp, pack_data_i4
+    ! generic, public :: pack_data => pack_data_dp, pack_data_i4
+    ! procedure, private :: unpack_data_dp, unpack_data_i4
+    ! generic, public :: unpack_data => unpack_data_dp, unpack_data_i4
     ! procedure, public :: flip_packed_data
   end type grid_t
 
@@ -619,6 +624,160 @@ contains
     end if
 
   end subroutine aux_from_nc_dataset
+
+  !> \brief write grid to a netcdf file
+  !> \details write grid to a netcdf file with possible data variable.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine to_nc_file(this, path, x_name, y_name, lon_name, lat_name, double_precision, append)
+    use mo_netcdf, only : NcDataset
+    implicit none
+    class(grid_t), intent(in) :: this
+    character(*), intent(in) :: path !< NetCDF file path
+    character(*), optional, intent(in) :: x_name !< name for x-axis variable and dimension
+    character(*), optional, intent(in) :: y_name !< name for y-axis variable and dimension
+    character(*), optional, intent(in) :: lon_name !< name for auxilliar longitude coordinate variable
+    character(*), optional, intent(in) :: lat_name !< name for auxilliar latitude coordinate variable
+    logical, optional, intent(in) :: double_precision !< whether to use double precision to store axis (default .true.)
+    logical, optional, intent(in) :: append !< whether netcdf file should be opened in append mode (default .false.)
+    type(NcDataset) :: nc
+    character(1) :: fmode
+    fmode = "w"
+    if ( present(append) ) then
+      if (append) fmode = "a"
+    end if
+    nc = NcDataset(path, fmode)
+    call this%to_nc_dataset(nc, x_name, y_name, lon_name, lat_name, double_precision)
+    call nc%close()
+  end subroutine to_nc_file
+
+  !> \brief initialize grid from a netcdf dataset
+  !> \details initialize grid from a netcdf dataset and a reference variable.
+  !!          If mask should be read, it will be in xy order with increasing y-axis.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine to_nc_dataset(this, nc, x_name, y_name, lon_name, lat_name, double_precision)
+    use mo_netcdf, only : NcDataset, NcVariable, NcDimension
+    use mo_utils, only : is_close
+    use mo_string_utils, only : splitString
+    implicit none
+    class(grid_t), intent(in) :: this
+    type(NcDataset), intent(inout) :: nc !< NetCDF Dataset
+    character(*), optional, intent(in) :: x_name !< name for x-axis variable and dimension
+    character(*), optional, intent(in) :: y_name !< name for y-axis variable and dimension
+    character(*), optional, intent(in) :: lon_name !< name for auxilliar longitude coordinate variable
+    character(*), optional, intent(in) :: lat_name !< name for auxilliar latitude coordinate variable
+    logical, optional, intent(in) :: double_precision !< whether to use double precision to store axis (default .true.)
+    type(NcDimension) :: x_dim, y_dim, b_dim, v_dim
+    type(NcVariable) :: x_var, y_var, xb_var, yb_var
+    character(:), allocatable :: xname, yname, lonname, latname
+    logical :: double_precision_
+    character(3) :: dtype
+
+    double_precision_ = .true.
+    if (present(double_precision)) double_precision_ = double_precision
+    dtype = "f32"
+    if ( double_precision_ ) dtype = "f64"
+
+    if (this%coordsys==coordsys_cart) then
+      xname = "x"
+      yname = "y"
+    else
+      xname = "lon"
+      yname = "lat"
+    end if
+    lonname = "lon"
+    latname = "lat"
+    if (present(x_name)) xname = x_name
+    if (present(y_name)) yname = y_name
+    if (present(lon_name)) lonname = lon_name
+    if (present(lat_name)) latname = lat_name
+
+    x_dim = nc%setDimension(xname, this%nx)
+    y_dim = nc%setDimension(yname, this%ny)
+    if (nc%hasDimension("bnds")) then
+      b_dim = nc%getDimension("bnds") ! check size
+      if (b_dim%getLength() /= 2_i4) call error_message("grid % to_netcdf: bnds dim already present but with length =/= 2")
+    else
+      b_dim = nc%setDimension("bnds", 2_i4)
+    end if
+    if (this%has_aux_vertices()) then
+      if (nc%hasDimension("nv")) then
+        v_dim = nc%getDimension("nv") ! check size
+        if (v_dim%getLength() /= 4_i4) call error_message("grid % to_netcdf: nv dim already present but with length =/= 4")
+      else
+        v_dim = nc%setDimension("nv", 4_i4)
+      end if
+    end if
+    x_var = nc%setVariable(xname, dtype, [x_dim])
+    y_var = nc%setVariable(yname, dtype, [y_dim])
+    xb_var = nc%setVariable(xname // "_bnds", dtype, [b_dim, x_dim])
+    yb_var = nc%setVariable(yname // "_bnds", dtype, [b_dim, y_dim])
+
+    if (this%coordsys==coordsys_cart) then
+      call x_var%setAttribute("long_name", "x coordinate of projection")
+      call x_var%setAttribute("standard_name", "projection_x_coordinate")
+      call y_var%setAttribute("long_name", "y coordinate of projection")
+      call y_var%setAttribute("standard_name", "projection_y_coordinate")
+    else
+      call x_var%setAttribute("long_name", "longitude")
+      call x_var%setAttribute("standard_name", "longitude")
+      call x_var%setAttribute("units", "degrees_east")
+      call y_var%setAttribute("long_name", "latitude")
+      call y_var%setAttribute("standard_name", "latitude")
+      call y_var%setAttribute("units", "degrees_north")
+    end if
+    call x_var%setAttribute("axis", "X")
+    call x_var%setAttribute("bounds", xname // "_bnds")
+    call y_var%setAttribute("axis", "Y")
+    call y_var%setAttribute("bounds", yname // "_bnds")
+
+    if (double_precision_) then
+      call x_var%setData(this%x_axis())
+      call y_var%setData(this%y_axis())
+      call xb_var%setData(this%x_bounds())
+      call yb_var%setData(this%y_bounds())
+    else
+      call x_var%setData(real(this%x_axis(), sp))
+      call y_var%setData(real(this%y_axis(), sp))
+      call xb_var%setData(real(this%x_bounds(), sp))
+      call yb_var%setData(real(this%y_bounds(), sp))
+    end if
+
+    if (this%has_aux_coords()) then
+      x_var = nc%setVariable(lonname, dtype, [x_dim, y_dim])
+      y_var = nc%setVariable(latname, dtype, [x_dim, y_dim])
+      call x_var%setAttribute("long_name", "longitude")
+      call x_var%setAttribute("standard_name", "longitude")
+      call x_var%setAttribute("units", "degrees_east")
+      call y_var%setAttribute("long_name", "latitude")
+      call y_var%setAttribute("standard_name", "latitude")
+      call y_var%setAttribute("units", "degrees_north")
+
+      if (double_precision_) then
+        call x_var%setData(this%lon)
+        call y_var%setData(this%lat)
+      else
+        call x_var%setData(real(this%lon, sp))
+        call y_var%setData(real(this%lat, sp))
+      end if
+
+      if (this%has_aux_vertices()) then
+        call x_var%setAttribute("bounds", lonname // "_bnds")
+        call y_var%setAttribute("bounds", latname // "_bnds")
+        xb_var = nc%setVariable(lonname // "_bnds", dtype, [v_dim, x_dim, y_dim])
+        yb_var = nc%setVariable(latname // "_bnds", dtype, [v_dim, x_dim, y_dim])
+        if (double_precision_) then
+          call xb_var%setData(this%lon_bounds())
+          call yb_var%setData(this%lat_bounds())
+        else
+          call xb_var%setData(real(this%lon_bounds(), sp))
+          call yb_var%setData(real(this%lat_bounds(), sp))
+        end if
+      end if
+    end if
+
+  end subroutine to_nc_dataset
 
 #endif
 
