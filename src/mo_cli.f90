@@ -84,8 +84,8 @@ module mo_cli
     character(:), allocatable :: value_name !< name of the value for the help text (default "value")
     character(:), allocatable :: default !< default value of the option (if has one)
   contains
-    procedure :: print_info !< \copydoc mo_cli::print_info
-    procedure :: is_given_arg !< \copydoc mo_cli::is_given_arg
+    procedure :: print_info
+    procedure :: is_given_arg
   end type option
 
   interface option
@@ -105,17 +105,17 @@ module mo_cli
     logical :: has_logger = .false. !< whether the parser should setup the logger.
     type(option), dimension(:), allocatable :: options !< defined options
   contains
-    procedure :: add_option !< \copydoc mo_cli::add_option
-    procedure :: get_option !< \copydoc mo_cli::get_option
-    procedure :: get_option_index !< \copydoc mo_cli::get_option_index
-    procedure :: cnt_options !< \copydoc mo_cli::cnt_options
-    procedure :: option_was_read !< \copydoc mo_cli::option_was_read
-    procedure :: option_read_count !< \copydoc mo_cli::option_read_count
-    procedure :: has_option !< \copydoc mo_cli::has_option
-    procedure :: get_blank_option_index !< \copydoc mo_cli::get_blank_option_index
-    procedure :: option_value !< \copydoc mo_cli::option_value
-    procedure :: print_help !< \copydoc mo_cli::print_help
-    procedure :: parse !< \copydoc mo_cli::parse
+    procedure :: add_option
+    procedure :: get_option
+    procedure :: get_option_index
+    procedure :: cnt_options
+    procedure :: option_was_read
+    procedure :: option_read_count
+    procedure :: has_option
+    procedure :: get_blank_option_index
+    procedure :: option_value
+    procedure :: print_help
+    procedure :: parse
   end type cli_parser
 
   interface cli_parser
