@@ -83,8 +83,6 @@ module mo_grid
     procedure, public :: estimate_aux_vertices !< \copydoc mo_grid::estimate_aux_vertices
     procedure, public :: lat_bounds !< \copydoc mo_grid::lat_bounds
     procedure, public :: lon_bounds !< \copydoc mo_grid::lon_bounds
-    ! !> \copydoc mo_grid::derive_level
-    ! procedure, public :: derive_level
     procedure, public :: is_masked !< \copydoc mo_grid::is_masked
     procedure, public :: check_is_covered_by !< \copydoc mo_grid::check_is_covered_by
     procedure, public :: check_is_covering !< \copydoc mo_grid::check_is_covering
@@ -92,14 +90,11 @@ module mo_grid
     procedure, public :: has_aux_vertices !< \copydoc mo_grid::has_aux_vertices
     procedure, public :: calculate_cell_ids !< \copydoc mo_grid::calculate_cell_ids
     procedure, public :: estimate_cell_area !< \copydoc mo_grid::estimate_cell_area
-    ! !> \copydoc mo_grid::read_data
-    ! procedure, public :: read_data
-    ! !> \copydoc mo_grid::pack_data
-    ! procedure, public :: pack_data
-    ! !> \copydoc mo_grid::unpack_data
-    ! procedure, public :: unpack_data
-    ! !> \copydoc mo_grid::flip_packed_data
-    ! procedure, public :: flip_packed_data
+    ! procedure, public :: derive_level !< \copydoc mo_grid::derive_level
+    ! procedure, public :: read_data !< \copydoc mo_grid::read_data
+    ! procedure, public :: pack_data !< \copydoc mo_grid::pack_data
+    ! procedure, public :: unpack_data !< \copydoc mo_grid::unpack_data
+    ! procedure, public :: flip_packed_data !< \copydoc mo_grid::flip_packed_data
   end type grid_t
 
   !> \class   upscaler_t
@@ -116,8 +111,7 @@ module mo_grid
     integer(i4), dimension(:, :), allocatable :: coarse_id_map  !< 2d index array of coarse ids (fine%nx, fine%ny)
   contains
     procedure, public :: from_target_resolution !< \copydoc mo_grid::from_target_resolution
-    ! !> \copydoc mo_grid::from_grids
-    ! procedure, public :: from_grids
+    ! procedure, public :: from_grids !< \copydoc mo_grid::from_grids
   end type upscaler_t
 
   !> \brief Reads spatial data files of ASCII format.
@@ -163,7 +157,7 @@ contains
 
     implicit none
 
-    class(upscaler_t), intent(inout) :: this !< remapper type for given grids
+    class(upscaler_t), intent(inout) :: this
     real(dp), intent(in) :: target_resolution !< desired target resolution
     type(grid_t), target, intent(in) :: fine_grid !< given high resolution grid
     type(grid_t), target, intent(inout) :: coarse_grid !< resulting low resolution grid
@@ -649,6 +643,7 @@ contains
   end subroutine extend
 
   !> \brief x-axis of the grid cell centers
+  !> \return `real(dp), allocatable, dimension(:) :: x_axis`
   !> \authors Sebastian Müller
   !> \date Mar 2024
   function x_axis(this)
@@ -663,6 +658,7 @@ contains
   end function x_axis
 
   !> \brief y-axis of the grid cell centers
+  !> \return `real(dp), allocatable, dimension(:) :: y_axis`
   !> \authors Sebastian Müller
   !> \date Mar 2024
   function y_axis(this)
@@ -677,6 +673,7 @@ contains
   end function y_axis
 
   !> \brief x-vertices of the grid cell edges
+  !> \return `real(dp), allocatable, dimension(:) :: x_vertices`
   !> \authors Sebastian Müller
   !> \date Mar 2024
   function x_vertices(this)
@@ -691,6 +688,7 @@ contains
   end function x_vertices
 
   !> \brief y-vertices of the grid cell edges
+  !> \return `real(dp), allocatable, dimension(:) :: y_vertices`
   !> \authors Sebastian Müller
   !> \date Mar 2024
   function y_vertices(this)
@@ -705,6 +703,7 @@ contains
   end function y_vertices
 
   !> \brief x-bounds of the grid cell following cf-conventions (2, nx).
+  !> \return `real(dp), allocatable, dimension(:,:) :: x_bounds`
   !> \authors Sebastian Müller
   !> \date Mar 2024
   function x_bounds(this)
@@ -719,6 +718,7 @@ contains
   end function x_bounds
 
   !> \brief y-bounds of the grid cells following cf-conventions (2, ny).
+  !> \return `real(dp), allocatable, dimension(:,:) :: y_bounds`
   !> \authors Sebastian Müller
   !> \date Mar 2024
   function y_bounds(this)
@@ -832,6 +832,7 @@ contains
   end subroutine estimate_aux_vertices
 
   !> \brief lat-bounds of the grid cell following cf-conventions (4, nx, ny).
+  !> \return `real(dp), allocatable, dimension(:,:,:) :: lat_bounds`
   !> \authors Sebastian Müller
   !> \date Mar 2024
   function lat_bounds(this)
@@ -852,6 +853,7 @@ contains
   end function lat_bounds
 
   !> \brief lon-bounds of the grid cell following cf-conventions (4, nx, ny).
+  !> \return `real(dp), allocatable, dimension(:,:,:) :: lon_bounds`
   !> \authors Sebastian Müller
   !> \date Mar 2024
   function lon_bounds(this)
@@ -872,6 +874,7 @@ contains
   end function lon_bounds
 
   !> \brief check if given grid is masked (mask allocated and any value .false.)
+  !> \return `logical :: is_masked`
   !> \authors Sebastian Müller
   !> \date Mar 2024
   logical function is_masked(this)
@@ -950,6 +953,7 @@ contains
   end subroutine check_is_covering
 
   !> \brief check if given grid has auxilliar coordinates allocated.
+  !> \return `logical :: has_aux_coords`
   !> \authors Sebastian Müller
   !> \date Mar 2024
   logical function has_aux_coords(this)
@@ -959,6 +963,7 @@ contains
   end function has_aux_coords
 
   !> \brief check if given grid has auxilliar vertices allocated.
+  !> \return `logical :: has_aux_vertices`
   !> \authors Sebastian Müller
   !> \date Mar 2024
   logical function has_aux_vertices(this)
@@ -1216,6 +1221,7 @@ contains
   end subroutine check_uniform_axis
 
   !> \brief check if given variable is a x-axis.
+  !> \return `logical :: is_x_axis`
   !> \authors Sebastian Müller
   !> \date Mar 2024
   logical function is_x_axis(var)
@@ -1238,6 +1244,7 @@ contains
   end function is_x_axis
 
   !> \brief check if given variable is a y-axis.
+  !> \return `logical :: is_y_axis`
   !> \authors Sebastian Müller
   !> \date Mar 2024
   logical function is_y_axis(var)
@@ -1260,6 +1267,7 @@ contains
   end function is_y_axis
 
   !> \brief check if given variable is a lon coordinate.
+  !> \return `logical :: is_lon_coord`
   !> \authors Sebastian Müller
   !> \date Mar 2024
   logical function is_lon_coord(var)
@@ -1291,6 +1299,7 @@ contains
   end function is_lon_coord
 
   !> \brief check if given variable is a lat coordinate.
+  !> \return `logical :: is_lat_coord`
   !> \authors Sebastian Müller
   !> \date Mar 2024
   logical function is_lat_coord(var)
