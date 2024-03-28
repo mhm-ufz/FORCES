@@ -629,15 +629,15 @@ contains
   !> \details write grid to a netcdf file with possible data variable.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine to_nc_file(this, path, x_name, y_name, lon_name, lat_name, double_precision, append)
+  subroutine to_nc_file(this, path, x_name, y_name, aux_lon_name, aux_lat_name, double_precision, append)
     use mo_netcdf, only : NcDataset
     implicit none
     class(grid_t), intent(in) :: this
     character(*), intent(in) :: path !< NetCDF file path
     character(*), optional, intent(in) :: x_name !< name for x-axis variable and dimension
     character(*), optional, intent(in) :: y_name !< name for y-axis variable and dimension
-    character(*), optional, intent(in) :: lon_name !< name for auxilliar longitude coordinate variable
-    character(*), optional, intent(in) :: lat_name !< name for auxilliar latitude coordinate variable
+    character(*), optional, intent(in) :: aux_lon_name !< name for auxilliar longitude coordinate variable
+    character(*), optional, intent(in) :: aux_lat_name !< name for auxilliar latitude coordinate variable
     logical, optional, intent(in) :: double_precision !< whether to use double precision to store axis (default .true.)
     logical, optional, intent(in) :: append !< whether netcdf file should be opened in append mode (default .false.)
     type(NcDataset) :: nc
@@ -647,7 +647,7 @@ contains
       if (append) fmode = "a"
     end if
     nc = NcDataset(path, fmode)
-    call this%to_nc_dataset(nc, x_name, y_name, lon_name, lat_name, double_precision)
+    call this%to_nc_dataset(nc, x_name, y_name, aux_lon_name, aux_lat_name, double_precision)
     call nc%close()
   end subroutine to_nc_file
 
@@ -656,7 +656,7 @@ contains
   !!          If mask should be read, it will be in xy order with increasing y-axis.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine to_nc_dataset(this, nc, x_name, y_name, lon_name, lat_name, double_precision)
+  subroutine to_nc_dataset(this, nc, x_name, y_name, aux_lon_name, aux_lat_name, double_precision)
     use mo_netcdf, only : NcDataset, NcVariable, NcDimension
     use mo_utils, only : is_close
     use mo_string_utils, only : splitString
@@ -665,8 +665,8 @@ contains
     type(NcDataset), intent(inout) :: nc !< NetCDF Dataset
     character(*), optional, intent(in) :: x_name !< name for x-axis variable and dimension
     character(*), optional, intent(in) :: y_name !< name for y-axis variable and dimension
-    character(*), optional, intent(in) :: lon_name !< name for auxilliar longitude coordinate variable
-    character(*), optional, intent(in) :: lat_name !< name for auxilliar latitude coordinate variable
+    character(*), optional, intent(in) :: aux_lon_name !< name for auxilliar longitude coordinate variable
+    character(*), optional, intent(in) :: aux_lat_name !< name for auxilliar latitude coordinate variable
     logical, optional, intent(in) :: double_precision !< whether to use double precision to store axis (default .true.)
     type(NcDimension) :: x_dim, y_dim, b_dim, v_dim
     type(NcVariable) :: x_var, y_var, xb_var, yb_var
@@ -690,8 +690,8 @@ contains
     latname = "lat"
     if (present(x_name)) xname = x_name
     if (present(y_name)) yname = y_name
-    if (present(lon_name)) lonname = lon_name
-    if (present(lat_name)) latname = lat_name
+    if (present(aux_lon_name)) lonname = aux_lon_name
+    if (present(aux_lat_name)) latname = aux_lat_name
 
     x_dim = nc%setDimension(xname, this%nx)
     y_dim = nc%setDimension(yname, this%ny)
