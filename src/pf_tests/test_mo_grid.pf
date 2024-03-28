@@ -1,0 +1,39 @@
+module test_mo_grid
+  use funit
+  use mo_grid, only: grid_t, upscaler_t
+  use mo_kind, only: i4, dp
+
+  implicit none
+
+  private
+
+  public :: test_grid
+
+contains
+
+  @test
+  subroutine test_grid()
+
+    implicit none
+    real(dp)                                :: t=1.0E-5_dp
+    integer(i4) :: i
+
+    ! @assertAll
+    ! @assertAny
+    ! @assertAssociated
+    ! @assertEqual
+    ! @assertExceptionRaised
+    ! @assertFalse
+    ! @assertGreaterThan
+    ! @assertGreaterThanOrEqual
+    ! @assertLessThan
+    ! @assertLessThanOrEqual
+    ! @assertNone
+    ! @assertNotEqual
+    ! @assertSameShape
+    ! @assertRelativelyEqual
+
+
+  end subroutine test_grid
+
+end module test_mo_grid
