@@ -79,7 +79,7 @@ module mo_grid
     procedure, public :: y_vertices
     procedure, public :: x_bounds
     procedure, public :: y_bounds
-    procedure, public :: estimate_aux_coords
+    procedure, public :: upscale_aux_coords
     procedure, public :: estimate_aux_vertices
     procedure, public :: lat_bounds
     procedure, public :: lon_bounds
@@ -267,7 +267,7 @@ contains
 
     ! only estimate aux coords if we are on a projected grid
     if ( estimate_aux_ .and. fine_grid%coordsys == coordsys_cart .and. fine_grid%has_aux_coords()) then
-      call coarse_grid%estimate_aux_coords(fine_grid, tol=tol)
+      call coarse_grid%upscale_aux_coords(fine_grid, tol=tol)
     end if
 
   end subroutine from_target_resolution
@@ -892,7 +892,7 @@ contains
   !> \brief estimate auxilliar coordinates (lat, lon) from finer grid
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine estimate_aux_coords(this, fine_grid, tol)
+  subroutine upscale_aux_coords(this, fine_grid, tol)
     implicit none
     class(grid_t), intent(inout) :: this
     type(grid_t), intent(in) :: fine_grid !< finer grid to estimate the auxilliar coordinates from
@@ -904,13 +904,13 @@ contains
     call check_factor(fine_grid%cellsize, this%cellsize, factor=factor, tol=tol)
 
     if (this % coordsys /= coordsys_cart) &
-      call error_message("grid % estimate_aux_coords: grids allready use spherical coordinate system for axis.")
+      call error_message("grid % upscale_aux_coords: grids allready use spherical coordinate system for axis.")
 
     if (.not. fine_grid%has_aux_coords()) &
-      call error_message("grid % estimate_aux_coords: fine grid has no auxilliar coordinates defined.")
+      call error_message("grid % upscale_aux_coords: fine grid has no auxilliar coordinates defined.")
 
     if (this%has_aux_coords()) &
-      call error_message("grid % estimate_aux_coords: grid already has auxilliar coordinates defined.")
+      call error_message("grid % upscale_aux_coords: grid already has auxilliar coordinates defined.")
 
     allocate(this%lat(this%nx, this%ny))
     allocate(this%lon(this%nx, this%ny))
@@ -928,7 +928,7 @@ contains
       end do
     end do
 
-  end subroutine estimate_aux_coords
+  end subroutine upscale_aux_coords
 
   !> \brief estimate vertices of auxilliar coordinate cells
   !> \authors Sebastian Müller
