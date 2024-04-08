@@ -90,7 +90,7 @@ module mo_grid
     procedure, public :: has_aux_vertices
     procedure, public :: calculate_cell_ids
     procedure, public :: estimate_cell_area
-    ! procedure, public :: derive_level
+    procedure, public :: derive_coarse_grid
     ! procedure, private :: read_data_dp, read_data_i4
     ! generic, public :: read_data => read_data_dp, read_data_i4
     ! procedure, private :: pack_data_dp, pack_data_i4
@@ -168,55 +168,11 @@ contains
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
 
     real(dp), dimension(:, :), allocatable :: areaCell0_2D
-    real(dp) :: cellFactor
-    integer(i4) :: i_ub, i_lb, j_lb, j_ub
-    integer(i4) :: i, j, k, ic, jc
-    logical :: estimate_aux_
+    integer(i4) :: i_ub, i_lb, j_lb, j_ub, k, ic, jc
 
-    estimate_aux_ = .true.
-    if (present(estimate_aux)) estimate_aux_ = estimate_aux
+    coarse_grid = fine_grid%derive_coarse_grid(target_resolution, estimate_aux=estimate_aux, estimate_area=.false., tol=tol)
 
-    !--------------------------------------------------------
-    ! 1) Estimate each variable locally for a given domain
-    ! 2) Pad each variable to its corresponding global one
-    !--------------------------------------------------------
-    ! grid properties
-    call calculate_coarse_extend( &
-      nx_in=fine_grid%nx, &
-      ny_in=fine_grid%ny, &
-      xllcorner_in=fine_grid%xllcorner, &
-      yllcorner_in=fine_grid%yllcorner, &
-      cellsize_in=fine_grid%cellsize, &
-      target_resolution=target_resolution, &
-      nx_out=coarse_grid%nx, &
-      ny_out=coarse_grid%ny, &
-      xllcorner_out=coarse_grid%xllcorner, &
-      yllcorner_out=coarse_grid%yllcorner, &
-      cellsize_out=coarse_grid%cellsize, &
-      tol=tol &
-    )
-
-    coarse_grid%coordsys = fine_grid%coordsys
-
-    cellFactor = anint(coarse_grid%cellsize / fine_grid%cellsize, dp)
-    this%factor = nint(cellFactor, i4)
-
-    ! allocation and initalization of mask at coarse grid
-    allocate(coarse_grid%mask(coarse_grid%nx, coarse_grid%ny))
-    coarse_grid%mask(:, :) = .false.
-
-    ! create mask at coarse grid
-    do j = 1_i4, fine_grid%ny
-      ! everything would be better with 0-based ids
-      jc = (j-1_i4) / this%factor + 1_i4
-      do i = 1, fine_grid%nx
-        if (.not. fine_grid%mask(i, j)) cycle
-        ic = (i-1_i4) / this%factor + 1_i4
-        coarse_grid%mask(ic, jc) = .true.
-      end do
-    end do
-
-    call coarse_grid%calculate_cell_ids()
+    this%factor = nint(coarse_grid%cellsize / fine_grid%cellsize, i4)
 
     ! lowres additional properties
     allocate(areaCell0_2D(fine_grid%nx, fine_grid%ny))
@@ -230,9 +186,6 @@ contains
     allocate(this%n_subcells(coarse_grid%n_cells))
     allocate(this%coarse_id_map(fine_grid%nx, fine_grid%ny))
     this%coarse_id_map = nodata_i4
-
-    this%fine_grid => fine_grid
-    this%coarse_grid => coarse_grid
 
     k = 0
     do jc = 1, coarse_grid%ny
@@ -265,10 +218,9 @@ contains
     ! free space
     deallocate(areaCell0_2D)
 
-    ! only estimate aux coords if we are on a projected grid
-    if ( estimate_aux_ .and. fine_grid%coordsys == coordsys_cart .and. fine_grid%has_aux_coords()) then
-      call coarse_grid%upscale_aux_coords(fine_grid, tol=tol)
-    end if
+    ! set pointers
+    this%fine_grid => fine_grid
+    this%coarse_grid => coarse_grid
 
   end subroutine from_target_resolution
 
@@ -1239,6 +1191,124 @@ contains
     end if
 
   end subroutine estimate_cell_area
+
+  !> \brief Generate coarse grid from a fine grid by a given target resolution
+  !> \details following attributes are calculated for the coarse grid:
+  !!          -  cell id & numbering
+  !!          -  mask creation
+  !> \return `type(grid_t) :: coarse_grid`
+  !> \authors Rohini Kumar
+  !> \date    Jan 2013
+  !> \changelog
+  !! - Sebastian Müller, Mar 2024
+  !!   - moving to FORCES
+  !!   - is now a method of the grid type
+  function derive_coarse_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol) result(coarse_grid)
+
+    use mo_constants, only : nodata_dp
+
+    implicit none
+
+    class(grid_t), intent(in) :: this
+    real(dp), intent(in) :: target_resolution !< desired target resolution
+    logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
+    logical, intent(in), optional :: estimate_area !< whether to estimate coarse cell areas respecting fine mask (default: .true.)
+    integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from fine grid, (1) from cell extend
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    type(grid_t) :: coarse_grid !< resulting low resolution grid
+
+    real(dp), dimension(:, :), allocatable :: areaCell0_2D
+    integer(i4) :: i_ub, i_lb, j_lb, j_ub
+    integer(i4) :: i, j, k, ic, jc
+    integer(i4) :: factor, area_method_
+    logical :: estimate_aux_, estimate_area_
+
+    estimate_aux_ = .true.
+    if (present(estimate_aux)) estimate_aux_ = estimate_aux
+    estimate_area_ = .true.
+    if (present(estimate_area)) estimate_area_ = estimate_area
+    area_method_ = 0_i4
+    if (present(area_method)) area_method_ = area_method
+
+    !--------------------------------------------------------
+    ! 1) Estimate each variable locally for a given domain
+    ! 2) Pad each variable to its corresponding global one
+    !--------------------------------------------------------
+    ! grid properties
+    call calculate_coarse_extend( &
+      nx_in=this%nx, &
+      ny_in=this%ny, &
+      xllcorner_in=this%xllcorner, &
+      yllcorner_in=this%yllcorner, &
+      cellsize_in=this%cellsize, &
+      target_resolution=target_resolution, &
+      nx_out=coarse_grid%nx, &
+      ny_out=coarse_grid%ny, &
+      xllcorner_out=coarse_grid%xllcorner, &
+      yllcorner_out=coarse_grid%yllcorner, &
+      cellsize_out=coarse_grid%cellsize, &
+      tol=tol &
+    )
+
+    coarse_grid%coordsys = this%coordsys
+
+    factor = nint(coarse_grid%cellsize / this%cellsize, i4)
+
+    ! allocation and initalization of mask at coarse grid
+    allocate(coarse_grid%mask(coarse_grid%nx, coarse_grid%ny))
+    coarse_grid%mask(:, :) = .false.
+
+    ! create mask at coarse grid
+    do j = 1_i4, this%ny
+      ! everything would be better with 0-based ids
+      jc = (j-1_i4) / factor + 1_i4
+      do i = 1, this%nx
+        if (.not. this%mask(i, j)) cycle
+        ic = (i-1_i4) / factor + 1_i4
+        coarse_grid%mask(ic, jc) = .true.
+      end do
+    end do
+
+    call coarse_grid%calculate_cell_ids()
+
+    if (estimate_area_) then
+      select case(area_method_)
+        case(0_i4)
+          ! lowres additional properties
+          allocate(areaCell0_2D(this%nx, this%ny))
+          areaCell0_2D(:, :) = unpack(this%cell_area, this%mask, nodata_dp)
+          allocate(coarse_grid%cell_area(coarse_grid%n_cells))
+          k = 0
+          do jc = 1, coarse_grid%ny
+            do ic = 1, coarse_grid%nx
+              if (.NOT. coarse_grid%mask(ic, jc)) cycle
+              k = k + 1
+              ! coord. of all corners -> of finer scale
+              i_lb = (ic - 1) * factor + 1
+              ! constrain the range to fine grid extend
+              i_ub = min(ic * factor, this%nx)
+
+              j_lb = (jc - 1) * factor + 1
+              ! constrain the range to fine grid extend
+              j_ub = min(jc * factor, this%ny)
+
+              ! effective area [km2] & total no. of fine grid cells within a given coarse grid cell
+              coarse_grid%cell_area(k) = sum(areacell0_2D(i_lb : i_ub, j_lb : j_ub), this%mask(i_lb : i_ub, j_lb : j_ub))
+            end do
+          end do
+          ! free space
+          deallocate(areaCell0_2D)
+        case(1_i4)
+          call coarse_grid%estimate_cell_area()
+      end select
+    end if
+
+    ! only estimate aux coords if we are on a projected grid
+    if ( estimate_aux_ .and. this%coordsys == coordsys_cart .and. this%has_aux_coords()) then
+      call coarse_grid%upscale_aux_coords(this, tol=tol)
+    end if
+
+  end function derive_coarse_grid
 
   ! ------------------------------------------------------------------
 
