@@ -83,7 +83,8 @@ module mo_grid
     procedure, public :: estimate_aux_vertices
     procedure, public :: lat_bounds
     procedure, public :: lon_bounds
-    procedure, public :: is_masked
+    procedure, public :: has_mask
+    procedure, public :: any_masked
     procedure, public :: check_is_covered_by
     procedure, public :: check_is_covering
     procedure, public :: has_aux_coords
@@ -982,19 +983,29 @@ contains
     lon_bounds(4,:,:) = this%lon_vertices(1:this%nx, 2:this%ny+1)
   end function lon_bounds
 
-  !> \brief check if given grid is masked (mask allocated and any value .false.)
-  !> \return `logical :: is_masked`
+  !> \brief check if given grid has an allocated mask
+  !> \return `logical :: has_mask`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  logical function is_masked(this)
+  logical function has_mask(this)
     implicit none
     class(grid_t), intent(in) :: this
-    if (.not. allocated(this%mask)) then
-      is_masked = .false.
-      return
+    has_mask = allocated(this%mask)
+  end function has_mask
+
+  !> \brief check if given grid has any masked cells (mask allocated and any value .false.)
+  !> \return `logical :: any_masked`
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  logical function any_masked(this)
+    implicit none
+    class(grid_t), intent(in) :: this
+    if (.not. this%has_mask()) then
+      any_masked = .false.
+    else
+      any_masked = .not. all(this%mask)
     end if
-    is_masked = .not. all(this%mask)
-  end function is_masked
+  end function any_masked
 
   !> \brief check if given grid is covered by coarser grid
   !> \details check if given grid is compatible and covered by coarser grid and raise an error if this is not the case.
@@ -1030,8 +1041,8 @@ contains
       call error_message("grid % check_is_covered_by: coarse grid extend is not matching.")
     end if
 
-    if ( check_mask_ .and. coarse_grid%is_masked()) then
-      if (.not. this%is_masked()) call error_message("grid % check_is_covered_by: coarse grid is masked, this grid not.")
+    if ( check_mask_ .and. coarse_grid%any_masked()) then
+      if (.not. this%any_masked()) call error_message("grid % check_is_covered_by: coarse grid is masked, this grid not.")
       do j = 1, coarse_grid%ny
         do i = 1, coarse_grid%nx
           if ( coarse_grid%mask(i, j)) cycle
