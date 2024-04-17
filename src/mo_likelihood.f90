@@ -47,6 +47,7 @@ CONTAINS
   ! -------------------------------
   !> \brief A Likelihood function: "real" likelihood  (sigma is an error model or given)
   function likelihood_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
+    use mo_optimization_types, only : variables_optidata_sim
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
     REAL(DP),               INTENT(IN), optional  :: stddev_in        ! standard deviation of data
@@ -57,10 +58,10 @@ CONTAINS
 
     ! local
     REAL(DP), DIMENSION(size(meas,1))   :: errors
-    real(dp), dimension(:,:), allocatable :: runoff
+    type(variables_optidata_sim) :: runoff
 
-    call eval(paraset, runoff=runoff)
-    errors(:) = runoff(:,1)-data()
+    call eval(paraset, runoff)
+    errors(:) = runoff%runoff(:,1)-data()
     likelihood_dp = exp(-0.5_dp * sum( errors(:) * errors(:) / stddev_global**2 ))
 
   end function likelihood_dp
@@ -68,6 +69,7 @@ CONTAINS
   ! -------------------------------
   !> \brief A Log-Likelihood function: "real" likelihood  (sigma is an error model or given)
   function loglikelihood_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
+    use mo_optimization_types, only : variables_optidata_sim
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
     REAL(DP),               INTENT(IN), optional  :: stddev_in        ! standard deviation of data
@@ -78,10 +80,10 @@ CONTAINS
 
     ! local
     REAL(DP), DIMENSION(size(meas,1))   :: errors
-    real(dp), dimension(:,:), allocatable :: runoff
+    type(variables_optidata_sim) :: runoff
 
-    call eval(paraset, runoff=runoff)
-    errors(:) = runoff(:,1)-data()
+    call eval(paraset, runoff)
+    errors(:) = runoff%runoff(:,1)-data()
     loglikelihood_dp = -0.5_dp * sum( errors(:) * errors(:) / stddev_global**2 )
 
   end function loglikelihood_dp
@@ -89,6 +91,7 @@ CONTAINS
   ! -------------------------------
   !> \brief A Likelihood function: "faked" likelihood (sigma is computed by obs vs model)
   function likelihood_stddev_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
+    use mo_optimization_types, only : variables_optidata_sim
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
     REAL(DP),               INTENT(IN), optional  :: stddev_in        ! standard deviation of data
@@ -100,10 +103,10 @@ CONTAINS
     ! local
     REAL(DP), DIMENSION(size(meas,1))   :: errors
     REAL(DP)                            :: stddev_err
-    real(dp), dimension(:,:), allocatable :: runoff
+    type(variables_optidata_sim) :: runoff
 
-    call eval(paraset, runoff=runoff)
-    errors(:) = runoff(:,1)-data()
+    call eval(paraset, runoff)
+    errors(:) = runoff%runoff(:,1)-data()
     likelihood_stddev_dp = exp(-0.5_dp * sum( errors(:) * errors(:) / stddev_in**2 ))
 
     ! optional out
@@ -120,6 +123,7 @@ CONTAINS
   ! -------------------------------
   !> \brief A Log-Likelihood_stddev function: "faked" likelihood (sigma is computed by obs vs model)
   function loglikelihood_stddev_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
+    use mo_optimization_types, only : variables_optidata_sim
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
     REAL(DP),               INTENT(IN), optional  :: stddev_in        ! standard deviation of data
@@ -131,10 +135,10 @@ CONTAINS
     ! local
     REAL(DP), DIMENSION(size(meas,1))   :: errors
     REAL(DP)                            :: stddev_err
-    real(dp), dimension(:,:), allocatable :: runoff
+    type(variables_optidata_sim) :: runoff
 
-    call eval(paraset, runoff=runoff)
-    errors(:) = runoff(:,1)-data()
+    call eval(paraset, runoff)
+    errors(:) = runoff%runoff(:,1)-data()
     loglikelihood_stddev_dp = -0.5_dp * sum( errors(:) * errors(:) / stddev_in**2 )
 
     ! optional out
@@ -150,32 +154,21 @@ CONTAINS
 
   ! -------------------------------
   !> \brief A Model: p1*x^2 + p2*x + p3
-  subroutine model_dp(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim, &
-    lake_level, lake_volume, lake_area, lake_spill, lake_outflow, BFI)
+  subroutine model_dp(parameterset, varsOptidataSim)
 
     use mo_kind, only: dp
-    use mo_optimization_types, only: optidata_sim
+    use mo_optimization_types, only : variables_optidata_sim
     !! !$ USE omp_lib,    only: OMP_GET_THREAD_NUM
 
     real(dp),    dimension(:), intent(in) :: parameterset
-    integer(i4), dimension(:),                 optional, intent(in)  :: opti_domain_indices
-    real(dp),    dimension(:, :), allocatable, optional, intent(out) :: runoff        ! dim1=time dim2=gauge
-    type(optidata_sim), dimension(:), optional, intent(inout) :: smOptiSim       ! dim1=ncells, dim2=time
-    type(optidata_sim), dimension(:), optional, intent(inout) :: neutronsOptiSim ! dim1=ncells, dim2=time
-    type(optidata_sim), dimension(:), optional, intent(inout) :: etOptiSim       ! dim1=ncells, dim2=time
-    type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim      ! dim1=ncells, dim2=time
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_level    !< dim1=time dim2=lake
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_volume   !< dim1=time dim2=lake
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_area     !< dim1=time dim2=lake
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_spill    !< dim1=time dim2=lake
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_outflow  !< dim1=time dim2=lake
-    real(dp),    dimension(:), allocatable, optional, intent(out) :: BFI         !< baseflow index, dim1=domainID
+    type(variables_optidata_sim), intent(inout) :: varsOptidataSim
+
     integer(i4) :: i, n
     ! for OMP
     !! !$  integer(i4)                           :: n_threads, is_thread
 
     n = size(meas,1)
-    allocate(runoff(n, 1))
+    allocate(varsOptidataSim%runoff(n, 1))
 
     !! !$ is_thread = OMP_GET_THREAD_NUM()
     !! !$ write(*,*) 'OMP_thread: ', is_thread
@@ -185,7 +178,7 @@ CONTAINS
     !$OMP do
     do i=1, n
        !! !$ if (is_thread /= 0) write(*,*) '    OMP_thread-1: ', is_thread
-       runoff(i,1) = parameterset(1) * meas(i,1) * meas(i,1) + parameterset(2) * meas(i,1) + parameterset(3)
+       varsOptidataSim%runoff(i,1) = parameterset(1) * meas(i,1) * meas(i,1) + parameterset(2) * meas(i,1) + parameterset(3)
     end do
     !$OMP end do
     !$OMP end parallel

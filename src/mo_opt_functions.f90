@@ -5623,7 +5623,7 @@ CONTAINS
   function ackley_objective(parameterset, eval, arg1, arg2, arg3)
 
     use mo_constants, only: pi_dp
-    use mo_optimization_types, only : optidata_sim
+    use mo_optimization_types, only : variables_optidata_sim
 
     implicit none
 
@@ -5639,9 +5639,9 @@ CONTAINS
     real(dp), parameter :: b = 0.2_dp
     real(dp), parameter :: c = 2.0_dp*pi_dp
     real(dp) :: s1, s2
-    type(optidata_sim), dimension(:), allocatable :: et_opti
+    type(variables_optidata_sim) :: et_opti
 
-    call eval(parameterset, etOptiSim=et_opti)
+    call eval(parameterset, et_opti)
 
     n = size(parameterset)
     s1 = sum(parameterset**2)
@@ -5653,7 +5653,7 @@ CONTAINS
   function griewank_objective(parameterset, eval, arg1, arg2, arg3)
 
     use mo_kind, only: i4, dp
-    use mo_optimization_types, only : optidata_sim
+    use mo_optimization_types, only : variables_optidata_sim
 
     implicit none
 
@@ -5667,9 +5667,9 @@ CONTAINS
     integer(i4) :: nopt
     integer(i4) :: j
     real(dp)    :: d, u1, u2
-    type(optidata_sim), dimension(:), allocatable :: et_opti
+    type(variables_optidata_sim) :: et_opti
 
-    call eval(parameterset, etOptiSim=et_opti)
+    call eval(parameterset, et_opti)
 
     nopt = size(parameterset)
     if (nopt .eq. 2) then
@@ -5687,26 +5687,14 @@ CONTAINS
   end function griewank_objective
 
 
-  subroutine eval_dummy(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim, &
-    lake_level, lake_volume, lake_area, lake_spill, lake_outflow, BFI)
+  subroutine eval_dummy(parameterset, varsOptidataSim)
     use mo_kind, only : dp
-    use mo_optimization_types, only : optidata_sim, optidata
+    use mo_optimization_types, only : variables_optidata_sim, optidata
 
     implicit none
 
     real(dp),    dimension(:), intent(in) :: parameterset
-    integer(i4), dimension(:),                 optional, intent(in)  :: opti_domain_indices
-    real(dp),    dimension(:, :), allocatable, optional, intent(out) :: runoff        ! dim1=time dim2=gauge
-    type(optidata_sim), dimension(:), optional, intent(inout) :: smOptiSim       ! dim1=ncells, dim2=time
-    type(optidata_sim), dimension(:), optional, intent(inout) :: neutronsOptiSim ! dim1=ncells, dim2=time
-    type(optidata_sim), dimension(:), optional, intent(inout) :: etOptiSim       ! dim1=ncells, dim2=time
-    type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim      ! dim1=ncells, dim2=time
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_level    !< dim1=time dim2=lake
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_volume   !< dim1=time dim2=lake
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_area     !< dim1=time dim2=lake
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_spill    !< dim1=time dim2=lake
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_outflow  !< dim1=time dim2=lake
-  real(dp),    dimension(:), allocatable, optional, intent(out) :: BFI         !< baseflow index, dim1=domainID
+    type(variables_optidata_sim), intent(inout) :: varsOptidataSim
 
     type(optidata) :: dummyData
     integer(i4) :: i
@@ -5714,64 +5702,50 @@ CONTAINS
     allocate(dummyData%dataObs(1, 1))
     dummyData%dataObs = 0.0_dp
 
-    if (present(etOptiSim)) then
-      do i=1, size(etOptiSim)
-        call etOptiSim(i)%init(dummyData)
+    if (allocated(varsOptidataSim%etOptiSim)) then
+      do i=1, size(varsOptidataSim%etOptiSim)
+        call varsOptidataSim%etOptiSim(i)%init(dummyData)
       end do
     end if
 
-    if (present(neutronsOptiSim)) then
-      do i=1, size(neutronsOptiSim)
-        call neutronsOptiSim(1)%init(dummyData)
+    if (allocated(varsOptidataSim%neutronsOptiSim)) then
+      do i=1, size(varsOptidataSim%neutronsOptiSim)
+        call varsOptidataSim%neutronsOptiSim(1)%init(dummyData)
       end do
     end if
 
-    if (present(twsOptiSim)) then
-      do i=1, size(twsOptiSim)
-        call twsOptiSim(1)%init(dummyData)
+    if (allocated(varsOptidataSim%twsOptiSim)) then
+      do i=1, size(varsOptidataSim%twsOptiSim)
+        call varsOptidataSim%twsOptiSim(1)%init(dummyData)
       end do
     end if
 
-    if (present(smOptiSim)) then
-      do i=1, size(smOptiSim)
-        call smOptiSim(1)%init(dummyData)
+    if (allocated(varsOptidataSim%smOptiSim)) then
+      do i=1, size(varsOptidataSim%smOptiSim)
+        call  varsOptidataSim%smOptiSim(1)%init(dummyData)
       end do
     end if
 
-    if (present(runoff)) then
-      allocate(runoff(1, 1))
-      runoff(:, :) = 0.0_dp
-    end if
+    allocate(varsOptidataSim%runoff(1, 1))
+     varsOptidataSim%runoff(:, :) = 0.0_dp
 
-    if (present(BFI)) then
-      allocate(BFI(1))
-      BFI(:) = 0.0_dp
-    end if
+    allocate(varsOptidataSim%BFI(1))
+     varsOptidataSim%BFI(:) = 0.0_dp
 
-    if (present(lake_level)) then
-      allocate(lake_level(1, 1))
-      lake_level(:, :) = 0.0_dp
-    end if
+    allocate(varsOptidataSim%lake_level(1, 1))
+     varsOptidataSim%lake_level(:, :) = 0.0_dp
 
-    if (present(lake_volume)) then
-      allocate(lake_volume(1, 1))
-      lake_volume(:, :) = 0.0_dp
-    end if
+    allocate(varsOptidataSim%lake_volume(1, 1))
+     varsOptidataSim%lake_volume(:, :) = 0.0_dp
 
-    if (present(lake_area)) then
-      allocate(lake_area(1, 1))
-      lake_area(:, :) = 0.0_dp
-    end if
+    allocate(varsOptidataSim%lake_area(1, 1))
+     varsOptidataSim%lake_area(:, :) = 0.0_dp
 
-    if (present(lake_spill)) then
-      allocate(lake_spill(1, 1))
-      lake_spill(:, :) = 0.0_dp
-    end if
+    allocate(varsOptidataSim%lake_spill(1, 1))
+     varsOptidataSim%lake_spill(:, :) = 0.0_dp
 
-    if (present(lake_outflow)) then
-      allocate(lake_outflow(1, 1))
-      lake_outflow(:, :) = 0.0_dp
-    end if
+    allocate(varsOptidataSim%lake_outflow(1, 1))
+     varsOptidataSim%lake_outflow(:, :) = 0.0_dp
 
   end subroutine eval_dummy
 

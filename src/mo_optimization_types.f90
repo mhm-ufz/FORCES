@@ -12,9 +12,25 @@ MODULE mo_optimization_types
 
   IMPLICIT NONE
 
-  public :: optidata, optidata_sim
+  public :: optidata, optidata_sim, variables_optidata_sim
 
   private
+
+  type variables_optidata_sim
+    integer(i4), public, dimension(:), allocatable     :: opti_domain_indices
+    real(dp), public,    dimension(:, :), allocatable  :: runoff     !< dim1=time dim2=gauge
+    type(optidata_sim), public, dimension(:), allocatable  :: smOptiSim         !< dim1=ncells, dim2=time
+    type(optidata_sim), public, dimension(:), allocatable  :: neutronsOptiSim   !< dim1=ncells, dim2=time
+    type(optidata_sim), public, dimension(:), allocatable  :: etOptiSim         !< dim1=ncells, dim2=time
+    type(optidata_sim), public, dimension(:), allocatable  :: twsOptiSim        !< dim1=ncells, dim2=time
+    real(dp), public, dimension(:, :), allocatable :: lake_level    !< dim1=time dim2=lake
+    real(dp), public, dimension(:, :), allocatable :: lake_volume   !< dim1=time dim2=lake
+    real(dp), public, dimension(:, :), allocatable :: lake_area     !< dim1=time dim2=lake
+    real(dp), public, dimension(:, :), allocatable :: lake_spill    !< dim1=time dim2=lake
+    real(dp), public, dimension(:, :), allocatable :: lake_outflow  !< dim1=time dim2=lake
+    real(dp), public, dimension(:), allocatable :: BFI           !< baseflow index, dim1=domainID
+  end type variables_optidata_sim
+
 
   !> \brief optional data, such as sm, neutrons, et, tws
   !> \details data type for observed data, providing metadata

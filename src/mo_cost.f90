@@ -225,7 +225,7 @@ CONTAINS
 
     use mo_kind, only: dp
     use mo_optimization_utils, only: eval_interface
-    use mo_optimization_types, only : optidata_sim
+    use mo_optimization_types, only : variables_optidata_sim
 
     implicit none
 
@@ -236,11 +236,11 @@ CONTAINS
     real(dp), optional, intent(out) :: arg3
     real(dp) :: cost_objective
 
-    type(optidata_sim), dimension(:), allocatable :: et_opti
+    type(variables_optidata_sim) :: et_opti
     REAL(DP), DIMENSION(6,2)            :: meas
     REAL(DP), DIMENSION(6)              :: calc
 
-    call eval(parameterset, etOptiSim=et_opti)
+    call eval(parameterset, et_opti)
 
     ! function: f(x) = ax^3 + bx^2 + cx + d
     ! measurements: (0.5,5.725), (1.0, 21.7), (1.5, 49.175), (2.0, 88.9), (2.5, 141.625), (3.0, 208.1)

@@ -13,23 +13,11 @@ module mo_optimization_utils
 
   !> \brief Interface for evaluation routine.
   abstract interface
-    subroutine eval_interface(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim, &
-      lake_level, lake_volume, lake_area, lake_spill, lake_outflow, BFI)
+    subroutine eval_interface(parameterset, varsOptidataSim)
       use mo_kind, only : dp, i4
-      use mo_optimization_types, only : optidata_sim
+      use mo_optimization_types, only : variables_optidata_sim
       real(dp),    dimension(:), intent(in) :: parameterset
-      integer(i4), dimension(:),                 optional, intent(in)  :: opti_domain_indices
-      real(dp),    dimension(:, :), allocatable, optional, intent(out) :: runoff     !< dim1=time dim2=gauge
-      type(optidata_sim), dimension(:), optional, intent(inout) :: smOptiSim         !< dim1=ncells, dim2=time
-      type(optidata_sim), dimension(:), optional, intent(inout) :: neutronsOptiSim   !< dim1=ncells, dim2=time
-      type(optidata_sim), dimension(:), optional, intent(inout) :: etOptiSim         !< dim1=ncells, dim2=time
-      type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim        !< dim1=ncells, dim2=time
-      real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_level    !< dim1=time dim2=lake
-      real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_volume   !< dim1=time dim2=lake
-      real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_area     !< dim1=time dim2=lake
-      real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_spill    !< dim1=time dim2=lake
-      real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_outflow  !< dim1=time dim2=lake
-      real(dp),    dimension(:), allocatable, optional, intent(out) :: BFI           !< baseflow index, dim1=domainID
+      type(variables_optidata_sim), intent(inout) :: varsOptidataSim
     end subroutine
   end interface
 
