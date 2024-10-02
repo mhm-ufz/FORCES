@@ -223,9 +223,9 @@ CONTAINS
   !> \brief dummy cost objective function
   FUNCTION cost_objective(parameterset, eval, arg1, arg2, arg3)
 
-    use mo_kind, only: dp
+    use mo_kind, only: dp, i4
     use mo_optimization_utils, only: eval_interface
-    use mo_optimization_types, only : variables_optidata_sim
+    use mo_optimization_types, only : opti_sim_t, config_t
 
     implicit none
 
@@ -236,11 +236,15 @@ CONTAINS
     real(dp), optional, intent(out) :: arg3
     real(dp) :: cost_objective
 
-    type(variables_optidata_sim) :: et_opti
+    type(opti_sim_t), dimension(:), pointer :: opti_sim
+    type(config_t) :: config
     REAL(DP), DIMENSION(6,2)            :: meas
     REAL(DP), DIMENSION(6)              :: calc
 
-    call eval(parameterset, et_opti)
+    config%parameters = parameterset
+    allocate(opti_sim(1))
+    call opti_sim(1)%add(name='et', dim=2_i4)
+    call eval(config, opti_sim)
 
     ! function: f(x) = ax^3 + bx^2 + cx + d
     ! measurements: (0.5,5.725), (1.0, 21.7), (1.5, 49.175), (2.0, 88.9), (2.5, 141.625), (3.0, 208.1)
@@ -253,6 +257,8 @@ CONTAINS
 
     ! MAE  Mean Absolute Error
     cost_objective = sum(abs( meas(:,2)-calc(:) ))/size(meas,1)
+
+    deallocate(opti_sim)
 
     RETURN
   END FUNCTION cost_objective

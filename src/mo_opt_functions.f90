@@ -5623,7 +5623,7 @@ CONTAINS
   function ackley_objective(parameterset, eval, arg1, arg2, arg3)
 
     use mo_constants, only: pi_dp
-    use mo_optimization_types, only : variables_optidata_sim
+    use mo_optimization_types, only : opti_sim_t, config_t
 
     implicit none
 
@@ -5639,21 +5639,27 @@ CONTAINS
     real(dp), parameter :: b = 0.2_dp
     real(dp), parameter :: c = 2.0_dp*pi_dp
     real(dp) :: s1, s2
-    type(variables_optidata_sim) :: et_opti
+    type(opti_sim_t), pointer, dimension(:) :: opti_sim
+    type(config_t) :: config
 
-    call eval(parameterset, et_opti)
+    allocate(opti_sim(1))
+    config%parameters = parameterset
+    call opti_sim(1)%add(name='et', dim=2_i4)
+    call eval(config, opti_sim)
 
     n = size(parameterset)
     s1 = sum(parameterset**2)
     s2 = sum(cos(c*parameterset))
     ackley_objective = -a * exp(-b*sqrt(1.0_dp/real(n,dp)*s1)) - exp(1.0_dp/real(n,dp)*s2) + a + exp(1.0_dp)
 
+    deallocate(opti_sim)
+
   end function ackley_objective
 
   function griewank_objective(parameterset, eval, arg1, arg2, arg3)
 
     use mo_kind, only: i4, dp
-    use mo_optimization_types, only : variables_optidata_sim
+    use mo_optimization_types, only : opti_sim_t, config_t
 
     implicit none
 
@@ -5667,9 +5673,13 @@ CONTAINS
     integer(i4) :: nopt
     integer(i4) :: j
     real(dp)    :: d, u1, u2
-    type(variables_optidata_sim) :: et_opti
+    type(opti_sim_t), pointer, dimension(:) :: opti_sim
+    type(config_t) :: config
 
-    call eval(parameterset, et_opti)
+    config%parameters = parameterset
+    allocate(opti_sim(1))
+    call opti_sim(1)%add(name='et', dim=2_i4)
+    call eval(config, opti_sim)
 
     nopt = size(parameterset)
     if (nopt .eq. 2) then
@@ -5683,69 +5693,110 @@ CONTAINS
        u2 = u2 * cos(parameterset(j)/sqrt(real(j,dp)))
     end do
     griewank_objective = u1 - u2 + 1.0_dp
+
+    deallocate(opti_sim)
     !
   end function griewank_objective
 
 
-  subroutine eval_dummy(parameterset, varsOptidataSim)
+  subroutine eval_dummy(config, opti_sim)
     use mo_kind, only : dp
-    use mo_optimization_types, only : variables_optidata_sim, optidata
+    use mo_optimization_types, only : opti_sim_t, config_t, optidata
 
     implicit none
 
-    real(dp),    dimension(:), intent(in) :: parameterset
-    type(variables_optidata_sim), intent(inout) :: varsOptidataSim
+    type(config_t), intent(in) :: config
+    type(opti_sim_t), dimension(:), pointer, optional, intent(inout) :: opti_sim
 
-    type(optidata) :: dummyData
-    integer(i4) :: i
+    real(dp), dimension(:, :), pointer :: dummyDataPtr_2d
+    real(dp), dimension(:), pointer :: dummyDataPtr_1d
+    integer(i4) :: iDomain, nDomains
 
-    allocate(dummyData%dataObs(1, 1))
-    dummyData%dataObs = 0.0_dp
+    nDomains = size(opti_sim)
 
-    if (allocated(varsOptidataSim%etOptiSim)) then
-      do i=1, size(varsOptidataSim%etOptiSim)
-        call varsOptidataSim%etOptiSim(i)%init(dummyData)
-      end do
-    end if
+    allocate(dummyDataPtr_2d(1, 1))
+    allocate(dummyDataPtr_1d(1))
+    dummyDataPtr_2d = 0.0_dp
+    dummyDataPtr_1d = 0.0_dp
 
-    if (allocated(varsOptidataSim%neutronsOptiSim)) then
-      do i=1, size(varsOptidataSim%neutronsOptiSim)
-        call varsOptidataSim%neutronsOptiSim(1)%init(dummyData)
-      end do
-    end if
+    do iDomain = 1 , nDomains
+      if (opti_sim(iDomain)%has('et')) then
+        call opti_sim(iDomain)%allocate(name="et", dim1=1, dim2=1)
+        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="et")
+      end if
+    end do
 
-    if (allocated(varsOptidataSim%twsOptiSim)) then
-      do i=1, size(varsOptidataSim%twsOptiSim)
-        call varsOptidataSim%twsOptiSim(1)%init(dummyData)
-      end do
-    end if
+    do iDomain = 1 , nDomains
+      if (opti_sim(iDomain)%has('neutrons')) then
+        call opti_sim(iDomain)%allocate(name="neutrons", dim1=1, dim2=1)
+        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="neutrons")
+      end if
+    end do
 
-    if (allocated(varsOptidataSim%smOptiSim)) then
-      do i=1, size(varsOptidataSim%smOptiSim)
-        call  varsOptidataSim%smOptiSim(1)%init(dummyData)
-      end do
-    end if
+    do iDomain = 1 , nDomains
+      if (opti_sim(iDomain)%has('tws')) then
+        call opti_sim(iDomain)%allocate(name="tws", dim1=1, dim2=1)
+        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="tws")
+      end if
+    end do
 
-    allocate(varsOptidataSim%runoff(1, 1))
-     varsOptidataSim%runoff(:, :) = 0.0_dp
+    do iDomain = 1 , nDomains
+      if (opti_sim(iDomain)%has('sm')) then
+        call opti_sim(iDomain)%allocate(name="sm", dim1=1, dim2=1)
+        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="sm")
+      end if
+    end do
 
-    allocate(varsOptidataSim%BFI(1))
-     varsOptidataSim%BFI(:) = 0.0_dp
+    ! ToDo: runoff and all other variables were handled differently: Created wether
+    ! optional or not. Why? Should it be changed?
+    do iDomain = 1 , nDomains
+      if (opti_sim(iDomain)%has('runoff')) then
+        call opti_sim(iDomain)%allocate(name="runoff", dim1=1, dim2=1)
+        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="runoff")
+      end if
+    end do
 
-    allocate(varsOptidataSim%lake_level(1, 1))
-     varsOptidataSim%lake_level(:, :) = 0.0_dp
+    do iDomain = 1 , nDomains
+      if (opti_sim(iDomain)%has('BFI')) then
+        call opti_sim(iDomain)%allocate(name="BFI", dim1=1)
+        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_1d, name="BFI")
+      end if
+    end do
 
-    allocate(varsOptidataSim%lake_volume(1, 1))
-     varsOptidataSim%lake_volume(:, :) = 0.0_dp
+    do iDomain = 1 , nDomains
+      if (opti_sim(iDomain)%has('lake_level')) then
+        call opti_sim(iDomain)%allocate(name="lake_level", dim1=1, dim2=1)
+        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="lake_level")
+      end if
+    end do
 
-    allocate(varsOptidataSim%lake_area(1, 1))
-     varsOptidataSim%lake_area(:, :) = 0.0_dp
+    do iDomain = 1 , nDomains
+      if (opti_sim(iDomain)%has('lake_volume')) then
+        call opti_sim(iDomain)%allocate(name="lake_volume", dim1=1, dim2=1)
+        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="lake_volume")
+      end if
+    end do
 
-    allocate(varsOptidataSim%lake_spill(1, 1))
-     varsOptidataSim%lake_spill(:, :) = 0.0_dp
+    do iDomain = 1 , nDomains
+      if (opti_sim(iDomain)%has('lake_area')) then
+        call opti_sim(iDomain)%allocate(name="lake_area", dim1=1, dim2=1)
+        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="lake_area")
+      end if
+    end do
 
-    allocate(varsOptidataSim%lake_outflow(1, 1))
-     varsOptidataSim%lake_outflow(:, :) = 0.0_dp
+    do iDomain = 1 , nDomains
+      if (opti_sim(iDomain)%has('lake_spill')) then
+        call opti_sim(iDomain)%allocate(name="lake_spill", dim1=1, dim2=1)
+        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="lake_spill")
+      end if
+    end do
+
+    do iDomain = 1 , nDomains
+      if (opti_sim(iDomain)%has('lake_outflow')) then
+        call opti_sim(iDomain)%allocate(name="lake_outflow", dim1=1, dim2=1)
+        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="lake_outflow")
+      end if
+    end do
 
   end subroutine eval_dummy
 

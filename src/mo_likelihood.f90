@@ -47,7 +47,7 @@ CONTAINS
   ! -------------------------------
   !> \brief A Likelihood function: "real" likelihood  (sigma is an error model or given)
   function likelihood_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
-    use mo_optimization_types, only : variables_optidata_sim
+    use mo_optimization_types, only : opti_sim_t, config_t
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
     REAL(DP),               INTENT(IN), optional  :: stddev_in        ! standard deviation of data
@@ -58,18 +58,26 @@ CONTAINS
 
     ! local
     REAL(DP), DIMENSION(size(meas,1))   :: errors
-    type(variables_optidata_sim) :: runoff
+    real(dp), pointer :: runoff(:, :)
+    type(opti_sim_t), dimension(:), pointer :: opti_sim
+    type(config_t) :: config
 
-    call eval(paraset, runoff)
-    errors(:) = runoff%runoff(:,1)-data()
+    config%parameters = paraset
+
+    allocate(opti_sim(1))
+    call opti_sim(1)%add(name="runoff", dim=2_i4)
+    call eval(config, opti_sim=opti_sim)
+    call opti_sim(1)%set_pointer(ptr=runoff, name="runoff")
+    errors(:) = runoff(:,1)-data()
     likelihood_dp = exp(-0.5_dp * sum( errors(:) * errors(:) / stddev_global**2 ))
+    deallocate(opti_sim)
 
   end function likelihood_dp
 
   ! -------------------------------
   !> \brief A Log-Likelihood function: "real" likelihood  (sigma is an error model or given)
   function loglikelihood_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
-    use mo_optimization_types, only : variables_optidata_sim
+    use mo_optimization_types, only : opti_sim_t, config_t
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
     REAL(DP),               INTENT(IN), optional  :: stddev_in        ! standard deviation of data
@@ -80,18 +88,26 @@ CONTAINS
 
     ! local
     REAL(DP), DIMENSION(size(meas,1))   :: errors
-    type(variables_optidata_sim) :: runoff
+    real(dp), pointer :: runoff(:, :)
+    type(opti_sim_t), dimension(:), pointer :: opti_sim
+    type(config_t) :: config
 
-    call eval(paraset, runoff)
-    errors(:) = runoff%runoff(:,1)-data()
+    config%parameters = paraset
+
+    allocate(opti_sim(1))
+    call opti_sim(1)%add(name="runoff", dim=2_i4)
+    call eval(config, opti_sim=opti_sim)
+    call opti_sim(1)%set_pointer(ptr=runoff, name="runoff")
+    errors(:) = runoff(:,1)-data()
     loglikelihood_dp = -0.5_dp * sum( errors(:) * errors(:) / stddev_global**2 )
+    deallocate(opti_sim)
 
   end function loglikelihood_dp
 
   ! -------------------------------
   !> \brief A Likelihood function: "faked" likelihood (sigma is computed by obs vs model)
   function likelihood_stddev_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
-    use mo_optimization_types, only : variables_optidata_sim
+    use mo_optimization_types, only : opti_sim_t, config_t
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
     REAL(DP),               INTENT(IN), optional  :: stddev_in        ! standard deviation of data
@@ -103,11 +119,19 @@ CONTAINS
     ! local
     REAL(DP), DIMENSION(size(meas,1))   :: errors
     REAL(DP)                            :: stddev_err
-    type(variables_optidata_sim) :: runoff
+    real(dp), pointer :: runoff(:, :)
+    type(opti_sim_t), dimension(:), pointer :: opti_sim
+    type(config_t) :: config
 
-    call eval(paraset, runoff)
-    errors(:) = runoff%runoff(:,1)-data()
+    config%parameters = paraset
+
+    allocate(opti_sim(1))
+    call opti_sim(1)%add(name="runoff", dim=2_i4)
+    call eval(config, opti_sim=opti_sim)
+    call opti_sim(1)%set_pointer(ptr=runoff, name="runoff")
+    errors(:) = runoff(:,1)-data()
     likelihood_stddev_dp = exp(-0.5_dp * sum( errors(:) * errors(:) / stddev_in**2 ))
+    deallocate(opti_sim)
 
     ! optional out
     stddev_err = stddev(errors)
@@ -123,7 +147,7 @@ CONTAINS
   ! -------------------------------
   !> \brief A Log-Likelihood_stddev function: "faked" likelihood (sigma is computed by obs vs model)
   function loglikelihood_stddev_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
-    use mo_optimization_types, only : variables_optidata_sim
+    use mo_optimization_types, only : opti_sim_t, config_t
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
     REAL(DP),               INTENT(IN), optional  :: stddev_in        ! standard deviation of data
@@ -135,11 +159,19 @@ CONTAINS
     ! local
     REAL(DP), DIMENSION(size(meas,1))   :: errors
     REAL(DP)                            :: stddev_err
-    type(variables_optidata_sim) :: runoff
+    real(dp), pointer :: runoff(:, :)
+    type(opti_sim_t), dimension(:), pointer :: opti_sim
+    type(config_t) :: config
 
-    call eval(paraset, runoff)
-    errors(:) = runoff%runoff(:,1)-data()
+    config%parameters = paraset
+
+    allocate(opti_sim(1))
+    call opti_sim(1)%add(name="runoff", dim=2_i4)
+    call eval(config, opti_sim=opti_sim)
+    call opti_sim(1)%set_pointer(ptr=runoff, name="runoff")
+    errors(:) = runoff(:,1)-data()
     loglikelihood_stddev_dp = -0.5_dp * sum( errors(:) * errors(:) / stddev_in**2 )
+    deallocate(opti_sim)
 
     ! optional out
     stddev_err = stddev(errors)
@@ -154,21 +186,28 @@ CONTAINS
 
   ! -------------------------------
   !> \brief A Model: p1*x^2 + p2*x + p3
-  subroutine model_dp(parameterset, varsOptidataSim)
+  subroutine model_dp(config, opti_sim)
 
     use mo_kind, only: dp
-    use mo_optimization_types, only : variables_optidata_sim
+    use mo_optimization_types, only : opti_sim_t, config_t
     !! !$ USE omp_lib,    only: OMP_GET_THREAD_NUM
 
-    real(dp),    dimension(:), intent(in) :: parameterset
-    type(variables_optidata_sim), intent(inout) :: varsOptidataSim
+    type(config_t), intent(in) :: config
+    type(opti_sim_t), dimension(:), pointer, optional, intent(inout) :: opti_sim
+    real(dp), pointer :: runoff(:, :)
 
     integer(i4) :: i, n
     ! for OMP
     !! !$  integer(i4)                           :: n_threads, is_thread
 
     n = size(meas,1)
-    allocate(varsOptidataSim%runoff(n, 1))
+
+    do i = 1 , size(opti_sim)
+      if (opti_sim(i)%has('runoff')) then
+        call opti_sim(i)%allocate(name="runoff", dim1=n, dim2=1)
+        call opti_sim(i)%set_pointer(ptr=runoff, name="runoff")
+      end if
+    end do
 
     !! !$ is_thread = OMP_GET_THREAD_NUM()
     !! !$ write(*,*) 'OMP_thread: ', is_thread
@@ -178,11 +217,11 @@ CONTAINS
     !$OMP do
     do i=1, n
        !! !$ if (is_thread /= 0) write(*,*) '    OMP_thread-1: ', is_thread
-       varsOptidataSim%runoff(i,1) = parameterset(1) * meas(i,1) * meas(i,1) + parameterset(2) * meas(i,1) + parameterset(3)
+       runoff(i,1) = config%parameters(1) * meas(i,1) * meas(i,1) + config%parameters(2) * meas(i,1) + config%parameters(3)
     end do
     !$OMP end do
     !$OMP end parallel
-
+    
   end subroutine model_dp
 
   function data_dp()
