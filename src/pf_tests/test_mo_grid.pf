@@ -22,7 +22,6 @@ contains
     ! @assertAny
     ! @assertAssociated
     ! @assertEqual
-    ! @assertExceptionRaised
     ! @assertFalse
     ! @assertGreaterThan
     ! @assertGreaterThanOrEqual
