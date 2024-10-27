@@ -1591,7 +1591,7 @@ contains
 
     if (abs(rounded_ - cellfactor_) > tol_) then
       call error_message( &
-        'check_factor: Two resolutions size do not confirm: ', &
+        'check_factor: Two resolutions size do not confirm (need to have an integer ratio): ', &
         trim(adjustl(num2str(nint(coarse_cellsize)))), &
         trim(adjustl(num2str(nint(fine_cellsize)))))
     end if
