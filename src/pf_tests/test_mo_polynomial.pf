@@ -1,0 +1,54 @@
+module test_mo_polynomial
+
+  use funit
+  use mo_kind,   only: dp, i4
+  use mo_polynomial, only: poly_eval, poly_root, poly_order, poly_deriv
+
+  implicit none
+
+  real(dp), parameter, dimension(5) :: p = [1.0_dp, 0.0_dp, 0.0_dp, 1.0_dp, -1.0_dp]
+  real(dp), parameter :: x0 = -10.0_dp
+  real(dp), parameter :: delta = 1e-14_dp
+  real(dp), parameter :: tol=1e-4_dp
+  integer(i4), parameter :: max_n=2000_i4
+
+  contains
+
+! Test coordinate of a point compared to polygon
+  @test
+  subroutine test_polynomial()
+    real(dp), dimension(1) :: p1
+    real(dp), dimension(4) :: p4
+    real(dp) :: root
+    integer(i4) :: status
+
+    @assertEqual(poly_order(p), 4_i4)
+    @assertEqual(poly_order([1.0_dp]), 1_i4)
+
+    p1 = poly_deriv([1.0_dp])
+    @assertEqual(p1(1), 0_i4)
+
+    @assertEqual(poly_eval(p, 1.5_dp), 5.5625_dp, tolerance=tol)
+
+    p4 = poly_deriv(p)
+    @assertEqual(poly_eval(p4, 1.5_dp), 14.5_dp, tolerance=tol)
+
+    root = poly_root(p, x0, delta=delta, max_n=max_n, status=status, method=0)
+    @assertEqual(status, 0_i4)
+    @assertEqual(root, -1.2207440846057596_dp, tolerance=tol)
+
+    root = poly_root(p, x0, delta=delta, max_n=max_n, status=status, method=1)
+    @assertEqual(status, 0_i4)
+    @assertEqual(root, -1.2207440846057596_dp, tolerance=tol)
+
+    root = poly_root(p, x0, delta=delta, max_n=max_n, status=status, method=2)
+    @assertEqual(status, 0_i4)
+    @assertEqual(root, -1.2207440846057596_dp, tolerance=tol)
+
+    root = poly_root(p, x0, delta=delta, max_n=max_n, status=status, method=3)
+    @assertEqual(status, 0_i4)
+    @assertEqual(root, -1.2207440846057596_dp, tolerance=tol)
+
+  end subroutine test_polynomial
+
+end module test_mo_polynomial
