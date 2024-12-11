@@ -30,6 +30,8 @@ module mo_optimization_utils
   end interface
 
   !> \brief Interface for objective function.
+  !> \details The optional arguments are motivated by likelihood objective functions.
+  ! ToDo: eval optional
   interface
     function objective_interface (parameterset, eval, arg1, arg2, arg3)
       use mo_kind, only : dp

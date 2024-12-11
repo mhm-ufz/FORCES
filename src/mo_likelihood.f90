@@ -206,6 +206,7 @@ CONTAINS
       if (opti_sim(i)%has('runoff')) then
         call opti_sim(i)%allocate(name="runoff", dim1=n, dim2=1)
         call opti_sim(i)%set_pointer(ptr=runoff, name="runoff")
+        ! ToDo fix loop (don't loop, check opti_sim only 1)
       end if
     end do
 

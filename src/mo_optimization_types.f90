@@ -36,6 +36,8 @@ MODULE mo_optimization_types
     integer(i4), dimension(:), allocatable :: opti_indices
   end type config_t
 
+! ToDo: documentation like mo_cli
+
 !  type opti_sim_t
 !    type(optidata_sim), target, dimension(:), allocatable :: data
 !    character(256)                                        :: name
@@ -45,6 +47,7 @@ MODULE mo_optimization_types
     contains
     procedure :: has => opti_sim_t_has
     procedure :: add => opti_sim_t_add
+    ! ToDo only interface public, other private
     procedure :: opti_sim_t_allocate_1d
     procedure :: opti_sim_t_allocate_2d
     procedure :: opti_sim_t_allocate_3d
@@ -55,6 +58,7 @@ MODULE mo_optimization_types
     procedure :: opti_sim_t_set_pointer_3d
     procedure :: opti_sim_t_set_pointer_4d
     procedure :: opti_sim_t_set_pointer_5d
+    ! ToDo: destructor
     generic   :: set_pointer => opti_sim_t_set_pointer_1d, opti_sim_t_set_pointer_2d, &
       opti_sim_t_set_pointer_3d, opti_sim_t_set_pointer_4d, opti_sim_t_set_pointer_5d
     generic   :: allocate => opti_sim_t_allocate_1d, opti_sim_t_allocate_2d, &
@@ -135,6 +139,7 @@ MODULE mo_optimization_types
     add_data%dimen = dim
     if (present(time_avg_selector)) add_data%time_avg_selector = time_avg_selector
     ! ToDo: is the if case needed?
+    ! Tested: the else case works
     if (allocated(this%opti_vars)) then
       this%opti_vars = [this%opti_vars, add_data]
     else
@@ -225,6 +230,7 @@ MODULE mo_optimization_types
   end subroutine opti_sim_t_allocate_5d
 
   ! ToDo: generate with fypp
+  ! ToDo: switch ptr with name
   subroutine opti_sim_t_set_pointer_1d(this, ptr, name)
     class(opti_sim_t), target, intent(in) :: this
     real(dp), dimension(:), pointer, intent(inout) :: ptr
@@ -232,9 +238,12 @@ MODULE mo_optimization_types
 
     integer(i4) :: i
 
+    ! ToDo: loop -> subroutine get_id
+    ! i = this%get_id(name)
     do i = 1, size(this%opti_vars)
       if (this%opti_vars(i)%name == name) then
         ptr => this%opti_vars(i)%data_1d
+        ! ToDo: exit
       end if
     end do
   end subroutine opti_sim_t_set_pointer_1d
