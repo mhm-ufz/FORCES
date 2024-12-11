@@ -1,12 +1,12 @@
 module test_mo_sce
-  
+
   use funit
   use mo_kind,             only: i4, i8, dp
   use mo_sce,              only: sce
-  use mo_opt_functions,    only: eval_dummy, ackley_objective, griewank_objective
-  use mo_optimization_utils, only: eval_interface, objective_interface
+  use mo_opt_functions,    only: ackley, griewank
+  use mo_optimization_utils, only: function_optimizee
   use mo_message, only: error_message
-  
+
   implicit none
 
   real(dp), dimension(:),   allocatable :: pini
@@ -21,9 +21,8 @@ module test_mo_sce
   integer(i4)   :: n
   logical       :: parallel
 
-  procedure(eval_interface), pointer :: eval
-  procedure(objective_interface), pointer :: obj_func
-  
+  type(function_optimizee) :: objective
+
 contains
 
   @test
@@ -31,7 +30,7 @@ contains
 
     real(dp)                ::  t = 1.e-7_dp
     integer(i4)             :: iPar
-  
+
     ! Dimension of test function = number of parameters
     n = 30
 
@@ -51,10 +50,9 @@ contains
     mask(:) = .true.
     pini(:) = 0.5_dp
     parallel=.false.
-    eval => eval_dummy
-    obj_func => ackley_objective
-    opt  = sce(eval,       & ! Mandatory IN: eval function
-        obj_func,             & ! Mandatory IN: Objective function
+    objective%func_pointer => ackley
+    opt  = sce( &
+        objective,          & ! Mandatory INOUT: objective
         pini,               & ! Mandatory IN: initial guess
         prange,             & ! Mandatory IN: range for each parameter (min, max)
         mymaxn=30000_i8,    & ! Optional  IN: maximal number of function evaluations
@@ -97,7 +95,7 @@ contains
 
     write(*,*) ''
     write(*,*) 'number of function evaluations: neval = ', neval
-    write(*,*) 'best function value found:      bestf = ', obj_func(opt, eval)
+    write(*,*) 'best function value found:      bestf = ', objective%evaluate(opt)
     write(*,*) 'global minimal function value:  optf  = ', 0.0_dp
     write(*,*) ''
 
@@ -116,13 +114,13 @@ contains
     end if
 
     ! Check restart
-  
+
     bestf   = 0.
     neval   = 0
     history = 0.
 
-    opt = sce(eval,       & ! Mandatory IN  : Objective function
-            obj_func,             & ! Mandatory IN: Objective function
+    opt  = sce( &
+        objective,          & ! Mandatory INOUT: objective
         pini,               & ! Mandatory IN  : initial guess
         prange,             & ! Mandatory IN  : range for each parameter (min, max)
         restart=.true.,     & ! Do the restart
@@ -134,7 +132,7 @@ contains
 
     write(*,*) ''
     write(*,*) 'number of function evaluations: neval = ', neval
-    write(*,*) 'best function value found:      bestf = ', obj_func(opt, eval)
+    write(*,*) 'best function value found:      bestf = ', objective%evaluate(opt)
     write(*,*) 'global minimal function value:  optf  = ', 0.0_dp
     write(*,*) ''
 
@@ -159,7 +157,7 @@ contains
 
     real(dp)                ::  t = 1.e-7_dp
     integer(i4)             ::  iPar
-  
+
     ! Dimension of test function = number of parameters
     n = 3
 
@@ -179,10 +177,9 @@ contains
     mask(:) = .true.
     pini(:) = 0.5_dp
     parallel=.false.
-    eval => eval_dummy
-    obj_func => griewank_objective
-    opt  = sce(eval,       & ! Mandatory IN: eval function
-        obj_func,             & ! Mandatory IN: Objective function
+    objective%func_pointer => griewank
+    opt  = sce( &
+        objective,          & ! Mandatory INOUT: objective
         pini,               & ! Mandatory IN: initial guess
         prange,             & ! Mandatory IN: range for each parameter (min, max)
         mymaxn=30000_i8,    & ! Optional  IN: maximal number of function evaluations
@@ -225,7 +222,7 @@ contains
 
     write(*,*) ''
     write(*,*) 'number of function evaluations: neval = ', neval
-    write(*,*) 'best function value found:      bestf = ', obj_func(opt, eval)
+    write(*,*) 'best function value found:      bestf = ', objective%evaluate(opt)
     write(*,*) 'global minimal function value:  optf  = ', 0.0_dp
     write(*,*) ''
 
@@ -244,13 +241,13 @@ contains
     end if
 
     ! Check restart
-  
+
     bestf   = 0.
     neval   = 0
     history = 0.
 
-    opt = sce(eval,       & ! Mandatory IN  : Objective function
-            obj_func,             & ! Mandatory IN: Objective function
+    opt  = sce( &
+        objective,          & ! Mandatory INOUT: objective
         pini,               & ! Mandatory IN  : initial guess
         prange,             & ! Mandatory IN  : range for each parameter (min, max)
         restart=.true.,     & ! Do the restart
@@ -262,7 +259,7 @@ contains
 
     write(*,*) ''
     write(*,*) 'number of function evaluations: neval = ', neval
-    write(*,*) 'best function value found:      bestf = ', obj_func(opt, eval)
+    write(*,*) 'best function value found:      bestf = ', objective%evaluate(opt)
     write(*,*) 'global minimal function value:  optf  = ', 0.0_dp
     write(*,*) ''
 
@@ -281,5 +278,5 @@ contains
     deallocate(pini, prange, opt, mask)
 
   end subroutine test_sce_griewank
-  
+
 end module test_mo_sce
