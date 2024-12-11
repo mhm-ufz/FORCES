@@ -1842,7 +1842,6 @@ CONTAINS
     use mo_xor4096, only : n_save_state
     use iso_fortran_env, only : output_unit
     use mo_utils, only : is_finite
-    use mo_optimization_utils, only : eval_interface, objective_interface
 #ifdef MPI
     use mpi_f08
 #endif
