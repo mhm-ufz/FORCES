@@ -10,6 +10,7 @@
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_sce
+  use mo_optimization_utils, only : optimizee
 
   IMPLICIT NONE
 
@@ -48,26 +49,27 @@ MODULE mo_sce
   !!                     Rainfall-runoff Models' by Duan, Q., S. Sorooshian, and V.K. Gupta,
   !!                     Water Resources Research, Vol 28(4), pp.1015-1031, 1992.\n
   !!                  \n
-  !!                 The function to be minimized is the first argument of DDS and must be defined as \n
+  !!                 The function to be minimized is the first argument of SCE and must be defined as \n
   !!                 \code{.f90}
-  !!                     function functn(p)
-  !!                          use mo_kind, only: dp
-  !!                          implicit none
-  !!                          real(dp), dimension(:), intent(in) :: p
-  !!                          real(dp) :: functn
-  !!                     end function functn
+  !!                       use mo_optimization_utils, only: optimizee
+  !!                       type, extends(optimizee) :: your_optimizee
+  !!                       contains
+  !!                         ! to be implemented with signature: your_evaluate(self, parameters, sigma, stddev_new, likeli_new)
+  !!                         procedure :: evaluate => your_evaluate
+  !!                       end type function_optimizee
   !!                 \endcode
   !!
   !!        \b Example
   !!        \code{.f90}
   !!         use mo_opt_functions, only: griewank
-  !!
+  !!         use mo_optimization_utils, only: function_optimizee
+  !!         type(function_optimizee) :: objective
   !!         prange(:,1) = (/ -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0 /)
   !!         prange(:,2) = (/ 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0 /)
   !!         pini        = (/ -.226265E+01, -.130187E+01, -.151219E+01, 0.133983E+00, 0.988159E+00, &
   !!                            -.495074E+01, -.126574E+02, 0.572684E+00, 0.303864E+01, 0.343031E+01 /)
-  !!
-  !!         opt = sce(griewank, pini, prange)
+  !!         objective%func_pointer => griewank
+  !!         opt = sce(objective, pini, prange)
   !!        \endcode
   !!         -> see also example in test directory
   !!
@@ -76,12 +78,11 @@ MODULE mo_sce
   !!              Effective and Efficient Global Optimization for Conceptual Rainfall-runoff Models
   !!              Water Resources Research, Vol 28(4), pp.1015-1031, 1992.
   !!
-  !>        \param[in] "real(dp) :: functn(p)"               Function on which to search the optimum
   !>        \param[in] "real(dp) :: pini(:)"                 inital value of decision variables
   !>        \param[in] "real(dp) :: prange(size(pini),2)"    Min/max range of decision variables
   !
   !     INTENT(INOUT)
-  !         None
+  !>        \param[inout] "class(optimizee) :: objective"               Objective to search the optimum
 
   !     INTENT(OUT)
   !         None
@@ -209,7 +210,7 @@ MODULE mo_sce
 
 CONTAINS
 
-  function sce(eval, functn, pini, prange, & ! IN
+  function sce(objective, pini, prange, & ! IN
           mymaxn, mymaxit, mykstop, mypcento, mypeps, myseed, & ! Optional IN
           myngs, mynpg, mynps, mynspl, mymings, myiniflg, myprint, & ! Optional IN
           mymask, myalpha, mybeta, & ! Optional IN
@@ -229,15 +230,13 @@ CONTAINS
     !$ use omp_lib,      only: OMP_GET_THREAD_NUM, OMP_GET_NUM_THREADS
     use iso_fortran_env, only : output_unit, error_unit
     use mo_utils, only : is_finite, special_value
-    use mo_optimization_utils, only : eval_interface, objective_interface
 #ifdef MPI
     use mpi_f08
 #endif
 
     implicit none
     !
-    procedure(eval_interface), INTENT(IN), POINTER :: eval
-    procedure(objective_interface), intent(in), pointer :: functn
+    class(optimizee), INTENT(inout) :: objective
     real(dp), dimension(:), intent(in) :: pini        ! initial parameter set
     real(dp), dimension(:, :), intent(in) :: prange      ! lower and upper bound on parameters
     !
@@ -702,10 +701,10 @@ CONTAINS
       end do
 #endif
       if (.not. maxit) then
-        fpini = functn(pini, eval)
+        fpini = objective%evaluate(pini)
         history_tmp(1) = fpini
       else
-        fpini = -functn(pini, eval)
+        fpini = -objective%evaluate(pini)
         history_tmp(1) = -fpini
       end if
 
@@ -753,9 +752,9 @@ CONTAINS
         end do
 #endif
         if (.not. maxit) then
-          xf(1) = functn(xx, eval)
+          xf(1) = objective%evaluate(xx)
         else
-          xf(1) = -functn(xx, eval)
+          xf(1) = -objective%evaluate(xx)
         end if
       end if
       !
@@ -790,10 +789,10 @@ CONTAINS
           end do
 #endif
           if (.not. maxit) then
-            xf(ii) = functn(xx, eval)
+            xf(ii) = objective%evaluate(xx)
             history_tmp(ii) = xf(ii) ! min(history_tmp(ii-1),xf(ii)) --> will be sorted later
           else
-            xf(ii) = -functn(xx, eval)
+            xf(ii) = -objective%evaluate(xx)
             history_tmp(ii) = -xf(ii) ! max(history_tmp(ii-1),-xf(ii)) --> will be sorted later
           end if
         end do
@@ -823,11 +822,11 @@ CONTAINS
           end do
 #endif
           if (.not. maxit) then
-            xf(ii) = functn(xx, eval)
+            xf(ii) = objective%evaluate(xx)
             icall = icall + 1_i8
             history_tmp(icall) = xf(ii) ! min(history_tmp(icall-1),xf(ii)) --> will be sorted later
           else
-            xf(ii) = -functn(xx, eval)
+            xf(ii) = -objective%evaluate(xx)
             icall = icall + 1_i8
             history_tmp(icall) = -xf(ii) ! max(history_tmp(icall-1),-xf(ii)) --> will be sorted later
           end if
@@ -1105,10 +1104,10 @@ CONTAINS
             ihistory_tmp = history_tmp
 #ifdef MPI
             call cce(s(1 : nps, 1 : nn), sf(1 : nps), bl(1 : nn), bu(1 : nn), maskpara, xnstd(1 : nn), &
-                    iicall, maxn, maxit, save_state_gauss(ithread, :), functn, eval, alpha, beta, ihistory_tmp, idot, comm)
+                    iicall, maxn, maxit, save_state_gauss(ithread, :), objective, alpha, beta, ihistory_tmp, idot, comm)
 #else
             call cce(s(1 : nps, 1 : nn), sf(1 : nps), bl(1 : nn), bu(1 : nn), maskpara, xnstd(1 : nn), &
-                    iicall, maxn, maxit, save_state_gauss(ithread, :), functn, eval, alpha, beta, ihistory_tmp, idot)
+                    iicall, maxn, maxit, save_state_gauss(ithread, :), objective, alpha, beta, ihistory_tmp, idot)
 #endif
             history_tmp(icall + 1 : icall + (iicall - icall_merk)) = ihistory_tmp(icall_merk + 1 : iicall)
             icall = icall + (iicall - icall_merk)
@@ -1233,10 +1232,10 @@ CONTAINS
             !  use the sub-complex to generate new point(s)
 #ifdef MPI
             call cce(s(1 : nps, 1 : nn), sf(1 : nps), bl(1 : nn), bu(1 : nn), maskpara, xnstd(1 : nn), &
-                    icall, maxn, maxit, save_state_gauss(ithread, :), functn, eval, alpha, beta, history_tmp, idot, comm)
+                    icall, maxn, maxit, save_state_gauss(ithread, :), objective, alpha, beta, history_tmp, idot, comm)
 #else
             call cce(s(1 : nps, 1 : nn), sf(1 : nps), bl(1 : nn), bu(1 : nn), maskpara, xnstd(1 : nn), &
-                    icall, maxn, maxit, save_state_gauss(ithread, :), functn, eval, alpha, beta, history_tmp, idot)
+                    icall, maxn, maxit, save_state_gauss(ithread, :), objective, alpha, beta, history_tmp, idot)
 #endif
             !
             !  if the sub-complex is accepted, replace the new sub-complex
@@ -1827,7 +1826,7 @@ CONTAINS
 
   end subroutine getpnt
 
-  subroutine cce(s, sf, bl, bu, maskpara, xnstd, icall, maxn, maxit, save_state_gauss, functn, eval, &
+  subroutine cce(s, sf, bl, bu, maskpara, xnstd, icall, maxn, maxit, save_state_gauss, objective, &
           alpha, beta, history, idot &
 #ifdef MPI
           , comm &
@@ -1862,8 +1861,7 @@ CONTAINS
     integer(i8), intent(in) :: maxn             ! maximal number of function evaluations allowed
     logical, intent(in) :: maxit            ! minimization (true) or maximization (false)
     integer(i8), dimension(n_save_state), intent(inout) :: save_state_gauss ! seed for random number generation
-    procedure(objective_interface), intent(in), pointer :: functn
-    procedure(eval_interface), INTENT(IN), POINTER :: eval
+    class(optimizee), intent(inout) :: objective
     real(dp), intent(in) :: alpha   ! parameter for reflection steps
     real(dp), intent(in) :: beta    ! parameter for contraction steps
     real(dp), dimension(maxn), intent(inout) :: history ! history of best function value
@@ -1947,11 +1945,11 @@ CONTAINS
       end do
 #endif
     if (.not. maxit) then
-      fnew = functn(snew, eval)
+      fnew = objective%evaluate(snew)
       icall = icall + 1_i8
       history(icall) = min(history(icall - 1), fnew)
     else
-      fnew = -functn(snew, eval)
+      fnew = -objective%evaluate(snew)
       icall = icall + 1_i8
       history(icall) = max(history(icall - 1), -fnew)
     end if
@@ -1980,11 +1978,11 @@ CONTAINS
       end do
 #endif
       if (.not. maxit) then
-        fnew = functn(snew, eval)
+        fnew = objective%evaluate(snew)
         icall = icall + 1_i8
         history(icall) = min(history(icall - 1), fnew)
       else
-        fnew = -functn(snew, eval)
+        fnew = -objective%evaluate(snew)
         icall = icall + 1_i8
         history(icall) = max(history(icall - 1), -fnew)
       end if
@@ -2011,11 +2009,11 @@ CONTAINS
       end do
 #endif
         if (.not. maxit) then
-          fnew = functn(snew, eval)
+          fnew = objective%evaluate(snew)
           icall = icall + 1_i8
           history(icall) = min(history(icall - 1), fnew)
         else
-          fnew = -functn(snew, eval)
+          fnew = -objective%evaluate(snew)
           icall = icall + 1_i8
           history(icall) = max(history(icall - 1), -fnew)
         end if
