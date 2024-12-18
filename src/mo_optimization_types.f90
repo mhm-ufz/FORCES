@@ -41,24 +41,24 @@ MODULE mo_optimization_types
   type sim_data_t
     type(sim_var_t), dimension(:), allocatable :: variables
     contains
-    procedure :: has => opti_sim_t_has
-    procedure :: add => opti_sim_t_add
+    procedure :: has => sim_data_has
+    procedure :: add => sim_data_add
     ! ToDo only interface public, other private
-    procedure :: opti_sim_t_allocate_1d
-    procedure :: opti_sim_t_allocate_2d
-    procedure :: opti_sim_t_allocate_3d
-    procedure :: opti_sim_t_allocate_4d
-    procedure :: opti_sim_t_allocate_5d
-    procedure :: opti_sim_t_set_pointer_1d
-    procedure :: opti_sim_t_set_pointer_2d
-    procedure :: opti_sim_t_set_pointer_3d
-    procedure :: opti_sim_t_set_pointer_4d
-    procedure :: opti_sim_t_set_pointer_5d
+    procedure :: sim_data_allocate_1d
+    procedure :: sim_data_allocate_2d
+    procedure :: sim_data_allocate_3d
+    procedure :: sim_data_allocate_4d
+    procedure :: sim_data_allocate_5d
+    procedure :: sim_data_set_pointer_1d
+    procedure :: sim_data_set_pointer_2d
+    procedure :: sim_data_set_pointer_3d
+    procedure :: sim_data_set_pointer_4d
+    procedure :: sim_data_set_pointer_5d
     ! ToDo: destructor
-    generic   :: set_pointer => opti_sim_t_set_pointer_1d, opti_sim_t_set_pointer_2d, &
-      opti_sim_t_set_pointer_3d, opti_sim_t_set_pointer_4d, opti_sim_t_set_pointer_5d
-    generic   :: allocate => opti_sim_t_allocate_1d, opti_sim_t_allocate_2d, &
-      opti_sim_t_allocate_3d, opti_sim_t_allocate_4d, opti_sim_t_allocate_5d
+    generic   :: set_pointer => sim_data_set_pointer_1d, sim_data_set_pointer_2d, &
+      sim_data_set_pointer_3d, sim_data_set_pointer_4d, sim_data_set_pointer_5d
+    generic   :: allocate => sim_data_allocate_1d, sim_data_allocate_2d, &
+      sim_data_allocate_3d, sim_data_allocate_4d, sim_data_allocate_5d
   end type sim_data_t
 
   type sim_var_t
@@ -109,20 +109,20 @@ MODULE mo_optimization_types
   contains
 
   ! ToDo: When to charater(*) and character(256)?
-  pure logical function opti_sim_t_has(this, name)
+  pure logical function sim_data_has(this, name)
     class(sim_data_t), intent(in) :: this
     character(*), intent(in)    :: name
 
     integer(i4) :: i
 
-    opti_sim_t_has = .false.
+    sim_data_has = .false.
 
     do i = 1, size(this%variables)
-      if (trim(this%variables(i)%name) == trim(name)) opti_sim_t_has = .true.
+      if (trim(this%variables(i)%name) == trim(name)) sim_data_has = .true.
     end do
-  end function opti_sim_t_has
+  end function sim_data_has
 
-  subroutine opti_sim_t_add(this, name, dim, time_avg_selector)
+  subroutine sim_data_add(this, name, dim, time_avg_selector)
     class(sim_data_t), intent(inout) :: this
     character(*), intent(in)    :: name
     integer(i4), intent(in) :: dim
@@ -143,9 +143,9 @@ MODULE mo_optimization_types
       this%variables(1)=add_data
     end if
 
-  end subroutine opti_sim_t_add
+  end subroutine sim_data_add
 
-  subroutine opti_sim_t_allocate_1d(this, name, dim1)
+  subroutine sim_data_allocate_1d(this, name, dim1)
     class(sim_data_t), target, intent(inout) :: this
     character(*), intent(in)    :: name
     integer(i4), intent(in)  :: dim1
@@ -157,9 +157,9 @@ MODULE mo_optimization_types
         allocate(this%variables(i)%data_1d(dim1))
       end if
     end do
-  end subroutine opti_sim_t_allocate_1d
+  end subroutine sim_data_allocate_1d
 
-  subroutine opti_sim_t_allocate_2d(this, name, dim1, dim2)
+  subroutine sim_data_allocate_2d(this, name, dim1, dim2)
     class(sim_data_t), target, intent(inout) :: this
     character(*), intent(in)    :: name
     integer(i4), intent(in)  :: dim1
@@ -172,9 +172,9 @@ MODULE mo_optimization_types
         allocate(this%variables(i)%data_2d(dim1, dim2))
       end if
     end do
-  end subroutine opti_sim_t_allocate_2d
+  end subroutine sim_data_allocate_2d
 
-  subroutine opti_sim_t_allocate_3d(this, name, dim1, dim2, dim3)
+  subroutine sim_data_allocate_3d(this, name, dim1, dim2, dim3)
     class(sim_data_t), target, intent(inout) :: this
     character(*), intent(in)    :: name
     integer(i4), intent(in)  :: dim1
@@ -188,9 +188,9 @@ MODULE mo_optimization_types
         allocate(this%variables(i)%data_3d(dim1, dim2, dim3))
       end if
     end do
-  end subroutine opti_sim_t_allocate_3d
+  end subroutine sim_data_allocate_3d
 
-  subroutine opti_sim_t_allocate_4d(this, name, dim1, dim2, dim3, dim4)
+  subroutine sim_data_allocate_4d(this, name, dim1, dim2, dim3, dim4)
     class(sim_data_t), target, intent(inout) :: this
     character(*), intent(in)    :: name
     integer(i4), intent(in)  :: dim1
@@ -205,9 +205,9 @@ MODULE mo_optimization_types
         allocate(this%variables(i)%data_4d(dim1, dim2, dim3, dim4))
       end if
     end do
-  end subroutine opti_sim_t_allocate_4d
+  end subroutine sim_data_allocate_4d
 
-  subroutine opti_sim_t_allocate_5d(this, name, dim1, dim2, dim3, dim4, dim5)
+  subroutine sim_data_allocate_5d(this, name, dim1, dim2, dim3, dim4, dim5)
     class(sim_data_t), target, intent(inout) :: this
     character(*), intent(in)    :: name
     integer(i4), intent(in)  :: dim1
@@ -223,11 +223,11 @@ MODULE mo_optimization_types
         allocate(this%variables(i)%data_5d(dim1, dim2, dim3, dim4, dim5))
       end if
     end do
-  end subroutine opti_sim_t_allocate_5d
+  end subroutine sim_data_allocate_5d
 
   ! ToDo: generate with fypp
   ! ToDo: switch ptr with name
-  subroutine opti_sim_t_set_pointer_1d(this, ptr, name)
+  subroutine sim_data_set_pointer_1d(this, ptr, name)
     class(sim_data_t), target, intent(in) :: this
     real(dp), dimension(:), pointer, intent(inout) :: ptr
     character(*), intent(in)    :: name
@@ -242,9 +242,9 @@ MODULE mo_optimization_types
         ! ToDo: exit
       end if
     end do
-  end subroutine opti_sim_t_set_pointer_1d
+  end subroutine sim_data_set_pointer_1d
 
-  subroutine opti_sim_t_set_pointer_2d(this, ptr, name)
+  subroutine sim_data_set_pointer_2d(this, ptr, name)
     class(sim_data_t), target, intent(in) :: this
     real(dp), dimension(:,:), pointer :: ptr
     character(*), intent(in)    :: name
@@ -256,9 +256,9 @@ MODULE mo_optimization_types
         ptr => this%variables(i)%data_2d
       end if
     end do
-  end subroutine opti_sim_t_set_pointer_2d
+  end subroutine sim_data_set_pointer_2d
 
-  subroutine opti_sim_t_set_pointer_3d(this, ptr, name)
+  subroutine sim_data_set_pointer_3d(this, ptr, name)
     class(sim_data_t), target, intent(in) :: this
     real(dp), dimension(:,:,:), pointer, intent(inout) :: ptr
     character(*), intent(in)    :: name
@@ -270,9 +270,9 @@ MODULE mo_optimization_types
         ptr => this%variables(i)%data_3d
       end if
     end do
-  end subroutine opti_sim_t_set_pointer_3d
+  end subroutine sim_data_set_pointer_3d
 
-  subroutine opti_sim_t_set_pointer_4d(this, ptr, name)
+  subroutine sim_data_set_pointer_4d(this, ptr, name)
     class(sim_data_t), target, intent(in) :: this
     real(dp), dimension(:,:,:,:), pointer, intent(inout) :: ptr
     character(*), intent(in)    :: name
@@ -284,9 +284,9 @@ MODULE mo_optimization_types
         ptr => this%variables(i)%data_4d
       end if
     end do
-  end subroutine opti_sim_t_set_pointer_4d
+  end subroutine sim_data_set_pointer_4d
 
-  subroutine opti_sim_t_set_pointer_5d(this, ptr, name)
+  subroutine sim_data_set_pointer_5d(this, ptr, name)
     class(sim_data_t), target, intent(in) :: this
     real(dp), dimension(:,:,:,:,:), pointer, intent(inout) :: ptr
     character(*), intent(in)    :: name
@@ -298,7 +298,7 @@ MODULE mo_optimization_types
         ptr => this%variables(i)%data_5d
       end if
     end do
-  end subroutine opti_sim_t_set_pointer_5d
+  end subroutine sim_data_set_pointer_5d
 
   ! ToDo: Pass only shape instead of optidataObs
   subroutine optidata_sim_init(this, optidataObs)
