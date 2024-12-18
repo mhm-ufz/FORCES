@@ -5623,7 +5623,7 @@ CONTAINS
   function ackley_objective(parameterset, eval, arg1, arg2, arg3)
 
     use mo_constants, only: pi_dp
-    use mo_optimization_types, only : opti_sim_t, config_t
+    use mo_optimization_types, only : sim_data_t, config_t
 
     implicit none
 
@@ -5639,7 +5639,7 @@ CONTAINS
     real(dp), parameter :: b = 0.2_dp
     real(dp), parameter :: c = 2.0_dp*pi_dp
     real(dp) :: s1, s2
-    type(opti_sim_t), pointer, dimension(:) :: opti_sim
+    type(sim_data_t), pointer, dimension(:) :: opti_sim
     type(config_t) :: config
 
     allocate(opti_sim(1))
@@ -5659,7 +5659,7 @@ CONTAINS
   function griewank_objective(parameterset, eval, arg1, arg2, arg3)
 
     use mo_kind, only: i4, dp
-    use mo_optimization_types, only : opti_sim_t, config_t
+    use mo_optimization_types, only : sim_data_t, config_t
 
     implicit none
 
@@ -5673,7 +5673,7 @@ CONTAINS
     integer(i4) :: nopt
     integer(i4) :: j
     real(dp)    :: d, u1, u2
-    type(opti_sim_t), pointer, dimension(:) :: opti_sim
+    type(sim_data_t), pointer, dimension(:) :: opti_sim
     type(config_t) :: config
 
     config%parameters = parameterset
@@ -5701,12 +5701,12 @@ CONTAINS
 
   subroutine eval_dummy(config, opti_sim)
     use mo_kind, only : dp
-    use mo_optimization_types, only : opti_sim_t, config_t, optidata
+    use mo_optimization_types, only : sim_data_t, config_t, optidata
 
     implicit none
 
     type(config_t), intent(in) :: config
-    type(opti_sim_t), dimension(:), pointer, optional, intent(inout) :: opti_sim
+    type(sim_data_t), dimension(:), pointer, optional, intent(inout) :: opti_sim
 
     real(dp), dimension(:, :), pointer :: dummyDataPtr_2d
     real(dp), dimension(:), pointer :: dummyDataPtr_1d

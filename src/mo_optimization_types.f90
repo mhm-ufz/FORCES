@@ -12,7 +12,7 @@ MODULE mo_optimization_types
 
   IMPLICIT NONE
 
-  public :: optidata, optidata_sim, config_t, opti_sim_t
+  public :: optidata, optidata_sim, config_t, sim_data_t
 
   private
 
@@ -38,12 +38,8 @@ MODULE mo_optimization_types
 
 ! ToDo: documentation like mo_cli
 
-!  type opti_sim_t
-!    type(optidata_sim), target, dimension(:), allocatable :: data
-!    character(256)                                        :: name
-!  end type opti_sim_t
-  type opti_sim_t
-    type(opti_sim_single_t), dimension(:), allocatable :: opti_vars
+  type sim_data_t
+    type(sim_var_t), dimension(:), allocatable :: variables
     contains
     procedure :: has => opti_sim_t_has
     procedure :: add => opti_sim_t_add
@@ -63,21 +59,21 @@ MODULE mo_optimization_types
       opti_sim_t_set_pointer_3d, opti_sim_t_set_pointer_4d, opti_sim_t_set_pointer_5d
     generic   :: allocate => opti_sim_t_allocate_1d, opti_sim_t_allocate_2d, &
       opti_sim_t_allocate_3d, opti_sim_t_allocate_4d, opti_sim_t_allocate_5d
-  end type opti_sim_t
+  end type sim_data_t
 
-  type opti_sim_single_t
+  type sim_var_t
     real(dp), dimension(:),             allocatable :: data_1d
     real(dp), dimension(:, :),          allocatable :: data_2d
     real(dp), dimension(:, :, :),       allocatable :: data_3d
     real(dp), dimension(:, :, :, :),    allocatable :: data_4d
     real(dp), dimension(:, :, :, :, :), allocatable :: data_5d
     character(256)                                  :: name
-    integer(i4)                                     :: dimen
+    integer(i4)                                     :: ndim
     integer(i4)                                     :: time_avg_selector = 1_i4 !< time averaging: -3 yearly, -2 monthly, -1 daily,
                                                                                 !< 0 total, n every n timestep
     ! contains
     ! procedure :: add => opti_sim_single_t_add
-  end type opti_sim_single_t
+  end type sim_var_t
 
 
   !> \brief optional data, such as sm, neutrons, et, tws
@@ -114,72 +110,72 @@ MODULE mo_optimization_types
 
   ! ToDo: When to charater(*) and character(256)?
   pure logical function opti_sim_t_has(this, name)
-    class(opti_sim_t), intent(in) :: this
+    class(sim_data_t), intent(in) :: this
     character(*), intent(in)    :: name
 
     integer(i4) :: i
 
     opti_sim_t_has = .false.
 
-    do i = 1, size(this%opti_vars)
-      if (trim(this%opti_vars(i)%name) == trim(name)) opti_sim_t_has = .true.
+    do i = 1, size(this%variables)
+      if (trim(this%variables(i)%name) == trim(name)) opti_sim_t_has = .true.
     end do
   end function opti_sim_t_has
 
   subroutine opti_sim_t_add(this, name, dim, time_avg_selector)
-    class(opti_sim_t), intent(inout) :: this
+    class(sim_data_t), intent(inout) :: this
     character(*), intent(in)    :: name
     integer(i4), intent(in) :: dim
     integer(i4), optional, intent(in) :: time_avg_selector
 
-    type(opti_sim_single_t) :: add_data
+    type(sim_var_t) :: add_data
 
     ! ToDo: Why name in type 256 and in input var *?
     add_data%name = name
-    add_data%dimen = dim
+    add_data%ndim = dim
     if (present(time_avg_selector)) add_data%time_avg_selector = time_avg_selector
     ! ToDo: is the if case needed?
     ! Tested: the else case works
-    if (allocated(this%opti_vars)) then
-      this%opti_vars = [this%opti_vars, add_data]
+    if (allocated(this%variables)) then
+      this%variables = [this%variables, add_data]
     else
-      allocate(this%opti_vars(1))
-      this%opti_vars(1)=add_data
+      allocate(this%variables(1))
+      this%variables(1)=add_data
     end if
 
   end subroutine opti_sim_t_add
 
   subroutine opti_sim_t_allocate_1d(this, name, dim1)
-    class(opti_sim_t), target, intent(inout) :: this
+    class(sim_data_t), target, intent(inout) :: this
     character(*), intent(in)    :: name
     integer(i4), intent(in)  :: dim1
 
     integer(i4) :: i
 
-    do i = 1, size(this%opti_vars)
-      if (this%opti_vars(i)%name == name) then
-        allocate(this%opti_vars(i)%data_1d(dim1))
+    do i = 1, size(this%variables)
+      if (this%variables(i)%name == name) then
+        allocate(this%variables(i)%data_1d(dim1))
       end if
     end do
   end subroutine opti_sim_t_allocate_1d
 
   subroutine opti_sim_t_allocate_2d(this, name, dim1, dim2)
-    class(opti_sim_t), target, intent(inout) :: this
+    class(sim_data_t), target, intent(inout) :: this
     character(*), intent(in)    :: name
     integer(i4), intent(in)  :: dim1
     integer(i4), intent(in)  :: dim2
 
     integer(i4) :: i
 
-    do i = 1, size(this%opti_vars)
-      if (this%opti_vars(i)%name == name) then
-        allocate(this%opti_vars(i)%data_2d(dim1, dim2))
+    do i = 1, size(this%variables)
+      if (this%variables(i)%name == name) then
+        allocate(this%variables(i)%data_2d(dim1, dim2))
       end if
     end do
   end subroutine opti_sim_t_allocate_2d
 
   subroutine opti_sim_t_allocate_3d(this, name, dim1, dim2, dim3)
-    class(opti_sim_t), target, intent(inout) :: this
+    class(sim_data_t), target, intent(inout) :: this
     character(*), intent(in)    :: name
     integer(i4), intent(in)  :: dim1
     integer(i4), intent(in)  :: dim2
@@ -187,15 +183,15 @@ MODULE mo_optimization_types
 
     integer(i4) :: i
 
-    do i = 1, size(this%opti_vars)
-      if (this%opti_vars(i)%name == name) then
-        allocate(this%opti_vars(i)%data_3d(dim1, dim2, dim3))
+    do i = 1, size(this%variables)
+      if (this%variables(i)%name == name) then
+        allocate(this%variables(i)%data_3d(dim1, dim2, dim3))
       end if
     end do
   end subroutine opti_sim_t_allocate_3d
 
   subroutine opti_sim_t_allocate_4d(this, name, dim1, dim2, dim3, dim4)
-    class(opti_sim_t), target, intent(inout) :: this
+    class(sim_data_t), target, intent(inout) :: this
     character(*), intent(in)    :: name
     integer(i4), intent(in)  :: dim1
     integer(i4), intent(in)  :: dim2
@@ -204,15 +200,15 @@ MODULE mo_optimization_types
 
     integer(i4) :: i
 
-    do i = 1, size(this%opti_vars)
-      if (this%opti_vars(i)%name == name) then
-        allocate(this%opti_vars(i)%data_4d(dim1, dim2, dim3, dim4))
+    do i = 1, size(this%variables)
+      if (this%variables(i)%name == name) then
+        allocate(this%variables(i)%data_4d(dim1, dim2, dim3, dim4))
       end if
     end do
   end subroutine opti_sim_t_allocate_4d
 
   subroutine opti_sim_t_allocate_5d(this, name, dim1, dim2, dim3, dim4, dim5)
-    class(opti_sim_t), target, intent(inout) :: this
+    class(sim_data_t), target, intent(inout) :: this
     character(*), intent(in)    :: name
     integer(i4), intent(in)  :: dim1
     integer(i4), intent(in)  :: dim2
@@ -222,9 +218,9 @@ MODULE mo_optimization_types
 
     integer(i4) :: i
 
-    do i = 1, size(this%opti_vars)
-      if (this%opti_vars(i)%name == name) then
-        allocate(this%opti_vars(i)%data_5d(dim1, dim2, dim3, dim4, dim5))
+    do i = 1, size(this%variables)
+      if (this%variables(i)%name == name) then
+        allocate(this%variables(i)%data_5d(dim1, dim2, dim3, dim4, dim5))
       end if
     end do
   end subroutine opti_sim_t_allocate_5d
@@ -232,7 +228,7 @@ MODULE mo_optimization_types
   ! ToDo: generate with fypp
   ! ToDo: switch ptr with name
   subroutine opti_sim_t_set_pointer_1d(this, ptr, name)
-    class(opti_sim_t), target, intent(in) :: this
+    class(sim_data_t), target, intent(in) :: this
     real(dp), dimension(:), pointer, intent(inout) :: ptr
     character(*), intent(in)    :: name
 
@@ -240,66 +236,66 @@ MODULE mo_optimization_types
 
     ! ToDo: loop -> subroutine get_id
     ! i = this%get_id(name)
-    do i = 1, size(this%opti_vars)
-      if (this%opti_vars(i)%name == name) then
-        ptr => this%opti_vars(i)%data_1d
+    do i = 1, size(this%variables)
+      if (this%variables(i)%name == name) then
+        ptr => this%variables(i)%data_1d
         ! ToDo: exit
       end if
     end do
   end subroutine opti_sim_t_set_pointer_1d
 
   subroutine opti_sim_t_set_pointer_2d(this, ptr, name)
-    class(opti_sim_t), target, intent(in) :: this
+    class(sim_data_t), target, intent(in) :: this
     real(dp), dimension(:,:), pointer :: ptr
     character(*), intent(in)    :: name
 
     integer(i4) :: i
 
-    do i = 1, size(this%opti_vars)
-      if (this%opti_vars(i)%name == name) then
-        ptr => this%opti_vars(i)%data_2d
+    do i = 1, size(this%variables)
+      if (this%variables(i)%name == name) then
+        ptr => this%variables(i)%data_2d
       end if
     end do
   end subroutine opti_sim_t_set_pointer_2d
 
   subroutine opti_sim_t_set_pointer_3d(this, ptr, name)
-    class(opti_sim_t), target, intent(in) :: this
+    class(sim_data_t), target, intent(in) :: this
     real(dp), dimension(:,:,:), pointer, intent(inout) :: ptr
     character(*), intent(in)    :: name
 
     integer(i4) :: i
 
-    do i = 1, size(this%opti_vars)
-      if (this%opti_vars(i)%name == name) then
-        ptr => this%opti_vars(i)%data_3d
+    do i = 1, size(this%variables)
+      if (this%variables(i)%name == name) then
+        ptr => this%variables(i)%data_3d
       end if
     end do
   end subroutine opti_sim_t_set_pointer_3d
 
   subroutine opti_sim_t_set_pointer_4d(this, ptr, name)
-    class(opti_sim_t), target, intent(in) :: this
+    class(sim_data_t), target, intent(in) :: this
     real(dp), dimension(:,:,:,:), pointer, intent(inout) :: ptr
     character(*), intent(in)    :: name
 
     integer(i4) :: i
 
-    do i = 1, size(this%opti_vars)
-      if (this%opti_vars(i)%name == name) then
-        ptr => this%opti_vars(i)%data_4d
+    do i = 1, size(this%variables)
+      if (this%variables(i)%name == name) then
+        ptr => this%variables(i)%data_4d
       end if
     end do
   end subroutine opti_sim_t_set_pointer_4d
 
   subroutine opti_sim_t_set_pointer_5d(this, ptr, name)
-    class(opti_sim_t), target, intent(in) :: this
+    class(sim_data_t), target, intent(in) :: this
     real(dp), dimension(:,:,:,:,:), pointer, intent(inout) :: ptr
     character(*), intent(in)    :: name
 
     integer(i4) :: i
 
-    do i = 1, size(this%opti_vars)
-      if (this%opti_vars(i)%name == name) then
-        ptr => this%opti_vars(i)%data_5d
+    do i = 1, size(this%variables)
+      if (this%variables(i)%name == name) then
+        ptr => this%variables(i)%data_5d
       end if
     end do
   end subroutine opti_sim_t_set_pointer_5d

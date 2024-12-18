@@ -225,7 +225,7 @@ CONTAINS
 
     use mo_kind, only: dp, i4
     use mo_optimization_utils, only: eval_interface
-    use mo_optimization_types, only : opti_sim_t, config_t
+    use mo_optimization_types, only : sim_data_t, config_t
 
     implicit none
 
@@ -236,7 +236,7 @@ CONTAINS
     real(dp), optional, intent(out) :: arg3
     real(dp) :: cost_objective
 
-    type(opti_sim_t), dimension(:), pointer :: opti_sim
+    type(sim_data_t), dimension(:), pointer :: opti_sim
     type(config_t) :: config
     REAL(DP), DIMENSION(6,2)            :: meas
     REAL(DP), DIMENSION(6)              :: calc

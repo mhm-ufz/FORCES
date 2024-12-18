@@ -47,7 +47,7 @@ CONTAINS
   ! -------------------------------
   !> \brief A Likelihood function: "real" likelihood  (sigma is an error model or given)
   function likelihood_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
-    use mo_optimization_types, only : opti_sim_t, config_t
+    use mo_optimization_types, only : sim_data_t, config_t
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
     REAL(DP),               INTENT(IN), optional  :: stddev_in        ! standard deviation of data
@@ -59,7 +59,7 @@ CONTAINS
     ! local
     REAL(DP), DIMENSION(size(meas,1))   :: errors
     real(dp), pointer :: runoff(:, :)
-    type(opti_sim_t), dimension(:), pointer :: opti_sim
+    type(sim_data_t), dimension(:), pointer :: opti_sim
     type(config_t) :: config
 
     config%parameters = paraset
@@ -77,7 +77,7 @@ CONTAINS
   ! -------------------------------
   !> \brief A Log-Likelihood function: "real" likelihood  (sigma is an error model or given)
   function loglikelihood_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
-    use mo_optimization_types, only : opti_sim_t, config_t
+    use mo_optimization_types, only : sim_data_t, config_t
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
     REAL(DP),               INTENT(IN), optional  :: stddev_in        ! standard deviation of data
@@ -89,7 +89,7 @@ CONTAINS
     ! local
     REAL(DP), DIMENSION(size(meas,1))   :: errors
     real(dp), pointer :: runoff(:, :)
-    type(opti_sim_t), dimension(:), pointer :: opti_sim
+    type(sim_data_t), dimension(:), pointer :: opti_sim
     type(config_t) :: config
 
     config%parameters = paraset
@@ -107,7 +107,7 @@ CONTAINS
   ! -------------------------------
   !> \brief A Likelihood function: "faked" likelihood (sigma is computed by obs vs model)
   function likelihood_stddev_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
-    use mo_optimization_types, only : opti_sim_t, config_t
+    use mo_optimization_types, only : sim_data_t, config_t
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
     REAL(DP),               INTENT(IN), optional  :: stddev_in        ! standard deviation of data
@@ -120,7 +120,7 @@ CONTAINS
     REAL(DP), DIMENSION(size(meas,1))   :: errors
     REAL(DP)                            :: stddev_err
     real(dp), pointer :: runoff(:, :)
-    type(opti_sim_t), dimension(:), pointer :: opti_sim
+    type(sim_data_t), dimension(:), pointer :: opti_sim
     type(config_t) :: config
 
     config%parameters = paraset
@@ -147,7 +147,7 @@ CONTAINS
   ! -------------------------------
   !> \brief A Log-Likelihood_stddev function: "faked" likelihood (sigma is computed by obs vs model)
   function loglikelihood_stddev_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
-    use mo_optimization_types, only : opti_sim_t, config_t
+    use mo_optimization_types, only : sim_data_t, config_t
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
     REAL(DP),               INTENT(IN), optional  :: stddev_in        ! standard deviation of data
@@ -160,7 +160,7 @@ CONTAINS
     REAL(DP), DIMENSION(size(meas,1))   :: errors
     REAL(DP)                            :: stddev_err
     real(dp), pointer :: runoff(:, :)
-    type(opti_sim_t), dimension(:), pointer :: opti_sim
+    type(sim_data_t), dimension(:), pointer :: opti_sim
     type(config_t) :: config
 
     config%parameters = paraset
@@ -189,11 +189,11 @@ CONTAINS
   subroutine model_dp(config, opti_sim)
 
     use mo_kind, only: dp
-    use mo_optimization_types, only : opti_sim_t, config_t
+    use mo_optimization_types, only : sim_data_t, config_t
     !! !$ USE omp_lib,    only: OMP_GET_THREAD_NUM
 
     type(config_t), intent(in) :: config
-    type(opti_sim_t), dimension(:), pointer, optional, intent(inout) :: opti_sim
+    type(sim_data_t), dimension(:), pointer, optional, intent(inout) :: opti_sim
     real(dp), pointer :: runoff(:, :)
 
     integer(i4) :: i, n
@@ -222,7 +222,7 @@ CONTAINS
     end do
     !$OMP end do
     !$OMP end parallel
-    
+
   end subroutine model_dp
 
   function data_dp()

@@ -24,9 +24,9 @@ module mo_optimization_utils
 
   abstract interface
     subroutine eval_interface(config, opti_sim)
-      use mo_optimization_types, only : config_t, opti_sim_t
+      use mo_optimization_types, only : config_t, sim_data_t
       type(config_t),                                    intent(in)    :: config
-      type(opti_sim_t), dimension(:), pointer, optional, intent(inout) :: opti_sim
+      type(sim_data_t), dimension(:), pointer, optional, intent(inout) :: opti_sim
     end subroutine
   end interface
 
