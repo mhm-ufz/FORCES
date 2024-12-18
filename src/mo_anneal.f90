@@ -44,7 +44,7 @@ MODULE mo_anneal
   USE mo_kind, ONLY : i4, i8, dp
   USE mo_utils, ONLY : le, ge
   USE mo_xor4096, ONLY : get_timeseed, xor4096, xor4096g, n_save_state
-  USE mo_optimization_utils, ONLY : eval_interface, objective_interface
+  USE mo_optimization_utils, ONLY : optimizee
 
   IMPLICIT NONE
 
@@ -61,15 +61,22 @@ MODULE mo_anneal
   !!
   !!        \b Example
   !!
-  !!        User defined function `cost_dp` which calculates the cost function value for a
+  !!        User defined extended type of optimizee `objective` which calculates the cost function value for a
   !!        parameter set (the interface given below has to be used for this function!).
   !!
   !!        \code{.f90}
+  !!        use mo_optimization_utils, only: optimizee
+  !!        type, extends(optimizee) :: your_optimizee
+  !!        contains
+  !!          ! to be implemented with signature: your_evaluate(self, parameters, sigma, stddev_new, likeli_new)
+  !!          procedure :: evaluate => your_evaluate
+  !!        end type function_optimizee
+  !!        type(your_optimizee) :: objective
   !!        para = (/ 1.0_dp , 2.0_dp /)
   !!        prange(1,:) = (/ 0.0_dp, 10.0_dp /)
   !!        prange(2,:) = (/ 0.0_dp, 50.0_dp /)
   !!
-  !!        parabest = anneal(cost_dp, para, prange)
+  !!        parabest = anneal(objective, para, prange)
   !!        \endcode
   !!
   !!        See also test folder for a detailed example, "test/test_mo_anneal".
@@ -85,8 +92,7 @@ MODULE mo_anneal
   !!           _Dynamically dimensioned search algorithm for computationally efficient watershed model calibration_.
   !!           WRR, 43(1), W01413, 2007.
   !!
-  !>        \param[in] "INTERFACE                   :: eval"   Interface calculating the eval function at a given point.
-  !>        \param[in] "INTERFACE                   :: cost"   Interface calculating the cost function at a given point.
+  !>        \param[inout] "class(optimizee) :: objective"               cost function to search the optimum
   !>        \param[in]  "real(dp),    dimension(:)       :: para"            Initial parameter set.
   !>        \param[in]  "real(dp), dimension(size(para),2), optional :: prange"
   !!                                                                         Lower and upper bound per parameter.
@@ -216,9 +222,7 @@ MODULE mo_anneal
   !!           Comput. Opt. and App. (2004).
   !!
   !>        \param[in] "real(dp),    dimension(:)   :: paraset"   Initial (valid) parameter set.
-  !>        \param[in] "INTERFACE                   :: eval"   Interface calculating the eval function at a given point.
-  !>        \param[in] "INTERFACE                   :: cost"   Interface calculating the cost function at a given point.
-  !>        \param[in] "INTERFACE                   :: prange_func"   Interface for functional ranges.
+  !>        \param[inout] "class(optimizee)         :: objective" cost function to search the optimum
   !>        \param[in] "real(dp)                    :: acc_goal"  Acceptance Ratio which has to be achieved.
   !>        \param[in] "real(dp), dimension(size(para),2), optional :: prange"
   !!                                                                         Lower and upper bound per parameter.
@@ -286,7 +290,7 @@ MODULE mo_anneal
 
 CONTAINS
 
-  FUNCTION anneal_dp(eval, cost, para, &   ! obligatory
+  FUNCTION anneal_dp(objective, para, &   ! obligatory
           prange, prange_func, &   ! optional IN: exactly one of both
           temp, Dt, nITERmax, Len, nST, eps, acc, &   ! optional IN
           seeds, printflag, maskpara, weight, &   ! optional IN
@@ -298,9 +302,7 @@ CONTAINS
           result(parabest)
 
     IMPLICIT NONE
-
-    procedure(eval_interface), INTENT(IN), POINTER :: eval
-    procedure(objective_interface), intent(in), pointer :: cost
+    class(optimizee), intent(inout) :: objective
 
     INTERFACE
       SUBROUTINE prange_func(paraset, iPar, rangePar)
@@ -542,24 +544,24 @@ CONTAINS
     else
       if (present(prange_func)) then
         if (present(undef_funcval)) then
-          T_in = GetTemperature(eval, cost, para, 0.95_dp, prange_func = prange_func, &
+          T_in = GetTemperature(objective, para, 0.95_dp, prange_func = prange_func, &
                   maskpara = maskpara_in, samplesize = 2_i4 * LEN_IN, &
                   seeds = seeds_in(1 : 2), printflag = printflag_in, &
                   maxit = ldummy, undef_funcval = undef_funcval)
         else
-          T_in = GetTemperature(eval, cost, para, 0.95_dp, prange_func = prange_func, &
+          T_in = GetTemperature(objective, para, 0.95_dp, prange_func = prange_func, &
                   maskpara = maskpara_in, samplesize = 2_i4 * LEN_IN, &
                   seeds = seeds_in(1 : 2), printflag = printflag_in, &
                   maxit = ldummy)
         end if
       else
         if (present(undef_funcval)) then
-          T_in = GetTemperature(eval, cost, para, 0.95_dp, prange = prange, &
+          T_in = GetTemperature(objective, para, 0.95_dp, prange = prange, &
                   maskpara = maskpara_in, samplesize = 2_i4 * LEN_IN, &
                   seeds = seeds_in(1 : 2), printflag = printflag_in, &
                   maxit = ldummy, undef_funcval = undef_funcval)
         else
-          T_in = GetTemperature(eval, cost, para, 0.95_dp, prange = prange, &
+          T_in = GetTemperature(objective, para, 0.95_dp, prange = prange, &
                   maskpara = maskpara_in, samplesize = 2_i4 * LEN_IN, &
                   seeds = seeds_in(1 : 2), printflag = printflag_in, &
                   maxit = ldummy)
@@ -650,7 +652,7 @@ CONTAINS
     DT0 = DT_IN
 
     ! Generate and evaluate the initial solution state
-    fo = cost(gamma(:)%old, eval) * maxit_in
+    fo = objective%evaluate(gamma(:)%old) * maxit_in
     if (abs(fo) .lt. tiny(0.0_dp)) fo = 0.0000001_dp * maxit_in
 
     file_write : if (present(tmp_file)) then
@@ -803,7 +805,7 @@ CONTAINS
         end select
 
         ! (2) Calculate new objective function value
-        fn = cost(gamma(:)%new, eval) * maxit_in
+        fn = objective%evaluate(gamma(:)%new) * maxit_in
         coststatus = .true.
         if (present(undef_funcval)) then
           if (abs(fn * maxit_in - undef_funcval) .lt. tiny(1.0_dp)) then
@@ -959,7 +961,7 @@ CONTAINS
 
     ! calculate cost function again (only for check and return values)
     parabest = gamma(:)%best
-    costbest = cost(parabest, eval) * maxit_in
+    costbest = objective%evaluate(parabest) * maxit_in
     if (present (funcbest)) then
       funcbest = costbest * maxit_in
     end if
@@ -988,7 +990,7 @@ CONTAINS
 
   END FUNCTION anneal_dp
 
-  real(dp) function GetTemperature_dp(eval, cost, paraset, acc_goal, &    ! obligatory
+  real(dp) function GetTemperature_dp(objective, paraset, acc_goal, &    ! obligatory
           prange, prange_func, &    ! optional IN: exactly one of both
           samplesize, maskpara, seeds, printflag, &    ! optional IN
           weight, maxit, undef_funcval                             &    ! optional IN
@@ -996,8 +998,7 @@ CONTAINS
     use mo_kind, only : dp, i4, i8
     implicit none
 
-    procedure(eval_interface), INTENT(IN), POINTER :: eval
-    procedure(objective_interface), intent(in), pointer :: cost
+    class(optimizee), intent(inout) :: objective
     real(dp), dimension(:), intent(in) :: paraset                               !< a valid parameter set of the model
     real(dp), intent(in) :: acc_goal                                            !< acceptance ratio to achieve
     real(dp), optional, dimension(size(paraset, 1), 2), intent(in) :: prange    !< lower and upper limit per parameter
@@ -1169,7 +1170,7 @@ CONTAINS
     gamma(:)%best = paraset(:)
     NormPhi = -9999.9_dp
 
-    fo = cost(paraset, eval) * maxit_in
+    fo = objective%evaluate(paraset) * maxit_in
     if (abs(fo) .lt. tiny(0.0_dp)) fo = 0.0000001_dp * maxit_in
     NormPhi = fo
     fo = fo / NormPhi * maxit_in
@@ -1201,7 +1202,7 @@ CONTAINS
               gamma(iPar)%min, gamma(iPar)%max, RN2)
       !
       ! (2)  Calculate new objective function value and normalize it
-      fn = cost(gamma(:)%new, eval) * maxit_in
+      fn = objective%evaluate(gamma(:)%new) * maxit_in
       coststatus = .true.
       if (present(undef_funcval)) then
         if (abs(fn * maxit_in - undef_funcval) .lt. tiny(1.0_dp)) then

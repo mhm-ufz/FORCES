@@ -4,10 +4,9 @@ module test_mo_anneal
   use mo_kind,    only: dp, i4, i8
   use mo_anneal,  only: anneal            !, anneal_valid
   use mo_anneal,  only: GetTemperature    !, GetTemperature_valid
-  use mo_cost,    only: range_dp, cost_objective !, cost_valid_dp
+  use mo_cost,    only: range_dp, cost_dp
   use mo_xor4096, only: get_timeseed
-  use mo_opt_functions,    only: eval_dummy
-  use mo_optimization_utils, only: eval_interface, objective_interface
+  use mo_optimization_utils, only: function_optimizee
   use mo_message, only: error_message
 
   implicit none
@@ -30,8 +29,7 @@ module test_mo_anneal
       real(dp)                                :: Tstart, Tend
       real(dp), dimension(:,:), allocatable   :: history
 
-      procedure(eval_interface), pointer      :: eval
-      procedure(objective_interface), pointer :: obj_func
+      type(function_optimizee) :: objective
 
       ! time dependent seeds
       call get_timeseed(seeds)
@@ -44,16 +42,15 @@ module test_mo_anneal
       para(3) = 0.5_dp
       para(4) = 0.4_dp
 
-      eval => eval_dummy
-      obj_func => cost_objective
+      objective%func_pointer => cost_dp
 
       ! Initialization
       print*, '-----------------------------------'
       print*, '   INITIALIZATION                  '
       print*, '-----------------------------------'
       print*, 'Initial parameter set:       ',para
-      print*, 'Initial cost function value: ',cost_objective(para(:), eval)
-      costbestAll = cost_objective(para(:), eval)
+      print*, 'Initial cost function value: ',objective%evaluate(para(:))
+      costbestAll = objective%evaluate(para(:))
       parabestAll = para(:)
       print*, '-----------------------------------'
       print*, '   INITIAL TEMPERATURE             '
@@ -62,7 +59,7 @@ module test_mo_anneal
       seeds(1) = 854_i8
       seeds(2) = seeds(1) + 1000_i8
       print*, 'seeds used:                        ', seeds(1:2)
-      temperature = GetTemperature( eval, obj_func, para, 0.95_dp, &
+      temperature = GetTemperature(objective, para, 0.95_dp, &
           ! optionals
           prange_func=range_dp, &
           samplesize=500_i4, &
@@ -82,7 +79,7 @@ module test_mo_anneal
         print*, 'seeds used: ', seeds(1:3)
         !
         call cpu_time(Tstart)
-        parabest = anneal(eval, obj_func, para, &
+        parabest = anneal(objective, para, &
               ! optionals
               prange_func=range_dp, &
               maxit=.false., &
@@ -122,9 +119,9 @@ module test_mo_anneal
       print*, '   parabest = ', parabestAll
 
       ! Is program running properly?   costbestAll = 3.1142480812726376E-02
-      
+
       @assertEqual(costbestAll, 3.1142480812726376E-02_dp, tolerance=t)
-  
+
     end subroutine test_anneal_dp
 
 end module test_mo_anneal
