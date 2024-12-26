@@ -94,11 +94,16 @@
 \makeindex
 
 % Hyperlinks (required, but should be loaded last)
+\usepackage{ifxetex}
 \usepackage{ifpdf}
-\ifpdf
-  \usepackage[pdftex,pagebackref=true]{hyperref}
+\ifxetex
+  \usepackage[xetex,pagebackref=true]{hyperref}
 \else
-  \usepackage[ps2pdf,pagebackref=true]{hyperref}
+  \ifpdf
+    \usepackage[pdftex,pagebackref=true]{hyperref}
+  \else
+    \usepackage[ps2pdf,pagebackref=true]{hyperref}
+  \fi
 \fi
 \hypersetup{%
   colorlinks=true,%
