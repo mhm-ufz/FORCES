@@ -156,28 +156,17 @@ module mo_datetime
     integer(i4), public :: month = 1_i4                    !< 1 <= month <= 12
     integer(i4), public :: day = 1_i4                      !< 1 <= day <= number of days in the given month and year
   contains
-    !> \copydoc mo_datetime::d_replace
-    procedure, public :: replace => d_replace !< \see mo_datetime::d_replace
-    !> \copydoc mo_datetime::dt_from_date_time
-    procedure, public :: with_time => dt_from_date_time !< \see mo_datetime::dt_from_date_time
-    !> \copydoc mo_datetime::to_datetime
-    procedure, public :: to_datetime !< \see mo_datetime::to_datetime
-    !> \copydoc mo_datetime::to_ordinal
-    procedure, public :: to_ordinal !< \see mo_datetime::to_ordinal
-    !> \copydoc mo_datetime::d_str
-    procedure, public :: str => d_str !< \see mo_datetime::d_str
-    !> \copydoc mo_datetime::d_julian
-    procedure, public :: julian => d_julian !< \see mo_datetime::d_julian
-    !> \copydoc mo_datetime::d_weekday
-    procedure, public :: weekday => d_weekday !< \see mo_datetime::d_weekday
-    !> \copydoc mo_datetime::d_doy
-    procedure, public :: doy => d_doy !< \see mo_datetime::d_doy
-    !> \copydoc mo_datetime::is_new_year
-    procedure, public :: is_new_year => d_is_new_year !< \see mo_datetime::is_new_year
-    !> \copydoc mo_datetime::is_new_month
-    procedure, public :: is_new_month => d_is_new_month !< \see mo_datetime::is_new_month
-    !> \copydoc mo_datetime::is_new_week
-    procedure, public :: is_new_week => d_is_new_week !< \see mo_datetime::is_new_week
+    procedure, public :: replace => d_replace
+    procedure, public :: with_time => dt_from_date_time
+    procedure, public :: to_datetime
+    procedure, public :: to_ordinal
+    procedure, public :: str => d_str
+    procedure, public :: julian => d_julian
+    procedure, public :: weekday => d_weekday
+    procedure, public :: doy => d_doy
+    procedure, public :: is_new_year => d_is_new_year
+    procedure, public :: is_new_month => d_is_new_month
+    procedure, public :: is_new_week => d_is_new_week
     procedure, private :: d_eq, d_eq_dt
     generic, public :: operator(==) => d_eq, d_eq_dt
     procedure, private :: d_neq, d_neq_dt
@@ -204,22 +193,14 @@ module mo_datetime
     integer(i4), public :: minute = 0_i4                   !< 0 <= minute < 60
     integer(i4), public :: second = 0_i4                   !< 0 <= second < 60
   contains
-    !> \copydoc mo_datetime::t_replace
-    procedure, public :: replace => t_replace !< \see mo_datetime::t_replace
-    !> \copydoc mo_datetime::dt_from_date_time
-    procedure, public, pass(in_time) :: with_date => dt_from_date_time !< \see mo_datetime::dt_from_date_time
-    !> \copydoc mo_datetime::t_str
-    procedure, public :: str => t_str !< \see mo_datetime::t_str
-    !> \copydoc mo_datetime::t_day_second
-    procedure, public :: day_second => t_day_second !< \see mo_datetime::t_day_second
-    !> \copydoc mo_datetime::t_is_new_day
-    procedure, public :: is_midnight => t_is_new_day !< \see mo_datetime::t_is_new_day
-    !> \copydoc mo_datetime::t_is_new_day
-    procedure, public :: is_new_day => t_is_new_day !< \see mo_datetime::t_is_new_day
-    !> \copydoc mo_datetime::t_is_new_hour
-    procedure, public :: is_new_hour => t_is_new_hour !< \see mo_datetime::t_is_new_hour
-    !> \copydoc mo_datetime::t_is_new_minute
-    procedure, public :: is_new_minute => t_is_new_minute !< \see mo_datetime::t_is_new_minute
+    procedure, public :: replace => t_replace
+    procedure, public, pass(in_time) :: with_date => dt_from_date_time
+    procedure, public :: str => t_str
+    procedure, public :: day_second => t_day_second
+    procedure, public :: is_midnight => t_is_new_day
+    procedure, public :: is_new_day => t_is_new_day
+    procedure, public :: is_new_hour => t_is_new_hour
+    procedure, public :: is_new_minute => t_is_new_minute
     procedure, private :: t_copy
     generic, public :: assignment(=) => t_copy
     procedure, private :: t_eq
@@ -251,32 +232,19 @@ module mo_datetime
     integer(i4), public :: minute = 0_i4                   !< 0 <= minute < 60
     integer(i4), public :: second = 0_i4                   !< 0 <= second < 60
   contains
-    !> \copydoc mo_datetime::dt_replace
-    procedure, public :: replace => dt_replace !< \see mo_datetime::dt_replace
-    !> \copydoc mo_datetime::get_date
-    procedure, public :: date => get_date !< \see mo_datetime::get_date
-    !> \copydoc mo_datetime::get_time
-    procedure, public :: time => get_time !< \see mo_datetime::get_time
-    !> \copydoc mo_datetime::dt_str
-    procedure, public :: str => dt_str !< \see mo_datetime::dt_str
-    !> \copydoc mo_datetime::dt_julian
-    procedure, public :: julian => dt_julian !< \see mo_datetime::dt_julian
-    !> \copydoc mo_datetime::dt_weekday
-    procedure, public :: weekday => dt_weekday !< \see mo_datetime::dt_weekday
-    !> \copydoc mo_datetime::dt_doy
-    procedure, public :: doy => dt_doy !< \see mo_datetime::dt_doy
-    !> \copydoc mo_datetime::is_new_year
-    procedure, public :: is_new_year !< \see mo_datetime::is_new_year
-    !> \copydoc mo_datetime::is_new_month
-    procedure, public :: is_new_month !< \see mo_datetime::is_new_month
-    !> \copydoc mo_datetime::is_new_week
-    procedure, public :: is_new_week !< \see mo_datetime::is_new_week
-    !> \copydoc mo_datetime::is_new_day
-    procedure, public :: is_new_day !< \see mo_datetime::is_new_day
-    !> \copydoc mo_datetime::is_new_hour
-    procedure, public :: is_new_hour !< \see mo_datetime::is_new_hour
-    !> \copydoc mo_datetime::is_new_minute
-    procedure, public :: is_new_minute !< \see mo_datetime::is_new_minute
+    procedure, public :: replace => dt_replace
+    procedure, public :: date => get_date
+    procedure, public :: time => get_time
+    procedure, public :: str => dt_str
+    procedure, public :: julian => dt_julian
+    procedure, public :: weekday => dt_weekday
+    procedure, public :: doy => dt_doy
+    procedure, public :: is_new_year
+    procedure, public :: is_new_month
+    procedure, public :: is_new_week
+    procedure, public :: is_new_day
+    procedure, public :: is_new_hour
+    procedure, public :: is_new_minute
     procedure, private :: dt_copy_dt, dt_copy_d
     generic, public :: assignment(=) => dt_copy_dt, dt_copy_d
     procedure, private :: dt_eq, dt_eq_d
@@ -304,10 +272,8 @@ module mo_datetime
     integer(i4), public :: days = 0_i4                     !< days of the time-span
     integer(i4), public :: seconds = 0_i4                  !< second of the time-span
   contains
-    !> \copydoc mo_datetime::td_abs
-    procedure, public :: abs => td_abs !< \see mo_datetime::td_abs
-    !> \copydoc mo_datetime::td_total_seconds
-    procedure, public :: total_seconds => td_total_seconds !< \see mo_datetime::td_total_seconds
+    procedure, public :: abs => td_abs
+    procedure, public :: total_seconds => td_total_seconds
     procedure, private :: td_copy
     generic, public :: assignment(=) => td_copy
     procedure, private :: td_eq
