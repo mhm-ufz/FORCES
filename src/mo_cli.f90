@@ -19,27 +19,27 @@
 !!            type(cli_parser) :: parser
 !!
 !!            parser = cli_parser( &
-!!              description="This program has a CLI.", &
-!!              add_version_option=.true., version="1.3")
+!!              description='This program has a CLI.', &
+!!              add_version_option=.true., version='1.3')
 !!            call parser%add_option( &
-!!              "cwd", &
+!!              'cwd', &
 !!              blank=.true., &
 !!              required=.true., &
-!!              help="The working directory.")
+!!              help='The working directory.')
 !!            call parser%add_option( &
-!!              name="file", &
-!!              s_name="f", &
+!!              name='file', &
+!!              s_name='f', &
 !!              has_value=.true., &
-!!              value_name="path", &
-!!              default="none", &
-!!              help="Your file path.")
-!!            call parser%add_option("opt", help="A switch")
+!!              value_name='path', &
+!!              default='none', &
+!!              help='Your file path.')
+!!            call parser%add_option('opt', help='A switch')
 !!
 !!            call parser%parse()
 !!
-!!            print*, "file: ", parser%option_value("file")
-!!            print*, "dir: ", parser%option_value("cwd")
-!!            print*, "opt: ", parser%option_was_read("opt")
+!!            print*, 'file: ', parser%option_value('file')
+!!            print*, 'dir: ', parser%option_value('cwd')
+!!            print*, 'opt: ', parser%option_was_read('opt')
 !!
 !!          end program main
 !!          \endcode

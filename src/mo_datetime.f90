@@ -34,23 +34,23 @@
 !!            date4 = date3 - delta1
 !!
 !!            ! compare dates/times
-!!            print*, "is midday: ", date4%time() == midday()
-!!            print*, "date4 after date2: ", date4 > date2
+!!            print*, 'is midday: ', date4%time() == midday()
+!!            print*, 'date4 after date2: ', date4 > date2
 !!
 !!            ! create from date and time
 !!            date5 = datetime(date1%date(), date4%time())
 !!            print*, date5%str()
 !!
 !!            ! create from datetime string
-!!            date5 = datetime("2023-05-08 12:32:30")
-!!            day1 = date("2023-05-08")
-!!            time1 = time("12:32:30")
+!!            date5 = datetime('2023-05-08 12:32:30')
+!!            day1 = date('2023-05-08')
+!!            time1 = time('12:32:30')
 !!            print*, date5 == time1%with_date(day1)
 !!            print*, date5 == day1%with_time(time1)
 !!            print*, date5 == datetime(day1, time1)
 !!
 !!            ! use cf-convention string and value
-!!            date5 = datetime("seconds since 1992-10-8 15:15:42", DAY_SECONDS - HOUR_SECONDS)
+!!            date5 = datetime('seconds since 1992-10-8 15:15:42', DAY_SECONDS - HOUR_SECONDS)
 !!            print*, date5%str()
 !!          end program main
 !!          \endcode
