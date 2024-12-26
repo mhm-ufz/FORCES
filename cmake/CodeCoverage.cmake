@@ -166,11 +166,19 @@ endforeach()
 
 set(COVERAGE_COMPILER_FLAGS "-g --coverage"
     CACHE INTERNAL "")
+
 if(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang)")
     include(CheckCXXCompilerFlag)
-    check_cxx_compiler_flag(-fprofile-abs-path HAVE_fprofile_abs_path)
-    if(HAVE_fprofile_abs_path)
-        set(COVERAGE_COMPILER_FLAGS "${COVERAGE_COMPILER_FLAGS} -fprofile-abs-path")
+    check_cxx_compiler_flag(-fprofile-abs-path HAVE_cxx_fprofile_abs_path)
+    if(HAVE_cxx_fprofile_abs_path)
+        set(COVERAGE_CXX_COMPILER_FLAGS "${COVERAGE_COMPILER_FLAGS} -fprofile-abs-path")
+    endif()
+endif()
+if(CMAKE_C_COMPILER_ID MATCHES "(GNU|Clang)")
+    include(CheckCCompilerFlag)
+    check_c_compiler_flag(-fprofile-abs-path HAVE_c_fprofile_abs_path)
+    if(HAVE_c_fprofile_abs_path)
+        set(COVERAGE_C_COMPILER_FLAGS "${COVERAGE_COMPILER_FLAGS} -fprofile-abs-path")
     endif()
 endif()
 
@@ -642,7 +650,6 @@ function(setup_target_for_coverage_fastcov)
         --process-gcno
         --output ${Coverage_NAME}.json
         --exclude ${FASTCOV_EXCLUDES}
-        --exclude ${FASTCOV_EXCLUDES}
     )
 
     set(FASTCOV_CONVERT_CMD ${FASTCOV_PATH}
@@ -737,5 +744,7 @@ endfunction() # append_coverage_compiler_flags
 function(append_coverage_compiler_flags_to_target name)
     separate_arguments(_flag_list NATIVE_COMMAND "${COVERAGE_COMPILER_FLAGS}")
     target_compile_options(${name} PRIVATE ${_flag_list})
-    target_link_libraries(${name} PRIVATE gcov)
+    if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
+        target_link_libraries(${name} PRIVATE gcov)
+    endif()
 endfunction()

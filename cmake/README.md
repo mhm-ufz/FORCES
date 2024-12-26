@@ -66,6 +66,18 @@ Can be included with:
 include(compileoptions)
 ```
 
+### `FindPackageWrapper.cmake`
+
+FindPackage scripts from a the cmake module path can differe in child projects and my work differently.
+To use a local cmake module path to find a package for you cmake project you can use the provided macro.
+This macro will temporarily reset the module path to the given one, call `find_package` with the provided arguments and then reset the module path.
+
+Can be used like:
+```cmake
+include(FindPackageWrapper.cmake)
+find_package_wrapper(${YOUR_MODULE_PATH} NetCDF COMPONENTS Fortran QUIET)
+```
+
 ### `FindNetCDF.cmake`
 
 Can be used like:
@@ -95,6 +107,31 @@ To specify a particular NetCDF library, use
 
 or set environment variable `YAC_ROOT=/path/to/yac`.
 
+### `FindESMF.cmake`
+
+Copied from: https://github.com/esmf-org/esmf/blob/v8.5.0/cmake/FindESMF.cmake (Copyright (c) 2002-2023 University Corporation for Atmospheric Research, Massachusetts Institute of Technology, Geophysical Fluid Dynamics Laboratory, University of Michigan, National Centers for Environmental Prediction, Los Alamos National Laboratory, Argonne National Laboratory, NASA Goddard Space Flight Center. All rights reserved., NCSA license, see file)
+
+Uses `ESMFMKFILE` to find the filepath of `esmf.mk`. If this is NOT set, then this
+module will attempt to find `esmf.mk`. If `ESMFMKFILE` exists, then
+ESMF_FOUND=TRUE and all ESMF makefile variables will be set in the global
+scope. Optionally, set ESMF_MKGLOBALS to a string list to filter makefile
+variables. For example, to globally scope only ESMF_LIBSDIR and ESMF_APPSDIR
+variables, use this CMake command in CMakeLists.txt:
+
+```cmake
+set(ESMF_MKGLOBALS "LIBSDIR" "APPSDIR")
+```
+
+Set `ESMFMKFILE` as defined by system env variable. If it's not explicitly set
+try to find `esmf.mk` file in default locations (`ESMF_ROOT`, `CMAKE_PREFIX_PATH`,
+etc)
+
+Can be used like:
+```cmake
+find_package(ESMF REQUIRED)
+target_link_libraries(<target> PUBLIC ESMF)
+```
+
 ### `version.cmake`
 
 Provides a function to read version and date from given files `version.txt` and (optional) `version_date.txt`.
@@ -110,7 +147,7 @@ If there is no `version_date.txt` file or a development version was found, the s
 `PROJECT_VER` will hold the simple version to be used with cmakes `project` command (e.g. `1.0.0`).
 A prefixed `v` in the version will be ignored.
 
-### `CPM.cmake` (v0.36.0)
+### `CPM.cmake` (v0.40.2)
 
 Copied from: https://github.com/cpm-cmake/CPM.cmake (Copyright Lars Melchior and contributors, MIT license, see file)
 
@@ -138,4 +175,4 @@ You should replace `main` with a specific tag (like `v1.8`) to use a released ve
 
 MIT License (MIT)
 
-Copyright (c) 2020 - 2022 CHS Developers
+Copyright (c) 2020 - 2024 CHS Developers
