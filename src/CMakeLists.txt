@@ -73,14 +73,8 @@ else()
 endif()
 
 if (FORCES_WITH_NETCDF)
-  # find the netcdf and netcdf-fortran libraries quietly
-  # Temporary replace CMAKE_MODULE_PATH to not alter behavior of down-stream packages
-  # https://stackoverflow.com/a/57185195/6696397
-  set(FORCES_CMAKE_MODULE_PATH_OLD ${CMAKE_MODULE_PATH})
-  set(CMAKE_MODULE_PATH ${FORCES_CMAKE_MODULE_PATH})
-  find_package(NetCDF COMPONENTS Fortran QUIET)
-  set(CMAKE_MODULE_PATH ${FORCES_CMAKE_MODULE_PATH_OLD})
-  unset(FORCES_CMAKE_MODULE_PATH_OLD)
+  include(${FORCES_CMAKE_MODULE_PATH}/FindPackageWrapper.cmake)
+  find_package_wrapper(${FORCES_CMAKE_MODULE_PATH} NetCDF COMPONENTS Fortran QUIET)
   # Sometimes NetCDF_INCLUDE_DIRS can't be found but NetCDF_Fortran is still usable
   if(NOT NetCDF_Fortran_FOUND)
     message(FATAL_ERROR "FORCES: NetCDF-Fortran not usable")
