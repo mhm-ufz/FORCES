@@ -813,14 +813,14 @@ contains
     is_new_minute = this%second == 0_i4
   end function is_new_minute
 
-  !> \brief equal comparison of datetimes
+  !> \brief (==) equal comparison of datetimes
   pure logical function dt_eq(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
     dt_eq = this%date() == that%date()  .and. this%time() == that%time()
   end function dt_eq
 
-  !> \brief equal comparison of datetime and date
+  !> \brief (==) equal comparison of datetime and date
   pure logical function dt_eq_d(this, that)
     implicit none
     class(datetime), intent(in) :: this
@@ -828,14 +828,14 @@ contains
     dt_eq_d = dt_eq(this, that%to_datetime())
   end function dt_eq_d
 
-  !> \brief not equal comparison of datetimes
+  !> \brief (/=) not equal comparison of datetimes
   pure logical function dt_neq(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
     dt_neq = .not. dt_eq(this, that)
   end function dt_neq
 
-  !> \brief not equal comparison of datetime and date
+  !> \brief (/=) not equal comparison of datetime and date
   pure logical function dt_neq_d(this, that)
     implicit none
     class(datetime), intent(in) :: this
@@ -843,14 +843,14 @@ contains
     dt_neq_d = .not. dt_eq_d(this, that)
   end function dt_neq_d
 
-  !> \brief less than comparison of datetimes
+  !> \brief (<) less than comparison of datetimes
   pure logical function dt_lt(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
     dt_lt = this%date() < that%date() .or. (this%date() == that%date() .and. this%time() < that%time())
   end function dt_lt
 
-  !> \brief less than comparison of datetime and date
+  !> \brief (<) less than comparison of datetime and date
   pure logical function dt_lt_d(this, that)
     implicit none
     class(datetime), intent(in) :: this
@@ -859,14 +859,14 @@ contains
     dt_lt_d = dt_lt(this, that%to_datetime())
   end function dt_lt_d
 
-  !> \brief greater than comparison of datetimes
+  !> \brief (>) greater than comparison of datetimes
   pure logical function dt_gt(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
     dt_gt = dt_neq(this, that) .and. .not. dt_lt(this, that)
   end function dt_gt
 
-  !> \brief greater than comparison of datetime and date
+  !> \brief (>) greater than comparison of datetime and date
   pure logical function dt_gt_d(this, that)
     implicit none
     class(datetime), intent(in) :: this
@@ -875,14 +875,14 @@ contains
     dt_gt_d = dt_gt(this, that%to_datetime())
   end function dt_gt_d
 
-  !> \brief less than or equal comparison of datetimes
+  !> \brief (<=) less than or equal comparison of datetimes
   pure logical function dt_leq(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
     dt_leq = dt_lt(this, that) .or. dt_eq(this, that)
   end function dt_leq
 
-  !> \brief less than or equal comparison of datetime and date
+  !> \brief (<=) less than or equal comparison of datetime and date
   pure logical function dt_leq_d(this, that)
     implicit none
     class(datetime), intent(in) :: this
@@ -891,14 +891,14 @@ contains
     dt_leq_d = dt_leq(this, that%to_datetime())
   end function dt_leq_d
 
-  !> \brief greater than or equal comparison of datetimes
+  !> \brief (>=) greater than or equal comparison of datetimes
   pure logical function dt_geq(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
     dt_geq = dt_gt(this, that) .or. dt_eq(this, that)
   end function dt_geq
 
-  !> \brief less than or equal comparison of datetime and date
+  !> \brief (<=) less than or equal comparison of datetime and date
   pure logical function dt_geq_d(this, that)
     implicit none
     class(datetime), intent(in) :: this
@@ -907,7 +907,7 @@ contains
     dt_geq_d = dt_geq(this, that%to_datetime())
   end function dt_geq_d
 
-  !> \brief add a timedelta to a datetime
+  !> \brief (+) add a timedelta to a datetime
   pure type(datetime) function dt_add_td(this, that)
     implicit none
     class(datetime), intent(in) :: this
@@ -923,7 +923,7 @@ contains
     dt_add_td = dt_from_date_time(new_date, new_time)
   end function dt_add_td
 
-  !> \brief add a timedelta to a datetime
+  !> \brief (+) add a timedelta to a datetime
   pure type(datetime) function td_add_dt(that, this)
     implicit none
     class(datetime), intent(in) :: this
@@ -931,7 +931,7 @@ contains
     td_add_dt = dt_add_td(this, that)
   end function td_add_dt
 
-  !> \brief subtract a timedelta from a datetime
+  !> \brief (-) subtract a timedelta from a datetime
   pure type(datetime) function dt_sub_td(this, that)
     implicit none
     class(datetime), intent(in) :: this
@@ -939,7 +939,7 @@ contains
     dt_sub_td = this + (-that)
   end function dt_sub_td
 
-  !> \brief difference between two datetimes
+  !> \brief (-) difference between two datetimes
   pure type(timedelta) function dt_sub_dt(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
@@ -962,7 +962,7 @@ contains
     dt_sub_dt = tmp_this - tmp_that
   end function dt_sub_dt
 
-  !> \brief difference between datetime and date
+  !> \brief (-) difference between datetime and date
   pure type(timedelta) function dt_sub_d(this, that)
     implicit none
     class(datetime), intent(in) :: this
@@ -1097,14 +1097,14 @@ contains
     d_is_new_week = this%weekday() == 1_i4
   end function d_is_new_week
 
-  !> \brief equal comparison of dates
+  !> \brief (==) equal comparison of dates
   pure logical function d_eq(this, that)
     implicit none
     class(puredate), intent(in) :: this, that
     d_eq = this%to_ordinal() == that%to_ordinal()
   end function d_eq
 
-  !> \brief equal comparison of date and datetime
+  !> \brief (==) equal comparison of date and datetime
   pure logical function d_eq_dt(this, that)
     implicit none
     class(puredate), intent(in) :: this
@@ -1112,14 +1112,14 @@ contains
     d_eq_dt = dt_eq(this%to_datetime(), that)
   end function d_eq_dt
 
-  !> \brief not equal comparison of dates
+  !> \brief (/=) not equal comparison of dates
   pure logical function d_neq(this, that)
     implicit none
     class(puredate), intent(in) :: this, that
     d_neq = .not. d_eq(this, that)
   end function d_neq
 
-  !> \brief not equal comparison of date and datetime
+  !> \brief (/=) not equal comparison of date and datetime
   pure logical function d_neq_dt(this, that)
     implicit none
     class(puredate), intent(in) :: this
@@ -1127,14 +1127,14 @@ contains
     d_neq_dt = dt_neq(this%to_datetime(), that)
   end function d_neq_dt
 
-  !> \brief less than comparison of dates
+  !> \brief (<) less than comparison of dates
   pure logical function d_lt(this, that)
     implicit none
     class(puredate), intent(in) :: this, that
     d_lt = this%to_ordinal() < that%to_ordinal()
   end function d_lt
 
-  !> \brief less than comparison of date and datetime
+  !> \brief (<) less than comparison of date and datetime
   pure logical function d_lt_dt(this, that)
     implicit none
     class(puredate), intent(in) :: this
@@ -1142,14 +1142,14 @@ contains
     d_lt_dt = dt_lt(this%to_datetime(), that)
   end function d_lt_dt
 
-  !> \brief greater than comparison of dates
+  !> \brief (>) greater than comparison of dates
   pure logical function d_gt(this, that)
     implicit none
     class(puredate), intent(in) :: this, that
     d_gt = d_neq(this, that) .and. .not. d_lt(this, that)
   end function d_gt
 
-  !> \brief greater than comparison of date and datetime
+  !> \brief (>) greater than comparison of date and datetime
   pure logical function d_gt_dt(this, that)
     implicit none
     class(puredate), intent(in) :: this
@@ -1157,14 +1157,14 @@ contains
     d_gt_dt = dt_gt(this%to_datetime(), that)
   end function d_gt_dt
 
-  !> \brief less than or equal comparison of dates
+  !> \brief (<=) less than or equal comparison of dates
   pure logical function d_leq(this, that)
     implicit none
     class(puredate), intent(in) :: this, that
     d_leq = d_lt(this, that) .or. d_eq(this, that)
   end function d_leq
 
-  !> \brief less than or equal comparison of date and datetime
+  !> \brief (<=) less than or equal comparison of date and datetime
   pure logical function d_leq_dt(this, that)
     implicit none
     class(puredate), intent(in) :: this
@@ -1172,14 +1172,14 @@ contains
     d_leq_dt = dt_leq(this%to_datetime(), that)
   end function d_leq_dt
 
-  !> \brief greater than or equal comparison of dates
+  !> \brief (>=) greater than or equal comparison of dates
   pure logical function d_geq(this, that)
     implicit none
     class(puredate), intent(in) :: this, that
     d_geq = d_gt(this, that) .or. d_eq(this, that)
   end function d_geq
 
-  !> \brief greater than or equal comparison of date and datetime
+  !> \brief (>=) greater than or equal comparison of date and datetime
   pure logical function d_geq_dt(this, that)
     implicit none
     class(puredate), intent(in) :: this
@@ -1187,7 +1187,7 @@ contains
     d_geq_dt = dt_geq(this%to_datetime(), that)
   end function d_geq_dt
 
-  !> \brief add a timedelta to a date
+  !> \brief (+) add a timedelta to a date
   pure type(puredate) function d_add_td(this, that)
     implicit none
     class(puredate), intent(in) :: this
@@ -1218,7 +1218,7 @@ contains
     d_add_td%day = new_day
   end function d_add_td
 
-  !> \brief add a timedelta to a date
+  !> \brief (+) add a timedelta to a date
   pure type(puredate) function td_add_d(that, this)
     implicit none
     class(puredate), intent(in) :: this
@@ -1226,7 +1226,7 @@ contains
     td_add_d = d_add_td(this, that)
   end function td_add_d
 
-  !> \brief subtract a timedelta from a date
+  !> \brief (-) subtract a timedelta from a date
   pure type(puredate) function d_sub_td(this, that)
     implicit none
     class(puredate), intent(in) :: this
@@ -1234,7 +1234,7 @@ contains
     d_sub_td = this + (-that)
   end function d_sub_td
 
-  !> \brief difference between two dates
+  !> \brief (-) difference between two dates
   pure type(timedelta) function d_sub_d(this, that)
     implicit none
     class(puredate), intent(in) :: this, that
@@ -1242,7 +1242,7 @@ contains
     d_sub_d = this%to_datetime() - that%to_datetime()
   end function d_sub_d
 
-  !> \brief difference between date and datetime
+  !> \brief (-) difference between date and datetime
   pure type(timedelta) function d_sub_dt(this, that)
     implicit none
     class(puredate), intent(in) :: this
@@ -1357,49 +1357,49 @@ contains
     t_is_new_minute = this%second == 0_i4
   end function t_is_new_minute
 
-  !> \brief equal comparison of times
+  !> \brief (==) equal comparison of times
   pure logical function t_eq(this, that)
     implicit none
     class(puretime), intent(in) :: this, that
     t_eq = this%day_second() == that%day_second()
   end function t_eq
 
-  !> \brief not equal comparison of times
+  !> \brief (/=) not equal comparison of times
   pure logical function t_neq(this, that)
     implicit none
     class(puretime), intent(in) :: this, that
     t_neq = .not. t_eq(this, that)
   end function t_neq
 
-  !> \brief less than comparison of times
+  !> \brief (<) less than comparison of times
   pure logical function t_lt(this, that)
     implicit none
     class(puretime), intent(in) :: this, that
     t_lt = this%day_second() < that%day_second()
   end function t_lt
 
-  !> \brief greater than comparison of times
+  !> \brief (>) greater than comparison of times
   pure logical function t_gt(this, that)
     implicit none
     class(puretime), intent(in) :: this, that
     t_gt = this%day_second() > that%day_second()
   end function t_gt
 
-  !> \brief less than or equal comparison of times
+  !> \brief (<=) less than or equal comparison of times
   pure logical function t_leq(this, that)
     implicit none
     class(puretime), intent(in) :: this, that
     t_leq = this%day_second() <= that%day_second()
   end function t_leq
 
-  !> \brief greater than or equal comparison of times
+  !> \brief (>=) greater than or equal comparison of times
   pure logical function t_geq(this, that)
     implicit none
     class(puretime), intent(in) :: this, that
     t_geq = this%day_second() >= that%day_second()
   end function t_geq
 
-  !> \brief add a timedelta to a time
+  !> \brief (+) add a timedelta to a time
   pure type(puretime) function t_add_td(this, that)
     implicit none
     class(puretime), intent(in) :: this
@@ -1408,7 +1408,7 @@ contains
     t_add_td = t_from_day_second(int(modulo(int(this%day_second(), i8) + that%total_seconds(), int(DAY_SECONDS, i8)), i4))
   end function t_add_td
 
-  !> \brief add a timedelta to a time
+  !> \brief (+) add a timedelta to a time
   pure type(puretime) function td_add_t(that, this)
     implicit none
     class(puretime), intent(in) :: this
@@ -1416,7 +1416,7 @@ contains
     td_add_t = t_add_td(this, that)
   end function td_add_t
 
-  !> \brief subtract a timedelta from a time
+  !> \brief (-) subtract a timedelta from a time
   pure type(puretime) function t_sub_td(this, that)
     implicit none
     class(puretime), intent(in) :: this
@@ -1424,7 +1424,7 @@ contains
     t_sub_td = this + (-that)
   end function t_sub_td
 
-  !> \brief difference between two times
+  !> \brief (-) difference between two times
   pure type(timedelta) function t_sub_t(this, that)
     implicit none
     class(puretime), intent(in) :: this, that
@@ -1509,77 +1509,77 @@ contains
     this%seconds = that%seconds
   end subroutine td_copy
 
-  !> \brief equal comparison of timedeltas
+  !> \brief (==) equal comparison of timedeltas
   pure logical function td_eq(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
     td_eq = this%total_seconds() == that%total_seconds()
   end function td_eq
 
-  !> \brief not equal comparison of timedeltas
+  !> \brief (/=) not equal comparison of timedeltas
   pure logical function td_neq(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
     td_neq = .not. td_eq(this, that)
   end function td_neq
 
-  !> \brief less than comparison of timedeltas
+  !> \brief (<) less than comparison of timedeltas
   pure logical function td_lt(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
     td_lt = this%total_seconds() < that%total_seconds()
   end function td_lt
 
-  !> \brief greater than comparison of timedeltas
+  !> \brief (>) greater than comparison of timedeltas
   pure logical function td_gt(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
     td_gt = this%total_seconds() > that%total_seconds()
   end function td_gt
 
-  !> \brief less than or equal comparison of timedeltas
+  !> \brief (<=) less than or equal comparison of timedeltas
   pure logical function td_leq(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
     td_leq = this%total_seconds() <= that%total_seconds()
   end function td_leq
 
-  !> \brief greater than or equal comparison of timedeltas
+  !> \brief (>=) greater than or equal comparison of timedeltas
   pure logical function td_geq(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
     td_geq = this%total_seconds() >= that%total_seconds()
   end function td_geq
 
-  !> \brief adding two timedeltas
+  !> \brief (+) adding two timedeltas
   pure type(timedelta) function td_add(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
     td_add = timedelta(days=this%days+that%days, seconds=this%seconds+that%seconds)
   end function td_add
 
-  !> \brief adding two timedeltas
+  !> \brief (+) adding two timedeltas
   pure type(timedelta) function td_sub(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
     td_sub = timedelta(days=this%days-that%days, seconds=this%seconds-that%seconds)
   end function td_sub
 
-  !> \brief negative timedelta
+  !> \brief (-) negative timedelta
   pure type(timedelta) function td_neg(this)
     implicit none
     class(timedelta), intent(in) :: this
     td_neg = timedelta(days=-this%days, seconds=-this%seconds)
   end function td_neg
 
-  !> \brief positive timedelta
+  !> \brief (+) positive timedelta
   pure type(timedelta) function td_pos(this)
     implicit none
     class(timedelta), intent(in) :: this
     td_pos = this
   end function td_pos
 
-  !> \brief multiply a timedelta with an integer
+  !> \brief (*) multiply a timedelta with an integer
   pure type(timedelta) function td_mul1(this, that)
     implicit none
     class(timedelta), intent(in) :: this
@@ -1587,7 +1587,7 @@ contains
     td_mul1 = timedelta(days=this%days*that, seconds=this%seconds*that)
   end function td_mul1
 
-  !> \brief multiply a timedelta with an integer
+  !> \brief (*) multiply a timedelta with an integer
   pure type(timedelta) function td_mul2(that, this)
     implicit none
     class(timedelta), intent(in) :: this
@@ -1595,7 +1595,7 @@ contains
     td_mul2 = td_mul1(this, that)
   end function td_mul2
 
-  !> \brief multiply a timedelta with a real
+  !> \brief (*) multiply a timedelta with a real
   pure type(timedelta) function td_mul1_dp(this, that)
     implicit none
     class(timedelta), intent(in) :: this
@@ -1603,7 +1603,7 @@ contains
     td_mul1_dp = from_total_seconds(int(this%total_seconds() * that, i8))
   end function td_mul1_dp
 
-  !> \brief multiply a timedelta with a real
+  !> \brief (*) multiply a timedelta with a real
   pure type(timedelta) function td_mul2_dp(that, this)
     implicit none
     class(timedelta), intent(in) :: this
@@ -1611,7 +1611,7 @@ contains
     td_mul2_dp = td_mul1_dp(this, that)
   end function td_mul2_dp
 
-  !> \brief divide a timedelta by an integer
+  !> \brief (/) divide a timedelta by an integer
   pure type(timedelta) function td_div(this, that)
     implicit none
     class(timedelta), intent(in) :: this
@@ -1619,7 +1619,7 @@ contains
     td_div = from_total_seconds(this%total_seconds() / int(that, i8))
   end function td_div
 
-  !> \brief divide a timedelta by a real
+  !> \brief (/) divide a timedelta by a real
   pure type(timedelta) function td_div_dp(this, that)
     implicit none
     class(timedelta), intent(in) :: this
@@ -1627,7 +1627,7 @@ contains
     td_div_dp = this * (1.0_dp / that)
   end function td_div_dp
 
-  !> \brief divide a timedelta by a timedelta
+  !> \brief (/) divide a timedelta by a timedelta
   pure real(dp) function td_div_td(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
