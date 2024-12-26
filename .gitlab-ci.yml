@@ -120,6 +120,7 @@ show-env-vars:
     - sed -i '/GENERATE_LATEX.*=/s/^.*$/GENERATE_LATEX = YES/'        doc/doxygen.config
     - sed -i '/SHOW_FILES.*=/s/^.*$/SHOW_FILES = NO/'                 doc/doxygen.config
     - sed -i '/SHOW_NAMESPACES.*=/s/^.*$/SHOW_NAMESPACES = NO/'       doc/doxygen.config
+    - sed -i '/ALPHABETICAL_INDEX.*=/s/^.*$/ALPHABETICAL_INDEX = NO/' doc/doxygen.config
     - doxygen doc/doxygen.config > doxygen_log_${DOC_TYPE}_latex.txt 2>&1
     # doxygen_latex_stable.txt
     - cd latex/ && tectonic -r 10 -Z continue-on-errors refman.tex > ../doxygen_latex_${DOC_TYPE}.txt 2>&1
