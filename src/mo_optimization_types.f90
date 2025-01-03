@@ -44,11 +44,7 @@ MODULE mo_optimization_types
     procedure :: has => sim_data_has
     procedure :: add => sim_data_add
     ! ToDo only interface public, other private
-    procedure :: sim_data_allocate_1d
-    procedure :: sim_data_allocate_2d
-    procedure :: sim_data_allocate_3d
-    procedure :: sim_data_allocate_4d
-    procedure :: sim_data_allocate_5d
+    procedure :: allocate => sim_data_allocate
     procedure :: sim_data_set_pointer_1d
     procedure :: sim_data_set_pointer_2d
     procedure :: sim_data_set_pointer_3d
@@ -57,8 +53,6 @@ MODULE mo_optimization_types
     ! ToDo: destructor
     generic   :: set_pointer => sim_data_set_pointer_1d, sim_data_set_pointer_2d, &
       sim_data_set_pointer_3d, sim_data_set_pointer_4d, sim_data_set_pointer_5d
-    generic   :: allocate => sim_data_allocate_1d, sim_data_allocate_2d, &
-      sim_data_allocate_3d, sim_data_allocate_4d, sim_data_allocate_5d
   end type sim_data_t
 
   type sim_var_t
@@ -145,85 +139,32 @@ MODULE mo_optimization_types
 
   end subroutine sim_data_add
 
-  subroutine sim_data_allocate_1d(this, name, dim1)
+  subroutine sim_data_allocate(this, name, ndim)
     class(sim_data_t), target, intent(inout) :: this
     character(*), intent(in)    :: name
-    integer(i4), intent(in)  :: dim1
+    integer(i4), dimension(:), intent(in)  :: ndim
 
     integer(i4) :: i
 
     do i = 1, size(this%variables)
       if (this%variables(i)%name == name) then
-        allocate(this%variables(i)%data_1d(dim1))
+        select case (size(ndim))
+        case(1)
+          allocate(this%variables(i)%data_1d(ndim(1)))
+        case(2)
+          allocate(this%variables(i)%data_2d(ndim(1), ndim(2)))
+        case(3)
+          allocate(this%variables(i)%data_3d(ndim(1), ndim(2), ndim(3)))
+        case(4)
+          allocate(this%variables(i)%data_4d(ndim(1), ndim(2), ndim(3), ndim(4)))
+        case(5)
+          allocate(this%variables(i)%data_5d(ndim(1), ndim(2), ndim(3), ndim(4), ndim(5)))
+        case default
+          stop ('sim_data_allocate: Allocating simulated data with other dimensions than 1 to 5 is not impemented.') 
+        end select
       end if
     end do
-  end subroutine sim_data_allocate_1d
-
-  subroutine sim_data_allocate_2d(this, name, dim1, dim2)
-    class(sim_data_t), target, intent(inout) :: this
-    character(*), intent(in)    :: name
-    integer(i4), intent(in)  :: dim1
-    integer(i4), intent(in)  :: dim2
-
-    integer(i4) :: i
-
-    do i = 1, size(this%variables)
-      if (this%variables(i)%name == name) then
-        allocate(this%variables(i)%data_2d(dim1, dim2))
-      end if
-    end do
-  end subroutine sim_data_allocate_2d
-
-  subroutine sim_data_allocate_3d(this, name, dim1, dim2, dim3)
-    class(sim_data_t), target, intent(inout) :: this
-    character(*), intent(in)    :: name
-    integer(i4), intent(in)  :: dim1
-    integer(i4), intent(in)  :: dim2
-    integer(i4), intent(in)  :: dim3
-
-    integer(i4) :: i
-
-    do i = 1, size(this%variables)
-      if (this%variables(i)%name == name) then
-        allocate(this%variables(i)%data_3d(dim1, dim2, dim3))
-      end if
-    end do
-  end subroutine sim_data_allocate_3d
-
-  subroutine sim_data_allocate_4d(this, name, dim1, dim2, dim3, dim4)
-    class(sim_data_t), target, intent(inout) :: this
-    character(*), intent(in)    :: name
-    integer(i4), intent(in)  :: dim1
-    integer(i4), intent(in)  :: dim2
-    integer(i4), intent(in)  :: dim3
-    integer(i4), intent(in)  :: dim4
-
-    integer(i4) :: i
-
-    do i = 1, size(this%variables)
-      if (this%variables(i)%name == name) then
-        allocate(this%variables(i)%data_4d(dim1, dim2, dim3, dim4))
-      end if
-    end do
-  end subroutine sim_data_allocate_4d
-
-  subroutine sim_data_allocate_5d(this, name, dim1, dim2, dim3, dim4, dim5)
-    class(sim_data_t), target, intent(inout) :: this
-    character(*), intent(in)    :: name
-    integer(i4), intent(in)  :: dim1
-    integer(i4), intent(in)  :: dim2
-    integer(i4), intent(in)  :: dim3
-    integer(i4), intent(in)  :: dim4
-    integer(i4), intent(in)  :: dim5
-
-    integer(i4) :: i
-
-    do i = 1, size(this%variables)
-      if (this%variables(i)%name == name) then
-        allocate(this%variables(i)%data_5d(dim1, dim2, dim3, dim4, dim5))
-      end if
-    end do
-  end subroutine sim_data_allocate_5d
+  end subroutine sim_data_allocate
 
   ! ToDo: generate with fypp
   ! ToDo: switch ptr with name
