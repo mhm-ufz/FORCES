@@ -43,6 +43,7 @@ MODULE mo_optimization_types
     contains
     procedure :: has => sim_data_has
     procedure :: add => sim_data_add
+    procedure :: get_id => sim_data_get_id
     ! ToDo only interface public, other private
     procedure :: allocate => sim_data_allocate
     procedure :: sim_data_set_pointer_1d
@@ -166,6 +167,26 @@ MODULE mo_optimization_types
     end do
   end subroutine sim_data_allocate
 
+  integer function sim_data_get_id(this, name)
+    class(sim_data_t), target, intent(in) :: this
+    character(*), intent(in)    :: name
+
+    integer(i4) :: i
+
+    sim_data_get_id = -999
+    ! ToDo: loop -> subroutine get_id
+    ! i = this%get_id(name)
+    do i = 1, size(this%variables)
+      if (this%variables(i)%name == name) then
+        sim_data_get_id = i
+        exit
+      end if
+    end do
+
+    if (sim_data_get_id == -999) stop ('sim_data_get_id: The simulated variable name does not exist.')
+
+  end function sim_data_get_id
+
   ! ToDo: generate with fypp
   ! ToDo: switch ptr with name
   subroutine sim_data_set_pointer_1d(this, ptr, name)
@@ -176,13 +197,8 @@ MODULE mo_optimization_types
     integer(i4) :: i
 
     ! ToDo: loop -> subroutine get_id
-    ! i = this%get_id(name)
-    do i = 1, size(this%variables)
-      if (this%variables(i)%name == name) then
-        ptr => this%variables(i)%data_1d
-        ! ToDo: exit
-      end if
-    end do
+    i = this%get_id(name)
+    ptr => this%variables(i)%data_1d
   end subroutine sim_data_set_pointer_1d
 
   subroutine sim_data_set_pointer_2d(this, ptr, name)
@@ -192,11 +208,8 @@ MODULE mo_optimization_types
 
     integer(i4) :: i
 
-    do i = 1, size(this%variables)
-      if (this%variables(i)%name == name) then
-        ptr => this%variables(i)%data_2d
-      end if
-    end do
+    i = this%get_id(name)
+    ptr => this%variables(i)%data_2d
   end subroutine sim_data_set_pointer_2d
 
   subroutine sim_data_set_pointer_3d(this, ptr, name)
@@ -206,11 +219,8 @@ MODULE mo_optimization_types
 
     integer(i4) :: i
 
-    do i = 1, size(this%variables)
-      if (this%variables(i)%name == name) then
-        ptr => this%variables(i)%data_3d
-      end if
-    end do
+    i = this%get_id(name)
+    ptr => this%variables(i)%data_3d
   end subroutine sim_data_set_pointer_3d
 
   subroutine sim_data_set_pointer_4d(this, ptr, name)
@@ -220,11 +230,8 @@ MODULE mo_optimization_types
 
     integer(i4) :: i
 
-    do i = 1, size(this%variables)
-      if (this%variables(i)%name == name) then
-        ptr => this%variables(i)%data_4d
-      end if
-    end do
+    i = this%get_id(name)
+    ptr => this%variables(i)%data_4d
   end subroutine sim_data_set_pointer_4d
 
   subroutine sim_data_set_pointer_5d(this, ptr, name)
@@ -234,11 +241,8 @@ MODULE mo_optimization_types
 
     integer(i4) :: i
 
-    do i = 1, size(this%variables)
-      if (this%variables(i)%name == name) then
-        ptr => this%variables(i)%data_5d
-      end if
-    end do
+    i = this%get_id(name)
+    ptr => this%variables(i)%data_5d
   end subroutine sim_data_set_pointer_5d
 
   ! ToDo: Pass only shape instead of optidataObs
