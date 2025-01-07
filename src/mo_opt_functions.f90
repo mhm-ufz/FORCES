@@ -5722,28 +5722,28 @@ CONTAINS
     do iDomain = 1 , nDomains
       if (opti_sim(iDomain)%has('et')) then
         call opti_sim(iDomain)%allocate(name="et", ndim=(/1, 1/))
-        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="et")
+        call opti_sim(iDomain)%set_pointer(name="et", ptr=dummyDataPtr_2d)
       end if
     end do
 
     do iDomain = 1 , nDomains
       if (opti_sim(iDomain)%has('neutrons')) then
         call opti_sim(iDomain)%allocate(name="neutrons", ndim=(/1, 1/))
-        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="neutrons")
+        call opti_sim(iDomain)%set_pointer(name="neutrons", ptr=dummyDataPtr_2d)
       end if
     end do
 
     do iDomain = 1 , nDomains
       if (opti_sim(iDomain)%has('tws')) then
         call opti_sim(iDomain)%allocate(name="tws", ndim=(/1, 1/))
-        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="tws")
+        call opti_sim(iDomain)%set_pointer(name="tws", ptr=dummyDataPtr_2d)
       end if
     end do
 
     do iDomain = 1 , nDomains
       if (opti_sim(iDomain)%has('sm')) then
         call opti_sim(iDomain)%allocate(name="sm", ndim=(/1, 1/))
-        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="sm")
+        call opti_sim(iDomain)%set_pointer(name="sm", ptr=dummyDataPtr_2d)
       end if
     end do
 
@@ -5752,49 +5752,49 @@ CONTAINS
     do iDomain = 1 , nDomains
       if (opti_sim(iDomain)%has('runoff')) then
         call opti_sim(iDomain)%allocate(name="runoff", ndim=(/1, 1/))
-        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="runoff")
+        call opti_sim(iDomain)%set_pointer(name="runoff", ptr=dummyDataPtr_2d)
       end if
     end do
 
     do iDomain = 1 , nDomains
       if (opti_sim(iDomain)%has('BFI')) then
         call opti_sim(iDomain)%allocate(name="BFI", ndim=(/1/))
-        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_1d, name="BFI")
+        call opti_sim(iDomain)%set_pointer(name="BFI", ptr=dummyDataPtr_1d)
       end if
     end do
 
     do iDomain = 1 , nDomains
       if (opti_sim(iDomain)%has('lake_level')) then
         call opti_sim(iDomain)%allocate(name="lake_level", ndim=(/1, 1/))
-        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="lake_level")
+        call opti_sim(iDomain)%set_pointer(name="lake_level", ptr=dummyDataPtr_2d)
       end if
     end do
 
     do iDomain = 1 , nDomains
       if (opti_sim(iDomain)%has('lake_volume')) then
         call opti_sim(iDomain)%allocate(name="lake_volume", ndim=(/1, 1/))
-        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="lake_volume")
+        call opti_sim(iDomain)%set_pointer(name="lake_volume", ptr=dummyDataPtr_2d)
       end if
     end do
 
     do iDomain = 1 , nDomains
       if (opti_sim(iDomain)%has('lake_area')) then
         call opti_sim(iDomain)%allocate(name="lake_area", ndim=(/1, 1/))
-        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="lake_area")
+        call opti_sim(iDomain)%set_pointer(name="lake_area", ptr=dummyDataPtr_2d)
       end if
     end do
 
     do iDomain = 1 , nDomains
       if (opti_sim(iDomain)%has('lake_spill')) then
         call opti_sim(iDomain)%allocate(name="lake_spill", ndim=(/1, 1/))
-        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="lake_spill")
+        call opti_sim(iDomain)%set_pointer(name="lake_spill", ptr=dummyDataPtr_2d)
       end if
     end do
 
     do iDomain = 1 , nDomains
       if (opti_sim(iDomain)%has('lake_outflow')) then
         call opti_sim(iDomain)%allocate(name="lake_outflow", ndim=(/1, 1/))
-        call opti_sim(iDomain)%set_pointer(ptr=dummyDataPtr_2d, name="lake_outflow")
+        call opti_sim(iDomain)%set_pointer(name="lake_outflow", ptr=dummyDataPtr_2d)
       end if
     end do
 

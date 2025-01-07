@@ -174,8 +174,6 @@ MODULE mo_optimization_types
     integer(i4) :: i
 
     sim_data_get_id = -999
-    ! ToDo: loop -> subroutine get_id
-    ! i = this%get_id(name)
     do i = 1, size(this%variables)
       if (this%variables(i)%name == name) then
         sim_data_get_id = i
@@ -188,11 +186,10 @@ MODULE mo_optimization_types
   end function sim_data_get_id
 
   ! ToDo: generate with fypp
-  ! ToDo: switch ptr with name
-  subroutine sim_data_set_pointer_1d(this, ptr, name)
+  subroutine sim_data_set_pointer_1d(this, name, ptr)
     class(sim_data_t), target, intent(in) :: this
-    real(dp), dimension(:), pointer, intent(inout) :: ptr
     character(*), intent(in)    :: name
+    real(dp), dimension(:), pointer, intent(inout) :: ptr
 
     integer(i4) :: i
 
@@ -201,10 +198,10 @@ MODULE mo_optimization_types
     ptr => this%variables(i)%data_1d
   end subroutine sim_data_set_pointer_1d
 
-  subroutine sim_data_set_pointer_2d(this, ptr, name)
+  subroutine sim_data_set_pointer_2d(this, name, ptr)
     class(sim_data_t), target, intent(in) :: this
-    real(dp), dimension(:,:), pointer :: ptr
     character(*), intent(in)    :: name
+    real(dp), dimension(:,:), pointer :: ptr
 
     integer(i4) :: i
 
@@ -212,10 +209,10 @@ MODULE mo_optimization_types
     ptr => this%variables(i)%data_2d
   end subroutine sim_data_set_pointer_2d
 
-  subroutine sim_data_set_pointer_3d(this, ptr, name)
+  subroutine sim_data_set_pointer_3d(this, name, ptr)
     class(sim_data_t), target, intent(in) :: this
-    real(dp), dimension(:,:,:), pointer, intent(inout) :: ptr
     character(*), intent(in)    :: name
+    real(dp), dimension(:,:,:), pointer, intent(inout) :: ptr
 
     integer(i4) :: i
 
@@ -223,10 +220,10 @@ MODULE mo_optimization_types
     ptr => this%variables(i)%data_3d
   end subroutine sim_data_set_pointer_3d
 
-  subroutine sim_data_set_pointer_4d(this, ptr, name)
+  subroutine sim_data_set_pointer_4d(this, name, ptr)
     class(sim_data_t), target, intent(in) :: this
-    real(dp), dimension(:,:,:,:), pointer, intent(inout) :: ptr
     character(*), intent(in)    :: name
+    real(dp), dimension(:,:,:,:), pointer, intent(inout) :: ptr
 
     integer(i4) :: i
 
@@ -234,10 +231,10 @@ MODULE mo_optimization_types
     ptr => this%variables(i)%data_4d
   end subroutine sim_data_set_pointer_4d
 
-  subroutine sim_data_set_pointer_5d(this, ptr, name)
+  subroutine sim_data_set_pointer_5d(this, name, ptr)
     class(sim_data_t), target, intent(in) :: this
-    real(dp), dimension(:,:,:,:,:), pointer, intent(inout) :: ptr
     character(*), intent(in)    :: name
+    real(dp), dimension(:,:,:,:,:), pointer, intent(inout) :: ptr
 
     integer(i4) :: i
 
