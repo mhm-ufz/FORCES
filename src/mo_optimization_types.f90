@@ -193,7 +193,6 @@ MODULE mo_optimization_types
 
     integer(i4) :: i
 
-    ! ToDo: loop -> subroutine get_id
     i = this%get_id(name)
     ptr => this%variables(i)%data_1d
   end subroutine sim_data_set_pointer_1d
@@ -242,12 +241,12 @@ MODULE mo_optimization_types
     ptr => this%variables(i)%data_5d
   end subroutine sim_data_set_pointer_5d
 
-  ! ToDo: Pass only shape instead of optidataObs
-  subroutine optidata_sim_init(this, optidataObs)
+  subroutine optidata_sim_init(this, data_shape)
     class(optidata_sim), intent(inout) :: this
-    type(optidata),      intent(in)    :: optidataObs
+    integer(i4), dimension(2) :: data_shape !< the shape of the simulated data
+                                            !< may often be the dimensions of optidataObs%dataObs
 
-    allocate(this%dataSim(size(optidataObs%dataObs, dim = 1), size(optidataObs%dataObs, dim = 2)))
+    allocate(this%dataSim(data_shape(1), data_shape(2)))
     this%dataSim(:, :) = 0.0_dp ! has to be intialized with zero because later summation
     this%averageTimestep = 1
     this%averageCounter = 0
