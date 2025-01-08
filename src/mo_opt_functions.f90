@@ -5747,8 +5747,6 @@ CONTAINS
       end if
     end do
 
-    ! ToDo: runoff and all other variables were handled differently: Created wether
-    ! optional or not. Why? Should it be changed?
     do iDomain = 1 , nDomains
       if (opti_sim(iDomain)%has('runoff')) then
         call opti_sim(iDomain)%allocate(name="runoff", ndim=(/1, 1/))

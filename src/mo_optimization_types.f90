@@ -62,7 +62,7 @@ MODULE mo_optimization_types
     real(dp), dimension(:, :, :),       allocatable :: data_3d
     real(dp), dimension(:, :, :, :),    allocatable :: data_4d
     real(dp), dimension(:, :, :, :, :), allocatable :: data_5d
-    character(256)                                  :: name
+    character(:),                       allocatable :: name
     integer(i4)                                     :: ndim
     integer(i4)                                     :: time_avg_selector = 1_i4 !< time averaging: -3 yearly, -2 monthly, -1 daily,
                                                                                 !< 0 total, n every n timestep
@@ -126,7 +126,7 @@ MODULE mo_optimization_types
     type(sim_var_t) :: add_data
 
     ! ToDo: Why name in type 256 and in input var *?
-    add_data%name = name
+    add_data%name = trim(name)
     add_data%ndim = dim
     if (present(time_avg_selector)) add_data%time_avg_selector = time_avg_selector
     ! ToDo: is the if case needed?
@@ -161,6 +161,7 @@ MODULE mo_optimization_types
         case(5)
           allocate(this%variables(i)%data_5d(ndim(1), ndim(2), ndim(3), ndim(4), ndim(5)))
         case default
+          ! ToDo: replace stop by error message
           stop ('sim_data_allocate: Allocating simulated data with other dimensions than 1 to 5 is not impemented.') 
         end select
       end if
