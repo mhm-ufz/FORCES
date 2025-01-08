@@ -190,6 +190,7 @@ CONTAINS
 
     use mo_kind, only: dp
     use mo_optimization_types, only : sim_data_t, config_t
+    use mo_message, only : error_message
     !! !$ USE omp_lib,    only: OMP_GET_THREAD_NUM
 
     type(config_t), intent(in) :: config
@@ -202,13 +203,12 @@ CONTAINS
 
     n = size(meas,1)
 
-    do i = 1 , size(opti_sim)
-      if (opti_sim(i)%has('runoff')) then
-        call opti_sim(i)%allocate(name="runoff", ndim=(/n, 1/))
-        call opti_sim(i)%set_pointer(name="runoff", ptr=runoff)
-        ! ToDo fix loop (don't loop, check opti_sim only 1)
-      end if
-    end do
+    if (size(opti_sim) /= 1) call error_message('model_dp: does not support opti_sim data with more than 1 dimension.')
+
+    if (opti_sim(1)%has('runoff')) then
+      call opti_sim(1)%allocate(name="runoff", ndim=(/n, 1/))
+      call opti_sim(1)%set_pointer(name="runoff", ptr=runoff)
+    end if
 
     !! !$ is_thread = OMP_GET_THREAD_NUM()
     !! !$ write(*,*) 'OMP_thread: ', is_thread
