@@ -9,7 +9,8 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_optimization_types
   use mo_kind, only : i4, dp
-  use mo_message, only: error_message
+  use mo_message, only : error_message
+  use mo_string_utils, only : num2str
 
   IMPLICIT NONE
 
@@ -41,7 +42,7 @@ MODULE mo_optimization_types
 
   type sim_data_t
     type(sim_var_t), dimension(:), allocatable :: variables
-    contains
+  contains
     procedure, public :: has => sim_data_has
     procedure, public :: add => sim_data_add
     procedure, public :: allocate => sim_data_allocate
@@ -69,10 +70,9 @@ MODULE mo_optimization_types
     integer(i4)                                     :: ndim
     integer(i4)                                     :: time_avg_selector = 1_i4 !< time averaging: -3 yearly, -2 monthly, -1 daily,
                                                                                 !< 0 total, n every n timestep
-    ! contains
-    ! procedure :: add => opti_sim_single_t_add
+  contains
+    procedure, public :: is_allocated => sim_var_is_allocated
   end type sim_var_t
-
 
   !> \brief optional data, such as sm, neutrons, et, tws
   !> \details data type for observed data, providing metadata
@@ -106,29 +106,58 @@ MODULE mo_optimization_types
 
   contains
 
-  pure logical function sim_data_has(this, name)
+  subroutine check_data_shape(data_shape, ndim)
+    integer(i4), dimension(:), intent(in)    :: data_shape
+    integer(i4), intent(in)    :: ndim
+    if (size(data_shape) /= ndim) &
+    call error_message( &
+      'check_data_shape: given data-shape (size ', num2str(size(data_shape)), ') not matching ndim (', num2str(ndim), ').')
+  end subroutine check_data_shape
+
+  subroutine check_pointer_ndim(pointer_ndim, data_ndim)
+    integer(i4), intent(in) :: pointer_ndim
+    integer(i4), intent(in) :: data_ndim
+    if (pointer_ndim /= data_ndim) &
+      call error_message("check_pointer_ndim: pointer is ", num2str(pointer_ndim),"D but data is ", num2str(data_ndim), "D.")
+  end subroutine check_pointer_ndim
+
+  subroutine check_allocated(var)
+    class(sim_var_t), intent(in) :: var
+    if (.not. var%is_allocated()) &
+      call error_message('check_allocated: data for "', var%name ,'" is not allocated')
+  end subroutine check_allocated
+
+  logical function sim_data_has(this, name)
     class(sim_data_t), intent(in) :: this
-    character(*), intent(in)    :: name
-
-    integer(i4) :: i
-
-    sim_data_has = .false.
-
-    do i = 1, size(this%variables)
-      if (trim(this%variables(i)%name) == trim(name)) sim_data_has = .true.
-    end do
+    character(*), intent(in)      :: name
+    sim_data_has = this%get_id(name) > 0
   end function sim_data_has
 
-  subroutine sim_data_add(this, name, ndim, time_avg_selector)
-    class(sim_data_t), intent(inout) :: this
-    character(*), intent(in)    :: name
-    integer(i4), intent(in) :: ndim
-    integer(i4), optional, intent(in) :: time_avg_selector
+  subroutine sim_data_add(this, name, ndim, data_shape, time_avg_selector)
+    class(sim_data_t), intent(inout)                :: this
+    character(*), intent(in)                        :: name
+    integer(i4), optional, intent(in)               :: ndim
+    integer(i4), dimension(:), optional, intent(in) :: data_shape
+    integer(i4), optional, intent(in)               :: time_avg_selector
 
     type(sim_var_t) :: add_data
+    integer(i4) :: ndim_
 
+    if (this%has(name)) call error_message('sim_data_add: variable name "', trim(name), '" already present.')
+    if (present(ndim) .eqv. present(data_shape)) then
+      if (.not. present(ndim)) then
+        call error_message('sim_data_add: either "ndim" or "data_shape" needed')
+      else
+        call check_data_shape(data_shape, ndim)
+      endif
+    endif
+    if (present(ndim)) then
+      ndim_ = ndim
+    else
+      ndim_ = size(data_shape)
+    endif
     add_data%name = trim(name)
-    add_data%ndim = ndim
+    add_data%ndim = ndim_
     if (present(time_avg_selector)) add_data%time_avg_selector = time_avg_selector
     ! ToDo: is the if case needed?
     ! Tested: the else case works
@@ -139,50 +168,59 @@ MODULE mo_optimization_types
       this%variables(1)=add_data
     end if
 
+    if (present(data_shape)) call this%allocate(name, data_shape)
+
   end subroutine sim_data_add
 
   subroutine sim_data_allocate(this, name, data_shape)
     class(sim_data_t), target, intent(inout) :: this
-    character(*), intent(in)    :: name
-    integer(i4), dimension(:), intent(in)  :: data_shape
+    character(*), intent(in)                 :: name
+    integer(i4), dimension(:), intent(in)    :: data_shape
 
     integer(i4) :: i
 
-    do i = 1, size(this%variables)
-      if (this%variables(i)%name == name) then
-        select case (size(data_shape))
-        case(1)
-          allocate(this%variables(i)%data_1d(data_shape(1)))
-        case(2)
-          allocate(this%variables(i)%data_2d(data_shape(1), data_shape(2)))
-        case(3)
-          allocate(this%variables(i)%data_3d(data_shape(1), data_shape(2), data_shape(3)))
-        case(4)
-          allocate(this%variables(i)%data_4d(data_shape(1), data_shape(2), data_shape(3), data_shape(4)))
-        case(5)
-          allocate(this%variables(i)%data_5d(data_shape(1), data_shape(2), data_shape(3), data_shape(4), data_shape(5)))
-        case default
-          call error_message('sim_data_allocate: Allocating simulated data with other dimensions than 1 to 5 is not impemented.')
-        end select
-      end if
-    end do
+    i = this%get_id(name, raise=.true.)
+    if (this%variables(i)%is_allocated()) call error_message('sim_data_allocate: data for "', trim(name) ,'" already allocated')
+    select case (this%variables(i)%ndim)
+      case(1)
+        allocate(this%variables(i)%data_1d(data_shape(1)))
+      case(2)
+        allocate(this%variables(i)%data_2d(data_shape(1), data_shape(2)))
+      case(3)
+        allocate(this%variables(i)%data_3d(data_shape(1), data_shape(2), data_shape(3)))
+      case(4)
+        allocate(this%variables(i)%data_4d(data_shape(1), data_shape(2), data_shape(3), data_shape(4)))
+      case(5)
+        allocate(this%variables(i)%data_5d(data_shape(1), data_shape(2), data_shape(3), data_shape(4), data_shape(5)))
+      case default
+        call error_message('sim_data_allocate: Allocating simulated data with other dimensions than 1 to 5 is not implemented.')
+    end select
   end subroutine sim_data_allocate
 
-  integer function sim_data_get_id(this, name)
+  integer(i4) function sim_data_get_id(this, name, raise)
     class(sim_data_t), target, intent(in) :: this
-    character(*), intent(in)    :: name
+    character(*), intent(in)      :: name
+    logical, intent(in), optional :: raise
 
-    integer(i4) :: i
+    logical :: raise_
+    integer(i4) :: i, max_i
+
+    raise_ = .false.
+    if (present(raise)) raise_ = raise
 
     sim_data_get_id = -1
-    do i = 1, size(this%variables)
-      if (this%variables(i)%name == name) then
+    max_i = 0
+    if (allocated(this%variables)) max_i = size(this%variables)
+
+    do i = 1, max_i
+      if (trim(this%variables(i)%name) == trim(name)) then
         sim_data_get_id = i
         exit
       end if
     end do
 
-    if (sim_data_get_id == -1) call error_message('sim_data_get_id: The simulated variable name', trim(name), 'does not exist.')
+    if (sim_data_get_id == -1 .and. raise_) &
+      call error_message('sim_data: The simulated variable name "', trim(name), '" does not exist.')
 
   end function sim_data_get_id
 
@@ -193,7 +231,9 @@ MODULE mo_optimization_types
 
     integer(i4) :: i
 
-    i = this%get_id(name)
+    i = this%get_id(name, raise=.true.)
+    call check_allocated(this%variables(i))
+    call check_pointer_ndim(1, this%variables(i)%ndim)
     ptr => this%variables(i)%data_1d
   end subroutine sim_data_set_pointer_1d
 
@@ -204,7 +244,9 @@ MODULE mo_optimization_types
 
     integer(i4) :: i
 
-    i = this%get_id(name)
+    i = this%get_id(name, raise=.true.)
+    call check_allocated(this%variables(i))
+    call check_pointer_ndim(2, this%variables(i)%ndim)
     ptr => this%variables(i)%data_2d
   end subroutine sim_data_set_pointer_2d
 
@@ -215,7 +257,9 @@ MODULE mo_optimization_types
 
     integer(i4) :: i
 
-    i = this%get_id(name)
+    i = this%get_id(name, raise=.true.)
+    call check_allocated(this%variables(i))
+    call check_pointer_ndim(3, this%variables(i)%ndim)
     ptr => this%variables(i)%data_3d
   end subroutine sim_data_set_pointer_3d
 
@@ -226,7 +270,9 @@ MODULE mo_optimization_types
 
     integer(i4) :: i
 
-    i = this%get_id(name)
+    i = this%get_id(name, raise=.true.)
+    call check_allocated(this%variables(i))
+    call check_pointer_ndim(4, this%variables(i)%ndim)
     ptr => this%variables(i)%data_4d
   end subroutine sim_data_set_pointer_4d
 
@@ -237,9 +283,29 @@ MODULE mo_optimization_types
 
     integer(i4) :: i
 
-    i = this%get_id(name)
+    i = this%get_id(name, raise=.true.)
+    call check_allocated(this%variables(i))
+    call check_pointer_ndim(5, this%variables(i)%ndim)
     ptr => this%variables(i)%data_5d
   end subroutine sim_data_set_pointer_5d
+
+  logical function sim_var_is_allocated(this)
+    class(sim_var_t), intent(in) :: this
+    select case (this%ndim)
+      case(1)
+        sim_var_is_allocated = allocated(this%data_1d)
+      case(2)
+        sim_var_is_allocated = allocated(this%data_2d)
+      case(3)
+        sim_var_is_allocated = allocated(this%data_3d)
+      case(4)
+        sim_var_is_allocated = allocated(this%data_4d)
+      case(5)
+        sim_var_is_allocated = allocated(this%data_5d)
+      case default
+        call error_message('sim_var_is_allocated: ndim is greater than 5.')
+    end select
+  end function sim_var_is_allocated
 
   subroutine optidata_sim_init(this, data_shape)
     class(optidata_sim), intent(inout) :: this
