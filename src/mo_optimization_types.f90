@@ -9,6 +9,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_optimization_types
   use mo_kind, only : i4, dp
+  use mo_message, only: error_message
 
   IMPLICIT NONE
 
@@ -140,7 +141,6 @@ MODULE mo_optimization_types
 
   end subroutine sim_data_add
 
-  ! ToDo: rename ndim -> data_shape
   subroutine sim_data_allocate(this, name, data_shape)
     class(sim_data_t), target, intent(inout) :: this
     character(*), intent(in)    :: name
@@ -162,8 +162,7 @@ MODULE mo_optimization_types
         case(5)
           allocate(this%variables(i)%data_5d(data_shape(1), data_shape(2), data_shape(3), data_shape(4), data_shape(5)))
         case default
-          ! ToDo: replace stop by error message
-          stop ('sim_data_allocate: Allocating simulated data with other dimensions than 1 to 5 is not impemented.') 
+          call error_message('sim_data_allocate: Allocating simulated data with other dimensions than 1 to 5 is not impemented.')
         end select
       end if
     end do
@@ -183,7 +182,7 @@ MODULE mo_optimization_types
       end if
     end do
 
-    if (sim_data_get_id == -1) stop ('sim_data_get_id: The simulated variable name does not exist.')
+    if (sim_data_get_id == -1) call error_message('sim_data_get_id: The simulated variable name', trim(name), 'does not exist.')
 
   end function sim_data_get_id
 
