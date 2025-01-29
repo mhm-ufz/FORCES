@@ -60,7 +60,7 @@ MODULE mo_julian
   !!
   !!    Set to Julian calendar.
   !!    \code{.f90}
-  !!    call caldat("julian")
+  !!    call caldat('julian')
   !!    call caldat(1)
   !!    \endcode
 

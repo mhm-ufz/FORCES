@@ -25,24 +25,24 @@
 !!
 !!          The following example demonstrates the functionality. The `mo_cli` module incorporates logger settings:
 !!          \code{.f90}
-!!          #include "logging.h"
+!!          #include 'logging.h'
 !!          program test_log
 !!            use mo_logging
 !!            use mo_cli, only : cli_parser
 !!            implicit none
 !!            type(cli_parser) :: parser
 !!            parser = cli_parser( &
-!!              description="Program with cli and logger.", &
+!!              description='Program with cli and logger.', &
 !!              add_help_option=.true., &
 !!              add_logger_options=.true.)
 !!            call parser%parse()
-!!            log_fatal(*) "fatal"
-!!            log_error(*) "error"
-!!            log_warn(*) "warn"
-!!            log_info(*) "info"
-!!            log_debug(*) "debug"
-!!            log_trace(*) "trace"
-!!            log_subtrace(*) "subtrace"
+!!            log_fatal(*) 'fatal'
+!!            log_error(*) 'error'
+!!            log_warn(*) 'warn'
+!!            log_info(*) 'info'
+!!            log_debug(*) 'debug'
+!!            log_trace(*) 'trace'
+!!            log_subtrace(*) 'subtrace'
 !!          end program test_log
 !!          \endcode
 !!          You can call the program with:

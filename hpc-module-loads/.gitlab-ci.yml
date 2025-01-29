@@ -27,26 +27,59 @@ show-env-vars:
 ### TEST JOBS ###
 #################
 
-eve.chs-conda01:
+.common-test-job:
   stage: test
-  script: source eve.chs-conda01
+  script:
+    - source $CI_JOB_NAME
+    - echo FC  = $FC
+    - echo F77 = $F77
+    - echo CC  = $CC
+    - echo CXX = $CXX
+    - echo "NetCDF-C:" $(nc-config --version)
+    - echo "NetCDF-F:" $(nf-config --version)
+    - make --version
+    - cmake --version
+    - python --version
+    - pip list
+
+eve.chs-conda01:
+  extends: .common-test-job
 
 eve.chs-conda02:
-  stage: test
-  script: source eve.chs-conda02
+  extends: .common-test-job
+
+eve.chs-conda03:
+  extends: .common-test-job
+
+eve.chs-conda04:
+  extends: .common-test-job
 
 eve.gfortran102:
-  stage: test
-  script: source eve.gfortran102
+  extends: .common-test-job
+
+eve.gfortran102MPI:
+  extends: .common-test-job
 
 eve.gfortran122:
-  stage: test
-  script: source eve.gfortran122
+  extends: .common-test-job
+
+eve.gfortran122MPI:
+  extends: .common-test-job
 
 eve.intel2020b:
-  stage: test
-  script: source eve.intel2020b
+  extends: .common-test-job
 
-eve.intel2023b:
-  stage: test
-  script: source eve.intel2023b-llvm
+eve.intel2020bMPI:
+  extends: .common-test-job
+
+eve.intel2023b-classic:
+  extends: .common-test-job
+
+eve.intel2023bMPI-classic:
+  extends: .common-test-job
+
+eve.intel2023b-llvm:
+  extends: .common-test-job
+
+eve.intel2023bMPI-llvm:
+  extends: .common-test-job

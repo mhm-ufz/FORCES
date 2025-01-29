@@ -13,10 +13,12 @@ All these scripts will load:
 - pFUnit - Fortran unit testing framework
 
 ### Usage
-- Conda environment with gfortran:
+- Conda environment with GNU Compilers, Python and all dependencies for Documentation, Unit-Testing and Coverage:
   ```bash
-  source eve.chs-conda01 # or
-  source eve.chs-conda02
+  source eve.chs-conda01 # Python 3.10, GNU  9.4
+  source eve.chs-conda02 # Python 3.11, GNU 12.3
+  source eve.chs-conda03 # Python 3.12, GNU 13.3
+  source eve.chs-conda04 # Python 3.13, GNU 14.2
   ```
 - GNU 10.2 compiler (`foss/2020b` Toolchain):
   ```bash
