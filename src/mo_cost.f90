@@ -243,7 +243,7 @@ CONTAINS
 
     config%parameters = parameterset
     allocate(opti_sim(1))
-    call opti_sim(1)%add(name='et', dim=2_i4)
+    call opti_sim(1)%add(name='et', ndim=2_i4)
     call eval(config, opti_sim)
 
     ! function: f(x) = ax^3 + bx^2 + cx + d

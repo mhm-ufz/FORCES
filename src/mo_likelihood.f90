@@ -65,7 +65,7 @@ CONTAINS
     config%parameters = paraset
 
     allocate(opti_sim(1))
-    call opti_sim(1)%add(name="runoff", dim=2_i4)
+    call opti_sim(1)%add(name="runoff", ndim=2_i4)
     call eval(config, opti_sim=opti_sim)
     call opti_sim(1)%set_pointer(name="runoff", ptr=runoff)
     errors(:) = runoff(:,1)-data()
@@ -95,7 +95,7 @@ CONTAINS
     config%parameters = paraset
 
     allocate(opti_sim(1))
-    call opti_sim(1)%add(name="runoff", dim=2_i4)
+    call opti_sim(1)%add(name="runoff", ndim=2_i4)
     call eval(config, opti_sim=opti_sim)
     call opti_sim(1)%set_pointer(name="runoff", ptr=runoff)
     errors(:) = runoff(:,1)-data()
@@ -126,7 +126,7 @@ CONTAINS
     config%parameters = paraset
 
     allocate(opti_sim(1))
-    call opti_sim(1)%add(name="runoff", dim=2_i4)
+    call opti_sim(1)%add(name="runoff", ndim=2_i4)
     call eval(config, opti_sim=opti_sim)
     call opti_sim(1)%set_pointer(name="runoff", ptr=runoff)
     errors(:) = runoff(:,1)-data()
@@ -166,7 +166,7 @@ CONTAINS
     config%parameters = paraset
 
     allocate(opti_sim(1))
-    call opti_sim(1)%add(name="runoff", dim=2_i4)
+    call opti_sim(1)%add(name="runoff", ndim=2_i4)
     call eval(config, opti_sim=opti_sim)
     call opti_sim(1)%set_pointer(name="runoff", ptr=runoff)
     errors(:) = runoff(:,1)-data()
@@ -206,7 +206,7 @@ CONTAINS
     if (size(opti_sim) /= 1) call error_message('model_dp: does not support opti_sim data with more than 1 dimension.')
 
     if (opti_sim(1)%has('runoff')) then
-      call opti_sim(1)%allocate(name="runoff", ndim=(/n, 1/))
+      call opti_sim(1)%allocate(name="runoff", data_shape=(/n, 1/))
       call opti_sim(1)%set_pointer(name="runoff", ptr=runoff)
     end if
 

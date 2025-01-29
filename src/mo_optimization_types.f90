@@ -44,7 +44,6 @@ MODULE mo_optimization_types
     procedure, public :: has => sim_data_has
     procedure, public :: add => sim_data_add
     procedure, public :: allocate => sim_data_allocate
-    ! ToDo only interface public, other private
     procedure, private :: get_id => sim_data_get_id
     ! One could create these similar procedures
     ! with fypp, for example if more dimensions are needed.
@@ -106,7 +105,6 @@ MODULE mo_optimization_types
 
   contains
 
-  ! ToDo: When to charater(*) and character(256)?
   pure logical function sim_data_has(this, name)
     class(sim_data_t), intent(in) :: this
     character(*), intent(in)    :: name
@@ -128,7 +126,6 @@ MODULE mo_optimization_types
 
     type(sim_var_t) :: add_data
 
-    ! ToDo: Why name in type 256 and in input var *?
     add_data%name = trim(name)
     add_data%ndim = ndim
     if (present(time_avg_selector)) add_data%time_avg_selector = time_avg_selector
@@ -144,26 +141,26 @@ MODULE mo_optimization_types
   end subroutine sim_data_add
 
   ! ToDo: rename ndim -> data_shape
-  subroutine sim_data_allocate(this, name, ndim)
+  subroutine sim_data_allocate(this, name, data_shape)
     class(sim_data_t), target, intent(inout) :: this
     character(*), intent(in)    :: name
-    integer(i4), dimension(:), intent(in)  :: ndim
+    integer(i4), dimension(:), intent(in)  :: data_shape
 
     integer(i4) :: i
 
     do i = 1, size(this%variables)
       if (this%variables(i)%name == name) then
-        select case (size(ndim))
+        select case (size(data_shape))
         case(1)
-          allocate(this%variables(i)%data_1d(ndim(1)))
+          allocate(this%variables(i)%data_1d(data_shape(1)))
         case(2)
-          allocate(this%variables(i)%data_2d(ndim(1), ndim(2)))
+          allocate(this%variables(i)%data_2d(data_shape(1), data_shape(2)))
         case(3)
-          allocate(this%variables(i)%data_3d(ndim(1), ndim(2), ndim(3)))
+          allocate(this%variables(i)%data_3d(data_shape(1), data_shape(2), data_shape(3)))
         case(4)
-          allocate(this%variables(i)%data_4d(ndim(1), ndim(2), ndim(3), ndim(4)))
+          allocate(this%variables(i)%data_4d(data_shape(1), data_shape(2), data_shape(3), data_shape(4)))
         case(5)
-          allocate(this%variables(i)%data_5d(ndim(1), ndim(2), ndim(3), ndim(4), ndim(5)))
+          allocate(this%variables(i)%data_5d(data_shape(1), data_shape(2), data_shape(3), data_shape(4), data_shape(5)))
         case default
           ! ToDo: replace stop by error message
           stop ('sim_data_allocate: Allocating simulated data with other dimensions than 1 to 5 is not impemented.') 
