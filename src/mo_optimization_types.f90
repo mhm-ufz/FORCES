@@ -41,18 +41,21 @@ MODULE mo_optimization_types
   type sim_data_t
     type(sim_var_t), dimension(:), allocatable :: variables
     contains
-    procedure :: has => sim_data_has
-    procedure :: add => sim_data_add
-    procedure :: get_id => sim_data_get_id
+    procedure, public :: has => sim_data_has
+    procedure, public :: add => sim_data_add
+    procedure, public :: allocate => sim_data_allocate
     ! ToDo only interface public, other private
-    procedure :: allocate => sim_data_allocate
-    procedure :: sim_data_set_pointer_1d
-    procedure :: sim_data_set_pointer_2d
-    procedure :: sim_data_set_pointer_3d
-    procedure :: sim_data_set_pointer_4d
-    procedure :: sim_data_set_pointer_5d
+    procedure, private :: get_id => sim_data_get_id
+    ! One could create these similar procedures
+    ! with fypp, for example if more dimensions are needed.
+    ! Or you could read about 'assumed rank'.
+    procedure, private :: sim_data_set_pointer_1d
+    procedure, private :: sim_data_set_pointer_2d
+    procedure, private :: sim_data_set_pointer_3d
+    procedure, private :: sim_data_set_pointer_4d
+    procedure, private :: sim_data_set_pointer_5d
     ! ToDo: destructor
-    generic   :: set_pointer => sim_data_set_pointer_1d, sim_data_set_pointer_2d, &
+    generic, public   :: set_pointer => sim_data_set_pointer_1d, sim_data_set_pointer_2d, &
       sim_data_set_pointer_3d, sim_data_set_pointer_4d, sim_data_set_pointer_5d
   end type sim_data_t
 
@@ -117,17 +120,17 @@ MODULE mo_optimization_types
     end do
   end function sim_data_has
 
-  subroutine sim_data_add(this, name, dim, time_avg_selector)
+  subroutine sim_data_add(this, name, ndim, time_avg_selector)
     class(sim_data_t), intent(inout) :: this
     character(*), intent(in)    :: name
-    integer(i4), intent(in) :: dim
+    integer(i4), intent(in) :: ndim
     integer(i4), optional, intent(in) :: time_avg_selector
 
     type(sim_var_t) :: add_data
 
     ! ToDo: Why name in type 256 and in input var *?
     add_data%name = trim(name)
-    add_data%ndim = dim
+    add_data%ndim = ndim
     if (present(time_avg_selector)) add_data%time_avg_selector = time_avg_selector
     ! ToDo: is the if case needed?
     ! Tested: the else case works
@@ -140,6 +143,7 @@ MODULE mo_optimization_types
 
   end subroutine sim_data_add
 
+  ! ToDo: rename ndim -> data_shape
   subroutine sim_data_allocate(this, name, ndim)
     class(sim_data_t), target, intent(inout) :: this
     character(*), intent(in)    :: name
@@ -174,7 +178,7 @@ MODULE mo_optimization_types
 
     integer(i4) :: i
 
-    sim_data_get_id = -999
+    sim_data_get_id = -1
     do i = 1, size(this%variables)
       if (this%variables(i)%name == name) then
         sim_data_get_id = i
@@ -182,11 +186,10 @@ MODULE mo_optimization_types
       end if
     end do
 
-    if (sim_data_get_id == -999) stop ('sim_data_get_id: The simulated variable name does not exist.')
+    if (sim_data_get_id == -1) stop ('sim_data_get_id: The simulated variable name does not exist.')
 
   end function sim_data_get_id
 
-  ! ToDo: generate with fypp
   subroutine sim_data_set_pointer_1d(this, name, ptr)
     class(sim_data_t), target, intent(in) :: this
     character(*), intent(in)    :: name
