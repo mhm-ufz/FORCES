@@ -56,6 +56,7 @@ MODULE mo_optimization_types
     procedure, private :: sim_data_set_pointer_4d
     procedure, private :: sim_data_set_pointer_5d
     ! ToDo: destructor
+    final :: sim_data_destructor
     generic, public   :: set_pointer => sim_data_set_pointer_1d, sim_data_set_pointer_2d, &
       sim_data_set_pointer_3d, sim_data_set_pointer_4d, sim_data_set_pointer_5d
   end type sim_data_t
@@ -72,6 +73,7 @@ MODULE mo_optimization_types
                                                                                 !< 0 total, n every n timestep
   contains
     procedure, public :: is_allocated => sim_var_is_allocated
+    final :: sim_var_destructor
   end type sim_var_t
 
   !> \brief optional data, such as sm, neutrons, et, tws
@@ -395,5 +397,24 @@ MODULE mo_optimization_types
     call this%add(data_sim(:))
     this%averageCounter = this%averageCounter + 1
   end subroutine optidata_sim_average_add
+
+  subroutine sim_data_destructor(this)
+    type(sim_data_t),    intent(inout) :: this
+
+    if (allocated(this%variables)) deallocate(this%variables)
+
+  end subroutine sim_data_destructor
+
+  subroutine sim_var_destructor(this)
+    type(sim_var_t),    intent(inout) :: this
+
+    if (allocated(this%name)) deallocate(this%name)
+    if (allocated(this%data_1d)) deallocate(this%data_1d)
+    if (allocated(this%data_2d)) deallocate(this%data_2d)
+    if (allocated(this%data_3d)) deallocate(this%data_3d)
+    if (allocated(this%data_4d)) deallocate(this%data_4d)
+    if (allocated(this%data_5d)) deallocate(this%data_5d)
+
+  end subroutine sim_var_destructor
 
 END MODULE mo_optimization_types
