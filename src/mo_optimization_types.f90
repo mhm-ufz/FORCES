@@ -18,23 +18,22 @@ MODULE mo_optimization_types
 
   private
 
+  !> \class   config_t
+  !> \brief   Type to hold the configuration of an evaluation function.
   type config_t
-    real(dp),    dimension(:), allocatable :: parameters
-    integer(i4), dimension(:), allocatable :: opti_indices
+    real(dp),    dimension(:), allocatable :: parameters  !< parameters for the evaluation function
+    integer(i4), dimension(:), allocatable :: opti_indices  !< optimization indices for the evaluation function
   end type config_t
 
-! ToDo: documentation like mo_cli
-
+  !> \class   sim_data_t
+  !> \brief   Type to hold all the simulated data of an evaluation function.
   type sim_data_t
-    type(sim_var_t), dimension(:), allocatable :: variables
+    type(sim_var_t), dimension(:), allocatable :: variables  !< array of all simulated variables
   contains
     procedure, public :: has => sim_data_has
     procedure, public :: add => sim_data_add
     procedure, public :: allocate => sim_data_allocate
     procedure, private :: get_id => sim_data_get_id
-    ! One could create these similar procedures
-    ! with fypp, for example if more dimensions are needed.
-    ! Or you could read about 'assumed rank'.
     procedure, private :: sim_data_set_pointer_1d
     procedure, private :: sim_data_set_pointer_2d
     procedure, private :: sim_data_set_pointer_3d
@@ -44,6 +43,9 @@ MODULE mo_optimization_types
       sim_data_set_pointer_3d, sim_data_set_pointer_4d, sim_data_set_pointer_5d
   end type sim_data_t
 
+  !> \class   sim_var_t
+  !> \brief   Type to hold a single simulated variable of an evaluation function.
+  !> \details Can hold data with 1 to 5 dimensions.
   type sim_var_t
     real(dp), dimension(:),             allocatable :: data_1d  !< 1D data array
     real(dp), dimension(:, :),          allocatable :: data_2d  !< 2D data array
@@ -58,30 +60,35 @@ MODULE mo_optimization_types
 
   contains
 
+  !> \brief Check given data shape and ndim for consistency.
   subroutine check_data_shape(data_shape, ndim)
-    integer(i4), dimension(:), intent(in)    :: data_shape
-    integer(i4), intent(in)    :: ndim
+    integer(i4), dimension(:), intent(in)    :: data_shape  !< data shape
+    integer(i4), intent(in)    :: ndim  !< number of dimensions
     if (size(data_shape) /= ndim) &
     call error_message( &
       'check_data_shape: given data-shape (size ', num2str(size(data_shape)), ') not matching ndim (', num2str(ndim), ').')
   end subroutine check_data_shape
 
+  !> \brief Check given pointer dimension and ndim for consistency.
   subroutine check_pointer_ndim(pointer_ndim, data_ndim)
-    integer(i4), intent(in) :: pointer_ndim
-    integer(i4), intent(in) :: data_ndim
+    integer(i4), intent(in) :: pointer_ndim  !< number of dimensions of the pointer
+    integer(i4), intent(in) :: data_ndim  !< number of dimensions of the variable data
     if (pointer_ndim /= data_ndim) &
       call error_message("check_pointer_ndim: pointer is ", num2str(pointer_ndim),"D but data is ", num2str(data_ndim), "D.")
   end subroutine check_pointer_ndim
 
+  !> \brief Check if variable is allocated.
   subroutine check_allocated(var)
-    class(sim_var_t), intent(in) :: var
+    class(sim_var_t), intent(in) :: var  !< variable
     if (.not. var%is_allocated()) &
       call error_message('check_allocated: data for "', var%name ,'" is not allocated')
   end subroutine check_allocated
 
+  !> \brief Check if variable is present in the simulated data.
+  !> \return .True. or .False.
   logical function sim_data_has(this, name)
-    class(sim_data_t), intent(in) :: this
-    character(*), intent(in)      :: name
+    class(sim_data_t), intent(in) :: this  !< simulated data
+    character(*), intent(in)      :: name  !< variable name
     sim_data_has = this%get_id(name) > 0
   end function sim_data_has
 
@@ -122,10 +129,11 @@ MODULE mo_optimization_types
 
   end subroutine sim_data_add
 
+  !> \brief Allocate variable data by name in the simulated data.
   subroutine sim_data_allocate(this, name, data_shape)
-    class(sim_data_t), target, intent(inout) :: this
-    character(*), intent(in)                 :: name
-    integer(i4), dimension(:), intent(in)    :: data_shape
+    class(sim_data_t), target, intent(inout) :: this  !< simulated data
+    character(*), intent(in)                 :: name  !< variable name
+    integer(i4), dimension(:), intent(in)    :: data_shape  !< data shape
 
     integer(i4) :: i
 
@@ -147,10 +155,12 @@ MODULE mo_optimization_types
     end select
   end subroutine sim_data_allocate
 
+  !> \brief Get variable ID in the simulated data array.
+  !> \return variable ID as integer
   integer(i4) function sim_data_get_id(this, name, raise)
-    class(sim_data_t), target, intent(in) :: this
-    character(*), intent(in)      :: name
-    logical, intent(in), optional :: raise
+    class(sim_data_t), target, intent(in) :: this  !< simulated data
+    character(*), intent(in)      :: name  !< variable name
+    logical, intent(in), optional :: raise  !< flag to raise error if variable not present (default: .false.)
 
     logical :: raise_
     integer(i4) :: i, max_i
@@ -174,10 +184,11 @@ MODULE mo_optimization_types
 
   end function sim_data_get_id
 
+  !> \brief Set a 1D pointer to variable data by name from the simulated data.
   subroutine sim_data_set_pointer_1d(this, name, ptr)
-    class(sim_data_t), target, intent(in) :: this
-    character(*), intent(in)    :: name
-    real(dp), dimension(:), pointer, intent(inout) :: ptr
+    class(sim_data_t), target, intent(in) :: this  !< simulated data
+    character(*), intent(in)    :: name  !< variable name
+    real(dp), dimension(:), pointer, intent(inout) :: ptr  !< pointer
 
     integer(i4) :: i
 
@@ -187,10 +198,11 @@ MODULE mo_optimization_types
     ptr => this%variables(i)%data_1d
   end subroutine sim_data_set_pointer_1d
 
+  !> \brief Set a 2D pointer to variable data by name from the simulated data.
   subroutine sim_data_set_pointer_2d(this, name, ptr)
-    class(sim_data_t), target, intent(in) :: this
-    character(*), intent(in)    :: name
-    real(dp), dimension(:,:), pointer :: ptr
+    class(sim_data_t), target, intent(in) :: this  !< simulated data
+    character(*), intent(in)    :: name  !< variable name
+    real(dp), dimension(:,:), pointer :: ptr  !< pointer
 
     integer(i4) :: i
 
@@ -200,10 +212,11 @@ MODULE mo_optimization_types
     ptr => this%variables(i)%data_2d
   end subroutine sim_data_set_pointer_2d
 
+  !> \brief Set a 3D pointer to variable data by name from the simulated data.
   subroutine sim_data_set_pointer_3d(this, name, ptr)
-    class(sim_data_t), target, intent(in) :: this
-    character(*), intent(in)    :: name
-    real(dp), dimension(:,:,:), pointer, intent(inout) :: ptr
+    class(sim_data_t), target, intent(in) :: this  !< simulated data
+    character(*), intent(in)    :: name  !< variable name
+    real(dp), dimension(:,:,:), pointer, intent(inout) :: ptr  !< pointer
 
     integer(i4) :: i
 
@@ -213,10 +226,11 @@ MODULE mo_optimization_types
     ptr => this%variables(i)%data_3d
   end subroutine sim_data_set_pointer_3d
 
+  !> \brief Set a 4D pointer to variable data by name from the simulated data.
   subroutine sim_data_set_pointer_4d(this, name, ptr)
-    class(sim_data_t), target, intent(in) :: this
-    character(*), intent(in)    :: name
-    real(dp), dimension(:,:,:,:), pointer, intent(inout) :: ptr
+    class(sim_data_t), target, intent(in) :: this  !< simulated data
+    character(*), intent(in)    :: name  !< variable name
+    real(dp), dimension(:,:,:,:), pointer, intent(inout) :: ptr  !< pointer
 
     integer(i4) :: i
 
@@ -226,10 +240,11 @@ MODULE mo_optimization_types
     ptr => this%variables(i)%data_4d
   end subroutine sim_data_set_pointer_4d
 
+  !> \brief Set a 5D pointer to variable data by name from the simulated data.
   subroutine sim_data_set_pointer_5d(this, name, ptr)
-    class(sim_data_t), target, intent(in) :: this
-    character(*), intent(in)    :: name
-    real(dp), dimension(:,:,:,:,:), pointer, intent(inout) :: ptr
+    class(sim_data_t), target, intent(in) :: this  !< simulated data
+    character(*), intent(in)    :: name  !< variable name
+    real(dp), dimension(:,:,:,:,:), pointer, intent(inout) :: ptr  !< pointer
 
     integer(i4) :: i
 
@@ -239,8 +254,10 @@ MODULE mo_optimization_types
     ptr => this%variables(i)%data_5d
   end subroutine sim_data_set_pointer_5d
 
+  !> \brief Check if variable data is allocated.
+  !> \return .True. or .False.
   logical function sim_var_is_allocated(this)
-    class(sim_var_t), intent(in) :: this
+    class(sim_var_t), intent(in) :: this  !< variable
     select case (this%ndim)
       case(1)
         sim_var_is_allocated = allocated(this%data_1d)
