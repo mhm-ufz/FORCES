@@ -41,7 +41,14 @@ MODULE mo_optimization_types
     procedure, private :: sim_data_set_pointer_5d
     generic, public   :: set_pointer => sim_data_set_pointer_1d, sim_data_set_pointer_2d, &
       sim_data_set_pointer_3d, sim_data_set_pointer_4d, sim_data_set_pointer_5d
-  end type sim_data_t
+    procedure, private :: sim_data_set_data_1d
+    procedure, private :: sim_data_set_data_2d
+    procedure, private :: sim_data_set_data_3d
+    procedure, private :: sim_data_set_data_4d
+    procedure, private :: sim_data_set_data_5d
+    generic, public   :: set_data => sim_data_set_data_1d, sim_data_set_data_2d, &
+      sim_data_set_data_3d, sim_data_set_data_4d, sim_data_set_data_5d
+    end type sim_data_t
 
   !> \class   sim_var_t
   !> \brief   Type to hold a single simulated variable of an evaluation function.
@@ -56,6 +63,7 @@ MODULE mo_optimization_types
     integer(i4)                                     :: ndim  !< number of dimensions
   contains
     procedure, public :: is_allocated => sim_var_is_allocated
+    procedure, public :: data_shape => sim_var_data_shape
   end type sim_var_t
 
   contains
@@ -76,6 +84,25 @@ MODULE mo_optimization_types
     if (pointer_ndim /= data_ndim) &
       call error_message("check_pointer_ndim: pointer is ", num2str(pointer_ndim),"D but data is ", num2str(data_ndim), "D.")
   end subroutine check_pointer_ndim
+
+  !> \brief Check given values dimension and ndim for consistency.
+  subroutine check_values_ndim(values_ndim, data_ndim)
+    integer(i4), intent(in) :: values_ndim  !< number of dimensions of given values
+    integer(i4), intent(in) :: data_ndim  !< number of dimensions of the variable data
+    if (values_ndim /= data_ndim) &
+      call error_message("check_values_ndim: values are ", num2str(values_ndim),"D but data is ", num2str(data_ndim), "D.")
+  end subroutine check_values_ndim
+
+  !> \brief Check given values shape for consistency.
+  subroutine check_values_shape(values_shape, data_shape)
+    integer(i4), dimension(:), intent(in) :: values_shape  !< shape of given values
+    integer(i4), dimension(:), intent(in) :: data_shape  !< shape of the variable data
+    if (size(values_shape) /= size(data_shape)) &
+      call error_message( &
+        "check_values_shape: values are ", num2str(size(values_shape)),"D but data is ", num2str(size(data_shape)), "D.")
+    if (any(values_shape /= data_shape)) call error_message("check_values_shape: values and data have different shapes.")
+
+  end subroutine check_values_shape
 
   !> \brief Check if variable is allocated.
   subroutine check_allocated(var)
@@ -202,7 +229,7 @@ MODULE mo_optimization_types
   subroutine sim_data_set_pointer_2d(this, name, ptr)
     class(sim_data_t), target, intent(in) :: this  !< simulated data
     character(*), intent(in)    :: name  !< variable name
-    real(dp), dimension(:,:), pointer :: ptr  !< pointer
+    real(dp), dimension(:,:), pointer, intent(inout) :: ptr  !< pointer
 
     integer(i4) :: i
 
@@ -254,6 +281,76 @@ MODULE mo_optimization_types
     ptr => this%variables(i)%data_5d
   end subroutine sim_data_set_pointer_5d
 
+  !> \brief Set a 1D values to variable data by name from the simulated data.
+  subroutine sim_data_set_data_1d(this, name, values)
+    class(sim_data_t), target, intent(inout) :: this  !< simulated data
+    character(*), intent(in)    :: name  !< variable name
+    real(dp), dimension(:), intent(in) :: values  !< values to set
+
+    integer(i4) :: i
+
+    i = this%get_id(name, raise=.true.)
+    call check_values_ndim(1, this%variables(i)%ndim)
+    if (this%variables(i)%is_allocated()) call check_values_shape(shape(values), this%variables(i)%data_shape())
+    this%variables(i)%data_1d = values
+  end subroutine sim_data_set_data_1d
+
+  !> \brief Set a 2D values to variable data by name from the simulated data.
+  subroutine sim_data_set_data_2d(this, name, values)
+    class(sim_data_t), target, intent(inout) :: this  !< simulated data
+    character(*), intent(in)    :: name  !< variable name
+    real(dp), dimension(:,:), intent(in) :: values  !< values to set
+
+    integer(i4) :: i
+
+    i = this%get_id(name, raise=.true.)
+    call check_values_ndim(2, this%variables(i)%ndim)
+    if (this%variables(i)%is_allocated()) call check_values_shape(shape(values), this%variables(i)%data_shape())
+    this%variables(i)%data_2d = values
+  end subroutine sim_data_set_data_2d
+
+  !> \brief Set a 3D values to variable data by name from the simulated data.
+  subroutine sim_data_set_data_3d(this, name, values)
+    class(sim_data_t), target, intent(inout) :: this  !< simulated data
+    character(*), intent(in)    :: name  !< variable name
+    real(dp), dimension(:,:,:), pointer, intent(in) :: values  !< values to set
+
+    integer(i4) :: i
+
+    i = this%get_id(name, raise=.true.)
+    call check_values_ndim(3, this%variables(i)%ndim)
+    if (this%variables(i)%is_allocated()) call check_values_shape(shape(values), this%variables(i)%data_shape())
+    this%variables(i)%data_3d = values
+  end subroutine sim_data_set_data_3d
+
+  !> \brief Set a 4D values to variable data by name from the simulated data.
+  subroutine sim_data_set_data_4d(this, name, values)
+    class(sim_data_t), target, intent(inout) :: this  !< simulated data
+    character(*), intent(in)    :: name  !< variable name
+    real(dp), dimension(:,:,:,:), pointer, intent(in) :: values  !< values to set
+
+    integer(i4) :: i
+
+    i = this%get_id(name, raise=.true.)
+    call check_values_ndim(4, this%variables(i)%ndim)
+    if (this%variables(i)%is_allocated()) call check_values_shape(shape(values), this%variables(i)%data_shape())
+    this%variables(i)%data_4d = values
+  end subroutine sim_data_set_data_4d
+
+  !> \brief Set a 5D values to variable data by name from the simulated data.
+  subroutine sim_data_set_data_5d(this, name, values)
+    class(sim_data_t), target, intent(inout) :: this  !< simulated data
+    character(*), intent(in)    :: name  !< variable name
+    real(dp), dimension(:,:,:,:,:), pointer, intent(in) :: values  !< values to set
+
+    integer(i4) :: i
+
+    i = this%get_id(name, raise=.true.)
+    call check_values_ndim(5, this%variables(i)%ndim)
+    if (this%variables(i)%is_allocated()) call check_values_shape(shape(values), this%variables(i)%data_shape())
+    this%variables(i)%data_5d = values
+  end subroutine sim_data_set_data_5d
+
   !> \brief Check if variable data is allocated.
   !> \return .True. or .False.
   logical function sim_var_is_allocated(this)
@@ -273,5 +370,30 @@ MODULE mo_optimization_types
         call error_message('sim_var_is_allocated: ndim is greater than 5.')
     end select
   end function sim_var_is_allocated
+
+  !> \brief Determine variable data shape.
+  !> \return data shape
+  function sim_var_data_shape(this)
+    class(sim_var_t), intent(in) :: this  !< variable
+    integer(i4), allocatable, dimension(:) :: sim_var_data_shape
+    if (.not. this%is_allocated()) then
+      allocate(sim_var_data_shape(0))
+    else
+      select case (this%ndim)
+        case(1)
+          sim_var_data_shape = shape(this%data_1d)
+        case(2)
+          sim_var_data_shape = shape(this%data_2d)
+        case(3)
+          sim_var_data_shape = shape(this%data_3d)
+        case(4)
+          sim_var_data_shape = shape(this%data_4d)
+        case(5)
+          sim_var_data_shape = shape(this%data_5d)
+        case default
+          call error_message('sim_var_data_shape: ndim is greater than 5.')
+      end select
+    end if
+  end function sim_var_data_shape
 
 END MODULE mo_optimization_types
