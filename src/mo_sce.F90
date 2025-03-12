@@ -10,7 +10,7 @@
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_sce
-  use mo_optimization_utils, only : optimizee
+  use mo_optimizee, only : optimizee
 
   IMPLICIT NONE
 
@@ -51,7 +51,7 @@ MODULE mo_sce
   !!                  \n
   !!                 The function to be minimized is the first argument of SCE and must be defined as \n
   !!                 \code{.f90}
-  !!                       use mo_optimization_utils, only: optimizee
+  !!                       use mo_optimizee, only: optimizee
   !!                       type, extends(optimizee) :: your_optimizee
   !!                       contains
   !!                         ! to be implemented with signature: your_evaluate(self, parameters, sigma, stddev_new, likeli_new)
@@ -62,7 +62,7 @@ MODULE mo_sce
   !!        \b Example
   !!        \code{.f90}
   !!         use mo_opt_functions, only: griewank
-  !!         use mo_optimization_utils, only: function_optimizee
+  !!         use mo_optimizee, only: function_optimizee
   !!         type(function_optimizee) :: objective
   !!         prange(:,1) = (/ -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0 /)
   !!         prange(:,2) = (/ 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0 /)

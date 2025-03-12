@@ -1,7 +1,7 @@
-module test_mo_optimization_types
+module test_mo_opt_eval_utils
 
   use funit
-  use mo_optimization_types
+  use mo_opt_eval_utils
   use mo_kind, only : i4, dp
 
   implicit none
@@ -45,4 +45,4 @@ contains
 
   end subroutine test_sim_data
 
-end module test_mo_optimization_types
+end module test_mo_opt_eval_utils

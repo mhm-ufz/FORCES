@@ -12,7 +12,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_dds
 
-  use mo_optimization_utils, only : optimizee
+  use mo_optimizee, only : optimizee
 
   IMPLICIT NONE
 
@@ -37,7 +37,7 @@ CONTAINS
   !!
   !!        The function to be minimized is the first argument of DDS and must be defined as \n
   !!        \code{.f90}
-  !!        use mo_optimization_utils, only: optimizee
+  !!        use mo_optimizee, only: optimizee
   !!        type, extends(optimizee) :: your_optimizee
   !!        contains
   !!          ! to be implemented with signature: your_evaluate(self, parameters, sigma, stddev_new, likeli_new)
@@ -49,7 +49,7 @@ CONTAINS
   !!
   !!        \code{.f90}
   !!        use mo_opt_functions, only: griewank
-  !!        use mo_optimization_utils, only: function_optimizee
+  !!        use mo_optimizee, only: function_optimizee
   !!        dv_range(:,1) = (/ -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0 /)
   !!        dv_range(:,2) = (/ 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0 /)
   !!        dv_ini        = (/ -.226265E+01, -.130187E+01, -.151219E+01, 0.133983E+00, 0.988159E+00, &
@@ -362,7 +362,7 @@ CONTAINS
   !!        so that the algorithm minimizes the negative of the objective function F=(-1*F).\n
   !!        The function to be minimized is the first argument of DDS and must be defined as
   !!        \code{.f90}
-  !!        use mo_optimization_utils, only: optimizee
+  !!        use mo_optimizee, only: optimizee
   !!        type, extends(optimizee) :: your_optimizee
   !!        contains
   !!          ! to be implemented with signature: your_evaluate(self, parameters, sigma, stddev_new, likeli_new)
@@ -399,7 +399,7 @@ CONTAINS
   !!
   !!        \code{.f90}
   !!        use mo_opt_functions, only: griewank
-  !!        use mo_optimization_utils, only: function_optimizee
+  !!        use mo_optimizee, only: function_optimizee
   !!        dv_range(:,1) = (/ -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0 /)
   !!        dv_range(:,2) = (/ 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0 /)
   !!        dv_ini        = (/ -.226265E+01, -.130187E+01, -.151219E+01, 0.133983E+00, 0.988159E+00, &

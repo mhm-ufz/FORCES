@@ -1,13 +1,13 @@
-!> \file mo_optimization_types.f90
-!> \brief \copybrief mo_optimization_types
-!> \details \copydetails mo_optimization_types
+!> \file mo_opt_eval_utils.f90
+!> \brief \copybrief mo_opt_eval_utils
+!> \details \copydetails mo_opt_eval_utils
 
 !> \brief Type definitions for optimization routines
 !> \author Maren Kaluza
 !> \date Nov 2019
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
-MODULE mo_optimization_types
+MODULE mo_opt_eval_utils
   use mo_kind, only : i4, dp
   use mo_message, only : error_message
   use mo_string_utils, only : num2str
@@ -396,4 +396,4 @@ MODULE mo_optimization_types
     end if
   end function sim_var_data_shape
 
-END MODULE mo_optimization_types
+END MODULE mo_opt_eval_utils

@@ -4,7 +4,7 @@ module test_mo_dds
   use mo_kind, only: i4, i8, dp
   use mo_dds,  only: dds, mdds
   use mo_opt_functions,    only: griewank
-  use mo_optimization_utils, only: function_optimizee
+  use mo_optimizee, only: function_optimizee
   use mo_message, only: error_message
 
   implicit none

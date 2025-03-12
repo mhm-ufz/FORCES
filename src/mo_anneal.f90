@@ -44,7 +44,7 @@ MODULE mo_anneal
   USE mo_kind, ONLY : i4, i8, dp
   USE mo_utils, ONLY : le, ge
   USE mo_xor4096, ONLY : get_timeseed, xor4096, xor4096g, n_save_state
-  USE mo_optimization_utils, ONLY : optimizee
+  USE mo_optimizee, ONLY : optimizee
 
   IMPLICIT NONE
 
@@ -65,7 +65,7 @@ MODULE mo_anneal
   !!        parameter set (the interface given below has to be used for this function!).
   !!
   !!        \code{.f90}
-  !!        use mo_optimization_utils, only: optimizee
+  !!        use mo_optimizee, only: optimizee
   !!        type, extends(optimizee) :: your_optimizee
   !!        contains
   !!          ! to be implemented with signature: your_evaluate(self, parameters, sigma, stddev_new, likeli_new)

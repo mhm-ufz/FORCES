@@ -6,7 +6,7 @@ module test_mo_anneal
   use mo_anneal,  only: GetTemperature    !, GetTemperature_valid
   use mo_cost,    only: range_dp, cost_dp
   use mo_xor4096, only: get_timeseed
-  use mo_optimization_utils, only: function_optimizee
+  use mo_optimizee, only: function_optimizee
   use mo_message, only: error_message
 
   implicit none

@@ -15,7 +15,7 @@ MODULE mo_mcmc
   USE mo_append, only : append
   USE mo_moment, only : stddev
   !$ USE omp_lib,    only: OMP_GET_NUM_THREADS
-  use mo_optimization_utils, only : optimizee
+  use mo_optimizee, only : optimizee
   use mo_message, only : error_message
 #ifdef FORCES_WITH_NETCDF
   use mo_ncwrite, only : dump_netcdf

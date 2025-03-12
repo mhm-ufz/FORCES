@@ -1,6 +1,6 @@
-!> \file mo_optimization_utils.f90
-!> \brief \copybrief mo_optimization_utils
-!> \details \copydetails mo_optimization_utils
+!> \file mo_optimizee.f90
+!> \brief \copybrief mo_optimizee
+!> \details \copydetails mo_optimizee
 
 !> \brief Utility functions, such as interface definitions, for optimization routines.
 !> \details An abstract type \ref optimizee is provided to be used with the optimization functions
@@ -14,7 +14,7 @@
 !!
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
-module mo_optimization_utils
+module mo_optimizee
 
   use mo_kind, only : dp
   use mo_message, only : error_message
@@ -33,7 +33,7 @@ module mo_optimization_utils
   !> \brief Interface for evaluation function.
   abstract interface
     subroutine eval_interface(config, sim_data)
-      use mo_optimization_types, only : config_t, sim_data_t
+      use mo_opt_eval_utils, only : config_t, sim_data_t
       type(config_t),                                    intent(in)    :: config  !< configuration
       type(sim_data_t), dimension(:), pointer, optional, intent(inout) :: sim_data !< simulated data
     end subroutine
@@ -184,4 +184,4 @@ contains
     value = self%obj_pointer(parameters, self%eval_pointer, sigma, stddev_new, likeli_new)
   end function evaluate_obj_eval
 
-end module mo_optimization_utils
+end module mo_optimizee
