@@ -45,15 +45,13 @@ MODULE mo_optimization_types
   end type sim_data_t
 
   type sim_var_t
-    real(dp), dimension(:),             allocatable :: data_1d
-    real(dp), dimension(:, :),          allocatable :: data_2d
-    real(dp), dimension(:, :, :),       allocatable :: data_3d
-    real(dp), dimension(:, :, :, :),    allocatable :: data_4d
-    real(dp), dimension(:, :, :, :, :), allocatable :: data_5d
-    character(:),                       allocatable :: name
-    integer(i4)                                     :: ndim
-    integer(i4)                                     :: time_avg_selector = 1_i4 !< time averaging: -3 yearly, -2 monthly, -1 daily,
-                                                                                !< 0 total, n every n timestep
+    real(dp), dimension(:),             allocatable :: data_1d  !< 1D data array
+    real(dp), dimension(:, :),          allocatable :: data_2d  !< 2D data array
+    real(dp), dimension(:, :, :),       allocatable :: data_3d  !< 3D data array
+    real(dp), dimension(:, :, :, :),    allocatable :: data_4d  !< 4D data array
+    real(dp), dimension(:, :, :, :, :), allocatable :: data_5d  !< 5D data array
+    character(:),                       allocatable :: name  !< name of the variable
+    integer(i4)                                     :: ndim  !< number of dimensions
   contains
     procedure, public :: is_allocated => sim_var_is_allocated
   end type sim_var_t
@@ -87,12 +85,12 @@ MODULE mo_optimization_types
     sim_data_has = this%get_id(name) > 0
   end function sim_data_has
 
-  subroutine sim_data_add(this, name, ndim, data_shape, time_avg_selector)
-    class(sim_data_t), intent(inout)                :: this
-    character(*), intent(in)                        :: name
-    integer(i4), optional, intent(in)               :: ndim
-    integer(i4), dimension(:), optional, intent(in) :: data_shape
-    integer(i4), optional, intent(in)               :: time_avg_selector
+  !> \brief Add a new variable to the simulated data.
+  subroutine sim_data_add(this, name, ndim, data_shape)
+    class(sim_data_t), intent(inout)                :: this  !< simulated data
+    character(*), intent(in)                        :: name  !< variable name
+    integer(i4), optional, intent(in)               :: ndim  !< number of dimensions
+    integer(i4), dimension(:), optional, intent(in) :: data_shape  !< data shape
 
     type(sim_var_t) :: add_data
     integer(i4) :: ndim_
@@ -112,9 +110,7 @@ MODULE mo_optimization_types
     endif
     add_data%name = trim(name)
     add_data%ndim = ndim_
-    if (present(time_avg_selector)) add_data%time_avg_selector = time_avg_selector
-    ! ToDo: is the if case needed?
-    ! Tested: the else case works
+
     if (allocated(this%variables)) then
       this%variables = [this%variables, add_data]
     else
