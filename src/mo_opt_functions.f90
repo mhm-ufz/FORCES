@@ -5701,7 +5701,7 @@ CONTAINS
 
   subroutine eval_dummy(config, opti_sim)
     use mo_kind, only : dp
-    use mo_optimization_types, only : sim_data_t, config_t, optidata
+    use mo_optimization_types, only : sim_data_t, config_t
 
     implicit none
 

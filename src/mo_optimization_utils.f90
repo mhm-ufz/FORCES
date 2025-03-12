@@ -12,16 +12,6 @@ module mo_optimization_utils
 
   implicit none
 
- ! !> \brief Interface for evaluation routine.
- ! abstract interface
- !   subroutine eval_interface(parameterset, varsOptidataSim)
- !     use mo_kind, only : dp, i4
- !     use mo_optimization_types, only : variables_optidata_sim
- !     real(dp),    dimension(:), intent(in) :: parameterset
- !     type(variables_optidata_sim), intent(inout) :: varsOptidataSim
- !   end subroutine
- ! end interface
-
   abstract interface
     subroutine eval_interface(config, opti_sim)
       use mo_optimization_types, only : config_t, sim_data_t
