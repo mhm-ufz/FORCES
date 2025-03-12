@@ -48,7 +48,7 @@ MODULE mo_anneal
 
   IMPLICIT NONE
 
-  PUBLIC :: anneal                  ! Minimization of a cost function via Simaulated Annealing
+  PUBLIC :: anneal                  ! Minimization of a cost function via Simulated Annealing
   PUBLIC :: GetTemperature          ! Function which returns the optimal initial temperature for
   !                                 ! a given acceptance ratio and initial parameter set
 

@@ -3,6 +3,15 @@
 !> \details \copydetails mo_optimization_utils
 
 !> \brief Utility functions, such as interface definitions, for optimization routines.
+!> \details An abstract type \ref optimizee is provided to be used with the optimization functions
+!!          such as \ref mo_anneal::anneal, \ref mo_dds::dds, \ref mo_dds::mdds, \ref mo_mcmc::mcmc,
+!!          \ref mo_mcmc::mcmc_stddev or \ref mo_sce::sce.
+!!
+!!          Three reference implementations are provided:
+!!          - \ref function_optimizee : simple function optimization taking an array of parameters
+!!          - \ref likelihood_optimizee : likelihood optimization using sigma, stddev and likeli
+!!          - \ref eval_optimizee : optimization using an eval/objective pair (\ref eval_interface, \ref objective_interface)
+!!
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_optimization_utils
@@ -12,21 +21,31 @@ module mo_optimization_utils
 
   implicit none
 
+  public :: eval_interface
+  public :: objective_interface
+  public :: optimizee
+  public :: function_optimizee
+  public :: likelihood_optimizee
+  public :: eval_optimizee
+
+  private
+
+  !> \brief Interface for evaluation function.
   abstract interface
-    subroutine eval_interface(config, opti_sim)
+    subroutine eval_interface(config, sim_data)
       use mo_optimization_types, only : config_t, sim_data_t
-      type(config_t),                                    intent(in)    :: config
-      type(sim_data_t), dimension(:), pointer, optional, intent(inout) :: opti_sim
+      type(config_t),                                    intent(in)    :: config  !< configuration
+      type(sim_data_t), dimension(:), pointer, optional, intent(inout) :: sim_data !< simulated data
     end subroutine
   end interface
 
   !> \brief Interface for objective function.
   !> \details The optional arguments are motivated by likelihood objective functions.
   interface
-    function objective_interface(parameterset, eval, arg1, arg2, arg3)
+    function objective_interface(parameters, eval, arg1, arg2, arg3)
       use mo_kind, only : dp
       import eval_interface
-      real(dp), intent(in), dimension(:) :: parameterset !< parameter set
+      real(dp), intent(in), dimension(:) :: parameters !< parameter set
       procedure(eval_interface), INTENT(IN), pointer :: eval !< evaluation routine
       real(dp), optional, intent(in) :: arg1 !< optional argument 1
       real(dp), optional, intent(out) :: arg2 !< optional argument 2
@@ -35,7 +54,6 @@ module mo_optimization_utils
       real(dp) :: objective_interface
     end function objective_interface
   end interface
-
 
   !> \brief abstract type 'optimizee' to be used by optimizers
   type, abstract :: optimizee
