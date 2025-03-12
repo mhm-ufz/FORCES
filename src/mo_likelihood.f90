@@ -59,18 +59,18 @@ CONTAINS
     ! local
     REAL(DP), DIMENSION(size(meas,1))   :: errors
     real(dp), pointer :: runoff(:, :)
-    type(sim_data_t), dimension(:), pointer :: opti_sim
+    type(sim_data_t), dimension(:), pointer :: sim_data
     type(config_t) :: config
 
     config%parameters = paraset
 
-    allocate(opti_sim(1))
-    call opti_sim(1)%add(name="runoff", ndim=2_i4)
-    call eval(config, opti_sim=opti_sim)
-    call opti_sim(1)%set_pointer(name="runoff", ptr=runoff)
+    allocate(sim_data(1))
+    call sim_data(1)%add(name="runoff", ndim=2_i4)
+    call eval(config, sim_data=sim_data)
+    call sim_data(1)%set_pointer(name="runoff", ptr=runoff)
     errors(:) = runoff(:,1)-data()
     likelihood_dp = exp(-0.5_dp * sum( errors(:) * errors(:) / stddev_global**2 ))
-    deallocate(opti_sim)
+    deallocate(sim_data)
 
   end function likelihood_dp
 
@@ -89,18 +89,18 @@ CONTAINS
     ! local
     REAL(DP), DIMENSION(size(meas,1))   :: errors
     real(dp), pointer :: runoff(:, :)
-    type(sim_data_t), dimension(:), pointer :: opti_sim
+    type(sim_data_t), dimension(:), pointer :: sim_data
     type(config_t) :: config
 
     config%parameters = paraset
 
-    allocate(opti_sim(1))
-    call opti_sim(1)%add(name="runoff", ndim=2_i4)
-    call eval(config, opti_sim=opti_sim)
-    call opti_sim(1)%set_pointer(name="runoff", ptr=runoff)
+    allocate(sim_data(1))
+    call sim_data(1)%add(name="runoff", ndim=2_i4)
+    call eval(config, sim_data=sim_data)
+    call sim_data(1)%set_pointer(name="runoff", ptr=runoff)
     errors(:) = runoff(:,1)-data()
     loglikelihood_dp = -0.5_dp * sum( errors(:) * errors(:) / stddev_global**2 )
-    deallocate(opti_sim)
+    deallocate(sim_data)
 
   end function loglikelihood_dp
 
@@ -120,18 +120,18 @@ CONTAINS
     REAL(DP), DIMENSION(size(meas,1))   :: errors
     REAL(DP)                            :: stddev_err
     real(dp), pointer :: runoff(:, :)
-    type(sim_data_t), dimension(:), pointer :: opti_sim
+    type(sim_data_t), dimension(:), pointer :: sim_data
     type(config_t) :: config
 
     config%parameters = paraset
 
-    allocate(opti_sim(1))
-    call opti_sim(1)%add(name="runoff", ndim=2_i4)
-    call eval(config, opti_sim=opti_sim)
-    call opti_sim(1)%set_pointer(name="runoff", ptr=runoff)
+    allocate(sim_data(1))
+    call sim_data(1)%add(name="runoff", ndim=2_i4)
+    call eval(config, sim_data=sim_data)
+    call sim_data(1)%set_pointer(name="runoff", ptr=runoff)
     errors(:) = runoff(:,1)-data()
     likelihood_stddev_dp = exp(-0.5_dp * sum( errors(:) * errors(:) / stddev_in**2 ))
-    deallocate(opti_sim)
+    deallocate(sim_data)
 
     ! optional out
     stddev_err = stddev(errors)
@@ -160,18 +160,18 @@ CONTAINS
     REAL(DP), DIMENSION(size(meas,1))   :: errors
     REAL(DP)                            :: stddev_err
     real(dp), pointer :: runoff(:, :)
-    type(sim_data_t), dimension(:), pointer :: opti_sim
+    type(sim_data_t), dimension(:), pointer :: sim_data
     type(config_t) :: config
 
     config%parameters = paraset
 
-    allocate(opti_sim(1))
-    call opti_sim(1)%add(name="runoff", ndim=2_i4)
-    call eval(config, opti_sim=opti_sim)
-    call opti_sim(1)%set_pointer(name="runoff", ptr=runoff)
+    allocate(sim_data(1))
+    call sim_data(1)%add(name="runoff", ndim=2_i4)
+    call eval(config, sim_data=sim_data)
+    call sim_data(1)%set_pointer(name="runoff", ptr=runoff)
     errors(:) = runoff(:,1)-data()
     loglikelihood_stddev_dp = -0.5_dp * sum( errors(:) * errors(:) / stddev_in**2 )
-    deallocate(opti_sim)
+    deallocate(sim_data)
 
     ! optional out
     stddev_err = stddev(errors)
@@ -186,7 +186,7 @@ CONTAINS
 
   ! -------------------------------
   !> \brief A Model: p1*x^2 + p2*x + p3
-  subroutine model_dp(config, opti_sim)
+  subroutine model_dp(config, sim_data)
 
     use mo_kind, only: dp
     use mo_optimization_types, only : sim_data_t, config_t
@@ -194,7 +194,7 @@ CONTAINS
     !! !$ USE omp_lib,    only: OMP_GET_THREAD_NUM
 
     type(config_t), intent(in) :: config
-    type(sim_data_t), dimension(:), pointer, optional, intent(inout) :: opti_sim
+    type(sim_data_t), dimension(:), pointer, optional, intent(inout) :: sim_data
     real(dp), pointer :: runoff(:, :)
 
     integer(i4) :: i, n
@@ -203,11 +203,11 @@ CONTAINS
 
     n = size(meas,1)
 
-    if (size(opti_sim) /= 1) call error_message('model_dp: does not support opti_sim data with more than 1 dimension.')
+    if (size(sim_data) /= 1) call error_message('model_dp: does not support sim_data data with more than 1 dimension.')
 
-    if (opti_sim(1)%has('runoff')) then
-      call opti_sim(1)%allocate(name="runoff", data_shape=(/n, 1/))
-      call opti_sim(1)%set_pointer(name="runoff", ptr=runoff)
+    if (sim_data(1)%has('runoff')) then
+      call sim_data(1)%allocate(name="runoff", data_shape=(/n, 1/))
+      call sim_data(1)%set_pointer(name="runoff", ptr=runoff)
     end if
 
     !! !$ is_thread = OMP_GET_THREAD_NUM()

@@ -236,15 +236,15 @@ CONTAINS
     real(dp), optional, intent(out) :: arg3
     real(dp) :: cost_objective
 
-    type(sim_data_t), dimension(:), pointer :: opti_sim
+    type(sim_data_t), dimension(:), pointer :: sim_data
     type(config_t) :: config
     REAL(DP), DIMENSION(6,2)            :: meas
     REAL(DP), DIMENSION(6)              :: calc
 
     config%parameters = parameterset
-    allocate(opti_sim(1))
-    call opti_sim(1)%add(name='et', ndim=2_i4)
-    call eval(config, opti_sim)
+    allocate(sim_data(1))
+    call sim_data(1)%add(name='et', ndim=2_i4)
+    call eval(config, sim_data)
 
     ! function: f(x) = ax^3 + bx^2 + cx + d
     ! measurements: (0.5,5.725), (1.0, 21.7), (1.5, 49.175), (2.0, 88.9), (2.5, 141.625), (3.0, 208.1)
@@ -258,7 +258,7 @@ CONTAINS
     ! MAE  Mean Absolute Error
     cost_objective = sum(abs( meas(:,2)-calc(:) ))/size(meas,1)
 
-    deallocate(opti_sim)
+    deallocate(sim_data)
 
     RETURN
   END FUNCTION cost_objective
