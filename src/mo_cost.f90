@@ -224,8 +224,7 @@ CONTAINS
   FUNCTION cost_objective(parameterset, eval, arg1, arg2, arg3)
 
     use mo_kind, only: dp, i4
-    use mo_optimizee, only: eval_interface
-    use mo_opt_eval_utils, only : sim_data_t, config_t
+    use mo_opt_eval_utils, only: eval_interface, sim_data_t, config_t
 
     implicit none
 

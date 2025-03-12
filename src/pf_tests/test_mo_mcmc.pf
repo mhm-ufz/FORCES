@@ -5,7 +5,8 @@ module test_mo_mcmc
   use mo_likelihood, only: setmeas, loglikelihood_dp, loglikelihood_stddev_dp, model_dp
   use mo_mcmc,       only: mcmc, mcmc_stddev
   use mo_moment,     only: mean, stddev
-  use mo_optimizee, only: eval_interface, objective_interface, eval_optimizee
+  use mo_optimizee, only: eval_optimizee
+  use mo_opt_eval_utils, only: eval_interface, objective_interface
   use mo_message, only: error_message
 
   implicit none

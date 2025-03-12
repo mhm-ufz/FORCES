@@ -18,42 +18,16 @@ module mo_optimizee
 
   use mo_kind, only : dp
   use mo_message, only : error_message
+  use mo_opt_eval_utils, only : eval_interface, objective_interface
 
   implicit none
 
-  public :: eval_interface
-  public :: objective_interface
   public :: optimizee
   public :: function_optimizee
   public :: likelihood_optimizee
   public :: eval_optimizee
 
   private
-
-  !> \brief Interface for evaluation function.
-  abstract interface
-    subroutine eval_interface(config, sim_data)
-      use mo_opt_eval_utils, only : config_t, sim_data_t
-      type(config_t),                                    intent(in)    :: config  !< configuration
-      type(sim_data_t), dimension(:), pointer, optional, intent(inout) :: sim_data !< simulated data
-    end subroutine
-  end interface
-
-  !> \brief Interface for objective function.
-  !> \details The optional arguments are motivated by likelihood objective functions.
-  interface
-    function objective_interface(parameters, eval, arg1, arg2, arg3)
-      use mo_kind, only : dp
-      import eval_interface
-      real(dp), intent(in), dimension(:) :: parameters !< parameter set
-      procedure(eval_interface), INTENT(IN), pointer :: eval !< evaluation routine
-      real(dp), optional, intent(in) :: arg1 !< optional argument 1
-      real(dp), optional, intent(out) :: arg2 !< optional argument 2
-      real(dp), optional, intent(out) :: arg3 !< optional argument 3
-
-      real(dp) :: objective_interface
-    end function objective_interface
-  end interface
 
   !> \brief abstract type 'optimizee' to be used by optimizers
   type, abstract :: optimizee

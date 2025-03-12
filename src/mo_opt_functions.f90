@@ -10,7 +10,7 @@
 MODULE mo_opt_functions
 
   use mo_kind, only: i4, dp
-  use mo_optimizee, only: eval_interface
+  use mo_opt_eval_utils, only: eval_interface, sim_data_t, config_t
 
   IMPLICIT NONE
 
@@ -5623,7 +5623,6 @@ CONTAINS
   function ackley_objective(parameterset, eval, arg1, arg2, arg3)
 
     use mo_constants, only: pi_dp
-    use mo_opt_eval_utils, only : sim_data_t, config_t
 
     implicit none
 
@@ -5659,7 +5658,6 @@ CONTAINS
   function griewank_objective(parameterset, eval, arg1, arg2, arg3)
 
     use mo_kind, only: i4, dp
-    use mo_opt_eval_utils, only : sim_data_t, config_t
 
     implicit none
 
@@ -5701,7 +5699,6 @@ CONTAINS
 
   subroutine eval_dummy(config, sim_data)
     use mo_kind, only : dp
-    use mo_opt_eval_utils, only : sim_data_t, config_t
 
     implicit none
 

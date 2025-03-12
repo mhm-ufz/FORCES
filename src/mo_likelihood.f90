@@ -9,7 +9,7 @@ module mo_likelihood
 
   USE mo_kind,   only: i4, dp
   USE mo_moment, only: stddev
-  use mo_optimizee, only: eval_interface
+  use mo_opt_eval_utils, only: eval_interface, sim_data_t, config_t
 
   Implicit NONE
 
@@ -47,7 +47,6 @@ CONTAINS
   ! -------------------------------
   !> \brief A Likelihood function: "real" likelihood  (sigma is an error model or given)
   function likelihood_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
-    use mo_opt_eval_utils, only : sim_data_t, config_t
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
     REAL(DP),               INTENT(IN), optional  :: stddev_in        ! standard deviation of data
@@ -77,7 +76,6 @@ CONTAINS
   ! -------------------------------
   !> \brief A Log-Likelihood function: "real" likelihood  (sigma is an error model or given)
   function loglikelihood_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
-    use mo_opt_eval_utils, only : sim_data_t, config_t
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
     REAL(DP),               INTENT(IN), optional  :: stddev_in        ! standard deviation of data
@@ -107,7 +105,6 @@ CONTAINS
   ! -------------------------------
   !> \brief A Likelihood function: "faked" likelihood (sigma is computed by obs vs model)
   function likelihood_stddev_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
-    use mo_opt_eval_utils, only : sim_data_t, config_t
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
     REAL(DP),               INTENT(IN), optional  :: stddev_in        ! standard deviation of data
@@ -147,7 +144,6 @@ CONTAINS
   ! -------------------------------
   !> \brief A Log-Likelihood_stddev function: "faked" likelihood (sigma is computed by obs vs model)
   function loglikelihood_stddev_dp(paraset, eval, stddev_in, stddev_new, likeli_new)
-    use mo_opt_eval_utils, only : sim_data_t, config_t
     REAL(DP), DIMENSION(:), INTENT(IN)            :: paraset          ! parameter set
     procedure(eval_interface), INTENT(IN), pointer :: eval
     REAL(DP),               INTENT(IN), optional  :: stddev_in        ! standard deviation of data
@@ -189,7 +185,6 @@ CONTAINS
   subroutine model_dp(config, sim_data)
 
     use mo_kind, only: dp
-    use mo_opt_eval_utils, only : sim_data_t, config_t
     use mo_message, only : error_message
     !! !$ USE omp_lib,    only: OMP_GET_THREAD_NUM
 

@@ -2,7 +2,7 @@
 !> \brief \copybrief mo_opt_eval_utils
 !> \details \copydetails mo_opt_eval_utils
 
-!> \brief Type definitions for optimization routines
+!> \brief Type definitions and interfaces for optimization routines based on eval functions.
 !> \author Maren Kaluza
 !> \date Nov 2019
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
@@ -14,7 +14,10 @@ MODULE mo_opt_eval_utils
 
   IMPLICIT NONE
 
-  public :: config_t, sim_data_t
+  public :: eval_interface
+  public :: objective_interface
+  public :: config_t
+  public :: sim_data_t
 
   private
 
@@ -65,6 +68,30 @@ MODULE mo_opt_eval_utils
     procedure, public :: is_allocated => sim_var_is_allocated
     procedure, public :: data_shape => sim_var_data_shape
   end type sim_var_t
+
+  !> \brief Interface for evaluation function.
+  abstract interface
+    subroutine eval_interface(config, sim_data)
+      import config_t, sim_data_t
+      type(config_t),                                    intent(in)    :: config  !< configuration
+      type(sim_data_t), dimension(:), pointer, optional, intent(inout) :: sim_data  !< simulated data
+    end subroutine
+  end interface
+
+  !> \brief Interface for objective function.
+  !> \details The optional arguments are motivated by likelihood objective functions.
+  interface
+    function objective_interface(parameters, eval, arg1, arg2, arg3)
+      use mo_kind, only : dp
+      import eval_interface
+      real(dp), intent(in), dimension(:) :: parameters  !< parameter set
+      procedure(eval_interface), INTENT(IN), pointer :: eval  !< evaluation routine
+      real(dp), optional, intent(in) :: arg1  !< optional argument 1
+      real(dp), optional, intent(out) :: arg2  !< optional argument 2
+      real(dp), optional, intent(out) :: arg3  !< optional argument 3
+      real(dp) :: objective_interface
+    end function objective_interface
+  end interface
 
   contains
 
