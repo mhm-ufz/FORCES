@@ -4,6 +4,12 @@
 
 !> \brief   Module to handle polynomials.
 !> \details This module provides routines to deal with polynomials like evaluation, root finding or derivation.
+!!
+!! Polynomials of order (n-1) are represented by an array of n coefficients `p = (p_1, p_2, ..., p_n)` starting with the coefficient for the biggest exponent:
+!! \code{.f90}
+!! P(x) = p_1 * x^(n-1) + p_2 * x^(n-2) ... + p_n
+!! \endcode
+!!
 !> \version 0.1
 !> \authors Sebastian Mueller
 !> \date    Oct 2024
