@@ -82,6 +82,7 @@ contains
     n = size(p)
     if (n == 0_i4) call error_message("mo_polynomial : p is an empty array.")
 
+    poly_order = 0_i4
     do i = 1_i4, n
       if (abs(p(i)) > 0.0_dp) then
         poly_order = (n - i)
