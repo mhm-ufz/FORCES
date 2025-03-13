@@ -25,7 +25,7 @@ MODULE mo_opt_eval_utils
   !> \brief   Type to hold the configuration of an evaluation function.
   type config_t
     real(dp),    dimension(:), allocatable :: parameters  !< parameters for the evaluation function
-    integer(i4), dimension(:), allocatable :: opti_indices  !< optimization indices for the evaluation function
+    integer(i4), dimension(:), allocatable :: opti_indices  !< optimization indices for the evaluation function (used for MPI)
   end type config_t
 
   !> \class   sim_data_t
@@ -37,6 +37,7 @@ MODULE mo_opt_eval_utils
     procedure, public :: add => sim_data_add
     procedure, public :: allocate => sim_data_allocate
     procedure, private :: get_id => sim_data_get_id
+    ! Use fypp or 'assumed rank' to simplify these overloaded procedures.
     procedure, private :: sim_data_set_pointer_1d
     procedure, private :: sim_data_set_pointer_2d
     procedure, private :: sim_data_set_pointer_3d
