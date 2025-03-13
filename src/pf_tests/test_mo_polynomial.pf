@@ -14,7 +14,6 @@ module test_mo_polynomial
 
   contains
 
-! Test coordinate of a point compared to polygon
   @test
   subroutine test_polynomial()
     real(dp), dimension(1) :: p1
@@ -23,10 +22,10 @@ module test_mo_polynomial
     integer(i4) :: status
 
     @assertEqual(poly_order(p), 4_i4)
-    @assertEqual(poly_order([1.0_dp]), 1_i4)
+    @assertEqual(poly_order([1.0_dp]), 0_i4)
 
     p1 = poly_deriv([1.0_dp])
-    @assertEqual(p1(1), 0_i4)
+    @assertEqual(p1(1), 0.0_dp, tolerance=tol)
 
     @assertEqual(poly_eval(p, 1.5_dp), 5.5625_dp, tolerance=tol)
 
