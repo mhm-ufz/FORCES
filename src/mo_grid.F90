@@ -53,7 +53,6 @@ module mo_grid
     real(dp) :: xllcorner    !< x coordinate of the lowerleft corner
     real(dp) :: yllcorner    !< y coordinate of the lowerleft corner
     real(dp) :: cellsize     !< cellsize x = cellsize y
-    integer(i4), dimension(:), allocatable :: id     !< IDs of cells in mask (1..n_cells)
     real(dp), dimension(:), allocatable :: cell_area !< area of the cell in sqare m, size (n_cells)
     logical, dimension(:, :), allocatable :: mask    !< the mask for valid cells in the original grid, size (nx, ny)
     real(dp), dimension(:, :), allocatable :: lat    !< 2d longitude array (auxiliary coordinate for X axis), size (nx, ny)
@@ -1128,8 +1127,6 @@ contains
 
     this%n_cells = count(this%mask)
     allocate(this%cell_ij(this%n_cells, 2))
-    allocate(this%id(this%n_cells))
-    this%id = [ (k, k = 1, this%n_cells) ]
 
     k = 0
     do j = 1, this%ny
