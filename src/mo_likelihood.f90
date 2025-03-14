@@ -9,7 +9,7 @@ module mo_likelihood
 
   USE mo_kind,   only: i4, dp
   USE mo_moment, only: stddev
-  use mo_optimization_utils, only: eval_interface
+  use mo_opt_eval_utils, only: eval_interface, sim_data_t, config_t
 
   Implicit NONE
 
@@ -57,11 +57,19 @@ CONTAINS
 
     ! local
     REAL(DP), DIMENSION(size(meas,1))   :: errors
-    real(dp), dimension(:,:), allocatable :: runoff
+    real(dp), pointer :: runoff(:, :)
+    type(sim_data_t), dimension(:), pointer :: sim_data
+    type(config_t) :: config
 
-    call eval(paraset, runoff=runoff)
+    config%parameters = paraset
+
+    allocate(sim_data(1))
+    call sim_data(1)%add(name="runoff", ndim=2_i4)
+    call eval(config, sim_data=sim_data)
+    call sim_data(1)%set_pointer(name="runoff", ptr=runoff)
     errors(:) = runoff(:,1)-data()
     likelihood_dp = exp(-0.5_dp * sum( errors(:) * errors(:) / stddev_global**2 ))
+    deallocate(sim_data)
 
   end function likelihood_dp
 
@@ -78,11 +86,19 @@ CONTAINS
 
     ! local
     REAL(DP), DIMENSION(size(meas,1))   :: errors
-    real(dp), dimension(:,:), allocatable :: runoff
+    real(dp), pointer :: runoff(:, :)
+    type(sim_data_t), dimension(:), pointer :: sim_data
+    type(config_t) :: config
 
-    call eval(paraset, runoff=runoff)
+    config%parameters = paraset
+
+    allocate(sim_data(1))
+    call sim_data(1)%add(name="runoff", ndim=2_i4)
+    call eval(config, sim_data=sim_data)
+    call sim_data(1)%set_pointer(name="runoff", ptr=runoff)
     errors(:) = runoff(:,1)-data()
     loglikelihood_dp = -0.5_dp * sum( errors(:) * errors(:) / stddev_global**2 )
+    deallocate(sim_data)
 
   end function loglikelihood_dp
 
@@ -100,11 +116,19 @@ CONTAINS
     ! local
     REAL(DP), DIMENSION(size(meas,1))   :: errors
     REAL(DP)                            :: stddev_err
-    real(dp), dimension(:,:), allocatable :: runoff
+    real(dp), pointer :: runoff(:, :)
+    type(sim_data_t), dimension(:), pointer :: sim_data
+    type(config_t) :: config
 
-    call eval(paraset, runoff=runoff)
+    config%parameters = paraset
+
+    allocate(sim_data(1))
+    call sim_data(1)%add(name="runoff", ndim=2_i4)
+    call eval(config, sim_data=sim_data)
+    call sim_data(1)%set_pointer(name="runoff", ptr=runoff)
     errors(:) = runoff(:,1)-data()
     likelihood_stddev_dp = exp(-0.5_dp * sum( errors(:) * errors(:) / stddev_in**2 ))
+    deallocate(sim_data)
 
     ! optional out
     stddev_err = stddev(errors)
@@ -131,11 +155,19 @@ CONTAINS
     ! local
     REAL(DP), DIMENSION(size(meas,1))   :: errors
     REAL(DP)                            :: stddev_err
-    real(dp), dimension(:,:), allocatable :: runoff
+    real(dp), pointer :: runoff(:, :)
+    type(sim_data_t), dimension(:), pointer :: sim_data
+    type(config_t) :: config
 
-    call eval(paraset, runoff=runoff)
+    config%parameters = paraset
+
+    allocate(sim_data(1))
+    call sim_data(1)%add(name="runoff", ndim=2_i4)
+    call eval(config, sim_data=sim_data)
+    call sim_data(1)%set_pointer(name="runoff", ptr=runoff)
     errors(:) = runoff(:,1)-data()
     loglikelihood_stddev_dp = -0.5_dp * sum( errors(:) * errors(:) / stddev_in**2 )
+    deallocate(sim_data)
 
     ! optional out
     stddev_err = stddev(errors)
@@ -150,32 +182,28 @@ CONTAINS
 
   ! -------------------------------
   !> \brief A Model: p1*x^2 + p2*x + p3
-  subroutine model_dp(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim, &
-    lake_level, lake_volume, lake_area, lake_spill, lake_outflow, BFI)
+  subroutine model_dp(config, sim_data)
 
     use mo_kind, only: dp
-    use mo_optimization_types, only: optidata_sim
+    use mo_message, only : error_message
     !! !$ USE omp_lib,    only: OMP_GET_THREAD_NUM
 
-    real(dp),    dimension(:), intent(in) :: parameterset
-    integer(i4), dimension(:),                 optional, intent(in)  :: opti_domain_indices
-    real(dp),    dimension(:, :), allocatable, optional, intent(out) :: runoff        ! dim1=time dim2=gauge
-    type(optidata_sim), dimension(:), optional, intent(inout) :: smOptiSim       ! dim1=ncells, dim2=time
-    type(optidata_sim), dimension(:), optional, intent(inout) :: neutronsOptiSim ! dim1=ncells, dim2=time
-    type(optidata_sim), dimension(:), optional, intent(inout) :: etOptiSim       ! dim1=ncells, dim2=time
-    type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim      ! dim1=ncells, dim2=time
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_level    !< dim1=time dim2=lake
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_volume   !< dim1=time dim2=lake
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_area     !< dim1=time dim2=lake
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_spill    !< dim1=time dim2=lake
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_outflow  !< dim1=time dim2=lake
-    real(dp),    dimension(:), allocatable, optional, intent(out) :: BFI         !< baseflow index, dim1=domainID
+    type(config_t), intent(in) :: config
+    type(sim_data_t), dimension(:), pointer, optional, intent(inout) :: sim_data
+    real(dp), pointer :: runoff(:, :)
+
     integer(i4) :: i, n
     ! for OMP
     !! !$  integer(i4)                           :: n_threads, is_thread
 
     n = size(meas,1)
-    allocate(runoff(n, 1))
+
+    if (size(sim_data) /= 1) call error_message('model_dp: does not support sim_data data with more than 1 dimension.')
+
+    if (sim_data(1)%has('runoff')) then
+      call sim_data(1)%allocate(name="runoff", data_shape=(/n, 1/))
+      call sim_data(1)%set_pointer(name="runoff", ptr=runoff)
+    end if
 
     !! !$ is_thread = OMP_GET_THREAD_NUM()
     !! !$ write(*,*) 'OMP_thread: ', is_thread
@@ -185,7 +213,7 @@ CONTAINS
     !$OMP do
     do i=1, n
        !! !$ if (is_thread /= 0) write(*,*) '    OMP_thread-1: ', is_thread
-       runoff(i,1) = parameterset(1) * meas(i,1) * meas(i,1) + parameterset(2) * meas(i,1) + parameterset(3)
+       runoff(i,1) = config%parameters(1) * meas(i,1) * meas(i,1) + config%parameters(2) * meas(i,1) + config%parameters(3)
     end do
     !$OMP end do
     !$OMP end parallel

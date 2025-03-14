@@ -43,8 +43,8 @@ else()
   list(FILTER sources EXCLUDE REGEX ".*mo_likelihood.f90$")
   list(FILTER sources EXCLUDE REGEX ".*mo_opt_functions.f90$")
   list(FILTER sources EXCLUDE REGEX ".*mo_cost.f90$")
-  list(FILTER sources EXCLUDE REGEX ".*mo_optimization_types.f90$")
-  list(FILTER sources EXCLUDE REGEX ".*mo_optimization_utils.f90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_optimizee.f90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_opt_eval_utils.f90$")
 endif()
 
 # option for NetCDF support

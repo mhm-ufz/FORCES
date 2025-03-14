@@ -10,7 +10,7 @@
 MODULE mo_opt_functions
 
   use mo_kind, only: i4, dp
-  use mo_optimization_utils, only: eval_interface
+  use mo_opt_eval_utils, only: eval_interface, sim_data_t, config_t
 
   IMPLICIT NONE
 
@@ -5623,7 +5623,6 @@ CONTAINS
   function ackley_objective(parameterset, eval, arg1, arg2, arg3)
 
     use mo_constants, only: pi_dp
-    use mo_optimization_types, only : optidata_sim
 
     implicit none
 
@@ -5639,21 +5638,26 @@ CONTAINS
     real(dp), parameter :: b = 0.2_dp
     real(dp), parameter :: c = 2.0_dp*pi_dp
     real(dp) :: s1, s2
-    type(optidata_sim), dimension(:), allocatable :: et_opti
+    type(sim_data_t), pointer, dimension(:) :: sim_data
+    type(config_t) :: config
 
-    call eval(parameterset, etOptiSim=et_opti)
+    allocate(sim_data(1))
+    config%parameters = parameterset
+    call sim_data(1)%add(name='et', ndim=2_i4)
+    call eval(config, sim_data)
 
     n = size(parameterset)
     s1 = sum(parameterset**2)
     s2 = sum(cos(c*parameterset))
     ackley_objective = -a * exp(-b*sqrt(1.0_dp/real(n,dp)*s1)) - exp(1.0_dp/real(n,dp)*s2) + a + exp(1.0_dp)
 
+    deallocate(sim_data)
+
   end function ackley_objective
 
   function griewank_objective(parameterset, eval, arg1, arg2, arg3)
 
     use mo_kind, only: i4, dp
-    use mo_optimization_types, only : optidata_sim
 
     implicit none
 
@@ -5667,9 +5671,13 @@ CONTAINS
     integer(i4) :: nopt
     integer(i4) :: j
     real(dp)    :: d, u1, u2
-    type(optidata_sim), dimension(:), allocatable :: et_opti
+    type(sim_data_t), pointer, dimension(:) :: sim_data
+    type(config_t) :: config
 
-    call eval(parameterset, etOptiSim=et_opti)
+    config%parameters = parameterset
+    allocate(sim_data(1))
+    call sim_data(1)%add(name='et', ndim=2_i4)
+    call eval(config, sim_data)
 
     nopt = size(parameterset)
     if (nopt .eq. 2) then
@@ -5683,95 +5691,107 @@ CONTAINS
        u2 = u2 * cos(parameterset(j)/sqrt(real(j,dp)))
     end do
     griewank_objective = u1 - u2 + 1.0_dp
+
+    deallocate(sim_data)
     !
   end function griewank_objective
 
 
-  subroutine eval_dummy(parameterset, opti_domain_indices, runoff, smOptiSim, neutronsOptiSim, etOptiSim, twsOptiSim, &
-    lake_level, lake_volume, lake_area, lake_spill, lake_outflow, BFI)
+  subroutine eval_dummy(config, sim_data)
     use mo_kind, only : dp
-    use mo_optimization_types, only : optidata_sim, optidata
 
     implicit none
 
-    real(dp),    dimension(:), intent(in) :: parameterset
-    integer(i4), dimension(:),                 optional, intent(in)  :: opti_domain_indices
-    real(dp),    dimension(:, :), allocatable, optional, intent(out) :: runoff        ! dim1=time dim2=gauge
-    type(optidata_sim), dimension(:), optional, intent(inout) :: smOptiSim       ! dim1=ncells, dim2=time
-    type(optidata_sim), dimension(:), optional, intent(inout) :: neutronsOptiSim ! dim1=ncells, dim2=time
-    type(optidata_sim), dimension(:), optional, intent(inout) :: etOptiSim       ! dim1=ncells, dim2=time
-    type(optidata_sim), dimension(:), optional, intent(inout) :: twsOptiSim      ! dim1=ncells, dim2=time
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_level    !< dim1=time dim2=lake
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_volume   !< dim1=time dim2=lake
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_area     !< dim1=time dim2=lake
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_spill    !< dim1=time dim2=lake
-    real(dp), dimension(:, :), allocatable, optional, intent(out) :: lake_outflow  !< dim1=time dim2=lake
-  real(dp),    dimension(:), allocatable, optional, intent(out) :: BFI         !< baseflow index, dim1=domainID
+    type(config_t), intent(in) :: config
+    type(sim_data_t), dimension(:), pointer, optional, intent(inout) :: sim_data
 
-    type(optidata) :: dummyData
-    integer(i4) :: i
+    real(dp), dimension(:, :), pointer :: dummyDataPtr_2d
+    real(dp), dimension(:), pointer :: dummyDataPtr_1d
+    integer(i4) :: iDomain, nDomains
 
-    allocate(dummyData%dataObs(1, 1))
-    dummyData%dataObs = 0.0_dp
+    nDomains = size(sim_data)
 
-    if (present(etOptiSim)) then
-      do i=1, size(etOptiSim)
-        call etOptiSim(i)%init(dummyData)
-      end do
-    end if
+    allocate(dummyDataPtr_2d(1, 1))
+    allocate(dummyDataPtr_1d(1))
+    dummyDataPtr_2d = 0.0_dp
+    dummyDataPtr_1d = 0.0_dp
 
-    if (present(neutronsOptiSim)) then
-      do i=1, size(neutronsOptiSim)
-        call neutronsOptiSim(1)%init(dummyData)
-      end do
-    end if
+    do iDomain = 1 , nDomains
+      if (sim_data(iDomain)%has('et')) then
+        call sim_data(iDomain)%allocate(name="et", data_shape=(/1, 1/))
+        call sim_data(iDomain)%set_pointer(name="et", ptr=dummyDataPtr_2d)
+      end if
+    end do
 
-    if (present(twsOptiSim)) then
-      do i=1, size(twsOptiSim)
-        call twsOptiSim(1)%init(dummyData)
-      end do
-    end if
+    do iDomain = 1 , nDomains
+      if (sim_data(iDomain)%has('neutrons')) then
+        call sim_data(iDomain)%allocate(name="neutrons", data_shape=(/1, 1/))
+        call sim_data(iDomain)%set_pointer(name="neutrons", ptr=dummyDataPtr_2d)
+      end if
+    end do
 
-    if (present(smOptiSim)) then
-      do i=1, size(smOptiSim)
-        call smOptiSim(1)%init(dummyData)
-      end do
-    end if
+    do iDomain = 1 , nDomains
+      if (sim_data(iDomain)%has('tws')) then
+        call sim_data(iDomain)%allocate(name="tws", data_shape=(/1, 1/))
+        call sim_data(iDomain)%set_pointer(name="tws", ptr=dummyDataPtr_2d)
+      end if
+    end do
 
-    if (present(runoff)) then
-      allocate(runoff(1, 1))
-      runoff(:, :) = 0.0_dp
-    end if
+    do iDomain = 1 , nDomains
+      if (sim_data(iDomain)%has('sm')) then
+        call sim_data(iDomain)%allocate(name="sm", data_shape=(/1, 1/))
+        call sim_data(iDomain)%set_pointer(name="sm", ptr=dummyDataPtr_2d)
+      end if
+    end do
 
-    if (present(BFI)) then
-      allocate(BFI(1))
-      BFI(:) = 0.0_dp
-    end if
+    do iDomain = 1 , nDomains
+      if (sim_data(iDomain)%has('runoff')) then
+        call sim_data(iDomain)%allocate(name="runoff", data_shape=(/1, 1/))
+        call sim_data(iDomain)%set_pointer(name="runoff", ptr=dummyDataPtr_2d)
+      end if
+    end do
 
-    if (present(lake_level)) then
-      allocate(lake_level(1, 1))
-      lake_level(:, :) = 0.0_dp
-    end if
+    do iDomain = 1 , nDomains
+      if (sim_data(iDomain)%has('BFI')) then
+        call sim_data(iDomain)%allocate(name="BFI", data_shape=(/1/))
+        call sim_data(iDomain)%set_pointer(name="BFI", ptr=dummyDataPtr_1d)
+      end if
+    end do
 
-    if (present(lake_volume)) then
-      allocate(lake_volume(1, 1))
-      lake_volume(:, :) = 0.0_dp
-    end if
+    do iDomain = 1 , nDomains
+      if (sim_data(iDomain)%has('lake_level')) then
+        call sim_data(iDomain)%allocate(name="lake_level", data_shape=(/1, 1/))
+        call sim_data(iDomain)%set_pointer(name="lake_level", ptr=dummyDataPtr_2d)
+      end if
+    end do
 
-    if (present(lake_area)) then
-      allocate(lake_area(1, 1))
-      lake_area(:, :) = 0.0_dp
-    end if
+    do iDomain = 1 , nDomains
+      if (sim_data(iDomain)%has('lake_volume')) then
+        call sim_data(iDomain)%allocate(name="lake_volume", data_shape=(/1, 1/))
+        call sim_data(iDomain)%set_pointer(name="lake_volume", ptr=dummyDataPtr_2d)
+      end if
+    end do
 
-    if (present(lake_spill)) then
-      allocate(lake_spill(1, 1))
-      lake_spill(:, :) = 0.0_dp
-    end if
+    do iDomain = 1 , nDomains
+      if (sim_data(iDomain)%has('lake_area')) then
+        call sim_data(iDomain)%allocate(name="lake_area", data_shape=(/1, 1/))
+        call sim_data(iDomain)%set_pointer(name="lake_area", ptr=dummyDataPtr_2d)
+      end if
+    end do
 
-    if (present(lake_outflow)) then
-      allocate(lake_outflow(1, 1))
-      lake_outflow(:, :) = 0.0_dp
-    end if
+    do iDomain = 1 , nDomains
+      if (sim_data(iDomain)%has('lake_spill')) then
+        call sim_data(iDomain)%allocate(name="lake_spill", data_shape=(/1, 1/))
+        call sim_data(iDomain)%set_pointer(name="lake_spill", ptr=dummyDataPtr_2d)
+      end if
+    end do
+
+    do iDomain = 1 , nDomains
+      if (sim_data(iDomain)%has('lake_outflow')) then
+        call sim_data(iDomain)%allocate(name="lake_outflow", data_shape=(/1, 1/))
+        call sim_data(iDomain)%set_pointer(name="lake_outflow", ptr=dummyDataPtr_2d)
+      end if
+    end do
 
   end subroutine eval_dummy
 

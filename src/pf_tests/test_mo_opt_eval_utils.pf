@@ -1,0 +1,48 @@
+module test_mo_opt_eval_utils
+
+  use funit
+  use mo_opt_eval_utils
+  use mo_kind, only : i4, dp
+
+  implicit none
+
+  private
+
+  public :: test_sim_data
+
+contains
+
+  @test
+  subroutine test_sim_data()
+
+    type(sim_data_t), target :: sim_data
+    integer(i4), dimension(2) :: shape_2d
+    integer(i4), dimension(3) :: shape_3d
+    real(dp), dimension(:,:), allocatable :: data_2d
+    real(dp), dimension(:,:), pointer :: ptr_2d
+    real(dp), dimension(:,:,:), pointer :: ptr_3d
+
+    logical :: r1, r2, r3, r4, r5, r6
+
+    shape_2d = [5, 6]
+    allocate(data_2d(5, 6), source=1.0_dp)
+    call sim_data % add("dat1", ndim=2)
+    call sim_data % allocate("dat1", shape_2d)
+    call sim_data % set_data("dat1", data_2d)
+    call sim_data % set_pointer("dat1", ptr_2d)
+    r1 = sim_data % has("dat1")
+    r2 = sim_data % has("dat2")
+    r3 = all(ptr_2d == data_2d)
+    @assertTrue(r1)
+    @assertFalse(r2)
+    @assertTrue(r3)
+
+    shape_3d = [2, 3, 4]
+    call sim_data % add("dat2", ndim=3, data_shape=shape_3d)
+    call sim_data % set_pointer("dat2", ptr_3d)
+    r4 = all(shape(ptr_3d) == shape_3d)
+    @assertTrue(r4)
+
+  end subroutine test_sim_data
+
+end module test_mo_opt_eval_utils

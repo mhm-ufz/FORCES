@@ -12,6 +12,8 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_dds
 
+  use mo_optimizee, only : optimizee
+
   IMPLICIT NONE
 
   PRIVATE
@@ -35,22 +37,25 @@ CONTAINS
   !!
   !!        The function to be minimized is the first argument of DDS and must be defined as \n
   !!        \code{.f90}
-  !!        function func(p)
-  !!          use mo_kind, only: dp
-  !!          implicit none
-  !!          real(dp), dimension(:), intent(in) :: p
-  !!          real(dp) :: func
-  !!        end function func
+  !!        use mo_optimizee, only: optimizee
+  !!        type, extends(optimizee) :: your_optimizee
+  !!        contains
+  !!          ! to be implemented with signature: your_evaluate(self, parameters, sigma, stddev_new, likeli_new)
+  !!          procedure :: evaluate => your_evaluate
+  !!        end type function_optimizee
   !!        \endcode
   !!
   !!        \b Example
   !!
   !!        \code{.f90}
+  !!        use mo_opt_functions, only: griewank
+  !!        use mo_optimizee, only: function_optimizee
   !!        dv_range(:,1) = (/ -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0 /)
   !!        dv_range(:,2) = (/ 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0 /)
   !!        dv_ini        = (/ -.226265E+01, -.130187E+01, -.151219E+01, 0.133983E+00, 0.988159E+00, &
   !!                           -.495074E+01, -.126574E+02, 0.572684E+00, 0.303864E+01, 0.343031E+01 /)
-  !!        dv_opt = DDS(griewank, dv_ini, dv_range)
+  !!        objective%func_pointer => griewank
+  !!        dv_opt = DDS(objective, dv_ini, dv_range)
   !!        \endcode
   !!
   !!        See also example in test directory.
@@ -60,7 +65,7 @@ CONTAINS
   !!            _Dynamically dimensioned search algorithm for computationally efficient watershed
   !!            model calibration_, Water Resour. Res., 43, W01413, doi:10.1029/2005WR004723.
   !!
-  !>        \param[in] "real(dp) :: obj_func(p)"             Function on which to search the minimum
+  !>        \param[inout] "class(optimizee) :: objective"               Objective to search the optimum
   !>        \param[in] "real(dp) :: pini(:)"                 inital value of decision variables
   !>        \param[in] "real(dp) :: prange(size(pini),2)"    Min/max range of decision variables
   !>        \param[in] "real(dp), optional           :: r"                 DDS perturbation parameter\n
@@ -104,22 +109,19 @@ CONTAINS
   !!          - Added "dds_results.out.current" output file with current iteration (non-updated) parameters
 
 #ifdef MPI
-  function DDS(eval, obj_func, pini, prange, r, seed, maxiter, maxit, mask, tmp_file, comm, funcbest, history)
+  function DDS(objective, pini, prange, r, seed, maxiter, maxit, mask, tmp_file, comm, funcbest, history)
 #else
-  function DDS(eval, obj_func, pini, prange, r, seed, maxiter, maxit, mask, tmp_file, funcbest, history)
+  function DDS(objective, pini, prange, r, seed, maxiter, maxit, mask, tmp_file, funcbest, history)
 #endif
 
     use mo_kind, only : i4, i8, dp
     use mo_xor4096, only : xor4096, xor4096g
-    use mo_optimization_utils, only : eval_interface, objective_interface
 #ifdef MPI
     use mpi_f08
 #endif
 
     implicit none
-
-    procedure(eval_interface), INTENT(IN), POINTER :: eval
-    procedure(objective_interface), intent(in), pointer :: obj_func
+    class(optimizee), intent(inout) :: objective
 
     real(dp), dimension(:), intent(in) :: pini     ! inital value of decision variables
     real(dp), dimension(:, :), intent(in) :: prange   ! Min/max values of decision variables
@@ -252,7 +254,7 @@ CONTAINS
       call MPI_Send(do_obj_loop,1, MPI_LOGICAL,iproc,0,comm,ierror)
     end do
 #endif
-    of_new = imaxit * obj_func(pini, eval)
+    of_new = imaxit * objective%evaluate(pini)
     of_best = of_new
     if (present(history)) history(1) = of_new
 
@@ -311,7 +313,7 @@ CONTAINS
         call MPI_Send(do_obj_loop,1, MPI_LOGICAL,iproc,0,comm,ierror)
       end do
 #endif
-      of_new = imaxit * obj_func(pnew, eval)                       ! imaxit handles min(=1) and max(=-1) problems
+      of_new = imaxit * objective%evaluate(pnew)                       ! imaxit handles min(=1) and max(=-1) problems
       ! update current best solution
       if (of_new <= of_best) then
         of_best = of_new
@@ -359,19 +361,19 @@ CONTAINS
   !!        It is coded as a minimizer but one can give maxit=True in a maximization problem,
   !!        so that the algorithm minimizes the negative of the objective function F=(-1*F).\n
   !!        The function to be minimized is the first argument of DDS and must be defined as
-  !!        \code
-  !!            function func(p)
-  !!              use mo_kind, only: dp
-  !!              implicit none
-  !!              real(dp), dimension(:), intent(in) :: p
-  !!              real(dp) :: func
-  !!            end function func
+  !!        \code{.f90}
+  !!        use mo_optimizee, only: optimizee
+  !!        type, extends(optimizee) :: your_optimizee
+  !!        contains
+  !!          ! to be implemented with signature: your_evaluate(self, parameters, sigma, stddev_new, likeli_new)
+  !!          procedure :: evaluate => your_evaluate
+  !!        end type function_optimizee
   !!        \endcode
   !!
   !!       MDDS extents normal DDS by a continuous reduction of the DDS pertubation parameter r from 0.3 to 0.05,
   !!       and by allowing a larger function value with a certain probablity.
 
-  !>        \param[in] "real(dp) :: obj_func(p)"             Function on which to search the minimum
+  !>        \param[inout] "class(optimizee) :: objective"               Objective to search the optimum
   !>        \param[in] "real(dp) :: pini(:)"                 inital value of decision variables
   !>        \param[in] "real(dp) :: prange(size(pini),2)"    Min/max range of decision variables
   !>        \param[in] "integer(i8), optional        :: seed"              User seed to initialise the random number generator
@@ -395,11 +397,16 @@ CONTAINS
 
   !>     ## Example
   !!
-  !!         dv_range(:,1) = (/ -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0 /)
-  !!         dv_range(:,2) = (/ 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0 /)
-  !!         dv_ini        = (/ -.226265E+01, -.130187E+01, -.151219E+01, 0.133983E+00, 0.988159E+00, &
-  !!                            -.495074E+01, -.126574E+02, 0.572684E+00, 0.303864E+01, 0.343031E+01 /)
-  !!         dv_opt = MDDS(griewank, dv_ini, dv_range)
+  !!        \code{.f90}
+  !!        use mo_opt_functions, only: griewank
+  !!        use mo_optimizee, only: function_optimizee
+  !!        dv_range(:,1) = (/ -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0, -600.0 /)
+  !!        dv_range(:,2) = (/ 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0 /)
+  !!        dv_ini        = (/ -.226265E+01, -.130187E+01, -.151219E+01, 0.133983E+00, 0.988159E+00, &
+  !!                           -.495074E+01, -.126574E+02, 0.572684E+00, 0.303864E+01, 0.343031E+01 /)
+  !!        objective%func_pointer => griewank
+  !!        dv_opt = MDDS(objective, dv_ini, dv_range)
+  !!        \endcode
   !!
   !!     See also example in test directory.
 
@@ -419,16 +426,14 @@ CONTAINS
   !         Modified, Juliane Mai,                  Nov 2012 - masked parameter
   !                   Juliane Mai,                  Dec 2012 - history output
 
-  function MDDS(eval, obj_func, pini, prange, seed, maxiter, maxit, mask, tmp_file, funcbest, history)
+  function MDDS(objective, pini, prange, seed, maxiter, maxit, mask, tmp_file, funcbest, history)
 
     use mo_kind, only : i4, i8, dp
     use mo_xor4096, only : xor4096, xor4096g
-    use mo_optimization_utils, only : eval_interface, objective_interface
 
     implicit none
 
-    procedure(eval_interface), INTENT(IN), POINTER :: eval
-    procedure(objective_interface), intent(in), pointer :: obj_func
+    class(optimizee), intent(inout) :: objective
     real(dp), dimension(:), intent(in) :: pini     ! inital value of decision variables
     real(dp), dimension(:, :), intent(in) :: prange   ! Min/max values of decision variables
     integer(i8), optional, intent(in) :: seed     ! User seed to initialise the random number generator
@@ -530,7 +535,7 @@ CONTAINS
     ! and Initialise the other variables (e.g. of_best)
     ! imaxit is 1.0 for MIN problems, -1 for MAX problems
     MDDS = pini
-    of_new = imaxit * obj_func(pini, eval)
+    of_new = imaxit * objective%evaluate(pini)
     of_best = of_new
     if (present(history)) history(1) = of_new
 
@@ -580,7 +585,7 @@ CONTAINS
 
       ! Step 5 of Fig 1 of Tolson and Shoemaker (2007)
       ! Evaluate obj function value for test
-      of_new = imaxit * obj_func(pnew, eval)                       ! imaxit handles min(=1) and max(=-1) problems
+      of_new = imaxit * objective%evaluate(pnew)                       ! imaxit handles min(=1) and max(=-1) problems
       ! update current best solution
       if (of_new <= of_best) then
         of_best = of_new
