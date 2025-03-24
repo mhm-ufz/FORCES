@@ -605,7 +605,11 @@ contains
     type(puredate) :: in_date
     type(puretime) :: in_time
     character(256), dimension(:), allocatable :: str_arr
-    call divide_string(trim(string), ' ', str_arr)
+    if ( index(string, "T") > 0 ) then
+      call divide_string(trim(string), 'T', str_arr)
+    else
+      call divide_string(trim(string), ' ', str_arr)
+    end if
     in_date = d_from_string(str_arr(1))
     in_time = midnight()
     if(size(str_arr) > 1_i4) in_time = t_from_string(str_arr(2))
@@ -995,9 +999,12 @@ contains
     character(256), dimension(:), allocatable :: date_str
     integer(i4) :: year, month, day
     call divide_string(trim(string), '-', date_str)
-    read(date_str(1), *) year
-    read(date_str(2), *) month
-    read(date_str(3), *) day
+    year = 1_i4
+    month = 1_i4
+    day = 1_i4
+    if (len_trim(date_str(1)) > 0) read(date_str(1), *) year
+    if (size(date_str) > 1) read(date_str(2), *) month
+    if (size(date_str) > 2) read(date_str(3), *) day
     d_from_string = d_init(year=year, month=month, day=day)
   end function d_from_string
 
@@ -1275,9 +1282,12 @@ contains
     character(256), dimension(:), allocatable :: time_str
     integer(i4) :: hour, minute, second
     call divide_string(trim(string), ':', time_str)
-    read(time_str(1), *) hour
-    read(time_str(2), *) minute
-    read(time_str(3), *) second
+    hour = 0_i4
+    minute = 0_i4
+    second = 0_i4
+    if (len_trim(time_str(1)) > 0) read(time_str(1), *) hour
+    if (size(time_str) > 1) read(time_str(2), *) minute
+    if (size(time_str) > 2) read(time_str(3), *) second
     t_from_string = t_init(hour=hour, minute=minute, second=second)
   end function t_from_string
 
