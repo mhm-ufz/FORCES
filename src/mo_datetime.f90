@@ -43,8 +43,8 @@
 !!
 !!            ! create from datetime string
 !!            date5 = datetime('2023-05-08 12:32:30')
-!!            day1 = date('2023-05-08')
-!!            time1 = time('12:32:30')
+!!            day1 = puredate('2023-05-08')
+!!            time1 = puretime('12:32:30')
 !!            print*, date5 == time1%with_date(day1)
 !!            print*, date5 == day1%with_time(time1)
 !!            print*, date5 == datetime(day1, time1)
