@@ -89,7 +89,7 @@ module mo_grid
     procedure, public :: has_aux_coords
     procedure, public :: has_aux_vertices
     procedure, public :: calculate_cell_ids
-    procedure, public :: estimate_cell_area
+    procedure, public :: calculate_cell_area
     procedure, public :: derive_coarse_grid
     ! procedure, private :: read_data_dp, read_data_i4
     ! generic, public :: read_data => read_data_dp, read_data_i4
@@ -268,7 +268,7 @@ contains
     end if
     ! if no mask given, this will initialize the default mask
     call this%calculate_cell_ids()
-    call this%estimate_cell_area()
+    call this%calculate_cell_area()
 
   end subroutine grid_init
 
@@ -1159,16 +1159,16 @@ contains
   !!   - refactoring and reformatting
   !! - Sebastian Müller, Mar 2024
   !!   - moved to FORCES
-  subroutine estimate_cell_area(this)
+  subroutine calculate_cell_area(this)
 
-    use mo_constants, only : RadiusEarth_dp, TWOPI_dp
+    use mo_constants, only : RadiusEarth_dp, deg2rad_dp
     implicit none
 
     class(grid_t), intent(inout) :: this
 
-    real(dp), dimension(:, :), allocatable :: areaCell_2D
+    real(dp), dimension(:, :), allocatable :: cell_area
+    real(dp) :: factor, cell_size_rad, cell_center_lat_rad
     integer(i4) :: j
-    real(dp) :: rdum, degree_to_radian, degree_to_metre
 
     if (.not. allocated(this%cell_area)) allocate(this%cell_area(this%n_cells))
 
@@ -1178,27 +1178,31 @@ contains
 
     ! regular lat-lon coordinate system
     else if(this%coordsys .eq. coordsys_sph_deg) then
-      allocate(areaCell_2D(this%nx, this%ny))
+      allocate(cell_area(this%nx, this%ny))
 
-      degree_to_radian = TWOPI_dp / 360.0_dp
-      degree_to_metre = RadiusEarth_dp * degree_to_radian
+      ! A = R ** 2 * dx * (sin(lat1) - sin(lon2))
+      !   = R ** 2 * dx * cos([lat1 + lat2] / 2) * sin(dy / 2) * 2
+      !
+      ! A ~ R ** 2 * dx * cos(cell_center_lat) * dy                (approx. since: sin x = x for small x)
+
+      cell_size_rad = this%cellsize * deg2rad_dp
+      factor = (RadiusEarth_dp * cell_size_rad) * (RadiusEarth_dp * sin(cell_size_rad / 2.0_dp) * 2.0_dp)
+
       do j = 1, this%ny
-        ! get latitude in degrees (y-axis is increasing!)
-        rdum = this%yllcorner + (real(j, dp) - 0.5_dp) * this%cellsize
-        ! convert to radians
-        rdum = rdum * degree_to_radian
-        !    AREA [m2]
-        areaCell_2D(:, j) = (this%cellsize * cos(rdum) * degree_to_metre) * (this%cellsize * degree_to_metre)
+        ! get latitude of cell-center in radians (y-axis is increasing!)
+        cell_center_lat_rad = (this%yllcorner + (real(j, dp) - 0.5_dp) * this%cellsize) * deg2rad_dp
+        ! AREA [m2]
+        cell_area(:, j) = cos(cell_center_lat_rad) * factor
       end do
-      this%cell_area(:) = pack(areaCell_2D(:, :), this%mask)
+      this%cell_area(:) = pack(cell_area(:, :), this%mask)
 
       ! free space
-      deallocate(areaCell_2D)
+      deallocate(cell_area)
     else
       call error_message("estimate_cell_area: unknown coordsys value: ", num2str(this%coordsys))
     end if
 
-  end subroutine estimate_cell_area
+  end subroutine calculate_cell_area
 
   !> \brief Generate coarse grid from a fine grid by a given target resolution
   !> \details following attributes are calculated for the coarse grid:
@@ -1307,7 +1311,7 @@ contains
           ! free space
           deallocate(areaCell0_2D)
         case(1_i4)
-          call coarse_grid%estimate_cell_area()
+          call coarse_grid%calculate_cell_area()
       end select
     end if
 
