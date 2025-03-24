@@ -103,7 +103,7 @@ module mo_logging
   integer, public, parameter :: LOG_TRACE = LOG_LEVEL_TRACE_DEF !< = 6, Extremely detailed output, compile your program with -DENABLE_LOG_TRACE to enable
   integer, public, parameter :: LOG_SUBTRACE = LOG_LEVEL_SUBTRACE_DEF !< = 7, More Extremely detailed output, compile your program with -DENABLE_LOG_TRACE to enable
 
-  integer, public, save :: log_unit = stdout !< By default, log to stdout for level > 2
+  integer, public, save :: log_unit = stderr !< By default, log to stdout for level > 2
   integer, public, save :: log_unit_error = stderr !< By default, log to stderr for level <= 2
   integer, public, save :: minimum_log_level = LOG_INFO !< Note that more critical means a lower number
   logical, public, save :: show_file_and_line = .true. !< show file name and line number in log output
