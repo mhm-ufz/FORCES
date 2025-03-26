@@ -90,6 +90,7 @@ module mo_grid
     procedure, public :: has_aux_vertices
     procedure, public :: calculate_cell_ids
     procedure, public :: calculate_cell_area
+    procedure, public :: is_periodic
     procedure, public :: derive_coarse_grid
     ! procedure, private :: read_data_dp, read_data_i4
     ! generic, public :: read_data => read_data_dp, read_data_i4
@@ -1203,6 +1204,21 @@ contains
     end if
 
   end subroutine calculate_cell_area
+
+  !> \brief check if given grid is a global lat-lon grid with periodic lon axis
+  !> \return `logical :: is_periodic`
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  logical function is_periodic(this)
+    use mo_utils, only : is_close
+    implicit none
+    class(grid_t), intent(in) :: this
+    if (this%coordsys == coordsys_cart) then
+      is_periodic = .false.
+    else
+      is_periodic = is_close(360.0_dp, this%nx * this%cellsize)
+    endif
+  end function is_periodic
 
   !> \brief Generate coarse grid from a fine grid by a given target resolution
   !> \details following attributes are calculated for the coarse grid:
