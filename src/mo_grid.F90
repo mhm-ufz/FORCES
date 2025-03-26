@@ -1209,7 +1209,7 @@ contains
 
   end subroutine calculate_cell_area
 
-  !> \brief check if given grid has is a global lat-lon grid with periodic lon axis
+  !> \brief check if given grid is a global lat-lon grid with periodic lon axis
   !> \return `logical :: is_periodic`
   !> \authors Sebastian Müller
   !> \date Mar 2024
