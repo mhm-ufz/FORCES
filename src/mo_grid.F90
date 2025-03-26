@@ -71,7 +71,7 @@ module mo_grid
     procedure, private :: to_nc_dataset, to_nc_file
     generic, public :: to_netcdf => to_nc_dataset, to_nc_file
 #endif
-    procedure, public :: extend
+    procedure, public :: extent
     procedure, public :: x_axis
     procedure, public :: y_axis
     procedure, public :: x_vertices
@@ -195,11 +195,11 @@ contains
         k = k + 1
         ! coord. of all corners -> of finer scale
         i_lb = (ic - 1) * this%factor + 1
-        ! constrain the range to fine grid extend
+        ! constrain the range to fine grid extent
         i_ub = min(ic * this%factor, fine_grid%nx)
 
         j_lb = (jc - 1) * this%factor + 1
-        ! constrain the range to fine grid extend
+        ! constrain the range to fine grid extent
         j_ub = min(jc * this%factor, fine_grid%ny)
 
         this%x_lb(k) = i_lb
@@ -734,23 +734,27 @@ contains
 
 #endif
 
-  !> \brief get grid extend
+  !> \brief get grid extent
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine extend(this, x_min, x_max, y_min, y_max)
+  subroutine extent(this, x_min, x_max, y_min, y_max, x_size, y_size)
     implicit none
     class(grid_t), intent(in) :: this
     real(dp), optional, intent(out) :: x_min !< left bound (x)
     real(dp), optional, intent(out) :: x_max !< right bound (x)
     real(dp), optional, intent(out) :: y_min !< lower bound (y)
     real(dp), optional, intent(out) :: y_max !< upper bound (y)
+    real(dp), optional, intent(out) :: x_size !< x extent
+    real(dp), optional, intent(out) :: y_size !< y extent
 
     if ( present(x_min) ) x_min = this%xllcorner
     if ( present(x_max) ) x_max = this%xllcorner + this%nx * this%cellsize
     if ( present(y_min) ) y_min = this%yllcorner
     if ( present(y_max) ) y_max = this%yllcorner + this%ny * this%cellsize
+    if ( present(x_size) ) x_size = this%nx * this%cellsize
+    if ( present(y_size) ) y_size = this%ny * this%cellsize
 
-  end subroutine extend
+  end subroutine extent
 
   !> \brief x-axis of the grid cell centers
   !> \return `real(dp), allocatable, dimension(:) :: x_axis`
@@ -1035,10 +1039,10 @@ contains
     if ( .not. (eq(this%xllcorner, coarse_grid%xllcorner) .and. eq(this%yllcorner, coarse_grid%yllcorner)) ) then
       call error_message("grid % check_is_covered_by: coarse grid lower-left corner is not matching.")
     end if
-    ! check extend
+    ! check extent
     if (.not. ((coarse_grid%nx - 1) * factor <= this%nx .and. this%nx <= coarse_grid%nx * factor .and. &
                (coarse_grid%ny - 1) * factor <= this%ny .and. this%ny <= coarse_grid%ny * factor)) then
-      call error_message("grid % check_is_covered_by: coarse grid extend is not matching.")
+      call error_message("grid % check_is_covered_by: coarse grid extent is not matching.")
     end if
 
     if ( check_mask_ .and. coarse_grid%any_masked()) then
@@ -1205,7 +1209,7 @@ contains
 
   end subroutine calculate_cell_area
 
-  !> \brief check if given grid is a global lat-lon grid with periodic lon axis
+  !> \brief check if given grid has is a global lat-lon grid with periodic lon axis
   !> \return `logical :: is_periodic`
   !> \authors Sebastian Müller
   !> \date Mar 2024
@@ -1241,7 +1245,7 @@ contains
     real(dp), intent(in) :: target_resolution !< desired target resolution
     logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
     logical, intent(in), optional :: estimate_area !< whether to estimate coarse cell areas respecting fine mask (default: .true.)
-    integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from fine grid, (1) from cell extend
+    integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from fine grid, (1) from cell extent
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     type(grid_t) :: coarse_grid !< resulting low resolution grid
 
@@ -1263,7 +1267,7 @@ contains
     ! 2) Pad each variable to its corresponding global one
     !--------------------------------------------------------
     ! grid properties
-    call calculate_coarse_extend( &
+    call calculate_coarse_extent( &
       nx_in=this%nx, &
       ny_in=this%ny, &
       xllcorner_in=this%xllcorner, &
@@ -1281,6 +1285,9 @@ contains
     coarse_grid%coordsys = this%coordsys
 
     factor = nint(coarse_grid%cellsize / this%cellsize, i4)
+
+    if (this%is_periodic().and.(.not.coarse_grid%is_periodic())) &
+      call error_message("derive_coarse_grid: target resolution is not suitable for a periodic grid.")
 
     ! allocation and initalization of mask at coarse grid
     allocate(coarse_grid%mask(coarse_grid%nx, coarse_grid%ny))
@@ -1313,11 +1320,11 @@ contains
               k = k + 1
               ! coord. of all corners -> of finer scale
               i_lb = (ic - 1) * factor + 1
-              ! constrain the range to fine grid extend
+              ! constrain the range to fine grid extent
               i_ub = min(ic * factor, this%nx)
 
               j_lb = (jc - 1) * factor + 1
-              ! constrain the range to fine grid extend
+              ! constrain the range to fine grid extent
               j_ub = min(jc * factor, this%ny)
 
               ! effective area [km2] & total no. of fine grid cells within a given coarse grid cell
@@ -1340,7 +1347,7 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !> \brief calculate coarse grid extend
+  !> \brief calculate coarse grid extent
   !> \details Calculates basic grid properties at a required coarser level using
   !!          information of a given finer level.
   !!          Calculates basic grid properties at a required coarser level (e.g., L11) using
@@ -1348,7 +1355,7 @@ contains
   !!          nx, ny, xllcorner, yllcorner cellsize are estimated in this routine.
   !> \authors Matthias Zink & Rohini Kumar
   !> \date Feb 2013
-  subroutine calculate_coarse_extend(nx_in,  ny_in,  xllcorner_in,  yllcorner_in,  cellsize_in,  target_resolution, &
+  subroutine calculate_coarse_extent(nx_in,  ny_in,  xllcorner_in,  yllcorner_in,  cellsize_in,  target_resolution, &
                                      nx_out, ny_out, xllcorner_out, yllcorner_out, cellsize_out, tol, aligning)
 
     implicit none
@@ -1397,7 +1404,7 @@ contains
       xllcorner_out = xllcorner_in + real(nx_in, dp) * target_resolution / rounded - real(nx_out, dp) * cellsize_out
     endif
 
-  end subroutine calculate_coarse_extend
+  end subroutine calculate_coarse_extent
 
   ! ------------------------------------------------------------------
 
