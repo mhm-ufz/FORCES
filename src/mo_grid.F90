@@ -79,19 +79,24 @@ module mo_grid
     procedure, public :: x_bounds
     procedure, public :: y_bounds
     procedure, public :: upscale_aux_coords
+    procedure, public :: downscale_aux_coords
     procedure, public :: estimate_aux_vertices
     procedure, public :: lat_bounds
     procedure, public :: lon_bounds
     procedure, public :: has_mask
-    procedure, public :: any_masked
+    procedure, public :: any_missing
     procedure, public :: check_is_covered_by
     procedure, public :: check_is_covering
+    procedure, public :: check_is_filled_by
+    procedure, public :: check_is_filling
     procedure, public :: has_aux_coords
     procedure, public :: has_aux_vertices
     procedure, public :: calculate_cell_ids
     procedure, public :: calculate_cell_area
     procedure, public :: is_periodic
     procedure, public :: derive_coarse_grid
+    procedure, public :: derive_fine_grid
+    procedure, public :: derive_grid
     ! procedure, private :: read_data_dp, read_data_i4
     ! generic, public :: read_data => read_data_dp, read_data_i4
     ! procedure, private :: pack_data_dp, pack_data_i4
@@ -163,7 +168,7 @@ contains
 
     class(upscaler_t), intent(inout) :: this
     real(dp), intent(in) :: target_resolution !< desired target resolution
-    type(grid_t), target, intent(in) :: fine_grid !< given high resolution grid
+    type(grid_t), target, intent(inout) :: fine_grid !< given high resolution grid
     type(grid_t), target, intent(inout) :: coarse_grid !< resulting low resolution grid
     logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
@@ -861,7 +866,7 @@ contains
     call check_factor(fine_grid%cellsize, this%cellsize, factor=factor, tol=tol)
 
     if (this % coordsys /= coordsys_cart) &
-      call error_message("grid % upscale_aux_coords: grids allready use spherical coordinate system for axis.")
+      call error_message("grid % upscale_aux_coords: grids already use spherical coordinate system for axis.")
 
     if (.not. fine_grid%has_aux_coords()) &
       call error_message("grid % upscale_aux_coords: fine grid has no auxilliar coordinates defined.")
@@ -886,6 +891,121 @@ contains
     end do
 
   end subroutine upscale_aux_coords
+
+  !> \brief estimate auxilliar coordinates (lat, lon) from coarser grid
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine downscale_aux_coords(this, coarse_grid, tol)
+    implicit none
+    class(grid_t), intent(inout) :: this
+    type(grid_t), intent(inout) :: coarse_grid !< finer grid to estimate the auxilliar coordinates from
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    real(dp) :: n_subcells, x, dx, fac
+    integer(i4) :: i_ub, i_lb, j_lb, j_ub, i, j, ii, jj, i_start, i_end, j_start, j_end, k, factor, fac_i, fac_j
+    logical :: reset_aux_vertices
+    real(dp), allocatable, dimension(:,:) :: latlon_t, latlon_b, latlon_l, latlon_r
+
+    call this%check_is_covered_by(coarse_grid, tol=tol, check_mask=.false.)
+    call check_factor(this%cellsize, coarse_grid%cellsize, rounded=fac, factor=factor, tol=tol)
+
+    if (this % coordsys /= coordsys_cart) &
+      call error_message("grid % downscale_aux_coords: grids already use spherical coordinate system for axis.")
+
+    if (.not. coarse_grid%has_aux_coords()) &
+      call error_message("grid % downscale_aux_coords: fine grid has no auxilliar coordinates defined.")
+
+    if (this%has_aux_coords()) &
+      call error_message("grid % downscale_aux_coords: grid already has auxilliar coordinates defined.")
+
+    if (coarse_grid%has_aux_vertices()) then
+      reset_aux_vertices = .false.
+    else
+      reset_aux_vertices = .true.
+      ! separate error message for single cell grid here?
+      call coarse_grid%estimate_aux_vertices()
+    end if
+
+    allocate(latlon_t(factor, 2_i4))
+    allocate(latlon_b(factor, 2_i4))
+    allocate(latlon_l(factor, 2_i4))
+    allocate(latlon_r(factor, 2_i4))
+
+    allocate(this%lat(this%nx, this%ny))
+    allocate(this%lon(this%nx, this%ny))
+    do j = 1, coarse_grid%ny
+      do i = 1, coarse_grid%nx
+        ! calculate sub-points along vertice boundaries (top, left, right, bottom)
+        ! lon
+        x = coarse_grid%lon_vertices(i,j)
+        dx = coarse_grid%lon_vertices(i+1,j) - x
+        latlon_t(:,1) = [(x + dx * (real(k)-0.5_dp) / fac, k=1_i4,factor)]
+        x = coarse_grid%lon_vertices(i,j)
+        dx = coarse_grid%lon_vertices(i,j+1) - x
+        latlon_l(:,1) = [(x + dx * (real(k)-0.5_dp) / fac, k=1_i4,factor)]
+        x = coarse_grid%lon_vertices(i+1,j)
+        dx = coarse_grid%lon_vertices(i+1,j+1) - x
+        latlon_r(:,1) = [(x + dx * (real(k)-0.5_dp) / fac, k=1_i4,factor)]
+        x = coarse_grid%lon_vertices(i,j+1)
+        dx = coarse_grid%lon_vertices(i+1,j+1) - x
+        latlon_b(:,1) = [(x + dx * (real(k)-0.5_dp) / fac, k=1_i4,factor)]
+        ! lat
+        x = coarse_grid%lat_vertices(i,j)
+        dx = coarse_grid%lat_vertices(i+1,j) - x
+        latlon_t(:,2) = [(x + dx * (real(k)-0.5_dp) / fac, k=1_i4,factor)]
+        x = coarse_grid%lat_vertices(i,j)
+        dx = coarse_grid%lat_vertices(i,j+1) - x
+        latlon_l(:,2) = [(x + dx * (real(k)-0.5_dp) / fac, k=1_i4,factor)]
+        x = coarse_grid%lat_vertices(i+1,j)
+        dx = coarse_grid%lat_vertices(i+1,j+1) - x
+        latlon_r(:,2) = [(x + dx * (real(k)-0.5_dp) / fac, k=1_i4,factor)]
+        x = coarse_grid%lat_vertices(i,j+1)
+        dx = coarse_grid%lat_vertices(i+1,j+1) - x
+        latlon_b(:,2) = [(x + dx * (real(k)-0.5_dp) / fac, k=1_i4,factor)]
+        ! generate latlon pairs in sub-cells
+        i_start = (i - 1) * factor + 1_i4
+        i_end = min(i * factor, this%nx)
+        j_start = (j - 1) * factor + 1_i4
+        j_end = min(j * factor, this%ny)
+        fac_i = i_end - i_start + 1_i4
+        fac_j = j_end - j_start + 1_i4
+
+        do jj = 1, fac_j
+          do ii = 1, fac_i
+            call intersection( &
+              latlon_t(ii,1), latlon_t(ii,2), latlon_b(ii,1), latlon_b(ii,2), &
+              latlon_l(jj,1), latlon_l(jj,2), latlon_r(jj,1), latlon_r(jj,2), &
+              this%lon(i_start+ii-1,j_start+jj-1), this%lat(i_start+ii-1,j_start+jj-1))
+          end do
+        end do
+
+      end do
+    end do
+
+    if ( reset_aux_vertices ) then
+      deallocate(coarse_grid%lat_vertices)
+      deallocate(coarse_grid%lon_vertices)
+    end if
+
+  end subroutine downscale_aux_coords
+
+  subroutine intersection(p1x, p1y, p2x, p2y, q1x, q1y, q2x, q2y, x, y)
+    use mo_utils, only : is_close
+    ! start and end point of line p (by x/y components)
+    real(dp), intent(in) :: p1x, p1y, p2x, p2y
+    ! start and end point of line q (by x/y components)
+    real(dp), intent(in) :: q1x, q1y, q2x, q2y
+    ! resulting coordinates of the intersection point
+    real(dp), intent(out) ::  x, y
+    real(dp) ::  denom, det1, det2
+
+    denom = (p1x-p2x)*(q1y-q2y) - (p1y-p2y)*(q1x-q2x)
+    ! if (is_close(denom, 0.0_dp)) call error_message("intersection: lines are parallel.")
+    det1 = p1x*p2y-p1y*p2x
+    det2 = q1x*q2y-q1y*q2x
+    x = (det1*(q1x-q2x) - det2*(p1x-p2x)) / denom
+    y = (det1*(q1y-q2y) - det2*(p1y-p2y)) / denom
+
+  end subroutine intersection
 
   !> \brief estimate vertices of auxilliar coordinate cells
   !> \authors Sebastian Müller
@@ -997,19 +1117,19 @@ contains
     has_mask = allocated(this%mask)
   end function has_mask
 
-  !> \brief check if given grid has any masked cells (mask allocated and any value .false.)
-  !> \return `logical :: any_masked`
+  !> \brief check if given grid has any missing cells (mask allocated and any value .false.)
+  !> \return `logical :: any_missing`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  logical function any_masked(this)
+  logical function any_missing(this)
     implicit none
     class(grid_t), intent(in) :: this
     if (.not. this%has_mask()) then
-      any_masked = .false.
+      any_missing = .false.
     else
-      any_masked = .not. all(this%mask)
+      any_missing = .not. all(this%mask)
     end if
-  end function any_masked
+  end function any_missing
 
   !> \brief check if given grid is covered by coarser grid
   !> \details check if given grid is compatible and covered by coarser grid and raise an error if this is not the case.
@@ -1045,8 +1165,8 @@ contains
       call error_message("grid % check_is_covered_by: coarse grid extent is not matching.")
     end if
 
-    if ( check_mask_ .and. coarse_grid%any_masked()) then
-      if (.not. this%any_masked()) call error_message("grid % check_is_covered_by: coarse grid is masked, this grid not.")
+    if ( check_mask_ .and. coarse_grid%any_missing()) then
+      if (.not. this%any_missing()) call error_message("grid % check_is_covered_by: coarse grid is masked, this grid not.")
       do j = 1, coarse_grid%ny
         do i = 1, coarse_grid%nx
           if ( coarse_grid%mask(i, j)) cycle
@@ -1075,6 +1195,72 @@ contains
     logical, optional, intent(in) :: check_mask !< whether to check if coarse mask covers fine mask
     call fine_grid%check_is_covered_by(coarse_grid=this, tol=tol, check_mask=check_mask)
   end subroutine check_is_covering
+
+  !> \brief check if given grid is filled by fine grid
+  !> \details check if given grid is compatible and filled by finer grid and raise an error if this is not the case.
+  !! \note The fine grid is allowed to have valid cells outside of the coarse grids masked region.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine check_is_filled_by(this, fine_grid, tol, check_mask)
+    use mo_utils, only: eq
+    implicit none
+    class(grid_t), intent(in) :: this
+    type(grid_t), intent(in) :: fine_grid !< fine grid that should fill this grid
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    logical, optional, intent(in) :: check_mask !< whether to check if fine mask fills coarse mask
+
+    integer(i4) :: factor, i, j, i_lb, i_ub, j_lb, j_ub
+    logical :: check_mask_
+
+    check_mask_ = .true.
+    if ( present(check_mask) ) check_mask_ = check_mask
+
+    if (this%coordsys /= fine_grid%coordsys) then
+      call error_message("grid % check_is_filled_by: grids don't use the same coordinate system.")
+    end if
+
+    call check_factor(fine_grid%cellsize, this%cellsize, factor=factor, tol=tol)
+
+    ! check ll corner
+    if ( .not. (eq(this%xllcorner, fine_grid%xllcorner) .and. eq(this%yllcorner, fine_grid%yllcorner)) ) then
+      call error_message("grid % check_is_filled_by: fine grid lower-left corner is not matching.")
+    end if
+    ! check extent
+    if (.not. ((this%nx - 1) * factor <= fine_grid%nx .and. fine_grid%nx <= this%nx * factor .and. &
+               (this%ny - 1) * factor <= fine_grid%ny .and. fine_grid%ny <= this%ny * factor)) then
+      call error_message("grid % check_is_filled_by: fine grid extent is not matching.")
+    end if
+
+    if ( check_mask_ .and. fine_grid%any_missing()) then
+      do j = 1, this%ny
+        do i = 1, this%nx
+          if ( .not.this%mask(i, j)) cycle
+          ! coord. of all corners -> of finer scale
+          i_lb = (i - 1) * factor + 1
+          i_ub = min(i * factor, fine_grid%nx)
+          j_lb = (j - 1) * factor + 1
+          j_ub = min(j * factor, fine_grid%ny)
+          if (.not.any(fine_grid%mask(i_lb:i_ub, j_lb:j_ub))) then
+            call error_message("grid % check_is_filled_by: coarse cells without any filling fine cells found.")
+          end if
+        end do
+      end do
+    end if
+  end subroutine check_is_filled_by
+
+  !> \brief check if given grid is filling coarser grid
+  !> \details check if given grid is compatible with and filling coarser grid and raise an error if this is not the case.
+  !! \note The fine grid is allowed to have valid cells outside of the coarse grids masked region.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine check_is_filling(this, coarse_grid, tol, check_mask)
+    implicit none
+    class(grid_t), intent(in) :: this
+    type(grid_t), intent(in) :: coarse_grid !< coarser grid that should be covered by this grid
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    logical, optional, intent(in) :: check_mask !< whether to check if fine mask fills coarse mask
+    call coarse_grid%check_is_filled_by(fine_grid=this, tol=tol, check_mask=check_mask)
+  end subroutine check_is_filling
 
   !> \brief check if given grid has auxilliar coordinates allocated.
   !> \return `logical :: has_aux_coords`
@@ -1241,7 +1427,7 @@ contains
 
     implicit none
 
-    class(grid_t), intent(in) :: this
+    class(grid_t), intent(inout) :: this
     real(dp), intent(in) :: target_resolution !< desired target resolution
     logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
     logical, intent(in), optional :: estimate_area !< whether to estimate coarse cell areas respecting fine mask (default: .true.)
@@ -1335,6 +1521,8 @@ contains
           deallocate(areaCell0_2D)
         case(1_i4)
           call coarse_grid%calculate_cell_area()
+        case default
+          call error_message("derive_coarse_grid: 'area_method' needs to be 0 or 1. Got: ", trim(num2str(area_method_)))
       end select
     end if
 
@@ -1344,6 +1532,119 @@ contains
     end if
 
   end function derive_coarse_grid
+
+  !> \brief Generate fine grid from a coarse grid by a given target resolution
+  !> \details following attributes are calculated for the coarse grid:
+  !!          -  cell id & numbering
+  !!          -  mask creation
+  !> \return `type(grid_t) :: fine_grid`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function derive_fine_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol) result(fine_grid)
+
+    use mo_constants, only : nodata_dp
+
+    implicit none
+
+    class(grid_t), intent(inout) :: this
+    real(dp), intent(in) :: target_resolution !< desired target resolution
+    logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
+    logical, intent(in), optional :: estimate_area !< whether to estimate coarse cell areas respecting fine mask (default: .true.)
+    integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from fine grid, (1) from cell extent
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    type(grid_t) :: fine_grid !< resulting low resolution grid
+
+    integer(i4) :: i, j, k, ic, jc
+    integer(i4) :: factor, area_method_
+    logical :: estimate_aux_, estimate_area_, reset_aux_vertices
+
+    estimate_aux_ = .true.
+    if (present(estimate_aux)) estimate_aux_ = estimate_aux
+    estimate_area_ = .true.
+    if (present(estimate_area)) estimate_area_ = estimate_area
+    area_method_ = 0_i4
+    if (present(area_method)) area_method_ = area_method
+
+    call check_factor(target_resolution, this%cellsize, factor=factor, tol=tol)
+
+    fine_grid%nx = this%nx * factor
+    fine_grid%ny = this%ny * factor
+    fine_grid%cellsize = target_resolution
+    fine_grid%xllcorner = this%xllcorner
+    fine_grid%yllcorner = this%yllcorner
+    fine_grid%coordsys = this%coordsys
+
+    ! allocation and initalization of mask at coarse grid
+    allocate(fine_grid%mask(fine_grid%nx, fine_grid%ny))
+    fine_grid%mask(:, :) = .false.
+
+    ! create mask at coarse grid
+    do j = 1_i4, this%ny
+      ! everything would be better with 0-based ids
+      jc = (j-1_i4) * factor + 1_i4
+      do i = 1, this%nx
+        if (.not. this%mask(i, j)) cycle
+        ic = (i-1_i4) * factor + 1_i4
+        fine_grid%mask(ic : ic + factor - 1_i4, jc :  jc + factor - 1_i4) = .true.
+      end do
+    end do
+
+    call fine_grid%calculate_cell_ids()
+
+    if (estimate_area_) call fine_grid%calculate_cell_area()
+
+    ! only estimate aux coords if we are on a projected grid
+    if ( estimate_aux_ .and. this%coordsys == coordsys_cart .and. this%has_aux_coords()) then
+      call fine_grid%downscale_aux_coords(this, tol=tol)
+    end if
+
+  end function derive_fine_grid
+
+  !> \brief Generate a derived grid by a given target resolution
+  !> \return `type(grid_t) :: result_grid`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function derive_grid(this, target_resolution, factor_up, factor_down, estimate_aux, estimate_area, area_method, tol) &
+    result(result_grid)
+
+    implicit none
+
+    class(grid_t), intent(inout) :: this
+    real(dp), intent(in), optional :: target_resolution !< desired target resolution
+    integer(i4), intent(in), optional :: factor_up !< factor for finer grid
+    integer(i4), intent(in), optional :: factor_down !< factor for coarser grid
+    logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
+    logical, intent(in), optional :: estimate_area !< whether to estimate cell areas (default: .true.)
+    integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from other grid, (1) from cell extent
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    type(grid_t) :: result_grid !< resulting grid
+    real(dp) :: resolution
+    integer(i4) :: input_opt
+
+    input_opt = 0_i4
+    if (present(target_resolution)) then
+      input_opt = input_opt + 1
+      resolution = target_resolution
+    end if
+    if (present(factor_up)) then
+      input_opt = input_opt + 1
+      resolution = this%cellsize / real(factor_up, dp)
+    end if
+    if (present(factor_down)) then
+      input_opt = input_opt + 1
+      resolution = this%cellsize * real(factor_down, dp)
+    end if
+    if (input_opt /= 1) then
+      call error_message("derive_grid: only one of 'target_resolution', 'factor_up' or 'factor_down' can be given.")
+    end if
+
+    if (resolution < this%cellsize) then
+      result_grid = this%derive_fine_grid(resolution, estimate_aux, estimate_area, area_method, tol)
+    else
+      result_grid = this%derive_coarse_grid(resolution, estimate_aux, estimate_area, area_method, tol)
+    end if
+
+  end function derive_grid
 
   ! ------------------------------------------------------------------
 
