@@ -2,7 +2,8 @@ module test_mo_grid
   use funit
   use mo_grid, only: grid, coordsys_cart
   use mo_kind, only: i4, dp
-
+  use mo_netcdf, only: NcDataset, NcVariable, NcDimension
+  use mo_constants, only: nodata_dp
   implicit none
 
   private
@@ -15,9 +16,13 @@ contains
   subroutine test_grid()
 
     implicit none
-    type(grid) :: cgrid, fgrid
+    type(grid) :: cgrid, fgrid, rgrid
+    type(NcDataset) :: nc
+    type(NcDimension) :: x_dim, y_dim
+    type(NcVariable) :: var
     real(dp)                                :: t=1.0E-5_dp
     integer(i4) :: i
+    real(dp), allocatable :: dummy_data(:,:)
 
     call cgrid%init( &
       nx=2, ny=3, xllcorner=3973369.0_dp, yllcorner=2735847.0_dp, cellsize=72000.0_dp, coordsys=coordsys_cart, &
@@ -31,12 +36,34 @@ contains
 
     fgrid = cgrid%derive_grid(factor_up=3)
 
+    nc = NcDataset("6x9.nc", "w")
+    call cgrid%to_netcdf(nc)
+    x_dim = nc%getDimension("x")
+    y_dim = nc%getDimension("y")
+    var = nc%setVariable("test", "f64", [x_dim, y_dim])
+    call var%setFillValue(nodata_dp)
+    call var%setAttribute("missing_value", nodata_dp)
+    call var%setAttribute("coordinates", "lat lon")
+    dummy_data = cgrid%unpack_data([(real(i, dp), i=1,cgrid%n_cells)])
+    call var%setData(dummy_data)
+    call nc%close()
+
+    call rgrid%from_netcdf("6x9.nc", var="test")
+
     @assertEqual(fgrid%n_cells, 45)
     @assertEqual(fgrid%nx, 6)
     @assertEqual(fgrid%ny, 9)
-
     @assertEqual(fgrid%xllcorner, cgrid%xllcorner)
     @assertEqual(fgrid%yllcorner, cgrid%yllcorner)
+
+    @assertEqual(rgrid%n_cells, 5)
+    @assertEqual(rgrid%nx, 2)
+    @assertEqual(rgrid%ny, 3)
+    @assertEqual(rgrid%xllcorner, cgrid%xllcorner)
+    @assertEqual(rgrid%yllcorner, cgrid%yllcorner)
+
+    @assertTrue(rgrid%has_aux_coords())
+    @assertTrue(rgrid%has_aux_vertices())
 
     ! @assertAll
     ! @assertAny
