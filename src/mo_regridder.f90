@@ -12,6 +12,7 @@ module mo_regridder
 
   use mo_kind, only: i4, dp
   use mo_grid, only: grid
+  use mo_utils, only: is_close
 
   implicit none
 
@@ -37,6 +38,8 @@ module mo_regridder
     integer(i4), dimension(:, :), allocatable :: coarse_id_map  !< 2d index array of coarse ids (fine%nx, fine%ny)
   contains
     procedure, public :: init => regridder_init
+    procedure, private :: regridder_execute_dp, regridder_execute_i4, regridder_execute_i4_dp
+    generic, public :: execute => regridder_execute_dp, regridder_execute_i4, regridder_execute_i4_dp
   end type regridder
 
 contains
@@ -114,5 +117,30 @@ contains
     end do
 
   end subroutine regridder_init
+
+  subroutine regridder_execute_dp(this,  in_data, out_data, p)
+    class(regridder), intent(inout) :: this
+    real(dp), dimension(:), intent(in) ::  in_data
+    real(dp), dimension(:), intent(out) ::  out_data
+    real(dp), intent(in), optional ::  p
+
+    real(dp) :: norm
+
+    norm = 1.0_dp
+    if (present(p)) norm = p
+
+  end subroutine regridder_execute_dp
+
+  subroutine regridder_execute_i4(this,  in_data, out_data)
+    class(regridder), intent(inout) :: this
+    integer(i4), dimension(:), intent(in) ::  in_data
+    integer(i4), dimension(:), intent(out) ::  out_data
+  end subroutine regridder_execute_i4
+
+  subroutine regridder_execute_i4_dp(this,  in_data, out_data)
+    class(regridder), intent(inout) :: this
+    integer(i4), dimension(:), intent(in) ::  in_data
+    real(dp), dimension(:), intent(out) ::  out_data
+  end subroutine regridder_execute_i4_dp
 
 end module mo_regridder
