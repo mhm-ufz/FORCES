@@ -1,6 +1,6 @@
 module test_mo_grid
   use funit
-  use mo_grid, only: grid_t, upscaler_t
+  use mo_grid, only: grid, coordsys_cart
   use mo_kind, only: i4, dp
 
   implicit none
@@ -15,8 +15,28 @@ contains
   subroutine test_grid()
 
     implicit none
+    type(grid) :: cgrid, fgrid
     real(dp)                                :: t=1.0E-5_dp
     integer(i4) :: i
+
+    call cgrid%init( &
+      nx=2, ny=3, xllcorner=3973369.0_dp, yllcorner=2735847.0_dp, cellsize=72000.0_dp, coordsys=coordsys_cart, &
+      mask=reshape([.true., .true., .true., .true., .true., .false.], [2, 3]))
+
+    allocate(cgrid%lon(cgrid%nx, cgrid%ny))
+    allocate(cgrid%lat(cgrid%nx, cgrid%ny))
+    cgrid%lon(:,:) = reshape([ 5.8252_dp,  6.7885_dp,  5.7714_dp,  6.7470_dp,  5.7157_dp,  6.7042_dp], [2, 3])
+    cgrid%lat(:,:) = reshape([47.9806_dp, 48.0130_dp, 48.6272_dp, 48.6600_dp, 49.2736_dp, 49.3069_dp], [2, 3])
+    call cgrid%estimate_aux_vertices()
+
+    fgrid = cgrid%derive_grid(factor_up=3)
+
+    @assertEqual(fgrid%n_cells, 45)
+    @assertEqual(fgrid%nx, 6)
+    @assertEqual(fgrid%ny, 9)
+
+    @assertEqual(fgrid%xllcorner, cgrid%xllcorner)
+    @assertEqual(fgrid%yllcorner, cgrid%yllcorner)
 
     ! @assertAll
     ! @assertAny
