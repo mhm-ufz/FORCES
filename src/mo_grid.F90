@@ -99,11 +99,12 @@ module mo_grid
     procedure, public :: derive_grid
     ! procedure, private :: read_data_dp, read_data_i4
     ! generic, public :: read_data => read_data_dp, read_data_i4
-    ! procedure, private :: pack_data_dp, pack_data_i4
-    ! generic, public :: pack_data => pack_data_dp, pack_data_i4
-    ! procedure, private :: unpack_data_dp, unpack_data_i4
-    ! generic, public :: unpack_data => unpack_data_dp, unpack_data_i4
-    ! procedure, public :: flip_packed_data
+    procedure, private :: pack_data_dp, pack_data_i4
+    generic, public :: pack_data => pack_data_dp, pack_data_i4
+    procedure, private :: unpack_data_dp, unpack_data_i4
+    generic, public :: unpack_data => unpack_data_dp, unpack_data_i4
+    procedure, private :: flip_packed_data_dp, flip_packed_data_i4
+    generic, public :: flip_packed_data => flip_packed_data_dp, flip_packed_data_i4
   end type grid
 
   !> \brief Reads spatial data files of ASCII format.
@@ -798,8 +799,8 @@ contains
     class(grid), intent(inout) :: this
     type(grid), intent(inout) :: coarse_grid !< finer grid to estimate the auxilliar coordinates from
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    real(dp) :: n_subcells, x, dx, fac
-    integer(i4) :: i_ub, i_lb, j_lb, j_ub, i, j, ii, jj, i_start, i_end, j_start, j_end, k, factor, fac_i, fac_j
+    real(dp) :: x, dx, fac
+    integer(i4) :: i, j, ii, jj, i_start, i_end, j_start, j_end, k, factor, fac_i, fac_j
     logical :: reset_aux_vertices
     real(dp), allocatable, dimension(:,:) :: latlon_t, latlon_b, latlon_l, latlon_r
 
@@ -1439,11 +1440,7 @@ contains
   !> \authors Sebastian Müller
   !> \date    Mar 2025
   function derive_fine_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol) result(fine_grid)
-
-    use mo_constants, only : nodata_dp
-
     implicit none
-
     class(grid), intent(inout) :: this
     real(dp), intent(in) :: target_resolution !< desired target resolution
     logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
@@ -1452,9 +1449,9 @@ contains
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     type(grid) :: fine_grid !< resulting low resolution grid
 
-    integer(i4) :: i, j, k, ic, jc
+    integer(i4) :: i, j, ic, jc
     integer(i4) :: factor, area_method_
-    logical :: estimate_aux_, estimate_area_, reset_aux_vertices
+    logical :: estimate_aux_, estimate_area_
 
     estimate_aux_ = .true.
     if (present(estimate_aux)) estimate_aux_ = estimate_aux
@@ -1543,6 +1540,134 @@ contains
     end if
 
   end function derive_grid
+
+  !> \brief Pack 2D data with grid mask
+  !> \return `real(dp) :: out_data(:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function pack_data_dp(this, in_data) result(out_data)
+    implicit none
+    class(grid), intent(inout) :: this
+    real(dp), intent(in) :: in_data(:,:)
+    real(dp), allocatable :: out_data(:)
+
+    if (size(in_data, dim=1) /= this%nx .or. size(in_data, dim=2) /= this%ny) then
+      call error_message( &
+        "pack_data: in_data has wrong shape. Expected: (", &
+        num2str(this%nx), ",", num2str(this%nx), "), got: (", &
+        num2str(size(in_data, dim=1)), ",", num2str(size(in_data, dim=2)), ")")
+    end if
+    allocate(out_data(this%n_cells))
+    out_data(:) = pack(in_data, this%mask)
+  end function pack_data_dp
+
+  !> \brief Pack 2D data with grid mask
+  !> \return `integer(i4) :: out_data(:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function pack_data_i4(this, in_data) result(out_data)
+    implicit none
+    class(grid), intent(inout) :: this
+    integer(i4), intent(in) :: in_data(:,:)
+    integer(i4), allocatable :: out_data(:)
+
+    if (size(in_data, dim=1) /= this%nx .or. size(in_data, dim=2) /= this%ny) then
+      call error_message( &
+        "pack_data: in_data has wrong shape. Expected: (", &
+        num2str(this%nx), ",", num2str(this%ny), "), got: (", &
+        num2str(size(in_data, dim=1)), ",", num2str(size(in_data, dim=2)), ")")
+    end if
+    allocate(out_data(this%n_cells))
+    out_data(:) = pack(in_data, this%mask)
+  end function pack_data_i4
+
+  !> \brief Unpack 1D data with grid mask
+  !> \return `real(dp) :: out_data(:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function unpack_data_dp(this, in_data) result(out_data)
+    use mo_constants, only : nodata_dp
+    implicit none
+    class(grid), intent(inout) :: this
+    real(dp), intent(in) :: in_data(:)
+    real(dp), allocatable :: out_data(:,:)
+
+    if (size(in_data) /= this%n_cells) then
+      call error_message( &
+        "unpack_data: in_data has wrong shape. Expected: (", &
+        num2str(this%n_cells), "), got: (", num2str(size(in_data)), ")")
+    end if
+    allocate(out_data(this%nx, this%ny))
+    out_data(:,:) = unpack(in_data, this%mask, nodata_dp)
+  end function unpack_data_dp
+
+  !> \brief Unpack 1D data with grid mask
+  !> \return `integer(i4) :: out_data(:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function unpack_data_i4(this, in_data) result(out_data)
+    use mo_constants, only : nodata_i4
+    implicit none
+    class(grid), intent(inout) :: this
+    integer(i4), intent(in) :: in_data(:)
+    integer(i4), allocatable :: out_data(:,:)
+
+    if (size(in_data) /= this%n_cells) then
+      call error_message( &
+        "unpack_data: in_data has wrong shape. Expected: (", &
+        num2str(this%n_cells), "), got: (", num2str(size(in_data)), ")")
+    end if
+    allocate(out_data(this%nx, this%ny))
+    out_data(:,:) = unpack(in_data, this%mask, nodata_i4)
+  end function unpack_data_i4
+
+  !> \brief Flip packed data along y-axis.
+  !> \return `real(dp) :: out_data(:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function flip_packed_data_dp(this, in_data) result(out_data)
+    implicit none
+    class(grid), intent(inout) :: this
+    real(dp), intent(in) :: in_data(:)
+    real(dp), allocatable :: out_data(:)
+    real(dp), allocatable :: tmp_data(:,:)
+
+    if (size(in_data) /= this%n_cells) then
+      call error_message( &
+        "flip_packed: in_data has wrong shape. Expected: (", &
+        num2str(this%n_cells), "), got: (", num2str(size(in_data)), ")")
+    end if
+    allocate(tmp_data(this%nx, this%ny))
+    allocate(out_data(this%n_cells))
+    tmp_data = this%unpack_data(in_data)
+    call flip(tmp_data, idim=2)
+    out_data = this%pack_data(tmp_data)
+    deallocate(tmp_data)
+  end function flip_packed_data_dp
+
+  !> \brief Flip packed data along y-axis.
+  !> \return `integer(i4) :: out_data(:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function flip_packed_data_i4(this, in_data) result(out_data)
+    implicit none
+    class(grid), intent(inout) :: this
+    integer(i4), intent(in) :: in_data(:)
+    integer(i4), allocatable :: out_data(:)
+    integer(i4), allocatable :: tmp_data(:,:)
+
+    if (size(in_data) /= this%n_cells) then
+      call error_message( &
+        "flip_packed: in_data has wrong shape. Expected: (", &
+        num2str(this%n_cells), "), got: (", num2str(size(in_data)), ")")
+    end if
+    allocate(tmp_data(this%nx, this%ny))
+    allocate(out_data(this%n_cells))
+    tmp_data = this%unpack_data(in_data)
+    call flip(tmp_data, idim=2)
+    out_data = this%pack_data(tmp_data)
+    deallocate(tmp_data)
+  end function flip_packed_data_i4
 
   ! ------------------------------------------------------------------
 
