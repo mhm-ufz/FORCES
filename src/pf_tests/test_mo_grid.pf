@@ -17,7 +17,7 @@ contains
   subroutine test_grid()
 
     implicit none
-    type(grid) :: cgrid, fgrid, rgrid
+    type(grid) :: cgrid, fgrid, rgrid, agrid
     type(NcDataset) :: nc
     type(NcDimension) :: x_dim, y_dim
     type(NcVariable) :: var
@@ -54,6 +54,8 @@ contains
 
     ! read NetCDF
     call rgrid%from_netcdf("6x9.nc", var="test")
+    call rgrid%to_ascii_file("6x9.txt")
+    call agrid%from_ascii_file("6x9.txt")
 
     @assertEqual(fgrid%n_cells, 45)
     @assertEqual(fgrid%nx, 6)
@@ -69,6 +71,8 @@ contains
 
     @assertTrue(rgrid%has_aux_coords())
     @assertTrue(rgrid%has_aux_vertices())
+
+    @assertEqual(rgrid%mask, agrid%mask, message='mask compare after ascii write')
 
     ! flipping
     mask1 = cgrid%mask

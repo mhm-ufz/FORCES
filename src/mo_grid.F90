@@ -21,7 +21,8 @@ module mo_grid
 
   implicit none
 
-  public :: read_spatial_data_ascii
+  public :: read_ascii_grid
+  public :: write_ascii_grid
 
   private
   ! coordsys selector
@@ -63,6 +64,7 @@ module mo_grid
   contains
     procedure, public :: init => grid_init
     procedure, public :: from_ascii_file
+    procedure, public :: to_ascii_file
 #ifdef FORCES_WITH_NETCDF
     procedure, private :: from_nc_dataset, from_nc_file
     generic, public :: from_netcdf => from_nc_dataset, from_nc_file
@@ -123,9 +125,17 @@ module mo_grid
   !!   - remove fileunit input (use newunit)
   !!   - make mask optional output
   !!   - add flip_y argument
-  interface read_spatial_data_ascii
-    module procedure read_spatial_data_ascii_i4, read_spatial_data_ascii_dp
-  end interface read_spatial_data_ascii
+  interface read_ascii_grid
+    module procedure read_ascii_grid_i4, read_ascii_grid_dp
+  end interface read_ascii_grid
+
+  !> \brief Write spatial data.
+  !> \details Write spatial data to ascii file. Data will be transposed to be in xy order.
+  !> \authors Sebastian Müller
+  !> \date Mar 2025
+  interface write_ascii_grid
+    module procedure write_ascii_grid_i4, write_ascii_grid_dp
+  end interface write_ascii_grid
 
 contains
 
@@ -187,7 +197,7 @@ contains
     implicit none
     class(grid), intent(inout) :: this
     character(*), intent(in) :: path !< path to the ascii grid file
-    integer(i4), optional, intent(in) :: coordsys !< desired coordinate system (default 0 for cartesian)
+    integer(i4), optional, intent(in) :: coordsys !< desired coordinate system (0 (default) for cartesian, 1 for lat-lon)
     logical, optional, intent(in) :: read_mask !< Whether to read the mask from the given file (default: .true.)
 
     integer(i4) :: nx, ny
@@ -203,7 +213,7 @@ contains
     call read_header_ascii(path, nx ,ny, xll, yll, cellsize)
 
     if (read_mask_) then
-      call read_spatial_data_ascii_dp(path, nx, ny, xll, yll, cellsize, dummy, mask, flip_y=.true.)
+      call read_ascii_grid_dp(path, nx, ny, xll, yll, cellsize, dummy, mask, flip_y=.true.)
       deallocate(dummy)
     else
       allocate(mask(nx, ny))
@@ -214,6 +224,51 @@ contains
     deallocate(mask)
 
   end subroutine from_ascii_file
+
+  !> \brief write grid to ascii grid file
+  !> \details Writes the grid information to an ascii grid. If mask should be written, it will be stored as 1/nodata map.
+  !!          If no mask should be written, only the header is stored.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine to_ascii_file(this, path, write_mask)
+    use mo_constants, only: nodata_i4
+    implicit none
+    class(grid), intent(inout) :: this
+    character(*), intent(in) :: path !< path to the ascii grid file
+    logical, optional, intent(in) :: write_mask !< Whether to write the mask to the given file (default: .true.)
+
+    logical :: write_mask_
+    integer(i4), allocatable, dimension(:,:) :: dummy
+
+    write_mask_ = .true.
+    if ( present(write_mask) ) write_mask_ = write_mask
+
+    if (write_mask_) then
+      allocate(dummy(this%nx, this%ny), source=nodata_i4)
+      where (this%mask)
+        dummy = 1_i4
+      end where
+      call write_ascii_grid_i4( &
+        path=path, &
+        ncols=this%nx, &
+        nrows=this%ny, &
+        xllcorner=this%xllcorner, &
+        yllcorner=this%yllcorner, &
+        cellsize=this%cellsize, &
+        nodata=nodata_i4, &
+        data=dummy)
+      deallocate(dummy)
+    else
+      call write_ascii_grid_i4( &
+        path=path, &
+        ncols=this%nx, &
+        nrows=this%ny, &
+        xllcorner=this%xllcorner, &
+        yllcorner=this%yllcorner, &
+        cellsize=this%cellsize, &
+        nodata=nodata_i4)
+    end if
+  end subroutine to_ascii_file
 
 #ifdef FORCES_WITH_NETCDF
 
@@ -1989,7 +2044,7 @@ contains
   !> \details Read spatial data from ascii file. Data will be transposed to be in xy order.
   !> \authors Robert Schweppe
   !> \date Jun 2018
-  subroutine read_spatial_data_ascii_dp(path, ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, data, mask, flip_y)
+  subroutine read_ascii_grid_dp(path, ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, data, mask, flip_y)
     implicit none
 
     character(len = *), intent(in) :: path !< path with location
@@ -2067,13 +2122,13 @@ contains
 
     deallocate(tmp_data)
 
-  end subroutine read_spatial_data_ascii_dp
+  end subroutine read_ascii_grid_dp
 
   !> \brief Read spatial data.
   !> \details Read spatial data from ascii file. Data will be transposed to be in xy order.
   !> \authors Robert Schweppe
   !> \date Jun 2018
-  subroutine read_spatial_data_ascii_i4(path, ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, data, mask, flip_y)
+  subroutine read_ascii_grid_i4(path, ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, data, mask, flip_y)
     implicit none
 
     character(len = *), intent(in) :: path !< path with location
@@ -2151,7 +2206,7 @@ contains
 
     deallocate(tmp_data)
 
-  end subroutine read_spatial_data_ascii_i4
+  end subroutine read_ascii_grid_i4
 
   !> \brief Reads header lines of ASCII files.
   !> \details Reads header lines of ASCII files, e.g. dem, aspect, flow direction.
@@ -2190,5 +2245,179 @@ contains
     end if
     close(fileunit)
   end subroutine read_header_ascii
+
+  !> \brief Write spatial data.
+  !> \details Write spatial data to ascii file. Data will be transposed to be in xy order.
+  !> \authors Sebastian Müller
+  !> \date Mar 2025
+  subroutine write_ascii_grid_dp(path, ncols, nrows, xllcorner, yllcorner, cellsize, nodata, data, is_canonical, is_xy)
+    implicit none
+
+    ! Subroutine arguments
+    character(len=*), intent(in) :: path             !< File path to write ASCII grid
+    integer(i4), intent(in) :: ncols                 !< Number of columns
+    integer(i4), intent(in) :: nrows                 !< Number of rows
+    real(dp), intent(in) :: xllcorner                !< X-coordinate of lower-left corner
+    real(dp), intent(in) :: yllcorner                !< Y-coordinate of lower-left corner
+    real(dp), intent(in) :: cellsize                 !< Size of the grid cells
+    real(dp), intent(in) :: nodata                   !< Value indicating no data
+    real(dp), intent(in), optional :: data(:,:)      !< 2D array of grid data
+    logical, intent(in), optional :: is_canonical    !< Indicates if data follows increasing y-axis (default .true.)
+    logical, intent(in), optional :: is_xy           !< Indicates if data is in (x,y) order (default .true.)
+
+    ! Local variables
+    integer(i4) :: i, j
+    integer(i4) :: io, ierr
+    logical :: is_canonical_, is_xy_
+
+    ! Set defaults
+    is_canonical_ = .true.
+    if (present(is_canonical)) is_canonical_ = is_canonical
+    is_xy_ = .true.
+    if (present(is_xy)) is_xy_ = is_xy
+
+    ! Check dimensions if data is present
+    if (present(data)) then
+      if (is_xy_) then
+        if (size(data,1) /= ncols .or. size(data,2) /= nrows) then
+          call error_message('Error: data array dimensions mismatch (expected: ncols x nrows)')
+        end if
+      else
+        if (size(data,1) /= nrows .or. size(data,2) /= ncols) then
+          call error_message('Error: data array dimensions mismatch (expected: nrows x ncols)')
+        end if
+      end if
+    end if
+
+    ! Open file for writing
+    open(newunit=io, file=path, status='replace', action='write', form='formatted', iostat=ierr)
+    if (ierr /= 0) then
+      call error_message('Error opening file: '//path)
+    end if
+
+    ! Write header with double precision
+    write(io,'(A,I0)') 'ncols         ', ncols
+    write(io,'(A,I0)') 'nrows         ', nrows
+    write(io,'(A,F0.10)') 'xllcorner     ', xllcorner
+    write(io,'(A,F0.10)') 'yllcorner     ', yllcorner
+    write(io,'(A,F0.10)') 'cellsize      ', cellsize
+    write(io,'(A,F0.10)') 'NODATA_value  ', nodata
+
+    ! Write data array with double precision
+    if (present(data)) then
+      if (is_canonical_) then
+        if (is_xy_) then
+          do i = nrows, 1, -1
+            write(io, '(*(F0.10,1X))') (data(j,i), j=1,ncols)
+          end do
+        else
+          do i = nrows, 1, -1
+            write(io, '(*(F0.10,1X))') (data(i,j), j=1,ncols)
+          end do
+        end if
+      else
+        if (is_xy_) then
+          do i = 1, nrows
+            write(io, '(*(F0.10,1X))') (data(j,i), j=1,ncols)
+          end do
+        else
+          do i = 1, nrows
+            write(io, '(*(F0.10,1X))') (data(i,j), j=1,ncols)
+          end do
+        end if
+      end if
+    end if
+
+    ! Close file
+    close(io)
+
+  end subroutine write_ascii_grid_dp
+
+  !> \brief Write spatial data.
+  !> \details Write spatial data to ascii file. Data will be transposed to be in xy order.
+  !> \authors Sebastian Müller
+  !> \date Mar 2025
+  subroutine write_ascii_grid_i4(path, ncols, nrows, xllcorner, yllcorner, cellsize, nodata, data, is_canonical, is_xy)
+    implicit none
+
+    ! Subroutine arguments
+    character(len=*), intent(in) :: path             !< File path to write ASCII grid
+    integer(i4), intent(in) :: ncols                 !< Number of columns
+    integer(i4), intent(in) :: nrows                 !< Number of rows
+    real(dp), intent(in) :: xllcorner                !< X-coordinate of lower-left corner
+    real(dp), intent(in) :: yllcorner                !< Y-coordinate of lower-left corner
+    real(dp), intent(in) :: cellsize                 !< Size of the grid cells
+    integer(i4), intent(in) :: nodata                !< Integer value indicating no data
+    integer(i4), intent(in), optional :: data(:,:)   !< 2D integer array of grid data
+    logical, intent(in), optional :: is_canonical    !< Indicates if data follows increasing y-axis (default .true.)
+    logical, intent(in), optional :: is_xy           !< Indicates if data is in (x,y) order (default .true.)
+
+    ! Local variables
+    integer(i4) :: i, j
+    integer(i4) :: io, ierr
+    logical :: is_canonical_, is_xy_
+
+    ! Set defaults
+    is_canonical_ = .true.
+    if (present(is_canonical)) is_canonical_ = is_canonical
+    is_xy_ = .true.
+    if (present(is_xy)) is_xy_ = is_xy
+
+    ! Check dimensions if data is present
+    if (present(data)) then
+      if (is_xy_) then
+        if (size(data,1) /= ncols .or. size(data,2) /= nrows) then
+          call error_message('Error: data array dimensions mismatch (expected: ncols x nrows)')
+        end if
+      else
+        if (size(data,1) /= nrows .or. size(data,2) /= ncols) then
+          call error_message('Error: data array dimensions mismatch (expected: nrows x ncols)')
+        end if
+      end if
+    end if
+
+    ! Open file for writing
+    open(newunit=io, file=path, status='replace', action='write', form='formatted', iostat=ierr)
+    if (ierr /= 0) then
+      call error_message('Error opening file: '//path)
+    end if
+
+    ! Write header
+    write(io,'(A,I0)') 'ncols         ', ncols
+    write(io,'(A,I0)') 'nrows         ', nrows
+    write(io,'(A,F0.10)') 'xllcorner     ', xllcorner
+    write(io,'(A,F0.10)') 'yllcorner     ', yllcorner
+    write(io,'(A,F0.10)') 'cellsize      ', cellsize
+    write(io,'(A,I0)') 'NODATA_value  ', nodata
+
+    ! Write integer data array
+    if (present(data)) then
+      if (is_canonical_) then
+        if (is_xy_) then
+          do i = nrows, 1, -1
+            write(io, '(*(I0,1X))') (data(j,i), j=1,ncols)
+          end do
+        else
+          do i = nrows, 1, -1
+            write(io, '(*(I0,1X))') (data(i,j), j=1,ncols)
+          end do
+        end if
+      else
+        if (is_xy_) then
+          do i = 1, nrows
+            write(io, '(*(I0,1X))') (data(j,i), j=1,ncols)
+          end do
+        else
+          do i = 1, nrows
+            write(io, '(*(I0,1X))') (data(i,j), j=1,ncols)
+          end do
+        end if
+      end if
+    end if
+
+    ! Close file
+    close(io)
+
+  end subroutine write_ascii_grid_i4
 
 end module mo_grid
