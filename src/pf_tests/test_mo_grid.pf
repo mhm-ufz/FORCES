@@ -4,6 +4,7 @@ module test_mo_grid
   use mo_kind, only: i4, dp
   use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   use mo_constants, only: nodata_dp
+  use mo_utils, only: flip
   implicit none
 
   private
@@ -20,9 +21,10 @@ contains
     type(NcDataset) :: nc
     type(NcDimension) :: x_dim, y_dim
     type(NcVariable) :: var
-    real(dp)                                :: t=1.0E-5_dp
+    real(dp) :: t=1.0E-5_dp
     integer(i4) :: i
-    real(dp), allocatable :: dummy_data(:,:)
+    real(dp), allocatable :: dummyv1(:), dummyv2(:), dummyv3(:), dummy1(:,:), dummy2(:,:), dummy3(:,:)
+    logical, allocatable :: mask1(:,:)
 
     call cgrid%init( &
       nx=2, ny=3, xllcorner=3973369.0_dp, yllcorner=2735847.0_dp, cellsize=72000.0_dp, coordsys=coordsys_cart, &
@@ -36,6 +38,7 @@ contains
 
     fgrid = cgrid%derive_grid(factor_up=3)
 
+    ! write NetCDF
     nc = NcDataset("6x9.nc", "w")
     call cgrid%to_netcdf(nc)
     x_dim = nc%getDimension("x")
@@ -44,17 +47,19 @@ contains
     call var%setFillValue(nodata_dp)
     call var%setAttribute("missing_value", nodata_dp)
     call var%setAttribute("coordinates", "lat lon")
-    dummy_data = cgrid%unpack_data([(real(i, dp), i=1,cgrid%n_cells)])
-    call var%setData(dummy_data)
+    dummyv1 = [(real(i, dp), i=1,cgrid%n_cells)]
+    dummy1 = cgrid%unpack_data(dummyv1)
+    call var%setData(dummy1)
     call nc%close()
 
+    ! read NetCDF
     call rgrid%from_netcdf("6x9.nc", var="test")
 
     @assertEqual(fgrid%n_cells, 45)
     @assertEqual(fgrid%nx, 6)
     @assertEqual(fgrid%ny, 9)
-    @assertEqual(fgrid%xllcorner, cgrid%xllcorner)
-    @assertEqual(fgrid%yllcorner, cgrid%yllcorner)
+    @assertEqual(fgrid%xllcorner, cgrid%xllcorner, tolerance=t, message='xllcorner compare')
+    @assertEqual(fgrid%yllcorner, cgrid%yllcorner, tolerance=t, message='yllcorner compare')
 
     @assertEqual(rgrid%n_cells, 5)
     @assertEqual(rgrid%nx, 2)
@@ -64,6 +69,18 @@ contains
 
     @assertTrue(rgrid%has_aux_coords())
     @assertTrue(rgrid%has_aux_vertices())
+
+    ! flipping
+    mask1 = cgrid%mask
+    call flip(mask1, idim=2)
+    dummyv2 = cgrid%flip_packed_data(dummyv1)
+    ! dummyv2 is now following a decreasing y-axis (top-to-bottom), so it is not canonical
+    dummyv3 = cgrid%flip_packed_data(dummyv2, is_canonical=.false.)
+    dummy2 = unpack(dummyv2, mask1, nodata_dp)
+    dummy3 = dummy1
+    call flip(dummy3, idim=2)
+    @assertEqual(dummy2, dummy3, tolerance=t, message='check flipping data unpacked')
+    @assertEqual(dummyv1, dummyv3, tolerance=t, message='check flipping data packed')
 
     ! @assertAll
     ! @assertAny
@@ -78,7 +95,6 @@ contains
     ! @assertNotEqual
     ! @assertSameShape
     ! @assertRelativelyEqual
-
 
   end subroutine test_grid
 

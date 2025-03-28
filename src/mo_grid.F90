@@ -1625,48 +1625,82 @@ contains
   !> \return `real(dp) :: out_data(:)`
   !> \authors Sebastian Müller
   !> \date    Mar 2025
-  function flip_packed_data_dp(this, in_data) result(out_data)
+  function flip_packed_data_dp(this, in_data, is_canonical) result(out_data)
+    use mo_constants, only : nodata_dp
     implicit none
     class(grid), intent(inout) :: this
     real(dp), intent(in) :: in_data(:)
+    logical, intent(in), optional :: is_canonical !< wheather the y-axis is increasing for given data (default: .true.)
     real(dp), allocatable :: out_data(:)
     real(dp), allocatable :: tmp_data(:,:)
+    logical, allocatable :: tmp_mask(:,:)
+    logical :: is_canonical_
+
+    is_canonical_ = .true.
+    if(present(is_canonical)) is_canonical_ = is_canonical
 
     if (size(in_data) /= this%n_cells) then
       call error_message( &
         "flip_packed: in_data has wrong shape. Expected: (", &
         num2str(this%n_cells), "), got: (", num2str(size(in_data)), ")")
     end if
+    allocate(tmp_mask(this%nx, this%ny))
     allocate(tmp_data(this%nx, this%ny))
     allocate(out_data(this%n_cells))
-    tmp_data = this%unpack_data(in_data)
-    call flip(tmp_data, idim=2)
-    out_data = this%pack_data(tmp_data)
+    tmp_mask = this%mask
+    call flip(tmp_mask, idim=2)
+    if (is_canonical_) then
+      tmp_data = this%unpack_data(in_data)
+      call flip(tmp_data, idim=2)
+      out_data = pack(tmp_data, tmp_mask)
+    else
+      tmp_data = unpack(in_data, tmp_mask, nodata_dp)
+      call flip(tmp_data, idim=2)
+      out_data = this%pack_data(tmp_data)
+    end if
     deallocate(tmp_data)
+    deallocate(tmp_mask)
   end function flip_packed_data_dp
 
   !> \brief Flip packed data along y-axis.
   !> \return `integer(i4) :: out_data(:)`
   !> \authors Sebastian Müller
   !> \date    Mar 2025
-  function flip_packed_data_i4(this, in_data) result(out_data)
+  function flip_packed_data_i4(this, in_data, is_canonical) result(out_data)
+    use mo_constants, only : nodata_i4
     implicit none
     class(grid), intent(inout) :: this
     integer(i4), intent(in) :: in_data(:)
+    logical, intent(in), optional :: is_canonical !< wheather the y-axis is increasing for given data (default: .true.)
     integer(i4), allocatable :: out_data(:)
     integer(i4), allocatable :: tmp_data(:,:)
+    logical, allocatable :: tmp_mask(:,:)
+    logical :: is_canonical_
+
+    is_canonical_ = .true.
+    if(present(is_canonical)) is_canonical_ = is_canonical
 
     if (size(in_data) /= this%n_cells) then
       call error_message( &
         "flip_packed: in_data has wrong shape. Expected: (", &
         num2str(this%n_cells), "), got: (", num2str(size(in_data)), ")")
     end if
+    allocate(tmp_mask(this%nx, this%ny))
     allocate(tmp_data(this%nx, this%ny))
     allocate(out_data(this%n_cells))
-    tmp_data = this%unpack_data(in_data)
-    call flip(tmp_data, idim=2)
-    out_data = this%pack_data(tmp_data)
+    tmp_mask = this%mask
+    call flip(tmp_mask, idim=2)
+    if (is_canonical_) then
+      tmp_data = this%unpack_data(in_data)
+      call flip(tmp_data, idim=2)
+      out_data = pack(tmp_data, tmp_mask)
+    else
+      tmp_data = unpack(in_data, tmp_mask, nodata_i4)
+      call flip(tmp_data, idim=2)
+      out_data = this%pack_data(tmp_data)
+    end if
     deallocate(tmp_data)
+    deallocate(tmp_mask)
   end function flip_packed_data_i4
 
   ! ------------------------------------------------------------------
