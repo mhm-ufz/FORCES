@@ -54,8 +54,18 @@ contains
 
     ! read NetCDF
     call rgrid%from_netcdf("6x9.nc", var="test")
+
+    ! ascii IO
     call rgrid%to_ascii_file("6x9.txt")
     call agrid%from_ascii_file("6x9.txt")
+
+    ! correct reading from ascii
+    @assertEqual(rgrid%n_cells, agrid%n_cells)
+    @assertEqual(rgrid%nx, agrid%nx)
+    @assertEqual(rgrid%ny, agrid%ny)
+    @assertEqual(rgrid%xllcorner, agrid%xllcorner, tolerance=t, message='ascii xllcorner compare')
+    @assertEqual(rgrid%yllcorner, agrid%yllcorner, tolerance=t, message='ascii yllcorner compare')
+    @assertEqual(rgrid%mask, agrid%mask, message='mask compare after ascii write')
 
     @assertEqual(fgrid%n_cells, 45)
     @assertEqual(fgrid%nx, 6)
@@ -71,8 +81,6 @@ contains
 
     @assertTrue(rgrid%has_aux_coords())
     @assertTrue(rgrid%has_aux_vertices())
-
-    @assertEqual(rgrid%mask, agrid%mask, message='mask compare after ascii write')
 
     ! flipping
     mask1 = cgrid%mask
