@@ -247,6 +247,16 @@ contains
     ! date with time has higher julian day fraction
     @assertTrue(julian >= julian2)
 
+    ! partial datetime init from string
+    @assertTrue(datetime("1992-10-8 15:15:42") == datetime("1992-10-08T15:15:42"))
+    @assertTrue(datetime("1992-10-08 15:15:00") == datetime("1992-10-08 15:15"))
+    @assertTrue(datetime("1992-10-08 15:00:00") == datetime("1992-10-08 15"))
+    @assertTrue(datetime("1992-10-08T00:00:00") == datetime("1992-10-08"))
+    @assertTrue(datetime("1992-10-01T00:00:00") == datetime("1992-10"))
+    @assertTrue(datetime("1992-01-01T00:00:00") == datetime("1992"))
+    @assertTrue(datetime("1992-10-01 15:15:00") == datetime("1992-10T15:15"))
+    @assertTrue(datetime("1992-01-01 15:15:00") == datetime("1992 15:15"))
+
   end subroutine test_datetime_types
 
 end module test_mo_datetime
