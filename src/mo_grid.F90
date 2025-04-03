@@ -113,8 +113,6 @@ module mo_grid
     generic, public :: pack_data => pack_data_dp, pack_data_i4
     procedure, private :: unpack_data_dp, unpack_data_i4
     generic, public :: unpack_data => unpack_data_dp, unpack_data_i4
-    procedure, private :: flip_packed_data_dp, flip_packed_data_i4
-    generic, public :: flip_packed_data => flip_packed_data_dp, flip_packed_data_i4
   end type grid
 
   !> \brief Reads spatial data files of ASCII format.
@@ -1803,88 +1801,6 @@ contains
     allocate(out_data(this%nx, this%ny))
     out_data(:,:) = unpack(data, this%mask, nodata_i4)
   end function unpack_data_i4
-
-  !> \brief Flip packed data along y-axis.
-  !> \return `real(dp) :: out_data(:)`
-  !> \authors Sebastian Müller
-  !> \date    Mar 2025
-  function flip_packed_data_dp(this, data, is_canonical) result(out_data)
-    use mo_constants, only : nodata_dp
-    implicit none
-    class(grid), intent(inout) :: this
-    real(dp), intent(in) :: data(:)
-    logical, intent(in), optional :: is_canonical !< wheather the y-axis is increasing for given data (default: .true.)
-    real(dp), allocatable :: out_data(:)
-    real(dp), allocatable :: tmp_data(:,:)
-    logical, allocatable :: tmp_mask(:,:)
-    logical :: is_canonical_
-
-    is_canonical_ = .true.
-    if(present(is_canonical)) is_canonical_ = is_canonical
-
-    if (size(data) /= this%n_cells) then
-      call error_message( &
-        "flip_packed: data has wrong shape. Expected: (", &
-        num2str(this%n_cells), "), got: (", num2str(size(data)), ")")
-    end if
-    allocate(tmp_mask(this%nx, this%ny))
-    allocate(tmp_data(this%nx, this%ny))
-    allocate(out_data(this%n_cells))
-    tmp_mask = this%mask
-    call flip(tmp_mask, idim=2)
-    if (is_canonical_) then
-      tmp_data = this%unpack_data(data)
-      call flip(tmp_data, idim=2)
-      out_data = pack(tmp_data, tmp_mask)
-    else
-      tmp_data = unpack(data, tmp_mask, nodata_dp)
-      call flip(tmp_data, idim=2)
-      out_data = this%pack_data(tmp_data)
-    end if
-    deallocate(tmp_data)
-    deallocate(tmp_mask)
-  end function flip_packed_data_dp
-
-  !> \brief Flip packed data along y-axis.
-  !> \return `integer(i4) :: out_data(:)`
-  !> \authors Sebastian Müller
-  !> \date    Mar 2025
-  function flip_packed_data_i4(this, data, is_canonical) result(out_data)
-    use mo_constants, only : nodata_i4
-    implicit none
-    class(grid), intent(inout) :: this
-    integer(i4), intent(in) :: data(:)
-    logical, intent(in), optional :: is_canonical !< wheather the y-axis is increasing for given data (default: .true.)
-    integer(i4), allocatable :: out_data(:)
-    integer(i4), allocatable :: tmp_data(:,:)
-    logical, allocatable :: tmp_mask(:,:)
-    logical :: is_canonical_
-
-    is_canonical_ = .true.
-    if(present(is_canonical)) is_canonical_ = is_canonical
-
-    if (size(data) /= this%n_cells) then
-      call error_message( &
-        "flip_packed: data has wrong shape. Expected: (", &
-        num2str(this%n_cells), "), got: (", num2str(size(data)), ")")
-    end if
-    allocate(tmp_mask(this%nx, this%ny))
-    allocate(tmp_data(this%nx, this%ny))
-    allocate(out_data(this%n_cells))
-    tmp_mask = this%mask
-    call flip(tmp_mask, idim=2)
-    if (is_canonical_) then
-      tmp_data = this%unpack_data(data)
-      call flip(tmp_data, idim=2)
-      out_data = pack(tmp_data, tmp_mask)
-    else
-      tmp_data = unpack(data, tmp_mask, nodata_i4)
-      call flip(tmp_data, idim=2)
-      out_data = this%pack_data(tmp_data)
-    end if
-    deallocate(tmp_data)
-    deallocate(tmp_mask)
-  end function flip_packed_data_i4
 
   ! ------------------------------------------------------------------
 
