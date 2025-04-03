@@ -745,6 +745,23 @@ contains
 
   end subroutine extent
 
+  !> \brief Total domain area. NaN if cell_area not allocated.
+  !> \return `real(dp) :: total_area`
+  !> \authors Sebastian Müller
+  !> \date Apr 2025
+  real(dp) function total_area(this)
+    use mo_sentinel, only : set_sentinel
+    implicit none
+    class(grid), intent(in) :: this
+
+    if (allocated(this%cell_area)) then
+      total_area = sum(this%cell_area)
+    else
+      call set_sentinel(total_area)
+    end if
+
+  end function total_area
+
   !> \brief x-axis of the grid cell centers
   !> \return `real(dp), allocatable, dimension(:) :: x_axis`
   !> \authors Sebastian Müller
