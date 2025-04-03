@@ -1,10 +1,10 @@
 module test_mo_grid
   use funit
-  use mo_grid, only: grid, coordsys_cart
+  use mo_grid, only: grid, coordsys_cart, top_down, bottom_up
   use mo_kind, only: i4, dp
   use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   use mo_constants, only: nodata_dp
-  use mo_utils, only: flip
+  use mo_utils, only: flip, flipped
   implicit none
 
   private
@@ -28,7 +28,7 @@ contains
 
     call cgrid%init( &
       nx=2, ny=3, xllcorner=3973369.0_dp, yllcorner=2735847.0_dp, cellsize=72000.0_dp, coordsys=coordsys_cart, &
-      mask=reshape([.true., .true., .true., .true., .true., .false.], [2, 3]))
+      mask=reshape([.true., .true., .true., .true., .true., .false.], [2, 3]), y_direction=bottom_up)
 
     allocate(cgrid%lon(cgrid%nx, cgrid%ny))
     allocate(cgrid%lat(cgrid%nx, cgrid%ny))
@@ -60,12 +60,14 @@ contains
     call agrid%from_ascii_file("6x9.txt")
 
     ! correct reading from ascii
+    @assertEqual(rgrid%y_direction, bottom_up, message='before ascii bottom_up')
+    @assertEqual(agrid%y_direction, top_down, message='after ascii top_down')
     @assertEqual(rgrid%n_cells, agrid%n_cells)
     @assertEqual(rgrid%nx, agrid%nx)
     @assertEqual(rgrid%ny, agrid%ny)
     @assertEqual(rgrid%xllcorner, agrid%xllcorner, tolerance=t, message='ascii xllcorner compare')
     @assertEqual(rgrid%yllcorner, agrid%yllcorner, tolerance=t, message='ascii yllcorner compare')
-    @assertEqual(rgrid%mask, agrid%mask, message='mask compare after ascii write')
+    @assertEqual(rgrid%mask, flipped(agrid%mask, 2), message='mask compare after ascii write')
 
     @assertEqual(fgrid%n_cells, 45)
     @assertEqual(fgrid%nx, 6)
@@ -81,18 +83,6 @@ contains
 
     @assertTrue(rgrid%has_aux_coords())
     @assertTrue(rgrid%has_aux_vertices())
-
-    ! flipping
-    mask1 = cgrid%mask
-    call flip(mask1, idim=2)
-    dummyv2 = cgrid%flip_packed_data(dummyv1)
-    ! dummyv2 is now following a decreasing y-axis (top-to-bottom), so it is not canonical
-    dummyv3 = cgrid%flip_packed_data(dummyv2, is_canonical=.false.)
-    dummy2 = unpack(dummyv2, mask1, nodata_dp)
-    dummy3 = dummy1
-    call flip(dummy3, idim=2)
-    @assertEqual(dummy2, dummy3, tolerance=t, message='check flipping data unpacked')
-    @assertEqual(dummyv1, dummyv3, tolerance=t, message='check flipping data packed')
 
     ! @assertAll
     ! @assertAny
