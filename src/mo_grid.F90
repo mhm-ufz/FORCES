@@ -952,8 +952,8 @@ contains
     do j = 1, this%ny
       do i = 1, this%nx
         ! coord. of all corners -> of finer scale
-        call id_bounds( &
-          factor, i, j, this%y_direction, this%ny, &
+        call id_bounds(factor, i, j, &
+          this%y_direction, this%ny, &
           fine_grid%y_direction, fine_grid%nx, fine_grid%ny, &
           i_lb, i_ub, j_lb, j_ub)
         n_subcells = real(size(fine_grid%lat(i_lb:i_ub, j_lb:j_ub)), dp)
@@ -1265,8 +1265,8 @@ contains
       do j = 1, coarse_grid%ny
         do i = 1, coarse_grid%nx
           if ( coarse_grid%mask(i, j)) cycle
-          call id_bounds( &
-            factor, i, j, coarse_grid%y_direction, coarse_grid%ny, &
+          call id_bounds(factor, i, j, &
+            coarse_grid%y_direction, coarse_grid%ny, &
             this%y_direction, this%nx, this%ny, &
             i_lb, i_ub, j_lb, j_ub)
           if (any(this%mask(i_lb:i_ub, j_lb:j_ub))) &
@@ -1329,8 +1329,8 @@ contains
       do j = 1, this%ny
         do i = 1, this%nx
           if ( .not.this%mask(i, j)) cycle
-          call id_bounds( &
-            factor, i, j, this%y_direction, this%ny, &
+          call id_bounds(factor, i, j, &
+            this%y_direction, this%ny, &
             fine_grid%y_direction, fine_grid%nx, fine_grid%ny, &
             i_lb, i_ub, j_lb, j_ub)
           if (.not.any(fine_grid%mask(i_lb:i_ub, j_lb:j_ub))) then

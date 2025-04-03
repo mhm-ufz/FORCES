@@ -11,7 +11,7 @@
 module mo_regridder
 
   use mo_kind, only: i4, dp
-  use mo_grid, only: grid
+  use mo_grid, only: grid, id_bounds
   use mo_utils, only: is_close
 
   implicit none
@@ -81,8 +81,7 @@ contains
     allocate(this%x_lb(this%coarse_grid%n_cells))
     allocate(this%x_ub(this%coarse_grid%n_cells))
     allocate(this%n_subcells(this%coarse_grid%n_cells))
-    allocate(this%coarse_id_map(this%fine_grid%nx, this%fine_grid%ny))
-    this%coarse_id_map = nodata_i4
+    allocate(this%coarse_id_map(this%fine_grid%nx, this%fine_grid%ny), source=nodata_i4)
 
     k = 0
     do jc = 1, this%coarse_grid%ny
@@ -91,18 +90,13 @@ contains
           if (.NOT. this%coarse_grid%mask(ic, jc)) cycle
         end if
         k = k + 1
-        ! coord. of all corners -> of finer scale
-        i_lb = (ic - 1) * this%factor + 1
-        ! constrain the range to fine grid extent
-        i_ub = min(ic * this%factor, this%fine_grid%nx)
-
-        j_lb = (jc - 1) * this%factor + 1
-        ! constrain the range to fine grid extent
-        j_ub = min(jc * this%factor, this%fine_grid%ny)
+        call id_bounds(this%factor, ic, jc, &
+          this%coarse_grid%y_direction, this%coarse_grid%ny, &
+          this%fine_grid%y_direction, this%fine_grid%nx, this%fine_grid%ny, &
+          i_lb, i_ub, j_lb, j_ub)
 
         this%x_lb(k) = i_lb
         this%x_ub(k) = i_ub
-
         this%y_lb(k) = j_lb
         this%y_ub(k) = j_ub
 
