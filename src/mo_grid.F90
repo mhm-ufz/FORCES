@@ -21,13 +21,19 @@ module mo_grid
 
   implicit none
 
-  public :: read_ascii_grid
   public :: write_ascii_grid
+  public :: read_ascii_grid
+  public :: read_ascii_header
+  public :: id_bounds
 
   private
   ! coordsys selector
   integer(i4), public, parameter :: coordsys_cart = 0_i4 !< Cartesian coordinate system.
   integer(i4), public, parameter :: coordsys_sph_deg = 1_i4 !< Spherical coordinates in degrees.
+  ! y axis direction selector
+  integer(i4), public, parameter :: keep_y = -1_i4 !< keep y-axis direction.
+  integer(i4), public, parameter :: top_down = 0_i4 !< y-axis with decreasing values.
+  integer(i4), public, parameter :: bottom_up = 1_i4 !< y-axis with increasing values.
   ! integer(i4), public, parameter :: coordsys_sph_rad = 2_i4
   ! align selector
   integer(i4), public, parameter :: align_ll = 0_i4 !< align in lower left corner
@@ -47,6 +53,7 @@ module mo_grid
   !!          should be flipped.
   type, public :: grid
     integer(i4) :: coordsys = coordsys_cart !< Coordinate system for x and y. 0 -> Cartesian (default), 1 -> Spherical
+    integer(i4) :: y_direction = top_down !< y-axis direction (either top_down (0, default) or bottom_up (1))
     ! general domain information
     integer(i4) :: nx        !< size of x-axis (number of cols in ascii grid file)
     integer(i4) :: ny        !< size of y-axis (number of rows in ascii grid file)
@@ -74,6 +81,7 @@ module mo_grid
     generic, public :: to_netcdf => to_nc_dataset, to_nc_file
 #endif
     procedure, public :: extent
+    procedure, public :: total_area
     procedure, public :: x_axis
     procedure, public :: y_axis
     procedure, public :: x_vertices
@@ -145,7 +153,7 @@ contains
   !> \details initialize grid from standard ascii header content (nx (cols), ny (rows), cellsize, lower-left corner)
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine grid_init(this, nx, ny, xllcorner, yllcorner, cellsize, coordsys, mask)
+  subroutine grid_init(this, nx, ny, xllcorner, yllcorner, cellsize, coordsys, mask, y_direction)
     implicit none
     class(grid), intent(inout) :: this
     integer(i4), intent(in) :: nx !< Number of x-axis subdivisions
@@ -153,8 +161,9 @@ contains
     real(dp), optional, intent(in) :: xllcorner !< lower left corner (x) (default 0.0)
     real(dp), optional, intent(in) :: yllcorner !< lower left corner (y) (default 0.0)
     real(dp), optional, intent(in) :: cellsize !< cell size [m] or [deg] (default 1.0)
-    integer(i4), optional, intent(in) :: coordsys !< desired coordinate system (default 0 for cartesian)
+    integer(i4), optional, intent(in) :: coordsys !< desired coordinate system (0 (default) for cartesian, 1 for spherical)
     logical, dimension(:,:), optional, intent(in) :: mask !< desired mask for the grid (default: all .true.)
+    integer(i4), optional, intent(in) :: y_direction !< y-axis direction (0 (default) for top-down, 1 for bottom-up)
 
     this%nx = nx
     this%ny = ny
@@ -170,6 +179,13 @@ contains
       if (coordsys /= coordsys_cart .and. coordsys /= coordsys_sph_deg) &
         call error_message("grid % init: unknown coordsys value: ", num2str(coordsys))
       this%coordsys = coordsys
+    end if
+    ! check if y-direction is supported
+    this%y_direction = top_down
+    if ( present(y_direction) ) then
+      if (.not.any(y_direction==[keep_y, bottom_up, top_down])) &
+        call error_message("grid % init: unknown y_direction value: ", num2str(y_direction))
+      if (y_direction /= keep_y) this%y_direction = y_direction
     end if
     if ( present(mask) ) then
       if (size(mask, dim=1) /= nx .or. size(mask, dim=2) /= ny) &
@@ -192,35 +208,42 @@ contains
   !!          If mask should be read, it will be in xy order with increasing y-axis.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine from_ascii_file(this, path, coordsys, read_mask)
+  subroutine from_ascii_file(this, path, coordsys, read_mask, y_direction)
     use mo_os, only: check_path_isfile
     implicit none
     class(grid), intent(inout) :: this
     character(*), intent(in) :: path !< path to the ascii grid file
     integer(i4), optional, intent(in) :: coordsys !< desired coordinate system (0 (default) for cartesian, 1 for lat-lon)
     logical, optional, intent(in) :: read_mask !< Whether to read the mask from the given file (default: .true.)
+    integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) or 0 for top-down, 1 for bottom-up)
 
     integer(i4) :: nx, ny
     real(dp) :: xll, yll, cellsize
     real(dp), allocatable, dimension(:,:) :: dummy
     logical, allocatable, dimension(:,:) :: mask
     logical :: read_mask_
+    integer(i4) :: y_dir
 
     read_mask_ = .true.
-    if ( present(read_mask) ) read_mask_ = read_mask
+    if (present(read_mask)) read_mask_ = read_mask
+    y_dir = keep_y
+    if (present(y_direction)) y_dir = y_direction
+    if (y_dir == keep_y) y_dir = bottom_up
+    if (.not.any(y_dir==[bottom_up, top_down])) &
+      call error_message("grid % from_ascii_file: y-direction not valid: ", trim(num2str(y_dir)))
 
     call check_path_isfile(path=path, raise=.true.)
-    call read_header_ascii(path, nx ,ny, xll, yll, cellsize)
+    call read_ascii_header(path, nx ,ny, xll, yll, cellsize)
 
     if (read_mask_) then
-      call read_ascii_grid_dp(path, nx, ny, xll, yll, cellsize, dummy, mask, flip_y=.true.)
+      call read_ascii_grid_dp(path, dummy, mask, y_direction=y_dir)
       deallocate(dummy)
     else
       allocate(mask(nx, ny))
       mask(:,:) = .true.
     end if
 
-    call this%init(nx, ny, xll, yll, cellsize, coordsys, mask)
+    call this%init(nx, ny, xll, yll, cellsize, coordsys, mask, y_dir)
     deallocate(mask)
 
   end subroutine from_ascii_file
@@ -245,29 +268,19 @@ contains
 
     if (write_mask_) then
       allocate(dummy(this%nx, this%ny), source=nodata_i4)
-      where (this%mask)
-        dummy = 1_i4
-      end where
-      call write_ascii_grid_i4( &
-        path=path, &
-        ncols=this%nx, &
-        nrows=this%ny, &
-        xllcorner=this%xllcorner, &
-        yllcorner=this%yllcorner, &
-        cellsize=this%cellsize, &
-        nodata=nodata_i4, &
-        data=dummy)
-      deallocate(dummy)
-    else
-      call write_ascii_grid_i4( &
-        path=path, &
-        ncols=this%nx, &
-        nrows=this%ny, &
-        xllcorner=this%xllcorner, &
-        yllcorner=this%yllcorner, &
-        cellsize=this%cellsize, &
-        nodata=nodata_i4)
+      where (this%mask) dummy = 1_i4
     end if
+    call write_ascii_grid_i4( &
+      path=path, &
+      ncols=this%nx, &
+      nrows=this%ny, &
+      xllcorner=this%xllcorner, &
+      yllcorner=this%yllcorner, &
+      cellsize=this%cellsize, &
+      nodata=nodata_i4, &
+      data=dummy, &  ! unallocated dummy will result in present(data) == .false.
+      y_direction=this%y_direction)
+    if (allocated(dummy)) deallocate(dummy)
   end subroutine to_ascii_file
 
   !> \brief Read data from ascii file conforming this grid
@@ -282,7 +295,13 @@ contains
     real(dp), intent(out), allocatable, dimension(:,:) :: data
 
     call check_path_isfile(path=path, raise=.true.)
-    call read_ascii_grid_dp(path, this%nx, this%ny, this%xllcorner, this%yllcorner, this%cellsize, data, flip_y=.true.)
+    call read_ascii_grid_dp(path, data, &
+      ref_ncols=this%nx, &
+      ref_nrows=this%ny, &
+      ref_xllcorner=this%xllcorner, &
+      ref_yllcorner=this%yllcorner, &
+      ref_cellsize=this%cellsize, &
+      y_direction=this%y_direction)
   end subroutine read_data_dp
 
   !> \brief Read data from ascii file conforming this grid
@@ -297,7 +316,13 @@ contains
     integer(i4), intent(out), allocatable, dimension(:,:) :: data
 
     call check_path_isfile(path=path, raise=.true.)
-    call read_ascii_grid_i4(path, this%nx, this%ny, this%xllcorner, this%yllcorner, this%cellsize, data, flip_y=.true.)
+    call read_ascii_grid_i4(path, data, &
+      ref_ncols=this%nx, &
+      ref_nrows=this%ny, &
+      ref_xllcorner=this%xllcorner, &
+      ref_yllcorner=this%yllcorner, &
+      ref_cellsize=this%cellsize, &
+      y_direction=this%y_direction)
   end subroutine read_data_i4
 
 #ifdef FORCES_WITH_NETCDF
@@ -307,7 +332,7 @@ contains
   !!          If mask should be read, it will be in xy order with increasing y-axis.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine from_nc_file(this, path, var, read_mask, read_aux, tol)
+  subroutine from_nc_file(this, path, var, read_mask, read_aux, tol, y_direction)
     use mo_netcdf, only : NcDataset
     implicit none
     class(grid), intent(inout) :: this
@@ -316,9 +341,10 @@ contains
     logical, optional, intent(in) :: read_mask !< Whether to read the mask from the given variable (default: .true.)
     logical, optional, intent(in) :: read_aux !< Whether to read auxilliar coordinates if possible (default: .true.)
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) as present, 0 for top-down, 1 for bottom-up)
     type(NcDataset) :: nc
     nc = NcDataset(path, "r")
-    call this%from_nc_dataset(nc, var, read_mask, read_aux, tol)
+    call this%from_nc_dataset(nc, var, read_mask, read_aux, tol, y_direction)
     call nc%close()
   end subroutine from_nc_file
 
@@ -327,7 +353,7 @@ contains
   !!          If mask should be read, it will be in xy order with increasing y-axis.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine from_nc_dataset(this, nc, var, read_mask, read_aux, tol)
+  subroutine from_nc_dataset(this, nc, var, read_mask, read_aux, tol, y_direction)
     use mo_netcdf, only : NcDataset, NcVariable, NcDimension
     use mo_utils, only : is_close
     use mo_string_utils, only : splitString
@@ -338,18 +364,22 @@ contains
     logical, optional, intent(in) :: read_mask !< Whether to read the mask from the given variable (default: .true.)
     logical, optional, intent(in) :: read_aux !< Whether to read auxilliar coordinates if possible (default: .true.)
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) as present, 0 for top-down, 1 for bottom-up)
 
     type(NcVariable) :: ncvar, xvar, yvar
     type(NcDimension), dimension(:), allocatable :: dims
 
     integer(i4), dimension(:), allocatable :: shp, start, cnt
-    integer(i4) :: nx, ny, rnk, coordsys
+    integer(i4) :: nx, ny, rnk, coordsys, y_dir
     real(dp) :: xll, yll, cellsize, cs_x, cs_y, tol_
     real(dp), allocatable, dimension(:,:) :: dummy
     character(len=256) :: tmp_str
     character(len=256), allocatable, dimension(:) :: coords_str
     logical, allocatable, dimension(:,:) :: mask
-    logical :: y_inc, read_mask_, read_aux_, x_sph, y_sph, x_cart, y_cart
+    logical :: y_inc, read_mask_, read_aux_, x_sph, y_sph, x_cart, y_cart, flip_y
+
+    y_dir = keep_y
+    if (present(y_direction)) y_dir = y_direction
 
     tol_ = 1.e-7_dp
     read_mask_ = .true.
@@ -390,8 +420,20 @@ contains
     ! check axis uniformity and monotonicity
     call check_uniform_axis(xvar, cellsize=cs_x, origin=xll, tol=tol)
     call check_uniform_axis(yvar, cellsize=cs_y, origin=yll, increasing=y_inc, tol=tol)
-    if (.not.y_inc) call warn_message("grid % from_netcdf: y axis is decreasing which results in inefficient data flipping. ", &
-                                      "You could flip the file with: 'cdo invertlat <ifile> <ofile>'. ", trim(nc%fname), ":", var)
+    if (y_dir == keep_y) then
+      y_dir = top_down
+      if (y_inc) y_dir = bottom_up
+    end if
+    ! check y_dir
+    if (.not.any(y_dir==[bottom_up, top_down])) &
+      call error_message("grid % from_netcdf: y-direction not valid: ", trim(num2str(y_dir)))
+
+    ! warn about flipping if present axis is not in desired direction
+    flip_y = y_inc.neqv.(y_dir==bottom_up)
+    if (flip_y) then
+      call warn_message("grid % from_netcdf: y axis direction is oposite to desired one (inefficient flipping). ", &
+                        "You could flip the file beforehand with: 'cdo invertlat <ifile> <ofile>'. ", trim(nc%fname), ":", var)
+    end if
     ! check cellsize in x and y direction
     if (.not.is_close(cs_x, cs_y, rtol=0.0_dp, atol=tol_)) &
       call error_message("grid % from_netcdf: x and y axis have different cell sizes: ", trim(nc%fname), ":", var)
@@ -406,14 +448,14 @@ contains
       cnt(:2) = shp(:2)
       call ncvar%getData(dummy, start=start, cnt=cnt, mask=mask)
       ! flip mask if y-axis is decreasing in nc-file
-      if (.not.y_inc) call flip(mask, iDim=2)
+      if (flip_y) call flip(mask, iDim=2)
       deallocate(dummy)
     else
       allocate(mask(nx, ny))
       mask(:,:) = .true.
     end if
 
-    call this%init(nx, ny, xll, yll, cellsize, coordsys, mask)
+    call this%init(nx, ny, xll, yll, cellsize, coordsys, mask, y_dir)
     deallocate(mask)
 
     if (read_aux_ .and. coordsys == coordsys_cart .and. ncvar%hasAttribute("coordinates")) then
@@ -463,7 +505,7 @@ contains
     integer(i4) :: rnk, i_ll, i_lr, i_ur, i_ul
     real(dp), allocatable, dimension(:,:) :: dummy
     real(dp), allocatable, dimension(:,:,:) :: latbnds, lonbnds
-    logical :: y_inc, flip_v, flip_h
+    logical :: y_inc, flip_v, flip_h, flip_y
     character(:), allocatable :: lon_, lat_
     character(len=256) :: name
 
@@ -494,8 +536,10 @@ contains
     if (size(dummy, dim=2)>1) y_inc = dummy(1,1) < dummy(1,2)
     if (size(dummy, dim=1) /= this%nx .or. size(dummy, dim=2) /= this%ny) &
       call error_message("grid % from_netcdf: auxilliar latitude coordinate has wrong shape: ", trim(nc%fname), ":", lat_)
+
+    flip_y = y_inc.neqv.(this%y_direction==bottom_up)
     allocate(this%lat(this%nx, this%ny))
-    if (.not.y_inc) call flip(dummy, iDim=2)
+    if (flip_y) call flip(dummy, iDim=2)
     this%lat = dummy
     deallocate(dummy)
 
@@ -510,7 +554,7 @@ contains
     if (size(dummy, dim=1) /= this%nx .or. size(dummy, dim=2) /= this%ny) &
       call error_message("grid % from_netcdf: auxilliar longitude coordinate has wrong shape: ", trim(nc%fname), ":", lon_)
     allocate(this%lon(this%nx, this%ny))
-    if (.not.y_inc) call flip(dummy, iDim=2)
+    if (flip_y) call flip(dummy, iDim=2)
     this%lon = dummy
     deallocate(dummy)
 
@@ -525,14 +569,14 @@ contains
       call latvar%getAttribute("bounds", name)
       latbvar = latvar%parent%getVariable(trim(name))
       call latbvar%getData(latbnds)
-      if (.not.y_inc) call flip(latbnds, iDim=3)
+      if (.not.y_inc) call flip(latbnds, iDim=3) ! easier to use increasing bounds for calculations
       ! lon bounds (4, nx, ny)
       call lonvar%getAttribute("bounds", name)
       lonbvar = lonvar%parent%getVariable(trim(name))
       call lonbvar%getData(lonbnds)
-      if (.not.y_inc) call flip(lonbnds, iDim=3)
+      if (.not.y_inc) call flip(lonbnds, iDim=3) ! easier to use increasing bounds for calculations
 
-      ! check if bounds need to be flipped
+      ! check if bounds need to be flipped (ACTUALLY UNEEDED IF CF CONFORMING)
       ! should look like this:      if y is decreasing:     if x is decreasing:     if x and y are decreasing:
       ! 4 -- 3   ul--ur             1 -- 2                  3 -- 4                  2 -- 1
       ! |    |   |    |             |    |                  |    |                  |    |
@@ -563,6 +607,11 @@ contains
       this%lon_vertices(this%nx+1_i4, this%ny+1_i4) = lonbnds(i_ur,this%nx,this%ny)
       deallocate(lonbnds)
       deallocate(latbnds)
+      ! vertices created from increasing axis, flip them if needed
+      if (this%y_direction == top_down) then
+        call flip(this%lat_vertices, 2)
+        call flip(this%lon_vertices, 2)
+      end if
     end if
 
   end subroutine aux_from_nc_dataset
@@ -781,14 +830,25 @@ contains
   !> \return `real(dp), allocatable, dimension(:) :: y_axis`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  function y_axis(this)
+  function y_axis(this, y_direction)
     implicit none
     class(grid), intent(in) :: this
+    integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) for current, 0 for top-down, 1 for bottom-up)
     real(dp), allocatable, dimension(:) :: y_axis
 
-    integer(i4) :: i
+    integer(i4) :: i, y_dir
+    y_dir = keep_y
+    if (present(y_direction)) y_dir = y_direction
+    if (y_dir == keep_y) y_dir = this%y_direction
 
-    y_axis = [ ((i-0.5_dp) * this%cellsize + this%yllcorner, i=1_i4, this%ny) ]
+    select case (y_dir)
+      case (0)
+        y_axis = [ ((i-0.5_dp) * this%cellsize + this%yllcorner, i=this%ny, 1_i4, -1_i4) ]
+      case (1)
+        y_axis = [ ((i-0.5_dp) * this%cellsize + this%yllcorner, i=1_i4, this%ny) ]
+      case default
+        call error_message("grid % y_axis: y-direction not valid: ", trim(num2str(y_dir)))
+    end select
 
   end function y_axis
 
@@ -811,14 +871,25 @@ contains
   !> \return `real(dp), allocatable, dimension(:) :: y_vertices`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  function y_vertices(this)
+  function y_vertices(this, y_direction)
     implicit none
     class(grid), intent(in) :: this
+    integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) for current, 0 for top-down, 1 for bottom-up)
     real(dp), allocatable, dimension(:) :: y_vertices
 
-    integer(i4) :: i
+    integer(i4) :: i, y_dir
+    y_dir = keep_y
+    if (present(y_direction)) y_dir = y_direction
+    if (y_dir == keep_y) y_dir = this%y_direction
 
-    y_vertices = [ (i * this%cellsize + this%yllcorner, i=0_i4, this%ny) ]
+    select case (y_dir)
+      case (0)
+        y_vertices = [ (i * this%cellsize + this%yllcorner, i=this%ny, 0_i4, -1_i4) ]
+      case (1)
+        y_vertices = [ (i * this%cellsize + this%yllcorner, i=0_i4, this%ny) ]
+      case default
+        call error_message("grid % y_vertices: y-direction not valid: ", trim(num2str(y_dir)))
+    end select
 
   end function y_vertices
 
@@ -841,12 +912,14 @@ contains
   !> \return `real(dp), allocatable, dimension(:,:) :: y_bounds`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  function y_bounds(this)
+  function y_bounds(this, y_direction)
     implicit none
     class(grid), intent(in) :: this
+    integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) for current, 0 for top-down, 1 for bottom-up)
     real(dp), allocatable, dimension(:,:) :: y_bounds
     real(dp), allocatable, dimension(:) :: y_ax
-    y_ax = this%y_vertices()
+    ! bounds follow axis direction
+    y_ax = this%y_vertices(y_direction)
     allocate(y_bounds(2, this%ny))
     y_bounds(1,:) = y_ax(1:this%ny)
     y_bounds(2,:) = y_ax(2:this%ny+1)
@@ -862,7 +935,6 @@ contains
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     real(dp) :: n_subcells
     integer(i4) :: i_ub, i_lb, j_lb, j_ub, i, j, factor
-
     call this%check_is_covering(fine_grid, tol=tol, check_mask=.false.)
     call check_factor(fine_grid%cellsize, this%cellsize, factor=factor, tol=tol)
 
@@ -880,10 +952,10 @@ contains
     do j = 1, this%ny
       do i = 1, this%nx
         ! coord. of all corners -> of finer scale
-        i_lb = (i - 1) * factor + 1
-        i_ub = min(i * factor, fine_grid%nx)
-        j_lb = (j - 1) * factor + 1
-        j_ub = min(j * factor, fine_grid%ny)
+        call id_bounds( &
+          factor, i, j, this%y_direction, this%ny, &
+          fine_grid%y_direction, fine_grid%nx, fine_grid%ny, &
+          i_lb, i_ub, j_lb, j_ub)
         n_subcells = real(size(fine_grid%lat(i_lb:i_ub, j_lb:j_ub)), dp)
         ! estimate lat-lon coords by averaging sub-cell coordinates (even if fine grid is "a bit" smaller)
         this%lat(i, j) = sum(fine_grid%lat(i_lb:i_ub, j_lb:j_ub)) / n_subcells
@@ -963,10 +1035,10 @@ contains
         dx = coarse_grid%lat_vertices(i+1,j+1) - x
         latlon_b(:,2) = [(x + dx * (real(k)-0.5_dp) / fac, k=1_i4,factor)]
         ! generate latlon pairs in sub-cells
-        i_start = (i - 1) * factor + 1_i4
-        i_end = min(i * factor, this%nx)
-        j_start = (j - 1) * factor + 1_i4
-        j_end = min(j * factor, this%ny)
+        call id_bounds(factor, i, j, &
+          coarse_grid%y_direction, coarse_grid%ny, &
+          this%y_direction, this%nx, this%ny, &
+          i_start, i_end, j_start, j_end)
         fac_i = i_end - i_start + 1_i4
         fac_j = j_end - j_start + 1_i4
 
@@ -1077,14 +1149,25 @@ contains
     if (.not.this%has_aux_vertices()) &
       call error_message("grid % lat_bounds: grid has no auxilliar vertices defined.")
     allocate(lat_bounds(4, this%nx, this%ny))
-    ! lower-left corner of the cells
-    lat_bounds(1,:,:) = this%lat_vertices(1:this%nx, 1:this%ny)
-    ! lower-right corner of the cells
-    lat_bounds(2,:,:) = this%lat_vertices(2:this%nx+1, 1:this%ny)
-    ! upper-right corner of the cells
-    lat_bounds(3,:,:) = this%lat_vertices(2:this%nx+1, 2:this%ny+1)
-    ! upper-left corner of the cells
-    lat_bounds(4,:,:) = this%lat_vertices(1:this%nx, 2:this%ny+1)
+    if (this%y_direction == bottom_up) then
+      ! lower-left corner of the cells
+      lat_bounds(1,:,:) = this%lat_vertices(1:this%nx, 1:this%ny)
+      ! lower-right corner of the cells
+      lat_bounds(2,:,:) = this%lat_vertices(2:this%nx+1, 1:this%ny)
+      ! upper-right corner of the cells
+      lat_bounds(3,:,:) = this%lat_vertices(2:this%nx+1, 2:this%ny+1)
+      ! upper-left corner of the cells
+      lat_bounds(4,:,:) = this%lat_vertices(1:this%nx, 2:this%ny+1)
+    else
+      ! lower-left corner of the cells
+      lat_bounds(1,:,:) = this%lat_vertices(1:this%nx, 2:this%ny+1)
+      ! lower-right corner of the cells
+      lat_bounds(2,:,:) = this%lat_vertices(2:this%nx+1, 2:this%ny+1)
+      ! upper-right corner of the cells
+      lat_bounds(3,:,:) = this%lat_vertices(2:this%nx+1, 1:this%ny)
+      ! upper-left corner of the cells
+      lat_bounds(4,:,:) = this%lat_vertices(1:this%nx, 1:this%ny)
+    end if
   end function lat_bounds
 
   !> \brief lon-bounds of the grid cell following cf-conventions (4, nx, ny).
@@ -1098,14 +1181,25 @@ contains
     if (.not.this%has_aux_vertices()) &
       call error_message("grid % lon_bounds: grid has no auxilliar vertices defined.")
     allocate(lon_bounds(4, this%nx, this%ny))
-    ! lower-left corner of the cells
-    lon_bounds(1,:,:) = this%lon_vertices(1:this%nx, 1:this%ny)
-    ! lower-right corner of the cells
-    lon_bounds(2,:,:) = this%lon_vertices(2:this%nx+1, 1:this%ny)
-    ! upper-right corner of the cells
-    lon_bounds(3,:,:) = this%lon_vertices(2:this%nx+1, 2:this%ny+1)
-    ! upper-left corner of the cells
-    lon_bounds(4,:,:) = this%lon_vertices(1:this%nx, 2:this%ny+1)
+    if (this%y_direction == bottom_up) then
+      ! lower-left corner of the cells
+      lon_bounds(1,:,:) = this%lon_vertices(1:this%nx, 1:this%ny)
+      ! lower-right corner of the cells
+      lon_bounds(2,:,:) = this%lon_vertices(2:this%nx+1, 1:this%ny)
+      ! upper-right corner of the cells
+      lon_bounds(3,:,:) = this%lon_vertices(2:this%nx+1, 2:this%ny+1)
+      ! upper-left corner of the cells
+      lon_bounds(4,:,:) = this%lon_vertices(1:this%nx, 2:this%ny+1)
+    else
+      ! lower-left corner of the cells
+      lon_bounds(1,:,:) = this%lon_vertices(1:this%nx, 2:this%ny+1)
+      ! lower-right corner of the cells
+      lon_bounds(2,:,:) = this%lon_vertices(2:this%nx+1, 2:this%ny+1)
+      ! upper-right corner of the cells
+      lon_bounds(3,:,:) = this%lon_vertices(2:this%nx+1, 1:this%ny)
+      ! upper-left corner of the cells
+      lon_bounds(4,:,:) = this%lon_vertices(1:this%nx, 1:this%ny)
+    end if
   end function lon_bounds
 
   !> \brief check if given grid has an allocated mask
@@ -1171,11 +1265,10 @@ contains
       do j = 1, coarse_grid%ny
         do i = 1, coarse_grid%nx
           if ( coarse_grid%mask(i, j)) cycle
-          ! coord. of all corners -> of finer scale
-          i_lb = (i - 1) * factor + 1
-          i_ub = min(i * factor, coarse_grid%nx)
-          j_lb = (j - 1) * factor + 1
-          j_ub = min(j * factor, coarse_grid%ny)
+          call id_bounds( &
+            factor, i, j, coarse_grid%y_direction, coarse_grid%ny, &
+            this%y_direction, this%nx, this%ny, &
+            i_lb, i_ub, j_lb, j_ub)
           if (any(this%mask(i_lb:i_ub, j_lb:j_ub))) &
             call error_message("grid % check_is_covered_by: fine cells outside of coarse mask.")
         end do
@@ -1236,11 +1329,10 @@ contains
       do j = 1, this%ny
         do i = 1, this%nx
           if ( .not.this%mask(i, j)) cycle
-          ! coord. of all corners -> of finer scale
-          i_lb = (i - 1) * factor + 1
-          i_ub = min(i * factor, fine_grid%nx)
-          j_lb = (j - 1) * factor + 1
-          j_ub = min(j * factor, fine_grid%ny)
+          call id_bounds( &
+            factor, i, j, this%y_direction, this%ny, &
+            fine_grid%y_direction, fine_grid%nx, fine_grid%ny, &
+            i_lb, i_ub, j_lb, j_ub)
           if (.not.any(fine_grid%mask(i_lb:i_ub, j_lb:j_ub))) then
             call error_message("grid % check_is_filled_by: coarse cells without any filling fine cells found.")
           end if
@@ -1386,6 +1478,7 @@ contains
         ! AREA [m2]
         cell_area(:, j) = cos(cell_center_lat_rad) * factor
       end do
+      if (this%y_direction == top_down) call flip(cell_area, idim=2)
       this%cell_area(:) = pack(cell_area(:, :), this%mask)
 
       ! free space
@@ -1423,11 +1516,7 @@ contains
   !!   - moving to FORCES
   !!   - is now a method of the grid type
   function derive_coarse_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol) result(coarse_grid)
-
-    use mo_constants, only : nodata_dp
-
     implicit none
-
     class(grid), intent(inout) :: this
     real(dp), intent(in) :: target_resolution !< desired target resolution
     logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
@@ -1436,9 +1525,9 @@ contains
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     type(grid) :: coarse_grid !< resulting low resolution grid
 
-    real(dp), dimension(:, :), allocatable :: areaCell0_2D
+    real(dp), dimension(:, :), allocatable :: fine_cell_area
     integer(i4) :: i_ub, i_lb, j_lb, j_ub
-    integer(i4) :: i, j, k, ic, jc
+    integer(i4) :: i, j, k
     integer(i4) :: factor, area_method_
     logical :: estimate_aux_, estimate_area_
 
@@ -1470,24 +1559,22 @@ contains
     )
 
     coarse_grid%coordsys = this%coordsys
+    coarse_grid%y_direction = this%y_direction
 
     factor = nint(coarse_grid%cellsize / this%cellsize, i4)
 
     if (this%is_periodic().and.(.not.coarse_grid%is_periodic())) &
       call error_message("derive_coarse_grid: target resolution is not suitable for a periodic grid.")
 
-    ! allocation and initalization of mask at coarse grid
-    allocate(coarse_grid%mask(coarse_grid%nx, coarse_grid%ny))
-    coarse_grid%mask(:, :) = .false.
-
     ! create mask at coarse grid
-    do j = 1_i4, this%ny
-      ! everything would be better with 0-based ids
-      jc = (j-1_i4) / factor + 1_i4
-      do i = 1, this%nx
-        if (.not. this%mask(i, j)) cycle
-        ic = (i-1_i4) / factor + 1_i4
-        coarse_grid%mask(ic, jc) = .true.
+    allocate(coarse_grid%mask(coarse_grid%nx, coarse_grid%ny), source=.false.)
+    do j = 1, coarse_grid%ny
+      do i = 1, coarse_grid%nx
+        call id_bounds(factor, i, j, &
+          coarse_grid%y_direction, coarse_grid%ny, &
+          this%y_direction, this%nx, this%ny, &
+          i_lb, i_ub, j_lb, j_ub)
+        coarse_grid%mask(i, j) = any(this%mask(i_lb : i_ub, j_lb : j_ub))
       end do
     end do
 
@@ -1497,29 +1584,24 @@ contains
       select case(area_method_)
         case(0_i4)
           ! lowres additional properties
-          allocate(areaCell0_2D(this%nx, this%ny))
-          areaCell0_2D(:, :) = unpack(this%cell_area, this%mask, nodata_dp)
+          allocate(fine_cell_area(this%nx, this%ny))
+          fine_cell_area(:, :) = this%unpack_data(this%cell_area)
           allocate(coarse_grid%cell_area(coarse_grid%n_cells))
           k = 0
-          do jc = 1, coarse_grid%ny
-            do ic = 1, coarse_grid%nx
-              if (.NOT. coarse_grid%mask(ic, jc)) cycle
+          do j = 1, coarse_grid%ny
+            do i = 1, coarse_grid%nx
+              if (.NOT. coarse_grid%mask(i, j)) cycle
               k = k + 1
-              ! coord. of all corners -> of finer scale
-              i_lb = (ic - 1) * factor + 1
-              ! constrain the range to fine grid extent
-              i_ub = min(ic * factor, this%nx)
-
-              j_lb = (jc - 1) * factor + 1
-              ! constrain the range to fine grid extent
-              j_ub = min(jc * factor, this%ny)
-
+              call id_bounds(factor, i, j, &
+                coarse_grid%y_direction, coarse_grid%ny, &
+                this%y_direction, this%nx, this%ny, &
+                i_lb, i_ub, j_lb, j_ub)
               ! effective area [km2] & total no. of fine grid cells within a given coarse grid cell
-              coarse_grid%cell_area(k) = sum(areacell0_2D(i_lb : i_ub, j_lb : j_ub), this%mask(i_lb : i_ub, j_lb : j_ub))
+              coarse_grid%cell_area(k) = sum(fine_cell_area(i_lb : i_ub, j_lb : j_ub), this%mask(i_lb : i_ub, j_lb : j_ub))
             end do
           end do
           ! free space
-          deallocate(areaCell0_2D)
+          deallocate(fine_cell_area)
         case(1_i4)
           call coarse_grid%calculate_cell_area()
         case default
@@ -1570,12 +1652,10 @@ contains
     fine_grid%xllcorner = this%xllcorner
     fine_grid%yllcorner = this%yllcorner
     fine_grid%coordsys = this%coordsys
+    fine_grid%y_direction = this%y_direction
 
-    ! allocation and initalization of mask at coarse grid
-    allocate(fine_grid%mask(fine_grid%nx, fine_grid%ny))
-    fine_grid%mask(:, :) = .false.
-
-    ! create mask at coarse grid
+    ! create mask at fine grid
+    allocate(fine_grid%mask(fine_grid%nx, fine_grid%ny), source=.false.)
     do j = 1_i4, this%ny
       ! everything would be better with 0-based ids
       jc = (j-1_i4) * factor + 1_i4
@@ -1588,6 +1668,7 @@ contains
 
     call fine_grid%calculate_cell_ids()
 
+    ! This doesn't preserve the total area if the coarse cells were fractioned.
     if (estimate_area_) call fine_grid%calculate_cell_area()
 
     ! only estimate aux coords if we are on a projected grid
@@ -2091,18 +2172,19 @@ contains
   !> \details Read spatial data from ascii file. Data will be transposed to be in xy order.
   !> \authors Robert Schweppe
   !> \date Jun 2018
-  subroutine read_ascii_grid_dp(path, ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, data, mask, flip_y)
+  subroutine read_ascii_grid_dp(path, data, mask, ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, y_direction)
+    use mo_utils, only : eq
     implicit none
 
     character(len = *), intent(in) :: path !< path with location
-    integer(i4), intent(in) :: ref_nrows !< reference number of rows of data fields (ny)
-    integer(i4), intent(in) :: ref_ncols !< reference number of columns of data fields (nx)
-    real(dp), intent(in) :: ref_xllcorner !< reference lower left corner
-    real(dp), intent(in) :: ref_yllcorner !< reference lower left corner
-    real(dp), intent(in) :: ref_cellsize !< reference cellsize
     real(dp), dimension(:, :), allocatable, intent(out) :: data !< data, size (nx, ny)
     logical, dimension(:, :), allocatable, intent(out), optional :: mask !< mask, size (nx, ny)
-    logical, intent(in), optional :: flip_y !< whether to flip data along dim 2 to have an increasing y-axis (default: .true.)
+    integer(i4), intent(in), optional :: ref_nrows !< reference number of rows of data fields (ny)
+    integer(i4), intent(in), optional :: ref_ncols !< reference number of columns of data fields (nx)
+    real(dp), intent(in), optional :: ref_xllcorner !< reference lower left corner
+    real(dp), intent(in), optional :: ref_yllcorner !< reference lower left corner
+    real(dp), intent(in), optional :: ref_cellsize !< reference cellsize
+    integer(i4), intent(in), optional :: y_direction !< y-axis direction (0 (default) or -1 for top-down, 1 for bottom-up)
 
     integer(i4) :: file_nrows ! number of rows of data fields (ny)
     integer(i4) :: file_ncols ! number of columns of data fields (nx)
@@ -2110,64 +2192,41 @@ contains
     real(dp) :: file_yllcorner ! file read in lower left corner
     real(dp) :: file_cellsize ! file read in cellsize
     real(dp) :: file_nodata ! file read in nodata value
-    real(dp), dimension(:, :), allocatable :: tmp_data ! data to be transposed, size (ny, nx)
-    logical, dimension(:, :), allocatable :: tmp_mask ! mask to be transposed, size (ny, nx)
-    integer(i4) :: i, j, fileunit
-    logical :: flip_y_
+    integer(i4) :: i, j, fileunit, hlines
+    logical :: flip_y
 
-    flip_y_ = .true.
-    if (present(flip_y)) flip_y_ = flip_y
+    flip_y = .false.
+    if (present(y_direction)) flip_y = y_direction == bottom_up
 
     ! compare headers always with reference header (intent in)
-    call read_header_ascii(path, file_ncols, file_nrows, file_xllcorner, file_yllcorner, file_cellsize, file_nodata)
-    if ((file_ncols .ne. ref_ncols)) &
-      call error_message('read_spatial_data_ascii: header not matching with reference header: ncols')
-    if ((file_nrows .ne. ref_nrows)) &
-      call error_message('read_spatial_data_ascii: header not matching with reference header: nrows')
-    if ((abs(file_xllcorner - ref_xllcorner) .gt. tiny(1.0_dp))) &
-      call error_message('read_spatial_data_ascii: header not matching with reference header: xllcorner')
-    if ((abs(file_yllcorner - ref_yllcorner) .gt. tiny(1.0_dp))) &
-      call error_message('read_spatial_data_ascii: header not matching with reference header: yllcorner')
-    if ((abs(file_cellsize - ref_cellsize)   .gt. tiny(1.0_dp))) &
-      call error_message('read_spatial_data_ascii: header not matching with reference header: cellsize')
+    call read_ascii_header( &
+      path, file_ncols, file_nrows, file_xllcorner, file_yllcorner, file_cellsize, file_nodata, &
+      ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, hlines)
 
-    ! allocation and initialization of matrices
-    allocate(tmp_data(file_nrows, file_ncols))
-    tmp_data = file_nodata
+    allocate(data(file_ncols, file_nrows))
 
     ! read in
     ! recl is only a rough estimate on bytes per line in the ascii
     ! default for nag: recl=1024(byte) which is not enough for 100s of columns
     open (newunit = fileunit, file = path, action = 'read', status = 'old', recl = 48 * file_ncols)
     ! (a) skip header
-    do i = 1, 6
+    do i = 1, hlines
       read(fileunit, *)
     end do
     ! (b) read data
     do i = 1, file_nrows
-      read(fileunit, *) (tmp_data(i, j), j = 1, file_ncols)
+      read(fileunit, *) (data(j, i), j = 1, file_ncols)
     end do
     close(fileunit)
 
-    ! transpose of data due to longitude-latitude ordering
-    allocate(data(file_ncols, file_nrows))
-    data = transpose(tmp_data)
-    if (flip_y_) call flip(data, idim=2)
-
     if ( present(mask) ) then
-      allocate(tmp_mask(file_nrows, file_ncols))
-      tmp_mask = .true.
-      where (abs(tmp_data - file_nodata) .lt. tiny(1.0_dp))
-        tmp_mask = .false.
-      end where
-      ! set mask .false. if nodata value appeared
-      allocate(mask(file_ncols, file_nrows))
-      mask = transpose(tmp_mask)
-      if (flip_y_) call flip(mask, idim=2)
-      deallocate(tmp_mask)
+      allocate(mask(file_ncols, file_nrows), source=.true.)
+      where (eq(data, file_nodata)) mask = .false.
+      if (flip_y) call flip(mask, idim=2)
     end if
 
-    deallocate(tmp_data)
+    ! transpose of data due to longitude-latitude ordering
+    if (flip_y) call flip(data, idim=2)
 
   end subroutine read_ascii_grid_dp
 
@@ -2175,18 +2234,18 @@ contains
   !> \details Read spatial data from ascii file. Data will be transposed to be in xy order.
   !> \authors Robert Schweppe
   !> \date Jun 2018
-  subroutine read_ascii_grid_i4(path, ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, data, mask, flip_y)
+  subroutine read_ascii_grid_i4(path, data, mask, ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, y_direction)
     implicit none
 
     character(len = *), intent(in) :: path !< path with location
-    integer(i4), intent(in) :: ref_nrows !< reference number of rows of data fields (ny)
-    integer(i4), intent(in) :: ref_ncols !< reference number of columns of data fields (nx)
-    real(dp), intent(in) :: ref_xllcorner !< reference lower left corner
-    real(dp), intent(in) :: ref_yllcorner !< reference lower left corner
-    real(dp), intent(in) :: ref_cellsize !< reference cellsize
     integer(i4), dimension(:, :), allocatable, intent(out) :: data !< data (nx, ny)
     logical, dimension(:, :), allocatable, intent(out), optional :: mask !< mask (nx, ny)
-    logical, intent(in), optional :: flip_y !< whether to flip data along dim 2 to have an increasing y-axis (default: .true.)
+    integer(i4), intent(in), optional :: ref_nrows !< reference number of rows of data fields (ny)
+    integer(i4), intent(in), optional :: ref_ncols !< reference number of columns of data fields (nx)
+    real(dp), intent(in), optional :: ref_xllcorner !< reference lower left corner
+    real(dp), intent(in), optional :: ref_yllcorner !< reference lower left corner
+    real(dp), intent(in), optional :: ref_cellsize !< reference cellsize
+    integer(i4), intent(in), optional :: y_direction !< y-axis direction (0 (default) or -1 for top-down, 1 for bottom-up)
 
     integer(i4) :: file_nrows ! number of rows of data fields
     integer(i4) :: file_ncols ! number of columns of data fields
@@ -2194,64 +2253,39 @@ contains
     real(dp) :: file_yllcorner ! file read in lower left corner
     real(dp) :: file_cellsize ! file read in cellsize
     real(dp) :: file_nodata ! file read in nodata value
-    integer(i4), dimension(:, :), allocatable :: tmp_data ! data
-    logical, dimension(:, :), allocatable :: tmp_mask ! mask
-    integer(i4) :: i, j, fileunit
-    logical :: flip_y_
+    integer(i4) :: i, j, fileunit, header_size
+    logical :: flip_y
 
-    flip_y_ = .true.
-    if (present(flip_y)) flip_y_ = flip_y
+    flip_y = .false.
+    if (present(y_direction)) flip_y = y_direction == bottom_up
 
     ! compare headers always with reference header (intent in)
-    call read_header_ascii(path, file_ncols, file_nrows, file_xllcorner, file_yllcorner, file_cellsize, file_nodata)
-    if ((file_ncols .ne. ref_ncols)) &
-      call error_message('read_spatial_data_ascii: header not matching with reference header: ncols')
-    if ((file_nrows .ne. ref_nrows)) &
-      call error_message('read_spatial_data_ascii: header not matching with reference header: nrows')
-    if ((abs(file_xllcorner - ref_xllcorner) .gt. tiny(1.0_dp))) &
-      call error_message('read_spatial_data_ascii: header not matching with reference header: xllcorner')
-    if ((abs(file_yllcorner - ref_yllcorner) .gt. tiny(1.0_dp))) &
-      call error_message('read_spatial_data_ascii: header not matching with reference header: yllcorner')
-    if ((abs(file_cellsize - ref_cellsize)   .gt. tiny(1.0_dp))) &
-      call error_message('read_spatial_data_ascii: header not matching with reference header: cellsize')
+    call read_ascii_header( &
+      path, file_ncols, file_nrows, file_xllcorner, file_yllcorner, file_cellsize, file_nodata, &
+      ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, header_size)
 
-    ! allocation and initialization of matrices
-    allocate(tmp_data(file_nrows, file_ncols))
-    tmp_data = int(file_nodata, i4)
+    allocate(data(file_ncols, file_nrows))
 
     ! read in
     ! recl is only a rough estimate on bytes per line in the ascii
     ! default for nag: recl=1024(byte) which is not enough for 100s of columns
     open (newunit = fileunit, file = path, action = 'read', status = 'old', recl = 48 * file_ncols)
     ! (a) skip header
-    do i = 1, 6
+    do i = 1, header_size
       read(fileunit, *)
     end do
     ! (b) read data
     do i = 1, file_nrows
-      read(fileunit, *) (tmp_data(i, j), j = 1, file_ncols)
+      read(fileunit, *) (data(j, i), j = 1, file_ncols)
     end do
     close(fileunit)
 
-    ! transpose of data due to longitude-latitude ordering
-    allocate(data(file_ncols, file_nrows))
-    data = transpose(tmp_data)
-    if (flip_y_) call flip(data, idim=2)
-
     if ( present(mask) ) then
-      allocate(tmp_mask(file_nrows, file_ncols))
-      tmp_mask = .true.
-      where (tmp_data .EQ. int(file_nodata, i4))
-        tmp_mask = .false.
-      end where
-      ! set mask .false. if nodata value appeared
-      allocate(mask(file_ncols, file_nrows))
-      mask = transpose(tmp_mask)
-      if (flip_y_) call flip(mask, idim=2)
-      deallocate(tmp_mask)
+      allocate(mask(file_ncols, file_nrows), source=.true.)
+      where (data == int(file_nodata, i4)) mask = .false.
+      if (flip_y) call flip(mask, idim=2)
     end if
-
-    deallocate(tmp_data)
+    if (flip_y) call flip(data, idim=2)
 
   end subroutine read_ascii_grid_i4
 
@@ -2259,10 +2293,13 @@ contains
   !> \details Reads header lines of ASCII files, e.g. dem, aspect, flow direction.
   !> \authors Juliane Mai
   !> \date Jan 2013
-  subroutine read_header_ascii(path, ncols, nrows, xllcorner, yllcorner, cellsize, nodata)
+  subroutine read_ascii_header( &
+    path, ncols, nrows, xllcorner, yllcorner, cellsize, nodata, &
+    ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, header_size)
 
     use mo_os, only : check_path_isfile
     use mo_constants, only : nodata_dp
+    use mo_string_utils, only : tolower
     implicit none
 
     character(len = *), intent(in) :: path !< Name of file and its location
@@ -2272,32 +2309,71 @@ contains
     real(dp), intent(out) :: yllcorner !< lower left corner (y)
     real(dp), intent(out) :: cellsize !< cell size [m]
     real(dp), intent(out), optional :: nodata !< nodata value (default -9999.0)
+    integer(i4), intent(in), optional :: ref_nrows !< reference number of rows of data fields (ny)
+    integer(i4), intent(in), optional :: ref_ncols !< reference number of columns of data fields (nx)
+    real(dp), intent(in), optional :: ref_xllcorner !< reference lower left corner
+    real(dp), intent(in), optional :: ref_yllcorner !< reference lower left corner
+    real(dp), intent(in), optional :: ref_cellsize !< reference cellsize
+    integer(i4), optional, intent(out) :: header_size !< number of lines of the header
 
-    character(5) :: dummy
+    real(dp) :: file_nodata
+    character(12) :: attribute
     integer(i4) :: io, fileunit
 
     !checking whether the file exists
     call check_path_isfile(path=path, raise=.true.)
     ! reading header from a file
     open (newunit = fileunit, file = path, status = 'old')
-    read (fileunit, *) dummy, ncols
-    read (fileunit, *) dummy, nrows
-    read (fileunit, *) dummy, xllcorner
-    read (fileunit, *) dummy, yllcorner
-    read (fileunit, *) dummy, cellsize
-    if (present(nodata)) then
-      read (fileunit, *, iostat=io) dummy, nodata
+    read (fileunit, *) attribute, ncols
+    read (fileunit, *) attribute, nrows
+    read (fileunit, *) attribute, xllcorner
+    read (fileunit, *) attribute, yllcorner
+    read (fileunit, *) attribute, cellsize
+    if (present(nodata) .or. present(header_size)) then
+      read (fileunit, *, iostat=io) attribute, file_nodata
       ! EOF reached (nodata not present, use default value)
-      if (io < 0) nodata = nodata_dp
+      if (io < 0) then
+        if (present(nodata)) nodata = nodata_dp
+        if (present(header_size)) header_size = 5_i4
+      else if (tolower(attribute) == "nodata_value") then
+        if (present(nodata)) nodata = file_nodata
+        if (present(header_size)) header_size = 6_i4
+      else
+        if (present(nodata)) nodata = nodata_dp
+        if (present(header_size)) header_size = 5_i4
+      end if
     end if
     close(fileunit)
-  end subroutine read_header_ascii
+
+    ! compare headers always with reference header (intent in)
+    if (present(ref_ncols)) then
+      if ((ncols .ne. ref_ncols)) &
+        call error_message('read_ascii: header not matching with reference header: ncols')
+    end if
+    if (present(ref_nrows)) then
+      if ((nrows .ne. ref_nrows)) &
+        call error_message('read_ascii: header not matching with reference header: nrows')
+    end if
+    if (present(ref_xllcorner)) then
+      if ((abs(xllcorner - ref_xllcorner) .gt. tiny(1.0_dp))) &
+        call error_message('read_ascii: header not matching with reference header: xllcorner')
+    end if
+    if (present(ref_yllcorner)) then
+      if ((abs(yllcorner - ref_yllcorner) .gt. tiny(1.0_dp))) &
+        call error_message('read_ascii: header not matching with reference header: yllcorner')
+    end if
+    if (present(ref_cellsize)) then
+      if ((abs(cellsize - ref_cellsize)   .gt. tiny(1.0_dp))) &
+        call error_message('read_ascii: header not matching with reference header: cellsize')
+    end if
+
+  end subroutine read_ascii_header
 
   !> \brief Write spatial data.
   !> \details Write spatial data to ascii file. Data will be transposed to be in xy order.
   !> \authors Sebastian Müller
   !> \date Mar 2025
-  subroutine write_ascii_grid_dp(path, ncols, nrows, xllcorner, yllcorner, cellsize, nodata, data, is_canonical, is_xy)
+  subroutine write_ascii_grid_dp(path, ncols, nrows, xllcorner, yllcorner, cellsize, nodata, data, y_direction, is_xy)
     implicit none
 
     ! Subroutine arguments
@@ -2309,17 +2385,17 @@ contains
     real(dp), intent(in) :: cellsize                 !< Size of the grid cells
     real(dp), intent(in) :: nodata                   !< Value indicating no data
     real(dp), intent(in), optional :: data(:,:)      !< 2D array of grid data
-    logical, intent(in), optional :: is_canonical    !< Indicates if data follows increasing y-axis (default .true.)
+    integer(i4), intent(in), optional :: y_direction !< y-axis direction (0 (default) or -1 for top-down, 1 for bottom-up)
     logical, intent(in), optional :: is_xy           !< Indicates if data is in (x,y) order (default .true.)
 
     ! Local variables
     integer(i4) :: i, j
     integer(i4) :: io, ierr
-    logical :: is_canonical_, is_xy_
+    logical :: is_bottom_up, is_xy_
 
     ! Set defaults
-    is_canonical_ = .true.
-    if (present(is_canonical)) is_canonical_ = is_canonical
+    is_bottom_up = .true.
+    if (present(y_direction)) is_bottom_up = y_direction == bottom_up
     is_xy_ = .true.
     if (present(is_xy)) is_xy_ = is_xy
 
@@ -2339,7 +2415,7 @@ contains
     ! Open file for writing
     open(newunit=io, file=path, status='replace', action='write', form='formatted', iostat=ierr)
     if (ierr /= 0) then
-      call error_message('Error opening file: '//path)
+      call error_message('Error opening file: ', path)
     end if
 
     ! Write header with double precision
@@ -2352,7 +2428,7 @@ contains
 
     ! Write data array with double precision
     if (present(data)) then
-      if (is_canonical_) then
+      if (is_bottom_up) then
         if (is_xy_) then
           do i = nrows, 1, -1
             write(io, '(*(F0.10,1X))') (data(j,i), j=1,ncols)
@@ -2384,7 +2460,7 @@ contains
   !> \details Write spatial data to ascii file. Data will be transposed to be in xy order.
   !> \authors Sebastian Müller
   !> \date Mar 2025
-  subroutine write_ascii_grid_i4(path, ncols, nrows, xllcorner, yllcorner, cellsize, nodata, data, is_canonical, is_xy)
+  subroutine write_ascii_grid_i4(path, ncols, nrows, xllcorner, yllcorner, cellsize, nodata, data, y_direction, is_xy)
     implicit none
 
     ! Subroutine arguments
@@ -2396,17 +2472,17 @@ contains
     real(dp), intent(in) :: cellsize                 !< Size of the grid cells
     integer(i4), intent(in) :: nodata                !< Integer value indicating no data
     integer(i4), intent(in), optional :: data(:,:)   !< 2D integer array of grid data
-    logical, intent(in), optional :: is_canonical    !< Indicates if data follows increasing y-axis (default .true.)
+    integer(i4), intent(in), optional :: y_direction !< y-axis direction (0 (default) or -1 for top-down, 1 for bottom-up)
     logical, intent(in), optional :: is_xy           !< Indicates if data is in (x,y) order (default .true.)
 
     ! Local variables
     integer(i4) :: i, j
     integer(i4) :: io, ierr
-    logical :: is_canonical_, is_xy_
+    logical :: is_bottom_up, is_xy_
 
     ! Set defaults
-    is_canonical_ = .true.
-    if (present(is_canonical)) is_canonical_ = is_canonical
+    is_bottom_up = .false.
+    if (present(y_direction)) is_bottom_up = y_direction == bottom_up
     is_xy_ = .true.
     if (present(is_xy)) is_xy_ = is_xy
 
@@ -2426,7 +2502,7 @@ contains
     ! Open file for writing
     open(newunit=io, file=path, status='replace', action='write', form='formatted', iostat=ierr)
     if (ierr /= 0) then
-      call error_message('Error opening file: '//path)
+      call error_message('Error opening file: ', path)
     end if
 
     ! Write header
@@ -2439,7 +2515,7 @@ contains
 
     ! Write integer data array
     if (present(data)) then
-      if (is_canonical_) then
+      if (is_bottom_up) then
         if (is_xy_) then
           do i = nrows, 1, -1
             write(io, '(*(I0,1X))') (data(j,i), j=1,ncols)
@@ -2466,5 +2542,46 @@ contains
     close(io)
 
   end subroutine write_ascii_grid_i4
+
+  !> \brief Derive spatial index bounds.
+  !> \details Derive spatial index bounds for fine grid cells covered by a coarse grid cell assuming matching lower-left corner.
+  !> \authors Sebastian Müller
+  !> \date Apr 2025
+  subroutine id_bounds(factor, coarse_i, coarse_j, coarse_y_dir, coarse_ny, fine_y_dir, fine_nx, fine_ny, i_lb, i_ub, j_lb, j_ub)
+    integer(i4), intent(in) :: factor
+    integer(i4), intent(in) :: coarse_i !< i index on coarse grid (x-axis)
+    integer(i4), intent(in) :: coarse_j !< j index on coarse grid (y-axis)
+    integer(i4), intent(in) :: coarse_y_dir !< y-axis direction on coarse grid (0 - top-down, 1 - bottom-up)
+    integer(i4), intent(in) :: coarse_ny !< maximum for j index on coarse grid (y-axis)
+    integer(i4), intent(in) :: fine_y_dir !< y-axis direction on fine grid (0 - top-down, 1 - bottom-up)
+    integer(i4), intent(in) :: fine_nx !< maximum for i index on fine grid (x-axis)
+    integer(i4), intent(in) :: fine_ny !< maximum for j index on fine grid (y-axis)
+    integer(i4), intent(out) :: i_lb !< lower bound for i on fine grid (x-axis)
+    integer(i4), intent(out) :: i_ub !< upper bound for i on fine grid (x-axis)
+    integer(i4), intent(out) :: j_lb !< lower bound for j on fine grid (y-axis)
+    integer(i4), intent(out) :: j_ub !< upper bound for j on fine grid (y-axis)
+    integer(i4) :: temp, ic, jc
+
+    ic = coarse_i
+    ! x-axis (unaffected by y-direction)
+    i_lb = (ic - 1) * factor + 1
+    ! constrain the range to fine grid extent
+    i_ub = min(ic * factor, fine_nx)
+
+    ! if coarse is top-down, switch assumed index to start at bottom
+    jc = coarse_j
+    if (coarse_y_dir == top_down) jc = coarse_ny - coarse_j + 1
+    j_lb = (jc - 1) * factor + 1
+    ! constrain the range to fine grid extent
+    j_ub = min(jc * factor, fine_ny)
+
+    ! if fine is top-down, move ids to other side
+    if (fine_y_dir == top_down) then
+      temp = j_lb
+      j_lb = fine_ny - j_ub + 1
+      j_ub = fine_ny - temp + 1
+    end if
+
+  end subroutine id_bounds
 
 end module mo_grid
