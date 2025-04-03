@@ -226,7 +226,7 @@ contains
     if (present(read_mask)) read_mask_ = read_mask
     y_dir = keep_y
     if (present(y_direction)) y_dir = y_direction
-    if (y_dir == keep_y) y_dir = bottom_up
+    if (y_dir == keep_y) y_dir = top_down
     if (.not.any(y_dir==[bottom_up, top_down])) &
       call error_message("grid % from_ascii_file: y-direction not valid: ", trim(num2str(y_dir)))
 
