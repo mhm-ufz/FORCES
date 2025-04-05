@@ -1,6 +1,6 @@
 module test_mo_grid
   use funit
-  use mo_grid, only: grid, coordsys_cart, top_down, bottom_up
+  use mo_grid, only: grid, cartesian, top_down, bottom_up
   use mo_kind, only: i4, dp
   use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   use mo_constants, only: nodata_dp
@@ -27,7 +27,7 @@ contains
     logical, allocatable :: mask1(:,:)
 
     call cgrid%init( &
-      nx=2, ny=3, xllcorner=3973369.0_dp, yllcorner=2735847.0_dp, cellsize=72000.0_dp, coordsys=coordsys_cart, &
+      nx=2, ny=3, xllcorner=3973369.0_dp, yllcorner=2735847.0_dp, cellsize=72000.0_dp, coordsys=cartesian, &
       mask=reshape([.true., .true., .true., .true., .true., .false.], [2, 3]), y_direction=bottom_up)
 
     allocate(cgrid%lon(cgrid%nx, cgrid%ny))

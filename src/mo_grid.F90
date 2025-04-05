@@ -28,18 +28,18 @@ module mo_grid
 
   private
   ! coordsys selector
-  integer(i4), public, parameter :: coordsys_cart = 0_i4 !< Cartesian coordinate system.
-  integer(i4), public, parameter :: coordsys_sph_deg = 1_i4 !< Spherical coordinates in degrees.
+  integer(i4), public, parameter :: cartesian = 0_i4 !<    Cartesian coordinate system.
+  integer(i4), public, parameter :: spherical = 1_i4 !< Spherical coordinates in degrees.
   ! y axis direction selector
   integer(i4), public, parameter :: keep_y = -1_i4 !< keep y-axis direction.
   integer(i4), public, parameter :: top_down = 0_i4 !< y-axis with decreasing values.
   integer(i4), public, parameter :: bottom_up = 1_i4 !< y-axis with increasing values.
   ! integer(i4), public, parameter :: coordsys_sph_rad = 2_i4
   ! align selector
-  integer(i4), public, parameter :: align_ll = 0_i4 !< align in lower left corner
-  integer(i4), public, parameter :: align_lr = 1_i4 !< align in lower right corner
-  integer(i4), public, parameter :: align_ul = 2_i4 !< align in upper left corner
-  integer(i4), public, parameter :: align_ur = 3_i4 !< align in upper right corner
+  integer(i4), public, parameter :: lower_left = 0_i4 !< align in lower left corner
+  integer(i4), public, parameter :: lower_right = 1_i4 !< align in lower right corner
+  integer(i4), public, parameter :: upper_left = 2_i4 !< align in upper left corner
+  integer(i4), public, parameter :: upper_right = 3_i4 !< align in upper right corner
 
   ! -------------------------------------------------------------------
   ! GRID description
@@ -52,7 +52,7 @@ module mo_grid
   !!          the data read from .nc files is in xy order. If the y axis is decreasing, data arrays
   !!          should be flipped.
   type, public :: grid
-    integer(i4) :: coordsys = coordsys_cart !< Coordinate system for x and y. 0 -> Cartesian (default), 1 -> Spherical
+    integer(i4) :: coordsys = cartesian !< Coordinate system for x and y. 0 -> Cartesian (default), 1 -> Spherical
     integer(i4) :: y_direction = top_down !< y-axis direction (either top_down (0, default) or bottom_up (1))
     ! general domain information
     integer(i4) :: nx        !< size of x-axis (number of cols in ascii grid file)
@@ -172,9 +172,9 @@ contains
     this%cellsize = 1.0_dp
     if ( present(cellsize) ) this%cellsize = cellsize
     ! check if coordsys is supported
-    this%coordsys = coordsys_cart
+    this%coordsys = cartesian
     if ( present(coordsys) ) then
-      if (coordsys /= coordsys_cart .and. coordsys /= coordsys_sph_deg) &
+      if (coordsys /= cartesian .and. coordsys /= spherical) &
         call error_message("grid % init: unknown coordsys value: ", num2str(coordsys))
       this%coordsys = coordsys
     end if
@@ -412,8 +412,8 @@ contains
     if (.not.(x_sph.eqv.y_sph)) &
       call error_message("grid % from_netcdf: x and y axis seem to have different coordinate systems: ", trim(nc%fname), ":", var)
 
-    coordsys = coordsys_cart
-    if (x_sph) coordsys = coordsys_sph_deg
+    coordsys = cartesian
+    if (x_sph) coordsys = spherical
 
     ! check axis uniformity and monotonicity
     call check_uniform_axis(xvar, cellsize=cs_x, origin=xll, tol=tol)
@@ -456,7 +456,7 @@ contains
     call this%init(nx, ny, xll, yll, cellsize, coordsys, mask, y_dir)
     deallocate(mask)
 
-    if (read_aux_ .and. coordsys == coordsys_cart .and. ncvar%hasAttribute("coordinates")) then
+    if (read_aux_ .and. coordsys == cartesian .and. ncvar%hasAttribute("coordinates")) then
       call ncvar%getAttribute("coordinates", tmp_str)
       coords_str = splitString(trim(tmp_str), " ")
       if (size(coords_str) < 2) &
@@ -507,7 +507,7 @@ contains
     character(:), allocatable :: lon_, lat_
     character(len=256) :: name
 
-    if (this%coordsys /= coordsys_cart) &
+    if (this%coordsys /= cartesian) &
       call error_message("grid % aux_from_netcdf: need projected axis to have auxilliar coordinates.")
 
     lon_ = lon
@@ -668,7 +668,7 @@ contains
     dtype = "f32"
     if ( double_precision_ ) dtype = "f64"
 
-    if (this%coordsys==coordsys_cart) then
+    if (this%coordsys==cartesian) then
       xname = "x"
       yname = "y"
     else
@@ -703,7 +703,7 @@ contains
     xb_var = nc%setVariable(xname // "_bnds", dtype, [b_dim, x_dim])
     yb_var = nc%setVariable(yname // "_bnds", dtype, [b_dim, y_dim])
 
-    if (this%coordsys==coordsys_cart) then
+    if (this%coordsys==cartesian) then
       call x_var%setAttribute("long_name", "x coordinate of projection")
       call x_var%setAttribute("standard_name", "projection_x_coordinate")
       call y_var%setAttribute("long_name", "y coordinate of projection")
@@ -936,7 +936,7 @@ contains
     call this%check_is_covering(fine_grid, tol=tol, check_mask=.false.)
     call check_factor(fine_grid%cellsize, this%cellsize, factor=factor, tol=tol)
 
-    if (this % coordsys /= coordsys_cart) &
+    if (this % coordsys /= cartesian) &
       call error_message("grid % upscale_aux_coords: grids already use spherical coordinate system for axis.")
 
     if (.not. fine_grid%has_aux_coords()) &
@@ -979,7 +979,7 @@ contains
     call this%check_is_covered_by(coarse_grid, tol=tol, check_mask=.false.)
     call check_factor(this%cellsize, coarse_grid%cellsize, rounded=fac, factor=factor, tol=tol)
 
-    if (this % coordsys /= coordsys_cart) &
+    if (this % coordsys /= cartesian) &
       call error_message("grid % downscale_aux_coords: grids already use spherical coordinate system for axis.")
 
     if (.not. coarse_grid%has_aux_coords()) &
@@ -1455,11 +1455,11 @@ contains
     if (.not. allocated(this%cell_area)) allocate(this%cell_area(this%n_cells))
 
     ! regular X-Y coordinate system
-    if(this%coordsys .eq. coordsys_cart) then
+    if(this%coordsys .eq. cartesian) then
       this%cell_area(:) = this%cellsize * this%cellsize
 
     ! regular lat-lon coordinate system
-    else if(this%coordsys .eq. coordsys_sph_deg) then
+    else if(this%coordsys .eq. spherical) then
       allocate(cell_area(this%nx, this%ny))
 
       ! A = R ** 2 * dx * (sin(lat1) - sin(lon2))
@@ -1495,7 +1495,7 @@ contains
     use mo_utils, only : is_close
     implicit none
     class(grid), intent(in) :: this
-    if (this%coordsys == coordsys_cart) then
+    if (this%coordsys == cartesian) then
       is_periodic = .false.
     else
       is_periodic = is_close(360.0_dp, this%nx * this%cellsize)
@@ -1608,7 +1608,7 @@ contains
     end if
 
     ! only estimate aux coords if we are on a projected grid
-    if ( estimate_aux_ .and. this%coordsys == coordsys_cart .and. this%has_aux_coords()) then
+    if ( estimate_aux_ .and. this%coordsys == cartesian .and. this%has_aux_coords()) then
       call coarse_grid%upscale_aux_coords(this, tol=tol)
     end if
 
@@ -1670,7 +1670,7 @@ contains
     if (estimate_area_) call fine_grid%calculate_cell_area()
 
     ! only estimate aux coords if we are on a projected grid
-    if ( estimate_aux_ .and. this%coordsys == coordsys_cart .and. this%has_aux_coords()) then
+    if ( estimate_aux_ .and. this%coordsys == cartesian .and. this%has_aux_coords()) then
       call fine_grid%downscale_aux_coords(this, tol=tol)
     end if
 
@@ -1834,7 +1834,7 @@ contains
     real(dp) :: cellFactor, rounded
     integer(i4) :: factor, align_
 
-    align_ = align_ll
+    align_ = lower_left
     if ( present(aligning) ) align_ = aligning
 
     call check_factor(cellsize_in, target_resolution, cellFactor, rounded, factor, tol)
@@ -1849,13 +1849,13 @@ contains
 
     ! align grids based on the selected aligning corner
     ! keep yll if aligning in (lower)-left or (lower)-right
-    if (align_ == align_ll .or. align_ == align_lr) then
+    if (align_ == lower_left .or. align_ == lower_right) then
       yllcorner_out = yllcorner_in
     else
       yllcorner_out = yllcorner_in + real(ny_in, dp) * target_resolution / rounded - real(ny_out, dp) * cellsize_out
     endif
     ! keep xll if aligning in lower-(left) or top-(left)
-    if (align_ == align_ll .or. align_ == align_ul) then
+    if (align_ == lower_left .or. align_ == upper_left) then
       xllcorner_out = xllcorner_in
     else
       xllcorner_out = xllcorner_in + real(nx_in, dp) * target_resolution / rounded - real(nx_out, dp) * cellsize_out
