@@ -3,9 +3,9 @@ module test_mo_regridder
   use mo_grid, only: grid, cartesian, top_down, bottom_up
   use mo_regridder, only: regridder, up_h_mean, up_p_mean, up_min, up_max
   use mo_kind, only: i4, dp
-  use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   use mo_constants, only: nodata_dp
   use mo_utils, only: flip, flipped
+  ! use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   implicit none
 
   private
@@ -20,9 +20,9 @@ contains
     implicit none
     type(grid), target :: cgrid, fgrid
     type(regridder) :: upscaler
-    type(NcDataset) :: nc
-    type(NcDimension) :: x_dim, y_dim
-    type(NcVariable) :: var
+    ! type(NcDataset) :: nc
+    ! type(NcDimension) :: x_dim, y_dim
+    ! type(NcVariable) :: var
     real(dp) :: t=1.0E-5_dp
     real(dp) :: ref_val
     integer(i4) :: xt, xb, yt, yb, i

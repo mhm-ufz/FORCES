@@ -1,4 +1,4 @@
-module test_mo_regridder
+module test_mo_grid
   use funit
   use mo_grid, only: grid, cartesian, top_down, bottom_up
   use mo_kind, only: i4, dp
@@ -100,4 +100,4 @@ contains
 
   end subroutine test_grid
 
-end module test_mo_regridder
+end module test_mo_grid
