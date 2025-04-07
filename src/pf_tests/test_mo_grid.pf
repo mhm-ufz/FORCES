@@ -1,4 +1,4 @@
-module test_mo_grid
+module test_mo_regridder
   use funit
   use mo_grid, only: grid, cartesian, top_down, bottom_up
   use mo_kind, only: i4, dp
@@ -36,7 +36,7 @@ contains
     cgrid%lat(:,:) = reshape([47.9806_dp, 48.0130_dp, 48.6272_dp, 48.6600_dp, 49.2736_dp, 49.3069_dp], [2, 3])
     call cgrid%estimate_aux_vertices()
 
-    fgrid = cgrid%derive_grid(factor_up=3)
+    fgrid = cgrid%derive_grid(downscaling_factor=3)
 
     ! write NetCDF
     nc = NcDataset("6x9.nc", "w")
@@ -47,7 +47,7 @@ contains
     call var%setFillValue(nodata_dp)
     call var%setAttribute("missing_value", nodata_dp)
     call var%setAttribute("coordinates", "lat lon")
-    dummyv1 = [(real(i, dp), i=1,cgrid%n_cells)]
+    dummyv1 = [(real(i, dp), i=1,cgrid%ncells)]
     dummy1 = cgrid%unpack_data(dummyv1)
     call var%setData(dummy1)
     call nc%close()
@@ -62,20 +62,20 @@ contains
     ! correct reading from ascii
     @assertEqual(rgrid%y_direction, bottom_up, message='before ascii bottom_up')
     @assertEqual(agrid%y_direction, top_down, message='after ascii top_down')
-    @assertEqual(rgrid%n_cells, agrid%n_cells)
+    @assertEqual(rgrid%ncells, agrid%ncells)
     @assertEqual(rgrid%nx, agrid%nx)
     @assertEqual(rgrid%ny, agrid%ny)
     @assertEqual(rgrid%xllcorner, agrid%xllcorner, tolerance=t, message='ascii xllcorner compare')
     @assertEqual(rgrid%yllcorner, agrid%yllcorner, tolerance=t, message='ascii yllcorner compare')
     @assertEqual(rgrid%mask, flipped(agrid%mask, 2), message='mask compare after ascii write')
 
-    @assertEqual(fgrid%n_cells, 45)
+    @assertEqual(fgrid%ncells, 45)
     @assertEqual(fgrid%nx, 6)
     @assertEqual(fgrid%ny, 9)
     @assertEqual(fgrid%xllcorner, cgrid%xllcorner, tolerance=t, message='xllcorner compare')
     @assertEqual(fgrid%yllcorner, cgrid%yllcorner, tolerance=t, message='yllcorner compare')
 
-    @assertEqual(rgrid%n_cells, 5)
+    @assertEqual(rgrid%ncells, 5)
     @assertEqual(rgrid%nx, 2)
     @assertEqual(rgrid%ny, 3)
     @assertEqual(rgrid%xllcorner, cgrid%xllcorner)
@@ -100,4 +100,4 @@ contains
 
   end subroutine test_grid
 
-end module test_mo_grid
+end module test_mo_regridder

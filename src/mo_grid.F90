@@ -57,17 +57,17 @@ module mo_grid
     ! general domain information
     integer(i4) :: nx        !< size of x-axis (number of cols in ascii grid file)
     integer(i4) :: ny        !< size of y-axis (number of rows in ascii grid file)
-    integer(i4) :: n_cells   !< number of cells in mask
+    integer(i4) :: ncells   !< number of cells in mask
     real(dp) :: xllcorner    !< x coordinate of the lowerleft corner
     real(dp) :: yllcorner    !< y coordinate of the lowerleft corner
     real(dp) :: cellsize     !< cellsize x = cellsize y
-    real(dp), dimension(:), allocatable :: cell_area !< area of the cell in sqare m, size (n_cells)
+    real(dp), dimension(:), allocatable :: cell_area !< area of the cell in sqare m, size (ncells)
     logical, dimension(:, :), allocatable :: mask    !< the mask for valid cells in the original grid, size (nx, ny)
     real(dp), dimension(:, :), allocatable :: lat    !< 2d longitude array (auxiliary coordinate for X axis), size (nx, ny)
     real(dp), dimension(:, :), allocatable :: lon    !< 2d latitude  array (auxiliary coordinate for Y axis), size (nx, ny)
     real(dp), dimension(:, :), allocatable :: lat_vertices  !< latitude coordinates or the grid nodes, size (nx+1, ny+1)
     real(dp), dimension(:, :), allocatable :: lon_vertices  !< longitude coordinates or the grid nodes, size (nx+1, ny+1)
-    integer(i4), dimension(:, :), allocatable :: cell_ij    !< matrix IDs (i, j) per cell in mask, size (n_cells, 2)
+    integer(i4), dimension(:, :), allocatable :: cell_ij    !< matrix IDs (i, j) per cell in mask, size (ncells, 2)
   contains
     procedure, public :: init => grid_init
     procedure, public :: from_ascii_file
@@ -1407,8 +1407,8 @@ contains
       this%mask = .true.
     end if
 
-    this%n_cells = count(this%mask)
-    allocate(this%cell_ij(this%n_cells, 2))
+    this%ncells = count(this%mask)
+    allocate(this%cell_ij(this%ncells, 2))
 
     k = 0
     do j = 1, this%ny
@@ -1452,7 +1452,7 @@ contains
     real(dp) :: factor, cell_size_rad, cell_center_lat_rad
     integer(i4) :: j
 
-    if (.not. allocated(this%cell_area)) allocate(this%cell_area(this%n_cells))
+    if (.not. allocated(this%cell_area)) allocate(this%cell_area(this%ncells))
 
     ! regular X-Y coordinate system
     if(this%coordsys .eq. cartesian) then
@@ -1584,7 +1584,7 @@ contains
           ! lowres additional properties
           allocate(fine_cell_area(this%nx, this%ny))
           fine_cell_area(:, :) = this%unpack_data(this%cell_area)
-          allocate(coarse_grid%cell_area(coarse_grid%n_cells))
+          allocate(coarse_grid%cell_area(coarse_grid%ncells))
           k = 0
           do j = 1, coarse_grid%ny
             do i = 1, coarse_grid%nx
@@ -1680,20 +1680,17 @@ contains
   !> \return `type(grid) :: result_grid`
   !> \authors Sebastian Müller
   !> \date    Mar 2025
-  function derive_grid(this, target_resolution, factor_up, factor_down, estimate_aux, estimate_area, area_method, tol) &
-    result(result_grid)
-
+  function derive_grid(this, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, estimate_area, area_method, tol)
     implicit none
-
     class(grid), intent(inout) :: this
     real(dp), intent(in), optional :: target_resolution !< desired target resolution
-    integer(i4), intent(in), optional :: factor_up !< factor for finer grid
-    integer(i4), intent(in), optional :: factor_down !< factor for coarser grid
+    integer(i4), intent(in), optional :: downscaling_factor !< factor for finer grid
+    integer(i4), intent(in), optional :: upscaling_factor !< factor for coarser grid
     logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
     logical, intent(in), optional :: estimate_area !< whether to estimate cell areas (default: .true.)
     integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from other grid, (1) from cell extent
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    type(grid) :: result_grid !< resulting grid
+    type(grid) :: derive_grid !< resulting grid
     real(dp) :: resolution
     integer(i4) :: input_opt
 
@@ -1702,22 +1699,22 @@ contains
       input_opt = input_opt + 1
       resolution = target_resolution
     end if
-    if (present(factor_up)) then
+    if (present(downscaling_factor)) then
       input_opt = input_opt + 1
-      resolution = this%cellsize / real(factor_up, dp)
+      resolution = this%cellsize / real(downscaling_factor, dp)
     end if
-    if (present(factor_down)) then
+    if (present(upscaling_factor)) then
       input_opt = input_opt + 1
-      resolution = this%cellsize * real(factor_down, dp)
+      resolution = this%cellsize * real(upscaling_factor, dp)
     end if
     if (input_opt /= 1) then
       call error_message("derive_grid: only one of 'target_resolution', 'factor_up' or 'factor_down' can be given.")
     end if
 
     if (resolution < this%cellsize) then
-      result_grid = this%derive_fine_grid(resolution, estimate_aux, estimate_area, area_method, tol)
+      derive_grid = this%derive_fine_grid(resolution, estimate_aux, estimate_area, area_method, tol)
     else
-      result_grid = this%derive_coarse_grid(resolution, estimate_aux, estimate_area, area_method, tol)
+      derive_grid = this%derive_coarse_grid(resolution, estimate_aux, estimate_area, area_method, tol)
     end if
 
   end function derive_grid
@@ -1738,7 +1735,7 @@ contains
         num2str(this%nx), ",", num2str(this%nx), "), got: (", &
         num2str(size(data, dim=1)), ",", num2str(size(data, dim=2)), ")")
     end if
-    allocate(out_data(this%n_cells))
+    allocate(out_data(this%ncells))
     out_data(:) = pack(data, this%mask)
   end function pack_data_dp
 
@@ -1758,7 +1755,7 @@ contains
         num2str(this%nx), ",", num2str(this%ny), "), got: (", &
         num2str(size(data, dim=1)), ",", num2str(size(data, dim=2)), ")")
     end if
-    allocate(out_data(this%n_cells))
+    allocate(out_data(this%ncells))
     out_data(:) = pack(data, this%mask)
   end function pack_data_i4
 
@@ -1773,10 +1770,10 @@ contains
     real(dp), intent(in) :: data(:)
     real(dp), allocatable :: out_data(:,:)
 
-    if (size(data) /= this%n_cells) then
+    if (size(data) /= this%ncells) then
       call error_message( &
         "unpack_data: data has wrong shape. Expected: (", &
-        num2str(this%n_cells), "), got: (", num2str(size(data)), ")")
+        num2str(this%ncells), "), got: (", num2str(size(data)), ")")
     end if
     allocate(out_data(this%nx, this%ny))
     out_data(:,:) = unpack(data, this%mask, nodata_dp)
@@ -1793,10 +1790,10 @@ contains
     integer(i4), intent(in) :: data(:)
     integer(i4), allocatable :: out_data(:,:)
 
-    if (size(data) /= this%n_cells) then
+    if (size(data) /= this%ncells) then
       call error_message( &
         "unpack_data: data has wrong shape. Expected: (", &
-        num2str(this%n_cells), "), got: (", num2str(size(data)), ")")
+        num2str(this%ncells), "), got: (", num2str(size(data)), ")")
     end if
     allocate(out_data(this%nx, this%ny))
     out_data(:,:) = unpack(data, this%mask, nodata_i4)
@@ -2491,7 +2488,7 @@ contains
     ! constrain the range to fine grid extent
     j_ub = min(jc * factor, fine_ny)
 
-    ! if fine is top-down, move ids to other side
+    ! if fine is top-down, move ids to other side (also switch upper and lower bound)
     if (fine_y_dir == top_down) then
       temp = j_lb
       j_lb = fine_ny - j_ub + 1
