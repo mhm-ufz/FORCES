@@ -71,6 +71,8 @@ module mo_regridder
     procedure, private :: regridder_upscale_sum_dp, regridder_upscale_sum_i4
     generic, public :: upscale_sum => regridder_upscale_sum_dp, regridder_upscale_sum_i4
     procedure, private :: regridder_downscale_nearest_dp, regridder_downscale_nearest_i4
+    procedure, public :: upscale_var => regridder_upscale_var
+    procedure, public :: upscale_std => regridder_upscale_std
     generic, public :: downscale_nearest => regridder_downscale_nearest_dp, regridder_downscale_nearest_i4
     procedure, public :: downscale_split => regridder_downscale_split
   end type regridder
@@ -185,11 +187,9 @@ contains
         case (up_sum)
           call this%upscale_sum(in_data, out_data)
         case (up_var)
-          call error_message("regridder: variance upscaling operator not implemented.")
-          ! call this%upscale_var(in_data, out_data)
+          call this%upscale_var(in_data, out_data)
         case (up_std)
-          call error_message("regridder: standard deviation upscaling operator not implemented.")
-          ! call this%upscale_std(in_data, out_data)
+          call this%upscale_std(in_data, out_data)
         case (up_laf)
           call error_message("regridder: largest area fraction upscaling operator not supported for real data.")
         case (up_fraction)
@@ -306,11 +306,9 @@ contains
           out_data = real(temp, dp)
           deallocate(temp)
         case (up_var)
-          call error_message("regridder: variance upscaling operator not implemented.")
-          ! call this%upscale_var(real(in_data, dp), out_data)
+          call this%upscale_var(real(in_data, dp), out_data)
         case (up_std)
-          call error_message("regridder: standard deviation upscaling not implemented.")
-          ! call this%upscale_std(real(in_data, dp), out_data)
+          call this%upscale_std(real(in_data, dp), out_data)
         case (up_laf)
           call error_message("regridder: largest area fraction upscaling operator not implemented.")
           ! allocate(temp(this%coarse_grid%ncells))
@@ -585,6 +583,49 @@ contains
     !$omp end parallel do
     deallocate(source_matrix)
   end subroutine regridder_upscale_sum_i4
+
+  subroutine regridder_upscale_var(this, in_data, out_data)
+    class(regridder), intent(inout) :: this
+    real(dp), dimension(:), intent(in) ::  in_data
+    real(dp), dimension(:), intent(out) ::  out_data
+
+    real(dp), dimension(:,:), allocatable ::  source_matrix, weight_matrix
+    real(dp) ::  mean
+    integer(i4) :: k
+
+    call check_upscaling(this%scaling_mode)
+    allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
+    allocate(weight_matrix(this%fine_grid%nx, this%fine_grid%ny))
+    source_matrix = this%fine_grid%unpack_data(1.0_dp / in_data)
+    weight_matrix = this%fine_grid%unpack_data(this%fine_grid%cell_area)
+    !$omp parallel do default(shared) private(k, mean) schedule(static)
+    do k = 1_i4, this%coarse_grid%ncells
+      mean = sum( &
+          pack(source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
+              this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
+        * pack(weight_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
+              this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
+      ) / this%coarse_grid%cell_area(k)
+      out_data(k) = sum( &
+        ( pack(source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
+               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
+        - mean ) ** 2_i4 &
+        * pack(weight_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
+               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
+      ) / this%coarse_grid%cell_area(k)
+    end do
+    !$omp end parallel do
+    deallocate(source_matrix)
+    deallocate(weight_matrix)
+  end subroutine regridder_upscale_var
+
+  subroutine regridder_upscale_std(this, in_data, out_data)
+    class(regridder), intent(inout) :: this
+    real(dp), dimension(:), intent(in) ::  in_data
+    real(dp), dimension(:), intent(out) ::  out_data
+    call this%upscale_var(in_data, out_data)
+    out_data = sqrt(out_data)
+  end subroutine regridder_upscale_std
 
   subroutine regridder_downscale_nearest_dp(this, in_data, out_data)
     class(regridder), intent(inout) :: this
