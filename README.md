@@ -69,7 +69,7 @@ cmake -B build -D FORCES_EXE=test.f90
 cmake --build build --parallel
 ./build/main
 ```
-You can use this with the examples provided in the `examples/` directory.
+You can use this with the examples provided in the `examples/` directory, e.g. `FORCES_EXE=examples/01_grids/01_regridding.f90`.
 The executable will be always called `main`.
 
 For a more complex project, prepared for unit-tests, documentation and modules, have a look at the [Fortran Template](https://git.ufz.de/chs/fortran-template).
