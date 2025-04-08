@@ -63,6 +63,15 @@ And it will happily write:
 This is working!
 ```
 
+If you have the FORCES sources downloaded and you want to link a local executable against it, you can specify a path to CMake with `FORCES_EXE`:
+```bash
+cmake -B build -D FORCES_EXE=test.f90
+cmake --build build --parallel
+./build/main
+```
+You can use this with the examples provided in the `examples/` directory.
+The executable will be always called `main`.
+
 For a more complex project, prepared for unit-tests, documentation and modules, have a look at the [Fortran Template](https://git.ufz.de/chs/fortran-template).
 
 ## Dependencies and Requirements
