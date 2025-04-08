@@ -68,6 +68,8 @@ module mo_regridder
     generic, public :: upscale_min => regridder_upscale_min_dp, regridder_upscale_min_i4
     procedure, private :: regridder_upscale_max_dp, regridder_upscale_max_i4
     generic, public :: upscale_max => regridder_upscale_max_dp, regridder_upscale_max_i4
+    procedure, private :: regridder_upscale_sum_dp, regridder_upscale_sum_i4
+    generic, public :: upscale_sum => regridder_upscale_sum_dp, regridder_upscale_sum_i4
   end type regridder
 
 contains
@@ -138,42 +140,35 @@ contains
 
   end subroutine regridder_init
 
-  subroutine arg_init(up_op, down_op, norm, cls_id, upscaling_operator, downscaling_operator, p, class_id)
-    integer(i4), intent(out) ::  up_op
-    integer(i4), intent(out) ::  down_op
-    real(dp), intent(out) ::  norm
-    integer(i4), intent(out) ::  cls_id
-    integer(i4), intent(in), optional ::  upscaling_operator
-    integer(i4), intent(in), optional ::  downscaling_operator
-    real(dp), intent(in), optional ::  p
-    integer(i4), intent(in), optional ::  class_id
-    up_op = up_a_mean
-    if (present(upscaling_operator)) up_op = upscaling_operator
-    down_op = down_nearest
-    if (present(downscaling_operator)) down_op = downscaling_operator
-    norm = 1.0_dp
-    if (present(p)) norm = p
-    cls_id = 0_i4
-    if (present(class_id)) cls_id = class_id
+  subroutine arg_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
+    integer(i4), intent(out) ::  up_operator !< upscaling operator
+    integer(i4), intent(out) ::  down_operator !< downscaling operator
+    integer(i4), intent(in), optional ::  upscaling_operator !< provided upscaling operator (up_a_mean by default)
+    integer(i4), intent(in), optional ::  downscaling_operator !< provided downscaling operator (down_nearest by default)
+    up_operator = up_a_mean
+    if (present(upscaling_operator)) up_operator = upscaling_operator
+    down_operator = down_nearest
+    if (present(downscaling_operator)) down_operator = downscaling_operator
   end subroutine arg_init
 
-  subroutine regridder_execute_dp(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id)
+  subroutine regridder_execute_dp(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(regridder), intent(inout) :: this
-    real(dp), dimension(:), intent(in) ::  in_data
-    real(dp), dimension(:), intent(out) ::  out_data
-    integer(i4), intent(in), optional ::  upscaling_operator
-    integer(i4), intent(in), optional ::  downscaling_operator
-    real(dp), intent(in), optional ::  p
-    integer(i4), intent(in), optional ::  class_id
+    real(dp), dimension(:), intent(in) ::  in_data !< input data on source grid
+    real(dp), dimension(:), intent(out) ::  out_data !< output data on target grid
+    integer(i4), intent(in), optional ::  upscaling_operator !< upscaling operator (up_a_mean by default)
+    integer(i4), intent(in), optional ::  downscaling_operator !< downscaling operator (down_nearest by default)
+    real(dp), intent(in), optional ::  p !< exponent for the up_p_mean operator
+    integer(i4), intent(in), optional ::  class_id !< class id for up_fraction operator
+    integer(i4), intent(in), optional ::  vmin !< minimum of values to speed up up_laf operator (huge() by default - tbd)
+    integer(i4), intent(in), optional ::  vmax !< maximum of values to speed up up_laf operator (-huge() by default - tbd)
 
-    real(dp) :: norm
-    integer(i4) :: up_op, down_op, cls_id
+    integer(i4) :: up_operator, down_operator
+    call arg_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
 
-    call arg_init(up_op, down_op, norm, cls_id, upscaling_operator, downscaling_operator, p, class_id)
     if (this%scaling_mode == up_scaling) then
-      select case (up_op)
+      select case (up_operator)
         case (up_p_mean)
-          call this%upscale_p_mean(in_data, out_data, norm)
+          call this%upscale_p_mean(in_data, out_data, p)
         case (up_a_mean)
           call this%upscale_a_mean(in_data, out_data)
         case (up_g_mean)
@@ -184,38 +179,52 @@ contains
           call this%upscale_min(in_data, out_data)
         case (up_max)
           call this%upscale_max(in_data, out_data)
+        case (up_sum)
+          call this%upscale_sum(in_data, out_data)
+        case (up_var)
+          call error_message("regridder: variance upscaling operator not implemented.")
+          ! call this%upscale_var(in_data, out_data)
+        case (up_std)
+          call error_message("regridder: standard deviation upscaling operator not implemented.")
+          ! call this%upscale_std(in_data, out_data)
+        case (up_laf)
+          call error_message("regridder: largest area fraction upscaling operator not supported for real data.")
+        case (up_fraction)
+          call error_message("regridder: class fraction upscaling operator not supported for real input data.")
         case default
-          call error_message("regridder: unknown upscaling operator: ", trim(num2str(up_op)))
+          call error_message("regridder: unknown upscaling operator: ", trim(num2str(up_operator)))
       end select
     else ! down-scaling
-      select case (down_op)
-      case (down_nearest)
-        call error_message("downscale_nearest not implemented")
-        ! call this%downscale_nearest(in_data, out_data)
-      case (down_split)
-        call error_message("downscale_fraction not implemented")
-        ! call this%downscale_fraction(in_data, out_data)
-      case default
-        call error_message("regridder: unknown downscaling operator: ", trim(num2str(down_op)))
-    end select
-  end if
+      select case (down_operator)
+        case (down_nearest)
+          call error_message("regridder: nearest neighbor downscaling operator not implemented")
+          ! call this%downscale_nearest(in_data, out_data)
+        case (down_split)
+          call error_message("regridder: equal summand downscaling operator not implemented")
+          ! call this%downscale_split(in_data, out_data)
+        case default
+          call error_message("regridder: unknown downscaling operator: ", trim(num2str(down_operator)))
+      end select
+    end if
 
   end subroutine regridder_execute_dp
 
-  subroutine regridder_execute_i4(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id)
+  subroutine regridder_execute_i4(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(regridder), intent(inout) :: this
-    integer(i4), dimension(:), intent(in) ::  in_data
-    integer(i4), dimension(:), intent(out) ::  out_data
-    integer(i4), intent(in), optional ::  upscaling_operator
-    integer(i4), intent(in), optional ::  downscaling_operator
-    real(dp), intent(in), optional ::  p
-    integer(i4), intent(in), optional ::  class_id
+    integer(i4), dimension(:), intent(in) ::  in_data !< input data on source grid
+    integer(i4), dimension(:), intent(out) ::  out_data !< output data on target grid
+    integer(i4), intent(in), optional ::  upscaling_operator !< upscaling operator (up_a_mean by default)
+    integer(i4), intent(in), optional ::  downscaling_operator !< downscaling operator (down_nearest by default)
+    real(dp), intent(in), optional ::  p !< exponent for the up_p_mean operator
+    integer(i4), intent(in), optional ::  class_id !< class id for up_fraction operator
+    integer(i4), intent(in), optional ::  vmin !< minimum of values to speed up up_laf operator (huge() by default - tbd)
+    integer(i4), intent(in), optional ::  vmax !< maximum of values to speed up up_laf operator (-huge() by default - tbd)
 
-    real(dp) :: norm
-    integer(i4) :: up_op, down_op, cls_id
-    call arg_init(up_op, down_op, norm, cls_id, upscaling_operator, downscaling_operator, p, class_id)
+    integer(i4) :: up_operator, down_operator
+    call arg_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
+
     if (this%scaling_mode == up_scaling) then
-      select case (up_op)
+      select case (up_operator)
         case (up_p_mean)
           call error_message("regridder: p-mean upscaling operator not supported for integer data.")
         case (up_a_mean)
@@ -228,39 +237,54 @@ contains
           call this%upscale_min(in_data, out_data)
         case (up_max)
           call this%upscale_max(in_data, out_data)
+        case (up_sum)
+          call this%upscale_sum(in_data, out_data)
+        case (up_var)
+          call error_message("regridder: variance upscaling operator not supported for integer data.")
+        case (up_std)
+          call error_message("regridder: standard deviation upscaling not supported for integer data.")
+        case (up_laf)
+          call error_message("regridder: largest area fraction upscaling operator not implemented.")
+          ! call this%upscale_laf(in_data, out_data, vmin, vmax)
+        case (up_fraction)
+          call error_message("regridder: class fraction upscaling operator not supported for integer output data.")
         case default
-          call error_message("regridder: unknown upscaling operator: ", trim(num2str(up_op)))
+          call error_message("regridder: unknown upscaling operator: ", trim(num2str(up_operator)))
       end select
     else ! down-scaling
-      select case (down_op)
+      select case (down_operator)
         case (down_nearest)
-          call error_message("downscale_nearest not implemented")
+          call error_message("regridder: nearest neighbor downscaling operator not implemented")
           ! call this%downscale_nearest(in_data, out_data)
         case (down_split)
-          call error_message("downscale_fraction not implemented")
-          ! call this%downscale_fraction(in_data, out_data)
+          call error_message("regridder: equal summand downscaling operator not implemented")
+          ! call this%downscale_split(in_data, out_data)
         case default
-          call error_message("regridder: unknown downscaling operator: ", trim(num2str(down_op)))
+          call error_message("regridder: unknown downscaling operator: ", trim(num2str(down_operator)))
       end select
     end if
   end subroutine regridder_execute_i4
 
-  subroutine regridder_execute_i4_dp(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id)
+  subroutine regridder_execute_i4_dp(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(regridder), intent(inout) :: this
-    integer(i4), dimension(:), intent(in) ::  in_data
-    real(dp), dimension(:), intent(out) ::  out_data
-    integer(i4), intent(in), optional ::  upscaling_operator
-    integer(i4), intent(in), optional ::  downscaling_operator
-    real(dp), intent(in), optional ::  p
-    integer(i4), intent(in), optional ::  class_id
+    integer(i4), dimension(:), intent(in) ::  in_data !< input data on source grid
+    real(dp), dimension(:), intent(out) ::  out_data !< output data on target grid
+    integer(i4), intent(in), optional ::  upscaling_operator !< upscaling operator (up_a_mean by default)
+    integer(i4), intent(in), optional ::  downscaling_operator !< downscaling operator (down_nearest by default)
+    real(dp), intent(in), optional ::  p !< exponent for the up_p_mean operator
+    integer(i4), intent(in), optional ::  class_id !< class id for up_fraction operator
+    integer(i4), intent(in), optional ::  vmin !< minimum of values to speed up up_laf operator (huge() by default - tbd)
+    integer(i4), intent(in), optional ::  vmax !< maximum of values to speed up up_laf operator (-huge() by default - tbd)
 
-    real(dp) :: norm
-    integer(i4) :: up_op, down_op, cls_id
-    call arg_init(up_op, down_op, norm, cls_id, upscaling_operator, downscaling_operator, p, class_id)
+    integer(i4), dimension(:), allocatable :: temp
+
+    integer(i4) :: up_operator, down_operator
+    call arg_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
+
     if (this%scaling_mode == up_scaling) then
-      select case (up_op)
+      select case (up_operator)
         case (up_p_mean)
-          call this%upscale_p_mean(real(in_data, dp), out_data, norm)
+          call this%upscale_p_mean(real(in_data, dp), out_data, p)
         case (up_a_mean)
           call this%upscale_a_mean(real(in_data, dp), out_data)
         case (up_g_mean)
@@ -268,22 +292,54 @@ contains
         case (up_h_mean)
           call this%upscale_h_mean(real(in_data, dp), out_data)
         case (up_min)
-          call this%upscale_min(real(in_data, dp), out_data)
+          allocate(temp(this%coarse_grid%ncells))
+          call this%upscale_min(in_data, temp)
+          out_data = real(temp, dp)
+          deallocate(temp)
         case (up_max)
-          call this%upscale_max(real(in_data, dp), out_data)
+          allocate(temp(this%coarse_grid%ncells))
+          call this%upscale_max(in_data, temp)
+          out_data = real(temp, dp)
+          deallocate(temp)
+        case (up_sum)
+          allocate(temp(this%coarse_grid%ncells))
+          call this%upscale_sum(in_data, temp)
+          out_data = real(temp, dp)
+          deallocate(temp)
+        case (up_var)
+          call error_message("regridder: variance upscaling operator not implemented.")
+          ! call this%upscale_var(real(in_data, dp), out_data)
+        case (up_std)
+          call error_message("regridder: standard deviation upscaling not implemented.")
+          ! call this%upscale_std(real(in_data, dp), out_data)
+        case (up_laf)
+          call error_message("regridder: largest area fraction upscaling operator not implemented.")
+          ! allocate(temp(this%coarse_grid%ncells))
+          ! call this%upscale_laf(in_data, temp, vmin, vmax)
+          ! out_data = real(temp, dp)
+          ! deallocate(temp)
+        case (up_fraction)
+          call error_message("regridder: class fraction upscaling operator not implemented.")
+          ! call this%upscale_fraction(in_data, out_data)
         case default
-          call error_message("regridder: unknown upscaling operator: ", trim(num2str(up_op)))
+          call error_message("regridder: unknown upscaling operator: ", trim(num2str(up_operator)))
       end select
     else ! down-scaling
-      select case (down_op)
+      select case (down_operator)
         case (down_nearest)
-          call error_message("downscale_nearest not implemented")
-          ! call this%downscale_nearest(real(in_data, dp), out_data)
+          call error_message("regridder: nearest neighbor downscaling operator not implemented")
+          ! allocate(temp(this%coarse_grid%ncells))
+          ! call this%downscale_nearest(in_data, temp)
+          ! out_data = real(temp, dp)
+          ! deallocate(temp)
         case (down_split)
-          call error_message("downscale_fraction not implemented")
-          ! call this%downscale_fraction(real(in_data, dp), out_data)
+          call error_message("regridder: equal summand downscaling operator not implemented")
+          ! allocate(temp(this%coarse_grid%ncells))
+          ! call this%downscale_split(in_data, temp)
+          ! out_data = real(temp, dp)
+          ! deallocate(temp)
         case default
-          call error_message("regridder: unknown downscaling operator: ", trim(num2str(down_op)))
+          call error_message("regridder: unknown downscaling operator: ", trim(num2str(down_operator)))
       end select
     end if
   end subroutine regridder_execute_i4_dp
@@ -292,18 +348,21 @@ contains
     class(regridder), intent(inout) :: this
     real(dp), dimension(:), intent(in) ::  in_data
     real(dp), dimension(:), intent(out) ::  out_data
-    real(dp), intent(in) ::  p
+    real(dp), intent(in), optional :: p !< exponent for the p-norm (1.0 for arithmetic mean by default)
     real(dp), dimension(:,:), allocatable ::  source_matrix, weight_matrix
     integer(i4) :: k
-    if (eq(p, 0.0_dp)) then
+    real(dp) :: p_
+    p_ = 1.0_dp
+    if (present(p)) p_ = p
+    if (eq(p_, 0.0_dp)) then
       call this%upscale_g_mean(in_data, out_data)
-    else if (eq(p, 1.0_dp)) then
+    else if (eq(p_, 1.0_dp)) then
       call this%upscale_a_mean(in_data, out_data)
-    else if (eq(p, -1.0_dp)) then
+    else if (eq(p_, -1.0_dp)) then
       call this%upscale_h_mean(in_data, out_data)
-    else if (.not.ieee_is_finite(p)) then
-      if (ieee_is_nan(p)) call error_message("upscale_p_mean: p is not a number.")
-      if (ieee_is_negative(p)) then
+    else if (.not.ieee_is_finite(p_)) then
+      if (ieee_is_nan(p_)) call error_message("upscale_p_mean: p is not a number.")
+      if (ieee_is_negative(p_)) then
         call this%upscale_min(in_data, out_data)
       else
         call this%upscale_max(in_data, out_data)
@@ -312,7 +371,7 @@ contains
       call check_upscaling(this%scaling_mode)
       allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
       allocate(weight_matrix(this%fine_grid%nx, this%fine_grid%ny))
-      source_matrix = this%fine_grid%unpack_data(in_data ** p)
+      source_matrix = this%fine_grid%unpack_data(in_data ** p_)
       weight_matrix = this%fine_grid%unpack_data(this%fine_grid%cell_area)
       ! TODO: openmp
       do k = 1_i4, this%coarse_grid%ncells
@@ -321,7 +380,7 @@ contains
                 this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
           * pack(weight_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
                 this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
-        ) / this%coarse_grid%cell_area(k)) ** (1.0_dp / p)
+        ) / this%coarse_grid%cell_area(k)) ** (1.0_dp / p_)
       end do
       deallocate(source_matrix)
       deallocate(weight_matrix)
@@ -485,6 +544,46 @@ contains
     end do
     deallocate(source_matrix)
   end subroutine regridder_upscale_max_i4
+
+  subroutine regridder_upscale_sum_dp(this, in_data, out_data)
+    class(regridder), intent(inout) :: this
+    real(dp), dimension(:), intent(in) ::  in_data
+    real(dp), dimension(:), intent(out) ::  out_data
+
+    real(dp), dimension(:,:), allocatable ::  source_matrix
+    integer(i4) :: k
+
+    call check_upscaling(this%scaling_mode)
+    allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
+    source_matrix = this%fine_grid%unpack_data(in_data)
+    ! TODO: openmp
+    do k = 1_i4, this%coarse_grid%ncells
+      out_data(k) = sum( &
+        source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
+        mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
+    end do
+    deallocate(source_matrix)
+  end subroutine regridder_upscale_sum_dp
+
+  subroutine regridder_upscale_sum_i4(this, in_data, out_data)
+    class(regridder), intent(inout) :: this
+    integer(i4), dimension(:), intent(in) ::  in_data
+    integer(i4), dimension(:), intent(out) ::  out_data
+
+    integer(i4), dimension(:,:), allocatable ::  source_matrix
+    integer(i4) :: k
+
+    call check_upscaling(this%scaling_mode)
+    allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
+    source_matrix = this%fine_grid%unpack_data(in_data)
+    ! TODO: openmp
+    do k = 1_i4, this%coarse_grid%ncells
+      out_data(k) = sum( &
+        source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
+        mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
+    end do
+    deallocate(source_matrix)
+  end subroutine regridder_upscale_sum_i4
 
   subroutine check_upscaling(scaling_mode)
     integer(i4), intent(in) :: scaling_mode        !< up_scaling or down_scaling
