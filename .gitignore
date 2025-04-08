@@ -5,6 +5,7 @@ doxygen_warn.txt
 forces_env/
 info
 *.bak
+*.nc
 
 # VSCode
 .vscode/
