@@ -53,7 +53,7 @@ module mo_regridder
     integer(i4), dimension(:), allocatable :: x_lb                 !< lower bound for x-id on fine grid (coarse%ncells)
     integer(i4), dimension(:), allocatable :: x_ub                 !< upper bound for x-id on fine grid (coarse%ncells)
     integer(i4), dimension(:), allocatable :: n_subcells           !< valid fine grid cells in coarse cell (coarse%ncells)
-    ! TODO: do we need the fully id map array?
+    ! TODO: do we need the full id map array?
     integer(i4), dimension(:, :), allocatable :: coarse_id_matrix  !< 2d index array of coarse ids (fine%nx, fine%ny)
     integer(i4), dimension(:), allocatable :: coarse_id_map        !< flat index array of coarse ids (fine%ncells)
   contains
@@ -70,6 +70,9 @@ module mo_regridder
     generic, public :: upscale_max => regridder_upscale_max_dp, regridder_upscale_max_i4
     procedure, private :: regridder_upscale_sum_dp, regridder_upscale_sum_i4
     generic, public :: upscale_sum => regridder_upscale_sum_dp, regridder_upscale_sum_i4
+    procedure, private :: regridder_downscale_nearest_dp, regridder_downscale_nearest_i4
+    generic, public :: downscale_nearest => regridder_downscale_nearest_dp, regridder_downscale_nearest_i4
+    procedure, public :: downscale_split => regridder_downscale_split
   end type regridder
 
 contains
@@ -197,11 +200,9 @@ contains
     else ! down-scaling
       select case (down_operator)
         case (down_nearest)
-          call error_message("regridder: nearest neighbor downscaling operator not implemented")
-          ! call this%downscale_nearest(in_data, out_data)
+          call this%downscale_nearest(in_data, out_data)
         case (down_split)
-          call error_message("regridder: equal summand downscaling operator not implemented")
-          ! call this%downscale_split(in_data, out_data)
+          call this%downscale_split(in_data, out_data)
         case default
           call error_message("regridder: unknown downscaling operator: ", trim(num2str(down_operator)))
       end select
@@ -254,11 +255,9 @@ contains
     else ! down-scaling
       select case (down_operator)
         case (down_nearest)
-          call error_message("regridder: nearest neighbor downscaling operator not implemented")
-          ! call this%downscale_nearest(in_data, out_data)
+          call this%downscale_nearest(in_data, out_data)
         case (down_split)
-          call error_message("regridder: equal summand downscaling operator not implemented")
-          ! call this%downscale_split(in_data, out_data)
+          call error_message("regridder: equal summand downscaling operator not supported for integer output data.")
         case default
           call error_message("regridder: unknown downscaling operator: ", trim(num2str(down_operator)))
       end select
@@ -327,17 +326,9 @@ contains
     else ! down-scaling
       select case (down_operator)
         case (down_nearest)
-          call error_message("regridder: nearest neighbor downscaling operator not implemented")
-          ! allocate(temp(this%coarse_grid%ncells))
-          ! call this%downscale_nearest(in_data, temp)
-          ! out_data = real(temp, dp)
-          ! deallocate(temp)
+          call this%downscale_nearest(real(in_data, dp), out_data)
         case (down_split)
-          call error_message("regridder: equal summand downscaling operator not implemented")
-          ! allocate(temp(this%coarse_grid%ncells))
-          ! call this%downscale_split(in_data, temp)
-          ! out_data = real(temp, dp)
-          ! deallocate(temp)
+          call this%downscale_split(real(in_data, dp), out_data)
         case default
           call error_message("regridder: unknown downscaling operator: ", trim(num2str(down_operator)))
       end select
@@ -373,7 +364,7 @@ contains
       allocate(weight_matrix(this%fine_grid%nx, this%fine_grid%ny))
       source_matrix = this%fine_grid%unpack_data(in_data ** p_)
       weight_matrix = this%fine_grid%unpack_data(this%fine_grid%cell_area)
-      ! TODO: openmp
+      !$omp parallel do default(shared) private(k) schedule(static)
       do k = 1_i4, this%coarse_grid%ncells
         out_data(k) = (sum( &
             pack(source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
@@ -382,6 +373,7 @@ contains
                 this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
         ) / this%coarse_grid%cell_area(k)) ** (1.0_dp / p_)
       end do
+      !$omp end parallel do
       deallocate(source_matrix)
       deallocate(weight_matrix)
     end if
@@ -400,7 +392,7 @@ contains
     allocate(weight_matrix(this%fine_grid%nx, this%fine_grid%ny))
     source_matrix = this%fine_grid%unpack_data(in_data)
     weight_matrix = this%fine_grid%unpack_data(this%fine_grid%cell_area)
-    ! TODO: openmp
+    !$omp parallel do default(shared) private(k) schedule(static)
     do k = 1_i4, this%coarse_grid%ncells
       out_data(k) = sum( &
           pack(source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
@@ -409,6 +401,7 @@ contains
                this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
       ) / this%coarse_grid%cell_area(k)
     end do
+    !$omp end parallel do
     deallocate(source_matrix)
     deallocate(weight_matrix)
   end subroutine regridder_upscale_a_mean
@@ -426,7 +419,7 @@ contains
     allocate(weight_matrix(this%fine_grid%nx, this%fine_grid%ny))
     source_matrix = this%fine_grid%unpack_data(log(in_data))  ! prod(xi^wi) = exp(sum(wi*log(xi)))
     weight_matrix = this%fine_grid%unpack_data(this%fine_grid%cell_area)
-    ! TODO: openmp
+    !$omp parallel do default(shared) private(k) schedule(static)
     do k = 1_i4, this%coarse_grid%ncells
       out_data(k) = exp(sum( &
           pack(source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
@@ -435,6 +428,7 @@ contains
                this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
       ) / this%coarse_grid%cell_area(k))
     end do
+    !$omp end parallel do
     deallocate(source_matrix)
     deallocate(weight_matrix)
   end subroutine regridder_upscale_g_mean
@@ -452,7 +446,7 @@ contains
     allocate(weight_matrix(this%fine_grid%nx, this%fine_grid%ny))
     source_matrix = this%fine_grid%unpack_data(1.0_dp / in_data)
     weight_matrix = this%fine_grid%unpack_data(this%fine_grid%cell_area)
-    ! TODO: openmp
+    !$omp parallel do default(shared) private(k) schedule(static)
     do k = 1_i4, this%coarse_grid%ncells
       out_data(k) = 1.0_dp / (sum( &
           pack(source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
@@ -461,6 +455,7 @@ contains
                this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
       ) / this%coarse_grid%cell_area(k))
     end do
+    !$omp end parallel do
     deallocate(source_matrix)
     deallocate(weight_matrix)
   end subroutine regridder_upscale_h_mean
@@ -476,12 +471,13 @@ contains
     call check_upscaling(this%scaling_mode)
     allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
     source_matrix = this%fine_grid%unpack_data(in_data)
-    ! TODO: openmp
+    !$omp parallel do default(shared) private(k) schedule(static)
     do k = 1_i4, this%coarse_grid%ncells
       out_data(k) = minval( &
         source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
         mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
     end do
+    !$omp end parallel do
     deallocate(source_matrix)
   end subroutine regridder_upscale_min_dp
 
@@ -496,12 +492,13 @@ contains
     call check_upscaling(this%scaling_mode)
     allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
     source_matrix = this%fine_grid%unpack_data(in_data)
-    ! TODO: openmp
+    !$omp parallel do default(shared) private(k) schedule(static)
     do k = 1_i4, this%coarse_grid%ncells
       out_data(k) = minval( &
         source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
         mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
     end do
+    !$omp end parallel do
     deallocate(source_matrix)
   end subroutine regridder_upscale_min_i4
 
@@ -516,12 +513,13 @@ contains
     call check_upscaling(this%scaling_mode)
     allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
     source_matrix = this%fine_grid%unpack_data(in_data)
-    ! TODO: openmp
+    !$omp parallel do default(shared) private(k) schedule(static)
     do k = 1_i4, this%coarse_grid%ncells
       out_data(k) = maxval( &
         source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
         mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
     end do
+    !$omp end parallel do
     deallocate(source_matrix)
   end subroutine regridder_upscale_max_dp
 
@@ -536,12 +534,13 @@ contains
     call check_upscaling(this%scaling_mode)
     allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
     source_matrix = this%fine_grid%unpack_data(in_data)
-    ! TODO: openmp
+    !$omp parallel do default(shared) private(k) schedule(static)
     do k = 1_i4, this%coarse_grid%ncells
       out_data(k) = maxval( &
         source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
         mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
     end do
+    !$omp end parallel do
     deallocate(source_matrix)
   end subroutine regridder_upscale_max_i4
 
@@ -556,12 +555,13 @@ contains
     call check_upscaling(this%scaling_mode)
     allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
     source_matrix = this%fine_grid%unpack_data(in_data)
-    ! TODO: openmp
+    !$omp parallel do default(shared) private(k) schedule(static)
     do k = 1_i4, this%coarse_grid%ncells
       out_data(k) = sum( &
         source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
         mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
     end do
+    !$omp end parallel do
     deallocate(source_matrix)
   end subroutine regridder_upscale_sum_dp
 
@@ -576,14 +576,54 @@ contains
     call check_upscaling(this%scaling_mode)
     allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
     source_matrix = this%fine_grid%unpack_data(in_data)
-    ! TODO: openmp
+    !$omp parallel do default(shared) private(k) schedule(static)
     do k = 1_i4, this%coarse_grid%ncells
       out_data(k) = sum( &
         source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
         mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
     end do
+    !$omp end parallel do
     deallocate(source_matrix)
   end subroutine regridder_upscale_sum_i4
+
+  subroutine regridder_downscale_nearest_dp(this, in_data, out_data)
+    class(regridder), intent(inout) :: this
+    real(dp), dimension(:), intent(in) ::  in_data
+    real(dp), dimension(:), intent(out) ::  out_data
+    integer(i4) :: k
+    call check_downscaling(this%scaling_mode)
+    !$omp parallel do default(shared) private(k) schedule(static)
+    do k = 1_i4, this%fine_grid%ncells
+      out_data(k) = in_data(this%coarse_id_map(k))
+    end do
+    !$omp end parallel do
+  end subroutine regridder_downscale_nearest_dp
+
+  subroutine regridder_downscale_nearest_i4(this, in_data, out_data)
+    class(regridder), intent(inout) :: this
+    integer(i4), dimension(:), intent(in) ::  in_data
+    integer(i4), dimension(:), intent(out) ::  out_data
+    integer(i4) :: k
+    call check_downscaling(this%scaling_mode)
+    !$omp parallel do default(shared) private(k) schedule(static)
+    do k = 1_i4, this%fine_grid%ncells
+      out_data(k) = in_data(this%coarse_id_map(k))
+    end do
+    !$omp end parallel do
+  end subroutine regridder_downscale_nearest_i4
+
+  subroutine regridder_downscale_split(this, in_data, out_data)
+    class(regridder), intent(inout) :: this
+    real(dp), dimension(:), intent(in) ::  in_data
+    real(dp), dimension(:), intent(out) ::  out_data
+    integer(i4) :: k
+    call check_downscaling(this%scaling_mode)
+    !$omp parallel do default(shared) private(k) schedule(static)
+    do k = 1_i4, this%fine_grid%ncells
+      out_data(k) = in_data(this%coarse_id_map(k)) / real(this%n_subcells(this%coarse_id_map(k)), dp)
+    end do
+    !$omp end parallel do
+  end subroutine regridder_downscale_split
 
   subroutine check_upscaling(scaling_mode)
     integer(i4), intent(in) :: scaling_mode        !< up_scaling or down_scaling
