@@ -72,6 +72,7 @@ module mo_regridder
     procedure, private :: regridder_downscale_nearest_dp, regridder_downscale_nearest_i4
     procedure, public :: upscale_var => regridder_upscale_var
     procedure, public :: upscale_std => regridder_upscale_std
+    procedure, public :: upscale_laf => regridder_upscale_laf
     generic, public :: downscale_nearest => regridder_downscale_nearest_dp, regridder_downscale_nearest_i4
     procedure, public :: downscale_split => regridder_downscale_split
   end type regridder
@@ -114,10 +115,10 @@ contains
     allocate(this%x_ub(this%coarse_grid%ncells))
     allocate(this%n_subcells(this%coarse_grid%ncells))
     allocate(this%id_map(this%fine_grid%ncells))
+    allocate(this%weights(this%fine_grid%nx, this%fine_grid%ny))
 
     allocate(coarse_id_matrix(this%fine_grid%nx, this%fine_grid%ny), source=nodata_i4)
     allocate(weights(this%fine_grid%ncells))
-    allocate(coarse_id_matrix(this%fine_grid%nx, this%fine_grid%ny), source=nodata_i4)
 
     k = 0
     do jc = 1, this%coarse_grid%ny
@@ -178,8 +179,8 @@ contains
     integer(i4), intent(in), optional ::  downscaling_operator !< downscaling operator (down_nearest by default)
     real(dp), intent(in), optional ::  p !< exponent for the up_p_mean operator
     integer(i4), intent(in), optional ::  class_id !< class id for up_fraction operator
-    integer(i4), intent(in), optional ::  vmin !< minimum of values to speed up up_laf operator (huge() by default - tbd)
-    integer(i4), intent(in), optional ::  vmax !< maximum of values to speed up up_laf operator (-huge() by default - tbd)
+    integer(i4), intent(in), optional ::  vmin !< minimum of values to speed up up_laf operator
+    integer(i4), intent(in), optional ::  vmax !< maximum of values to speed up up_laf operator
 
     integer(i4) :: up_operator, down_operator
     call arg_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
@@ -232,8 +233,8 @@ contains
     integer(i4), intent(in), optional ::  downscaling_operator !< downscaling operator (down_nearest by default)
     real(dp), intent(in), optional ::  p !< exponent for the up_p_mean operator
     integer(i4), intent(in), optional ::  class_id !< class id for up_fraction operator
-    integer(i4), intent(in), optional ::  vmin !< minimum of values to speed up up_laf operator (huge() by default - tbd)
-    integer(i4), intent(in), optional ::  vmax !< maximum of values to speed up up_laf operator (-huge() by default - tbd)
+    integer(i4), intent(in), optional ::  vmin !< minimum of values to speed up up_laf operator
+    integer(i4), intent(in), optional ::  vmax !< maximum of values to speed up up_laf operator
 
     integer(i4) :: up_operator, down_operator
     call arg_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
@@ -259,8 +260,7 @@ contains
         case (up_std)
           call error_message("regridder: standard deviation upscaling not supported for integer data.")
         case (up_laf)
-          call error_message("regridder: largest area fraction upscaling operator not implemented.")
-          ! call this%upscale_laf(in_data, out_data, vmin, vmax)
+          call this%upscale_laf(in_data, out_data, vmin, vmax)
         case (up_fraction)
           call error_message("regridder: class fraction upscaling operator not supported for integer output data.")
         case default
@@ -324,11 +324,10 @@ contains
         case (up_std)
           call this%upscale_std(real(in_data, dp), out_data)
         case (up_laf)
-          call error_message("regridder: largest area fraction upscaling operator not implemented.")
-          ! allocate(temp(this%coarse_grid%ncells))
-          ! call this%upscale_laf(in_data, temp, vmin, vmax)
-          ! out_data = real(temp, dp)
-          ! deallocate(temp)
+          allocate(temp(this%coarse_grid%ncells))
+          call this%upscale_laf(in_data, temp, vmin, vmax)
+          out_data = real(temp, dp)
+          deallocate(temp)
         case (up_fraction)
           call error_message("regridder: class fraction upscaling operator not implemented.")
           ! call this%upscale_fraction(in_data, out_data)
@@ -620,6 +619,50 @@ contains
     call this%upscale_var(in_data, out_data)
     out_data = sqrt(out_data)
   end subroutine regridder_upscale_std
+
+  subroutine regridder_upscale_laf(this, in_data, out_data, vmin, vmax)
+    class(regridder), intent(inout) :: this
+    integer(i4), dimension(:), intent(in) ::  in_data
+    integer(i4), dimension(:), intent(out) ::  out_data
+    integer(i4), intent(in), optional ::  vmin !< minimum of values to speed up operator
+    integer(i4), intent(in), optional ::  vmax !< maximum of values to speed up operator
+
+    integer(i4), dimension(:,:), allocatable ::  source_matrix
+    integer(i4) :: k, i, laf_v, cnt_v, cnt_i, min_v, max_v
+
+    call check_upscaling(this%scaling_mode)
+
+    if (present(vmin)) then
+      min_v = vmin
+    else
+      min_v = minval(in_data)
+    endif
+    if (present(vmax)) then
+      max_v = vmax
+    else
+      max_v = maxval(in_data)
+    endif
+    if (min_v > max_v) call error_message("upscale_laf: vmin is bigger than vmax.")
+
+    allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
+    source_matrix = this%fine_grid%unpack_data(1.0_dp / in_data)
+    !$omp parallel do default(shared) private(k, i, laf_v, cnt_v, cnt_i) schedule(static)
+    do k = 1_i4, this%coarse_grid%ncells
+      laf_v = min_v
+      cnt_v = 0
+      do i = min_v, max_v
+        ! nodata value should be out of range (-9999) so we don't need to pack data
+        cnt_i = count(source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)) == i)
+        if (cnt_i > cnt_v) then
+          laf_v = i
+          cnt_v = cnt_i
+        end if
+      end do
+      out_data(k) = laf_v
+    end do
+    !$omp end parallel do
+    deallocate(source_matrix)
+  end subroutine regridder_upscale_laf
 
   subroutine regridder_downscale_nearest_dp(this, in_data, out_data)
     class(regridder), intent(inout) :: this
