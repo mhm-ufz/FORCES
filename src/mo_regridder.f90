@@ -16,6 +16,7 @@ module mo_regridder
   use mo_utils, only: is_close, eq
   use mo_string_utils, only: num2str
   use mo_message, only: error_message
+  use mo_constants, only: nodata_i4
 
   implicit none
 
@@ -73,6 +74,7 @@ module mo_regridder
     procedure, public :: upscale_var => regridder_upscale_var
     procedure, public :: upscale_std => regridder_upscale_std
     procedure, public :: upscale_laf => regridder_upscale_laf
+    procedure, public :: upscale_fraction => regridder_upscale_fraction
     generic, public :: downscale_nearest => regridder_downscale_nearest_dp, regridder_downscale_nearest_i4
     procedure, public :: downscale_split => regridder_downscale_split
   end type regridder
@@ -329,8 +331,7 @@ contains
           out_data = real(temp, dp)
           deallocate(temp)
         case (up_fraction)
-          call error_message("regridder: class fraction upscaling operator not implemented.")
-          ! call this%upscale_fraction(in_data, out_data)
+          call this%upscale_fraction(in_data, out_data, class_id)
         case default
           call error_message("regridder: unknown upscaling operator: ", trim(num2str(up_operator)))
       end select
@@ -593,7 +594,7 @@ contains
 
     call check_upscaling(this%scaling_mode)
     allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
-    source_matrix = this%fine_grid%unpack_data(1.0_dp / in_data)
+    source_matrix = this%fine_grid%unpack_data(in_data)
     !$omp parallel do default(shared) private(k, mean) schedule(static)
     do k = 1_i4, this%coarse_grid%ncells
       mean = sum( &
@@ -645,7 +646,7 @@ contains
     if (min_v > max_v) call error_message("upscale_laf: vmin is bigger than vmax.")
 
     allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
-    source_matrix = this%fine_grid%unpack_data(1.0_dp / in_data)
+    source_matrix = this%fine_grid%unpack_data(in_data)
     !$omp parallel do default(shared) private(k, i, laf_v, cnt_v, cnt_i) schedule(static)
     do k = 1_i4, this%coarse_grid%ncells
       laf_v = min_v
@@ -663,6 +664,33 @@ contains
     !$omp end parallel do
     deallocate(source_matrix)
   end subroutine regridder_upscale_laf
+
+  subroutine regridder_upscale_fraction(this, in_data, out_data, class_id)
+    class(regridder), intent(inout) :: this
+    integer(i4), dimension(:), intent(in) ::  in_data
+    real(dp), dimension(:), intent(out) ::  out_data
+    integer(i4), intent(in), optional ::  class_id !< class id to determine area fraction of
+
+    integer(i4), dimension(:,:), allocatable ::  source_matrix
+    integer(i4) :: k, cls_id
+
+    call check_upscaling(this%scaling_mode)
+
+    cls_id = nodata_i4
+    if (present(class_id)) cls_id = class_id
+
+    allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
+    source_matrix = this%fine_grid%unpack_data(in_data)
+    !$omp parallel do default(shared) private(k) schedule(static)
+    do k = 1_i4, this%coarse_grid%ncells
+      out_data(k) = sum( &
+        this%weights(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
+        mask=(source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)) == cls_id) &
+              .and. this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
+    end do
+    !$omp end parallel do
+    deallocate(source_matrix)
+  end subroutine regridder_upscale_fraction
 
   subroutine regridder_downscale_nearest_dp(this, in_data, out_data)
     class(regridder), intent(inout) :: this

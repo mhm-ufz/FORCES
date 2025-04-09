@@ -1,10 +1,10 @@
 module test_mo_regridder
   use funit
   use mo_grid, only: grid, cartesian, top_down, bottom_up
-  use mo_regridder, only: regridder, up_h_mean, up_p_mean, up_min, up_max
+  use mo_regridder, only: regridder, up_h_mean, up_p_mean, up_min, up_max, up_sum, up_laf, up_fraction
   use mo_kind, only: i4, dp
   use mo_constants, only: nodata_dp
-  use mo_utils, only: flip, flipped
+  use mo_utils, only: flip, flipped, is_close
   ! use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   implicit none
 
@@ -26,14 +26,23 @@ contains
     real(dp) :: t=1.0E-5_dp
     real(dp) :: ref_val
     integer(i4) :: xt, xb, yt, yb, i
-    real(dp), allocatable :: dem(:), dem_mat(:,:), cdem(:), cdem_mat(:,:)
+    real(dp), allocatable :: dem(:), dem_mat(:,:), cdem(:), cdem_mat(:,:), weights(:), cweights(:)
+    integer(i4), allocatable :: lc(:), clc(:), lc_mat(:,:), clc_mat(:,:)
+    real(dp), allocatable :: lc1(:), lc2(:), lc3(:), lcf_mat(:,:)
 
     call fgrid%from_ascii_file("./files/dem.asc")
     cgrid = fgrid%derive_grid(upscaling_factor=16)
 
     call upscaler%init(fgrid, cgrid)
 
+    allocate(weights(fgrid%ncells))
+    weights = fgrid%pack_data(upscaler%weights)
+    allocate(cweights(cgrid%ncells))
+    call upscaler%execute(weights, cweights, upscaling_operator=up_sum)
+    @assertTrue(all(is_close(cweights, 1.0_dp)), message='check weights sum to 1')
+
     call fgrid%read_data("./files/dem.asc", dem_mat)
+    call fgrid%read_data("./files/landcover.asc", lc_mat)
 
     ! nc = NcDataset("dem.nc", "w")
     ! call fgrid%to_netcdf(nc)
@@ -165,6 +174,20 @@ contains
     ! call var%setAttribute("missing_value", nodata_dp)
     ! cdem_mat = cgrid%unpack_data(cdem)
     ! call var%setData(cdem_mat)
+
+    allocate(lc(fgrid%ncells))
+    lc = fgrid%pack_data(lc_mat)
+    allocate(clc(cgrid%ncells))
+    allocate(lc1(cgrid%ncells))
+    allocate(lc2(cgrid%ncells))
+    allocate(lc3(cgrid%ncells))
+    call upscaler%execute(lc, clc, upscaling_operator=up_laf, vmin=1_i4, vmax=3_i4)
+    call upscaler%execute(lc, lc1, upscaling_operator=up_fraction, class_id=1_i4)
+    call upscaler%execute(lc, lc2, upscaling_operator=up_fraction, class_id=2_i4)
+    call upscaler%execute(lc, lc3, upscaling_operator=up_fraction, class_id=3_i4)
+
+    @assertTrue(all(is_close(lc1+lc2+lc3, 1.0_dp)), message='check fractions sum to 1')
+    @assertEqual(count(clc==1)+count(clc==2)+count(clc==3), cgrid%ncells, message='check fraction counts')
 
     ! call nc%close()
 
