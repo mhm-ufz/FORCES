@@ -53,9 +53,8 @@ module mo_regridder
     integer(i4), dimension(:), allocatable :: x_lb                 !< lower bound for x-id on fine grid (coarse%ncells)
     integer(i4), dimension(:), allocatable :: x_ub                 !< upper bound for x-id on fine grid (coarse%ncells)
     integer(i4), dimension(:), allocatable :: n_subcells           !< valid fine grid cells in coarse cell (coarse%ncells)
-    ! TODO: do we need the full id map array?
-    integer(i4), dimension(:, :), allocatable :: coarse_id_matrix  !< 2d index array of coarse ids (fine%nx, fine%ny)
-    integer(i4), dimension(:), allocatable :: coarse_id_map        !< flat index array of coarse ids (fine%ncells)
+    real(dp), dimension(:, :), allocatable :: weights              !< cell area ratios (fine%nx,fine%ny)
+    integer(i4), dimension(:), allocatable :: id_map               !< flat index array of coarse ids (fine%ncells)
   contains
     procedure, public :: init => regridder_init
     procedure, private :: regridder_execute_dp, regridder_execute_i4, regridder_execute_i4_dp
@@ -89,6 +88,8 @@ contains
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
 
     integer(i4) :: i_ub, i_lb, j_lb, j_ub, k, ic, jc
+    integer(i4), dimension(:, :), allocatable :: coarse_id_matrix
+    real(dp), dimension(:), allocatable :: weights
 
     this%source_grid => source_grid
     this%target_grid => target_grid
@@ -112,8 +113,11 @@ contains
     allocate(this%x_lb(this%coarse_grid%ncells))
     allocate(this%x_ub(this%coarse_grid%ncells))
     allocate(this%n_subcells(this%coarse_grid%ncells))
-    allocate(this%coarse_id_matrix(this%fine_grid%nx, this%fine_grid%ny), source=nodata_i4)
-    allocate(this%coarse_id_map(this%fine_grid%ncells))
+    allocate(this%id_map(this%fine_grid%ncells))
+
+    allocate(coarse_id_matrix(this%fine_grid%nx, this%fine_grid%ny), source=nodata_i4)
+    allocate(weights(this%fine_grid%ncells))
+    allocate(coarse_id_matrix(this%fine_grid%nx, this%fine_grid%ny), source=nodata_i4)
 
     k = 0
     do jc = 1, this%coarse_grid%ny
@@ -137,11 +141,21 @@ contains
         else
           this%n_subcells(k) = (i_ub-i_lb+1)*(j_ub-j_lb+1)
         end if
-        ! Delimitation of level-11 cells on level-0
-        this%coarse_id_matrix(i_lb : i_ub, j_lb : j_ub) = k
+        ! coarse cell id on fine sub-cells
+        coarse_id_matrix(i_lb : i_ub, j_lb : j_ub) = k
       end do
     end do
-    this%coarse_id_map = this%fine_grid%pack_data(this%coarse_id_matrix)
+    this%id_map = this%fine_grid%pack_data(coarse_id_matrix)
+    deallocate(coarse_id_matrix)
+
+    ! generate weights from area fractions
+    !$omp parallel do default(shared) private(k) schedule(static)
+    do k = 1, this%fine_grid%ncells
+      weights(k) = this%fine_grid%cell_area(k) / this%coarse_grid%cell_area(this%id_map(k))
+    end do
+    !$omp end parallel do
+    this%weights = this%fine_grid%unpack_data(weights)
+    deallocate(weights)
 
   end subroutine regridder_init
 
@@ -338,7 +352,7 @@ contains
     real(dp), dimension(:), intent(in) ::  in_data
     real(dp), dimension(:), intent(out) ::  out_data
     real(dp), intent(in), optional :: p !< exponent for the p-norm (1.0 for arithmetic mean by default)
-    real(dp), dimension(:,:), allocatable ::  source_matrix, weight_matrix
+    real(dp), dimension(:,:), allocatable ::  source_matrix
     integer(i4) :: k
     real(dp) :: p_
     p_ = 1.0_dp
@@ -359,21 +373,18 @@ contains
     else
       call check_upscaling(this%scaling_mode)
       allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
-      allocate(weight_matrix(this%fine_grid%nx, this%fine_grid%ny))
       source_matrix = this%fine_grid%unpack_data(in_data ** p_)
-      weight_matrix = this%fine_grid%unpack_data(this%fine_grid%cell_area)
       !$omp parallel do default(shared) private(k) schedule(static)
       do k = 1_i4, this%coarse_grid%ncells
-        out_data(k) = (sum( &
+        out_data(k) = sum( &
             pack(source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
                 this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
-          * pack(weight_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
+          * pack(this%weights(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
                 this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
-        ) / this%coarse_grid%cell_area(k)) ** (1.0_dp / p_)
+        ) ** (1.0_dp / p_)
       end do
       !$omp end parallel do
       deallocate(source_matrix)
-      deallocate(weight_matrix)
     end if
   end subroutine regridder_upscale_p_mean
 
@@ -382,26 +393,22 @@ contains
     real(dp), dimension(:), intent(in) ::  in_data
     real(dp), dimension(:), intent(out) ::  out_data
 
-    real(dp), dimension(:,:), allocatable ::  source_matrix, weight_matrix
+    real(dp), dimension(:,:), allocatable ::  source_matrix
     integer(i4) :: k
 
     call check_upscaling(this%scaling_mode)
     allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
-    allocate(weight_matrix(this%fine_grid%nx, this%fine_grid%ny))
     source_matrix = this%fine_grid%unpack_data(in_data)
-    weight_matrix = this%fine_grid%unpack_data(this%fine_grid%cell_area)
     !$omp parallel do default(shared) private(k) schedule(static)
     do k = 1_i4, this%coarse_grid%ncells
       out_data(k) = sum( &
           pack(source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
                this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
-        * pack(weight_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
-      ) / this%coarse_grid%cell_area(k)
+        * pack(this%weights(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
+               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))))
     end do
     !$omp end parallel do
     deallocate(source_matrix)
-    deallocate(weight_matrix)
   end subroutine regridder_upscale_a_mean
 
   subroutine regridder_upscale_g_mean(this, in_data, out_data)
@@ -409,26 +416,22 @@ contains
     real(dp), dimension(:), intent(in) ::  in_data
     real(dp), dimension(:), intent(out) ::  out_data
 
-    real(dp), dimension(:,:), allocatable ::  source_matrix, weight_matrix
+    real(dp), dimension(:,:), allocatable ::  source_matrix
     integer(i4) :: k
 
     call check_upscaling(this%scaling_mode)
     allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
-    allocate(weight_matrix(this%fine_grid%nx, this%fine_grid%ny))
     source_matrix = this%fine_grid%unpack_data(log(in_data))  ! prod(xi^wi) = exp(sum(wi*log(xi)))
-    weight_matrix = this%fine_grid%unpack_data(this%fine_grid%cell_area)
     !$omp parallel do default(shared) private(k) schedule(static)
     do k = 1_i4, this%coarse_grid%ncells
       out_data(k) = exp(sum( &
           pack(source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
                this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
-        * pack(weight_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
-      ) / this%coarse_grid%cell_area(k))
+        * pack(this%weights(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
+               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))))
     end do
     !$omp end parallel do
     deallocate(source_matrix)
-    deallocate(weight_matrix)
   end subroutine regridder_upscale_g_mean
 
   subroutine regridder_upscale_h_mean(this, in_data, out_data)
@@ -436,26 +439,22 @@ contains
     real(dp), dimension(:), intent(in) ::  in_data
     real(dp), dimension(:), intent(out) ::  out_data
 
-    real(dp), dimension(:,:), allocatable ::  source_matrix, weight_matrix
+    real(dp), dimension(:,:), allocatable ::  source_matrix
     integer(i4) :: k
 
     call check_upscaling(this%scaling_mode)
     allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
-    allocate(weight_matrix(this%fine_grid%nx, this%fine_grid%ny))
     source_matrix = this%fine_grid%unpack_data(1.0_dp / in_data)
-    weight_matrix = this%fine_grid%unpack_data(this%fine_grid%cell_area)
     !$omp parallel do default(shared) private(k) schedule(static)
     do k = 1_i4, this%coarse_grid%ncells
-      out_data(k) = 1.0_dp / (sum( &
+      out_data(k) = 1.0_dp / sum( &
           pack(source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
                this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
-        * pack(weight_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
-      ) / this%coarse_grid%cell_area(k))
+        * pack(this%weights(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
+               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))))
     end do
     !$omp end parallel do
     deallocate(source_matrix)
-    deallocate(weight_matrix)
   end subroutine regridder_upscale_h_mean
 
   subroutine regridder_upscale_min_dp(this, in_data, out_data)
@@ -589,34 +588,29 @@ contains
     real(dp), dimension(:), intent(in) ::  in_data
     real(dp), dimension(:), intent(out) ::  out_data
 
-    real(dp), dimension(:,:), allocatable ::  source_matrix, weight_matrix
+    real(dp), dimension(:,:), allocatable ::  source_matrix
     real(dp) ::  mean
     integer(i4) :: k
 
     call check_upscaling(this%scaling_mode)
     allocate(source_matrix(this%fine_grid%nx, this%fine_grid%ny))
-    allocate(weight_matrix(this%fine_grid%nx, this%fine_grid%ny))
     source_matrix = this%fine_grid%unpack_data(1.0_dp / in_data)
-    weight_matrix = this%fine_grid%unpack_data(this%fine_grid%cell_area)
     !$omp parallel do default(shared) private(k, mean) schedule(static)
     do k = 1_i4, this%coarse_grid%ncells
       mean = sum( &
           pack(source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
-        * pack(weight_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-              this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
-      ) / this%coarse_grid%cell_area(k)
+        * pack(this%weights(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
+              this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))))
       out_data(k) = sum( &
         ( pack(source_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
                this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
         - mean ) ** 2_i4 &
-        * pack(weight_matrix(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
-      ) / this%coarse_grid%cell_area(k)
+        * pack(this%weights(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
+               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))))
     end do
     !$omp end parallel do
     deallocate(source_matrix)
-    deallocate(weight_matrix)
   end subroutine regridder_upscale_var
 
   subroutine regridder_upscale_std(this, in_data, out_data)
@@ -635,7 +629,7 @@ contains
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k) schedule(static)
     do k = 1_i4, this%fine_grid%ncells
-      out_data(k) = in_data(this%coarse_id_map(k))
+      out_data(k) = in_data(this%id_map(k))
     end do
     !$omp end parallel do
   end subroutine regridder_downscale_nearest_dp
@@ -648,7 +642,7 @@ contains
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k) schedule(static)
     do k = 1_i4, this%fine_grid%ncells
-      out_data(k) = in_data(this%coarse_id_map(k))
+      out_data(k) = in_data(this%id_map(k))
     end do
     !$omp end parallel do
   end subroutine regridder_downscale_nearest_i4
@@ -661,7 +655,7 @@ contains
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k) schedule(static)
     do k = 1_i4, this%fine_grid%ncells
-      out_data(k) = in_data(this%coarse_id_map(k)) / real(this%n_subcells(this%coarse_id_map(k)), dp)
+      out_data(k) = in_data(this%id_map(k)) / real(this%n_subcells(this%id_map(k)), dp)
     end do
     !$omp end parallel do
   end subroutine regridder_downscale_split
