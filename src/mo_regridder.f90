@@ -4,7 +4,8 @@
 !> \brief   Regridding utils.
 !> \details This module provides a regridder for rectangular grids with cellsizes that have an integer ratio.
 !! \par Examples
-!! \include 01_regridding.f90
+!! - \ref 01_regridding.f90 : \copybrief 01_regridding.f90
+!!   \include 01_regridding.f90
 !> \version 0.1
 !> \authors Sebastian Mueller
 !> \date    Mar 2025
@@ -73,8 +74,10 @@ module mo_regridder
   !! - \ref down_nearest (0): nearest neighbor downscaling operator
   !! - \ref down_split (1): inverse sum downscaling operator with equal summands
   !!
+  !! \par Examples
+  !! - \ref 01_regridding.f90 : \copybrief 01_regridding.f90
   !> \example 01_regridding.f90
-  !! This program demonstrates regridding of a DEM read from an ascii file and saving the result to a NetCDF file.
+  !> \copydoc regrid
   type, public :: regridder
     integer(i4) :: scaling_mode                           !< \ref up_scaling (0) or \ref down_scaling (1)
     type(grid), pointer :: source_grid => null()          !< source grid

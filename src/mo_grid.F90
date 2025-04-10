@@ -7,6 +7,8 @@
 !!          This means, the grids have a constant cell size along axis and are assumed to be 2D.
 !!          In contrast to ascii grids, data will be assumed to follow xy axis order and increasing axis.
 !!          Ascii grids actually represent data with a decreasing y-axis and in yx order.
+!! \par Examples
+!! - \ref 01_regridding.f90 : \copybrief 01_regridding.f90
 !> \version 0.1
 !> \authors Sebastian Mueller
 !> \date    Mar 2024
@@ -57,6 +59,9 @@ module mo_grid
   !!          NetCDF files nativly have yx order, but since Fortran arrays are column-major order,
   !!          the data read from .nc files is in xy order. If the y axis is decreasing, data arrays
   !!          should be flipped.
+  !!
+  !! \par Examples
+  !! - \ref 01_regridding.f90 : \copybrief 01_regridding.f90
   type, public :: grid
     integer(i4) :: coordsys = cartesian !< Coordinate system for x and y. 0 -> Cartesian (default), 1 -> Spherical
     integer(i4) :: y_direction = top_down !< y-axis direction (either top_down (0, default) or bottom_up (1))

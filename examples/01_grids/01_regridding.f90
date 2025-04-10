@@ -1,4 +1,7 @@
-!> \brief   Regridding example.
+!> \file    01_regridding.f90
+!> \copydoc regrid
+
+!> \brief   Regridding example for a DEM.
 !> \details This program demonstrates regridding of a DEM read from an ascii file and saving the result to a NetCDF file.
 !> \authors Sebastian Mueller
 !> \date    Mar 2025
