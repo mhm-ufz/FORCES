@@ -27,23 +27,29 @@ module mo_grid
   public :: id_bounds
 
   private
-  ! coordsys selector
+  !> \name Coordinate System Selectors
+  !> \brief Constants to specify the coordinate system in the \ref grid.
+  !!@{
   integer(i4), public, parameter :: cartesian = 0_i4 !<    Cartesian coordinate system.
   integer(i4), public, parameter :: spherical = 1_i4 !< Spherical coordinates in degrees.
-  ! y axis direction selector
+  !!@}
+  ! integer(i4), public, parameter :: coordsys_sph_rad = 2_i4
+  !> \name Y-Axis Direction Selectors
+  !> \brief Constants to specify the y-axis direction in the \ref grid.
+  !!@{
   integer(i4), public, parameter :: keep_y = -1_i4 !< keep y-axis direction.
   integer(i4), public, parameter :: top_down = 0_i4 !< y-axis with decreasing values.
   integer(i4), public, parameter :: bottom_up = 1_i4 !< y-axis with increasing values.
-  ! integer(i4), public, parameter :: coordsys_sph_rad = 2_i4
-  ! align selector
+  !!@}
+  !> \name Lower-Left Corner Alignment Selectors
+  !> \brief Constants to the alignment of the lower-left corner of grids.
+  !!@{
   integer(i4), public, parameter :: lower_left = 0_i4 !< align in lower left corner
   integer(i4), public, parameter :: lower_right = 1_i4 !< align in lower right corner
   integer(i4), public, parameter :: upper_left = 2_i4 !< align in upper left corner
   integer(i4), public, parameter :: upper_right = 3_i4 !< align in upper right corner
+  !!@}
 
-  ! -------------------------------------------------------------------
-  ! GRID description
-  ! -------------------------------------------------------------------
   !> \class   grid
   !> \brief   2D grid description with data in xy order with strictly increasing axis.
   !> \details This type represents uniform grids with data in xy order with strictly increasing axis.

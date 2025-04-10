@@ -26,10 +26,13 @@ module mo_regridder
   private :: regridder_init
   !> \name Scaling Indicators
   !> \brief Constants to indicate the scaling mode of the \ref regridder.
+  !!@{
   integer(i4), public, parameter :: up_scaling = 0_i4 !< from fine to coarse grid
   integer(i4), public, parameter :: down_scaling = 1_i4 !< from coarse to fine grid
+  !!@}
   !> \name Upscaling Operators
   !> \brief Constants to specify the upscaling operator in the \ref regridder::execute method of the \ref regridder.
+  !!@{
   integer(i4), public, parameter :: up_p_mean = 0_i4 !< power mean upscaling operator
   integer(i4), public, parameter :: up_a_mean = 1_i4 !< arithmetic mean upscaling operator (p-mean with p=1)
   integer(i4), public, parameter :: up_g_mean = 2_i4 !< geometric mean upscaling operator (p-mean with p=0)
@@ -41,12 +44,14 @@ module mo_regridder
   integer(i4), public, parameter :: up_std = 8_i4 !< standard deviation upscaling operator
   integer(i4), public, parameter :: up_laf = 9_i4 !< largest area fraction upscaling operator
   integer(i4), public, parameter :: up_fraction = 10_i4 !< area fraction of given class upscaling operator
+  !!@}
   !> \name Downscaling Operators
   !> \brief Constants to specify the downscaling operator in the \ref regridder::execute method of the \ref regridder.
+  !!@{
   integer(i4), public, parameter :: down_nearest = 0_i4 !< nearest neighbor downscaling operator
   integer(i4), public, parameter :: down_split = 1_i4 !< inverse sum downscaling operator with equal summands
+  !!@}
 
-  !> \name Regridder
   !> \class   regridder
   !> \brief   Regridder type to remap data on regular grids with an integer cellsize ratio and matching lower left corner.
   !> \details Regridder to up or down scale values on given grid. Provides an \ref execute method to regrid packed/unpacked data.
