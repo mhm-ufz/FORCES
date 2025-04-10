@@ -1,6 +1,14 @@
+!> \dir src
+!> \brief Forces source files.
+
+!> \dir examples
+!> \brief Forces examples files.
+
+!> \dir examples/01_grids
+!> \brief Forces grid example files.
+
 !> \file    mo_forces_info.f90
-!> \brief \copybrief mo_forces_info
-!> \details \copydetails mo_forces_info
+!> \copydoc mo_forces_info
 
 #ifndef FORCESVERSION
 #define FORCESVERSION "0.0.0-dev0"

@@ -1,6 +1,5 @@
 !> \file mo_opt_functions.f90
-!> \brief \copybrief mo_opt_functions
-!> \details \copydetails mo_opt_functions
+!> \copydoc mo_opt_functions
 
 !> \brief Added for testing purposes of test_mo_sce, test_mo_dds, test_mo_mcmc
 !> \author Matthias Cuntz

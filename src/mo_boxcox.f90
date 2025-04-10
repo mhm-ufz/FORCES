@@ -1,6 +1,5 @@
 !> \file mo_boxcox.f90
-!> \brief \copybrief mo_boxcox
-!> \details \copydetails mo_boxcox
+!> \copydoc mo_boxcox
 
 !> \brief Box-Cox transformation of data.
 !> \details This module contains routines to calculate the Box-Cox transformation

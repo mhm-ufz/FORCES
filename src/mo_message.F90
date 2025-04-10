@@ -1,7 +1,6 @@
 #include "logging.h"
 !> \file mo_message.f90
-!> \brief \copybrief mo_message
-!> \details \copydetails mo_message
+!> \copydoc mo_message
 
 !> \brief Write out concatenated strings
 !> \details Write out several strings concatenated on standard out or a given unit, either advancing or not.

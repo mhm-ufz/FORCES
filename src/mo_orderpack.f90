@@ -1,6 +1,5 @@
 !> \file mo_orderpack.f90
-!> \brief \copybrief mo_orderpack
-!> \details \copydetails mo_orderpack
+!> \copydoc mo_orderpack
 
 !> \brief Sort and ranking routines
 !> \details

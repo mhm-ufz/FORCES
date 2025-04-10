@@ -1,6 +1,5 @@
 !> \file mo_constants.f90
-!> \brief \copybrief mo_constants
-!> \details \copydetails mo_constants
+!> \copydoc mo_constants
 
 !> \brief Provides computational, mathematical, physical, and file constants
 !> \details Provides computational constants like epsilon, mathematical constants such as Pi,

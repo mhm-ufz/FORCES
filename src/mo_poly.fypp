@@ -1,6 +1,5 @@
 !> \file    mo_poly.f90
-!> \brief \copybrief mo_poly
-!> \details \copydetails mo_poly
+!> \copydoc mo_poly
 
 #:include "common.fypp"
 

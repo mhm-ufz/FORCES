@@ -1,6 +1,5 @@
 !> \file mo_opt_eval_utils.f90
-!> \brief \copybrief mo_opt_eval_utils
-!> \details \copydetails mo_opt_eval_utils
+!> \copydoc mo_opt_eval_utils
 
 !> \brief Type definitions and interfaces for optimization routines based on eval functions.
 !> \author Maren Kaluza
