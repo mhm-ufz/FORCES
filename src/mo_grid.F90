@@ -1,6 +1,5 @@
 !> \file    mo_grid.f90
-!> \brief   \copybrief mo_grid
-!> \details \copydetails mo_grid
+!> \copydoc mo_grid
 
 !> \brief   Grid handling utils.
 !> \details This module provides routines deal with uniform grids based on ESRI grids, also know as ascii grids.

@@ -1,6 +1,5 @@
 !> \file    mo_datetime.f90
-!> \brief   \copybrief mo_datetime
-!> \details \copydetails mo_datetime
+!> \copydoc mo_datetime
 
 !> \brief   Types to deal with datetimes.
 !> \details This module provides four types to deal with date and time
