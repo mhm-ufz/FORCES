@@ -3,6 +3,8 @@
 
 !> \brief   Regridding utils.
 !> \details This module provides a regridder for rectangular grids with cellsizes that have an integer ratio.
+!! \par Examples
+!! \include 01_regridding.f90
 !> \version 0.1
 !> \authors Sebastian Mueller
 !> \date    Mar 2025
@@ -21,10 +23,13 @@ module mo_regridder
   implicit none
 
   private
-  ! scaling selector
+  private :: regridder_init
+  !> \name Scaling Indicators
+  !> \brief Constants to indicate the scaling mode of the \ref regridder.
   integer(i4), public, parameter :: up_scaling = 0_i4 !< from fine to coarse grid
   integer(i4), public, parameter :: down_scaling = 1_i4 !< from coarse to fine grid
-  ! upscaling operator
+  !> \name Upscaling Operators
+  !> \brief Constants to specify the upscaling operator in the \ref regridder::execute method of the \ref regridder.
   integer(i4), public, parameter :: up_p_mean = 0_i4 !< power mean upscaling operator
   integer(i4), public, parameter :: up_a_mean = 1_i4 !< arithmetic mean upscaling operator (p-mean with p=1)
   integer(i4), public, parameter :: up_g_mean = 2_i4 !< geometric mean upscaling operator (p-mean with p=0)
@@ -36,36 +41,87 @@ module mo_regridder
   integer(i4), public, parameter :: up_std = 8_i4 !< standard deviation upscaling operator
   integer(i4), public, parameter :: up_laf = 9_i4 !< largest area fraction upscaling operator
   integer(i4), public, parameter :: up_fraction = 10_i4 !< area fraction of given class upscaling operator
-  ! downscaling operator
+  !> \name Downscaling Operators
+  !> \brief Constants to specify the downscaling operator in the \ref regridder::execute method of the \ref regridder.
   integer(i4), public, parameter :: down_nearest = 0_i4 !< nearest neighbor downscaling operator
   integer(i4), public, parameter :: down_split = 1_i4 !< inverse sum downscaling operator with equal summands
 
+  !> \name Regridder
   !> \class   regridder
   !> \brief   Regridder type to remap data on regular grids with an integer cellsize ratio and matching lower left corner.
+  !> \details Regridder to up or down scale values on given grid. Provides an \ref execute method to regrid packed/unpacked data.
+  !!
+  !! Upscaling operator (`upscaling_operator`) can be the following:
+  !! - \ref up_p_mean (0): power mean upscaling operator
+  !! - \ref up_a_mean (1): arithmetic mean upscaling operator (p-mean with p=1)
+  !! - \ref up_g_mean (2): geometric mean upscaling operator (p-mean with p=0)
+  !! - \ref up_h_mean (3): harmonic mean upscaling operator (p-mean with p=-1)
+  !! - \ref up_min (4): minimum value upscaling operator (p-mean for p -> -inf)
+  !! - \ref up_max (5): maximum value upscaling operator (p-mean for p -> inf)
+  !! - \ref up_sum (6): summation upscaling operator
+  !! - \ref up_var (7): variance upscaling operator
+  !! - \ref up_std (8): standard deviation upscaling operator
+  !! - \ref up_laf (9): largest area fraction upscaling operator
+  !! - \ref up_fraction (10): area fraction of given class upscaling operator
+  !!
+  !! Downscaling operator (`downscaling_operator`) can be the following:
+  !! - \ref down_nearest (0): nearest neighbor downscaling operator
+  !! - \ref down_split (1): inverse sum downscaling operator with equal summands
+  !!
+  !> \example 01_regridding.f90
+  !! This program demonstrates regridding of a DEM read from an ascii file and saving the result to a NetCDF file.
   type, public :: regridder
-    integer(i4) :: scaling_mode        !< up_scaling (0) or down_scaling (1)
-    type(grid), pointer :: source_grid !< source grid
-    type(grid), pointer :: target_grid !< target grid
-    type(grid), pointer :: fine_grid   !< high resolution grid (source when upscaling, target when downscaling)
-    type(grid), pointer :: coarse_grid !< low resolution grid (source when downscaling, target when upscaling)
-    integer(i4) :: factor              !< coarse_grid % cellsize / fine_grid % cellsize
-    integer(i4), dimension(:), allocatable :: y_lb                 !< lower bound for y-id on fine grid (coarse%ncells)
-    integer(i4), dimension(:), allocatable :: y_ub                 !< upper bound for y-id on fine grid (coarse%ncells)
-    integer(i4), dimension(:), allocatable :: x_lb                 !< lower bound for x-id on fine grid (coarse%ncells)
-    integer(i4), dimension(:), allocatable :: x_ub                 !< upper bound for x-id on fine grid (coarse%ncells)
-    integer(i4), dimension(:), allocatable :: n_subcells           !< valid fine grid cells in coarse cell (coarse%ncells)
-    real(dp), dimension(:, :), allocatable :: weights              !< cell area ratios (fine%nx,fine%ny)
-    integer(i4), dimension(:), allocatable :: id_map               !< flat index array of coarse ids (fine%ncells)
+    integer(i4) :: scaling_mode                           !< \ref up_scaling (0) or \ref down_scaling (1)
+    type(grid), pointer :: source_grid => null()          !< source grid
+    type(grid), pointer :: target_grid => null()          !< target grid
+    type(grid), pointer :: fine_grid => null()            !< high resolution grid (source when upscaling, target when downscaling)
+    type(grid), pointer :: coarse_grid => null()          !< low resolution grid (source when downscaling, target when upscaling)
+    integer(i4) :: factor                                 !< coarse_grid % cellsize / fine_grid % cellsize
+    integer(i4), dimension(:), allocatable :: y_lb        !< lower bound for y-id on fine grid (coarse\%ncells)
+    integer(i4), dimension(:), allocatable :: y_ub        !< upper bound for y-id on fine grid (coarse\%ncells)
+    integer(i4), dimension(:), allocatable :: x_lb        !< lower bound for x-id on fine grid (coarse\%ncells)
+    integer(i4), dimension(:), allocatable :: x_ub        !< upper bound for x-id on fine grid (coarse\%ncells)
+    integer(i4), dimension(:), allocatable :: n_subcells  !< valid fine grid cells in coarse cell (coarse\%ncells)
+    real(dp), dimension(:, :), allocatable :: weights     !< cell area ratios (fine\%nx,fine\%ny)
+    integer(i4), dimension(:), allocatable :: id_map      !< flat index array of coarse ids (fine\%ncells)
   contains
     procedure, public :: init => regridder_init
     ! separate routines for all packed(1d)/unpacked(2d) combinations of IO-data
     procedure, private :: regridder_exe_dp_1d_1d, regridder_exe_dp_1d_2d, regridder_exe_dp_2d_1d, regridder_exe_dp_2d_2d
     procedure, private :: regridder_exe_i4_1d_1d, regridder_exe_i4_1d_2d, regridder_exe_i4_2d_1d, regridder_exe_i4_2d_2d
     procedure, private :: regridder_exe_i4_dp_1d_1d, regridder_exe_i4_dp_1d_2d, regridder_exe_i4_dp_2d_1d, regridder_exe_i4_dp_2d_2d
-    generic, public :: execute => regridder_exe_dp_1d_1d, regridder_exe_dp_1d_2d, regridder_exe_dp_2d_1d, regridder_exe_dp_2d_2d
-    generic, public :: execute => regridder_exe_i4_1d_1d, regridder_exe_i4_1d_2d, regridder_exe_i4_2d_1d, regridder_exe_i4_2d_2d
-    generic, public :: execute => regridder_exe_i4_dp_1d_1d, regridder_exe_i4_dp_1d_2d
-    generic, public :: execute => regridder_exe_i4_dp_2d_1d, regridder_exe_i4_dp_2d_2d
+    !> \brief Execute regridder.
+    !> \details Execute regridder for various IO data formats and types with a specified operator.
+    !! Used operator depends on the scaling mode of the regridder (fine to coarse or coarse to fine).
+    !> \param[in] "integer(i4)/real(dp) :: in_data(..)" packed or unpacked input data on source grid
+    !> \param[out] "integer(i4)/real(dp) :: out_data(..)" packed or unpacked output data on target grid
+    !> \param[in] "integer(i4), optional :: upscaling_operator" upscaling operator (\ref up_a_mean by default)
+    !> \param[in] "integer(i4), optional :: downscaling_operator" downscaling operator (\ref down_nearest by default)
+    !> \param[in] "real(dp), optional :: p" exponent for power norm \ref up_p_mean
+    !> \param[in] "integer(i4), optional :: class_id" class id for \ref up_fraction operator
+    !> \param[in] "integer(i4), optional :: vmin" minimum of values to speed up \ref up_laf operator
+    !> \param[in] "integer(i4), optional :: vmax" maximum of values to speed up \ref up_laf operator
+    !!
+    !! Upscaling operator (`upscaling_operator`) can be the following:
+    !! - \ref up_p_mean (0): power mean upscaling operator
+    !! - \ref up_a_mean (1): arithmetic mean upscaling operator (p-mean with p=1)
+    !! - \ref up_g_mean (2): geometric mean upscaling operator (p-mean with p=0)
+    !! - \ref up_h_mean (3): harmonic mean upscaling operator (p-mean with p=-1)
+    !! - \ref up_min (4): minimum value upscaling operator (p-mean for p -> -inf)
+    !! - \ref up_max (5): maximum value upscaling operator (p-mean for p -> inf)
+    !! - \ref up_sum (6): summation upscaling operator
+    !! - \ref up_var (7): variance upscaling operator
+    !! - \ref up_std (8): standard deviation upscaling operator
+    !! - \ref up_laf (9): largest area fraction upscaling operator
+    !! - \ref up_fraction (10): area fraction of given class upscaling operator
+    !!
+    !! Downscaling operator (`downscaling_operator`) can be the following:
+    !! - \ref down_nearest (0): nearest neighbor downscaling operator
+    !! - \ref down_split (1): inverse sum downscaling operator with equal summands
+    generic, public :: execute => regridder_exe_dp_1d_1d, regridder_exe_dp_1d_2d, regridder_exe_dp_2d_1d, regridder_exe_dp_2d_2d, &
+                                  regridder_exe_i4_1d_1d, regridder_exe_i4_1d_2d, regridder_exe_i4_2d_1d, regridder_exe_i4_2d_2d, &
+                                  regridder_exe_i4_dp_1d_1d, regridder_exe_i4_dp_1d_2d, &
+                                  regridder_exe_i4_dp_2d_1d, regridder_exe_i4_dp_2d_2d
     procedure, private :: upscale_p_mean => regridder_upscale_p_mean
     procedure, private :: upscale_a_mean => regridder_upscale_a_mean
     procedure, private :: upscale_g_mean => regridder_upscale_g_mean
@@ -95,9 +151,9 @@ contains
     use mo_constants, only : nodata_i4
     implicit none
     class(regridder), intent(inout) :: this
-    type(grid), target, intent(inout) :: source_grid !< given high resolution grid
-    type(grid), target, intent(inout) :: target_grid !< resulting low resolution grid
-    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    type(grid), target, intent(inout) :: source_grid !< given source grid
+    type(grid), target, intent(inout) :: target_grid !< resulting target grid
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparison (default: 1.e-7)
 
     integer(i4) :: i_ub, i_lb, j_lb, j_ub, k, ic, jc
     integer(i4), dimension(:, :), allocatable :: coarse_id_matrix
@@ -171,6 +227,7 @@ contains
 
   end subroutine regridder_init
 
+  !> \brief Default arguments to execute regridder (arithmetic mean as upscaling, nearest neighbor as downscaling)
   subroutine arg_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
     integer(i4), intent(out) ::  up_operator !< upscaling operator
     integer(i4), intent(out) ::  down_operator !< downscaling operator
@@ -182,6 +239,7 @@ contains
     if (present(downscaling_operator)) down_operator = downscaling_operator
   end subroutine arg_init
 
+  !> \brief Execute regridder for packed real input and output.
   subroutine regridder_exe_dp_1d_1d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(regridder), intent(inout) :: this
     real(dp), dimension(this%source_grid%ncells), intent(in) ::  in_data !< input data on source grid
@@ -196,6 +254,7 @@ contains
       unpack(in_data,this%source_grid%mask,nodata_dp), out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
   end subroutine regridder_exe_dp_1d_1d
 
+  !> \brief Execute regridder for packed real input and unpacked real output.
   subroutine regridder_exe_dp_1d_2d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(regridder), intent(inout) :: this
     real(dp), dimension(this%source_grid%ncells), intent(in) ::  in_data !< input data on source grid
@@ -212,6 +271,7 @@ contains
     out_data = unpack(temp, this%target_grid%mask, nodata_dp)
   end subroutine regridder_exe_dp_1d_2d
 
+  !> \brief Execute regridder for unpacked real input and output.
   subroutine regridder_exe_dp_2d_2d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(regridder), intent(inout) :: this
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data !< input data on source grid
@@ -227,6 +287,7 @@ contains
     out_data = unpack(temp, this%target_grid%mask, nodata_dp)
   end subroutine regridder_exe_dp_2d_2d
 
+  !> \brief Execute regridder for unpacked real input and packed real output.
   subroutine regridder_exe_dp_2d_1d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(regridder), intent(inout) :: this
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data !< input data on source grid
@@ -281,6 +342,7 @@ contains
 
   end subroutine regridder_exe_dp_2d_1d
 
+  !> \brief Execute regridder for packed integer input and output.
   subroutine regridder_exe_i4_1d_1d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(regridder), intent(inout) :: this
     integer(i4), dimension(this%source_grid%ncells), intent(in) ::  in_data !< input data on source grid
@@ -295,6 +357,7 @@ contains
       unpack(in_data,this%source_grid%mask,nodata_i4), out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
   end subroutine regridder_exe_i4_1d_1d
 
+  !> \brief Execute regridder for packed integer input and unpacked integer output.
   subroutine regridder_exe_i4_1d_2d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(regridder), intent(inout) :: this
     integer(i4), dimension(this%source_grid%ncells), intent(in) ::  in_data !< input data on source grid
@@ -311,6 +374,7 @@ contains
     out_data = unpack(temp, this%target_grid%mask, nodata_i4)
   end subroutine regridder_exe_i4_1d_2d
 
+  !> \brief Execute regridder for unpacked integer input output.
   subroutine regridder_exe_i4_2d_2d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(regridder), intent(inout) :: this
     integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data !< input data on source grid
@@ -326,6 +390,7 @@ contains
     out_data = unpack(temp, this%target_grid%mask, nodata_i4)
   end subroutine regridder_exe_i4_2d_2d
 
+  !> \brief Execute regridder for unpacked integer input and packed integer output.
   subroutine regridder_exe_i4_2d_1d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(regridder), intent(inout) :: this
     integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data !< input data on source grid
@@ -379,6 +444,7 @@ contains
     end if
   end subroutine regridder_exe_i4_2d_1d
 
+  !> \brief Execute regridder for packed integer input and packed real output.
   subroutine regridder_exe_i4_dp_1d_1d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(regridder), intent(inout) :: this
     integer(i4), dimension(this%source_grid%ncells), intent(in) ::  in_data !< input data on source grid
@@ -393,6 +459,7 @@ contains
       unpack(in_data,this%source_grid%mask,nodata_i4), out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
   end subroutine regridder_exe_i4_dp_1d_1d
 
+  !> \brief Execute regridder for packed integer input and unpacked real output.
   subroutine regridder_exe_i4_dp_1d_2d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(regridder), intent(inout) :: this
     integer(i4), dimension(this%source_grid%ncells), intent(in) ::  in_data !< input data on source grid
@@ -409,6 +476,7 @@ contains
     out_data = unpack(temp, this%target_grid%mask, nodata_dp)
   end subroutine regridder_exe_i4_dp_1d_2d
 
+  !> \brief Execute regridder for unpacked integer input and unpacked real output.
   subroutine regridder_exe_i4_dp_2d_2d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(regridder), intent(inout) :: this
     integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data !< input data on source grid
@@ -424,6 +492,7 @@ contains
     out_data = unpack(temp, this%target_grid%mask, nodata_dp)
   end subroutine regridder_exe_i4_dp_2d_2d
 
+  !> \brief Execute regridder for unpacked integer input and packed real output.
   subroutine regridder_exe_i4_dp_2d_1d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(regridder), intent(inout) :: this
     integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data !< input data on source grid

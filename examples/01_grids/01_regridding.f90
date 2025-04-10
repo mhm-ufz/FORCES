@@ -1,3 +1,9 @@
+!> \brief   Regridding example.
+!> \details This program demonstrates regridding of a DEM read from an ascii file and saving the result to a NetCDF file.
+!> \authors Sebastian Mueller
+!> \date    Mar 2025
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 program regrid
   use mo_kind, only: dp
   use mo_constants, only: nodata_dp
