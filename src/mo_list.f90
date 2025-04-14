@@ -204,7 +204,7 @@ contains
   end subroutine traverse
 
   !> \brief destroy the data in the node.
-  pure elemental subroutine destroy_node_data(me)
+  impure elemental subroutine destroy_node_data(me)
     implicit none
     class(node),intent(inout) :: me
     if (allocated(me%key)) deallocate(me%key)
@@ -217,14 +217,14 @@ contains
   end subroutine destroy_node_data
 
   !> just a wrapper for \ref destroy_list.
-  pure elemental subroutine list_finalizer(me)
+  impure elemental subroutine list_finalizer(me)
     implicit none
     type(list),intent(inout) :: me
     call me%destroy()
   end subroutine list_finalizer
 
   !> \brief destroy the list (traverses from head to tail)
-  pure elemental subroutine destroy_list(me)
+  impure elemental subroutine destroy_list(me)
     implicit none
     class(list),intent(inout) :: me
     me%count = 0
@@ -234,7 +234,7 @@ contains
   end subroutine destroy_list
 
   !> \brief destroy the node (and subsequent ones in the list).
-  pure recursive subroutine destroy_node(me)
+  impure recursive subroutine destroy_node(me)
     implicit none
     type(node),pointer :: me
     if (associated(me)) then
