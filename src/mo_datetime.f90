@@ -128,6 +128,8 @@ module mo_datetime
   public :: is_leap_year
   public :: days_in_month
   public :: days_in_year
+  ! helpers
+  public :: decode_cf_time_units
 
   private
 
@@ -327,6 +329,34 @@ module mo_datetime
   end interface timedelta
 
 contains
+
+  !> \brief reference datetime and delta from cf-string for time units
+  subroutine decode_cf_time_units(string, delta, ref_datetime)
+    character(*), intent(in) :: string
+    type(timedelta), intent(out) :: delta
+    type(datetime), intent(out) :: ref_datetime
+    type(puredate) :: ref_date
+    type(puretime) :: ref_time
+    character(256), dimension(:), allocatable :: str_arr
+    call divide_string(trim(string), ' ', str_arr)
+    select case(trim(str_arr(1)))
+      case("days")
+        delta = td_init(days=1_i4)
+      case("hours")
+        delta = td_init(hours=1_i4)
+      case("minutes")
+        delta = td_init(minutes=1_i4)
+      case("seconds")
+        delta = td_init(seconds=1_i4)
+      case default
+        call error_message("datetime: units not valid for a cf-convetion time. Got: ", trim(str_arr(1)))
+    end select
+    if (trim(str_arr(2)) /= "since") call error_message("datetime: expected 'since' for cf-convetion. Got: ", trim(str_arr(2)))
+    ref_date = d_from_string(str_arr(3))
+    ref_time = midnight()
+    if(size(str_arr) > 3_i4) ref_time = t_from_string(str_arr(4))
+    ref_datetime = dt_from_date_time(ref_date, ref_time)
+  end subroutine decode_cf_time_units
 
   ! CONSTANT DELTAS
 
@@ -620,28 +650,9 @@ contains
     use mo_string_utils, only : divide_string
     character(*), intent(in) :: string
     integer(i4), intent(in) :: value
-    type(puredate) :: in_date
-    type(puretime) :: in_time
     type(timedelta) :: delta
-    character(256), dimension(:), allocatable :: str_arr
-    call divide_string(trim(string), ' ', str_arr)
-    select case(trim(str_arr(1)))
-      case("days")
-        delta = td_init(days=value)
-      case("hours")
-        delta = td_init(hours=value)
-      case("minutes")
-        delta = td_init(minutes=value)
-      case("seconds")
-        delta = td_init(seconds=value)
-      case default
-        call error_message("datetime: units not valid for a cf-convetion time. Got: ", trim(str_arr(1)))
-    end select
-    if (trim(str_arr(2)) /= "since") call error_message("datetime: expected 'since' for cf-convetion. Got: ", trim(str_arr(2)))
-    in_date = d_from_string(str_arr(3))
-    in_time = midnight()
-    if(size(str_arr) > 3_i4) in_time = t_from_string(str_arr(4))
-    dt_from_cf = dt_from_date_time(in_date, in_time) + delta
+    call decode_cf_time_units(string, delta, dt_from_cf)
+    dt_from_cf = dt_from_cf + value * delta
   end function dt_from_cf
 
   !> \brief datetime from date and time
