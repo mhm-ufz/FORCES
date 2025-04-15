@@ -2,10 +2,6 @@
 !> \copydoc mo_list
 
 !> \brief   Module providing a linked list.
-!> \version 0.1
-!> \authors Jacob Williams, Sebastian Mueller
-!> \date    Apr 2025
-!> \copyright flist was originally released under the BSD 3-Clause license.
 !> \details A simple logging framework derived from flist (https://github.com/jacobwilliams/flist).
 !!
 !! A generic list implementation.
@@ -14,36 +10,82 @@
 !! to contain any type of data. The `key` can be an integer(i4), string, or
 !! any user-defined \ref key_class.
 !!
+!!  Example for an integer list with a specific getter:
+!!  \code{.f90}
+!!  module mo_int_list
+!!    use mo_list, only: list
+!!    type, extends(list) :: integer_list
+!!    contains
+!!      procedure :: get_integer
+!!    end type
+!!  contains
+!!    subroutine get_integer(this, key, value)
+!!      class(integer_list), intent(in) :: this
+!!      class(*), intent(in) :: key
+!!      integer, pointer, intent(out) :: value
+!!      class(*), pointer :: p
+!!      call this%get(key, p)
+!!      if (associated(p)) then
+!!        select type (p)
+!!          type is (integer)
+!!            value => p
+!!          class default
+!!            error stop 'list item not an integer'
+!!        end select
+!!      else
+!!        value => null()
+!!      end if
+!!    end subroutine get_integer
+!!  end module mo_int_list
+!!
+!!  program test_int_list
+!!    use mo_int_list
+!!    type(integer_list) :: ilist
+!!    integer, pointer :: val
+!!    call ilist%add_clone('age', 30)
+!!    call ilist%add_clone('year', 1990)
+!!    call ilist%get_integer('age', val)
+!!    print*, 'age: ', val
+!!    call ilist%get_integer('year', val)
+!!    print*, 'year: ', val
+!!  end program test_int_list
+!!  \endcode
+!!
+!> \copyright flist was originally released under the BSD 3-Clause license (included below).
+!!
+!! Copyright (c) 2015-2021, Jacob Williams
+!! All rights reserved.
+!!
+!! Redistribution and use in source and binary forms, with or without modification,
+!! are permitted provided that the following conditions are met:
+!!
+!! 1. Redistributions of source code must retain the above copyright notice, this
+!! list of conditions and the following disclaimer.
+!!
+!! 2. Redistributions in binary form must reproduce the above copyright notice,
+!! this list of conditions and the following disclaimer in the documentation and/or
+!! other materials provided with the distribution.
+!!
+!! 3. Neither the name of the copyright holder nor the names of its contributors
+!! may be used to endorse or promote products derived from this software without
+!! specific prior written permission.
+!!
+!! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+!! ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+!! WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+!! DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+!! ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+!! (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+!! LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+!! ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+!! (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+!! SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+!> \version 0.1
+!> \authors Jacob Williams, Sebastian Mueller
+!> \date    Apr 2025
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_list
-  ! Copyright (c) 2015-2021, Jacob Williams
-  ! All rights reserved.
-  !
-  ! Redistribution and use in source and binary forms, with or without modification,
-  ! are permitted provided that the following conditions are met:
-  !
-  ! 1. Redistributions of source code must retain the above copyright notice, this
-  ! list of conditions and the following disclaimer.
-  !
-  ! 2. Redistributions in binary form must reproduce the above copyright notice,
-  ! this list of conditions and the following disclaimer in the documentation and/or
-  ! other materials provided with the distribution.
-  !
-  ! 3. Neither the name of the copyright holder nor the names of its contributors
-  ! may be used to endorse or promote products derived from this software without
-  ! specific prior written permission.
-  !
-  ! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-  ! ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-  ! WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  ! DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-  ! ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-  ! (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-  ! LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-  ! ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  ! (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-  ! SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
   use mo_kind, only: i4
   use mo_message, only: error_message
