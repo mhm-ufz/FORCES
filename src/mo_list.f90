@@ -46,6 +46,7 @@ module mo_list
   ! SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
   use mo_kind, only: i4
+  use mo_message, only: error_message
   implicit none
   private
 
@@ -294,7 +295,7 @@ contains
     if (associated(me%value)) then
       value => me%value
     else
-      error stop 'error: value pointer is not associated'
+      call error_message('error: value pointer is not associated')
     end if
   end subroutine get_node_data
 
@@ -438,11 +439,11 @@ contains
      type is (integer(i4))
       !ok
      type is (character(len=*))
-      if (len_trim(key) < 1) error stop 'Error: key must be nonblank.'
+      if (len_trim(key) < 1) call error_message('Error: key must be nonblank.')
      class is (key_class)
       !ok
      class default
-      error stop 'Error: key must be an integer(i4), character string, or key_class.'
+      call error_message('Error: key must be an integer(i4), character string, or key_class.')
     end select
     ! if the node is already there, then remove it
     call me%get_node(key, p)
