@@ -101,7 +101,7 @@ module mo_datetime
 
   use mo_kind, only: i4, i8, dp
   use mo_message, only: error_message
-  use mo_string_utils, only : num2str
+  use mo_string_utils, only : num2str, divide_string
   use mo_julian, only : dec2date, date2dec
 
   implicit none
@@ -629,7 +629,6 @@ contains
 
   !> \brief datetime from string
   type(datetime) function dt_from_string(string)
-    use mo_string_utils, only : divide_string
     character(*), intent(in) :: string
     type(puredate) :: in_date
     type(puretime) :: in_time
@@ -647,7 +646,6 @@ contains
 
   !> \brief datetime from cf-string and value
   type(datetime) function dt_from_cf(string, value)
-    use mo_string_utils, only : divide_string
     character(*), intent(in) :: string
     integer(i4), intent(in) :: value
     type(timedelta) :: delta
@@ -1004,7 +1002,6 @@ contains
 
   !> \brief date from string
   type(puredate) function d_from_string(string)
-    use mo_string_utils, only : divide_string
     character(*), intent(in) :: string
     character(256), dimension(:), allocatable :: date_str
     integer(i4) :: year, month, day
@@ -1287,7 +1284,6 @@ contains
 
   !> \brief time from string
   type(puretime) function t_from_string(string)
-    use mo_string_utils, only : divide_string
     character(*), intent(in) :: string
     character(256), dimension(:), allocatable :: time_str
     integer(i4) :: hour, minute, second
