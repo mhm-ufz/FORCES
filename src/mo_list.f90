@@ -55,61 +55,61 @@ module mo_list
   !! all that is necessary is to define the == operator function.
   !! For convienence, integer or characters keys are also
   !! allowed to be used.
-  type,abstract,public :: key_class
+  type, abstract, public :: key_class
   contains
     private
-    procedure(key_equal_func),deferred :: key_equal
-    generic,public :: operator(==) => key_equal
+    procedure(key_equal_func), deferred :: key_equal
+    generic, public :: operator(==) => key_equal
   end type key_class
 
   !> \brief interface for equality operator for \ref key_class.
   abstract interface
-    pure elemental logical function key_equal_func(item1,item2)
+    pure elemental logical function key_equal_func(item1, item2)
       import :: key_class
       implicit none
-      class(key_class),intent(in) :: item1
-      class(key_class),intent(in) :: item2
+      class(key_class), intent(in) :: item1
+      class(key_class), intent(in) :: item2
     end function key_equal_func
   end interface
 
   !> \class node
   !> \brief a node in the linked list.
   !> \details This is the container to the unlimited polymorphic `value` variable.
-  type,public :: node
+  type, public :: node
     private
-    class(*),allocatable :: key  !< the key (can be integer, string, or \ref key_class)
-    class(*),pointer :: value => null()  !< the data to hold
+    class(*), allocatable :: key  !< the key (can be integer, string, or \ref key_class)
+    class(*), pointer :: value => null()  !< the data to hold
     !> If true, value pointer is deallocated when it is removed from the list, or the list is destroyed.
     !! If false, it is only nullified.
     logical :: destroy_on_delete = .true.
-    type(node),pointer :: next     => null()  !< the next one in the list
-    type(node),pointer :: previous => null()  !< the previous one in the list
+    type(node), pointer :: next => null()  !< the next one in the list
+    type(node), pointer :: previous => null()  !< the previous one in the list
   contains
-    procedure,public :: destroy  => destroy_node_data  ! deallocate value
-    procedure,public :: get_data => get_node_data      ! get data from a node
+    procedure, public :: destroy => destroy_node_data  ! deallocate value
+    procedure, public :: get_data => get_node_data      ! get data from a node
   end type node
 
   !> \class list
   !> \brief Linked list of pointers to polymorphic types.
-  type,public :: list
+  type, public :: list
     private
     logical :: case_sensitive = .true. !< character key lookup is case sensitive
-    integer :: count          = 0      !< number of items in the list
-    type(node),pointer :: head => null() !< the first item in the list
-    type(node),pointer :: tail => null() !< the last item in the list
+    integer :: count = 0      !< number of items in the list
+    type(node), pointer :: head => null() !< the first item in the list
+    type(node), pointer :: tail => null() !< the last item in the list
   contains
     private
-    procedure,public :: add_pointer             ! add a pointer item to the list
-    procedure,public :: add_clone               ! add a non-pointer item to the list
-    procedure,public :: get => get_data         ! get a pointer to an item in the list
-    procedure,public :: destroy => destroy_list ! destroy the list and deallocate/finalize all the data
-    procedure,public :: has_key                 ! if the key is present in the list
-    procedure,public :: traverse                ! traverse the list are return each key & value
-    procedure,public :: remove => remove_by_key ! remove item from the list, given the key
+    procedure, public :: add_pointer             ! add a pointer item to the list
+    procedure, public :: add_clone               ! add a non-pointer item to the list
+    procedure, public :: get => get_data         ! get a pointer to an item in the list
+    procedure, public :: destroy => destroy_list ! destroy the list and deallocate/finalize all the data
+    procedure, public :: has_key                 ! if the key is present in the list
+    procedure, public :: traverse                ! traverse the list are return each key & value
+    procedure, public :: remove => remove_by_key ! remove item from the list, given the key
     ! procedures that operate on nodes:
-    procedure,public :: remove_by_pointer ! remove node from list, given pointer to it
-    procedure,public :: get_node          ! get a pointer to a node in the list
-    procedure,public :: traverse_list     ! traverse each node of the list
+    procedure, public :: remove_by_pointer ! remove node from list, given pointer to it
+    procedure, public :: get_node          ! get a pointer to a node in the list
+    procedure, public :: traverse_list     ! traverse each node of the list
     !private routines:
     procedure :: keys_equal     ! for testing key string equality
     final :: list_finalizer
@@ -121,39 +121,39 @@ module mo_list
 
   abstract interface
     !> \brief internal function for traversing all nodes in a list
-    subroutine iterator_func(me,done)
+    subroutine iterator_func(me, done)
       import :: node
       implicit none
-      type(node),pointer  :: me
-      logical,intent(out) :: done !< set to true to stop traversing
+      type(node), pointer  :: me
+      logical, intent(out) :: done !< set to true to stop traversing
     end subroutine iterator_func
 
     !> \brief for traversing all keys in a list
-    subroutine key_iterator(key,value,done)
+    subroutine key_iterator(key, value, done)
       implicit none
-      class(*),intent(in)  :: key   !< the node key
-      class(*),pointer     :: value !< pointer to the node value
-      logical,intent(out)  :: done  !< set to true to stop traversing
+      class(*), intent(in)  :: key   !< the node key
+      class(*), pointer     :: value !< pointer to the node value
+      logical, intent(out)  :: done  !< set to true to stop traversing
     end subroutine key_iterator
   end interface
 
 contains
 
   !> \brief Returns true if the key is present in the list.
-  logical function has_key(me,key)
+  logical function has_key(me, key)
     implicit none
-    class(list),intent(inout) :: me
-    class(*),intent(in)       :: key
+    class(list), intent(inout) :: me
+    class(*), intent(in)       :: key
     has_key = .false.
     ! traverse the list:
     call me%traverse_list(key_search)
   contains
     !> \brief search for the key
-    subroutine key_search(p,done)
+    subroutine key_search(p, done)
       implicit none
-      type(node),pointer  :: p
-      logical,intent(out) :: done !< whether key is found
-      has_key = me%keys_equal(p%key,key)
+      type(node), pointer  :: p
+      logical, intent(out) :: done !< whether key is found
+      has_key = me%keys_equal(p%key, key)
       done = has_key
     end subroutine key_search
   end function has_key
@@ -161,24 +161,24 @@ contains
   !> \brief list constructor.
   function initialize_list(case_sensitive) result(lst)
     implicit none
-    logical,intent(in) :: case_sensitive !< if true, then string key searches are case sensitive.
+    logical, intent(in) :: case_sensitive !< if true, then string key searches are case sensitive.
     type(list) :: lst
     lst%case_sensitive = case_sensitive
   end function initialize_list
 
   !> \brief traverse list from head to tail, and call the iterator function for each node.
-  subroutine traverse_list(me,iterator)
+  subroutine traverse_list(me, iterator)
     implicit none
-    class(list),intent(inout) :: me
+    class(list), intent(inout) :: me
     procedure(iterator_func)  :: iterator  !< the function to call for each node.
-    type(node),pointer :: p
+    type(node), pointer :: p
     logical :: done
 
     done = .false.
     p => me%head
     do
       if (associated(p)) then
-        call iterator(p,done)
+        call iterator(p, done)
         if (done) exit
         p => p%next
       else
@@ -188,123 +188,123 @@ contains
   end subroutine traverse_list
 
   !> \brief traverse list from head to tail, and call the iterator function for each key.
-  subroutine traverse(me,iterator)
+  subroutine traverse(me, iterator)
     implicit none
-    class(list),intent(inout) :: me
+    class(list), intent(inout) :: me
     procedure(key_iterator)  :: iterator  !< the function to call for each node.
     call me%traverse_list(key_iterator_wrapper)
   contains
     !> \brief for calling the user-specified key_iterator function.
-    subroutine key_iterator_wrapper(my,done)
+    subroutine key_iterator_wrapper(my, done)
       implicit none
-      type(node),pointer  :: my
-      logical,intent(out) :: done !< set to true to stop traversing
-      call iterator(my%key,my%value,done)
+      type(node), pointer  :: my
+      logical, intent(out) :: done !< set to true to stop traversing
+      call iterator(my%key, my%value, done)
     end subroutine key_iterator_wrapper
   end subroutine traverse
 
   !> \brief destroy the data in the node.
   impure elemental subroutine destroy_node_data(me)
     implicit none
-    class(node),intent(inout) :: me
-    if (allocated(me%key)) deallocate(me%key)
+    class(node), intent(inout) :: me
+    if (allocated(me%key)) deallocate (me%key)
     if (me%destroy_on_delete) then
       ! deallocates the pointer (and call any finalizer)
       ! (otherwise, it is up to the caller to do this)
-      if (associated(me%value)) deallocate(me%value)
+      if (associated(me%value)) deallocate (me%value)
     end if
-    nullify(me%value)
+    nullify (me%value)
   end subroutine destroy_node_data
 
   !> just a wrapper for \ref destroy_list.
   impure elemental subroutine list_finalizer(me)
     implicit none
-    type(list),intent(inout) :: me
+    type(list), intent(inout) :: me
     call me%destroy()
   end subroutine list_finalizer
 
   !> \brief destroy the list (traverses from head to tail)
   impure elemental subroutine destroy_list(me)
     implicit none
-    class(list),intent(inout) :: me
+    class(list), intent(inout) :: me
     me%count = 0
     if (associated(me%head)) call destroy_node(me%head)
-    nullify(me%head)
-    nullify(me%tail)
+    nullify (me%head)
+    nullify (me%tail)
   end subroutine destroy_list
 
   !> \brief destroy the node (and subsequent ones in the list).
   impure recursive subroutine destroy_node(me)
     implicit none
-    type(node),pointer :: me
+    type(node), pointer :: me
     if (associated(me)) then
       call me%destroy()
       call destroy_node(me%next)
-      nullify(me%previous)
-      deallocate(me)
-      nullify(me)
+      nullify (me%previous)
+      deallocate (me)
+      nullify (me)
     end if
   end subroutine destroy_node
 
   !> \brief Remove an item from the list (given the key).
-  subroutine remove_by_key(me,key)
+  subroutine remove_by_key(me, key)
     implicit none
-    class(list),intent(inout) :: me
-    class(*),intent(in)       :: key !< node key
-    type(node),pointer :: p
-    call me%get_node(key,p)
+    class(list), intent(inout) :: me
+    class(*), intent(in)       :: key !< node key
+    type(node), pointer :: p
+    call me%get_node(key, p)
     call me%remove_by_pointer(p)
   end subroutine remove_by_key
 
   !> \brief Remove an item from the list.
-  subroutine remove_by_pointer(me,p)
+  subroutine remove_by_pointer(me, p)
     implicit none
-    class(list),intent(inout) :: me
-    type(node),pointer        :: p   !< the item to remove
+    class(list), intent(inout) :: me
+    type(node), pointer        :: p   !< the item to remove
     logical :: has_next, has_previous
     if (associated(p)) then
       call p%destroy()  ! destroy the data
-      has_next     = associated(p%next)
+      has_next = associated(p%next)
       has_previous = associated(p%previous)
       if (has_next .and. has_previous) then    !neither first nor last in a list
         p%previous%next => p%next
         p%next%previous => p%previous
       elseif (has_next .and. .not. has_previous) then    !first one in a list
-        me%head          => p%next
+        me%head => p%next
         me%head%previous => null()
       elseif (has_previous .and. .not. has_next) then    !last one in a list
-        me%tail      => p%previous
+        me%tail => p%previous
         me%tail%next => null()
       elseif (.not. has_previous .and. .not. has_next) then  !only one in the list
         me%head => null()
         me%tail => null()
       end if
-      deallocate(p)
-      nullify(p)
+      deallocate (p)
+      nullify (p)
       me%count = me%count - 1
     end if
   end subroutine remove_by_pointer
 
   !> \brief Get the data from a node
-  subroutine get_node_data(me,value)
+  subroutine get_node_data(me, value)
     implicit none
-    class(node),intent(in)       :: me
-    class(*),pointer,intent(out) :: value
+    class(node), intent(in)       :: me
+    class(*), pointer, intent(out) :: value
     if (associated(me%value)) then
-        value => me%value
+      value => me%value
     else
-        error stop 'error: value pointer is not associated'
+      error stop 'error: value pointer is not associated'
     end if
   end subroutine get_node_data
 
   !> \brief Returns a pointer to the data stored in the list.
-  subroutine get_data(me,key,value)
+  subroutine get_data(me, key, value)
     implicit none
-    class(list),intent(in)       :: me
-    class(*),intent(in)          :: key !< key of node
-    class(*),pointer,intent(out) :: value !< data value
-    type(node),pointer :: p
-    call me%get_node(key,p)
+    class(list), intent(in)       :: me
+    class(*), intent(in)          :: key !< key of node
+    class(*), pointer, intent(out) :: value !< data value
+    type(node), pointer :: p
+    call me%get_node(key, p)
     if (associated(p)) then
       value => p%value
     else
@@ -313,18 +313,18 @@ contains
   end subroutine get_data
 
   !> \brief Returns a pointer to a node in a list.
-  subroutine get_node(me,key,p_node)
+  subroutine get_node(me, key, p_node)
     implicit none
-    class(list),intent(in)         :: me
-    class(*),intent(in)            :: key
-    type(node),pointer,intent(out) :: p_node
-    type(node),pointer :: p
+    class(list), intent(in)         :: me
+    class(*), intent(in)            :: key
+    type(node), pointer, intent(out) :: p_node
+    type(node), pointer :: p
 
-    nullify(p_node)
+    nullify (p_node)
     p => me%head
     do
       if (associated(p)) then
-        if (me%keys_equal(p%key,key)) then
+        if (me%keys_equal(p%key, key)) then
           p_node => p
           return
         end if
@@ -338,34 +338,34 @@ contains
   !> \brief Returns true if the two keys are equal.
   !> \details Allowing a key to be an integer or a character string
   !! (can be case sensitive or not), or alternately, a user-defined \ref key_class.
-  pure function keys_equal(me,k1,k2)
+  pure function keys_equal(me, k1, k2)
     implicit none
-    class(list),intent(in) :: me
-    class(*),intent(in)    :: k1
-    class(*),intent(in)    :: k2
+    class(list), intent(in) :: me
+    class(*), intent(in)    :: k1
+    class(*), intent(in)    :: k2
     logical                :: keys_equal
     keys_equal = .false.
-    if (same_type_as(k1,k2)) then
+    if (same_type_as(k1, k2)) then
       select type (k1)
-        class is (key_class)
-          select type (k2)
-            class is (key_class)
-              keys_equal = k1 == k2
-          end select
-        type is (integer)
-          select type (k2)
-            type is (integer)
-              keys_equal = k1 == k2
-          end select
-        type is (character(len=*))
-          select type (k2)
-            type is (character(len=*))
-              if (me%case_sensitive) then
-                keys_equal = k1 == k2
-              else
-                keys_equal = uppercase(k1) == uppercase(k2)
-              end if
-          end select
+       class is (key_class)
+        select type (k2)
+         class is (key_class)
+          keys_equal = k1 == k2
+        end select
+       type is (integer)
+        select type (k2)
+         type is (integer)
+          keys_equal = k1 == k2
+        end select
+       type is (character(len=*))
+        select type (k2)
+         type is (character(len=*))
+          if (me%case_sensitive) then
+            keys_equal = k1 == k2
+          else
+            keys_equal = uppercase(k1) == uppercase(k2)
+          end if
+        end select
       end select
     end if
   end function keys_equal
@@ -373,11 +373,11 @@ contains
   !> \brief Convert a string to uppercase.
   pure function uppercase(str) result(string)
     implicit none
-    character(len=*),intent(in) :: str
+    character(len=*), intent(in) :: str
     character(len=len(str))     :: string
-    integer :: i,idx
-    character(len=*),parameter :: upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    character(len=*),parameter :: lower = 'abcdefghijklmnopqrstuvwxyz'
+    integer :: i, idx
+    character(len=*), parameter :: upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    character(len=*), parameter :: lower = 'abcdefghijklmnopqrstuvwxyz'
     string = str
     do i = 1, len_trim(str)
       idx = index(lower, str(i:i))
@@ -398,30 +398,30 @@ contains
   !! This one would normally be used for basic variables and types that
   !! do not contain pointers to other variables (and are not pointed to by
   !! other variables)
-  subroutine add_clone(me,key,value)
+  subroutine add_clone(me, key, value)
     implicit none
-    class(list),intent(inout) :: me
-    class(*),intent(in)       :: key
-    class(*),intent(in)       :: value
-    class(*),pointer :: p_value
-    allocate(p_value, source=value) !make a copy
-    call me%add_pointer(key,p_value,destroy_on_delete=.true.)
-    nullify(p_value)
+    class(list), intent(inout) :: me
+    class(*), intent(in)       :: key
+    class(*), intent(in)       :: value
+    class(*), pointer :: p_value
+    allocate (p_value, source=value) !make a copy
+    call me%add_pointer(key, p_value, destroy_on_delete=.true.)
+    nullify (p_value)
   end subroutine add_clone
 
   !> \brief Add a data pointer to the list.
   !> \details Add an item to the list, and associate its pointer to the input value.
   !! \note If an item with the same key is already in the list, it is removed and the new one will replace it.
-  subroutine add_pointer(me,key,value,destroy_on_delete)
+  subroutine add_pointer(me, key, value, destroy_on_delete)
     implicit none
-    class(list),intent(inout)   :: me
-    class(*),intent(in)         :: key
+    class(list), intent(inout)   :: me
+    class(*), intent(in)         :: key
     !> *value* is unlimited polymorphic, so it can
     !! be any scalar type. If the type includes
     !! pointers or other objects that must be
     !! cleaned up when it is destroyed, then it
     !! should include a finalizer.
-    class(*),intent(in),pointer :: value
+    class(*), intent(in), pointer :: value
     !> If false, the finalizer will
     !! not be called when the item is
     !! removed from the list (the
@@ -430,34 +430,34 @@ contains
     !! responsible for cleaning it up
     !! to avoid memory leaks).
     !! The default is *True*.
-    logical,intent(in),optional :: destroy_on_delete
-    type(node),pointer :: p
+    logical, intent(in), optional :: destroy_on_delete
+    type(node), pointer :: p
     !only allowing integer, string, or key_class keys:
     select type (key)
-      type is (integer)
-        !ok
-      type is (character(len=*))
-        if (len_trim(key)<1) error stop 'Error: key must be nonblank.'
-      class is (key_class)
-        !ok
-      class default
-        error stop 'Error: key must be an integer, character string, or key_class.'
+     type is (integer)
+      !ok
+     type is (character(len=*))
+      if (len_trim(key) < 1) error stop 'Error: key must be nonblank.'
+     class is (key_class)
+      !ok
+     class default
+      error stop 'Error: key must be an integer, character string, or key_class.'
     end select
     ! if the node is already there, then remove it
-    call me%get_node(key,p)
+    call me%get_node(key, p)
     if (associated(p)) call me%remove_by_pointer(p)
     if (associated(me%tail)) then
-      allocate(me%tail%next)  !insert new item at the end
+      allocate (me%tail%next)  !insert new item at the end
       p => me%tail%next
       p%previous => me%tail
     else
-      allocate(me%head)  !first item in the list
+      allocate (me%head)  !first item in the list
       p => me%head
     end if
-    me%tail  => p
-    me%count =  me%count + 1
-    allocate(p%key, source=key)
-    p%value  => value
+    me%tail => p
+    me%count = me%count + 1
+    allocate (p%key, source=key)
+    p%value => value
     if (present(destroy_on_delete)) p%destroy_on_delete = destroy_on_delete
   end subroutine add_pointer
 
