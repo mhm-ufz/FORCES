@@ -95,7 +95,6 @@ module mo_list
   !> \brief Linked list of pointers to polymorphic types.
   type, public :: list
     private
-    integer(i4) :: count = 0      !< number of items in the list
     type(node), pointer :: head => null() !< the first item in the list
     type(node), pointer :: tail => null() !< the last item in the list
   contains
@@ -158,7 +157,6 @@ contains
   impure elemental subroutine destroy_list(me)
     implicit none
     class(list), intent(inout) :: me
-    me%count = 0
     if (associated(me%head)) call destroy_node(me%head)
     nullify (me%head)
     nullify (me%tail)
@@ -212,7 +210,6 @@ contains
       end if
       deallocate (p)
       nullify (p)
-      me%count = me%count - 1
     end if
   end subroutine remove_by_pointer
 
@@ -366,7 +363,6 @@ contains
       p => me%head
     end if
     me%tail => p
-    me%count = me%count + 1
     allocate (p%key, source=key)
     p%value => value
     if (present(destroy_on_delete)) p%destroy_on_delete = destroy_on_delete
