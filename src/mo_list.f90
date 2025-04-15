@@ -161,8 +161,8 @@ contains
   !> \brief list constructor.
   function initialize_list(case_sensitive) result(lst)
     implicit none
-    type(list) :: lst
     logical,intent(in) :: case_sensitive !< if true, then string key searches are case sensitive.
+    type(list) :: lst
     lst%case_sensitive = case_sensitive
   end function initialize_list
 
@@ -447,16 +447,16 @@ contains
     call me%get_node(key,p)
     if (associated(p)) call me%remove_by_pointer(p)
     if (associated(me%tail)) then
-        allocate(me%tail%next)  !insert new item at the end
-        p => me%tail%next
-        p%previous => me%tail
+      allocate(me%tail%next)  !insert new item at the end
+      p => me%tail%next
+      p%previous => me%tail
     else
-        allocate(me%head)  !first item in the list
-        p => me%head
+      allocate(me%head)  !first item in the list
+      p => me%head
     end if
     me%tail  => p
     me%count =  me%count + 1
-    allocate(p%key, source = key)
+    allocate(p%key, source=key)
     p%value  => value
     if (present(destroy_on_delete)) p%destroy_on_delete = destroy_on_delete
   end subroutine add_pointer
