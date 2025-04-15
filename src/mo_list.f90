@@ -105,34 +105,13 @@ module mo_list
     procedure, public :: get => get_data         ! get a pointer to an item in the list
     procedure, public :: destroy => destroy_list ! destroy the list and deallocate/finalize all the data
     procedure, public :: has_key                 ! if the key is present in the list
-    procedure, public :: traverse                ! traverse the list are return each key & value
     procedure, public :: remove => remove_by_key ! remove item from the list, given the key
     ! procedures that operate on nodes:
     procedure, public :: remove_by_pointer ! remove node from list, given pointer to it
     procedure, public :: get_node          ! get a pointer to a node in the list
-    procedure, public :: traverse_list     ! traverse each node of the list
     !private routines:
-    procedure :: keys_equal     ! for testing key string equality
     final :: list_finalizer
   end type list
-
-  abstract interface
-    !> \brief internal function for traversing all nodes in a list
-    subroutine iterator_func(me, done)
-      import :: node
-      implicit none
-      type(node), pointer  :: me
-      logical, intent(out) :: done !< set to true to stop traversing
-    end subroutine iterator_func
-
-    !> \brief for traversing all keys in a list
-    subroutine key_iterator(key, value, done)
-      implicit none
-      class(*), intent(in)  :: key   !< the node key
-      class(*), pointer     :: value !< pointer to the node value
-      logical, intent(out)  :: done  !< set to true to stop traversing
-    end subroutine key_iterator
-  end interface
 
 contains
 
@@ -141,56 +120,19 @@ contains
     implicit none
     class(list), intent(inout) :: me
     class(*), intent(in)       :: key
-    has_key = .false.
-    ! traverse the list:
-    call me%traverse_list(key_search)
-  contains
-    !> \brief search for the key
-    subroutine key_search(p, done)
-      implicit none
-      type(node), pointer  :: p
-      logical, intent(out) :: done !< whether key is found
-      has_key = me%keys_equal(p%key, key)
-      done = has_key
-    end subroutine key_search
-  end function has_key
-
-  !> \brief traverse list from head to tail, and call the iterator function for each node.
-  subroutine traverse_list(me, iterator)
-    implicit none
-    class(list), intent(inout) :: me
-    procedure(iterator_func)  :: iterator  !< the function to call for each node.
     type(node), pointer :: p
-    logical :: done
-
-    done = .false.
+    has_key = .false.
     p => me%head
     do
       if (associated(p)) then
-        call iterator(p, done)
-        if (done) exit
+        has_key = keys_equal(p%key, key)
+        if (has_key) exit
         p => p%next
       else
         exit ! done
       end if
     end do
-  end subroutine traverse_list
-
-  !> \brief traverse list from head to tail, and call the iterator function for each key.
-  subroutine traverse(me, iterator)
-    implicit none
-    class(list), intent(inout) :: me
-    procedure(key_iterator)  :: iterator  !< the function to call for each node.
-    call me%traverse_list(key_iterator_wrapper)
-  contains
-    !> \brief for calling the user-specified key_iterator function.
-    subroutine key_iterator_wrapper(my, done)
-      implicit none
-      type(node), pointer  :: my
-      logical, intent(out) :: done !< set to true to stop traversing
-      call iterator(my%key, my%value, done)
-    end subroutine key_iterator_wrapper
-  end subroutine traverse
+  end function has_key
 
   !> \brief destroy the data in the node.
   impure elemental subroutine destroy_node_data(me)
@@ -313,7 +255,7 @@ contains
     p => me%head
     do
       if (associated(p)) then
-        if (me%keys_equal(p%key, key)) then
+        if (keys_equal(p%key, key)) then
           p_node => p
           return
         end if
@@ -327,9 +269,8 @@ contains
   !> \brief Returns true if the two keys are equal.
   !> \details Allowing a key to be an integer(i4) or a character string
   !! (can be case sensitive or not), or alternately, a user-defined \ref key_class.
-  pure function keys_equal(me, k1, k2)
+  pure function keys_equal(k1, k2)
     implicit none
-    class(list), intent(in) :: me
     class(*), intent(in)    :: k1
     class(*), intent(in)    :: k2
     logical                :: keys_equal
