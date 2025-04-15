@@ -11,7 +11,7 @@
 !! A generic list implementation.
 !!
 !! It uses an unlimited polymorphic `class(*)` pointer variable to allow it
-!! to contain any type of data. The `key` can be an integer, string, or
+!! to contain any type of data. The `key` can be an integer(i4), string, or
 !! any user-defined \ref key_class.
 !!
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
@@ -45,6 +45,7 @@ module mo_list
   ! (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   ! SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+  use mo_kind, only: i4
   implicit none
   private
 
@@ -53,7 +54,7 @@ module mo_list
   !> \details Can be used as a key for the list.
   !! it can be extended to use any data as a key.
   !! all that is necessary is to define the == operator function.
-  !! For convienence, integer or characters keys are also
+  !! For convienence, integer(i4) or characters keys are also
   !! allowed to be used.
   type, abstract, public :: key_class
   contains
@@ -77,7 +78,7 @@ module mo_list
   !> \details This is the container to the unlimited polymorphic `value` variable.
   type, public :: node
     private
-    class(*), allocatable :: key  !< the key (can be integer, string, or \ref key_class)
+    class(*), allocatable :: key  !< the key (can be integer(i4), string, or \ref key_class)
     class(*), pointer :: value => null()  !< the data to hold
     !> If true, value pointer is deallocated when it is removed from the list, or the list is destroyed.
     !! If false, it is only nullified.
@@ -94,7 +95,7 @@ module mo_list
   type, public :: list
     private
     logical :: case_sensitive = .true. !< character key lookup is case sensitive
-    integer :: count = 0      !< number of items in the list
+    integer(i4) :: count = 0      !< number of items in the list
     type(node), pointer :: head => null() !< the first item in the list
     type(node), pointer :: tail => null() !< the last item in the list
   contains
@@ -336,7 +337,7 @@ contains
   end subroutine get_node
 
   !> \brief Returns true if the two keys are equal.
-  !> \details Allowing a key to be an integer or a character string
+  !> \details Allowing a key to be an integer(i4) or a character string
   !! (can be case sensitive or not), or alternately, a user-defined \ref key_class.
   pure function keys_equal(me, k1, k2)
     implicit none
@@ -352,9 +353,9 @@ contains
          class is (key_class)
           keys_equal = k1 == k2
         end select
-       type is (integer)
+       type is (integer(i4))
         select type (k2)
-         type is (integer)
+         type is (integer(i4))
           keys_equal = k1 == k2
         end select
        type is (character(len=*))
@@ -375,7 +376,7 @@ contains
     implicit none
     character(len=*), intent(in) :: str
     character(len=len(str))     :: string
-    integer :: i, idx
+    integer(i4) :: i, idx
     character(len=*), parameter :: upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     character(len=*), parameter :: lower = 'abcdefghijklmnopqrstuvwxyz'
     string = str
@@ -432,16 +433,16 @@ contains
     !! The default is *True*.
     logical, intent(in), optional :: destroy_on_delete
     type(node), pointer :: p
-    !only allowing integer, string, or key_class keys:
+    !only allowing integer(i4), string, or key_class keys:
     select type (key)
-     type is (integer)
+     type is (integer(i4))
       !ok
      type is (character(len=*))
       if (len_trim(key) < 1) error stop 'Error: key must be nonblank.'
      class is (key_class)
       !ok
      class default
-      error stop 'Error: key must be an integer, character string, or key_class.'
+      error stop 'Error: key must be an integer(i4), character string, or key_class.'
     end select
     ! if the node is already there, then remove it
     call me%get_node(key, p)
