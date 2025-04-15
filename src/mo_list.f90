@@ -95,7 +95,6 @@ module mo_list
   !> \brief Linked list of pointers to polymorphic types.
   type, public :: list
     private
-    logical :: case_sensitive = .true. !< character key lookup is case sensitive
     integer(i4) :: count = 0      !< number of items in the list
     type(node), pointer :: head => null() !< the first item in the list
     type(node), pointer :: tail => null() !< the last item in the list
@@ -116,10 +115,6 @@ module mo_list
     procedure :: keys_equal     ! for testing key string equality
     final :: list_finalizer
   end type list
-
-  interface list
-    procedure :: initialize_list !< constructor for a list
-  end interface
 
   abstract interface
     !> \brief internal function for traversing all nodes in a list
@@ -159,14 +154,6 @@ contains
       done = has_key
     end subroutine key_search
   end function has_key
-
-  !> \brief list constructor.
-  function initialize_list(case_sensitive) result(lst)
-    implicit none
-    logical, intent(in) :: case_sensitive !< if true, then string key searches are case sensitive.
-    type(list) :: lst
-    lst%case_sensitive = case_sensitive
-  end function initialize_list
 
   !> \brief traverse list from head to tail, and call the iterator function for each node.
   subroutine traverse_list(me, iterator)
@@ -362,30 +349,11 @@ contains
        type is (character(len=*))
         select type (k2)
          type is (character(len=*))
-          if (me%case_sensitive) then
-            keys_equal = k1 == k2
-          else
-            keys_equal = uppercase(k1) == uppercase(k2)
-          end if
+          keys_equal = k1 == k2
         end select
       end select
     end if
   end function keys_equal
-
-  !> \brief Convert a string to uppercase.
-  pure function uppercase(str) result(string)
-    implicit none
-    character(len=*), intent(in) :: str
-    character(len=len(str))     :: string
-    integer(i4) :: i, idx
-    character(len=*), parameter :: upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    character(len=*), parameter :: lower = 'abcdefghijklmnopqrstuvwxyz'
-    string = str
-    do i = 1, len_trim(str)
-      idx = index(lower, str(i:i))
-      if (idx > 0) string(i:i) = upper(idx:idx)
-    end do
-  end function uppercase
 
   !> \brief Add a data clone to the list.
   !> \details Add an item to the end of the list by *cloning* it.
