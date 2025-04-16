@@ -1,0 +1,127 @@
+module test_mo_list
+  use funit
+  use mo_list, only: list, key_class
+  use mo_kind, only: i4, i8
+
+  implicit none
+
+  type, extends(key_class) :: ikey
+    integer(i8) :: id
+  contains
+    private
+    procedure :: key_equal => key_eq_i8
+  end type ikey
+
+  private
+
+  public :: test_list
+
+contains
+
+  pure elemental logical function key_eq_i8(item1,  item2)
+    class(ikey), intent(in) :: item1
+    class(key_class), intent(in) :: item2 ! needs to be class(key_class) to match interface
+    key_eq_i8 = .false.
+    select type (item2)
+      class is (ikey)
+        key_eq_i8 = item1%id == item2%id
+    end select
+  end function key_eq_i8
+
+  subroutine get_type(lst, key, int_val, real_val, char_val)
+    class(list), intent(in) :: lst
+    class(*), intent(in) :: key
+    integer, pointer, intent(out), optional :: int_val
+    real, pointer, intent(out), optional :: real_val
+    character(:), pointer, intent(out), optional :: char_val
+    class(*), pointer :: p
+    ! init to null
+    if (present(int_val)) int_val => null()
+    if (present(real_val)) real_val => null()
+    if (present(char_val)) char_val => null()
+    ! get data
+    call lst%get(key, p)
+    if (associated(p)) then
+      select type (p)
+        type is (integer)
+          if (present(int_val)) int_val => p
+        type is (real)
+          if (present(real_val)) real_val => p
+        type is (character(*))
+          if (present(char_val)) char_val => p
+      end select
+    end if
+  end subroutine get_type
+
+  @test
+  subroutine test_list()
+    implicit none
+    type(list) :: lst
+    type(ikey) :: k1
+    integer, pointer :: ival => null()
+    real, pointer :: rval => null()
+    character(:), pointer :: cval => null()
+    real :: t = 1000.0 * epsilon(1.0)
+
+    call lst%add_clone("age", 30)
+    call lst%add_clone("year", 1990)
+    call lst%add_clone("temp", 27.9)
+
+    call get_type(lst, "age", int_val=ival)
+    call get_type(lst, "temp", real_val=rval)
+
+    @assertTrue(associated(ival), message='associated integer check')
+    @assertTrue(associated(rval), message='associated real check')
+    @assertEqual(ival, 30, message='lst integer check')
+    @assertEqual(rval, 27.9, tolerance=t, message='lst real check')
+
+    call get_type(lst, "year", int_val=ival)
+    @assertEqual(ival, 1990, message='lst 2nd integer check')
+
+    call lst%remove("year")
+    @assertFalse(lst%has_key("year"), message='missing key check')
+    call lst%remove("age")
+    @assertFalse(lst%has_key("age"), message='missing key check')
+
+    call lst%add_clone("name", "John")
+    call get_type(lst, "name", char_val=cval)
+    @assertTrue(associated(cval), message='associated char check')
+    @assertEqual(len(cval), 4, message='lst 1st char check')
+    @assertEqual(cval, "John", message='lst 2nd char check')
+
+    @assertFalse(lst%has_key("hobby"), message='missing key check')
+
+    call lst%remove("name")
+    @assertFalse(lst%has_key("name"), message='missing key check')
+
+    call lst%add_clone(1_i4, "an integer key")
+    call lst%add_clone(2_i4, 2.0)
+
+    call get_type(lst, key=1_i4, char_val=cval)
+    @assertEqual(cval, "an integer key", message='int key check')
+
+    call get_type(lst, key=2_i4, real_val=rval)
+    @assertEqual(rval, 2.0, tolerance=t, message='2nd int key check')
+
+    call lst%remove("temp")
+    call lst%remove(2_i4)
+    call lst%remove(1_i4)
+
+    @assertFalse(lst%has_key("age"), message='missing key check')
+    @assertFalse(lst%has_key("year"), message='missing key check')
+    @assertFalse(lst%has_key("temp"), message='missing key check')
+    @assertFalse(lst%has_key("name"), message='missing key check')
+    @assertFalse(lst%has_key(1_i4), message='missing key check')
+    @assertFalse(lst%has_key(2_i4), message='missing key check')
+
+    k1 = ikey(20_i8)
+    call lst%add_clone(k1, "a beautiful key you have there!")
+    @assertTrue(lst%has_key(k1), message='type key check')
+    call lst%remove(k1)
+    @assertFalse(lst%has_key(k1), message='2nd type key check')
+
+    call lst%add_clone(10_i4, "a last entry to say goodbye and check the destroyer")
+
+  end subroutine test_list
+
+end module test_mo_list
