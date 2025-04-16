@@ -149,8 +149,8 @@ module mo_list
     procedure, public :: has_key                 ! if the key is present in the list
     procedure, public :: remove => remove_by_key ! remove item from the list, given the key
     ! procedures that operate on nodes:
-    procedure, public :: remove_by_pointer ! remove node from list, given pointer to it
-    procedure, public :: get_node          ! get a pointer to a node in the list
+    procedure :: remove_by_pointer ! remove node from list, given pointer to it
+    procedure :: get_node          ! get a pointer to a node in the list
     !private routines:
     final :: list_finalizer
   end type list
@@ -163,17 +163,8 @@ contains
     class(list), intent(inout) :: me
     class(*), intent(in)       :: key
     type(node), pointer :: p
-    has_key = .false.
-    p => me%head
-    do
-      if (associated(p)) then
-        has_key = keys_equal(p%key, key)
-        if (has_key) exit
-        p => p%next
-      else
-        exit ! done
-      end if
-    end do
+    call me%get_node(key, p)
+    has_key = associated(p)
   end function has_key
 
   !> \brief destroy the data in the node.
@@ -264,7 +255,7 @@ contains
     if (associated(me%value)) then
       value => me%value
     else
-      call error_message('error: value pointer is not associated')
+      call error_message('list: node value not associated') ! LCOV_EXCL_LINE
     end if
   end subroutine get_node_data
 
@@ -277,9 +268,9 @@ contains
     type(node), pointer :: p
     call me%get_node(key, p)
     if (associated(p)) then
-      value => p%value
+      call p%get_data(value)
     else
-      value => null()
+      call error_message('list: node not associated') ! LCOV_EXCL_LINE
     end if
   end subroutine get_data
 
@@ -290,7 +281,6 @@ contains
     class(*), intent(in)            :: key
     type(node), pointer, intent(out) :: p_node
     type(node), pointer :: p
-
     nullify (p_node)
     p => me%head
     do
@@ -388,11 +378,11 @@ contains
      type is (integer(i4))
       !ok
      type is (character(len=*))
-      if (len_trim(key) < 1) call error_message('Error: key must be nonblank.')
+      if (len_trim(key) < 1) call error_message('Error: key must be nonblank.') ! LCOV_EXCL_LINE
      class is (key_class)
       !ok
      class default
-      call error_message('Error: key must be an integer(i4), character string, or key_class.')
+      call error_message('Error: key must be an integer(i4), character string, or key_class.') ! LCOV_EXCL_LINE
     end select
     ! if the node is already there, then remove it
     call me%get_node(key, p)
