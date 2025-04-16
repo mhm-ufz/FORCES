@@ -8,7 +8,6 @@ module test_mo_list
   type, extends(key_class) :: ikey
     integer(i8) :: id
   contains
-    private
     procedure :: key_equal => key_eq_i8
   end type ikey
 

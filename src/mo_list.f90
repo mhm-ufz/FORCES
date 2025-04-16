@@ -102,9 +102,8 @@ module mo_list
   !! allowed to be used.
   type, abstract, public :: key_class
   contains
-    private
     procedure(key_equal_func), deferred :: key_equal
-    generic, public :: operator(==) => key_equal
+    generic :: operator(==) => key_equal
   end type key_class
 
   !> \brief interface for equality operator for \ref key_class.
