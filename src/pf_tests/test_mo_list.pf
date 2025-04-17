@@ -17,13 +17,13 @@ module test_mo_list
 
 contains
 
-  pure elemental logical function key_eq_i8(item1,  item2)
-    class(ikey), intent(in) :: item1
-    class(key_class), intent(in) :: item2 ! needs to be class(key_class) to match interface
+  pure elemental logical function key_eq_i8(this,  that)
+    class(ikey), intent(in) :: this
+    class(key_class), intent(in) :: that ! needs to be class(key_class) to match interface
     key_eq_i8 = .false.
-    select type (item2)
+    select type (that)
       class is (ikey)
-        key_eq_i8 = item1%id == item2%id
+        key_eq_i8 = this%id == that%id
     end select
   end function key_eq_i8
 
@@ -59,12 +59,15 @@ contains
     type(ikey) :: k1
     integer, pointer :: ival => null()
     real, pointer :: rval => null()
+    real, target :: tval
     character(:), pointer :: cval => null()
     real :: t = 1000.0 * epsilon(1.0)
 
-    call lst%add_clone("age", 30)
-    call lst%add_clone("year", 1990)
-    call lst%add_clone("temp", 27.9)
+    tval = 3.1415
+
+    call lst%add("age", 30)
+    call lst%add("year", 1990)
+    call lst%add("temp", 27.9)
 
     call get_type(lst, "age", int_val=ival)
     call get_type(lst, "temp", real_val=rval)
@@ -82,7 +85,7 @@ contains
     call lst%remove("age")
     @assertFalse(lst%has_key("age"), message='missing key check')
 
-    call lst%add_clone("name", "John")
+    call lst%add("name", "John")
     call get_type(lst, "name", char_val=cval)
     @assertTrue(associated(cval), message='associated char check')
     @assertEqual(len(cval), 4, message='lst 1st char check')
@@ -93,8 +96,8 @@ contains
     call lst%remove("name")
     @assertFalse(lst%has_key("name"), message='missing key check')
 
-    call lst%add_clone(1_i4, "an integer key")
-    call lst%add_clone(2_i4, 2.0)
+    call lst%add(1_i4, "an integer key")
+    call lst%add(2_i4, 2.0)
 
     call get_type(lst, key=1_i4, char_val=cval)
     @assertEqual(cval, "an integer key", message='int key check')
@@ -113,13 +116,21 @@ contains
     @assertFalse(lst%has_key(1_i4), message='missing key check')
     @assertFalse(lst%has_key(2_i4), message='missing key check')
 
+    call lst%add_target("target", tval)
+    call get_type(lst, key="target", real_val=rval)
+    @assertEqual(rval, tval, tolerance=t, message='target item check')
+    tval = 4.0
+    @assertEqual(rval, tval, tolerance=t, message='2nd target item check')
+    call lst%remove("target")
+    @assertFalse(lst%has_key("target"), message='missing key check')
+
     k1 = ikey(20_i8)
-    call lst%add_clone(k1, "a beautiful key you have there!")
+    call lst%add(k1, "a beautiful key you have there!")
     @assertTrue(lst%has_key(k1), message='type key check')
     call lst%remove(k1)
     @assertFalse(lst%has_key(k1), message='2nd type key check')
 
-    call lst%add_clone(10_i4, "a last entry to say goodbye and check the destroyer")
+    call lst%add(10_i4, "a last entry to say goodbye and check the destroyer")
 
   end subroutine test_list
 

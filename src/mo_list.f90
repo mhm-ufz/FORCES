@@ -141,6 +141,7 @@ module mo_list
     type(node), pointer :: tail => null() !< the last item in the list
   contains
     private
+    procedure, public :: add_target              ! add a pointer item to the list pointing to given target
     procedure, public :: add_pointer             ! add a pointer item to the list
     procedure, public :: add_clone               ! add a non-pointer item to the list
     procedure, public :: add => add_clone        ! add a copy of an item to the list
@@ -401,5 +402,20 @@ contains
     p%value => value
     if (present(destroy_on_delete)) p%destroy_on_delete = destroy_on_delete
   end subroutine add_pointer
+
+  !> \brief Add a data target to the list.
+  !> \details Add an item to the list, and associate its pointer to the input target.
+  !! \note target will not be destroyed on delete
+  subroutine add_target(this, key, value)
+    implicit none
+    class(list), intent(inout)   :: this
+    class(*), intent(in)         :: key
+    class(*), intent(in), target :: value
+    class(*), pointer :: p_value
+    p_value => value
+    ! target should not be destroyed on delete
+    call this%add_pointer(key, p_value, destroy_on_delete=.false.)
+    nullify (p_value)
+  end subroutine add_target
 
 end module mo_list
