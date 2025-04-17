@@ -108,11 +108,11 @@ module mo_list
 
   !> \brief interface for equality operator for \ref key_class.
   abstract interface
-    pure elemental logical function key_equal_func(item1, item2)
+    pure elemental logical function key_equal_func(this, that)
       import :: key_class
       implicit none
-      class(key_class), intent(in) :: item1
-      class(key_class), intent(in) :: item2
+      class(key_class), intent(in) :: this
+      class(key_class), intent(in) :: that
     end function key_equal_func
   end interface
 
@@ -143,9 +143,11 @@ module mo_list
     private
     procedure, public :: add_pointer             ! add a pointer item to the list
     procedure, public :: add_clone               ! add a non-pointer item to the list
+    procedure, public :: add => add_clone        ! add a copy of an item to the list
     procedure, public :: get => get_data         ! get a pointer to an item in the list
     procedure, public :: destroy => destroy_list ! destroy the list and deallocate/finalize all the data
     procedure, public :: has_key                 ! if the key is present in the list
+    procedure, public :: has => has_key          ! if the key is present in the list
     procedure, public :: remove => remove_by_key ! remove item from the list, given the key
     ! procedures that operate on nodes:
     procedure :: remove_by_pointer ! remove node from list, given pointer to it
@@ -157,71 +159,71 @@ module mo_list
 contains
 
   !> \brief Returns true if the key is present in the list.
-  logical function has_key(me, key)
+  logical function has_key(this, key)
     implicit none
-    class(list), intent(inout) :: me
+    class(list), intent(inout) :: this
     class(*), intent(in)       :: key
     type(node), pointer :: p
-    call me%get_node(key, p)
+    call this%get_node(key, p)
     has_key = associated(p)
   end function has_key
 
   !> \brief destroy the data in the node.
-  impure elemental subroutine destroy_node_data(me)
+  impure elemental subroutine destroy_node_data(this)
     implicit none
-    class(node), intent(inout) :: me
-    if (allocated(me%key)) deallocate (me%key)
-    if (me%destroy_on_delete) then
+    class(node), intent(inout) :: this
+    if (allocated(this%key)) deallocate (this%key)
+    if (this%destroy_on_delete) then
       ! deallocates the pointer (and call any finalizer)
       ! (otherwise, it is up to the caller to do this)
-      if (associated(me%value)) deallocate (me%value)
+      if (associated(this%value)) deallocate (this%value)
     end if
-    nullify (me%value)
+    nullify (this%value)
   end subroutine destroy_node_data
 
   !> just a wrapper for \ref destroy_list.
-  impure elemental subroutine list_finalizer(me)
+  impure elemental subroutine list_finalizer(this)
     implicit none
-    type(list), intent(inout) :: me
-    call me%destroy()
+    type(list), intent(inout) :: this
+    call this%destroy()
   end subroutine list_finalizer
 
   !> \brief destroy the list (traverses from head to tail)
-  impure elemental subroutine destroy_list(me)
+  impure elemental subroutine destroy_list(this)
     implicit none
-    class(list), intent(inout) :: me
-    if (associated(me%head)) call destroy_node(me%head)
-    nullify (me%head)
-    nullify (me%tail)
+    class(list), intent(inout) :: this
+    if (associated(this%head)) call destroy_node(this%head)
+    nullify (this%head)
+    nullify (this%tail)
   end subroutine destroy_list
 
   !> \brief destroy the node (and subsequent ones in the list).
-  impure recursive subroutine destroy_node(me)
+  impure recursive subroutine destroy_node(this)
     implicit none
-    type(node), pointer :: me
-    if (associated(me)) then
-      call me%destroy()
-      call destroy_node(me%next)
-      nullify (me%previous)
-      deallocate (me)
-      nullify (me)
+    type(node), pointer :: this
+    if (associated(this)) then
+      call this%destroy()
+      call destroy_node(this%next)
+      nullify (this%previous)
+      deallocate (this)
+      nullify (this)
     end if
   end subroutine destroy_node
 
   !> \brief Remove an item from the list (given the key).
-  subroutine remove_by_key(me, key)
+  subroutine remove_by_key(this, key)
     implicit none
-    class(list), intent(inout) :: me
+    class(list), intent(inout) :: this
     class(*), intent(in)       :: key !< node key
     type(node), pointer :: p
-    call me%get_node(key, p)
-    call me%remove_by_pointer(p)
+    call this%get_node(key, p)
+    call this%remove_by_pointer(p)
   end subroutine remove_by_key
 
   !> \brief Remove an item from the list.
-  subroutine remove_by_pointer(me, p)
+  subroutine remove_by_pointer(this, p)
     implicit none
-    class(list), intent(inout) :: me
+    class(list), intent(inout) :: this
     type(node), pointer        :: p   !< the item to remove
     logical :: has_next, has_previous
     if (associated(p)) then
@@ -232,14 +234,14 @@ contains
         p%previous%next => p%next
         p%next%previous => p%previous
       elseif (has_next .and. .not. has_previous) then    !first one in a list
-        me%head => p%next
-        me%head%previous => null()
+        this%head => p%next
+        this%head%previous => null()
       elseif (has_previous .and. .not. has_next) then    !last one in a list
-        me%tail => p%previous
-        me%tail%next => null()
+        this%tail => p%previous
+        this%tail%next => null()
       elseif (.not. has_previous .and. .not. has_next) then  !only one in the list
-        me%head => null()
-        me%tail => null()
+        this%head => null()
+        this%tail => null()
       end if
       deallocate (p)
       nullify (p)
@@ -247,25 +249,25 @@ contains
   end subroutine remove_by_pointer
 
   !> \brief Get the data from a node
-  subroutine get_node_data(me, value)
+  subroutine get_node_data(this, value)
     implicit none
-    class(node), intent(in)       :: me
+    class(node), intent(in)       :: this
     class(*), pointer, intent(out) :: value
-    if (associated(me%value)) then
-      value => me%value
+    if (associated(this%value)) then
+      value => this%value
     else
       call error_message('list: node value not associated') ! LCOV_EXCL_LINE
     end if
   end subroutine get_node_data
 
   !> \brief Returns a pointer to the data stored in the list.
-  subroutine get_data(me, key, value)
+  subroutine get_data(this, key, value)
     implicit none
-    class(list), intent(in)       :: me
+    class(list), intent(in)       :: this
     class(*), intent(in)          :: key !< key of node
     class(*), pointer, intent(out) :: value !< data value
     type(node), pointer :: p
-    call me%get_node(key, p)
+    call this%get_node(key, p)
     if (associated(p)) then
       call p%get_data(value)
     else
@@ -274,14 +276,14 @@ contains
   end subroutine get_data
 
   !> \brief Returns a pointer to a node in a list.
-  subroutine get_node(me, key, p_node)
+  subroutine get_node(this, key, p_node)
     implicit none
-    class(list), intent(in)         :: me
+    class(list), intent(in)         :: this
     class(*), intent(in)            :: key
     type(node), pointer, intent(out) :: p_node
     type(node), pointer :: p
     nullify (p_node)
-    p => me%head
+    p => this%head
     do
       if (associated(p)) then
         if (keys_equal(p%key, key)) then
@@ -338,23 +340,23 @@ contains
   !! This one would normally be used for basic variables and types that
   !! do not contain pointers to other variables (and are not pointed to by
   !! other variables)
-  subroutine add_clone(me, key, value)
+  subroutine add_clone(this, key, value)
     implicit none
-    class(list), intent(inout) :: me
+    class(list), intent(inout) :: this
     class(*), intent(in)       :: key
     class(*), intent(in)       :: value
     class(*), pointer :: p_value
     allocate (p_value, source=value) !make a copy
-    call me%add_pointer(key, p_value, destroy_on_delete=.true.)
+    call this%add_pointer(key, p_value, destroy_on_delete=.true.)
     nullify (p_value)
   end subroutine add_clone
 
   !> \brief Add a data pointer to the list.
   !> \details Add an item to the list, and associate its pointer to the input value.
   !! \note If an item with the same key is already in the list, it is removed and the new one will replace it.
-  subroutine add_pointer(me, key, value, destroy_on_delete)
+  subroutine add_pointer(this, key, value, destroy_on_delete)
     implicit none
-    class(list), intent(inout)   :: me
+    class(list), intent(inout)   :: this
     class(*), intent(in)         :: key
     !> *value* is unlimited polymorphic, so it can
     !! be any scalar type. If the type includes
@@ -384,17 +386,17 @@ contains
       call error_message('Error: key must be an integer(i4), character string, or key_class.') ! LCOV_EXCL_LINE
     end select
     ! if the node is already there, then remove it
-    call me%get_node(key, p)
-    if (associated(p)) call me%remove_by_pointer(p)
-    if (associated(me%tail)) then
-      allocate (me%tail%next)  !insert new item at the end
-      p => me%tail%next
-      p%previous => me%tail
+    call this%get_node(key, p)
+    if (associated(p)) call this%remove_by_pointer(p)
+    if (associated(this%tail)) then
+      allocate (this%tail%next)  !insert new item at the end
+      p => this%tail%next
+      p%previous => this%tail
     else
-      allocate (me%head)  !first item in the list
-      p => me%head
+      allocate (this%head)  !first item in the list
+      p => this%head
     end if
-    me%tail => p
+    this%tail => p
     allocate (p%key, source=key)
     p%value => value
     if (present(destroy_on_delete)) p%destroy_on_delete = destroy_on_delete
