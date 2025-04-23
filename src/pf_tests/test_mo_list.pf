@@ -81,9 +81,9 @@ contains
     @assertEqual(ival, 1990, message='lst 2nd integer check')
 
     call lst%remove("year")
-    @assertFalse(lst%has_key("year"), message='missing key check')
+    @assertFalse(lst%has("year"), message='missing key check')
     call lst%remove("age")
-    @assertFalse(lst%has_key("age"), message='missing key check')
+    @assertFalse(lst%has("age"), message='missing key check')
 
     call lst%add("name", "John")
     call get_type(lst, "name", char_val=cval)
@@ -91,10 +91,10 @@ contains
     @assertEqual(len(cval), 4, message='lst 1st char check')
     @assertEqual(cval, "John", message='lst 2nd char check')
 
-    @assertFalse(lst%has_key("hobby"), message='missing key check')
+    @assertFalse(lst%has("hobby"), message='missing key check')
 
     call lst%remove("name")
-    @assertFalse(lst%has_key("name"), message='missing key check')
+    @assertFalse(lst%has("name"), message='missing key check')
 
     call lst%add(1_i4, "an integer key")
     call lst%add(2_i4, 2.0)
@@ -105,16 +105,20 @@ contains
     call get_type(lst, key=2_i4, real_val=rval)
     @assertEqual(rval, 2.0, tolerance=t, message='2nd int key check')
 
+    call lst%add(2_i4, 4.0, replace=.true.)
+    call get_type(lst, key=2_i4, real_val=rval)
+    @assertEqual(rval, 4.0, tolerance=t, message='replaced item check')
+
     call lst%remove("temp")
     call lst%remove(2_i4)
     call lst%remove(1_i4)
 
-    @assertFalse(lst%has_key("age"), message='missing key check')
-    @assertFalse(lst%has_key("year"), message='missing key check')
-    @assertFalse(lst%has_key("temp"), message='missing key check')
-    @assertFalse(lst%has_key("name"), message='missing key check')
-    @assertFalse(lst%has_key(1_i4), message='missing key check')
-    @assertFalse(lst%has_key(2_i4), message='missing key check')
+    @assertFalse(lst%has("age"), message='missing key check')
+    @assertFalse(lst%has("year"), message='missing key check')
+    @assertFalse(lst%has("temp"), message='missing key check')
+    @assertFalse(lst%has("name"), message='missing key check')
+    @assertFalse(lst%has(1_i4), message='missing key check')
+    @assertFalse(lst%has(2_i4), message='missing key check')
 
     call lst%add_target("target", tval)
     call get_type(lst, key="target", real_val=rval)
@@ -122,13 +126,13 @@ contains
     tval = 4.0
     @assertEqual(rval, tval, tolerance=t, message='2nd target item check')
     call lst%remove("target")
-    @assertFalse(lst%has_key("target"), message='missing key check')
+    @assertFalse(lst%has("target"), message='missing key check')
 
     k1 = ikey(20_i8)
     call lst%add(k1, "a beautiful key you have there!")
-    @assertTrue(lst%has_key(k1), message='type key check')
+    @assertTrue(lst%has(k1), message='type key check')
     call lst%remove(k1)
-    @assertFalse(lst%has_key(k1), message='2nd type key check')
+    @assertFalse(lst%has(k1), message='2nd type key check')
 
     call lst%add(10_i4, "a last entry to say goodbye and check the destroyer")
 

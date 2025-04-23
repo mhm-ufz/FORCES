@@ -257,7 +257,7 @@ contains
     if (associated(this%value)) then
       value => this%value
     else
-      call error_message('list: node value not associated') ! LCOV_EXCL_LINE
+      call error_message('node%get: node value not associated') ! LCOV_EXCL_LINE
     end if
   end subroutine get_node_data
 
@@ -272,7 +272,7 @@ contains
     if (associated(p)) then
       call p%get_data(value)
     else
-      call error_message('list: node not associated') ! LCOV_EXCL_LINE
+      call error_message('list%get: node not associated') ! LCOV_EXCL_LINE
     end if
   end subroutine get_data
 
@@ -341,24 +341,26 @@ contains
   !! This one would normally be used for basic variables and types that
   !! do not contain pointers to other variables (and are not pointed to by
   !! other variables)
-  subroutine add_clone(this, key, value)
+  subroutine add_clone(this, key, value, replace)
     implicit none
     class(list), intent(inout) :: this
-    class(*), intent(in)       :: key
-    class(*), intent(in)       :: value
+    class(*), intent(in)       :: key !< key of the new item
+    class(*), intent(in)       :: value !< value to make a copy of
+    !> if .true. and the key is already present, replace the existing node (default .false.)
+    logical, intent(in), optional :: replace
     class(*), pointer :: p_value
     allocate (p_value, source=value) !make a copy
-    call this%add_pointer(key, p_value, destroy_on_delete=.true.)
+    call this%add_pointer(key, p_value, destroy_on_delete=.true., replace=replace)
     nullify (p_value)
   end subroutine add_clone
 
   !> \brief Add a data pointer to the list.
   !> \details Add an item to the list, and associate its pointer to the input value.
   !! \note If an item with the same key is already in the list, it is removed and the new one will replace it.
-  subroutine add_pointer(this, key, value, destroy_on_delete)
+  subroutine add_pointer(this, key, value, destroy_on_delete, replace)
     implicit none
     class(list), intent(inout)   :: this
-    class(*), intent(in)         :: key
+    class(*), intent(in)         :: key !< key of the new item
     !> *value* is unlimited polymorphic, so it can
     !! be any scalar type. If the type includes
     !! pointers or other objects that must be
@@ -374,8 +376,12 @@ contains
     !! to avoid memory leaks).
     !! The default is *True*.
     logical, intent(in), optional :: destroy_on_delete
+    !> if .true. and the key is already present, replace the existing node (default .false.)
+    logical, intent(in), optional :: replace
     type(node), pointer :: p
-    !only allowing integer(i4), string, or key_class keys:
+    logical :: replace_ = .false.
+    if (present(replace)) replace_ = .true.
+    !only allowing integer, integer(i4), string, or key_class keys:
     select type (key)
      type is (integer(i4))
       !ok
@@ -388,7 +394,10 @@ contains
     end select
     ! if the node is already there, then remove it
     call this%get_node(key, p)
-    if (associated(p)) call this%remove_by_pointer(p)
+    if (associated(p)) then
+      if (.not.replace_) call error_message('Error: key already present but replace=.false.')
+      call this%remove_by_pointer(p)
+    end if
     if (associated(this%tail)) then
       allocate (this%tail%next)  !insert new item at the end
       p => this%tail%next
@@ -406,15 +415,17 @@ contains
   !> \brief Add a data target to the list.
   !> \details Add an item to the list, and associate its pointer to the input target.
   !! \note target will not be destroyed on delete
-  subroutine add_target(this, key, value)
+  subroutine add_target(this, key, value, replace)
     implicit none
     class(list), intent(inout)   :: this
-    class(*), intent(in)         :: key
-    class(*), intent(in), target :: value
+    class(*), intent(in)         :: key !< key of the new item
+    class(*), intent(in), target :: value !< target to point to
+    !> if .true. and the key is already present, replace the existing node (default .false.)
+    logical, intent(in), optional :: replace
     class(*), pointer :: p_value
     p_value => value
     ! target should not be destroyed on delete
-    call this%add_pointer(key, p_value, destroy_on_delete=.false.)
+    call this%add_pointer(key, p_value, destroy_on_delete=.false., replace=replace)
     nullify (p_value)
   end subroutine add_target
 
