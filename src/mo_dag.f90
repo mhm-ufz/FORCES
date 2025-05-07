@@ -3,7 +3,7 @@
 
 !> \brief   Module providing an implementation of an directed acyclic graph (DAG).
 !> \details A simple DAG implementation based on daglib (https://github.com/jacobwilliams/daglib).
-!> \copyright flist was originally released under the BSD 3-Clause license (included below).
+!> \copyright daglib was originally released under the BSD 3-Clause license (included below).
 !!
 !! Copyright (c) 2018-2023, Jacob Williams
 !! All rights reserved.
@@ -80,63 +80,63 @@ module mo_dag
 contains
 
   !> \brief Destroy the `dag`.
-  subroutine dag_destroy(me)
+  subroutine dag_destroy(this)
 
-    class(dag),intent(inout) :: me
+    class(dag),intent(inout) :: this
 
-    me%n = 0
-    if (allocated(me%nodes)) deallocate(me%nodes)
+    this%n = 0
+    if (allocated(this%nodes)) deallocate(this%nodes)
 
   end subroutine dag_destroy
 
   !> \brief Specify the edge indices for this vertex
-  subroutine set_edge_vector_vector(me,edges)
+  subroutine set_edge_vector_vector(this,edges)
 
-    class(node),intent(inout) :: me
+    class(node),intent(inout) :: this
     integer(i8),dimension(:),intent(in) :: edges
-    me%edges = edges
-    call sort_ascending(me%edges)
+    this%edges = edges
+    call sort_ascending(this%edges)
 
   end subroutine set_edge_vector_vector
 
   !> \brief Add an edge index for this vertex
-  subroutine add_edge(me,e)
+  subroutine add_edge(this,e)
 
-    class(node),intent(inout) :: me
+    class(node),intent(inout) :: this
     integer(i8),intent(in) :: e
 
-    if (allocated(me%edges)) then
-        if (.not. any(e==me%edges)) then ! don't add if already there
-            me%edges = [me%edges, e]
-            call sort_ascending(me%edges)
+    if (allocated(this%edges)) then
+        if (.not. any(e==this%edges)) then ! don't add if already there
+            this%edges = [this%edges, e]
+            call sort_ascending(this%edges)
         end if
     else
-        me%edges = [e]
+        this%edges = [e]
     end if
 
   end subroutine add_edge
 
   !> \brief Remove an edge index from this vertex
-  subroutine remove_edge(me,e)
+  subroutine remove_edge(this,e)
 
-    class(node),intent(inout) :: me
+    class(node),intent(inout) :: this
     integer(i8),intent(in) :: e
 
     integer(i8),dimension(1) :: idx
     integer(i8),dimension(:),allocatable :: tmp
 
-    if (allocated(me%edges)) then
-        idx = findloc(me%edges, e)
+    if (allocated(this%edges)) then
+        idx = findloc(this%edges, e)
         if (idx(1)>0) then
             ! the edge is in the list
-            associate (i => idx(1), n => size(me%edges))
+            associate (i => idx(1), n => size(this%edges))
                 if (n==1) then
-                    deallocate(me%edges) ! it's the only one there
+                    deallocate(this%edges) ! it's the only one there
                 else
                     allocate(tmp(n-1))
-                    if (i>1) tmp(1:i-1) = me%edges(1:i-1)
-                    if (i<n) tmp(i:n-1) = me%edges(i+1:n)
-                    call move_alloc(tmp,me%edges)
+                    if (i>1) tmp(1:i-1) = this%edges(1:i-1)
+                    if (i<n) tmp(i:n-1) = this%edges(i+1:n)
+                    call move_alloc(tmp,this%edges)
                 end if
             end associate
         end if
@@ -147,72 +147,72 @@ contains
   !> \brief Remove a node from a dag. Will also remove any edges connected to it.
   !> \details This will renumber the nodes and edges internally.
   !! Note that any default integer labels generated in dag_set_vertices would then be questionable.
-  subroutine dag_remove_node(me,id)
+  subroutine dag_remove_node(this,id)
 
-    class(dag),intent(inout) :: me
+    class(dag),intent(inout) :: this
     integer(i8),intent(in) :: id !! the node to remove
 
     integer(i8) :: i !! counter
     type(node),dimension(:),allocatable :: tmp !! for resizing `me%vertices`
 
-    if (allocated(me%nodes)) then
-        associate (n => size(me%nodes))
+    if (allocated(this%nodes)) then
+        associate (n => size(this%nodes))
             do i = 1, n
                 ! first remove any edges:
-                call me%nodes(i)%remove_edge(id)
+                call this%nodes(i)%remove_edge(id)
                 ! next, renumber the existing edges so they will be
                 ! correct after id is deleted
                 ! Example (removing 2): 1 [2] 3 4 ==> 1 2 3
-                if (allocated(me%nodes(i)%edges)) then
-                    where (me%nodes(i)%edges>id)
-                        me%nodes(i)%edges = me%nodes(i)%edges - 1_i8
+                if (allocated(this%nodes(i)%edges)) then
+                    where (this%nodes(i)%edges>id)
+                        this%nodes(i)%edges = this%nodes(i)%edges - 1_i8
                     end where
-                    if (me%nodes(i)%id > id) me%nodes(i)%id = me%nodes(i)%id - 1_i8
+                    if (this%nodes(i)%id > id) this%nodes(i)%id = this%nodes(i)%id - 1_i8
                 end if
             end do
             ! now, remove the node:
             allocate(tmp(n-1))
-            if (id>1) tmp(1:id-1) = me%nodes(1:id-1)
-            if (id<n) tmp(id:n-1) = me%nodes(id+1:n)
-            call move_alloc(tmp,me%nodes)
+            if (id>1) tmp(1:id-1) = this%nodes(1:id-1)
+            if (id<n) tmp(id:n-1) = this%nodes(id+1:n)
+            call move_alloc(tmp,this%nodes)
         end associate
     end if
-    me%n = size(me%nodes)
-    if (me%n==0) deallocate(me%nodes)
+    this%n = size(this%nodes)
+    if (this%n==0) deallocate(this%nodes)
 
   end subroutine dag_remove_node
 
   !> \brief Get the edges for the vertex (all of the vertices that this vertex depends on).
-  pure function dag_get_edges(me,id) result(edges)
+  pure function dag_get_edges(this,id) result(edges)
 
-    class(dag),intent(in) :: me
+    class(dag),intent(in) :: this
     integer(i8),intent(in) :: id
     integer(i8),dimension(:),allocatable :: edges
 
-    if (allocated(me%nodes(id)%edges)) then
-        if (id>0 .and. id <= me%n) then
-            edges = me%nodes(id)%edges  ! auto LHS allocation
+    if (allocated(this%nodes(id)%edges)) then
+        if (id>0 .and. id <= this%n) then
+            edges = this%nodes(id)%edges  ! auto LHS allocation
         end if
     end if
 
   end function dag_get_edges
 
   !> \brief Get all the vertices that depend on this vertex.
-  pure function dag_get_dependents(me,id) result(dep)
+  pure function dag_get_dependents(this,id) result(dep)
 
-    class(dag),intent(in) :: me
+    class(dag),intent(in) :: this
     integer(i8),intent(in) :: id
     integer(i8),dimension(:),allocatable :: dep  !! the set of all vertices
                                             !! than depend on `id`
 
     integer(i8) :: i !! vertex counter
 
-    if (id>0 .and. id <= me%n) then
+    if (id>0 .and. id <= this%n) then
 
         ! have to check all the vertices:
-        do i=1, me%n
-            if (allocated(me%nodes(i)%edges)) then
-                if (any(me%nodes(i)%edges == id)) then
+        do i=1, this%n
+            if (allocated(this%nodes(i)%edges)) then
+                if (any(this%nodes(i)%edges == id)) then
                     if (allocated(dep)) then
                         dep = [dep, i]  ! auto LHS allocation
                     else
@@ -227,27 +227,27 @@ contains
   end function dag_get_dependents
 
   !> \brief Set the number of vertices (nodes) in the dag.
-  subroutine dag_set_vertices(me,n)
+  subroutine dag_set_vertices(this,n)
     use mo_message, only: error_message
-    class(dag),intent(inout) :: me
+    class(dag),intent(inout) :: this
     integer(i8),intent(in)   :: n !! number of vertices
 
     integer(i8) :: i !! counter
 
     if (n<=0) call error_message('error: n must be >= 1')
 
-    if (allocated(me%nodes)) deallocate(me%nodes)
+    if (allocated(this%nodes)) deallocate(this%nodes)
 
-    me%n = n
-    allocate(me%nodes(n))
-    me%nodes%id = [(i,i=1,n)] ! vertex indices
+    this%n = n
+    allocate(this%nodes(n))
+    this%nodes%id = [(i,i=1,n)] ! vertex indices
 
   end subroutine dag_set_vertices
 
   !> \brief Returns the index in the edge array of the vertex.
-  pure function get_edge_index(me,id,iedge) result(edge_index)
+  pure function get_edge_index(this,id,iedge) result(edge_index)
 
-    class(dag),intent(in) :: me
+    class(dag),intent(in) :: this
     integer(i8),intent(in) :: id !! vertex number
     integer(i8),intent(in) :: iedge !! edge vertex number
     integer(i8) :: edge_index !! the index of the `iedge` vertex in
@@ -255,8 +255,8 @@ contains
 
     integer(i8),dimension(1) :: idx
 
-    if (allocated(me%nodes(id)%edges)) then
-        idx = findloc(me%nodes(id)%edges, iedge)
+    if (allocated(this%nodes(id)%edges)) then
+        idx = findloc(this%nodes(id)%edges, iedge)
         edge_index = idx(1)
     else
         edge_index = 0_i8
@@ -265,70 +265,70 @@ contains
   end function get_edge_index
 
   !> \brief Add an edge to a dag.
-  subroutine dag_add_edge(me,id,iedge)
+  subroutine dag_add_edge(this,id,iedge)
 
-    class(dag),intent(inout) :: me
+    class(dag),intent(inout) :: this
     integer(i8),intent(in)   :: id !! vertex number
     integer(i8),intent(in)   :: iedge   !! the vertex to connect to `id`
 
-    call me%nodes(id)%set_edges(iedge)
+    call this%nodes(id)%set_edges(iedge)
 
   end subroutine dag_add_edge
 
   !> \brief Set the edges for a vertex in a dag
-  subroutine dag_set_edges(me,id,edges)
+  subroutine dag_set_edges(this,id,edges)
 
-    class(dag),intent(inout)            :: me
+    class(dag),intent(inout)            :: this
     integer(i8),intent(in)              :: id !! vertex number
     integer(i8),dimension(:),intent(in) :: edges
 
-    call me%nodes(id)%set_edges(edges)
+    call this%nodes(id)%set_edges(edges)
 
   end subroutine dag_set_edges
 
   !> \brief Remove an edge from a dag.
-  subroutine dag_remove_edge(me,id,iedge)
+  subroutine dag_remove_edge(this,id,iedge)
 
-    class(dag),intent(inout) :: me
+    class(dag),intent(inout) :: this
     integer(i8),intent(in)   :: id !! vertex number
     integer(i8),intent(in)   :: iedge   !! the edge to remove
 
-    call me%nodes(id)%remove_edge(iedge)
+    call this%nodes(id)%remove_edge(iedge)
 
   end subroutine dag_remove_edge
 
   !> \brief Initialize the internal private variables used for graph traversal.
-  subroutine init_internal_vars(me)
+  subroutine init_internal_vars(this)
 
-    class(dag),intent(inout) :: me
+    class(dag),intent(inout) :: this
 
     integer(i8) :: i !! counter
 
-    do i = 1, me%n
-        me%nodes(i)%marked = .false.
-        me%nodes(i)%checking = .false.
+    do i = 1, this%n
+        this%nodes(i)%marked = .false.
+        this%nodes(i)%checking = .false.
     end do
 
   end subroutine init_internal_vars
 
   !> \brief Main toposort routine
-  subroutine dag_toposort(me,order,istat)
-    class(dag),intent(inout) :: me
+  subroutine dag_toposort(this,order,istat)
+    class(dag),intent(inout) :: this
     integer(i8),dimension(:),allocatable,intent(out) :: order !< the toposort order
     !> Status flag: 0 (if no errors), -1 (if circular dependency, in this case, `order` will not be allocated)
     integer(i8),intent(out) :: istat
     integer(i8) :: i,iorder
 
-    if (me%n==0) return
+    if (this%n==0) return
     ! initialize internal variables, in case
     ! we have called this routine before.
-    call me%init_internal_vars()
+    call this%init_internal_vars()
 
-    allocate(order(me%n))
+    allocate(order(this%n))
     iorder = 0  ! index in order array
     istat = 0   ! no errors so far
-    do i=1,me%n
-      if (.not. me%nodes(i)%marked) call dfs(me%nodes(i))
+    do i=1,this%n
+      if (.not. this%nodes(i)%marked) call dfs(this%nodes(i))
       if (istat==-1) exit
     end do
 
@@ -350,7 +350,7 @@ contains
           v%checking = .true.
           if (allocated(v%edges)) then
             do j=1,size(v%edges)
-              call dfs(me%nodes(v%edges(j)))
+              call dfs(this%nodes(v%edges(j)))
               if (istat==-1) return
             end do
           end if
@@ -367,23 +367,23 @@ contains
   !> \brief Generate the dependency matrix for the DAG.
   !> \details This is an \(n \times n \) matrix with elements \(A_{ij}\),
   !! such that \(A_{ij}\) is true if vertex \(i\) depends on vertex \(j\).
-  subroutine dag_generate_dependency_matrix(me,mat)
+  subroutine dag_generate_dependency_matrix(this,mat)
 
-    class(dag),intent(in) :: me
+    class(dag),intent(in) :: this
     logical,dimension(:,:),intent(out),allocatable :: mat !! dependency matrix
 
     integer(i8) :: i !! vertex counter
     integer(i8) :: j !! edge counter
 
-    if (me%n > 0) then
+    if (this%n > 0) then
 
-        allocate(mat(me%n,me%n))
+        allocate(mat(this%n,this%n))
         mat = .false.
 
-        do i=1,me%n
-            if (allocated(me%nodes(i)%edges)) then
-                do j = 1, size(me%nodes(i)%edges)
-                    mat(i,me%nodes(i)%edges(j)) = .true.
+        do i=1,this%n
+            if (allocated(this%nodes(i)%edges)) then
+                do j = 1, size(this%nodes(i)%edges)
+                    mat(i,this%nodes(i)%edges(j)) = .true.
                 end do
             end if
         end do
