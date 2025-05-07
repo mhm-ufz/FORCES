@@ -178,6 +178,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   - authors: Daan van Vugt
   - license: MIT License (included)
 
+- `daglib` (`src/mo_dag.f90`)
+  - purpose: A directed acyclic graph implementation.
+  - sources: https://github.com/jacobwilliams/daglib
+  - authors: Jacob Williams
+  - license: BSD 3-Clause License (included)
+
 - `jams-fortran`
   - purpose: FORCES is a minimal fork of the jams-fortran library that was formerly developed at the CHS department
   - sources: https://github.com/mcuntz/jams_fortran
