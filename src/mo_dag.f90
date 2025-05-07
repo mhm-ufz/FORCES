@@ -51,7 +51,7 @@ module mo_dag
   contains
     private
     generic :: set_edges => set_edge_vector_vector, add_edge
-    procedure :: set_edge_vector_vector, add_edge
+    procedure :: set_edge_vector, add_edge
     procedure :: remove_edge
   end type node
 
@@ -90,14 +90,14 @@ contains
   end subroutine dag_destroy
 
   !> \brief Specify the edge indices for this vertex
-  subroutine set_edge_vector_vector(this,edges)
+  subroutine set_edge_vector(this,edges)
 
     class(node),intent(inout) :: this
     integer(i8),dimension(:),intent(in) :: edges
     this%edges = edges
     call sort_ascending(this%edges)
 
-  end subroutine set_edge_vector_vector
+  end subroutine set_edge_vector
 
   !> \brief Add an edge index for this vertex
   subroutine add_edge(this,e)
