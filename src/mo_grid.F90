@@ -52,12 +52,11 @@ module mo_grid
   !!@}
 
   !> \class   grid
-  !> \brief   2D grid description with data in xy order with strictly increasing axis.
-  !> \details This type represents uniform grids with data in xy order with strictly increasing axis.
-  !!          ASCII grid files have the exact oposite behavior: yx order, with decreasing y-axis.
-  !!          NetCDF files nativly have yx order, but since Fortran arrays are column-major order,
-  !!          the data read from .nc files is in xy order. If the y axis is decreasing, data arrays
-  !!          should be flipped.
+  !> \brief   2D grid description with data in xy order..
+  !> \details This type represents uniform grids with data in xy order with strictly increasing or decreasing y-axis.
+  !!          ASCII grid files have the opposite behavior: yx order, with decreasing y-axis.
+  !!          NetCDF files natively have yx order, but since Fortran arrays are column-major order,
+  !!          the data read from .nc files is in xy order. The x-axis will always be increasing.
   !!
   !! \par Examples
   !! - \ref 01_regridding.f90 : \copybrief 01_regridding.f90
@@ -124,6 +123,40 @@ module mo_grid
     procedure, private :: unpack_data_dp, unpack_data_i4
     generic, public :: unpack_data => unpack_data_dp, unpack_data_i4
   end type grid
+
+  !> \class   layered_grid
+  !> \brief   3D layered grid description with layer data in xy order.
+  !> \details This type represents uniform layered grids with layer data in xy order with increasing x-axis and monotonic y-axis.
+  !!          The z-axis is described by a monotonic layers array.
+  !!          NetCDF files nativly have zyx order, but since Fortran arrays are column-major order,
+  !!          the data read from .nc files is in xyz order.
+  type, public :: layered_grid
+    type(grid) :: grid
+    logical :: positive_up = .false. !< indicated "upwards" as direction of positive z values
+    real(dp), dimension(:), allocatable :: layer  !< layer
+    real(dp), dimension(:), allocatable :: layer_vertices  !< layer bounds
+!   contains
+!     procedure, public :: init => grid_init
+! #ifdef FORCES_WITH_NETCDF
+!     procedure, private :: layer_from_nc_dataset, layer_from_nc_file
+!     generic, public :: from_netcdf => layer_from_nc_dataset, layer_from_nc_file
+!     procedure, private :: layer_to_nc_dataset, layer_to_nc_file
+!     generic, public :: to_netcdf => layer_to_nc_dataset, layer_to_nc_file
+! #endif
+!     procedure, public :: check_is_covered_by => layer_check_is_covered_by
+!     procedure, public :: check_is_covering => layer_check_is_covering
+!     procedure, public :: check_is_filled_by => layer_check_is_filled_by
+!     procedure, public :: check_is_filling => layer_check_is_filling
+!     procedure, public :: derive_coarse_grid => layer_derive_coarse_grid
+!     procedure, public :: derive_fine_grid => layer_derive_fine_grid
+!     procedure, public :: derive_grid => layer_derive_grid
+!     procedure, private :: layer_read_data_dp, layer_read_data_i4
+!     generic, public :: read_data => layer_read_data_dp, layer_read_data_i4
+!     procedure, private :: layer_pack_data_dp, layer_pack_data_i4
+!     generic, public :: pack_data => layer_pack_data_dp, layer_pack_data_i4
+!     procedure, private :: layer_unpack_data_dp, layer_unpack_data_i4
+!     generic, public :: unpack_data => layer_unpack_data_dp, layer_unpack_data_i4
+  end type layered_grid
 
   !> \brief Reads spatial data files of ASCII format.
   !> \details Reads spatial input data, e.g. dem, aspect, flow direction.
@@ -1991,6 +2024,48 @@ contains
       if (trim(tmp_str) == "GeoY") is_y_axis = .true.
     end if
   end function is_y_axis
+
+  !> \brief check if given variable is a z-axis.
+  !> \return `logical :: is_z_axis`
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  logical function is_z_axis(var)
+    use mo_netcdf, only : NcVariable
+    implicit none
+    type(NcVariable), intent(in) :: var !< NetCDF variable to check
+    character(len=256) :: tmp_str
+
+    is_z_axis = .false.
+    if (var%hasAttribute("axis")) then
+      call var%getAttribute("axis", tmp_str)
+      if (trim(tmp_str) == "Z") is_z_axis = .true.
+    else if (var%hasAttribute("positive")) then
+      is_z_axis = .true.
+    end if
+  end function is_z_axis
+
+  !> \brief check if given variable is a time-axis.
+  !> \return `logical :: is_t_axis`
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  logical function is_t_axis(var)
+    use mo_netcdf, only : NcVariable
+    implicit none
+    type(NcVariable), intent(in) :: var !< NetCDF variable to check
+    character(len=256) :: tmp_str
+
+    is_t_axis = .false.
+    if (var%hasAttribute("units")) then
+      call var%getAttribute("units", tmp_str)
+      if (index(tmp_str, "since") > 0) is_t_axis = .true.
+    else if (var%hasAttribute("axis")) then
+      call var%getAttribute("axis", tmp_str)
+      if (trim(tmp_str) == "T") is_t_axis = .true.
+    else if (var%hasAttribute("standard_name")) then
+      call var%getAttribute("standard_name", tmp_str)
+      if (trim(tmp_str) == "time") is_t_axis = .true.
+    end if
+  end function is_t_axis
 
   !> \brief check if given variable is a lon coordinate.
   !> \return `logical :: is_lon_coord`
