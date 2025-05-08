@@ -99,7 +99,7 @@ contains
 
   !> \brief Get the current array index for a given node tag.
   !> \details Returns -1 if the tag does not exist or is out of bounds.
-    pure elemental function tag_to_id(this, tag) result(id)
+  pure elemental function tag_to_id(this, tag) result(id)
     class(dag), intent(in) :: this
     integer(i8), intent(in) :: tag
     integer(i8) :: id
@@ -232,16 +232,21 @@ contains
   end function dag_get_dependents
 
   !> \brief Set the number of nodes in the dag.
-  subroutine dag_set_nodes(this,n)
+  subroutine dag_set_nodes(this, n, tags)
     use mo_message, only: error_message
-    class(dag),intent(inout) :: this
-    integer(i8),intent(in)   :: n !! number of nodes
+    class(dag), intent(inout) :: this
+    integer(i8), intent(in)   :: n !< number of nodes
+    integer(i8), dimension(n), intent(in), optional :: tags !< tags of the nodes (will be their index by default)
     integer(i8) :: i !! counter
     if (n<=0_i8) call error_message('error: n must be >= 1')
     if (allocated(this%nodes)) deallocate(this%nodes)
     this%n = n
     allocate(this%nodes(n))
-    this%nodes%tag = [(i,i=1_i8,n)] ! default node tags from array IDs (accessing tag array as structure component)
+    if (present(tags)) then
+      this%nodes%tag = tags
+    else
+      this%nodes%tag = [(i,i=1_i8,n)] ! default node tags from array IDs (accessing tag array as structure component)
+    end if
     call this%rebuild_tag_map()
   end subroutine dag_set_nodes
 
