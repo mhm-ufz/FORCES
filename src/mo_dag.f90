@@ -43,11 +43,11 @@ module mo_dag
   !> \class node
   !> \brief A node of a directed acyclic graph (DAG)
   type :: node
-    !> The vertices that this node depends on (directed edges of the graph).
+    !> The nodes that this node depends on (directed edges of the graph).
     !! The indices are the respective node index in the nodes list in the dag
-    !! and do not necessarily match the node%id (e.g. when nodes are removed, their IDs stay untouched)
+    !! and do not necessarily match the node%tag (e.g. when nodes are removed, their IDs stay untouched)
     integer(i8),dimension(:),allocatable :: edges
-    integer(i8) :: id = 0_i8 !< vertex number
+    integer(i8) :: tag = 0_i8 !< node tag for external reference (will stay the same even when the DAG is modified)
     logical, private :: checking = .false.  !< used for toposort
     logical, private :: marked = .false.    !< used for toposort
   contains
@@ -64,21 +64,53 @@ module mo_dag
     integer(i8) :: n = 0 !< number of nodes (size of `nodes` array)
     !> The nodes in the DAG. The index in this array is used by the edges of the nodes.
     type(node),dimension(:),allocatable :: nodes
+    integer(i8), private, dimension(:), allocatable :: tag_to_id_map !< Maps node tag to array index
+    integer(i8), private :: max_tag = 0_i8 !< Max tag value in current DAG (for bounds)
   contains
-    procedure,public :: init                => dag_set_vertices
-    procedure,public :: get_edges           => dag_get_edges
-    procedure,public :: get_dependents      => dag_get_dependents
-    procedure,public :: add_edge            => dag_add_edge
-    procedure,public :: set_edges           => dag_set_edges
-    procedure,public :: remove_edge         => dag_remove_edge
-    procedure,public :: remove_node         => dag_remove_node
-    procedure,public :: toposort            => dag_toposort
-    procedure,public :: generate_dependency_matrix => dag_generate_dependency_matrix
-    procedure,public :: destroy             => dag_destroy
-    procedure :: init_internal_vars !< private routine to initialize some internal variables
+    procedure :: init                => dag_set_nodes
+    procedure :: get_edges           => dag_get_edges
+    procedure :: get_dependents      => dag_get_dependents
+    procedure :: add_edge            => dag_add_edge
+    procedure :: set_edges           => dag_set_edges
+    procedure :: remove_edge         => dag_remove_edge
+    procedure :: remove_node         => dag_remove_node
+    procedure :: toposort            => dag_toposort
+    procedure :: generate_dependency_matrix => dag_generate_dependency_matrix
+    procedure :: destroy             => dag_destroy
+    procedure :: tag_to_id
+    procedure, private :: init_internal_vars !< private routine to initialize some internal variables
+    procedure, private :: rebuild_tag_map
   end type dag
 
 contains
+
+  !> \brief Rebuild the map from node tags to array indices.
+  subroutine rebuild_tag_map(this)
+    class(dag), intent(inout) :: this
+    integer(i8) :: i
+    if (allocated(this%tag_to_id_map)) deallocate(this%tag_to_id_map)
+    if (.not.allocated(this%nodes)) return
+    this%max_tag = maxval(this%nodes(:)%tag)
+    allocate(this%tag_to_id_map(this%max_tag), source=-1_i8) ! Initialize with invalid index
+    do i = 1_i8, this%n
+      this%tag_to_id_map(this%nodes(i)%tag) = i
+    end do
+  end subroutine rebuild_tag_map
+
+  !> \brief Get the current array index for a given node tag.
+  !> \details Returns -1 if the tag does not exist or is out of bounds.
+    pure elemental function tag_to_id(this, tag) result(id)
+    class(dag), intent(in) :: this
+    integer(i8), intent(in) :: tag
+    integer(i8) :: id
+    if (.not.allocated(this%tag_to_id_map)) then
+      id = -1_i8
+    else if (tag < 1_i8 .or. tag > size(this%tag_to_id_map)) then
+      id = -1_i8
+    else
+      id = this%tag_to_id_map(tag)
+    end if
+  end function tag_to_id
 
   !> \brief Destroy the `dag`.
   subroutine dag_destroy(this)
@@ -87,7 +119,7 @@ contains
     if (allocated(this%nodes)) deallocate(this%nodes)
   end subroutine dag_destroy
 
-  !> \brief Specify the edge indices for this vertex
+  !> \brief Specify the edge indices for this node
   subroutine set_edge_vector(this,edges)
     class(node),intent(inout) :: this
     integer(i8),dimension(:),intent(in) :: edges
@@ -95,7 +127,7 @@ contains
     call sort_ascending(this%edges)
   end subroutine set_edge_vector
 
-  !> \brief Add an edge index for this vertex
+  !> \brief Add an edge index for this node
   subroutine add_edge(this,e)
     class(node),intent(inout) :: this
     integer(i8),intent(in) :: e
@@ -109,7 +141,7 @@ contains
     end if
   end subroutine add_edge
 
-  !> \brief Remove an edge index from this vertex
+  !> \brief Remove an edge index from this node
   subroutine remove_edge(this,e)
     class(node),intent(inout) :: this
     integer(i8),intent(in) :: e
@@ -136,7 +168,7 @@ contains
 
   !> \brief Remove a node from a dag. Will also remove any edges connected to it.
   !> \details This will renumber the nodes and edges internally.
-  !! Note that any default integer labels generated in dag_set_vertices would then be questionable.
+  !! Note that any default integer tag generated in dag%init would then be questionable.
   subroutine dag_remove_node(this,id)
     class(dag),intent(inout) :: this
     integer(i8),intent(in) :: id !! the node to remove
@@ -155,8 +187,8 @@ contains
           where (this%nodes(i)%edges>id)
               this%nodes(i)%edges = this%nodes(i)%edges - 1_i8
           end where
-          ! node%id stays the same to conserve references
-          ! if (this%nodes(i)%id > id) this%nodes(i)%id = this%nodes(i)%id - 1_i8
+          ! node%tag stays the same to conserve references
+          ! if (this%nodes(i)%tag > id) this%nodes(i)%tag = this%nodes(i)%tag - 1_i8
         end do
         ! now, remove the node:
         allocate(tmp(n-1_i8))
@@ -167,10 +199,11 @@ contains
     end if
     this%n = size(this%nodes, kind=i8)
     if (this%n==0_i8) deallocate(this%nodes)
+    call this%rebuild_tag_map()
 
   end subroutine dag_remove_node
 
-  !> \brief Get the edges for the vertex (all of the vertices that this vertex depends on).
+  !> \brief Get the edges for the node (all of the nodes that this node depends on).
   pure function dag_get_edges(this,id) result(edges)
     class(dag),intent(in) :: this
     integer(i8),intent(in) :: id
@@ -179,14 +212,14 @@ contains
     if (id>0_i8 .and. id <= this%n) edges = this%nodes(id)%edges  ! auto LHS allocation
   end function dag_get_edges
 
-  !> \brief Get all the vertices that depend on this vertex.
+  !> \brief Get all the nodes that depend on this node.
   pure function dag_get_dependents(this,id) result(dep)
     class(dag),intent(in) :: this
     integer(i8),intent(in) :: id
-    integer(i8),dimension(:),allocatable :: dep  !! the set of all vertices that depend on given node
-    integer(i8) :: i !! vertex counter
+    integer(i8),dimension(:),allocatable :: dep  !! the set of all nodes that depend on given node
+    integer(i8) :: i !! node counter
     if (id<1_i8 .or. id > this%n) return
-    ! have to check all the vertices:
+    ! have to check all the nodes:
     do i=1_i8, this%n
       if (.not.allocated(this%nodes(i)%edges)) cycle
       if (.not.any(this%nodes(i)%edges == id)) cycle
@@ -198,41 +231,42 @@ contains
     end do
   end function dag_get_dependents
 
-  !> \brief Set the number of vertices (nodes) in the dag.
-  subroutine dag_set_vertices(this,n)
+  !> \brief Set the number of nodes in the dag.
+  subroutine dag_set_nodes(this,n)
     use mo_message, only: error_message
     class(dag),intent(inout) :: this
-    integer(i8),intent(in)   :: n !! number of vertices
+    integer(i8),intent(in)   :: n !! number of nodes
     integer(i8) :: i !! counter
     if (n<=0_i8) call error_message('error: n must be >= 1')
     if (allocated(this%nodes)) deallocate(this%nodes)
     this%n = n
     allocate(this%nodes(n))
-    this%nodes%id = [(i,i=1_i8,n)] ! vertex indices (access id array as structure component)
-  end subroutine dag_set_vertices
+    this%nodes%tag = [(i,i=1_i8,n)] ! default node tags from array IDs (accessing tag array as structure component)
+    call this%rebuild_tag_map()
+  end subroutine dag_set_nodes
 
   !> \brief Add an edge to a dag.
-  subroutine dag_add_edge(this,id,iedge)
+  subroutine dag_add_edge(this,id,target_id)
     class(dag),intent(inout) :: this
-    integer(i8),intent(in)   :: id !! vertex number
-    integer(i8),intent(in)   :: iedge   !! the vertex to connect to `id`
-    call this%nodes(id)%set_edges(iedge)
+    integer(i8),intent(in)   :: id !< node id
+    integer(i8),intent(in)   :: target_id !< the node to connect to `id`
+    call this%nodes(id)%set_edges(target_id)
   end subroutine dag_add_edge
 
-  !> \brief Set the edges for a vertex in a dag
+  !> \brief Set the edges for a node in a dag
   subroutine dag_set_edges(this,id,edges)
     class(dag),intent(inout)            :: this
-    integer(i8),intent(in)              :: id !! vertex number
+    integer(i8),intent(in)              :: id !< node id
     integer(i8),dimension(:),intent(in) :: edges
     call this%nodes(id)%set_edges(edges)
   end subroutine dag_set_edges
 
   !> \brief Remove an edge from a dag.
-  subroutine dag_remove_edge(this,id,iedge)
+  subroutine dag_remove_edge(this,id,target_id)
     class(dag),intent(inout) :: this
-    integer(i8),intent(in)   :: id !< vertex number
-    integer(i8),intent(in)   :: iedge !< the edge to remove
-    call this%nodes(id)%remove_edge(iedge)
+    integer(i8),intent(in)   :: id !< node id
+    integer(i8),intent(in)   :: target_id !< the edge to remove
+    call this%nodes(id)%remove_edge(target_id)
   end subroutine dag_remove_edge
 
   !> \brief Initialize the internal private variables used for graph traversal.
@@ -248,7 +282,7 @@ contains
   !> \brief Main toposort routine
   subroutine dag_toposort(this,order,istat)
     class(dag),intent(inout) :: this
-    integer(i8),dimension(:),allocatable,intent(out) :: order !< the toposort order
+    integer(i8),dimension(:),allocatable,intent(out) :: order !< the toposort order (contains the node%tag for correct reference)
     !> Status flag: 0 (if no errors), -1 (if circular dependency, in this case, `order` will not be allocated)
     integer(i8),intent(out) :: istat
     integer(i8) :: i,iorder
@@ -291,7 +325,7 @@ contains
           v%checking = .false.
           v%marked = .true.
           iorder = iorder + 1_i8
-          order(iorder) = v%id
+          order(iorder) = v%tag
         end if
       end if
     end subroutine dfs
@@ -300,11 +334,11 @@ contains
 
   !> \brief Generate the dependency matrix for the DAG.
   !> \details This is an \(n \times n \) matrix with elements \(A_{ij}\),
-  !! such that \(A_{ij}\) is true if vertex \(i\) depends on vertex \(j\).
+  !! such that \(A_{ij}\) is true if node \(i\) depends on node \(j\).
   subroutine dag_generate_dependency_matrix(this,mat)
     class(dag),intent(in) :: this
     logical,dimension(:,:),intent(out),allocatable :: mat !< dependency matrix
-    integer(i8) :: i ! vertex counter
+    integer(i8) :: i ! node counter
     integer(i8) :: j ! edge counter
     if (this%n < 1_i8) return
     allocate(mat(this%n,this%n))
@@ -317,7 +351,7 @@ contains
     end do
   end subroutine dag_generate_dependency_matrix
 
-  !> \brief Sorts an edge array `ivec` in increasing order by vertex number.
+  !> \brief Sorts an edge array `ivec` in increasing order by node number.
   !> \details Uses a basic recursive quicksort (with insertion sort for partitions with \(\le\) 20 elements).
   subroutine sort_ascending(ivec)
     integer(i8),dimension(:),intent(inout) :: ivec
