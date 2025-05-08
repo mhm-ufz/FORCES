@@ -78,7 +78,7 @@ module mo_dag
     procedure :: generate_dependency_matrix => dag_generate_dependency_matrix
     procedure :: destroy             => dag_destroy
     procedure :: tag_to_id
-    procedure, private :: init_internal_vars !< private routine to initialize some internal variables
+    procedure, private :: init_search_vars !< private routine to initialize some internal variables
     procedure, private :: rebuild_tag_map
   end type dag
 
@@ -275,14 +275,14 @@ contains
   end subroutine dag_remove_edge
 
   !> \brief Initialize the internal private variables used for graph traversal.
-  subroutine init_internal_vars(this)
+  subroutine init_search_vars(this)
     class(dag),intent(inout) :: this
     integer(i8) :: i !< counter
     do i = 1_i8, this%n
       this%nodes(i)%marked = .false.
       this%nodes(i)%checking = .false.
     end do
-  end subroutine init_internal_vars
+  end subroutine init_search_vars
 
   !> \brief Main toposort routine
   subroutine dag_toposort(this,order,istat,use_ids)
@@ -298,7 +298,7 @@ contains
     if (this%n==0_i8) return
     ! initialize internal variables, in case
     ! we have called this routine before.
-    call this%init_internal_vars()
+    call this%init_search_vars()
 
     allocate(order(this%n))
     iorder = 0_i8  ! index in order array
