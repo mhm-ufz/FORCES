@@ -285,12 +285,15 @@ contains
   end subroutine init_internal_vars
 
   !> \brief Main toposort routine
-  subroutine dag_toposort(this,order,istat)
+  subroutine dag_toposort(this,order,istat,use_ids)
     class(dag),intent(inout) :: this
-    integer(i8),dimension(:),allocatable,intent(out) :: order !< the toposort order (contains the node%tag for correct reference)
+    integer(i8),dimension(:),allocatable,intent(out) :: order !< the toposort order (contains the node%tag by default)
     !> Status flag: 0 (if no errors), -1 (if circular dependency, in this case, `order` will not be allocated)
     integer(i8),intent(out) :: istat
+    logical,intent(in), optional :: use_ids !< whether to use ids to construct order (default: .false. to use tags)
     integer(i8) :: i,iorder
+    logical :: use_ids_ = .false.
+    if (present(use_ids)) use_ids_ = use_ids
 
     if (this%n==0_i8) return
     ! initialize internal variables, in case
@@ -305,7 +308,13 @@ contains
       if (istat==-1_i8) exit
     end do
 
-    if (istat==-1_i8) deallocate(order)
+    if (istat==-1_i8) then
+      deallocate(order)
+    else if(use_ids_) then
+      do i=1_i8,this%n
+        order(i) = this%tag_to_id(order(i))
+      end do
+    end if
 
   contains
 
