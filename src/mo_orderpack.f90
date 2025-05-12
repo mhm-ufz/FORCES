@@ -10958,7 +10958,7 @@ CONTAINS
     ! __________________________________________________________
     ! __________________________________________________________
     real(kind = dp), Dimension (:), Intent (In) :: XDONT
-    Integer(kind = i4), Dimension (:), Intent (Out) :: IGOEST
+    Integer(kind = i8), Dimension (:), Intent (Out) :: IGOEST
     ! __________________________________________________________
     real(kind = dp) :: XTST, XDONA, XDONB
     !
@@ -11205,7 +11205,7 @@ CONTAINS
     ! __________________________________________________________
     ! _________________________________________________________
     Real(kind = sp), Dimension (:), Intent (In) :: XDONT
-    Integer(kind = i4), Dimension (:), Intent (Out) :: IGOEST
+    Integer(kind = i8), Dimension (:), Intent (Out) :: IGOEST
     ! __________________________________________________________
     Real(kind = sp) :: XTST, XDONA, XDONB
     !
