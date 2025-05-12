@@ -11452,7 +11452,7 @@ CONTAINS
     ! __________________________________________________________
     ! __________________________________________________________
     Integer(kind = i4), Dimension (:), Intent (In) :: XDONT
-    Integer(kind = i4), Dimension (:), Intent (Out) :: IGOEST
+    Integer(kind = i8), Dimension (:), Intent (Out) :: IGOEST
     ! __________________________________________________________
     Integer(kind = i8) :: XTST, XDONA, XDONB
     !
