@@ -167,8 +167,7 @@ contains
       action = handler%visit(j)
       select case (action)
         case (dfs_continue)  ! 0
-          if (.not.allocated(this%nodes(j)%edges)) cycle
-          do i = size(this%nodes(j)%edges), 1_i8, -1_i8
+          do i = this%nodes(j)%nedges(), 1_i8, -1_i8
             dep = this%nodes(j)%edges(i)
             if (.not. handler%visited(dep)) then
               top = top + 1_i8
@@ -301,7 +300,7 @@ contains
     integer(i8),dimension(:),intent(in) :: edges
     integer(i8) :: i
     call this%nodes(id)%set_edges(edges)
-    do i = 1_i8, size(this%nodes(id)%edges)
+    do i = 1_i8, this%nodes(id)%nedges()
       call this%nodes(this%nodes(id)%edges(i))%add_dependent(id)
     end do
   end subroutine dag_set_edges
@@ -355,12 +354,10 @@ contains
       else
         if (.not. visited(j)) then
           checking(j) = .true.
-          if (allocated(this%nodes(j)%edges)) then
-            do k=1_i8,size(this%nodes(j)%edges)
-              call dfs(this%nodes(j)%edges(k))
-              if (istat==-1_i8) return
-            end do
-          end if
+          do k=1_i8,this%nodes(j)%nedges()
+            call dfs(this%nodes(j)%edges(k))
+            if (istat==-1_i8) return
+          end do
           checking(j) = .false.
           visited(j) = .true.
           iorder = iorder + 1_i8
@@ -392,7 +389,7 @@ contains
     count = 0_i8
     level = 1_i8
     do i = 1_i8, n
-      if (allocated(this%nodes(i)%edges)) cycle
+      if (this%nodes(i)%nedges() > 0_i8) cycle
       count = count + 1_i8
       id(count) = i
       visit_level(i) = level
@@ -413,7 +410,7 @@ contains
           k = this%nodes(id(i))%dependents(j)
           if (visit_level(k)>0_i8) cycle ! dependent already treated by earlier node in this level
           ready = .true.
-          do m = 1_i8, size(this%nodes(k)%edges) ! non empty since it is a dependent
+          do m = 1_i8, this%nodes(k)%nedges() ! non empty since it is a dependent
             if ( visit_level(this%nodes(k)%edges(m)) == 0_i8 &
             .or. visit_level(this%nodes(k)%edges(m)) == level ) then
               ready = .false. ! some dependency not yet ready (0 - not ready, level - not added in previous levels)
@@ -457,8 +454,7 @@ contains
     allocate(mat(this%n,this%n))
     mat = .false.
     do i=1_i8,this%n
-      if (.not.allocated(this%nodes(i)%edges)) cycle
-      do j = 1_i8, size(this%nodes(i)%edges)
+      do j = 1_i8, this%nodes(i)%nedges()
         mat(i,this%nodes(i)%edges(j)) = .true.
       end do
     end do
