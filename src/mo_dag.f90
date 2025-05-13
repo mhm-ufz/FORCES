@@ -126,6 +126,7 @@ module mo_dag
     procedure :: generate_dependency_matrix => dag_generate_dependency_matrix
     procedure :: traverse            => dag_traverse
     procedure :: subgraph            => dag_subgraph
+    procedure :: get_dependencies    => dag_get_dependencies
     procedure :: destroy             => dag_destroy
     procedure :: tag_to_id
     procedure, private :: rebuild_tag_map
@@ -212,6 +213,24 @@ contains
 
     deallocate(handler%visited, idmap, subtags)
   end function dag_subgraph
+
+  !> \brief Generate list of all dependencies and their sub-dependencies for a given node.
+  function dag_get_dependencies(this, id) result(deps)
+    class(dag), intent(in) :: this
+    integer(i8), intent(in) :: id !< ids to traverse from (by default all)
+    integer(i8), allocatable :: deps(:)
+    type(traversal_visit) :: handler
+    integer(i8) :: i
+    if (this%nodes(id)%nedges() == 0_i8) then
+      allocate(deps(0))
+      return
+    end if
+    allocate(handler%visited(this%n), source=.false.)
+    call this%traverse(handler, this%nodes(id)%edges)
+    allocate(deps(count(handler%visited)))
+    deps = pack([(i, i=1_i8, this%n)], handler%visited)
+    deallocate(handler%visited)
+  end function dag_get_dependencies
 
   !> \brief Rebuild the map from node tags to array indices.
   subroutine rebuild_tag_map(this)
