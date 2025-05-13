@@ -63,7 +63,6 @@ module mo_dag
     generic :: set_edges => set_edge_vector, add_edge
     procedure :: set_edge_vector, add_edge
     procedure :: add_dependent
-    procedure :: remove_edge
   end type node
 
   !> \class dag
@@ -80,8 +79,6 @@ module mo_dag
     procedure :: get_edges           => dag_get_edges
     procedure :: add_edge            => dag_add_edge
     procedure :: set_edges           => dag_set_edges
-    procedure :: remove_edge         => dag_remove_edge
-    procedure :: remove_node         => dag_remove_node
     procedure :: toposort            => dag_toposort
     procedure :: levelsort           => dag_kahn_level_order
     procedure :: generate_dependency_matrix => dag_generate_dependency_matrix
@@ -163,77 +160,6 @@ contains
     end if
   end subroutine add_dependent
 
-  !> \brief Remove an edge index from this node
-  subroutine remove_edge(this,e)
-    class(node),intent(inout) :: this
-    integer(i8),intent(in) :: e
-    integer(i8),dimension(1) :: idx
-    integer(i8),dimension(:),allocatable :: tmp
-
-    if (allocated(this%edges)) then
-      idx = findloc(this%edges, e)
-      if (idx(1)==0_i8) return
-      ! the edge is in the list
-      associate (i => idx(1), n => size(this%edges))
-        if (n==1_i8) then
-          deallocate(this%edges) ! it's the only one there
-        else
-          allocate(tmp(n-1_i8))
-          if (i>1_i8) tmp(1_i8:i-1_i8) = this%edges(1_i8:i-1_i8)
-          if (i<n) tmp(i:n-1_i8) = this%edges(i+1_i8:n)
-          call move_alloc(tmp,this%edges)
-        end if
-      end associate
-    end if
-
-  end subroutine remove_edge
-
-  !> \brief Remove a node from a dag. Will also remove any edges connected to it.
-  !> \details This will renumber the nodes and edges internally.
-  !! Note that any default integer tag generated in dag%init would then be questionable.
-  subroutine dag_remove_node(this,id)
-    class(dag),intent(inout) :: this
-    integer(i8),intent(in) :: id !! the node to remove
-    integer(i8) :: i !! counter
-    type(node),dimension(:),allocatable :: tmp !! for resizing `dag%nodes`
-
-    if (allocated(this%nodes)) then
-      associate (n => size(this%nodes))
-        do i = 1_i8, n
-          ! first remove any edges:
-          call this%nodes(i)%remove_edge(id)
-          ! next, renumber the existing edges so they will be
-          ! correct after id is deleted
-          ! Example (removing 2): 1 [2] 3 4 ==> 1 2 3
-          if (.not.allocated(this%nodes(i)%edges)) cycle
-          where (this%nodes(i)%edges>id)
-              this%nodes(i)%edges = this%nodes(i)%edges - 1_i8
-          end where
-          ! node%tag stays the same to conserve references
-          ! if (this%nodes(i)%tag > id) this%nodes(i)%tag = this%nodes(i)%tag - 1_i8
-        end do
-        ! now, remove the node:
-        allocate(tmp(n-1_i8))
-        if (id>1_i8) tmp(1_i8:id-1_i8) = this%nodes(1_i8:id-1_i8)
-        if (id<n) tmp(id:n-1_i8) = this%nodes(id+1_i8:n)
-        call move_alloc(tmp,this%nodes)
-      end associate
-    end if
-    this%n = size(this%nodes, kind=i8)
-    if (this%n==0_i8) deallocate(this%nodes)
-    call this%rebuild_tag_map()
-
-  end subroutine dag_remove_node
-
-  !> \brief Get the edges for the node (all of the nodes that this node depends on).
-  pure function dag_get_edges(this,id) result(edges)
-    class(dag),intent(in) :: this
-    integer(i8),intent(in) :: id
-    integer(i8),dimension(:),allocatable :: edges
-    if (.not.allocated(this%nodes(id)%edges)) return
-    if (id>0_i8 .and. id <= this%n) edges = this%nodes(id)%edges  ! auto LHS allocation
-  end function dag_get_edges
-
   !> \brief Set the number of nodes in the dag.
   subroutine dag_set_nodes(this, n, tags)
     use mo_message, only: error_message
@@ -241,7 +167,7 @@ contains
     integer(i8), intent(in)   :: n !< number of nodes
     integer(i8), dimension(n), intent(in), optional :: tags !< tags of the nodes (will be their index by default)
     integer(i8) :: i !! counter
-    if (n<=0_i8) call error_message('error: n must be >= 1')
+    if (n<1_i8) call error_message('error: n must be >= 1')
     if (allocated(this%nodes)) deallocate(this%nodes)
     this%n = n
     allocate(this%nodes(n))
@@ -273,14 +199,6 @@ contains
       call this%nodes(this%nodes(id)%edges(i))%add_dependent(id)
     end do
   end subroutine dag_set_edges
-
-  !> \brief Remove an edge from a dag.
-  subroutine dag_remove_edge(this,id,target_id)
-    class(dag),intent(inout) :: this
-    integer(i8),intent(in)   :: id !< node id
-    integer(i8),intent(in)   :: target_id !< the edge to remove
-    call this%nodes(id)%remove_edge(target_id)
-  end subroutine dag_remove_edge
 
   !> \brief Main toposort routine
   subroutine dag_toposort(this,order,istat,use_ids)
