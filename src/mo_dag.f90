@@ -128,6 +128,7 @@ module mo_dag
     procedure :: traverse            => dag_traverse
     procedure :: subgraph            => dag_subgraph
     procedure :: get_dependencies    => dag_get_dependencies
+    procedure :: get_dependents      => dag_get_dependents
     procedure :: destroy             => dag_destroy
     procedure :: tag_to_id
     procedure, private :: rebuild_tag_map
@@ -242,7 +243,7 @@ contains
   !> \brief Generate list of all dependencies and their sub-dependencies for a given node.
   function dag_get_dependencies(this, id) result(deps)
     class(dag), intent(in) :: this
-    integer(i8), intent(in) :: id !< ids to traverse from (by default all)
+    integer(i8), intent(in) :: id !< node id
     integer(i8), allocatable :: deps(:)
     type(traversal_visit) :: handler
     integer(i8) :: i
@@ -256,6 +257,24 @@ contains
     deps = pack([(i, i=1_i8, this%n)], handler%visited)
     deallocate(handler%visited)
   end function dag_get_dependencies
+
+  !> \brief Generate list of all dependents and their sub-dependents for a given node.
+  function dag_get_dependents(this, id) result(deps)
+    class(dag), intent(in) :: this
+    integer(i8), intent(in) :: id !< node id
+    integer(i8), allocatable :: deps(:)
+    type(traversal_visit) :: handler
+    integer(i8) :: i
+    if (this%nodes(id)%ndependents() == 0_i8) then
+      allocate(deps(0))
+      return
+    end if
+    allocate(handler%visited(this%n), source=.false.)
+    call this%traverse(handler, this%nodes(id)%dependents, down=.true.)
+    allocate(deps(count(handler%visited)))
+    deps = pack([(i, i=1_i8, this%n)], handler%visited)
+    deallocate(handler%visited)
+  end function dag_get_dependents
 
   !> \brief Rebuild the map from node tags to array indices.
   subroutine rebuild_tag_map(this)
