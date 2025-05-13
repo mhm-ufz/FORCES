@@ -76,7 +76,6 @@ module mo_dag
     integer(i8), private :: max_tag = 0_i8 !< Max tag value in current DAG (for bounds)
   contains
     procedure :: init                => dag_set_nodes
-    procedure :: get_edges           => dag_get_edges
     procedure :: add_edge            => dag_add_edge
     procedure :: set_edges           => dag_set_edges
     procedure :: toposort            => dag_toposort
