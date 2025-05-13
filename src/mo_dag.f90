@@ -40,20 +40,29 @@
 module mo_dag
   use mo_kind, only : i8
 
+  !> \class order_t
+  !> \brief Store level based ordering of a DAG.
+  type :: order_t
+    integer(i8), allocatable :: id(:)           !< Node indices in topological order
+    integer(i8), allocatable :: level_start(:)  !< Start indices in id(:) for respective level
+    integer(i8), allocatable :: level_end(:)    !< End indices in id(:) for respective level
+  end type order_t
+
   !> \class node
   !> \brief A node of a directed acyclic graph (DAG)
   type :: node
     !> The nodes that this node depends on (directed edges of the graph).
     !! The indices are the respective node index in the nodes list in the dag
-    !! and do not necessarily match the node%tag (e.g. when nodes are removed, their IDs stay untouched)
+    !! and do not necessarily match the node%tag (e.g. when nodes are removed, their tags stay untouched)
     integer(i8),dimension(:),allocatable :: edges
+    !> nodes that contain an edge to this node
+    integer(i8),dimension(:),allocatable :: dependents
     integer(i8) :: tag = 0_i8 !< node tag for external reference (will stay the same even when the DAG is modified)
-    logical, private :: checking = .false.  !< used for toposort
-    logical, private :: marked = .false.    !< used for toposort
   contains
     private
     generic :: set_edges => set_edge_vector, add_edge
     procedure :: set_edge_vector, add_edge
+    procedure :: add_dependent
     procedure :: remove_edge
   end type node
 
@@ -69,16 +78,15 @@ module mo_dag
   contains
     procedure :: init                => dag_set_nodes
     procedure :: get_edges           => dag_get_edges
-    procedure :: get_dependents      => dag_get_dependents
     procedure :: add_edge            => dag_add_edge
     procedure :: set_edges           => dag_set_edges
     procedure :: remove_edge         => dag_remove_edge
     procedure :: remove_node         => dag_remove_node
     procedure :: toposort            => dag_toposort
+    procedure :: levelsort           => dag_kahn_level_order
     procedure :: generate_dependency_matrix => dag_generate_dependency_matrix
     procedure :: destroy             => dag_destroy
     procedure :: tag_to_id
-    procedure, private :: init_search_vars !< private routine to initialize some internal variables
     procedure, private :: rebuild_tag_map
   end type dag
 
@@ -140,6 +148,20 @@ contains
       this%edges = [e]
     end if
   end subroutine add_edge
+
+  !> \brief Add a dependent index for this node
+  subroutine add_dependent(this,d)
+    class(node),intent(inout) :: this
+    integer(i8),intent(in) :: d
+    if (allocated(this%dependents)) then
+      if (.not. any(d==this%dependents)) then ! don't add if already there
+        this%dependents = [this%dependents, d]
+        call sort_ascending(this%dependents)
+      end if
+    else
+      this%dependents = [d]
+    end if
+  end subroutine add_dependent
 
   !> \brief Remove an edge index from this node
   subroutine remove_edge(this,e)
@@ -212,25 +234,6 @@ contains
     if (id>0_i8 .and. id <= this%n) edges = this%nodes(id)%edges  ! auto LHS allocation
   end function dag_get_edges
 
-  !> \brief Get all the nodes that depend on this node.
-  pure function dag_get_dependents(this,id) result(dep)
-    class(dag),intent(in) :: this
-    integer(i8),intent(in) :: id
-    integer(i8),dimension(:),allocatable :: dep  !! the set of all nodes that depend on given node
-    integer(i8) :: i !! node counter
-    if (id<1_i8 .or. id > this%n) return
-    ! have to check all the nodes:
-    do i=1_i8, this%n
-      if (.not.allocated(this%nodes(i)%edges)) cycle
-      if (.not.any(this%nodes(i)%edges == id)) cycle
-      if (allocated(dep)) then
-        dep = [dep, i]  ! auto LHS allocation
-      else
-        dep = [i]       ! auto LHS allocation
-      end if
-    end do
-  end function dag_get_dependents
-
   !> \brief Set the number of nodes in the dag.
   subroutine dag_set_nodes(this, n, tags)
     use mo_message, only: error_message
@@ -256,6 +259,7 @@ contains
     integer(i8),intent(in)   :: id !< node id
     integer(i8),intent(in)   :: target_id !< the node to connect to `id`
     call this%nodes(id)%set_edges(target_id)
+    call this%nodes(target_id)%add_dependent(id)
   end subroutine dag_add_edge
 
   !> \brief Set the edges for a node in a dag
@@ -263,7 +267,11 @@ contains
     class(dag),intent(inout)            :: this
     integer(i8),intent(in)              :: id !< node id
     integer(i8),dimension(:),intent(in) :: edges
+    integer(i8) :: i
     call this%nodes(id)%set_edges(edges)
+    do i = 1_i8, size(this%nodes(id)%edges)
+      call this%nodes(this%nodes(id)%edges(i))%add_dependent(id)
+    end do
   end subroutine dag_set_edges
 
   !> \brief Remove an edge from a dag.
@@ -274,16 +282,6 @@ contains
     call this%nodes(id)%remove_edge(target_id)
   end subroutine dag_remove_edge
 
-  !> \brief Initialize the internal private variables used for graph traversal.
-  subroutine init_search_vars(this)
-    class(dag),intent(inout) :: this
-    integer(i8) :: i !< counter
-    do i = 1_i8, this%n
-      this%nodes(i)%marked = .false.
-      this%nodes(i)%checking = .false.
-    end do
-  end subroutine init_search_vars
-
   !> \brief Main toposort routine
   subroutine dag_toposort(this,order,istat,use_ids)
     class(dag),intent(inout) :: this
@@ -292,19 +290,20 @@ contains
     integer(i8),intent(out) :: istat
     logical,intent(in), optional :: use_ids !< whether to use ids to construct order (default: .false. to use tags)
     integer(i8) :: i,iorder
+    logical, allocatable, dimension(:) :: checking, visited
     logical :: use_ids_ = .false.
     if (present(use_ids)) use_ids_ = use_ids
 
     if (this%n==0_i8) return
-    ! initialize internal variables, in case
-    ! we have called this routine before.
-    call this%init_search_vars()
+
+    allocate(checking(this%n), source=.false.)
+    allocate(visited(this%n), source=.false.)
 
     allocate(order(this%n))
     iorder = 0_i8  ! index in order array
     istat = 0_i8   ! no errors so far
     do i=1_i8,this%n
-      if (.not. this%nodes(i)%marked) call dfs(this%nodes(i))
+      if (.not. visited(i)) call dfs(i)
       if (istat==-1_i8) exit
     end do
 
@@ -316,35 +315,111 @@ contains
       end do
     end if
 
+    deallocate(checking, visited)
+
   contains
 
     !> \brief depth-first graph traversal
-    recursive subroutine dfs(v)
-      type(node),intent(inout) :: v
-      integer(i8) :: j
+    recursive subroutine dfs(j)
+      integer(i8), intent(in) :: j
+      integer(i8) :: k
 
       if (istat==-1_i8) return
-      if (v%checking) then
+      if (checking(j)) then
         ! error: circular dependency
         istat = -1_i8
       else
-        if (.not. v%marked) then
-          v%checking = .true.
-          if (allocated(v%edges)) then
-            do j=1_i8,size(v%edges)
-              call dfs(this%nodes(v%edges(j)))
+        if (.not. visited(j)) then
+          checking(j) = .true.
+          if (allocated(this%nodes(j)%edges)) then
+            do k=1_i8,size(this%nodes(j)%edges)
+              call dfs(this%nodes(j)%edges(k))
               if (istat==-1_i8) return
             end do
           end if
-          v%checking = .false.
-          v%marked = .true.
+          checking(j) = .false.
+          visited(j) = .true.
           iorder = iorder + 1_i8
-          order(iorder) = v%tag
+          order(iorder) = this%nodes(j)%tag
         end if
       end if
     end subroutine dfs
 
   end subroutine dag_toposort
+
+  !> \brief Sorting DAG by levels for parallelization based on Kahn's algorithm
+  subroutine dag_kahn_level_order(this, order, istat)
+    implicit none
+    class(dag), intent(in) :: this
+    type(order_t), intent(out) :: order
+    integer(i8), intent(out) :: istat
+
+    integer(i8) :: i, j, k, m, n, count, level, added_this_level
+    integer(i8), allocatable :: level_start(:), level_end(:), id(:), visit_level(:)
+    logical :: ready
+
+    n = this%n ! in the worst case of a linear DAG, we get as many levels as nodes
+    allocate(visit_level(n), source=0_i8)
+    allocate(level_start(n))
+    allocate(level_end(n))
+    allocate(id(n))
+
+    ! first scan for all dependency free nodes
+    count = 0_i8
+    level = 1_i8
+    do i = 1_i8, n
+      if (allocated(this%nodes(i)%edges)) cycle
+      count = count + 1_i8
+      id(count) = i
+      visit_level(i) = level
+    end do
+
+    level_start(level) = 1_i8
+    level_end(level) = count
+
+    do while (count < n)
+      added_this_level = 0_i8
+      level = level + 1_i8
+      level_start(level) = count + 1_i8
+
+      ! scan all dependents of previous level
+      do i = level_start(level-1_i8), level_end(level-1_i8)
+        if (.not.allocated(this%nodes(id(i))%dependents)) cycle
+        do j = 1_i8, size(this%nodes(id(i))%dependents)
+          k = this%nodes(id(i))%dependents(j)
+          if (visit_level(k)>0_i8) cycle ! dependent already treated by earlier node in this level
+          ready = .true.
+          do m = 1_i8, size(this%nodes(k)%edges) ! non empty since it is a dependent
+            if ( visit_level(this%nodes(k)%edges(m)) == 0_i8 &
+            .or. visit_level(this%nodes(k)%edges(m)) == level ) then
+              ready = .false. ! some dependency not yet ready (0 - not ready, level - not added in previous levels)
+              exit
+            end if
+          end do
+          if (ready) then
+            count = count + 1_i8
+            id(count) = k
+            visit_level(k) = level
+            added_this_level = added_this_level + 1_i8
+          end if
+        end do
+      end do
+
+      if (added_this_level == 0_i8) exit ! cycle detected
+      level_end(level) = count ! all added nodes form the new level
+    end do
+
+    if (count /= n) then ! cycle detected
+      istat = -1_i8
+      return
+    end if
+
+    istat = 0_i8
+    call move_alloc(id, order%id)
+    allocate(order%level_start(level), source=level_start(1:level))
+    allocate(order%level_end(level), source=level_end(1:level))
+    deallocate(visit_level, level_start, level_end)
+  end subroutine dag_kahn_level_order
 
   !> \brief Generate the dependency matrix for the DAG.
   !> \details This is an \(n \times n \) matrix with elements \(A_{ij}\),
