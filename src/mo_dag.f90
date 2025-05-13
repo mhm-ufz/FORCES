@@ -408,16 +408,13 @@ contains
   end subroutine dag_set_edges
 
   !> \brief Main toposort routine
-  subroutine dag_toposort(this,order,istat,use_ids)
+  subroutine dag_toposort(this, order, istat)
     class(dag),intent(inout) :: this
-    integer(i8),dimension(:),allocatable,intent(out) :: order !< the toposort order (contains the node%tag by default)
+    integer(i8),dimension(:),allocatable,intent(out) :: order !< the toposort order
     !> Status flag: 0 (if no errors), -1 (if circular dependency, in this case, `order` will not be allocated)
     integer(i8),intent(out) :: istat
-    logical,intent(in), optional :: use_ids !< whether to use ids to construct order (default: .false. to use tags)
     integer(i8) :: i,iorder
     logical, allocatable, dimension(:) :: checking, visited
-    logical :: use_ids_ = .false.
-    if (present(use_ids)) use_ids_ = use_ids
 
     if (this%n==0_i8) return
 
@@ -434,10 +431,6 @@ contains
 
     if (istat==-1_i8) then
       deallocate(order)
-    else if(use_ids_) then
-      do i=1_i8,this%n
-        order(i) = this%tag_to_id(order(i))
-      end do
     end if
 
     deallocate(checking, visited)
@@ -448,24 +441,21 @@ contains
     recursive subroutine dfs(j)
       integer(i8), intent(in) :: j
       integer(i8) :: k
-
-      if (istat==-1_i8) return
-      if (checking(j)) then
-        ! error: circular dependency
+      if (istat==-1_i8) return ! error: already circular
+      if (checking(j)) then ! error: circular dependency
         istat = -1_i8
-      else
-        if (.not. visited(j)) then
-          checking(j) = .true.
-          do k=1_i8,this%nodes(j)%nedges()
-            call dfs(this%nodes(j)%edges(k))
-            if (istat==-1_i8) return
-          end do
-          checking(j) = .false.
-          visited(j) = .true.
-          iorder = iorder + 1_i8
-          order(iorder) = this%nodes(j)%tag
-        end if
+        return
       end if
+      if ( visited(j)) return ! already touched
+      checking(j) = .true.
+      do k=1_i8,this%nodes(j)%nedges()
+        call dfs(this%nodes(j)%edges(k))
+        if (istat==-1_i8) return
+      end do
+      checking(j) = .false.
+      visited(j) = .true.
+      iorder = iorder + 1_i8
+      order(iorder) = j
     end subroutine dfs
 
   end subroutine dag_toposort
