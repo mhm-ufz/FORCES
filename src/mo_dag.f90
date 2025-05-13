@@ -65,11 +65,12 @@ module mo_dag
   !> \brief Abstract interface for the `visit` function in a handler.
   !! \return One of `dfs_continue`, `dfs_skip_children`, `dfs_stop_all`.
   abstract interface
-    function visit_if(this, id) result(action)
+    function visit_if(this, id, tag) result(action)
       use mo_kind, only: i8
       import :: traversal_handler
       class(traversal_handler), intent(inout) :: this
       integer(i8), intent(in) :: id !< The index of the node being visited.
+      integer(i8), intent(in) :: tag !< The tag of the node being visited.
       integer(i8) :: action
     end function
   end interface
@@ -124,6 +125,7 @@ module mo_dag
     procedure :: levelsort           => dag_kahn_level_order
     procedure :: generate_dependency_matrix => dag_generate_dependency_matrix
     procedure :: traverse            => dag_traverse
+    procedure :: subgraph            => dag_subgraph
     procedure :: destroy             => dag_destroy
     procedure :: tag_to_id
     procedure, private :: rebuild_tag_map
@@ -132,9 +134,10 @@ module mo_dag
 contains
 
   !> \brief Simple visit function to visit all dependencies.
-  function visit_simple(this, id) result(action)
+  function visit_simple(this, id, tag) result(action)
     class(traversal_visit), intent(inout) :: this
     integer(i8), intent(in) :: id !< The index of the node being visited.
+    integer(i8), intent(in) :: tag !< The tag of the node being visited.
     integer(i8) :: action
     action = dfs_continue
   end function
@@ -164,7 +167,7 @@ contains
       if (handler%visited(j)) cycle
       handler%visited(j) = .true.
 
-      action = handler%visit(j)
+      action = handler%visit(j, this%nodes(j)%tag)
       select case (action)
         case (dfs_continue)  ! 0
           do i = this%nodes(j)%nedges(), 1_i8, -1_i8
@@ -183,6 +186,32 @@ contains
 
     deallocate(stack)
   end subroutine dag_traverse
+
+  !> \brief Construct subgraph containing given nodes and their dependencies.
+  !> \details This will renumber the node ids but will conserve their tags.
+  function dag_subgraph(this, ids) result(subgraph)
+    class(dag), intent(in) :: this
+    integer(i8), dimension(:), intent(in) :: ids !< ids to traverse from (by default all)
+    type(traversal_visit) :: handler
+    type(dag) :: subgraph !< dag containing the subgraph containing given nodes and their dependencies
+    integer(i8), allocatable :: idmap(:), subtags(:)
+    integer(i8) :: i, j, nsub
+
+    allocate(handler%visited(this%n), source=.false.)
+    call this%traverse(handler, ids)
+
+    nsub = count(handler%visited)
+    subtags = pack(this%nodes%tag, handler%visited)
+    idmap = unpack([(i, i=1_i8, nsub)], handler%visited, 0_i8)
+
+    call subgraph%init(nsub, subtags)
+    do i = 1_i8, this%n
+      if (.not.handler%visited(i)) cycle
+      call subgraph%set_edges(idmap(i), [(idmap(this%nodes(i)%edges(j)), j=1_i8,this%nodes(i)%nedges())])
+    end do
+
+    deallocate(handler%visited, idmap, subtags)
+  end function dag_subgraph
 
   !> \brief Rebuild the map from node tags to array indices.
   subroutine rebuild_tag_map(this)
