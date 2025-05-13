@@ -40,6 +40,47 @@
 module mo_dag
   use mo_kind, only : i8
 
+  ! Control constants for depth-first traversal behavior.
+  ! These values are returned by `visit()` to control DFS branching.
+  integer(i8), parameter :: dfs_continue      = 0_i8  !< Continue traversal to children
+  integer(i8), parameter :: dfs_skip_children = 1_i8  !< Skip children of this node
+  integer(i8), parameter :: dfs_stop_all      = 2_i8  !< Stop traversal entirely
+
+  !> \class traversal_handler
+  !> \brief Abstract base type for DFS traversal handlers.
+  !> \details Users should extend this type and implement the deferred `visit()` procedure.
+  !! The handler can maintain state, such as visited status, counters, or data accumulators.
+  type, abstract :: traversal_handler
+    !> \brief Per-node visited state. Must be allocated before traversal.
+    logical, allocatable :: visited(:)
+  contains
+    !> \brief User-defined procedure called on each visited node.
+    !> \details This function should return one of:
+    !! - `dfs_continue` to keep traversing from this node,
+    !! - `dfs_skip_children` to skip its descendants,
+    !! - `dfs_stop_all` to stop traversal completely.
+    procedure(visit_if), deferred :: visit
+  end type traversal_handler
+
+  !> \brief Abstract interface for the `visit` function in a handler.
+  !! \return One of `dfs_continue`, `dfs_skip_children`, `dfs_stop_all`.
+  abstract interface
+    function visit_if(this, id) result(action)
+      use mo_kind, only: i8
+      import :: traversal_handler
+      class(traversal_handler), intent(inout) :: this
+      integer(i8), intent(in) :: id !< The index of the node being visited.
+      integer(i8) :: action
+    end function
+  end interface
+
+  !> \class traversal_visit
+  !> \brief Simple traversal handler to visit all dependencies.
+  type, extends(traversal_handler) :: traversal_visit
+  contains
+    procedure :: visit => visit_simple
+  end type traversal_visit
+
   !> \class order_t
   !> \brief Store level based ordering of a DAG.
   type :: order_t
@@ -81,12 +122,67 @@ module mo_dag
     procedure :: toposort            => dag_toposort
     procedure :: levelsort           => dag_kahn_level_order
     procedure :: generate_dependency_matrix => dag_generate_dependency_matrix
+    procedure :: traverse            => dag_traverse
     procedure :: destroy             => dag_destroy
     procedure :: tag_to_id
     procedure, private :: rebuild_tag_map
   end type dag
 
 contains
+
+  !> \brief Simple visit function to visit all dependencies.
+  function visit_simple(this, id) result(action)
+    class(traversal_visit), intent(inout) :: this
+    integer(i8), intent(in) :: id !< The index of the node being visited.
+    integer(i8) :: action
+    action = dfs_continue
+  end function
+
+  !> \brief Traverse graph from given starting node.
+  subroutine dag_traverse(this, handler, ids)
+    class(dag), intent(in) :: this
+    class(traversal_handler), intent(inout) :: handler !< traversal handler to use
+    integer(i8), dimension(:), intent(in), optional :: ids !< ids to traverse from (by default all)
+
+    integer(i8) :: top, dep, action, i, j
+    integer(i8), allocatable :: stack(:)
+
+    allocate(stack(this%n))
+    if (present(ids)) then
+      top = size(ids)
+      stack(1_i8:top) = [(ids(i), i=top,1_i8,-1_i8)]
+    else
+      top = this%n
+      stack(1_i8:top) = [(i, i=top,1_i8,-1_i8)]
+    end if
+
+    do while (top > 0_i8)
+      j = stack(top)
+      top = top - 1_i8
+
+      if (handler%visited(j)) cycle
+      handler%visited(j) = .true.
+
+      action = handler%visit(j)
+      select case (action)
+        case (dfs_continue)  ! 0
+          if (.not.allocated(this%nodes(j)%edges)) cycle
+          do i = size(this%nodes(j)%edges), 1_i8, -1_i8
+            dep = this%nodes(j)%edges(i)
+            if (.not. handler%visited(dep)) then
+              top = top + 1_i8
+              stack(top) = dep
+            end if
+          end do
+        case (dfs_skip_children) ! 1
+          cycle
+        case default ! dfs_stop_all (all other)
+          exit
+      end select
+    end do
+
+    deallocate(stack)
+  end subroutine dag_traverse
 
   !> \brief Rebuild the map from node tags to array indices.
   subroutine rebuild_tag_map(this)
