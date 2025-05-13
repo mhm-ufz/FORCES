@@ -104,6 +104,7 @@ module mo_dag
     generic :: set_edges => set_edge_vector, add_edge
     procedure :: set_edge_vector, add_edge
     procedure :: add_dependent
+    procedure :: nedges
   end type node
 
   !> \class dag
@@ -218,6 +219,16 @@ contains
     this%n = 0_i8
     if (allocated(this%nodes)) deallocate(this%nodes)
   end subroutine dag_destroy
+
+  !> \brief number of edges for this node
+  integer(i8) function nedges(this)
+    class(node),intent(in) :: this
+    if (allocated(this%edges)) then
+      nedges = size(this%edges)
+    else
+      nedges = 0_i8
+    end if
+  end function nedges
 
   !> \brief Specify the edge indices for this node
   subroutine set_edge_vector(this,edges)
