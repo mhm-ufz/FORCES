@@ -106,6 +106,7 @@ module mo_dag
     procedure :: set_edge_vector, add_edge
     procedure :: add_dependent
     procedure :: nedges
+    procedure :: ndependents
   end type node
 
   !> \class dag
@@ -144,13 +145,17 @@ contains
   end function
 
   !> \brief Traverse graph from given starting node.
-  subroutine dag_traverse(this, handler, ids)
+  subroutine dag_traverse(this, handler, ids, down)
     class(dag), intent(in) :: this
     class(traversal_handler), intent(inout) :: handler !< traversal handler to use
     integer(i8), dimension(:), intent(in), optional :: ids !< ids to traverse from (by default all)
+    logical, intent(in), optional :: down !< traverse downstream if .true. (.false. by default to traverse upstream)
 
     integer(i8) :: top, dep, action, i, j
     integer(i8), allocatable :: stack(:)
+
+    logical :: down_ = .false.
+    if (present(down)) down_ = down
 
     allocate(stack(this%n))
     if (present(ids)) then
@@ -171,13 +176,23 @@ contains
       action = handler%visit(j, this%nodes(j)%tag)
       select case (action)
         case (dfs_continue)  ! 0
-          do i = this%nodes(j)%nedges(), 1_i8, -1_i8
-            dep = this%nodes(j)%edges(i)
-            if (.not. handler%visited(dep)) then
-              top = top + 1_i8
-              stack(top) = dep
-            end if
-          end do
+          if (down_) then
+            do i = this%nodes(j)%ndependents(), 1_i8, -1_i8
+              dep = this%nodes(j)%dependents(i)
+              if (.not. handler%visited(dep)) then
+                top = top + 1_i8
+                stack(top) = dep
+              end if
+            end do
+          else
+            do i = this%nodes(j)%nedges(), 1_i8, -1_i8
+              dep = this%nodes(j)%edges(i)
+              if (.not. handler%visited(dep)) then
+                top = top + 1_i8
+                stack(top) = dep
+              end if
+            end do
+          end if
         case (dfs_skip_children) ! 1
           cycle
         case default ! dfs_stop_all (all other)
@@ -190,16 +205,20 @@ contains
 
   !> \brief Construct subgraph containing given nodes and their dependencies.
   !> \details This will renumber the node ids but will conserve their tags.
-  function dag_subgraph(this, ids) result(subgraph)
+  function dag_subgraph(this, ids, down) result(subgraph)
     class(dag), intent(in) :: this
     integer(i8), dimension(:), intent(in) :: ids !< ids to traverse from (by default all)
+    logical, intent(in), optional :: down !< generate downstream graph if .true. (.false. by default to generate upstream graph)
     type(traversal_visit) :: handler
     type(dag) :: subgraph !< dag containing the subgraph containing given nodes and their dependencies
     integer(i8), allocatable :: idmap(:), subtags(:)
     integer(i8) :: i, j, nsub
 
+    logical :: down_ = .false.
+    if (present(down)) down_ = down
+
     allocate(handler%visited(this%n), source=.false.)
-    call this%traverse(handler, ids)
+    call this%traverse(handler, ids, down)
 
     nsub = count(handler%visited)
     subtags = pack(this%nodes%tag, handler%visited)
@@ -208,7 +227,13 @@ contains
     call subgraph%init(nsub, subtags)
     do i = 1_i8, this%n
       if (.not.handler%visited(i)) cycle
-      call subgraph%set_edges(idmap(i), [(idmap(this%nodes(i)%edges(j)), j=1_i8,this%nodes(i)%nedges())])
+      if (down_) then
+        do j = 1_i8, this%nodes(i)%ndependents()
+          call subgraph%add_edge(idmap(this%nodes(i)%dependents(j)), idmap(i))
+        end do
+      else
+        call subgraph%set_edges(idmap(i), [(idmap(this%nodes(i)%edges(j)), j=1_i8,this%nodes(i)%nedges())])
+      end if
     end do
 
     deallocate(handler%visited, idmap, subtags)
@@ -276,6 +301,16 @@ contains
       nedges = 0_i8
     end if
   end function nedges
+
+  !> \brief number of dependents for this node
+  integer(i8) function ndependents(this)
+    class(node),intent(in) :: this
+    if (allocated(this%dependents)) then
+      ndependents = size(this%dependents)
+    else
+      ndependents = 0_i8
+    end if
+  end function ndependents
 
   !> \brief Specify the edge indices for this node
   subroutine set_edge_vector(this,edges)
