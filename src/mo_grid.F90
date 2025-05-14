@@ -143,17 +143,16 @@ module mo_grid
 !     procedure, private :: layer_to_nc_dataset, layer_to_nc_file
 !     generic, public :: to_netcdf => layer_to_nc_dataset, layer_to_nc_file
 ! #endif
-!     procedure, public :: check_is_covered_by => layer_check_is_covered_by
-!     procedure, public :: check_is_covering => layer_check_is_covering
-!     procedure, public :: check_is_filled_by => layer_check_is_filled_by
-!     procedure, public :: check_is_filling => layer_check_is_filling
-!     procedure, public :: derive_coarse_grid => layer_derive_coarse_grid
-!     procedure, public :: derive_fine_grid => layer_derive_fine_grid
-!     procedure, public :: derive_grid => layer_derive_grid
-!     procedure, private :: layer_pack_sp, layer_pack_dp, layer_pack_i4, layer_pack_i8, layer_pack_lgt
-!     generic, public :: pack => layer_pack_sp, layer_pack_dp, layer_pack_i4, layer_pack_i8, layer_pack_lgt
-!     procedure, private :: layer_unpack_sp, layer_unpack_dp, layer_unpack_i4, layer_unpack_i8, layer_unpack_lgt
-!     generic, public :: unpack => layer_unpack_sp, layer_unpack_dp, layer_unpack_i4, layer_unpack_i8, layer_unpack_lgt
+    procedure, public :: check_is_covered_by => layer_check_is_covered_by
+    procedure, public :: check_is_covering => layer_check_is_covering
+    procedure, public :: check_is_filled_by => layer_check_is_filled_by
+    procedure, public :: check_is_filling => layer_check_is_filling
+    procedure, private :: check_shape => layer_check_shape
+    procedure, private :: check_shape_packed => layer_check_shape_packed
+    procedure, private :: layer_pack_sp, layer_pack_dp, layer_pack_i4, layer_pack_i8, layer_pack_lgt
+    generic, public :: pack => layer_pack_sp, layer_pack_dp, layer_pack_i4, layer_pack_i8, layer_pack_lgt
+    procedure, private :: layer_unpack_sp, layer_unpack_dp, layer_unpack_i4, layer_unpack_i8, layer_unpack_lgt
+    generic, public :: unpack => layer_unpack_sp, layer_unpack_dp, layer_unpack_i4, layer_unpack_i8, layer_unpack_lgt
   end type layered_grid_t
 
   !> \brief Reads spatial data files of ASCII format.
@@ -201,17 +200,301 @@ contains
     logical, optional, intent(in) :: positive_up !< indicated "upwards" as direction of positive z values (.false. by default)
     integer(i4) :: i
     real(dp) :: minl, maxl
+    real(dp), dimension(:), allocatable :: diffs
+    if (size(layer) == 0) call error_message("layered_grid % init: need at least one layer.")
     if (size(layer) + 1 /= size(layer_vertices)) call error_message("layered_grid % init: size of layer and vertices not matching.")
     do i = 1, size(layer)
       minl = min(layer_vertices(i), layer_vertices(i+1))
       maxl = max(layer_vertices(i), layer_vertices(i+1))
       if (layer(i)<minl .or. layer(i)>maxl) call error_message("layered_grid % init: layers not within bounds form vertices.")
     end do
+    diffs = layer_vertices(2:) - layer_vertices(:size(layer))
+    if (.not.(all(diffs > 0.0_dp).or.all(diffs < 0.0_dp))) call error_message("layered_grid % init: layers not monotonous.")
     this%grid = grid
     this%layer = layer
     this%layer_vertices = layer_vertices
     if (present(positive_up)) this%positive_up = positive_up
   end subroutine layer_init
+
+  !> \brief check if given grid is covered by coarser grid
+  !> \details check if given grid is compatible and covered by coarser grid and raise an error if this is not the case.
+  !! Layers of coarse grid need to fully cover the layers of given grid.
+  !! \note The coarse grid is allowed to have valid cells outside of the fine grids masked region.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine layer_check_is_covered_by(this, coarse_grid, tol, check_mask)
+    use mo_utils, only: eq
+    implicit none
+    class(layered_grid_t), intent(in) :: this
+    type(layered_grid_t), intent(in) :: coarse_grid !< coarse grid that should cover this grid
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    logical, optional, intent(in) :: check_mask !< whether to check if coarse mask covers fine mask
+    if (minval(this%layer_vertices) < minval(coarse_grid%layer_vertices)) &
+      call error_message("layered_grid % check_is_covered_by: coarse layers not covering.")
+    if (maxval(this%layer_vertices) > maxval(coarse_grid%layer_vertices)) &
+      call error_message("layered_grid % check_is_covered_by: coarse layers not covering.")
+    call this%grid%check_is_covered_by(coarse_grid%grid, tol, check_mask)
+  end subroutine layer_check_is_covered_by
+
+  !> \brief check if given grid is covering finer grid
+  !> \details check if given grid is compatible with and covering finer grid and raise an error if this is not the case.
+  !! Layers of coarse grid need to fully cover the layers of given grid.
+  !! \note The coarse grid is allowed to have valid cells outside of the fine grids masked region.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine layer_check_is_covering(this, fine_grid, tol, check_mask)
+    implicit none
+    class(layered_grid_t), intent(in) :: this
+    type(layered_grid_t), intent(in) :: fine_grid !< finer grid that should be covered by this grid
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    logical, optional, intent(in) :: check_mask !< whether to check if coarse mask covers fine mask
+    call fine_grid%check_is_covered_by(coarse_grid=this, tol=tol, check_mask=check_mask)
+  end subroutine layer_check_is_covering
+
+  !> \brief check if given grid is filled by fine grid
+  !> \details check if given grid is compatible and filled by finer grid and raise an error if this is not the case.
+  !! \note The fine grid is allowed to have valid cells outside of the coarse grids masked region.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine layer_check_is_filled_by(this, fine_grid, tol, check_mask)
+    use mo_orderpack, only: sort
+    use mo_utils, only: eq
+    implicit none
+    class(layered_grid_t), intent(in) :: this
+    type(layered_grid_t), intent(in) :: fine_grid !< fine grid that should fill this grid
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    logical, optional, intent(in) :: check_mask !< whether to check if fine mask fills coarse mask
+    real(dp), dimension(:), allocatable :: vertices
+    vertices = this%layer_vertices
+    call sort(vertices)
+    ! check on both ends if first and last layer are touched by fine grids layers
+    if (vertices(2) < minval(fine_grid%layer_vertices)) &
+      call error_message("layered_grid % check_is_filled_by: some coarse layers not filled.")
+    if (vertices(size(vertices)-1) > maxval(fine_grid%layer_vertices)) &
+      call error_message("layered_grid % check_is_filled_by: some coarse layers not filled.")
+    call this%grid%check_is_filled_by(fine_grid%grid, tol, check_mask)
+    deallocate(vertices)
+  end subroutine layer_check_is_filled_by
+
+  !> \brief check if given grid is filling coarser grid
+  !> \details check if given grid is compatible with and filling coarser grid and raise an error if this is not the case.
+  !! \note The fine grid is allowed to have valid cells outside of the coarse grids masked region.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine layer_check_is_filling(this, coarse_grid, tol, check_mask)
+    implicit none
+    class(layered_grid_t), intent(in) :: this
+    type(layered_grid_t), intent(in) :: coarse_grid !< coarser grid that should be covered by this grid
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    logical, optional, intent(in) :: check_mask !< whether to check if fine mask fills coarse mask
+    call coarse_grid%check_is_filled_by(fine_grid=this, tol=tol, check_mask=check_mask)
+  end subroutine layer_check_is_filling
+
+  !> \brief Check 3D data shape for layered grid
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  subroutine layer_check_shape(this, data_shape)
+    implicit none
+    class(layered_grid_t), intent(in) :: this
+    integer(i8), intent(in) :: data_shape(3) !< (x,y,z)
+    if (data_shape(1) /= this%grid%nx .or. data_shape(2) /= this%grid%ny .or. data_shape(3) /= size(this%layer)) then
+      call error_message( &
+        "layered data: data has wrong shape. Expected: (", &
+        num2str(this%grid%nx), ",", num2str(this%grid%ny), ",", num2str(size(this%layer)), "), got: (", &
+        num2str(data_shape(1)), ",", num2str(data_shape(2)), ",", num2str(data_shape(3)), ")")
+    end if
+  end subroutine layer_check_shape
+
+  !> \brief Check 2D packed data shape for layered grid
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  subroutine layer_check_shape_packed(this, data_shape)
+    implicit none
+    class(layered_grid_t), intent(in) :: this
+    integer(i8), intent(in) :: data_shape(2) !< (n,z)
+    if (data_shape(1) /= this%grid%ncells .or. data_shape(2) /= size(this%layer)) then
+      call error_message( &
+        "layered data: packed data has wrong shape. Expected: (", &
+        num2str(this%grid%ncells), ",", num2str(size(this%layer)), "), got: (", &
+        num2str(data_shape(1)), ",", num2str(data_shape(2)), ")")
+    end if
+  end subroutine layer_check_shape_packed
+
+  !> \brief Pack 3D data with grid mask
+  !> \return `real(sp) :: out_data(:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function layer_pack_sp(this, data) result(out_data)
+    implicit none
+    class(layered_grid_t), intent(inout) :: this
+    real(sp), intent(in) :: data(:,:,:) !< (x,y,z)
+    real(sp), allocatable :: out_data(:,:) !< (n,z)
+    integer(i4) :: i
+    call this%check_shape(shape(data, kind=i8))
+    allocate(out_data(this%grid%ncells, size(this%layer)))
+    do i = 1, size(this%layer)
+      out_data(:,i) = pack(data(:,:,i), this%grid%mask)
+    end do
+  end function layer_pack_sp
+
+  !> \brief Pack 3D data with grid mask
+  !> \return `real(dp) :: out_data(:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function layer_pack_dp(this, data) result(out_data)
+    implicit none
+    class(layered_grid_t), intent(inout) :: this
+    real(dp), intent(in) :: data(:,:,:) !< (x,y,z)
+    real(dp), allocatable :: out_data(:,:) !< (n,z)
+    integer(i4) :: i
+    call this%check_shape(shape(data, kind=i8))
+    allocate(out_data(this%grid%ncells, size(this%layer)))
+    do i = 1, size(this%layer)
+      out_data(:,i) = pack(data(:,:,i), this%grid%mask)
+    end do
+  end function layer_pack_dp
+
+  !> \brief Pack 3D data with grid mask
+  !> \return `integer(i4) :: out_data(:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function layer_pack_i4(this, data) result(out_data)
+    implicit none
+    class(layered_grid_t), intent(inout) :: this
+    integer(i4), intent(in) :: data(:,:,:) !< (x,y,z)
+    integer(i4), allocatable :: out_data(:,:) !< (n,z)
+    integer(i4) :: i
+    call this%check_shape(shape(data, kind=i8))
+    allocate(out_data(this%grid%ncells, size(this%layer)))
+    do i = 1, size(this%layer)
+      out_data(:,i) = pack(data(:,:,i), this%grid%mask)
+    end do
+  end function layer_pack_i4
+
+  !> \brief Pack 3D data with grid mask
+  !> \return `integer(i8) :: out_data(:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function layer_pack_i8(this, data) result(out_data)
+    implicit none
+    class(layered_grid_t), intent(inout) :: this
+    integer(i8), intent(in) :: data(:,:,:) !< (x,y,z)
+    integer(i8), allocatable :: out_data(:,:) !< (n,z)
+    integer(i4) :: i
+    call this%check_shape(shape(data, kind=i8))
+    allocate(out_data(this%grid%ncells, size(this%layer)))
+    do i = 1, size(this%layer)
+      out_data(:,i) = pack(data(:,:,i), this%grid%mask)
+    end do
+  end function layer_pack_i8
+
+  !> \brief Pack 3D data with grid mask
+  !> \return `logical :: out_data(:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function layer_pack_lgt(this, data) result(out_data)
+    implicit none
+    class(layered_grid_t), intent(inout) :: this
+    logical, intent(in) :: data(:,:,:) !< (x,y,z)
+    logical, allocatable :: out_data(:,:) !< (n,z)
+    integer(i4) :: i
+    call this%check_shape(shape(data, kind=i8))
+    allocate(out_data(this%grid%ncells, size(this%layer)))
+    do i = 1, size(this%layer)
+      out_data(:,i) = pack(data(:,:,i), this%grid%mask)
+    end do
+  end function layer_pack_lgt
+
+  !> \brief Unpack 2D data with grid mask
+  !> \return `real(sp) :: out_data(:,:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function layer_unpack_sp(this, data) result(out_data)
+    use mo_constants, only : nodata_sp
+    implicit none
+    class(layered_grid_t), intent(inout) :: this
+    real(sp), intent(in) :: data(:,:)
+    real(sp), allocatable :: out_data(:,:,:)
+    integer(i4) :: i
+    call this%check_shape_packed(shape(data, kind=i8))
+    allocate(out_data(this%grid%nx, this%grid%ny, size(this%layer)))
+    do i = 1, size(this%layer)
+      out_data(:,:,i) = unpack(data(:,i), this%grid%mask, nodata_sp)
+    end do
+  end function layer_unpack_sp
+
+  !> \brief Unpack 2D data with grid mask
+  !> \return `real(dp) :: out_data(:,:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function layer_unpack_dp(this, data) result(out_data)
+    use mo_constants, only : nodata_dp
+    implicit none
+    class(layered_grid_t), intent(inout) :: this
+    real(dp), intent(in) :: data(:,:)
+    real(dp), allocatable :: out_data(:,:,:)
+    integer(i4) :: i
+    call this%check_shape_packed(shape(data, kind=i8))
+    allocate(out_data(this%grid%nx, this%grid%ny, size(this%layer)))
+    do i = 1, size(this%layer)
+      out_data(:,:,i) = unpack(data(:,i), this%grid%mask, nodata_dp)
+    end do
+  end function layer_unpack_dp
+
+  !> \brief Unpack 2D data with grid mask
+  !> \return `integer(i4) :: out_data(:,:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function layer_unpack_i4(this, data) result(out_data)
+    use mo_constants, only : nodata_i4
+    implicit none
+    class(layered_grid_t), intent(inout) :: this
+    integer(i4), intent(in) :: data(:,:)
+    integer(i4), allocatable :: out_data(:,:,:)
+    integer(i4) :: i
+    call this%check_shape_packed(shape(data, kind=i8))
+    allocate(out_data(this%grid%nx, this%grid%ny, size(this%layer)))
+    do i = 1, size(this%layer)
+      out_data(:,:,i) = unpack(data(:,i), this%grid%mask, nodata_i4)
+    end do
+  end function layer_unpack_i4
+
+  !> \brief Unpack 2D data with grid mask
+  !> \return `integer(i8) :: out_data(:,:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function layer_unpack_i8(this, data) result(out_data)
+    use mo_constants, only : nodata_i8
+    implicit none
+    class(layered_grid_t), intent(inout) :: this
+    integer(i8), intent(in) :: data(:,:)
+    integer(i8), allocatable :: out_data(:,:,:)
+    integer(i4) :: i
+    call this%check_shape_packed(shape(data, kind=i8))
+    allocate(out_data(this%grid%nx, this%grid%ny, size(this%layer)))
+    do i = 1, size(this%layer)
+      out_data(:,:,i) = unpack(data(:,i), this%grid%mask, nodata_i8)
+    end do
+  end function layer_unpack_i8
+
+  !> \brief Unpack 2D data with grid mask
+  !> \return `logical :: out_data(:,:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function layer_unpack_lgt(this, data) result(out_data)
+    implicit none
+    class(layered_grid_t), intent(inout) :: this
+    logical, intent(in) :: data(:,:)
+    logical, allocatable :: out_data(:,:,:)
+    integer(i4) :: i
+    call this%check_shape_packed(shape(data, kind=i8))
+    allocate(out_data(this%grid%nx, this%grid%ny, size(this%layer)))
+    do i = 1, size(this%layer)
+      out_data(:,:,i) = unpack(data(:,i), this%grid%mask, .false.)
+    end do
+  end function layer_unpack_lgt
+
+  ! ------------------------------------------------------------------
 
   !> \brief initialize grid from ascii header content
   !> \details initialize grid from standard ascii header content (nx (cols), ny (rows), cellsize, lower-left corner)
