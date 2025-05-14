@@ -118,10 +118,10 @@ module mo_grid
     procedure, public :: derive_grid
     procedure, private :: read_data_dp, read_data_i4
     generic, public :: read_data => read_data_dp, read_data_i4
-    procedure, private :: pack_data_dp, pack_data_i4, pack_data_i8
-    generic, public :: pack_data => pack_data_dp, pack_data_i4, pack_data_i8
-    procedure, private :: unpack_data_dp, unpack_data_i4, unpack_data_i8
-    generic, public :: unpack_data => unpack_data_dp, unpack_data_i4, unpack_data_i8
+    procedure, private :: pack_data_sp, pack_data_dp, pack_data_i4, pack_data_i8, pack_data_lgt
+    generic, public :: pack_data => pack_data_sp, pack_data_dp, pack_data_i4, pack_data_i8, pack_data_lgt
+    procedure, private :: unpack_data_sp, unpack_data_dp, unpack_data_i4, unpack_data_i8, unpack_data_lgt
+    generic, public :: unpack_data => unpack_data_sp, unpack_data_dp, unpack_data_i4, unpack_data_i8, unpack_data_lgt
   end type grid
 
   !> \class   layered_grid
@@ -1765,6 +1765,26 @@ contains
   end function derive_grid
 
   !> \brief Pack 2D data with grid mask
+  !> \return `real(sp) :: out_data(:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function pack_data_sp(this, data) result(out_data)
+    implicit none
+    class(grid), intent(inout) :: this
+    real(sp), intent(in) :: data(:,:)
+    real(sp), allocatable :: out_data(:)
+
+    if (size(data, dim=1) /= this%nx .or. size(data, dim=2) /= this%ny) then
+      call error_message( &
+        "pack_data: data has wrong shape. Expected: (", &
+        num2str(this%nx), ",", num2str(this%nx), "), got: (", &
+        num2str(size(data, dim=1)), ",", num2str(size(data, dim=2)), ")")
+    end if
+    allocate(out_data(this%ncells))
+    out_data(:) = pack(data, this%mask)
+  end function pack_data_sp
+
+  !> \brief Pack 2D data with grid mask
   !> \return `real(dp) :: out_data(:)`
   !> \authors Sebastian Müller
   !> \date    Mar 2025
@@ -1823,6 +1843,46 @@ contains
     allocate(out_data(this%ncells))
     out_data(:) = pack(data, this%mask)
   end function pack_data_i8
+
+  !> \brief Pack 2D data with grid mask
+  !> \return `logical :: out_data(:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function pack_data_lgt(this, data) result(out_data)
+    implicit none
+    class(grid), intent(inout) :: this
+    logical, intent(in) :: data(:,:)
+    logical, allocatable :: out_data(:)
+
+    if (size(data, dim=1) /= this%nx .or. size(data, dim=2) /= this%ny) then
+      call error_message( &
+        "pack_data: data has wrong shape. Expected: (", &
+        num2str(this%nx), ",", num2str(this%ny), "), got: (", &
+        num2str(size(data, dim=1)), ",", num2str(size(data, dim=2)), ")")
+    end if
+    allocate(out_data(this%ncells))
+    out_data(:) = pack(data, this%mask)
+  end function pack_data_lgt
+
+  !> \brief Unpack 1D data with grid mask
+  !> \return `real(sp) :: out_data(:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function unpack_data_sp(this, data) result(out_data)
+    use mo_constants, only : nodata_sp
+    implicit none
+    class(grid), intent(inout) :: this
+    real(sp), intent(in) :: data(:)
+    real(sp), allocatable :: out_data(:,:)
+
+    if (size(data) /= this%ncells) then
+      call error_message( &
+        "unpack_data: data has wrong shape. Expected: (", &
+        num2str(this%ncells), "), got: (", num2str(size(data)), ")")
+    end if
+    allocate(out_data(this%nx, this%ny))
+    out_data(:,:) = unpack(data, this%mask, nodata_sp)
+  end function unpack_data_sp
 
   !> \brief Unpack 1D data with grid mask
   !> \return `real(dp) :: out_data(:,:)`
@@ -1883,6 +1943,25 @@ contains
     allocate(out_data(this%nx, this%ny))
     out_data(:,:) = unpack(data, this%mask, nodata_i8)
   end function unpack_data_i8
+
+  !> \brief Unpack 1D data with grid mask
+  !> \return `logical :: out_data(:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function unpack_data_lgt(this, data) result(out_data)
+    implicit none
+    class(grid), intent(inout) :: this
+    logical, intent(in) :: data(:)
+    logical, allocatable :: out_data(:,:)
+
+    if (size(data) /= this%ncells) then
+      call error_message( &
+        "unpack_data: data has wrong shape. Expected: (", &
+        num2str(this%ncells), "), got: (", num2str(size(data)), ")")
+    end if
+    allocate(out_data(this%nx, this%ny))
+    out_data(:,:) = unpack(data, this%mask, .false.)
+  end function unpack_data_lgt
 
   ! ------------------------------------------------------------------
 
