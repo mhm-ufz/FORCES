@@ -131,12 +131,12 @@ module mo_grid
   !!          NetCDF files nativly have zyx order, but since Fortran arrays are column-major order,
   !!          the data read from .nc files is in xyz order.
   type, public :: layered_grid
-    type(grid) :: grid
+    type(grid) :: grid !< 2D grid used for each layer
     logical :: positive_up = .false. !< indicated "upwards" as direction of positive z values
-    real(dp), dimension(:), allocatable :: layer  !< layer
+    real(dp), dimension(:), allocatable :: layer  !< layer given by reference point in bounds (see vertices)
     real(dp), dimension(:), allocatable :: layer_vertices  !< layer bounds
-!   contains
-!     procedure, public :: init => grid_init
+  contains
+    procedure, public :: init => layer_init
 ! #ifdef FORCES_WITH_NETCDF
 !     procedure, private :: layer_from_nc_dataset, layer_from_nc_file
 !     generic, public :: from_netcdf => layer_from_nc_dataset, layer_from_nc_file
@@ -150,12 +150,10 @@ module mo_grid
 !     procedure, public :: derive_coarse_grid => layer_derive_coarse_grid
 !     procedure, public :: derive_fine_grid => layer_derive_fine_grid
 !     procedure, public :: derive_grid => layer_derive_grid
-!     procedure, private :: layer_read_data_dp, layer_read_data_i4
-!     generic, public :: read_data => layer_read_data_dp, layer_read_data_i4
-!     procedure, private :: layer_pack_data_dp, layer_pack_data_i4
-!     generic, public :: pack_data => layer_pack_data_dp, layer_pack_data_i4
-!     procedure, private :: layer_unpack_data_dp, layer_unpack_data_i4
-!     generic, public :: unpack_data => layer_unpack_data_dp, layer_unpack_data_i4
+!     procedure, private :: layer_pack_sp, layer_pack_dp, layer_pack_i4, layer_pack_i8, layer_pack_lgt
+!     generic, public :: pack => layer_pack_sp, layer_pack_dp, layer_pack_i4, layer_pack_i8, layer_pack_lgt
+!     procedure, private :: layer_unpack_sp, layer_unpack_dp, layer_unpack_i4, layer_unpack_i8, layer_unpack_lgt
+!     generic, public :: unpack => layer_unpack_sp, layer_unpack_dp, layer_unpack_i4, layer_unpack_i8, layer_unpack_lgt
   end type layered_grid
 
   !> \brief Reads spatial data files of ASCII format.
@@ -189,6 +187,31 @@ module mo_grid
 contains
 
   ! ------------------------------------------------------------------
+
+  !> \brief initialize layered grid
+  !> \details initialize grid from standard ascii header content (nx (cols), ny (rows), cellsize, lower-left corner)
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine layer_init(this, grd, layer, layer_vertices, positive_up)
+    implicit none
+    class(layered_grid), intent(inout) :: this
+    type(grid), intent(in) :: grd !< 2D grid used for each layer
+    real(dp), dimension(:), intent(in) :: layer  !< layer given by reference point in bounds (see vertices)
+    real(dp), dimension(:), intent(in) :: layer_vertices  !< layer bounds
+    logical, optional, intent(in) :: positive_up !< indicated "upwards" as direction of positive z values (.false. by default)
+    integer(i4) :: i
+    real(dp) :: minl, maxl
+    if (size(layer) + 1 /= size(layer_vertices)) call error_message("layered_grid % init: size of layer and vertices not matching.")
+    do i = 1, size(layer)
+      minl = min(layer_vertices(i), layer_vertices(i+1))
+      maxl = max(layer_vertices(i), layer_vertices(i+1))
+      if (layer(i)<minl .or. layer(i)>maxl) call error_message("layered_grid % init: layers not within bounds form vertices.")
+    end do
+    this%grid = grd
+    this%layer = layer
+    this%layer_vertices = layer_vertices
+    if (present(positive_up)) this%positive_up = positive_up
+  end subroutine layer_init
 
   !> \brief initialize grid from ascii header content
   !> \details initialize grid from standard ascii header content (nx (cols), ny (rows), cellsize, lower-left corner)
