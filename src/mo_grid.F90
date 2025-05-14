@@ -15,7 +15,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_grid
 
-  use mo_kind, only: i4, dp, sp
+  use mo_kind, only: i4, i8, dp, sp
   use mo_utils, only: flip
   use mo_message, only : error_message, warn_message
   use mo_string_utils, only : num2str
@@ -66,7 +66,7 @@ module mo_grid
     ! general domain information
     integer(i4) :: nx        !< size of x-axis (number of cols in ascii grid file)
     integer(i4) :: ny        !< size of y-axis (number of rows in ascii grid file)
-    integer(i4) :: ncells   !< number of cells in mask
+    integer(i8) :: ncells   !< number of cells in mask
     real(dp) :: xllcorner    !< x coordinate of the lowerleft corner
     real(dp) :: yllcorner    !< y coordinate of the lowerleft corner
     real(dp) :: cellsize     !< cellsize x = cellsize y
@@ -118,10 +118,10 @@ module mo_grid
     procedure, public :: derive_grid
     procedure, private :: read_data_dp, read_data_i4
     generic, public :: read_data => read_data_dp, read_data_i4
-    procedure, private :: pack_data_dp, pack_data_i4
-    generic, public :: pack_data => pack_data_dp, pack_data_i4
-    procedure, private :: unpack_data_dp, unpack_data_i4
-    generic, public :: unpack_data => unpack_data_dp, unpack_data_i4
+    procedure, private :: pack_data_dp, pack_data_i4, pack_data_i8
+    generic, public :: pack_data => pack_data_dp, pack_data_i4, pack_data_i8
+    procedure, private :: unpack_data_dp, unpack_data_i4, unpack_data_i8
+    generic, public :: unpack_data => unpack_data_dp, unpack_data_i4, unpack_data_i8
   end type grid
 
   !> \class   layered_grid
@@ -1442,7 +1442,8 @@ contains
 
     class(grid), intent(inout) :: this
 
-    integer(i4) :: i, j, k
+    integer(i4) :: i, j
+    integer(i8) :: k
 
     ! if mask not allocated create one with only .true. values
     if (.not. allocated(this%mask)) then
@@ -1453,11 +1454,11 @@ contains
     this%ncells = count(this%mask)
     allocate(this%cell_ij(this%ncells, 2))
 
-    k = 0
+    k = 0_i8
     do j = 1, this%ny
       do i = 1, this%nx
         if (.NOT. this%mask(i, j)) cycle
-        k = k + 1
+        k = k + 1_i8
         this%cell_ij(k, 1) = i
         this%cell_ij(k, 2) = j
       end do
@@ -1568,7 +1569,8 @@ contains
 
     real(dp), dimension(:, :), allocatable :: fine_cell_area
     integer(i4) :: i_ub, i_lb, j_lb, j_ub
-    integer(i4) :: i, j, k
+    integer(i4) :: i, j
+    integer(i8) :: k
     integer(i4) :: factor, area_method_
     logical :: estimate_aux_, estimate_area_
 
@@ -1628,11 +1630,11 @@ contains
           allocate(fine_cell_area(this%nx, this%ny))
           fine_cell_area(:, :) = this%unpack_data(this%cell_area)
           allocate(coarse_grid%cell_area(coarse_grid%ncells))
-          k = 0
+          k = 0_i8
           do j = 1, coarse_grid%ny
             do i = 1, coarse_grid%nx
               if (.NOT. coarse_grid%mask(i, j)) cycle
-              k = k + 1
+              k = k + 1_i8
               call id_bounds(factor, i, j, &
                 coarse_grid%y_direction, coarse_grid%ny, &
                 this%y_direction, this%nx, this%ny, &
@@ -1802,6 +1804,26 @@ contains
     out_data(:) = pack(data, this%mask)
   end function pack_data_i4
 
+  !> \brief Pack 2D data with grid mask
+  !> \return `integer(i8) :: out_data(:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function pack_data_i8(this, data) result(out_data)
+    implicit none
+    class(grid), intent(inout) :: this
+    integer(i8), intent(in) :: data(:,:)
+    integer(i8), allocatable :: out_data(:)
+
+    if (size(data, dim=1) /= this%nx .or. size(data, dim=2) /= this%ny) then
+      call error_message( &
+        "pack_data: data has wrong shape. Expected: (", &
+        num2str(this%nx), ",", num2str(this%ny), "), got: (", &
+        num2str(size(data, dim=1)), ",", num2str(size(data, dim=2)), ")")
+    end if
+    allocate(out_data(this%ncells))
+    out_data(:) = pack(data, this%mask)
+  end function pack_data_i8
+
   !> \brief Unpack 1D data with grid mask
   !> \return `real(dp) :: out_data(:,:)`
   !> \authors Sebastian Müller
@@ -1841,6 +1863,26 @@ contains
     allocate(out_data(this%nx, this%ny))
     out_data(:,:) = unpack(data, this%mask, nodata_i4)
   end function unpack_data_i4
+
+  !> \brief Unpack 1D data with grid mask
+  !> \return `integer(i8) :: out_data(:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function unpack_data_i8(this, data) result(out_data)
+    use mo_constants, only : nodata_i8
+    implicit none
+    class(grid), intent(inout) :: this
+    integer(i8), intent(in) :: data(:)
+    integer(i8), allocatable :: out_data(:,:)
+
+    if (size(data) /= this%ncells) then
+      call error_message( &
+        "unpack_data: data has wrong shape. Expected: (", &
+        num2str(this%ncells), "), got: (", num2str(size(data)), ")")
+    end if
+    allocate(out_data(this%nx, this%ny))
+    out_data(:,:) = unpack(data, this%mask, nodata_i8)
+  end function unpack_data_i8
 
   ! ------------------------------------------------------------------
 

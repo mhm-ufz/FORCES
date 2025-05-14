@@ -14,7 +14,7 @@
 module mo_regridder
 
   use, intrinsic :: ieee_arithmetic, only : ieee_is_finite, ieee_is_nan, ieee_is_negative
-  use mo_kind, only: i4, dp
+  use mo_kind, only: i4, i8, dp
   use mo_grid, only: grid, id_bounds
   use mo_utils, only: is_close, eq
   use mo_string_utils, only: num2str
@@ -91,7 +91,7 @@ module mo_regridder
     integer(i4), dimension(:), allocatable :: x_ub        !< upper bound for x-id on fine grid (coarse\%ncells)
     integer(i4), dimension(:), allocatable :: n_subcells  !< valid fine grid cells in coarse cell (coarse\%ncells)
     real(dp), dimension(:, :), allocatable :: weights     !< cell area ratios (fine\%nx,fine\%ny)
-    integer(i4), dimension(:), allocatable :: id_map      !< flat index array of coarse ids (fine\%ncells)
+    integer(i8), dimension(:), allocatable :: id_map      !< flat index array of coarse ids (fine\%ncells)
   contains
     procedure, public :: init => regridder_init
     ! separate routines for all packed(1d)/unpacked(2d) combinations of IO-data
@@ -156,15 +156,16 @@ contains
 
   !> \brief Setup regridder from given source and target grids
   subroutine regridder_init(this, source_grid, target_grid, tol)
-    use mo_constants, only : nodata_i4
+    use mo_constants, only : nodata_i8
     implicit none
     class(regridder), intent(inout) :: this
     type(grid), target, intent(inout) :: source_grid !< given source grid
     type(grid), target, intent(inout) :: target_grid !< resulting target grid
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparison (default: 1.e-7)
 
-    integer(i4) :: i_ub, i_lb, j_lb, j_ub, k, ic, jc
-    integer(i4), dimension(:, :), allocatable :: coarse_id_matrix
+    integer(i4) :: i_ub, i_lb, j_lb, j_ub, ic, jc
+    integer(i8) :: k
+    integer(i8), dimension(:, :), allocatable :: coarse_id_matrix
     real(dp), dimension(:), allocatable :: weights
 
     this%source_grid => source_grid
@@ -192,16 +193,16 @@ contains
     allocate(this%id_map(this%fine_grid%ncells))
     allocate(this%weights(this%fine_grid%nx, this%fine_grid%ny))
 
-    allocate(coarse_id_matrix(this%fine_grid%nx, this%fine_grid%ny), source=nodata_i4)
+    allocate(coarse_id_matrix(this%fine_grid%nx, this%fine_grid%ny), source=nodata_i8)
     allocate(weights(this%fine_grid%ncells))
 
-    k = 0
+    k = 0_i8
     do jc = 1, this%coarse_grid%ny
       do ic = 1, this%coarse_grid%nx
         if (this%coarse_grid%has_mask()) then
           if (.NOT. this%coarse_grid%mask(ic, jc)) cycle
         end if
-        k = k + 1
+        k = k + 1_i8
         call id_bounds(this%factor, ic, jc, &
           this%coarse_grid%y_direction, this%coarse_grid%ny, &
           this%fine_grid%y_direction, this%fine_grid%nx, this%fine_grid%ny, &
@@ -226,7 +227,7 @@ contains
 
     ! generate weights from area fractions
     !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1, this%fine_grid%ncells
+    do k = 1_i8, this%fine_grid%ncells
       weights(k) = this%fine_grid%cell_area(k) / this%coarse_grid%cell_area(this%id_map(k))
     end do
     !$omp end parallel do
@@ -573,7 +574,7 @@ contains
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) ::  out_data
     real(dp), intent(in), optional :: p !< exponent for the p-norm (1.0 for arithmetic mean by default)
-    integer(i4) :: k
+    integer(i8) :: k
     real(dp) :: p_
     p_ = 1.0_dp
     if (present(p)) p_ = p
@@ -593,7 +594,7 @@ contains
     else
       call check_upscaling(this%scaling_mode)
       !$omp parallel do default(shared) private(k) schedule(static)
-      do k = 1_i4, this%coarse_grid%ncells
+      do k = 1_i8, this%coarse_grid%ncells
         out_data(k) = sum( &
             pack(in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
                 this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) ** p_ &
@@ -609,11 +610,11 @@ contains
     class(regridder), intent(inout) :: this
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) ::  out_data
-    integer(i4) :: k
+    integer(i8) :: k
 
     call check_upscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i4, this%coarse_grid%ncells
+    do k = 1_i8, this%coarse_grid%ncells
       out_data(k) = sum( &
           pack(in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
                this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
@@ -627,11 +628,11 @@ contains
     class(regridder), intent(inout) :: this
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) ::  out_data
-    integer(i4) :: k
+    integer(i8) :: k
 
     call check_upscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i4, this%coarse_grid%ncells
+    do k = 1_i8, this%coarse_grid%ncells
       out_data(k) = exp(sum(log( & ! prod(xi^wi) = exp(sum(wi*log(xi)))
           pack(in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
                this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))) &
@@ -645,11 +646,11 @@ contains
     class(regridder), intent(inout) :: this
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) ::  out_data
-    integer(i4) :: k
+    integer(i8) :: k
 
     call check_upscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i4, this%coarse_grid%ncells
+    do k = 1_i8, this%coarse_grid%ncells
       out_data(k) = 1.0_dp / sum( 1.0_dp / &
           pack(in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
                this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
@@ -663,11 +664,11 @@ contains
     class(regridder), intent(inout) :: this
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) ::  out_data
-    integer(i4) :: k
+    integer(i8) :: k
 
     call check_upscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i4, this%coarse_grid%ncells
+    do k = 1_i8, this%coarse_grid%ncells
       out_data(k) = minval( &
         in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
         mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
@@ -679,11 +680,11 @@ contains
     class(regridder), intent(inout) :: this
     integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data
     integer(i4), dimension(this%target_grid%ncells), intent(out) ::  out_data
-    integer(i4) :: k
+    integer(i8) :: k
 
     call check_upscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i4, this%coarse_grid%ncells
+    do k = 1_i8, this%coarse_grid%ncells
       out_data(k) = minval( &
         in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
         mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
@@ -695,11 +696,11 @@ contains
     class(regridder), intent(inout) :: this
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) ::  out_data
-    integer(i4) :: k
+    integer(i8) :: k
 
     call check_upscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i4, this%coarse_grid%ncells
+    do k = 1_i8, this%coarse_grid%ncells
       out_data(k) = maxval( &
         in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
         mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
@@ -711,11 +712,11 @@ contains
     class(regridder), intent(inout) :: this
     integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data
     integer(i4), dimension(this%target_grid%ncells), intent(out) ::  out_data
-    integer(i4) :: k
+    integer(i8) :: k
 
     call check_upscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i4, this%coarse_grid%ncells
+    do k = 1_i8, this%coarse_grid%ncells
       out_data(k) = maxval( &
         in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
         mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
@@ -727,11 +728,11 @@ contains
     class(regridder), intent(inout) :: this
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) ::  out_data
-    integer(i4) :: k
+    integer(i8) :: k
 
     call check_upscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i4, this%coarse_grid%ncells
+    do k = 1_i8, this%coarse_grid%ncells
       out_data(k) = sum( &
         in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
         mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
@@ -743,11 +744,11 @@ contains
     class(regridder), intent(inout) :: this
     integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data
     integer(i4), dimension(this%target_grid%ncells), intent(out) ::  out_data
-    integer(i4) :: k
+    integer(i8) :: k
 
     call check_upscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i4, this%coarse_grid%ncells
+    do k = 1_i8, this%coarse_grid%ncells
       out_data(k) = sum( &
         in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
         mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
@@ -760,11 +761,11 @@ contains
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) ::  out_data
     real(dp) ::  mean
-    integer(i4) :: k
+    integer(i8) :: k
 
     call check_upscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k, mean) schedule(static)
-    do k = 1_i4, this%coarse_grid%ncells
+    do k = 1_i8, this%coarse_grid%ncells
       mean = sum( &
           pack(in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
@@ -794,7 +795,8 @@ contains
     integer(i4), dimension(this%target_grid%ncells), intent(out) ::  out_data
     integer(i4), intent(in), optional ::  vmin !< minimum of values to speed up operator
     integer(i4), intent(in), optional ::  vmax !< maximum of values to speed up operator
-    integer(i4) :: k, i, laf_v, cnt_v, cnt_i, min_v, max_v
+    integer(i4) :: i, laf_v, cnt_v, cnt_i, min_v, max_v
+    integer(i8) :: k
 
     call check_upscaling(this%scaling_mode)
 
@@ -811,7 +813,7 @@ contains
     if (min_v > max_v) call error_message("upscale_laf: vmin is bigger than vmax.")
 
     !$omp parallel do default(shared) private(k, i, laf_v, cnt_v, cnt_i) schedule(static)
-    do k = 1_i4, this%coarse_grid%ncells
+    do k = 1_i8, this%coarse_grid%ncells
       laf_v = min_v
       cnt_v = 0
       do i = min_v, max_v
@@ -832,7 +834,8 @@ contains
     integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) ::  out_data
     integer(i4), intent(in), optional ::  class_id !< class id to determine area fraction of
-    integer(i4) :: k, cls_id
+    integer(i4) :: cls_id
+    integer(i8) :: k
 
     call check_upscaling(this%scaling_mode)
 
@@ -840,7 +843,7 @@ contains
     if (present(class_id)) cls_id = class_id
 
     !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i4, this%coarse_grid%ncells
+    do k = 1_i8, this%coarse_grid%ncells
       out_data(k) = sum( &
         this%weights(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
         mask=(in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)) == cls_id) &
@@ -853,10 +856,10 @@ contains
     class(regridder), intent(inout) :: this
     real(dp), dimension(this%source_grid%ncells), intent(in) ::  in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) ::  out_data
-    integer(i4) :: k
+    integer(i8) :: k
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i4, this%fine_grid%ncells
+    do k = 1_i8, this%fine_grid%ncells
       out_data(k) = in_data(this%id_map(k))
     end do
     !$omp end parallel do
@@ -866,10 +869,10 @@ contains
     class(regridder), intent(inout) :: this
     integer(i4), dimension(this%source_grid%ncells), intent(in) ::  in_data
     integer(i4), dimension(this%target_grid%ncells), intent(out) ::  out_data
-    integer(i4) :: k
+    integer(i8) :: k
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i4, this%fine_grid%ncells
+    do k = 1_i8, this%fine_grid%ncells
       out_data(k) = in_data(this%id_map(k))
     end do
     !$omp end parallel do
@@ -879,10 +882,10 @@ contains
     class(regridder), intent(inout) :: this
     real(dp), dimension(this%source_grid%ncells), intent(in) ::  in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) ::  out_data
-    integer(i4) :: k
+    integer(i8) :: k
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i4, this%fine_grid%ncells
+    do k = 1_i8, this%fine_grid%ncells
       out_data(k) = in_data(this%id_map(k)) / real(this%n_subcells(this%id_map(k)), dp)
     end do
     !$omp end parallel do
@@ -892,10 +895,11 @@ contains
     class(regridder), intent(inout) :: this
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) ::  out_data
-    integer(i4) :: k,i,j
+    integer(i4) :: i, j
+    integer(i8) :: k
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k,i,j) schedule(static)
-    do k = 1_i4, this%fine_grid%ncells
+    do k = 1_i8, this%fine_grid%ncells
       i = this%fine_grid%cell_ij(this%id_map(k), 1)
       j = this%fine_grid%cell_ij(this%id_map(k), 2)
       out_data(k) = in_data(i,j)
@@ -907,10 +911,11 @@ contains
     class(regridder), intent(inout) :: this
     integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data
     integer(i4), dimension(this%target_grid%ncells), intent(out) ::  out_data
-    integer(i4) :: k,i,j
+    integer(i4) :: i, j
+    integer(i8) :: k
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k,i,j) schedule(static)
-    do k = 1_i4, this%fine_grid%ncells
+    do k = 1_i8, this%fine_grid%ncells
       i = this%fine_grid%cell_ij(this%id_map(k), 1)
       j = this%fine_grid%cell_ij(this%id_map(k), 2)
       out_data(k) = in_data(i,j)
@@ -922,10 +927,11 @@ contains
     class(regridder), intent(inout) :: this
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) ::  in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) ::  out_data
-    integer(i4) :: k,i,j
+    integer(i4) :: i, j
+    integer(i8) :: k
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k,i,j) schedule(static)
-    do k = 1_i4, this%fine_grid%ncells
+    do k = 1_i8, this%fine_grid%ncells
       i = this%fine_grid%cell_ij(this%id_map(k), 1)
       j = this%fine_grid%cell_ij(this%id_map(k), 2)
       out_data(k) = in_data(i,j) / real(this%n_subcells(this%id_map(k)), dp)

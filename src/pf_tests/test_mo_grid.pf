@@ -1,7 +1,7 @@
 module test_mo_grid
   use funit
   use mo_grid, only: grid, cartesian, top_down, bottom_up
-  use mo_kind, only: i4, dp
+  use mo_kind, only: i4, i8, dp
   use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   use mo_constants, only: nodata_dp
   use mo_utils, only: flip, flipped
@@ -22,7 +22,7 @@ contains
     type(NcDimension) :: x_dim, y_dim
     type(NcVariable) :: var
     real(dp) :: t=1.0E-5_dp
-    integer(i4) :: i
+    integer(i8) :: i
     real(dp), allocatable :: dummyv1(:), dummyv2(:), dummyv3(:), dummy1(:,:), dummy2(:,:), dummy3(:,:)
     logical, allocatable :: mask1(:,:)
 
@@ -47,7 +47,7 @@ contains
     call var%setFillValue(nodata_dp)
     call var%setAttribute("missing_value", nodata_dp)
     call var%setAttribute("coordinates", "lat lon")
-    dummyv1 = [(real(i, dp), i=1,cgrid%ncells)]
+    dummyv1 = [(real(i, dp), i=1_i8,cgrid%ncells)]
     dummy1 = cgrid%unpack_data(dummyv1)
     call var%setData(dummy1)
     call nc%close()
@@ -69,13 +69,13 @@ contains
     @assertEqual(rgrid%yllcorner, agrid%yllcorner, tolerance=t, message='ascii yllcorner compare')
     @assertEqual(rgrid%mask, flipped(agrid%mask, 2), message='mask compare after ascii write')
 
-    @assertEqual(fgrid%ncells, 45)
+    @assertEqual(fgrid%ncells, 45_i8)
     @assertEqual(fgrid%nx, 6)
     @assertEqual(fgrid%ny, 9)
     @assertEqual(fgrid%xllcorner, cgrid%xllcorner, tolerance=t, message='xllcorner compare')
     @assertEqual(fgrid%yllcorner, cgrid%yllcorner, tolerance=t, message='yllcorner compare')
 
-    @assertEqual(rgrid%ncells, 5)
+    @assertEqual(rgrid%ncells, 5_i8)
     @assertEqual(rgrid%nx, 2)
     @assertEqual(rgrid%ny, 3)
     @assertEqual(rgrid%xllcorner, cgrid%xllcorner)
