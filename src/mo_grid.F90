@@ -60,7 +60,7 @@ module mo_grid
   !!
   !! \par Examples
   !! - \ref 01_regridding.f90 : \copybrief 01_regridding.f90
-  type, public :: grid
+  type, public :: grid_t
     integer(i4) :: coordsys = cartesian !< Coordinate system for x and y. 0 -> Cartesian (default), 1 -> Spherical
     integer(i4) :: y_direction = top_down !< y-axis direction (either top_down (0, default) or bottom_up (1))
     ! general domain information
@@ -122,7 +122,7 @@ module mo_grid
     generic, public :: pack_data => pack_data_sp, pack_data_dp, pack_data_i4, pack_data_i8, pack_data_lgt
     procedure, private :: unpack_data_sp, unpack_data_dp, unpack_data_i4, unpack_data_i8, unpack_data_lgt
     generic, public :: unpack_data => unpack_data_sp, unpack_data_dp, unpack_data_i4, unpack_data_i8, unpack_data_lgt
-  end type grid
+  end type grid_t
 
   !> \class   layered_grid
   !> \brief   3D layered grid description with layer data in xy order.
@@ -131,7 +131,7 @@ module mo_grid
   !!          NetCDF files nativly have zyx order, but since Fortran arrays are column-major order,
   !!          the data read from .nc files is in xyz order.
   type, public :: layered_grid
-    type(grid) :: grid !< 2D grid used for each layer
+    type(grid_t) :: grid !< 2D grid used for each layer
     logical :: positive_up = .false. !< indicated "upwards" as direction of positive z values
     real(dp), dimension(:), allocatable :: layer  !< layer given by reference point in bounds (see vertices)
     real(dp), dimension(:), allocatable :: layer_vertices  !< layer bounds
@@ -195,7 +195,7 @@ contains
   subroutine layer_init(this, grd, layer, layer_vertices, positive_up)
     implicit none
     class(layered_grid), intent(inout) :: this
-    type(grid), intent(in) :: grd !< 2D grid used for each layer
+    type(grid_t), intent(in) :: grd !< 2D grid used for each layer
     real(dp), dimension(:), intent(in) :: layer  !< layer given by reference point in bounds (see vertices)
     real(dp), dimension(:), intent(in) :: layer_vertices  !< layer bounds
     logical, optional, intent(in) :: positive_up !< indicated "upwards" as direction of positive z values (.false. by default)
@@ -219,7 +219,7 @@ contains
   !> \date Mar 2024
   subroutine grid_init(this, nx, ny, xllcorner, yllcorner, cellsize, coordsys, mask, y_direction)
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     integer(i4), intent(in) :: nx !< Number of x-axis subdivisions
     integer(i4), intent(in) :: ny !< Number of y-axis subdivisions
     real(dp), optional, intent(in) :: xllcorner !< lower left corner (x) (default 0.0)
@@ -275,7 +275,7 @@ contains
   subroutine from_ascii_file(this, path, coordsys, read_mask, y_direction)
     use mo_os, only: check_path_isfile
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     character(*), intent(in) :: path !< path to the ascii grid file
     integer(i4), optional, intent(in) :: coordsys !< desired coordinate system (0 (default) for cartesian, 1 for lat-lon)
     logical, optional, intent(in) :: read_mask !< Whether to read the mask from the given file (default: .true.)
@@ -320,7 +320,7 @@ contains
   subroutine to_ascii_file(this, path, write_mask)
     use mo_constants, only: nodata_i4
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     character(*), intent(in) :: path !< path to the ascii grid file
     logical, optional, intent(in) :: write_mask !< Whether to write the mask to the given file (default: .true.)
 
@@ -354,7 +354,7 @@ contains
   subroutine read_data_dp(this, path, data)
     use mo_os, only: check_path_isfile
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     character(*), intent(in) :: path !< path to the ascii grid file
     real(dp), intent(out), allocatable, dimension(:,:) :: data
 
@@ -375,7 +375,7 @@ contains
   subroutine read_data_i4(this, path, data)
     use mo_os, only: check_path_isfile
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     character(*), intent(in) :: path !< path to the ascii grid file
     integer(i4), intent(out), allocatable, dimension(:,:) :: data
 
@@ -399,7 +399,7 @@ contains
   subroutine from_nc_file(this, path, var, read_mask, read_aux, tol, y_direction)
     use mo_netcdf, only : NcDataset
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     character(*), intent(in) :: path !< NetCDF file path
     character(*), intent(in) :: var !< nc variable name to determine the grid from
     logical, optional, intent(in) :: read_mask !< Whether to read the mask from the given variable (default: .true.)
@@ -422,7 +422,7 @@ contains
     use mo_utils, only : is_close
     use mo_string_utils, only : splitString
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     type(NcDataset), intent(in) :: nc !< NetCDF Dataset
     character(*), intent(in) :: var !< nc variable name to determine the grid from
     logical, optional, intent(in) :: read_mask !< Whether to read the mask from the given variable (default: .true.)
@@ -541,7 +541,7 @@ contains
   subroutine aux_from_nc_file(this, path, lat, lon)
     use mo_netcdf, only : NcDataset
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     character(*), intent(in) :: path !< NetCDF file path
     character(*), intent(in) :: lat !< nc variable name for latitude
     character(*), intent(in) :: lon !< nc variable name for longitude
@@ -560,7 +560,7 @@ contains
     use mo_netcdf, only : NcDataset, NcVariable
     use mo_utils, only : swap
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     type(NcDataset), intent(in) :: nc !< NetCDF Dataset
     character(*), intent(in) :: lat !< nc variable name for latitude
     character(*), intent(in) :: lon !< nc variable name for longitude
@@ -687,7 +687,7 @@ contains
   subroutine to_nc_file(this, path, x_name, y_name, aux_lon_name, aux_lat_name, double_precision, append)
     use mo_netcdf, only : NcDataset
     implicit none
-    class(grid), intent(in) :: this
+    class(grid_t), intent(in) :: this
     character(*), intent(in) :: path !< NetCDF file path
     character(*), optional, intent(in) :: x_name !< name for x-axis variable and dimension
     character(*), optional, intent(in) :: y_name !< name for y-axis variable and dimension
@@ -716,7 +716,7 @@ contains
     use mo_utils, only : is_close
     use mo_string_utils, only : splitString
     implicit none
-    class(grid), intent(in) :: this
+    class(grid_t), intent(in) :: this
     type(NcDataset), intent(inout) :: nc !< NetCDF Dataset
     character(*), optional, intent(in) :: x_name !< name for x-axis variable and dimension
     character(*), optional, intent(in) :: y_name !< name for y-axis variable and dimension
@@ -841,7 +841,7 @@ contains
   !> \date Mar 2024
   subroutine extent(this, x_min, x_max, y_min, y_max, x_size, y_size)
     implicit none
-    class(grid), intent(in) :: this
+    class(grid_t), intent(in) :: this
     real(dp), optional, intent(out) :: x_min !< left bound (x)
     real(dp), optional, intent(out) :: x_max !< right bound (x)
     real(dp), optional, intent(out) :: y_min !< lower bound (y)
@@ -865,7 +865,7 @@ contains
   real(dp) function total_area(this)
     use mo_sentinel, only : set_sentinel
     implicit none
-    class(grid), intent(in) :: this
+    class(grid_t), intent(in) :: this
 
     if (allocated(this%cell_area)) then
       total_area = sum(this%cell_area)
@@ -881,7 +881,7 @@ contains
   !> \date Mar 2024
   function x_axis(this)
     implicit none
-    class(grid), intent(in) :: this
+    class(grid_t), intent(in) :: this
     real(dp), allocatable, dimension(:) :: x_axis
 
     integer(i4) :: i
@@ -896,7 +896,7 @@ contains
   !> \date Mar 2024
   function y_axis(this, y_direction)
     implicit none
-    class(grid), intent(in) :: this
+    class(grid_t), intent(in) :: this
     integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) for current, 0 for top-down, 1 for bottom-up)
     real(dp), allocatable, dimension(:) :: y_axis
 
@@ -922,7 +922,7 @@ contains
   !> \date Mar 2024
   function x_vertices(this)
     implicit none
-    class(grid), intent(in) :: this
+    class(grid_t), intent(in) :: this
     real(dp), allocatable, dimension(:) :: x_vertices
 
     integer(i4) :: i
@@ -937,7 +937,7 @@ contains
   !> \date Mar 2024
   function y_vertices(this, y_direction)
     implicit none
-    class(grid), intent(in) :: this
+    class(grid_t), intent(in) :: this
     integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) for current, 0 for top-down, 1 for bottom-up)
     real(dp), allocatable, dimension(:) :: y_vertices
 
@@ -963,7 +963,7 @@ contains
   !> \date Mar 2024
   function x_bounds(this)
     implicit none
-    class(grid), intent(in) :: this
+    class(grid_t), intent(in) :: this
     real(dp), allocatable, dimension(:,:) :: x_bounds
     real(dp), allocatable, dimension(:) :: x_ax
     x_ax = this%x_vertices()
@@ -978,7 +978,7 @@ contains
   !> \date Mar 2024
   function y_bounds(this, y_direction)
     implicit none
-    class(grid), intent(in) :: this
+    class(grid_t), intent(in) :: this
     integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) for current, 0 for top-down, 1 for bottom-up)
     real(dp), allocatable, dimension(:,:) :: y_bounds
     real(dp), allocatable, dimension(:) :: y_ax
@@ -994,8 +994,8 @@ contains
   !> \date Mar 2024
   subroutine upscale_aux_coords(this, fine_grid, tol)
     implicit none
-    class(grid), intent(inout) :: this
-    type(grid), intent(in) :: fine_grid !< finer grid to estimate the auxilliar coordinates from
+    class(grid_t), intent(inout) :: this
+    type(grid_t), intent(in) :: fine_grid !< finer grid to estimate the auxilliar coordinates from
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     real(dp) :: n_subcells
     integer(i4) :: i_ub, i_lb, j_lb, j_ub, i, j, factor
@@ -1034,8 +1034,8 @@ contains
   !> \date Mar 2024
   subroutine downscale_aux_coords(this, coarse_grid, tol)
     implicit none
-    class(grid), intent(inout) :: this
-    type(grid), intent(inout) :: coarse_grid !< finer grid to estimate the auxilliar coordinates from
+    class(grid_t), intent(inout) :: this
+    type(grid_t), intent(inout) :: coarse_grid !< finer grid to estimate the auxilliar coordinates from
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     real(dp) :: x, dx, fac
     integer(i4) :: i, j, ii, jj, i_start, i_end, j_start, j_end, k, factor, fac_i, fac_j
@@ -1149,7 +1149,7 @@ contains
   !> \date Mar 2024
   subroutine estimate_aux_vertices(this)
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     integer(i4) :: i, j
 
     if (.not. this%has_aux_coords()) &
@@ -1208,7 +1208,7 @@ contains
   !> \date Mar 2024
   function lat_bounds(this)
     implicit none
-    class(grid), intent(in) :: this
+    class(grid_t), intent(in) :: this
     real(dp), allocatable, dimension(:,:,:) :: lat_bounds
     if (.not.this%has_aux_vertices()) &
       call error_message("grid % lat_bounds: grid has no auxilliar vertices defined.")
@@ -1240,7 +1240,7 @@ contains
   !> \date Mar 2024
   function lon_bounds(this)
     implicit none
-    class(grid), intent(in) :: this
+    class(grid_t), intent(in) :: this
     real(dp), allocatable, dimension(:,:,:) :: lon_bounds
     if (.not.this%has_aux_vertices()) &
       call error_message("grid % lon_bounds: grid has no auxilliar vertices defined.")
@@ -1272,7 +1272,7 @@ contains
   !> \date Mar 2024
   logical function has_mask(this)
     implicit none
-    class(grid), intent(in) :: this
+    class(grid_t), intent(in) :: this
     has_mask = allocated(this%mask)
   end function has_mask
 
@@ -1282,7 +1282,7 @@ contains
   !> \date Mar 2024
   logical function any_missing(this)
     implicit none
-    class(grid), intent(in) :: this
+    class(grid_t), intent(in) :: this
     if (.not. this%has_mask()) then
       any_missing = .false.
     else
@@ -1298,8 +1298,8 @@ contains
   subroutine check_is_covered_by(this, coarse_grid, tol, check_mask)
     use mo_utils, only: eq
     implicit none
-    class(grid), intent(in) :: this
-    type(grid), intent(in) :: coarse_grid !< coarse grid that should cover this grid
+    class(grid_t), intent(in) :: this
+    type(grid_t), intent(in) :: coarse_grid !< coarse grid that should cover this grid
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     logical, optional, intent(in) :: check_mask !< whether to check if coarse mask covers fine mask
 
@@ -1347,8 +1347,8 @@ contains
   !> \date Mar 2024
   subroutine check_is_covering(this, fine_grid, tol, check_mask)
     implicit none
-    class(grid), intent(in) :: this
-    type(grid), intent(in) :: fine_grid !< finer grid that should be covered by this grid
+    class(grid_t), intent(in) :: this
+    type(grid_t), intent(in) :: fine_grid !< finer grid that should be covered by this grid
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     logical, optional, intent(in) :: check_mask !< whether to check if coarse mask covers fine mask
     call fine_grid%check_is_covered_by(coarse_grid=this, tol=tol, check_mask=check_mask)
@@ -1362,8 +1362,8 @@ contains
   subroutine check_is_filled_by(this, fine_grid, tol, check_mask)
     use mo_utils, only: eq
     implicit none
-    class(grid), intent(in) :: this
-    type(grid), intent(in) :: fine_grid !< fine grid that should fill this grid
+    class(grid_t), intent(in) :: this
+    type(grid_t), intent(in) :: fine_grid !< fine grid that should fill this grid
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     logical, optional, intent(in) :: check_mask !< whether to check if fine mask fills coarse mask
 
@@ -1412,8 +1412,8 @@ contains
   !> \date Mar 2024
   subroutine check_is_filling(this, coarse_grid, tol, check_mask)
     implicit none
-    class(grid), intent(in) :: this
-    type(grid), intent(in) :: coarse_grid !< coarser grid that should be covered by this grid
+    class(grid_t), intent(in) :: this
+    type(grid_t), intent(in) :: coarse_grid !< coarser grid that should be covered by this grid
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     logical, optional, intent(in) :: check_mask !< whether to check if fine mask fills coarse mask
     call coarse_grid%check_is_filled_by(fine_grid=this, tol=tol, check_mask=check_mask)
@@ -1425,7 +1425,7 @@ contains
   !> \date Mar 2024
   logical function has_aux_coords(this)
     implicit none
-    class(grid), intent(in) :: this
+    class(grid_t), intent(in) :: this
     has_aux_coords = allocated(this%lat) .and. allocated(this%lon)
   end function has_aux_coords
 
@@ -1435,7 +1435,7 @@ contains
   !> \date Mar 2024
   logical function has_aux_vertices(this)
     implicit none
-    class(grid), intent(in) :: this
+    class(grid_t), intent(in) :: this
     has_aux_vertices = allocated(this%lat_vertices) .and. allocated(this%lon_vertices)
   end function has_aux_vertices
 
@@ -1463,7 +1463,7 @@ contains
   subroutine calculate_cell_ids(this)
     implicit none
 
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
 
     integer(i4) :: i, j
     integer(i8) :: k
@@ -1513,7 +1513,7 @@ contains
     use mo_constants, only : RadiusEarth_dp, deg2rad_dp
     implicit none
 
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
 
     real(dp), dimension(:, :), allocatable :: cell_area
     real(dp) :: factor, cell_size_rad, cell_center_lat_rad
@@ -1561,7 +1561,7 @@ contains
   logical function is_periodic(this)
     use mo_utils, only : is_close
     implicit none
-    class(grid), intent(in) :: this
+    class(grid_t), intent(in) :: this
     if (this%coordsys == cartesian) then
       is_periodic = .false.
     else
@@ -1582,13 +1582,13 @@ contains
   !!   - is now a method of the grid type
   function derive_coarse_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol) result(coarse_grid)
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     real(dp), intent(in) :: target_resolution !< desired target resolution
     logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
     logical, intent(in), optional :: estimate_area !< whether to estimate coarse cell areas respecting fine mask (default: .true.)
     integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from fine grid, (1) from cell extent
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    type(grid) :: coarse_grid !< resulting low resolution grid
+    type(grid_t) :: coarse_grid !< resulting low resolution grid
 
     real(dp), dimension(:, :), allocatable :: fine_cell_area
     integer(i4) :: i_ub, i_lb, j_lb, j_ub
@@ -1691,13 +1691,13 @@ contains
   !> \date    Mar 2025
   function derive_fine_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol) result(fine_grid)
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     real(dp), intent(in) :: target_resolution !< desired target resolution
     logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
     logical, intent(in), optional :: estimate_area !< whether to estimate coarse cell areas respecting fine mask (default: .true.)
     integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from fine grid, (1) from cell extent
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    type(grid) :: fine_grid !< resulting low resolution grid
+    type(grid_t) :: fine_grid !< resulting low resolution grid
 
     integer(i4) :: i, j, ic, jc
     integer(i4) :: factor, area_method_
@@ -1750,7 +1750,7 @@ contains
   !> \date    Mar 2025
   function derive_grid(this, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, estimate_area, area_method, tol)
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     real(dp), intent(in), optional :: target_resolution !< desired target resolution
     integer(i4), intent(in), optional :: downscaling_factor !< factor for finer grid
     integer(i4), intent(in), optional :: upscaling_factor !< factor for coarser grid
@@ -1758,7 +1758,7 @@ contains
     logical, intent(in), optional :: estimate_area !< whether to estimate cell areas (default: .true.)
     integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from other grid, (1) from cell extent
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    type(grid) :: derive_grid !< resulting grid
+    type(grid_t) :: derive_grid !< resulting grid
     real(dp) :: resolution
     integer(i4) :: input_opt
 
@@ -1793,7 +1793,7 @@ contains
   !> \date    Mar 2025
   function pack_data_sp(this, data) result(out_data)
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     real(sp), intent(in) :: data(:,:)
     real(sp), allocatable :: out_data(:)
 
@@ -1813,7 +1813,7 @@ contains
   !> \date    Mar 2025
   function pack_data_dp(this, data) result(out_data)
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     real(dp), intent(in) :: data(:,:)
     real(dp), allocatable :: out_data(:)
 
@@ -1833,7 +1833,7 @@ contains
   !> \date    Mar 2025
   function pack_data_i4(this, data) result(out_data)
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     integer(i4), intent(in) :: data(:,:)
     integer(i4), allocatable :: out_data(:)
 
@@ -1853,7 +1853,7 @@ contains
   !> \date    Mar 2025
   function pack_data_i8(this, data) result(out_data)
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     integer(i8), intent(in) :: data(:,:)
     integer(i8), allocatable :: out_data(:)
 
@@ -1873,7 +1873,7 @@ contains
   !> \date    Mar 2025
   function pack_data_lgt(this, data) result(out_data)
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     logical, intent(in) :: data(:,:)
     logical, allocatable :: out_data(:)
 
@@ -1894,7 +1894,7 @@ contains
   function unpack_data_sp(this, data) result(out_data)
     use mo_constants, only : nodata_sp
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     real(sp), intent(in) :: data(:)
     real(sp), allocatable :: out_data(:,:)
 
@@ -1914,7 +1914,7 @@ contains
   function unpack_data_dp(this, data) result(out_data)
     use mo_constants, only : nodata_dp
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     real(dp), intent(in) :: data(:)
     real(dp), allocatable :: out_data(:,:)
 
@@ -1934,7 +1934,7 @@ contains
   function unpack_data_i4(this, data) result(out_data)
     use mo_constants, only : nodata_i4
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     integer(i4), intent(in) :: data(:)
     integer(i4), allocatable :: out_data(:,:)
 
@@ -1954,7 +1954,7 @@ contains
   function unpack_data_i8(this, data) result(out_data)
     use mo_constants, only : nodata_i8
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     integer(i8), intent(in) :: data(:)
     integer(i8), allocatable :: out_data(:,:)
 
@@ -1973,7 +1973,7 @@ contains
   !> \date    Mar 2025
   function unpack_data_lgt(this, data) result(out_data)
     implicit none
-    class(grid), intent(inout) :: this
+    class(grid_t), intent(inout) :: this
     logical, intent(in) :: data(:)
     logical, allocatable :: out_data(:,:)
 

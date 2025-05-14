@@ -10,11 +10,11 @@
 program regrid
   use mo_kind, only: dp
   use mo_constants, only: nodata_dp
-  use mo_grid, only: grid
+  use mo_grid, only: grid_t
   use mo_regridder, only: regridder, up_a_mean
   use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   implicit none
-  type(grid), target :: cgrid, fgrid
+  type(grid_t), target :: cgrid, fgrid
   type(regridder) :: upscaler
   type(NcDataset) :: nc
   type(NcDimension) :: x_dim, y_dim

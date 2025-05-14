@@ -1,6 +1,6 @@
 module test_mo_grid
   use funit
-  use mo_grid, only: grid, cartesian, top_down, bottom_up
+  use mo_grid, only: grid_t, cartesian, top_down, bottom_up
   use mo_kind, only: i4, i8, dp
   use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   use mo_constants, only: nodata_dp
@@ -17,7 +17,7 @@ contains
   subroutine test_grid()
 
     implicit none
-    type(grid) :: cgrid, fgrid, rgrid, agrid
+    type(grid_t) :: cgrid, fgrid, rgrid, agrid
     type(NcDataset) :: nc
     type(NcDimension) :: x_dim, y_dim
     type(NcVariable) :: var

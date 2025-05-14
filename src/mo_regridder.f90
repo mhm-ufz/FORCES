@@ -15,7 +15,7 @@ module mo_regridder
 
   use, intrinsic :: ieee_arithmetic, only : ieee_is_finite, ieee_is_nan, ieee_is_negative
   use mo_kind, only: i4, i8, dp
-  use mo_grid, only: grid, id_bounds
+  use mo_grid, only: grid_t, id_bounds
   use mo_utils, only: is_close, eq
   use mo_string_utils, only: num2str
   use mo_message, only: error_message
@@ -80,10 +80,10 @@ module mo_regridder
   !> \copydoc regrid
   type, public :: regridder
     integer(i4) :: scaling_mode                           !< \ref up_scaling (0) or \ref down_scaling (1)
-    type(grid), pointer :: source_grid => null()          !< source grid
-    type(grid), pointer :: target_grid => null()          !< target grid
-    type(grid), pointer :: fine_grid => null()            !< high resolution grid (source when upscaling, target when downscaling)
-    type(grid), pointer :: coarse_grid => null()          !< low resolution grid (source when downscaling, target when upscaling)
+    type(grid_t), pointer :: source_grid => null()          !< source grid
+    type(grid_t), pointer :: target_grid => null()          !< target grid
+    type(grid_t), pointer :: fine_grid => null()            !< high resolution grid (source when upscaling, target when downscaling)
+    type(grid_t), pointer :: coarse_grid => null()          !< low resolution grid (source when downscaling, target when upscaling)
     integer(i4) :: factor                                 !< coarse_grid % cellsize / fine_grid % cellsize
     integer(i4), dimension(:), allocatable :: y_lb        !< lower bound for y-id on fine grid (coarse\%ncells)
     integer(i4), dimension(:), allocatable :: y_ub        !< upper bound for y-id on fine grid (coarse\%ncells)
@@ -159,8 +159,8 @@ contains
     use mo_constants, only : nodata_i8
     implicit none
     class(regridder), intent(inout) :: this
-    type(grid), target, intent(inout) :: source_grid !< given source grid
-    type(grid), target, intent(inout) :: target_grid !< resulting target grid
+    type(grid_t), target, intent(inout) :: source_grid !< given source grid
+    type(grid_t), target, intent(inout) :: target_grid !< resulting target grid
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparison (default: 1.e-7)
 
     integer(i4) :: i_ub, i_lb, j_lb, j_ub, ic, jc
