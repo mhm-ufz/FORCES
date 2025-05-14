@@ -1573,7 +1573,7 @@ contains
   !> \details following attributes are calculated for the coarse grid:
   !!          -  cell id & numbering
   !!          -  mask creation
-  !> \return `type(grid) :: coarse_grid`
+  !> \return `type(grid_t) :: coarse_grid`
   !> \authors Rohini Kumar
   !> \date    Jan 2013
   !> \changelog
@@ -1686,7 +1686,7 @@ contains
   !> \details following attributes are calculated for the coarse grid:
   !!          -  cell id & numbering
   !!          -  mask creation
-  !> \return `type(grid) :: fine_grid`
+  !> \return `type(grid_t) :: fine_grid`
   !> \authors Sebastian Müller
   !> \date    Mar 2025
   function derive_fine_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol) result(fine_grid)
@@ -1745,7 +1745,7 @@ contains
   end function derive_fine_grid
 
   !> \brief Generate a derived grid by a given target resolution
-  !> \return `type(grid) :: result_grid`
+  !> \return `type(grid_t) :: result_grid`
   !> \authors Sebastian Müller
   !> \date    Mar 2025
   function derive_grid(this, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, estimate_area, area_method, tol)

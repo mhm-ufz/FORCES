@@ -1,6 +1,6 @@
 module test_mo_regridder
   use funit
-  use mo_grid, only: grid, cartesian, top_down, bottom_up
+  use mo_grid, only: grid_t, cartesian, top_down, bottom_up
   use mo_regridder, only: regridder, up_h_mean, up_p_mean, up_min, up_max, up_sum, up_laf, up_fraction
   use mo_kind, only: i4, dp
   use mo_constants, only: nodata_dp
@@ -18,7 +18,7 @@ contains
   subroutine test_regrid()
 
     implicit none
-    type(grid), target :: cgrid, fgrid
+    type(grid_t), target :: cgrid, fgrid
     type(regridder) :: upscaler
     ! type(NcDataset) :: nc
     ! type(NcDimension) :: x_dim, y_dim
