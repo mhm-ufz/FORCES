@@ -130,7 +130,7 @@ module mo_grid
   !!          The z-axis is described by a monotonic layers array.
   !!          NetCDF files nativly have zyx order, but since Fortran arrays are column-major order,
   !!          the data read from .nc files is in xyz order.
-  type, public :: layered_grid
+  type, public :: layered_grid_t
     type(grid_t) :: grid !< 2D grid used for each layer
     logical :: positive_up = .false. !< indicated "upwards" as direction of positive z values
     real(dp), dimension(:), allocatable :: layer  !< layer given by reference point in bounds (see vertices)
@@ -154,7 +154,7 @@ module mo_grid
 !     generic, public :: pack => layer_pack_sp, layer_pack_dp, layer_pack_i4, layer_pack_i8, layer_pack_lgt
 !     procedure, private :: layer_unpack_sp, layer_unpack_dp, layer_unpack_i4, layer_unpack_i8, layer_unpack_lgt
 !     generic, public :: unpack => layer_unpack_sp, layer_unpack_dp, layer_unpack_i4, layer_unpack_i8, layer_unpack_lgt
-  end type layered_grid
+  end type layered_grid_t
 
   !> \brief Reads spatial data files of ASCII format.
   !> \details Reads spatial input data, e.g. dem, aspect, flow direction.
@@ -192,10 +192,10 @@ contains
   !> \details initialize grid from standard ascii header content (nx (cols), ny (rows), cellsize, lower-left corner)
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine layer_init(this, grd, layer, layer_vertices, positive_up)
+  subroutine layer_init(this, grid, layer, layer_vertices, positive_up)
     implicit none
-    class(layered_grid), intent(inout) :: this
-    type(grid_t), intent(in) :: grd !< 2D grid used for each layer
+    class(layered_grid_t), intent(inout) :: this
+    type(grid_t), intent(in) :: grid !< 2D grid used for each layer
     real(dp), dimension(:), intent(in) :: layer  !< layer given by reference point in bounds (see vertices)
     real(dp), dimension(:), intent(in) :: layer_vertices  !< layer bounds
     logical, optional, intent(in) :: positive_up !< indicated "upwards" as direction of positive z values (.false. by default)
@@ -207,7 +207,7 @@ contains
       maxl = max(layer_vertices(i), layer_vertices(i+1))
       if (layer(i)<minl .or. layer(i)>maxl) call error_message("layered_grid % init: layers not within bounds form vertices.")
     end do
-    this%grid = grd
+    this%grid = grid
     this%layer = layer
     this%layer_vertices = layer_vertices
     if (present(positive_up)) this%positive_up = positive_up
