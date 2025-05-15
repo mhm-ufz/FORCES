@@ -36,7 +36,7 @@ contains
     call upscaler%init(fgrid, cgrid)
 
     allocate(weights(fgrid%ncells))
-    weights = fgrid%pack_data(upscaler%weights)
+    weights = fgrid%pack(upscaler%weights)
     allocate(cweights(cgrid%ncells))
     call upscaler%execute(weights, cweights, upscaling_operator=up_sum)
     @assertTrue(all(is_close(cweights, 1.0_dp)), message='check weights sum to 1')
@@ -55,7 +55,7 @@ contains
     ! call nc%close()
 
     allocate(dem(fgrid%ncells))
-    dem = fgrid%pack_data(dem_mat)
+    dem = fgrid%pack(dem_mat)
     allocate(cdem(cgrid%ncells))
     allocate(cdem_mat(cgrid%nx, cgrid%ny))
 
@@ -82,7 +82,7 @@ contains
     ! var = nc%setVariable("dem_mean", "f64", [x_dim, y_dim])
     ! call var%setFillValue(nodata_dp)
     ! call var%setAttribute("missing_value", nodata_dp)
-    ! cdem_mat = cgrid%unpack_data(cdem)
+    ! cdem_mat = cgrid%unpack(cdem)
     ! call var%setData(cdem_mat)
 
     call upscaler%execute(dem, cdem, upscaling_operator=up_p_mean, p=2.1_dp)
@@ -100,7 +100,7 @@ contains
     ! var = nc%setVariable("dem_pmean", "f64", [x_dim, y_dim])
     ! call var%setFillValue(nodata_dp)
     ! call var%setAttribute("missing_value", nodata_dp)
-    ! cdem_mat = cgrid%unpack_data(cdem)
+    ! cdem_mat = cgrid%unpack(cdem)
     ! call var%setData(cdem_mat)
 
     call upscaler%execute(dem, cdem, upscaling_operator=up_p_mean, p=0.0_dp)
@@ -118,7 +118,7 @@ contains
     ! var = nc%setVariable("dem_gmean", "f64", [x_dim, y_dim])
     ! call var%setFillValue(nodata_dp)
     ! call var%setAttribute("missing_value", nodata_dp)
-    ! cdem_mat = cgrid%unpack_data(cdem)
+    ! cdem_mat = cgrid%unpack(cdem)
     ! call var%setData(cdem_mat)
 
     call upscaler%execute(dem, cdem, upscaling_operator=up_h_mean)
@@ -136,7 +136,7 @@ contains
     ! var = nc%setVariable("dem_hmean", "f64", [x_dim, y_dim])
     ! call var%setFillValue(nodata_dp)
     ! call var%setAttribute("missing_value", nodata_dp)
-    ! cdem_mat = cgrid%unpack_data(cdem)
+    ! cdem_mat = cgrid%unpack(cdem)
     ! call var%setData(cdem_mat)
 
     call upscaler%execute(dem, cdem, upscaling_operator=up_min)
@@ -154,7 +154,7 @@ contains
     ! var = nc%setVariable("dem_min", "f64", [x_dim, y_dim])
     ! call var%setFillValue(nodata_dp)
     ! call var%setAttribute("missing_value", nodata_dp)
-    ! cdem_mat = cgrid%unpack_data(cdem)
+    ! cdem_mat = cgrid%unpack(cdem)
     ! call var%setData(cdem_mat)
 
     call upscaler%execute(dem, cdem, upscaling_operator=up_max)
@@ -172,11 +172,11 @@ contains
     ! var = nc%setVariable("dem_max", "f64", [x_dim, y_dim])
     ! call var%setFillValue(nodata_dp)
     ! call var%setAttribute("missing_value", nodata_dp)
-    ! cdem_mat = cgrid%unpack_data(cdem)
+    ! cdem_mat = cgrid%unpack(cdem)
     ! call var%setData(cdem_mat)
 
     allocate(lc(fgrid%ncells))
-    lc = fgrid%pack_data(lc_mat)
+    lc = fgrid%pack(lc_mat)
     allocate(clc(cgrid%ncells))
     allocate(lc1(cgrid%ncells))
     allocate(lc2(cgrid%ncells))

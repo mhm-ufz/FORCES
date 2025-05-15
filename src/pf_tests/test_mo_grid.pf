@@ -1,6 +1,6 @@
 module test_mo_grid
   use funit
-  use mo_grid, only: grid_t, cartesian, top_down, bottom_up
+  use mo_grid, only: grid_t, layered_grid_t, cartesian, top_down, bottom_up
   use mo_kind, only: i4, i8, dp
   use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   use mo_constants, only: nodata_dp
@@ -10,6 +10,7 @@ module test_mo_grid
   private
 
   public :: test_grid
+  public :: test_layer
 
 contains
 
@@ -48,7 +49,7 @@ contains
     call var%setAttribute("missing_value", nodata_dp)
     call var%setAttribute("coordinates", "lat lon")
     dummyv1 = [(real(i, dp), i=1_i8,cgrid%ncells)]
-    dummy1 = cgrid%unpack_data(dummyv1)
+    dummy1 = cgrid%unpack(dummyv1)
     call var%setData(dummy1)
     call nc%close()
 
@@ -99,5 +100,57 @@ contains
     ! @assertRelativelyEqual
 
   end subroutine test_grid
+
+  @test
+  subroutine test_layer()
+
+    implicit none
+    type(layered_grid_t) :: layers, layers2
+    type(grid_t) :: hgrid
+    type(NcDataset) :: nc
+    type(NcDimension) :: x_dim, y_dim, z_dim
+    type(NcVariable) :: var
+    real(dp) :: t=1.0E-5_dp
+    integer(i8) :: i
+    real(dp), allocatable :: dummyv1(:,:), dummy1(:,:,:)
+    logical, allocatable :: mask1(:,:)
+
+    call hgrid%init( &
+      nx=2, ny=3, xllcorner=3973369.0_dp, yllcorner=2735847.0_dp, cellsize=72000.0_dp, coordsys=cartesian, &
+      mask=reshape([.true., .true., .true., .true., .true., .false.], [2, 3]), y_direction=bottom_up)
+
+    allocate(hgrid%lon(hgrid%nx, hgrid%ny))
+    allocate(hgrid%lat(hgrid%nx, hgrid%ny))
+    hgrid%lon(:,:) = reshape([ 5.8252_dp,  6.7885_dp,  5.7714_dp,  6.7470_dp,  5.7157_dp,  6.7042_dp], [2, 3])
+    hgrid%lat(:,:) = reshape([47.9806_dp, 48.0130_dp, 48.6272_dp, 48.6600_dp, 49.2736_dp, 49.3069_dp], [2, 3])
+
+    call layers%init(hgrid, [0.0_dp, 1.0_dp], [0.0_dp, 1.0_dp, 2.0_dp])
+
+    nc = NcDataset("layers.nc", "w")
+    call layers%to_netcdf(nc)
+    x_dim = nc%getDimension("x")
+    y_dim = nc%getDimension("y")
+    z_dim = nc%getDimension("z")
+    var = nc%setVariable("test", "f64", [x_dim, y_dim, z_dim])
+    call var%setFillValue(nodata_dp)
+    call var%setAttribute("missing_value", nodata_dp)
+    call var%setAttribute("coordinates", "lat lon")
+    dummyv1 = reshape( &
+      [(real(i, dp), i=1_i8, layers%grid%ncells * size(layers%layer, kind=i8))], &
+      [layers%grid%ncells , size(layers%layer, kind=i8)])
+    dummy1 = layers%unpack(dummyv1)
+    call var%setData(dummy1)
+    call nc%close()
+
+    call layers2%from_netcdf("layers.nc", var="test")
+    @assertEqual(layers%grid%nx, layers2%grid%nx)
+    @assertEqual(layers%grid%ny, layers2%grid%ny)
+    @assertEqual(layers%grid%xllcorner, layers2%grid%xllcorner, tolerance=t, message='ascii xllcorner compare')
+    @assertEqual(layers%grid%yllcorner, layers2%grid%yllcorner, tolerance=t, message='ascii yllcorner compare')
+
+    @assertEqual(layers%layer, layers2%layer, tolerance=t, message='layer compare')
+    @assertEqual(layers%layer_vertices, layers2%layer_vertices, tolerance=t, message='layer_vertices compare')
+
+  end subroutine test_layer
 
 end module test_mo_grid
