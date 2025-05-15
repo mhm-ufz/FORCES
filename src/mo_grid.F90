@@ -139,12 +139,13 @@ module mo_grid
     real(dp), dimension(:), allocatable :: layer_vertices  !< layer bounds
   contains
     procedure, public :: init => layer_init
-! #ifdef FORCES_WITH_NETCDF
-!     procedure, private :: layer_from_nc_dataset, layer_from_nc_file
-!     generic, public :: from_netcdf => layer_from_nc_dataset, layer_from_nc_file
-!     procedure, private :: layer_to_nc_dataset, layer_to_nc_file
-!     generic, public :: to_netcdf => layer_to_nc_dataset, layer_to_nc_file
-! #endif
+#ifdef FORCES_WITH_NETCDF
+    procedure, private :: layer_from_nc_dataset, layer_from_nc_file
+    generic, public :: from_netcdf => layer_from_nc_dataset, layer_from_nc_file
+    procedure, private :: layer_to_nc_dataset, layer_to_nc_file
+    generic, public :: to_netcdf => layer_to_nc_dataset, layer_to_nc_file
+#endif
+    procedure, public :: z_bounds => layer_z_bounds
     procedure, public :: check_is_covered_by => layer_check_is_covered_by
     procedure, public :: check_is_covering => layer_check_is_covering
     procedure, public :: check_is_filled_by => layer_check_is_filled_by
@@ -217,6 +218,194 @@ contains
     this%layer_vertices = layer_vertices
     if (present(positive_up)) this%positive_up = positive_up
   end subroutine layer_init
+
+#ifdef FORCES_WITH_NETCDF
+
+  !> \brief initialize grid from a netcdf file
+  !> \details initialize grid from a netcdf file and a reference variable.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine layer_from_nc_file(this, path, var, read_mask, read_aux, tol, y_direction)
+    use mo_netcdf, only : NcDataset
+    implicit none
+    class(layered_grid_t), intent(inout) :: this
+    character(*), intent(in) :: path !< NetCDF file path
+    character(*), intent(in) :: var !< nc variable name to determine the grid from
+    logical, optional, intent(in) :: read_mask !< Whether to read the mask from the given variable (default: .true.)
+    logical, optional, intent(in) :: read_aux !< Whether to read auxilliar coordinates if possible (default: .true.)
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) as present, 0 for top-down, 1 for bottom-up)
+    type(NcDataset) :: nc
+    nc = NcDataset(path, "r")
+    call this%layer_from_nc_dataset(nc, var, read_mask, read_aux, tol, y_direction)
+    call nc%close()
+  end subroutine layer_from_nc_file
+
+  !> \brief initialize grid from a netcdf dataset
+  !> \details initialize grid from a netcdf dataset and a reference variable.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine layer_from_nc_dataset(this, nc, var, read_mask, read_aux, tol, y_direction)
+    use mo_netcdf, only : NcDataset, NcVariable, NcDimension
+    use mo_utils, only : is_close
+    use mo_string_utils, only : splitString
+    implicit none
+    class(layered_grid_t), intent(inout) :: this
+    type(NcDataset), intent(in) :: nc !< NetCDF Dataset
+    character(*), intent(in) :: var !< nc variable name to determine the grid from
+    logical, optional, intent(in) :: read_mask !< Whether to read the mask from the given variable (default: .true.)
+    logical, optional, intent(in) :: read_aux !< Whether to read auxilliar coordinates if possible (default: .true.)
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) as present, 0 for top-down, 1 for bottom-up)
+
+    type(NcVariable) :: ncvar, zvar, bnds
+    type(NcDimension), dimension(:), allocatable :: dims
+    real(dp), dimension(:,:), allocatable :: bounds
+    character(len=256) :: name
+    integer(i4) :: nlayer, rnk
+
+    ncvar = nc%getVariable(var)
+    rnk = ncvar%getRank()
+    if (rnk < 3) call error_message("grid % from_netcdf: given variable has too few dimensions: ", trim(nc%fname), ":", var)
+    dims = ncvar%getDimensions()
+    zvar = nc%getVariable(trim(dims(3)%getName()))
+
+    if (.not.(is_z_axis(zvar))) &
+      call error_message("grid % from_netcdf: can't interpret z-axis: ", trim(nc%fname), ":", var)
+
+    call zvar%getData(this%layer)
+    nlayer = size(this%layer)
+    allocate(this%layer_vertices(nlayer+1))
+
+    if (zvar%hasAttribute("bounds")) then
+      call zvar%getAttribute("bounds", name)
+      bnds = nc%getVariable(trim(name))
+      call bnds%getData(bounds)
+      this%layer_vertices(:nlayer) = bounds(1,:)
+      this%layer_vertices(nlayer+1) = bounds(2,nlayer)
+      deallocate(bounds)
+    else
+      ! by default, bounds with reference point first
+      this%layer_vertices(:nlayer) = this%layer
+      if (nlayer == 1) then
+        ! default layer thickness of 1.0
+        this%layer_vertices(2) = this%layer(1) + 1.0_dp
+      else
+        ! last layer thickness from previous layer thickness
+        this%layer_vertices(nlayer + 1) = 2 * this%layer(nlayer) - this%layer(nlayer - 1)
+      end if
+    end if
+
+    ! set positive direction (down by default for horizons)
+    if (zvar%hasAttribute("positive")) then
+      call zvar%getAttribute("positive", name)
+      if (trim(name) == "up") then
+        this%positive_up = .true.
+      else
+        this%positive_up = .false.
+      end if
+    end if
+
+    ! setup horizontal grid
+    call this%grid%from_netcdf(nc, var, read_mask, read_aux, tol, y_direction)
+
+  end subroutine layer_from_nc_dataset
+
+  !> \brief write grid to a netcdf file
+  !> \details write grid to a netcdf file with possible data variable.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine layer_to_nc_file(this, path, x_name, y_name, z_name, aux_lon_name, aux_lat_name, double_precision, append)
+    use mo_netcdf, only : NcDataset
+    implicit none
+    class(layered_grid_t), intent(in) :: this
+    character(*), intent(in) :: path !< NetCDF file path
+    character(*), optional, intent(in) :: x_name !< name for x-axis variable and dimension
+    character(*), optional, intent(in) :: y_name !< name for y-axis variable and dimension
+    character(*), optional, intent(in) :: z_name !< name for z-axis variable and dimension
+    character(*), optional, intent(in) :: aux_lon_name !< name for auxilliar longitude coordinate variable
+    character(*), optional, intent(in) :: aux_lat_name !< name for auxilliar latitude coordinate variable
+    logical, optional, intent(in) :: double_precision !< whether to use double precision to store axis (default .true.)
+    logical, optional, intent(in) :: append !< whether netcdf file should be opened in append mode (default .false.)
+    type(NcDataset) :: nc
+    character(1) :: fmode
+    fmode = "w"
+    if ( present(append) ) then
+      if (append) fmode = "a"
+    end if
+    nc = NcDataset(path, fmode)
+    call this%layer_to_nc_dataset(nc, x_name, y_name, z_name, aux_lon_name, aux_lat_name, double_precision)
+    call nc%close()
+  end subroutine layer_to_nc_file
+
+  !> \brief initialize grid from a netcdf dataset
+  !> \details initialize grid from a netcdf dataset and a reference variable.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine layer_to_nc_dataset(this, nc, x_name, y_name, z_name, aux_lon_name, aux_lat_name, double_precision)
+    use mo_netcdf, only : NcDataset, NcVariable, NcDimension
+    use mo_utils, only : is_close
+    use mo_string_utils, only : splitString
+    implicit none
+    class(layered_grid_t), intent(in) :: this
+    type(NcDataset), intent(inout) :: nc !< NetCDF Dataset
+    character(*), optional, intent(in) :: x_name !< name for x-axis variable and dimension
+    character(*), optional, intent(in) :: y_name !< name for y-axis variable and dimension
+    character(*), optional, intent(in) :: z_name !< name for z-axis variable and dimension
+    character(*), optional, intent(in) :: aux_lon_name !< name for auxilliar longitude coordinate variable
+    character(*), optional, intent(in) :: aux_lat_name !< name for auxilliar latitude coordinate variable
+    logical, optional, intent(in) :: double_precision !< whether to use double precision to store axis (default .true.)
+    type(NcDimension) :: z_dim, b_dim
+    type(NcVariable) :: z_var, zb_var
+    character(:), allocatable :: zname
+    logical :: double_precision_
+    character(3) :: dtype
+
+    call this%grid%to_netcdf(nc, x_name, y_name, aux_lon_name, aux_lat_name, double_precision)
+
+    double_precision_ = .true.
+    if (present(double_precision)) double_precision_ = double_precision
+    dtype = "f32"
+    if ( double_precision_ ) dtype = "f64"
+    zname = "z"
+    if (present(z_name)) zname = z_name
+
+    z_dim = nc%setDimension(zname, size(this%layer))
+    b_dim = nc%getDimension("bnds")
+    z_var = nc%setVariable(zname, dtype, [z_dim])
+    zb_var = nc%setVariable(zname // "_bnds", dtype, [b_dim, z_dim])
+    call z_var%setAttribute("axis", "Z")
+    call z_var%setAttribute("bounds", zname // "_bnds")
+    if (this%positive_up) then
+      call z_var%setAttribute("standard_name", "height")
+      call z_var%setAttribute("positive", "up")
+    else
+      call z_var%setAttribute("standard_name", "depth")
+      call z_var%setAttribute("positive", "down")
+    end if
+    if (double_precision_) then
+      call z_var%setData(this%layer)
+      call zb_var%setData(this%z_bounds())
+    else
+      call z_var%setData(real(this%layer, sp))
+      call zb_var%setData(real(this%z_bounds(), sp))
+    end if
+  end subroutine layer_to_nc_dataset
+
+#endif
+
+  !> \brief z-bounds of the grid cell following cf-conventions (2, nz).
+  !> \return `real(dp), allocatable, dimension(:,:) :: z_bounds`
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  function layer_z_bounds(this) result(z_bounds)
+    implicit none
+    class(layered_grid_t), intent(in) :: this
+    real(dp), allocatable, dimension(:,:) :: z_bounds
+    allocate(z_bounds(2, size(this%layer)))
+    z_bounds(1,:) = this%layer_vertices(:size(this%layer))
+    z_bounds(2,:) = this%layer_vertices(2:)
+  end function layer_z_bounds
 
   !> \brief check if given grid is covered by coarser grid
   !> \details check if given grid is compatible and covered by coarser grid and raise an error if this is not the case.
@@ -553,8 +742,6 @@ contains
   end subroutine grid_init
 
   !> \brief initialize grid from ascii grid file
-  !> \details initialize grid from a given ascii grid file.
-  !!          If mask should be read, it will be in xy order with increasing y-axis.
   !> \authors Sebastian Müller
   !> \date Mar 2024
   subroutine from_ascii_file(this, path, coordsys, read_mask, y_direction)
@@ -633,7 +820,6 @@ contains
   end subroutine to_ascii_file
 
   !> \brief Read data from ascii file conforming this grid
-  !> \details Read data for this grid from ascii file. It will be in xy order with increasing y-axis.
   !> \authors Sebastian Müller
   !> \date Mar 2025
   subroutine read_data_dp(this, path, data)
@@ -654,7 +840,6 @@ contains
   end subroutine read_data_dp
 
   !> \brief Read data from ascii file conforming this grid
-  !> \details Read data for this grid from ascii file. It will be in xy order with increasing y-axis.
   !> \authors Sebastian Müller
   !> \date Mar 2025
   subroutine read_data_i4(this, path, data)
@@ -678,7 +863,6 @@ contains
 
   !> \brief initialize grid from a netcdf file
   !> \details initialize grid from a netcdf file and a reference variable.
-  !!          If mask should be read, it will be in xy order with increasing y-axis.
   !> \authors Sebastian Müller
   !> \date Mar 2024
   subroutine from_nc_file(this, path, var, read_mask, read_aux, tol, y_direction)
@@ -699,7 +883,6 @@ contains
 
   !> \brief initialize grid from a netcdf dataset
   !> \details initialize grid from a netcdf dataset and a reference variable.
-  !!          If mask should be read, it will be in xy order with increasing y-axis.
   !> \authors Sebastian Müller
   !> \date Mar 2024
   subroutine from_nc_dataset(this, nc, var, read_mask, read_aux, tol, y_direction)
@@ -820,7 +1003,6 @@ contains
 
   !> \brief read auxilliar coordinates from a netcdf file
   !> \details read auxilliar coordinates (lat, lon) from a netcdf file.
-  !!          If mask should be read, it will be in xy order with increasing y-axis.
   !> \authors Sebastian Müller
   !> \date Mar 2024
   subroutine aux_from_nc_file(this, path, lat, lon)
@@ -838,7 +1020,6 @@ contains
 
   !> \brief read auxilliar coordinates from a netcdf file
   !> \details read auxilliar coordinates (lat, lon) from a netcdf file.
-  !!          lat and lon will be read in xy order with increasing y-axis.
   !> \authors Sebastian Müller
   !> \date Mar 2024
   subroutine aux_from_nc_dataset(this, nc, lat, lon)
@@ -991,9 +1172,8 @@ contains
     call nc%close()
   end subroutine to_nc_file
 
-  !> \brief initialize grid from a netcdf dataset
-  !> \details initialize grid from a netcdf dataset and a reference variable.
-  !!          If mask should be read, it will be in xy order with increasing y-axis.
+  !> \brief write grid to a netcdf dataset
+  !> \details write grid to a netcdf dataset with possible data variable.
   !> \authors Sebastian Müller
   !> \date Mar 2024
   subroutine to_nc_dataset(this, nc, x_name, y_name, aux_lon_name, aux_lat_name, double_precision)
