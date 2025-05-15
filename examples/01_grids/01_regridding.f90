@@ -60,7 +60,7 @@ program regrid
 
   ! also export cell area
   allocate(area(cgrid%nx,cgrid%ny))
-  area = cgrid%unpack_data(cgrid%cell_area)
+  area = cgrid%unpack(cgrid%cell_area)
   var = nc%setVariable("area", "f64", [x_dim, y_dim])
   call var%setFillValue(nodata_dp)
   call var%setAttribute("missing_value", nodata_dp)

@@ -121,9 +121,9 @@ module mo_grid
     procedure, private :: check_shape => grid_check_shape
     procedure, private :: check_shape_packed => grid_check_shape_packed
     procedure, private :: pack_data_sp, pack_data_dp, pack_data_i4, pack_data_i8, pack_data_lgt
-    generic, public :: pack_data => pack_data_sp, pack_data_dp, pack_data_i4, pack_data_i8, pack_data_lgt
+    generic, public :: pack => pack_data_sp, pack_data_dp, pack_data_i4, pack_data_i8, pack_data_lgt
     procedure, private :: unpack_data_sp, unpack_data_dp, unpack_data_i4, unpack_data_i8, unpack_data_lgt
-    generic, public :: unpack_data => unpack_data_sp, unpack_data_dp, unpack_data_i4, unpack_data_i8, unpack_data_lgt
+    generic, public :: unpack => unpack_data_sp, unpack_data_dp, unpack_data_i4, unpack_data_i8, unpack_data_lgt
   end type grid_t
 
   !> \class   layered_grid
@@ -2116,7 +2116,7 @@ contains
         case(0_i4)
           ! lowres additional properties
           allocate(fine_cell_area(this%nx, this%ny))
-          fine_cell_area(:, :) = this%unpack_data(this%cell_area)
+          fine_cell_area(:, :) = this%unpack(this%cell_area)
           allocate(coarse_grid%cell_area(coarse_grid%ncells))
           k = 0_i8
           do j = 1, coarse_grid%ny

@@ -222,7 +222,7 @@ contains
         coarse_id_matrix(i_lb : i_ub, j_lb : j_ub) = k
       end do
     end do
-    this%id_map = this%fine_grid%pack_data(coarse_id_matrix)
+    this%id_map = this%fine_grid%pack(coarse_id_matrix)
     deallocate(coarse_id_matrix)
 
     ! generate weights from area fractions
@@ -231,7 +231,7 @@ contains
       weights(k) = this%fine_grid%cell_area(k) / this%coarse_grid%cell_area(this%id_map(k))
     end do
     !$omp end parallel do
-    this%weights = this%fine_grid%unpack_data(weights)
+    this%weights = this%fine_grid%unpack(weights)
     deallocate(weights)
 
   end subroutine regridder_init
