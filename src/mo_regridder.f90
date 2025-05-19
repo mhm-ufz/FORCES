@@ -80,10 +80,10 @@ module mo_regridder
   !> \copydoc regrid
   type, public :: regridder
     integer(i4) :: scaling_mode                           !< \ref up_scaling (0) or \ref down_scaling (1)
-    type(grid_t), pointer :: source_grid => null()          !< source grid
-    type(grid_t), pointer :: target_grid => null()          !< target grid
-    type(grid_t), pointer :: fine_grid => null()            !< high resolution grid (source when upscaling, target when downscaling)
-    type(grid_t), pointer :: coarse_grid => null()          !< low resolution grid (source when downscaling, target when upscaling)
+    type(grid_t), pointer :: source_grid => null()        !< source grid
+    type(grid_t), pointer :: target_grid => null()        !< target grid
+    type(grid_t), pointer :: fine_grid => null()          !< high resolution grid (source when upscaling, target when downscaling)
+    type(grid_t), pointer :: coarse_grid => null()        !< low resolution grid (source when downscaling, target when upscaling)
     integer(i4) :: factor                                 !< coarse_grid % cellsize / fine_grid % cellsize
     integer(i4), dimension(:), allocatable :: y_lb        !< lower bound for y-id on fine grid (coarse\%ncells)
     integer(i4), dimension(:), allocatable :: y_ub        !< upper bound for y-id on fine grid (coarse\%ncells)
@@ -159,8 +159,8 @@ contains
     use mo_constants, only : nodata_i8
     implicit none
     class(regridder), intent(inout) :: this
-    type(grid_t), target, intent(inout) :: source_grid !< given source grid
-    type(grid_t), target, intent(inout) :: target_grid !< resulting target grid
+    type(grid_t), pointer, intent(in) :: source_grid !< given source grid
+    type(grid_t), pointer, intent(in) :: target_grid !< resulting target grid
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparison (default: 1.e-7)
 
     integer(i4) :: i_ub, i_lb, j_lb, j_ub, ic, jc
@@ -597,9 +597,9 @@ contains
       do k = 1_i8, this%coarse_grid%ncells
         out_data(k) = sum( &
             pack(in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-                this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) ** p_ &
+                 this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) ** p_ &
           * pack(this%weights(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-                this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
+                 this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
         ) ** (1.0_dp / p_)
       end do
       !$omp end parallel do
