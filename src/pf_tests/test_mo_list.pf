@@ -1,6 +1,6 @@
 module test_mo_list
   use funit
-  use mo_list, only: list, key_class
+  use mo_list, only: list, key_class, key_list
   use mo_kind, only: i4, i8
 
   implicit none
@@ -56,11 +56,15 @@ contains
   subroutine test_list()
     implicit none
     type(list) :: lst
+    type(key_list) :: keys, keys2
     type(ikey) :: k1
     integer, pointer :: ival => null()
+    integer(i4), pointer :: i4val => null()
+    integer(i4) :: i4copy
     real, pointer :: rval => null()
     real, target :: tval
     character(:), pointer :: cval => null()
+    character(:), allocatable :: ccopy
     real :: t = 1000.0 * epsilon(1.0)
 
     tval = 3.1415
@@ -108,6 +112,21 @@ contains
     call lst%add(2_i4, 4.0, replace=.true.)
     call get_type(lst, key=2_i4, real_val=rval)
     @assertEqual(rval, 4.0, tolerance=t, message='replaced item check')
+    @assertEqual(lst%size(), 3_i4, message='check size is 3')
+
+    ! check key list
+    call lst%get_keys(keys)
+    @assertEqual(lst%size(), keys%size(), message='check size is number of keys')
+    call keys%get_string(1_i4, value=cval, copy=ccopy)
+    @assertEqual(cval, ccopy, message='check copy and pointer str keys match')
+    @assertEqual(cval, "temp", message='check str keys match')
+    call keys%get_integer(2_i4, value=i4val, copy=i4copy)
+    @assertEqual(i4val, i4copy, message='check copy and pointer int keys match')
+    @assertEqual(i4val, 1_i4, message='check int keys match')
+    keys2 = keys ! check assignment
+    call keys%destroy()
+    @assertEqual(keys%size(), 0_i4, message='check size is number of keys')
+    @assertEqual(keys2%size(), 3_i4, message='check size is number of keys')
 
     call lst%remove("temp")
     call lst%remove(2_i4)
@@ -119,6 +138,7 @@ contains
     @assertFalse(lst%has("name"), message='missing key check')
     @assertFalse(lst%has(1_i4), message='missing key check')
     @assertFalse(lst%has(2_i4), message='missing key check')
+    @assertEqual(lst%size(), 0_i4, message='check size is zero')
 
     call lst%add_target("target", tval)
     call get_type(lst, key="target", real_val=rval)

@@ -145,18 +145,72 @@ module mo_list
     procedure, public :: add_clone               ! add a non-pointer item to the list
     procedure, public :: add => add_clone        ! add a copy of an item to the list
     procedure, public :: get => get_data         ! get a pointer to an item in the list
-    procedure, public :: destroy => destroy_list ! destroy the list and deallocate/finalize all the data
+    procedure, public :: get_keys                ! get a list of keys as (int, key) pairs
+    procedure, public :: size => list_size       ! size of the list
     procedure, public :: has_key                 ! if the key is present in the list
     procedure, public :: has => has_key          ! if the key is present in the list
     procedure, public :: remove => remove_by_key ! remove item from the list, given the key
+    procedure, public :: destroy => destroy_list ! destroy the list and deallocate/finalize all the data
     ! procedures that operate on items:
+    procedure :: list_copy ! copy a list
+    generic, public :: assignment(=) => list_copy
     procedure :: remove_by_pointer ! remove item from list, given pointer to it
     procedure :: get_item          ! get a pointer to an item in the list
     !private routines:
     final :: list_finalizer
   end type list
 
+  !> \class key_list
+  !> \brief Linked list for key listings.
+  !> \details Provides special methods \ref get_string and \ref get_integer to return valid key-values.
+  type, public, extends(list) :: key_list
+  contains
+    procedure :: get_string, get_integer
+  end type key_list
+
 contains
+
+  !> \brief Get a string value from a key list.
+  subroutine get_string(this, key, value, copy)
+    class(key_list), intent(in) :: this
+    class(*), intent(in) :: key
+    character(:), pointer, optional, intent(out) :: value
+    character(:), allocatable, optional, intent(out) :: copy
+    class(*), pointer :: p
+    call this%get(key, p)
+    if (associated(p)) then
+      select type (p)
+        type is (character(len=*))
+          if (present(value)) value => p
+          if (present(copy)) copy = p
+        class default
+          call error_message("string_list: item is not a string.")
+      end select
+    else
+      value => null()
+    end if
+  end subroutine get_string
+
+  !> \brief Get an integer value from a key list.
+  subroutine get_integer(this, key, value, copy)
+    class(key_list), intent(in) :: this
+    class(*), intent(in) :: key
+    integer(i4), pointer, optional, intent(out) :: value
+    integer(i4), optional, intent(out) :: copy
+    class(*), pointer :: p
+    call this%get(key, p)
+    if (associated(p)) then
+      select type (p)
+        type is (integer(i4))
+          if (present(value)) value => p
+          if (present(copy)) copy = p
+        class default
+          call error_message("string_list: item is not an integer.")
+      end select
+    else
+      value => null()
+    end if
+  end subroutine get_integer
 
   !> \brief Returns true if the key is present in the list.
   logical function has_key(this, key)
@@ -167,6 +221,66 @@ contains
     call this%get_item(key, p)
     has_key = associated(p)
   end function has_key
+
+  !> \brief Returns a list of keys as (int, key) pairs.
+  subroutine get_keys(this, keys)
+    implicit none
+    class(list), intent(in)         :: this
+    type(key_list), intent(out) :: keys
+    type(item), pointer :: p
+    integer(i4) :: cnt
+    cnt = 0_i4
+    p => this%head
+    do
+      if (associated(p)) then
+        cnt = cnt + 1_i4
+        call keys%add(cnt, p%key)
+        p => p%next
+      else
+        return ! at tail
+      end if
+    end do
+  end subroutine get_keys
+
+  !> \brief Returns the size of the list.
+  function list_size(this) result(cnt)
+    implicit none
+    class(list), intent(in)         :: this
+    type(item), pointer :: p
+    integer(i4) :: cnt
+    cnt = 0_i4
+    p => this%head
+    do
+      if (associated(p)) then
+        cnt = cnt + 1_i4
+        p => p%next
+      else
+        return ! at tail
+      end if
+    end do
+  end function list_size
+
+  !> \brief Returns a list of keys as (int, key) pairs.
+  subroutine list_copy(this, that)
+    implicit none
+    class(list), intent(inout) :: this
+    class(list), intent(in) :: that
+    type(item), pointer :: p
+    call this%destroy()
+    p => that%head
+    do
+      if (associated(p)) then
+        if (p%destroy_on_delete) then
+          call this%add_clone(p%key, p%value)
+        else
+          call this%add_pointer(p%key, p%value, destroy_on_delete=p%destroy_on_delete)
+        end if
+        p => p%next
+      else
+        return ! at tail
+      end if
+    end do
+  end subroutine list_copy
 
   !> \brief destroy the data in the item.
   impure elemental subroutine destroy_item_data(this)
@@ -217,6 +331,7 @@ contains
     class(*), intent(in)       :: key !< item key
     type(item), pointer :: p
     call this%get_item(key, p)
+    if (.not.associated(p)) call error_message('list%remove: item not associated') ! LCOV_EXCL_LINE
     call this%remove_by_pointer(p)
   end subroutine remove_by_key
 
@@ -226,26 +341,25 @@ contains
     class(list), intent(inout) :: this
     type(item), pointer        :: p   !< the item to remove
     logical :: has_next, has_previous
-    if (associated(p)) then
-      call p%destroy()  ! destroy the data
-      has_next = associated(p%next)
-      has_previous = associated(p%previous)
-      if (has_next .and. has_previous) then    !neither first nor last in a list
-        p%previous%next => p%next
-        p%next%previous => p%previous
-      elseif (has_next .and. .not. has_previous) then    !first one in a list
-        this%head => p%next
-        this%head%previous => null()
-      elseif (has_previous .and. .not. has_next) then    !last one in a list
-        this%tail => p%previous
-        this%tail%next => null()
-      elseif (.not. has_previous .and. .not. has_next) then  !only one in the list
-        this%head => null()
-        this%tail => null()
-      end if
-      deallocate (p)
-      nullify (p)
+    if (.not.associated(p)) return
+    call p%destroy()  ! destroy the data
+    has_next = associated(p%next)
+    has_previous = associated(p%previous)
+    if (has_next .and. has_previous) then    !neither first nor last in a list
+      p%previous%next => p%next
+      p%next%previous => p%previous
+    elseif (has_next .and. .not. has_previous) then    !first one in a list
+      this%head => p%next
+      this%head%previous => null()
+    elseif (has_previous .and. .not. has_next) then    !last one in a list
+      this%tail => p%previous
+      this%tail%next => null()
+    elseif (.not. has_previous .and. .not. has_next) then  !only one in the list
+      this%head => null()
+      this%tail => null()
     end if
+    deallocate (p)
+    nullify (p)
   end subroutine remove_by_pointer
 
   !> \brief Get the data from an item
@@ -253,11 +367,8 @@ contains
     implicit none
     class(item), intent(in)       :: this
     class(*), pointer, intent(out) :: value
-    if (associated(this%value)) then
-      value => this%value
-    else
-      call error_message('item%get: item value not associated') ! LCOV_EXCL_LINE
-    end if
+    if (.not.associated(this%value)) call error_message('item%get: item value not associated') ! LCOV_EXCL_LINE
+    value => this%value
   end subroutine get_item_data
 
   !> \brief Returns a pointer to the data stored in the list.
@@ -268,11 +379,8 @@ contains
     class(*), pointer, intent(out) :: value !< data value
     type(item), pointer :: p
     call this%get_item(key, p)
-    if (associated(p)) then
-      call p%get_data(value)
-    else
-      call error_message('list%get: item not associated') ! LCOV_EXCL_LINE
-    end if
+    if (.not.associated(p)) call error_message('list%get: item not associated') ! LCOV_EXCL_LINE
+    call p%get_data(value)
   end subroutine get_data
 
   !> \brief Returns a pointer to an item in a list.
@@ -360,19 +468,12 @@ contains
     implicit none
     class(list), intent(inout)   :: this
     class(*), intent(in)         :: key !< key of the new item
-    !> *value* is unlimited polymorphic, so it can
-    !! be any scalar type. If the type includes
-    !! pointers or other objects that must be
-    !! cleaned up when it is destroyed, then it
-    !! should include a finalizer.
+    !> *value* is unlimited polymorphic, so it can be any scalar type.
+    !! If the type includes pointers or other objects that must be cleaned up when it is destroyed,
+    !! then it should include a finalizer.
     class(*), intent(in), pointer :: value
-    !> If false, the finalizer will
-    !! not be called when the item is
-    !! removed from the list (the
-    !! pointer will only be
-    !! nullified, so the caller is
-    !! responsible for cleaning it up
-    !! to avoid memory leaks).
+    !> If false, the finalizer will not be called when the item is removed from the list
+    !! (the pointer will only be nullified, so the caller is responsible for cleaning it up to avoid memory leaks).
     !! The default is *True*.
     logical, intent(in), optional :: destroy_on_delete
     !> if .true. and the key is already present, replace the existing item (default .false.)
