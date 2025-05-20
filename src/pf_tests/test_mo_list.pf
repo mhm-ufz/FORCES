@@ -115,7 +115,7 @@ contains
     @assertEqual(lst%size(), 3_i4, message='check size is 3')
 
     ! check key list
-    call lst%get_keys(keys)
+    keys = lst%keys()
     @assertEqual(lst%size(), keys%size(), message='check size is number of keys')
     call keys%get_string(1_i4, value=cval, copy=ccopy)
     @assertEqual(cval, ccopy, message='check copy and pointer str keys match')

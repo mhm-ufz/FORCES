@@ -146,17 +146,19 @@ module mo_list
     procedure, public :: add => add_clone        ! add a copy of an item to the list
     procedure, public :: get => get_data         ! get a pointer to an item in the list
     procedure, public :: get_keys                ! get a list of keys as (int, key) pairs
+    procedure, public :: keys => list_keys       ! get a list of keys as (int, key) pairs
     procedure, public :: size => list_size       ! size of the list
     procedure, public :: has_key                 ! if the key is present in the list
     procedure, public :: has => has_key          ! if the key is present in the list
     procedure, public :: remove => remove_by_key ! remove item from the list, given the key
     procedure, public :: destroy => destroy_list ! destroy the list and deallocate/finalize all the data
+    procedure, public :: deepcopy                ! deep copy a list
     ! procedures that operate on items:
-    procedure :: list_copy ! copy a list
-    generic, public :: assignment(=) => list_copy
     procedure :: remove_by_pointer ! remove item from list, given pointer to it
     procedure :: get_item          ! get a pointer to an item in the list
     !private routines:
+    procedure :: list_copy ! copy a list
+    generic, public :: assignment(=) => list_copy
     final :: list_finalizer
   end type list
 
@@ -242,6 +244,13 @@ contains
     end do
   end subroutine get_keys
 
+  !> \brief Returns a list of keys as (int, key) pairs.
+  type(key_list) function list_keys(this)
+    implicit none
+    class(list), intent(in) :: this
+    call this%get_keys(list_keys)
+  end function list_keys
+
   !> \brief Returns the size of the list.
   function list_size(this) result(cnt)
     implicit none
@@ -260,7 +269,8 @@ contains
     end do
   end function list_size
 
-  !> \brief Returns a list of keys as (int, key) pairs.
+  !> \brief Copy a list.
+  !> \details Items that should not be destroyed on delete will be copied as pointers.
   subroutine list_copy(this, that)
     implicit none
     class(list), intent(inout) :: this
@@ -273,7 +283,7 @@ contains
         if (p%destroy_on_delete) then
           call this%add_clone(p%key, p%value)
         else
-          call this%add_pointer(p%key, p%value, destroy_on_delete=p%destroy_on_delete)
+          call this%add_pointer(p%key, p%value, p%destroy_on_delete)
         end if
         p => p%next
       else
@@ -282,7 +292,26 @@ contains
     end do
   end subroutine list_copy
 
-  !> \brief destroy the data in the item.
+  !> \brief Deep copy a list.
+  !> \details All items will be cloned.
+  subroutine deepcopy(this, copy)
+    implicit none
+    class(list), intent(in) :: this
+    class(list), intent(inout) :: copy
+    type(item), pointer :: p
+    call copy%destroy()
+    p => this%head
+    do
+      if (associated(p)) then
+        call copy%add_clone(p%key, p%value)
+        p => p%next
+      else
+        return ! at tail
+      end if
+    end do
+  end subroutine deepcopy
+
+  !> \brief Destroy the data in the item.
   impure elemental subroutine destroy_item_data(this)
     implicit none
     class(item), intent(inout) :: this
