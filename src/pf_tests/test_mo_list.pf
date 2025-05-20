@@ -2,6 +2,7 @@ module test_mo_list
   use funit
   use mo_list, only: list, key_class, key_list
   use mo_kind, only: i4, i8
+  use mo_message, only: error_message
 
   implicit none
 
@@ -9,6 +10,7 @@ module test_mo_list
     integer(i8) :: id
   contains
     procedure :: key_equal => key_eq_i8
+    procedure :: key_assign => key_assign_i8
   end type ikey
 
   private
@@ -26,6 +28,17 @@ contains
         key_eq_i8 = this%id == that%id
     end select
   end function key_eq_i8
+
+  subroutine key_assign_i8(this,  that)
+    class(ikey), intent(inout) :: this
+    class(key_class), intent(in) :: that ! needs to be class(key_class) to match interface
+    select type (that)
+      type is (ikey)
+        this%id = that%id
+      class default
+        call error_message("ikey: key is not an ikey.")
+    end select
+  end subroutine key_assign_i8
 
   subroutine get_type(lst, key, int_val, real_val, char_val)
     class(list), intent(in) :: lst
@@ -57,7 +70,7 @@ contains
     implicit none
     type(list) :: lst
     type(key_list) :: keys, keys2
-    type(ikey) :: k1
+    type(ikey) :: k1, k2
     integer, pointer :: ival => null()
     integer(i4), pointer :: i4val => null()
     integer(i4) :: i4copy
@@ -115,22 +128,25 @@ contains
     @assertEqual(lst%size(), 3_i4, message='check size is 3')
 
     ! check key list
+    k1 = ikey(20_i8)
+    call lst%add(k1, "a beautiful key you have there!")
     keys = lst%keys()
     @assertEqual(lst%size(), keys%size(), message='check size is number of keys')
-    call keys%get_string(1_i4, value=cval, copy=ccopy)
-    @assertEqual(cval, ccopy, message='check copy and pointer str keys match')
-    @assertEqual(cval, "temp", message='check str keys match')
-    call keys%get_integer(2_i4, value=i4val, copy=i4copy)
-    @assertEqual(i4val, i4copy, message='check copy and pointer int keys match')
-    @assertEqual(i4val, 1_i4, message='check int keys match')
+    call keys%get_key(1_i4, ccopy)
+    @assertEqual(ccopy, "temp", message='check str keys match')
+    call keys%get_key(2_i4, i4copy)
+    @assertEqual(i4copy, 1_i4, message='check int keys match')
+    call keys%get_key(4_i4, k2)
+    @assertTrue(k1==k2, message='check ikey keys match')
     keys2 = keys ! check assignment
     call keys%destroy()
-    @assertEqual(keys%size(), 0_i4, message='check size is number of keys')
-    @assertEqual(keys2%size(), 3_i4, message='check size is number of keys')
+    @assertEqual(keys%size(), 0_i4, message='check size is 0')
+    @assertEqual(keys2%size(), 4_i4, message='check size is number of keys')
 
     call lst%remove("temp")
     call lst%remove(2_i4)
     call lst%remove(1_i4)
+    call lst%remove(k2)
 
     @assertFalse(lst%has("age"), message='missing key check')
     @assertFalse(lst%has("year"), message='missing key check')

@@ -103,7 +103,9 @@ module mo_list
   type, abstract, public :: key_class
   contains
     procedure(key_equal_func), deferred :: key_equal
+    procedure(key_assign_func), deferred :: key_assign
     generic :: operator(==) => key_equal
+    generic :: assignment(=) => key_assign
   end type key_class
 
   !> \brief interface for equality operator for \ref key_class.
@@ -114,6 +116,16 @@ module mo_list
       class(key_class), intent(in) :: this
       class(key_class), intent(in) :: that
     end function key_equal_func
+  end interface
+
+  !> \brief interface for assignment operator for \ref key_class.
+  abstract interface
+    subroutine key_assign_func(this, that)
+      import :: key_class
+      implicit none
+      class(key_class), intent(inout) :: this
+      class(key_class), intent(in) :: that
+    end subroutine key_assign_func
   end interface
 
   !> \class item
@@ -157,6 +169,7 @@ module mo_list
     procedure :: remove_by_pointer ! remove item from list, given pointer to it
     procedure :: get_item          ! get a pointer to an item in the list
     !private routines:
+    procedure :: get_data                        ! get a pointer to an item in the list
     procedure :: list_copy ! copy a list
     generic, public :: assignment(=) => list_copy
     final :: list_finalizer
@@ -164,55 +177,62 @@ module mo_list
 
   !> \class key_list
   !> \brief Linked list for key listings.
-  !> \details Provides special methods \ref get_string and \ref get_integer to return valid key-values.
+  !> \details Provides a special method \ref get_value to return valid key-values.
   type, public, extends(list) :: key_list
   contains
-    procedure :: get_string, get_integer
+    procedure, private :: get_string, get_integer, get_key_class
+    generic, public :: get_key => get_string, get_integer, get_key_class
   end type key_list
 
 contains
 
   !> \brief Get a string value from a key list.
-  subroutine get_string(this, key, value, copy)
+  subroutine get_string(this, id, value)
     class(key_list), intent(in) :: this
-    class(*), intent(in) :: key
-    character(:), pointer, optional, intent(out) :: value
-    character(:), allocatable, optional, intent(out) :: copy
+    integer(i4), intent(in) :: id
+    character(:), allocatable :: value
     class(*), pointer :: p
-    call this%get(key, p)
-    if (associated(p)) then
-      select type (p)
-        type is (character(len=*))
-          if (present(value)) value => p
-          if (present(copy)) copy = p
-        class default
-          call error_message("string_list: item is not a string.")
-      end select
-    else
-      value => null()
-    end if
+    call this%get(id, p)
+    if (.not.associated(p)) call error_message('key_list: item not associated') ! LCOV_EXCL_LINE
+    select type (p)
+      type is (character(len=*))
+        value = p
+      class default
+        call error_message("string_list: item is not a string.")
+    end select
   end subroutine get_string
 
   !> \brief Get an integer value from a key list.
-  subroutine get_integer(this, key, value, copy)
+  subroutine get_integer(this, id, value)
     class(key_list), intent(in) :: this
-    class(*), intent(in) :: key
-    integer(i4), pointer, optional, intent(out) :: value
-    integer(i4), optional, intent(out) :: copy
+    integer(i4), intent(in) :: id
+    integer(i4) :: value
     class(*), pointer :: p
-    call this%get(key, p)
-    if (associated(p)) then
-      select type (p)
-        type is (integer(i4))
-          if (present(value)) value => p
-          if (present(copy)) copy = p
-        class default
-          call error_message("string_list: item is not an integer.")
-      end select
-    else
-      value => null()
-    end if
+    call this%get(id, p)
+    if (.not.associated(p)) call error_message('key_list: item not associated') ! LCOV_EXCL_LINE
+    select type (p)
+      type is (integer(i4))
+        value = p
+      class default
+        call error_message("key_list: item is not an integer.")
+    end select
   end subroutine get_integer
+
+  !> \brief Get a key class value from a key list.
+  subroutine get_key_class(this, id, value)
+    class(key_list), intent(in) :: this
+    integer(i4), intent(in) :: id
+    class(key_class) :: value
+    class(*), pointer :: p
+    call this%get(id, p)
+    if (.not.associated(p)) call error_message('key_list: item not associated') ! LCOV_EXCL_LINE
+    select type (p)
+      class is (key_class)
+        value = p
+      class default
+        call error_message("key_list: item is not of key class.")
+    end select
+  end subroutine get_key_class
 
   !> \brief Returns true if the key is present in the list.
   logical function has_key(this, key)
