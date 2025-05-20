@@ -238,7 +238,7 @@ contains
     end select
   end subroutine get_key_class
 
-  !> \brief Compare key lists.
+  !> \brief (==) Compare key lists.
   logical function key_list_eq(this, that)
     implicit none
     class(key_list), intent(in) :: this
@@ -256,7 +256,7 @@ contains
     key_list_eq = .true.
   end function key_list_eq
 
-  !> \brief Compare key lists for equivalence (order independent).
+  !> \brief (.eqv.) Compare key lists for equivalence (order independent).
   logical function key_list_eqv(this, that)
     implicit none
     class(key_list), intent(in) :: this
