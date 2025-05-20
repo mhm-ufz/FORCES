@@ -202,7 +202,7 @@ contains
       type is (character(len=*))
         value = p
       class default
-        call error_message("string_list: item is not a string.")
+        call error_message("string_list: item is not a string.") ! LCOV_EXCL_LINE
     end select
   end subroutine get_string
 
@@ -218,7 +218,7 @@ contains
       type is (integer(i4))
         value = p
       class default
-        call error_message("key_list: item is not an integer.")
+        call error_message("key_list: item is not an integer.") ! LCOV_EXCL_LINE
     end select
   end subroutine get_integer
 
@@ -234,7 +234,7 @@ contains
       class is (key_class)
         value = p
       class default
-        call error_message("key_list: item is not of key class.")
+        call error_message("key_list: item is not of key class.") ! LCOV_EXCL_LINE
     end select
   end subroutine get_key_class
 
@@ -592,7 +592,7 @@ contains
     ! if the item is already there, then remove it
     call this%get_item(key, p)
     if (associated(p)) then
-      if (.not.replace_) call error_message('Error: key already present but replace=.false.')
+      if (.not.replace_) call error_message('Error: key already present but replace=.false.') ! LCOV_EXCL_LINE
       call this%remove_by_pointer(p)
     end if
     if (associated(this%tail)) then
