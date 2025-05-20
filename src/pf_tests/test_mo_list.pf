@@ -68,7 +68,7 @@ contains
   @test
   subroutine test_list()
     implicit none
-    type(list) :: lst
+    type(list) :: lst, clst, dclst
     type(key_list) :: keys, keys2
     type(ikey) :: k1, k2
     integer, pointer :: ival => null()
@@ -143,6 +143,34 @@ contains
     @assertEqual(keys%size(), 0_i4, message='check size is 0')
     @assertEqual(keys2%size(), 4_i4, message='check size is number of keys')
 
+    call lst%add_target("target", tval)
+    call lst%get_keys(keys2)
+    clst = lst
+    call lst%deepcopy(dclst)
+    call clst%get_keys(keys)
+    @assertTrue(keys==keys2, message='check copied list keys')
+    @assertTrue(keys.eqv.keys2, message='check copied list keys eqv')
+    call keys%destroy()
+    call dclst%get_keys(keys)
+    @assertTrue(keys==keys2, message='check deep copied list keys')
+    @assertTrue(keys.eqv.keys2, message='check deep copied list keys eqv')
+    @assertEqual(clst%size(), 5_i4, message='check copied list size is 5')
+    @assertEqual(dclst%size(), 5_i4, message='check deep copied list size is 5')
+
+    call keys%destroy()
+    call keys2%destroy()
+
+    call keys%add(1_i4, "test1")
+    call keys%add(2_i4, "test2")
+    call keys2%add(1_i4, "test2")
+    call keys2%add(2_i4, "test1")
+    @assertFalse(keys==keys2, message='check eqv key lists not eq')
+    @assertTrue(keys.eqv.keys2, message='check eqv key lists')
+
+    call clst%destroy()
+    call dclst%destroy()
+
+    call lst%remove("target")
     call lst%remove("temp")
     call lst%remove(2_i4)
     call lst%remove(1_i4)

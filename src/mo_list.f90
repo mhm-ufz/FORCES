@@ -177,9 +177,13 @@ module mo_list
 
   !> \class key_list
   !> \brief Linked list for key listings.
-  !> \details Provides a special method \ref get_value to return valid key-values.
+  !> \details Provides a special method \ref get_key to return valid key-values.
   type, public, extends(list) :: key_list
   contains
+    procedure, public :: eqv => key_list_eqv
+    generic :: operator(.eqv.) => eqv
+    procedure, public :: eq => key_list_eq
+    generic :: operator(==) => eq
     procedure, private :: get_string, get_integer, get_key_class
     generic, public :: get_key => get_string, get_integer, get_key_class
   end type key_list
@@ -233,6 +237,50 @@ contains
         call error_message("key_list: item is not of key class.")
     end select
   end subroutine get_key_class
+
+  !> \brief Compare key lists.
+  logical function key_list_eq(this, that)
+    implicit none
+    class(key_list), intent(in) :: this
+    class(key_list), intent(in) :: that
+    integer(i4) :: cnt, i
+    class(*), pointer :: p1, p2
+    cnt = this%size()
+    key_list_eq = .false.
+    if (cnt /= that%size()) return
+    do i = 1_i4, cnt
+      call this%get(i, p1)
+      call that%get(i, p2)
+      if (.not.keys_equal(p1, p2)) return
+    end do
+    key_list_eq = .true.
+  end function key_list_eq
+
+  !> \brief Compare key lists for equivalence (order independent).
+  logical function key_list_eqv(this, that)
+    implicit none
+    class(key_list), intent(in) :: this
+    class(key_list), intent(in) :: that
+    integer(i4) :: cnt, i, j
+    class(*), pointer :: p1, p2
+    logical :: found
+    cnt = this%size()
+    key_list_eqv = .false.
+    if (cnt /= that%size()) return
+    do i = 1_i4, cnt
+      call this%get(i, p1)
+      found = .false.
+      do j = 1_i4, cnt
+        call that%get(j, p2)
+        if (keys_equal(p1, p2)) then
+          found = .true.
+          exit
+        end if
+      end do
+      if (.not.found) return
+    end do
+    key_list_eqv = .true.
+  end function key_list_eqv
 
   !> \brief Returns true if the key is present in the list.
   logical function has_key(this, key)
