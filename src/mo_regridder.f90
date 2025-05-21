@@ -96,6 +96,7 @@ module mo_regridder
     integer(i8), dimension(:), allocatable :: id_map      !< flat index array of coarse ids (fine\%ncells)
   contains
     procedure, public :: init => regridder_init
+    procedure, public :: operator_init
     ! separate routines for all packed(1d)/unpacked(2d) combinations of IO-data
     procedure, private :: regridder_exe_dp_1d_1d, regridder_exe_dp_1d_2d, regridder_exe_dp_2d_1d, regridder_exe_dp_2d_2d
     procedure, private :: regridder_exe_i4_1d_1d, regridder_exe_i4_1d_2d, regridder_exe_i4_2d_1d, regridder_exe_i4_2d_2d
@@ -244,7 +245,8 @@ contains
   end subroutine regridder_init
 
   !> \brief Default arguments to execute regridder (arithmetic mean as upscaling, nearest neighbor as downscaling)
-  subroutine arg_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
+  subroutine operator_init(this, up_operator, down_operator, upscaling_operator, downscaling_operator)
+    class(regridder), intent(in) :: this
     integer(i4), intent(out) :: up_operator !< upscaling operator
     integer(i4), intent(out) :: down_operator !< downscaling operator
     integer(i4), intent(in), optional :: upscaling_operator !< provided upscaling operator (up_a_mean by default)
@@ -253,7 +255,7 @@ contains
     if (present(upscaling_operator)) up_operator = upscaling_operator
     down_operator = this%downscaling_operator
     if (present(downscaling_operator)) down_operator = downscaling_operator
-  end subroutine arg_init
+  end subroutine operator_init
 
   !> \brief Execute regridder for packed real input and output.
   subroutine regridder_exe_dp_1d_1d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
@@ -316,7 +318,7 @@ contains
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
 
     integer(i4) :: up_operator, down_operator
-    call arg_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
+    call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
 
     if (this%scaling_mode == up_scaling) then
       select case (up_operator)
@@ -419,7 +421,7 @@ contains
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
 
     integer(i4) :: up_operator, down_operator
-    call arg_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
+    call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
 
     if (this%scaling_mode == up_scaling) then
       select case (up_operator)
@@ -523,7 +525,7 @@ contains
     integer(i4), dimension(:), allocatable :: temp
 
     integer(i4) :: up_operator, down_operator
-    call arg_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
+    call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
 
     if (this%scaling_mode == up_scaling) then
       select case (up_operator)
