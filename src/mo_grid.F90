@@ -133,7 +133,7 @@ module mo_grid
   !!          NetCDF files nativly have zyx order, but since Fortran arrays are column-major order,
   !!          the data read from .nc files is in xyz order.
   type, public :: layered_grid_t
-    type(grid_t), pointer :: grid !< 2D grid used for each layer
+    type(grid_t) :: grid !< 2D grid used for each layer
     logical :: positive_up = .false. !< indicated "upwards" as direction of positive z values
     real(dp), dimension(:), allocatable :: layer  !< layer given by reference point in bounds (see vertices)
     real(dp), dimension(:), allocatable :: layer_vertices  !< layer bounds
@@ -197,7 +197,7 @@ contains
   subroutine layer_init(this, grid, layer, layer_vertices, positive_up)
     implicit none
     class(layered_grid_t), intent(inout) :: this
-    type(grid_t), pointer, intent(in) :: grid !< 2D grid used for each layer
+    type(grid_t), intent(in) :: grid !< 2D grid used for each layer
     real(dp), dimension(:), intent(in) :: layer  !< layer given by reference point in bounds (see vertices)
     real(dp), dimension(:), intent(in) :: layer_vertices  !< layer bounds
     logical, optional, intent(in) :: positive_up !< indicated "upwards" as direction of positive z values (.false. by default)
@@ -213,7 +213,7 @@ contains
     end do
     diffs = layer_vertices(2:) - layer_vertices(:size(layer))
     if (.not.(all(diffs > 0.0_dp).or.all(diffs < 0.0_dp))) call error_message("layered_grid % init: layers not monotonous.")
-    this%grid => grid
+    this%grid = grid
     this%layer = layer
     this%layer_vertices = layer_vertices
     if (present(positive_up)) this%positive_up = positive_up
