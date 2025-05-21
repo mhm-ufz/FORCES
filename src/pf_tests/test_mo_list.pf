@@ -130,12 +130,20 @@ contains
     ! check key list
     k1 = ikey(20_i8)
     call lst%add(k1, "a beautiful key you have there!")
+
     keys = lst%keys()
+    @assertEqual(keys%get_type(1_i4), "str", message='check string key type')
+    @assertEqual(keys%get_type(2_i4), "int", message='check integer key type')
+    @assertEqual(keys%get_type(3_i4), "int", message='check integer key type')
+    @assertEqual(keys%get_type(4_i4), "cls", message='check class key type')
+
     @assertEqual(lst%size(), keys%size(), message='check size is number of keys')
     call keys%get_key(1_i4, ccopy)
     @assertEqual(ccopy, "temp", message='check str keys match')
     call keys%get_key(2_i4, i4copy)
     @assertEqual(i4copy, 1_i4, message='check int keys match')
+    call keys%get_key(3_i4, i4copy)
+    @assertEqual(i4copy, 2_i4, message='check int keys match')
     call keys%get_key(4_i4, k2)
     @assertTrue(k1==k2, message='check ikey keys match')
     keys2 = keys ! check assignment

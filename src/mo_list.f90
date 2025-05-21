@@ -186,6 +186,7 @@ module mo_list
     generic :: operator(==) => eq
     procedure, private :: get_string, get_integer, get_key_class
     generic, public :: get_key => get_string, get_integer, get_key_class
+    procedure, public :: get_type
   end type key_list
 
 contains
@@ -193,8 +194,8 @@ contains
   !> \brief Get a string value from a key list.
   subroutine get_string(this, id, value)
     class(key_list), intent(in) :: this
-    integer(i4), intent(in) :: id
-    character(:), allocatable :: value
+    integer(i4), intent(in) :: id !< key id
+    character(:), allocatable :: value !< key value
     class(*), pointer :: p
     call this%get(id, p)
     if (.not.associated(p)) call error_message('key_list: item not associated') ! LCOV_EXCL_LINE
@@ -209,8 +210,8 @@ contains
   !> \brief Get an integer value from a key list.
   subroutine get_integer(this, id, value)
     class(key_list), intent(in) :: this
-    integer(i4), intent(in) :: id
-    integer(i4) :: value
+    integer(i4), intent(in) :: id !< key id
+    integer(i4) :: value !< key value
     class(*), pointer :: p
     call this%get(id, p)
     if (.not.associated(p)) call error_message('key_list: item not associated') ! LCOV_EXCL_LINE
@@ -225,8 +226,8 @@ contains
   !> \brief Get a key class value from a key list.
   subroutine get_key_class(this, id, value)
     class(key_list), intent(in) :: this
-    integer(i4), intent(in) :: id
-    class(key_class) :: value
+    integer(i4), intent(in) :: id !< key id
+    class(key_class) :: value !< key value
     class(*), pointer :: p
     call this%get(id, p)
     if (.not.associated(p)) call error_message('key_list: item not associated') ! LCOV_EXCL_LINE
@@ -282,11 +283,32 @@ contains
     key_list_eqv = .true.
   end function key_list_eqv
 
+  !> \brief Returns an identifier for the key type
+  !> \returns identifier as string: "str" (string), "int" (integer) or "cls" (\ref key_class)
+  character(3) function get_type(this, id)
+    implicit none
+    class(key_list), intent(in) :: this
+    integer(i4), intent(in) :: id !< key id
+    class(*), pointer :: p
+    call this%get(id, p)
+    if (.not.associated(p)) call error_message('key_list: item not associated') ! LCOV_EXCL_LINE
+    select type (p)
+      type is (character(len=*))
+        get_type = "str"
+      type is (integer(i4))
+        get_type = "int"
+      class is (key_class)
+        get_type = "cls"
+      class default
+        call error_message("key_list: item is not a valid key type.") ! LCOV_EXCL_LINE
+    end select
+  end function get_type
+
   !> \brief Returns true if the key is present in the list.
   logical function has_key(this, key)
     implicit none
     class(list), intent(inout) :: this
-    class(*), intent(in)       :: key
+    class(*), intent(in)       :: key !< key
     type(item), pointer :: p
     call this%get_item(key, p)
     has_key = associated(p)
@@ -296,7 +318,7 @@ contains
   subroutine get_keys(this, keys)
     implicit none
     class(list), intent(in)         :: this
-    type(key_list), intent(out) :: keys
+    type(key_list), intent(out) :: keys !< keys list by indices
     type(item), pointer :: p
     integer(i4) :: cnt
     cnt = 0_i4
@@ -322,7 +344,7 @@ contains
   !> \brief Returns the size of the list.
   function list_size(this) result(cnt)
     implicit none
-    class(list), intent(in)         :: this
+    class(list), intent(in) :: this
     type(item), pointer :: p
     integer(i4) :: cnt
     cnt = 0_i4
@@ -342,7 +364,7 @@ contains
   subroutine list_copy(this, that)
     implicit none
     class(list), intent(inout) :: this
-    class(list), intent(in) :: that
+    class(list), intent(in) :: that !< shallow copy
     type(item), pointer :: p
     call this%destroy()
     p => that%head
@@ -365,7 +387,7 @@ contains
   subroutine deepcopy(this, copy)
     implicit none
     class(list), intent(in) :: this
-    class(list), intent(inout) :: copy
+    class(list), intent(inout) :: copy !< deep copy
     type(item), pointer :: p
     call copy%destroy()
     p => this%head
@@ -462,7 +484,7 @@ contains
   !> \brief Get the data from an item
   subroutine get_item_data(this, value)
     implicit none
-    class(item), intent(in)       :: this
+    class(item), intent(in)        :: this
     class(*), pointer, intent(out) :: value
     if (.not.associated(this%value)) call error_message('item%get: item value not associated') ! LCOV_EXCL_LINE
     value => this%value
@@ -471,8 +493,8 @@ contains
   !> \brief Returns a pointer to the data stored in the list.
   subroutine get_data(this, key, value)
     implicit none
-    class(list), intent(in)       :: this
-    class(*), intent(in)          :: key !< key of item
+    class(list), intent(in)        :: this
+    class(*), intent(in)           :: key !< key of item
     class(*), pointer, intent(out) :: value !< data value
     type(item), pointer :: p
     call this%get_item(key, p)
@@ -483,9 +505,9 @@ contains
   !> \brief Returns a pointer to an item in a list.
   subroutine get_item(this, key, p_item)
     implicit none
-    class(list), intent(in)         :: this
-    class(*), intent(in)            :: key
-    type(item), pointer, intent(out) :: p_item
+    class(list), intent(in)          :: this
+    class(*), intent(in)             :: key !< key of item
+    type(item), pointer, intent(out) :: p_item !< item as pointer
     type(item), pointer :: p
     nullify (p_item)
     p => this%head
@@ -507,9 +529,9 @@ contains
   !! (can be case sensitive or not), or alternately, a user-defined \ref key_class.
   pure function keys_equal(k1, k2)
     implicit none
-    class(*), intent(in)    :: k1
-    class(*), intent(in)    :: k2
-    logical                :: keys_equal
+    class(*), intent(in)    :: k1 !< key 1
+    class(*), intent(in)    :: k2 !< key 2
+    logical                 :: keys_equal
     keys_equal = .false.
     if (same_type_as(k1, k2)) then
       select type (k1)
