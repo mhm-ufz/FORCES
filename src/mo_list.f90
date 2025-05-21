@@ -593,8 +593,13 @@ contains
     call this%get_item(key, p)
     if (associated(p)) then
       if (.not.replace_) call error_message('Error: key already present but replace=.false.') ! LCOV_EXCL_LINE
-      call this%remove_by_pointer(p)
+      if (p%destroy_on_delete .and. associated(p%value)) deallocate(p%value)
+      p%value => value
+      p%destroy_on_delete = .true. ! reset to default
+      if (present(destroy_on_delete)) p%destroy_on_delete = destroy_on_delete
+      return
     end if
+    ! if item not present, add it to the tail
     if (associated(this%tail)) then
       allocate (this%tail%next)  !insert new item at the end
       p => this%tail%next
