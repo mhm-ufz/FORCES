@@ -3,6 +3,9 @@
 
 !> \brief Creates NetCDF input or output files for gridded data.
 !> \details NetCDF is first initialized and later on variables are put to the NetCDF.
+!! \par Examples
+!! - \ref 02_nc_output.f90 : \copybrief 02_nc_output.f90
+!!   \include 02_nc_output.f90
 !> \changelog
 !! - David Schaefer       Aug 2015
 !!   - major rewrite
@@ -14,6 +17,7 @@
 !!   - unified module for mHM and mRM
 !! - S. Mueller,          May 2025
 !!   - rewrote for FORCES and use general grid datetime type
+!!
 !> \authors Matthias Zink
 !> \authors Sebastian Müller
 !> \date Apr 2013
@@ -80,6 +84,9 @@ module mo_gridded_netcdf
 
   !> \class output_dataset
   !> \brief netcdf output dataset handler for gridded data
+  !> \details Output dataset handler for static and temporal data.
+  !! \par Examples
+  !! - \ref 02_nc_output.f90 : \copybrief 02_nc_output.f90
   type output_dataset
     type(grid_t), pointer :: grid => null()       !< horizontal grid the data is defined on
     character(:), allocatable :: path             !< path to the NetCDF file
@@ -206,6 +213,7 @@ contains
   !> \changelog
   !! - Robert Schweppe Jun 2018
   !!   - refactoring and reformatting
+  !!
   !> \authors David Schaefer
   !> \date June 2015
   subroutine out_var_update(self, data)
@@ -221,6 +229,7 @@ contains
   !> \changelog
   !! - Robert Schweppe Jun 2018
   !!   - refactoring and reformatting
+  !!
   !> \authors David Schafer
   !> \date June 2015
   subroutine out_var_write(self, time_index)
@@ -253,6 +262,7 @@ contains
   !!   - refactoring and reformatting
   !! - Sebastian Mueller Jul 2020
   !!   - added output for river temperature
+  !!
   !> \return type(output_dataset)
   !> \authors Matthias Zink
   !> \date Apr 2013
@@ -351,6 +361,7 @@ contains
   !> \changelog
   !! - Robert Schweppe Jun 2018
   !!   - refactoring and reformatting
+  !!
   !> \authors David Schaefer
   !> \date June 2015
   subroutine output_write(self, current_time)
