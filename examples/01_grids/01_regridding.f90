@@ -12,35 +12,31 @@ program regrid
   use mo_constants, only: nodata_dp
   use mo_grid, only: grid_t
   use mo_regridder, only: regridder, up_a_mean
-  use mo_netcdf, only: NcDataset, NcVariable, NcDimension
+  use mo_gridded_netcdf, only: var, output_dataset
   implicit none
   type(grid_t), target :: cgrid, fgrid
   type(regridder) :: upscaler
-  type(NcDataset) :: nc
-  type(NcDimension) :: x_dim, y_dim
-  type(NcVariable) :: var
-  real(dp), allocatable :: dem(:,:), cdem(:,:), area(:,:)
+  type(output_dataset) :: ds1, ds2
+  real(dp), allocatable :: dem(:,:), cdem(:)
+  type(var), allocatable :: vars(:)
 
   ! initialize fine grid from DEM ascii file
   call fgrid%from_ascii_file("./src/pf_tests/files/dem.asc")
   call fgrid%read_data("./src/pf_tests/files/dem.asc", dem)
 
-  ! convert ascii DEM to NetCDF file
-  nc = NcDataset("dem.nc", "w")
-  ! write grid to file
-  call fgrid%to_netcdf(nc)
-  ! write data
-  x_dim = nc%getDimension("x")
-  y_dim = nc%getDimension("y")
-  var = nc%setVariable("dem", "f64", [x_dim, y_dim])
-  call var%setFillValue(nodata_dp)
-  call var%setAttribute("missing_value", nodata_dp)
-  call var%setData(dem)
-  call nc%close()
+  ! extend vars array with variables to add
+  allocate(vars(0))
+  vars = [vars, var(name="dem", standard_name="height_above_mean_sea_level", units="m", static=.true.)]
+  vars = [vars, var(name="area", standard_name="cell_area", units="m2", static=.true.)]
+
+  call ds1%init(path="fdem.nc", grid=fgrid, vars=vars(:1))
+  call ds1%update("dem", fgrid%pack(dem))
+  call ds1%write()
+  call ds1%close()
 
   ! generate coarser grid by upscaling factor
   cgrid = fgrid%derive_grid(upscaling_factor=16)
-  allocate(cdem(cgrid%nx, cgrid%ny))
+  allocate(cdem(cgrid%ncells))
 
   ! initialize regridder from source and target grids
   call upscaler%init(fgrid, cgrid)
@@ -48,23 +44,10 @@ program regrid
   ! regrid dem to coarser scale (with mean upscaling by default)
   call upscaler%execute(dem, cdem, upscaling_operator=up_a_mean)
 
-  ! convert result to NetCDF file
-  nc = NcDataset("cdem.nc", "w")
-  call cgrid%to_netcdf(nc)
-  x_dim = nc%getDimension("x")
-  y_dim = nc%getDimension("y")
-  var = nc%setVariable("dem_mean", "f64", [x_dim, y_dim])
-  call var%setFillValue(nodata_dp)
-  call var%setAttribute("missing_value", nodata_dp)
-  call var%setData(cdem)
-
-  ! also export cell area
-  allocate(area(cgrid%nx,cgrid%ny))
-  area = cgrid%unpack(cgrid%cell_area)
-  var = nc%setVariable("area", "f64", [x_dim, y_dim])
-  call var%setFillValue(nodata_dp)
-  call var%setAttribute("missing_value", nodata_dp)
-  call var%setData(area)
-  call nc%close()
+  call ds2%init(path="cdem.nc", grid=cgrid, vars=vars)
+  call ds2%update("dem", cdem)
+  call ds2%update("area", cgrid%cell_area)
+  call ds2%write()
+  call ds2%close()
 
 end program regrid
