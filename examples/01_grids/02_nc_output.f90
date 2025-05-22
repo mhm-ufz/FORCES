@@ -12,20 +12,27 @@
 program netcdf_output
   use mo_kind, only: dp, i4
   use mo_grid, only: grid_t
-  use mo_gridded_netcdf, only: var, output_dataset, center_timestamp
+  use mo_gridded_netcdf, only: var, output_dataset, center_timestamp, time_units_delta, hourly, daily, monthly, yearly
   use mo_datetime, only: datetime, timedelta
+  use mo_message, only: error_message
+  use mo_string_utils, only: num2str
   implicit none
   type(datetime) :: start_time, end_time, current_time
-  type(timedelta) :: step
+  type(timedelta) :: model_step
   type(grid_t), target :: grid
   type(output_dataset) :: ds
   real(dp), allocatable :: dem(:,:), height(:)
   type(var), allocatable :: vars(:)
   real(dp) :: factor
+  integer(i4) :: write_step
+  character(:), allocatable :: delta
 
   start_time = datetime("2025-01-01")
-  end_time = datetime("2025-07-01")
-  step = timedelta(hours=1_i4)
+  end_time = datetime("2025-03-01")
+  model_step = timedelta(hours=1_i4)
+
+  write_step = monthly
+  delta = time_units_delta(write_step, center_timestamp)
 
   ! initialize fine grid from DEM ascii file
   call grid%from_ascii_file("./src/pf_tests/files/dem.asc")
@@ -37,17 +44,29 @@ program netcdf_output
   vars = [vars, var(name="dem", units="m", static=.true.)]
   vars = [vars, var(name="height", units="m", avg=.true., static=.false.)]
 
-  call ds%init(path="height.nc", grid=grid, vars=vars, start_time=start_time, delta="hours", timestamp=center_timestamp)
-  call ds%update("dem", height) ! will be written with first ds%write call
+  call ds%init(path="height.nc", grid=grid, vars=vars, start_time=start_time, delta=delta, timestamp=center_timestamp)
+  call ds%update("dem", height)
+  call ds%write_static()
 
   current_time = start_time
   factor = 0.0_dp
   do while(current_time < end_time)
     factor = factor + 0.01_dp
-    current_time = current_time + step
+    current_time = current_time + model_step
     call ds%update("height", height * cos(factor))
     ! on each new day, write the output for the previous day
-    if (current_time%is_new_day()) call ds%write(current_time)
+    select case(write_step)
+      case(hourly)
+        call ds%write(current_time)
+      case(daily)
+        if (current_time%is_new_day()) call ds%write(current_time)
+      case(monthly)
+        if (current_time%is_new_month()) call ds%write(current_time)
+      case(yearly)
+        if (current_time%is_new_year()) call ds%write(current_time)
+      case default
+        call error_message("unknown write step ", num2str(write_step))
+    end select
   end do
   call ds%close()
 
