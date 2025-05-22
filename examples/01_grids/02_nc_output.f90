@@ -14,8 +14,6 @@ program netcdf_output
   use mo_grid, only: grid_t
   use mo_gridded_netcdf, only: var, output_dataset, center_timestamp, time_units_delta, hourly, daily, monthly, yearly
   use mo_datetime, only: datetime, timedelta
-  use mo_message, only: error_message
-  use mo_string_utils, only: num2str
   implicit none
   type(datetime) :: start_time, end_time, current_time
   type(timedelta) :: model_step
