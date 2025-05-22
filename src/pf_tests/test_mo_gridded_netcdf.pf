@@ -1,0 +1,66 @@
+module test_mo_gridded_netcdf
+  use funit
+  implicit none
+
+  private
+
+  public :: test_output
+
+contains
+
+  @test
+  subroutine test_output()
+    use mo_kind, only: dp, i4
+    use mo_grid, only: grid_t
+    use mo_gridded_netcdf, only: var, output_dataset, center_timestamp, time_units_delta, daily
+    use mo_datetime, only: datetime, timedelta
+    implicit none
+    type(datetime) :: start_time, end_time, current_time
+    type(timedelta) :: model_step
+    type(grid_t), target :: grid, grd2
+    type(output_dataset) :: ds
+    real(dp), allocatable :: dem(:,:), height(:)
+    type(var), allocatable :: vars(:)
+    real(dp) :: factor
+    integer(i4) :: write_step
+    character(:), allocatable :: delta
+    real(dp) :: t=1.0E-5_dp
+
+    ! model time config
+    start_time = datetime("2025-01-01")
+    end_time = datetime("2025-01-15")
+    model_step = timedelta(hours=1_i4)
+
+    ! output time config
+    write_step = daily
+    delta = time_units_delta(write_step, center_timestamp)
+
+    ! initialize grid from DEM ascii file
+    call grid%from_ascii_file("./files/dem.asc")
+    call grid%read_data("./files/dem.asc", dem)
+    height = grid%pack(dem)
+
+    vars = [var(name="height", units="m", avg=.true., static=.false.)]
+    call ds%init(path="height.nc", grid=grid, vars=vars, start_time=start_time, delta=delta, timestamp=center_timestamp)
+
+    ! model time loop
+    current_time = start_time
+    factor = 0.0_dp
+    do while(current_time < end_time)
+      current_time = current_time + model_step
+      factor = factor + 0.01_dp
+      call ds%update("height", height * cos(factor))
+      if (current_time%is_new_day()) call ds%write(current_time)
+    end do
+    call ds%close()
+
+    call grd2%from_netcdf("height.nc", "height")
+    @assertEqual(grid%ncells, grd2%ncells, message='ncells compare')
+    @assertEqual(grid%nx, grd2%nx, message='nx compare')
+    @assertEqual(grid%ny, grd2%ny, message='ny compare')
+    @assertEqual(grid%xllcorner, grd2%xllcorner, tolerance=t, message='xllcorner compare')
+    @assertEqual(grid%yllcorner, grd2%yllcorner, tolerance=t, message='yllcorner compare')
+
+  end subroutine test_output
+
+end module test_mo_gridded_netcdf
