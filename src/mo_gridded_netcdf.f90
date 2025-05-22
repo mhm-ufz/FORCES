@@ -38,12 +38,12 @@ module mo_gridded_netcdf
   !> \name Time Step Indicators
   !> \brief Constants to indicate the time stepping used in the in-/output files.
   !!@{
-  integer(i4), public, parameter :: hourly_timestep = 1_i4 !< hourly
-  integer(i4), public, parameter :: no_timestep = 0_i4 !< no time dimension available
-  integer(i4), public, parameter :: daily_timestep = -1_i4 !< daily
-  integer(i4), public, parameter :: monthly_timestep = -2_i4 !< monthly
-  integer(i4), public, parameter :: yearly_timestep = -3_i4 !< yearly
-  integer(i4), public, parameter :: varying_timestep = -9999_i4 !< no uniform time step
+  integer(i4), public, parameter :: hourly = 1_i4 !< hourly
+  integer(i4), public, parameter :: no_time = 0_i4 !< no time dimension available
+  integer(i4), public, parameter :: daily = -1_i4 !< daily
+  integer(i4), public, parameter :: monthly = -2_i4 !< monthly
+  integer(i4), public, parameter :: yearly = -3_i4 !< yearly
+  integer(i4), public, parameter :: varying = -9999_i4 !< no uniform time step
   !!@}
   !> \name Time Stamp Locators
   !> \brief Constants to define the timestamp location for the respective time span the in-/output files.
@@ -78,66 +78,31 @@ module mo_gridded_netcdf
     procedure, public :: write => out_var_write
   end type output_variable
 
-  !> \class variable_list
-  !> \brief output variable list
-  type, extends(list) :: variable_list
-  contains
-    procedure, public :: get_variable
-    procedure, public :: add_variable
-  end type variable_list
-
   !> \class output_dataset
   !> \brief netcdf output dataset handler for gridded data
   type output_dataset
-    type(grid_t), pointer :: grid => null()  !< horizontal grid the data is defined on
-    character(:), allocatable :: path        !< path to the NetCDF file
-    type(NcDataset) :: nc                    !< NcDataset to write
-    type(variable_list) :: vars              !< store all created (dynamic) variables
-    type(key_list) :: var_names              !< all variable names
-    integer(i4) :: nvars                     !< number of variables
-    logical :: static                        !< only static variables (without time dimension)
-    integer(i4) :: counter = 0_i4            !< count written time steps
-    type(datetime) :: previous_time          !< previous time steps for bounds
-    type(datetime) :: start_time             !< start time for time units
-    type(timedelta) :: delta                 !< time step in time units definition
-    integer(i4) :: timestamp = end_timestamp !< time stamp reference (0: begin, 1: center, 2: end of time interval)
-    logical :: double_precision = .true.     !< output precision switch for nc files
-    integer(i4) :: deflate_level = 6_i4      !< deflate level for compression
+    type(grid_t), pointer :: grid => null()       !< horizontal grid the data is defined on
+    character(:), allocatable :: path             !< path to the NetCDF file
+    type(NcDataset) :: nc                         !< NcDataset to write
+    type(output_variable), allocatable :: vars(:) !< store all created (dynamic) variables
+    integer(i4) :: nvars                          !< number of variables
+    logical :: static                             !< only static variables (without time dimension)
+    integer(i4) :: counter = 0_i4                 !< count written time steps
+    type(datetime) :: previous_time               !< previous time steps for bounds
+    type(datetime) :: start_time                  !< start time for time units
+    type(timedelta) :: delta                      !< time step in time units definition
+    integer(i4) :: timestamp = end_timestamp      !< time stamp reference (0: begin, 1: center, 2: end of time interval)
+    logical :: double_precision = .true.          !< output precision switch for nc files
+    integer(i4) :: deflate_level = 6_i4           !< deflate level for compression
   contains
     procedure, public :: init => output_init
     procedure, public :: update => output_update
     procedure, public :: write => output_write
+    procedure, public :: write_static => output_write_static
     procedure, public :: close => output_close
   end type output_dataset
 
 contains
-
-  !> \brief get pointer to variable in list
-  subroutine get_variable(this, key, value)
-    class(variable_list), intent(in) :: this
-    class(*), intent(in) :: key
-    type(output_variable), pointer, intent(out) :: value
-    class(*), pointer :: p
-    call this%get(key, p)
-    if (associated(p)) then
-      select type (p)
-        type is (output_variable)
-          value => p
-        class default
-          call error_message('variable_list: item is not an output_variable.')
-      end select
-    else
-      call error_message('variable_list: item value not associated.')
-    end if
-  end subroutine get_variable
-
-  !> \brief add a new variable to the list by name
-  subroutine add_variable(this, key)
-    class(variable_list), intent(inout) :: this
-    character(*), intent(in) :: key
-    type(output_variable) :: tmp
-    call this%add(key, tmp) ! adds a copy of tmp
-  end subroutine add_variable
 
   !> \brief variable dtype for single or double precision.
   !> \return "f64" or "f32"
@@ -157,7 +122,7 @@ contains
     integer(i4), intent(in), optional :: timestep !< time step (-3, -2, -1, 0, 1 (default), >1)
     integer(i4), intent(in), optional :: timestamp !< time stamp reference (0: begin, 1: center, 2: end of time span (default))
     character(:), allocatable :: res
-    integer(i4) :: step = hourly_timestep
+    integer(i4) :: step = hourly
     integer(i4) :: stamp = end_timestamp
     if (present(timestep)) step = timestep
     if (present(timestamp)) stamp = timestamp
@@ -264,6 +229,7 @@ contains
     !> index along the time dimension of the netcdf variable
     integer(i4), intent(in), optional :: time_index
     if (self%static .and. self%static_written) return
+    if (self%counter == 0_i4) call error_message("out_variable: no data was added before writing: ", self%name)
     if (self%avg) then
       self%data = self%data / real(self%counter, dp)
     end if
@@ -357,12 +323,10 @@ contains
     end if
     dims(:) = [x_dim, y_dim, t_dim]
 
+    allocate(self%vars(self%nvars))
     do i = 1_i4, self%nvars
-      call self%vars%add_variable(vars(i)%name)
-      call self%vars%get_variable(vars(i)%name, variable)
-      call variable%init(vars(i), self%nc, self%grid, dims, self%double_precision, self%deflate_level)
+      call self%vars(i)%init(vars(i), self%nc, self%grid, dims, self%double_precision, self%deflate_level)
     end do
-    self%var_names = self%vars%keys()
   end subroutine output_init
 
   !> \brief Update a variable
@@ -372,9 +336,14 @@ contains
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     real(dp), intent(in), dimension(:) :: data !< data for current time step
-    type(output_variable), pointer :: pvar
-    call self%vars%get_variable(name, pvar)
-    call pvar%update(data)
+    integer(i4) :: i
+    do i = 1_i4, self%nvars
+      if (self%vars(i)%name == name) then
+        call self%vars(i)%update(data)
+        return
+      end if
+    end do
+    call error_message("output%update: variable not present: ", name)
   end subroutine output_update
 
   !> \brief Write all accumulated data.
@@ -390,8 +359,6 @@ contains
     type(datetime), intent(in), optional :: current_time !< end time of the current time span
     integer(i4) :: i, t_start, t_end, t_stamp
     type(NcVariable) :: t_var
-    character(:), allocatable :: name
-    type(output_variable), pointer :: variable
 
     self%counter = self%counter + 1_i4
 
@@ -409,29 +376,31 @@ contains
     end if
 
     do i = 1_i4, self%nvars
-      call self%var_names%get_key(i, name)
-      call self%vars%get_variable(name, variable)
-      ! check if variable actually got data at least once
-      if (variable%counter > 0_i4) call variable%write(self%counter)
+      call self%vars(i)%write(self%counter)
     end do
   end subroutine output_write
+
+  !> \brief Write all accumulated static data.
+  subroutine output_write_static(self)
+    implicit none
+    class(output_dataset), intent(inout) :: self
+    integer(i4) :: i
+    do i = 1_i4, self%nvars
+      if (self%vars(i)%static) call self%vars(i)%write()
+    end do
+  end subroutine output_write_static
 
   !> \brief Close the file
   subroutine output_close(self)
     implicit none
     class(output_dataset) :: self
     integer(i4) :: i
-    character(:), allocatable :: name
-    type(output_variable), pointer :: variable
     do i = 1_i4, self%nvars
-      call self%var_names%get_key(i, name)
-      call self%vars%get_variable(name, variable)
       ! check if variables have buffered data that was not written
-      if (variable%counter > 0_i4) call warn_message("output%close: unwritten buffered data for variable: ", name)
+      if (self%vars(i)%counter > 0_i4) call warn_message("output%close: unwritten buffered data for variable: ", self%vars(i)%name)
     end do
     call self%nc%close()
-    call self%vars%destroy()
-    call self%var_names%destroy()
+    deallocate(self%vars)
   end subroutine output_close
 
 end module mo_gridded_netcdf
