@@ -27,14 +27,16 @@ program netcdf_output
   integer(i4) :: write_step
   character(:), allocatable :: delta
 
+  ! model time config
   start_time = datetime("2025-01-01")
-  end_time = datetime("2025-03-01")
+  end_time = datetime("2027-02-01")
   model_step = timedelta(hours=1_i4)
 
-  write_step = monthly
+  ! output time config
+  write_step = daily
   delta = time_units_delta(write_step, center_timestamp)
 
-  ! initialize fine grid from DEM ascii file
+  ! initialize grid from DEM ascii file
   call grid%from_ascii_file("./src/pf_tests/files/dem.asc")
   call grid%read_data("./src/pf_tests/files/dem.asc", dem)
   height = grid%pack(dem)
@@ -48,13 +50,15 @@ program netcdf_output
   call ds%update("dem", height)
   call ds%write_static()
 
+  ! model time loop
   current_time = start_time
   factor = 0.0_dp
   do while(current_time < end_time)
-    factor = factor + 0.01_dp
     current_time = current_time + model_step
+    ! temporal toy model
+    factor = factor + 0.01_dp
     call ds%update("height", height * cos(factor))
-    ! on each new day, write the output for the previous day
+    ! write time-stamp depending on config
     select case(write_step)
       case(hourly)
         call ds%write(current_time)
@@ -64,8 +68,6 @@ program netcdf_output
         if (current_time%is_new_month()) call ds%write(current_time)
       case(yearly)
         if (current_time%is_new_year()) call ds%write(current_time)
-      case default
-        call error_message("unknown write step ", num2str(write_step))
     end select
   end do
   call ds%close()
