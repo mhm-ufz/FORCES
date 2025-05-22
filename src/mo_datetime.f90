@@ -130,6 +130,7 @@ module mo_datetime
   public :: days_in_year
   ! helpers
   public :: decode_cf_time_units
+  public :: delta_from_string
 
   private
 
@@ -330,6 +331,23 @@ module mo_datetime
 
 contains
 
+  !> \brief get \ref timedelta from given string
+  type(timedelta) function delta_from_string(str)
+    character(*), intent(in) :: str !< "days", "hours", "minutes", "seconds"
+    select case(trim(str))
+      case("days")
+        delta_from_string = td_init(days=1_i4)
+      case("hours")
+        delta_from_string = td_init(hours=1_i4)
+      case("minutes")
+        delta_from_string = td_init(minutes=1_i4)
+      case("seconds")
+        delta_from_string = td_init(seconds=1_i4)
+      case default
+        call error_message("datetime: units not valid for a cf-convention time. Got: ", str)
+    end select
+  end function delta_from_string
+
   !> \brief reference datetime and delta from cf-string for time units
   subroutine decode_cf_time_units(string, delta, ref_datetime)
     character(*), intent(in) :: string
@@ -339,18 +357,7 @@ contains
     type(puretime) :: ref_time
     character(256), dimension(:), allocatable :: str_arr
     call divide_string(trim(string), ' ', str_arr)
-    select case(trim(str_arr(1)))
-      case("days")
-        delta = td_init(days=1_i4)
-      case("hours")
-        delta = td_init(hours=1_i4)
-      case("minutes")
-        delta = td_init(minutes=1_i4)
-      case("seconds")
-        delta = td_init(seconds=1_i4)
-      case default
-        call error_message("datetime: units not valid for a cf-convetion time. Got: ", trim(str_arr(1)))
-    end select
+    delta = delta_from_string(str_arr(1))
     if (trim(str_arr(2)) /= "since") call error_message("datetime: expected 'since' for cf-convetion. Got: ", trim(str_arr(2)))
     ref_date = d_from_string(str_arr(3))
     ref_time = midnight()
