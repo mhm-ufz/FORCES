@@ -26,6 +26,13 @@ module mo_grid
   public :: read_ascii_grid
   public :: read_ascii_header
   public :: id_bounds
+#ifdef FORCES_WITH_NETCDF
+  public :: is_x_axis
+  public :: is_y_axis
+  public :: is_z_axis
+  public :: is_t_axis
+  public :: check_uniform_axis
+#endif
 
   private
   !> \name Coordinate System Selectors
