@@ -384,11 +384,11 @@ contains
   !!
   !> \authors David Schafer
   !> \date June 2015
-  subroutine out_var_write(self, time_index)
+  subroutine out_var_write(self, t_index)
     implicit none
     class(output_variable), intent(inout) :: self
     !> index along the time dimension of the netcdf variable
-    integer(i4), intent(in), optional :: time_index
+    integer(i4), intent(in), optional :: t_index
     if (self%static .and. self%static_written) return
     if (self%counter == 0_i4) call error_message("out_variable: no data was added before writing: ", self%name)
     if (self%avg) then
@@ -398,8 +398,8 @@ contains
       call self%nc%setData(self%grid%unpack(self%data))
       self%static_written = .true.
     else
-      if (.not.present(time_index)) call error_message("out_variable: no time index was given for temporal variable: ", self%name)
-      call self%nc%setData(self%grid%unpack(self%data), [1_i4, 1_i4, time_index])
+      if (.not.present(t_index)) call error_message("out_variable: no time index was given for temporal variable: ", self%name)
+      call self%nc%setData(self%grid%unpack(self%data), [1_i4, 1_i4, t_index])
     end if
     self%data = 0.0_dp
     self%counter = 0_i4
