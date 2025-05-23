@@ -74,8 +74,8 @@ contains
     call in_ds%init("height.nc", vars, grd2)
     allocate(dem_read(grid%nx, grid%ny))
     allocate(height_read(grid%ncells))
-    call in_ds%read_static("dem", data_matrix=dem_read)
-    call in_ds%read("height", datetime("2025-01-11"), data=height_read)
+    call in_ds%read("dem", data=dem_read)
+    call in_ds%read("height", data=height_read, current_time=datetime("2025-01-11"))
     call in_ds%read_chunk("height", &
       timeframe_start=datetime("2025-01-10"), &
       timeframe_end=datetime("2025-01-15"), &

@@ -138,10 +138,12 @@ module mo_gridded_netcdf
     type(datetime), allocatable :: times(:)       !< time axis values for ends of time spans
   contains
     procedure, public :: init => input_init
-    procedure, public :: read => input_read
-    procedure, public :: read_chunk => input_read_chunk
-    procedure, public :: read_chunk_by_ids => input_read_chunk_by_ids
-    procedure, public :: read_static => input_read_static
+    procedure, private :: input_read_pack, input_read_matrix
+    generic, public :: read => input_read_pack, input_read_matrix
+    procedure, private :: input_read_chunk_pack, input_read_chunk_matrix
+    generic, public :: read_chunk => input_read_chunk_pack, input_read_chunk_matrix
+    procedure, private :: input_read_chunk_by_ids_pack, input_read_chunk_by_ids_matrix
+    generic, public :: read_chunk_by_ids => input_read_chunk_by_ids_pack, input_read_chunk_by_ids_matrix
     procedure, public :: chunk_times => input_chunk_times
     procedure, public :: close => input_close
   end type input_dataset
@@ -463,52 +465,33 @@ contains
   end subroutine in_var_init
 
   !> \brief read from input variable
-  subroutine in_var_read(self, flip_y, t_index, data, data_matrix)
+  subroutine in_var_read(self, flip_y, t_index, data)
     implicit none
     class(input_variable), intent(inout) :: self
     logical, intent(in) :: flip_y !< flip data along y-axis
     integer(i4), intent(in), optional :: t_index !< current time step
-    real(dp), dimension(self%grid%ncells), optional, intent(out) :: data !< read data packed by grid mask
-    real(dp), dimension(self%grid%nx, self%grid%ny), optional, intent(out) :: data_matrix !< read data as 2D array
-    real(dp), dimension(:,:), allocatable :: read_data
+    real(dp), dimension(:, :), allocatable, intent(out) :: data !< read data
     if (self%static) then
-      call self%nc%getData(read_data)
+      call self%nc%getData(data)
     else
       if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
-      call self%nc%getData(read_data, start=[1_i4, 1_i4, t_index], cnt=[self%grid%nx, self%grid%ny, 1_i4])
+      call self%nc%getData(data, start=[1_i4, 1_i4, t_index], cnt=[self%grid%nx, self%grid%ny, 1_i4])
     end if
-    if (flip_y) call flip(read_data, idim=2)
-    if (present(data)) data = pack(read_data, self%grid%mask)
-    if (present(data_matrix)) data_matrix = read_data
-    deallocate(read_data)
+    if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read
 
   !> \brief read from input variable
-  subroutine in_var_read_chunk(self, flip_y, t_index, t_size, data, data_matrix)
+  subroutine in_var_read_chunk(self, flip_y, t_index, t_size, data)
     implicit none
     class(input_variable), intent(inout) :: self
     logical, intent(in) :: flip_y !< flip data along y-axis
     integer(i4), intent(in) :: t_index !< current time step
     integer(i4), intent(in) :: t_size !< chunk size
-    real(dp), dimension(:,:), allocatable, optional, intent(out) :: data !< read data packed by grid mask
-    real(dp), dimension(:,:,:), allocatable, optional, intent(out) :: data_matrix !< read data as 2D array
-    real(dp), dimension(:,:,:), allocatable :: read_data
-    integer(i4) :: i
+    real(dp), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
-    call self%nc%getData(read_data, start=[1_i4, 1_i4, t_index], cnt=[self%grid%nx, self%grid%ny, t_size])
-    if (flip_y) call flip(read_data, idim=2)
-    if (present(data)) then
-      allocate(data(self%grid%ncells, t_size))
-      do i = 1_i4, t_size
-        data(:,i) = pack(read_data(:,:,i), self%grid%mask)
-      end do
-    end if
-    if (present(data_matrix)) then
-      allocate(data_matrix(self%grid%nx, self%grid%ny, t_size))
-      data_matrix = read_data
-    end if
-    deallocate(read_data)
+    call self%nc%getData(data, start=[1_i4, 1_i4, t_index], cnt=[self%grid%nx, self%grid%ny, t_size])
+    if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk
 
   !> \brief Initialize output_dataset
@@ -716,79 +699,109 @@ contains
   end subroutine input_init
 
   !> \brief Read an input variable for a single time step
-  subroutine input_read(self, name, current_time, data, data_matrix)
+  subroutine input_read_matrix(self, name, data, current_time)
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
+    real(dp), dimension(self%grid%nx, self%grid%ny), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
-    real(dp), dimension(self%grid%ncells), optional, intent(out) :: data !< read data packed by grid mask
-    real(dp), dimension(self%grid%nx, self%grid%ny), optional, intent(out) :: data_matrix !< read data as 2D array
+    real(dp), dimension(:,:), allocatable :: read_data
     integer(i4) :: i, t_index
     do i = 1_i4, self%nvars
       if (self%vars(i)%name == name) then
-        t_index = 0_i4
+        t_index = 0_i4 ! indicate missing current_time
         if (present(current_time) .and. allocated(self%times)) t_index = time_index(self%times, current_time)
-        call self%vars(i)%read(flip_y=self%flip_y, t_index=t_index, data=data, data_matrix=data_matrix)
+        call self%vars(i)%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
+        data = read_data
         return
       end if
     end do
     call error_message("input%read: variable not present: ", name)
-  end subroutine input_read
+  end subroutine input_read_matrix
 
-  !> \brief Read a static input variable
-  subroutine input_read_static(self, name, data, data_matrix)
+  !> \brief Read an input variable for a single time step
+  subroutine input_read_pack(self, name, data, current_time)
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
-    real(dp), dimension(self%grid%ncells), optional, intent(out) :: data !< read data packed by grid mask
-    real(dp), dimension(self%grid%nx, self%grid%ny), optional, intent(out) :: data_matrix !< read data as 2D array
-    integer(i4) :: i
-    do i = 1_i4, self%nvars
-      if (self%vars(i)%name == name) then
-        call self%vars(i)%read(flip_y=self%flip_y, data=data, data_matrix=data_matrix)
-        return
-      end if
-    end do
-    call error_message("input%read: variable not present: ", name)
-  end subroutine input_read_static
+    real(dp), dimension(self%grid%ncells), intent(out) :: data !< read data
+    type(datetime), intent(in), optional :: current_time !< current time step
+    real(dp), dimension(self%grid%nx, self%grid%ny) :: data_matrix !< read data
+    call self%input_read_matrix(name, data_matrix, current_time)
+    data = pack(data_matrix, self%grid%mask)
+  end subroutine input_read_pack
 
   !> \brief Read an input variable for a given time frame
-  subroutine input_read_chunk(self, name, timeframe_start, timeframe_end, times, data, data_matrix)
+  subroutine input_read_chunk_matrix(self, name, data, timeframe_start, timeframe_end, times)
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
+    real(dp), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
-    type(datetime), dimension(:), allocatable, intent(out) :: times !< timestamps for the data stack
-    real(dp), dimension(:,:), allocatable, optional, intent(out) :: data !< read data packed by grid mask
-    real(dp), dimension(:,:,:), allocatable, optional, intent(out) :: data_matrix !< read data as 2D array
+    type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
-    call self%read_chunk_by_ids(name, t_index, t_size, data, data_matrix)
-  end subroutine input_read_chunk
+    call self%read_chunk_by_ids(name, data, t_index, t_size)
+  end subroutine input_read_chunk_matrix
 
   !> \brief Read an input variable for a given time frame
-  subroutine input_read_chunk_by_ids(self, name, t_index, t_size, data, data_matrix)
+  subroutine input_read_chunk_pack(self, name, data, timeframe_start, timeframe_end, times)
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
+    real(dp), dimension(:,:), allocatable, intent(out) :: data !< read data
+    type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
+    type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
+    type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
+    real(dp), dimension(:,:,:), allocatable :: data_matrix !< read data
+    integer(i4) :: i, n
+    call self%input_read_chunk_matrix(name, data_matrix, timeframe_start, timeframe_end, times)
+    n = size(data_matrix, dim=3)
+    allocate(data(self%grid%ncells, n))
+    do i = 1_i4, n
+      data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
+    end do
+  end subroutine input_read_chunk_pack
+
+  !> \brief Read an input variable for a given time frame
+  subroutine input_read_chunk_by_ids_matrix(self, name, data, t_index, t_size)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    real(dp), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    real(dp), dimension(:,:), allocatable, optional, intent(out) :: data !< read data packed by grid mask
-    real(dp), dimension(:,:,:), allocatable, optional, intent(out) :: data_matrix !< read data as 2D array
     integer(i4) :: i
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
     do i = 1_i4, self%nvars
       if (self%vars(i)%name == name) then
-        if (present(data)) allocate(data(self%grid%ncells, t_size))
-        if (present(data_matrix)) allocate(data_matrix(self%grid%nx, self%grid%ny, t_size))
-        call self%vars(i)%read_chunk(flip_y=self%flip_y, t_index=t_index, t_size=t_size, data=data, data_matrix=data_matrix)
+        allocate(data(self%grid%nx, self%grid%ny, t_size))
+        call self%vars(i)%read_chunk(flip_y=self%flip_y, t_index=t_index, t_size=t_size, data=data)
         return
       end if
     end do
     call error_message("input%read: variable not present: ", name)
-  end subroutine input_read_chunk_by_ids
+  end subroutine input_read_chunk_by_ids_matrix
+
+  !> \brief Read an input variable for a given time frame
+  subroutine input_read_chunk_by_ids_pack(self, name, data, t_index, t_size)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    real(dp), dimension(:,:), allocatable, intent(out) :: data !< read data
+    integer(i4), intent(in) :: t_index !< start index of time frame
+    integer(i4), intent(in) :: t_size !< chunk size
+    real(dp), dimension(:,:,:), allocatable :: data_matrix
+    integer(i4) :: i, n
+    call self%input_read_chunk_by_ids_matrix(name, data_matrix, t_index, t_size)
+    n = size(data_matrix, dim=3)
+    allocate(data(self%grid%ncells, n))
+    do i = 1_i4, n
+      data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
+    end do
+  end subroutine input_read_chunk_by_ids_pack
 
   !> \brief Get times array for selected chunk time frame
   subroutine input_chunk_times(self, timeframe_start, timeframe_end, times, t_index, t_size)
@@ -796,7 +809,7 @@ contains
     class(input_dataset), intent(inout) :: self
     type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
-    type(datetime), dimension(:), allocatable, intent(out) :: times !< timestamps for the data stack
+    type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4), intent(out), optional :: t_index !< starting index of time frame
     integer(i4), intent(out), optional :: t_size !< chunk size of time frame
     integer(i4) :: t_start, t_end, t_cnt, t_id
@@ -815,7 +828,7 @@ contains
     t_id = t_start + 1_i4 ! times array has endpoints as references for time-spans, so we start with the next one
     if (present(t_index)) t_index = t_id
     if (present(t_size)) t_size = t_cnt
-    allocate(times(t_cnt), source=self%times(t_id:t_end))
+    if (present(times)) allocate(times(t_cnt), source=self%times(t_id:t_end))
   end subroutine input_chunk_times
 
   !> \brief Close the file
