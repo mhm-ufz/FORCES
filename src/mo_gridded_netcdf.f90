@@ -140,6 +140,7 @@ module mo_gridded_netcdf
     procedure, public :: init => input_init
     procedure, public :: read => input_read
     procedure, public :: read_chunk => input_read_chunk
+    procedure, public :: read_chunk_by_ids => input_read_chunk_by_ids
     procedure, public :: read_static => input_read_static
     procedure, public :: chunk_times => input_chunk_times
     procedure, public :: close => input_close
@@ -761,42 +762,44 @@ contains
     type(datetime), dimension(:), allocatable, intent(out) :: times !< timestamps for the data stack
     real(dp), dimension(:,:), allocatable, optional, intent(out) :: data !< read data packed by grid mask
     real(dp), dimension(:,:,:), allocatable, optional, intent(out) :: data_matrix !< read data as 2D array
-    integer(i4) :: i, t_start, t_size, t_end, t_index
+    integer(i4) :: t_index, t_size
+    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
+    call self%read_chunk_by_ids(name, t_index, t_size, data, data_matrix)
+  end subroutine input_read_chunk
+
+  !> \brief Read an input variable for a given time frame
+  subroutine input_read_chunk_by_ids(self, name, t_index, t_size, data, data_matrix)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    integer(i4), intent(in) :: t_index !< start index of time frame
+    integer(i4), intent(in) :: t_size !< chunk size
+    real(dp), dimension(:,:), allocatable, optional, intent(out) :: data !< read data packed by grid mask
+    real(dp), dimension(:,:,:), allocatable, optional, intent(out) :: data_matrix !< read data as 2D array
+    integer(i4) :: i
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
     do i = 1_i4, self%nvars
       if (self%vars(i)%name == name) then
-        if (timeframe_start < self%times(1)) then
-          t_start = 0_i4
-        else
-          t_start = time_index(self%times, timeframe_start)
-        end if
-        if (timeframe_end > self%times(size(self%times))) then
-          t_end = size(self%times)
-        else
-          t_end = time_index(self%times, timeframe_end)
-        end if
-        t_size = t_end - t_start
-        t_index = t_start + 1_i4 ! times array has endpoints as references for time-spans, so we start with the next one
-        print*, "id", t_index, " size", t_size
-        allocate(times(t_size), source=self%times(t_index:t_end))
         if (present(data)) allocate(data(self%grid%ncells, t_size))
         if (present(data_matrix)) allocate(data_matrix(self%grid%nx, self%grid%ny, t_size))
-        ! if data or data_matrix is not allocated they are recognized as ".not.present" by fortran
         call self%vars(i)%read_chunk(flip_y=self%flip_y, t_index=t_index, t_size=t_size, data=data, data_matrix=data_matrix)
         return
       end if
     end do
     call error_message("input%read: variable not present: ", name)
-  end subroutine input_read_chunk
+  end subroutine input_read_chunk_by_ids
 
   !> \brief Get times array for selected chunk time frame
-  subroutine input_chunk_times(self, timeframe_start, timeframe_end, times)
+  subroutine input_chunk_times(self, timeframe_start, timeframe_end, times, t_index, t_size)
     implicit none
     class(input_dataset), intent(inout) :: self
     type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out) :: times !< timestamps for the data stack
-    integer(i4) :: t_start, t_size, t_end, t_index
+    integer(i4), intent(out), optional :: t_index !< starting index of time frame
+    integer(i4), intent(out), optional :: t_size !< chunk size of time frame
+    integer(i4) :: t_start, t_end, t_cnt, t_id
     if (self%static) call error_message("input%chunk_times: file has no time: ", self%path)
     if (timeframe_start < self%times(1)) then
       t_start = 0_i4
@@ -808,9 +811,11 @@ contains
     else
       t_end = time_index(self%times, timeframe_end)
     end if
-    t_size = t_end - t_start
-    t_index = t_start + 1_i4 ! times array has endpoints as references for time-spans, so we start with the next one
-    allocate(times(t_size), source=self%times(t_index:t_end))
+    t_cnt = t_end - t_start
+    t_id = t_start + 1_i4 ! times array has endpoints as references for time-spans, so we start with the next one
+    if (present(t_index)) t_index = t_id
+    if (present(t_size)) t_size = t_cnt
+    allocate(times(t_cnt), source=self%times(t_id:t_end))
   end subroutine input_chunk_times
 
   !> \brief Close the file
