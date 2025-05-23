@@ -26,16 +26,16 @@
 module mo_gridded_netcdf
 
   use mo_kind, only : i4, dp, sp
-  use mo_grid, only: grid_t, cartesian
+  use mo_grid, only: grid_t, cartesian, is_t_axis, check_uniform_axis, bottom_up
   use mo_constants, only : nodata_dp, nodata_sp
   use mo_netcdf, only : NcDataset, NcDimension, NcVariable
-  use mo_datetime, only : datetime, timedelta, delta_from_string
+  use mo_datetime, only : datetime, timedelta, delta_from_string, decode_cf_time_units, one_day, one_hour
   use mo_list, only : list, key_list
   use mo_message, only : error_message, warn_message
-
+  use mo_utils, only: is_close, flip
   implicit none
 
-  public :: var, output_dataset, time_units_delta
+  public :: var, output_dataset, input_dataset, time_units_delta, time_index
 
   private
 
@@ -71,9 +71,9 @@ module mo_gridded_netcdf
   !> \class output_variable
   !> \brief netcdf output variable container for a 2D variable
   type, extends(var) :: output_variable
-    type(NcVariable) :: nc                     !< NcDataset which contains the variable
-    real(dp), allocatable :: data(:)           !< store the data between writes
+    type(NcVariable) :: nc                     !< nc variable which contains the variable
     type(grid_t), pointer :: grid => null()    !< horizontal grid the data is defined on
+    real(dp), allocatable :: data(:)           !< store the data between writes
     integer(i4) :: counter = 0_i4              !< count the number of updateVariable calls
     logical :: static_written = .false.        !< static variable was written
   contains
@@ -81,6 +81,17 @@ module mo_gridded_netcdf
     procedure, public :: update => out_var_update
     procedure, public :: write => out_var_write
   end type output_variable
+
+  !> \class input_variable
+  !> \brief netcdf input variable container for a 2D variable
+  type, extends(var) :: input_variable
+    type(NcVariable) :: nc                     !< nc variable which contains the variable
+    type(grid_t), pointer :: grid => null()    !< horizontal grid the data is defined on
+  contains
+    procedure, public :: init => in_var_init
+    procedure, public :: read => in_var_read
+    procedure, public :: read_chunk => in_var_read_chunk
+  end type input_variable
 
   !> \class output_dataset
   !> \brief netcdf output dataset handler for gridded data
@@ -108,6 +119,31 @@ module mo_gridded_netcdf
     procedure, public :: write_static => output_write_static
     procedure, public :: close => output_close
   end type output_dataset
+
+  !> \class input_dataset
+  !> \brief netcdf input dataset handler for gridded data
+  !> \details Input dataset handler for static and temporal data.
+  type input_dataset
+    type(grid_t), pointer :: grid => null()       !< horizontal grid the data is defined on
+    character(:), allocatable :: path             !< path to the NetCDF file
+    type(NcDataset) :: nc                         !< NcDataset to write
+    type(input_variable), allocatable :: vars(:)  !< store all created (dynamic) variables
+    integer(i4) :: nvars                          !< number of variables
+    logical :: static                             !< only static variables (without time dimension)
+    logical :: flip_y                             !< whether to flip arrays along y-direction
+    type(datetime) :: start_time                  !< start time for time units
+    type(timedelta) :: delta                      !< time step in time units definition
+    integer(i4) :: timestep                       !< timestep in the file
+    integer(i4), allocatable :: t_values(:)       !< time axis values for ends of time spans
+    type(datetime), allocatable :: times(:)       !< time axis values for ends of time spans
+  contains
+    procedure, public :: init => input_init
+    procedure, public :: read => input_read
+    procedure, public :: read_chunk => input_read_chunk
+    procedure, public :: read_static => input_read_static
+    procedure, public :: chunk_times => input_chunk_times
+    procedure, public :: close => input_close
+  end type input_dataset
 
 contains
 
@@ -166,6 +202,119 @@ contains
         call error_message("output_dataset%write: timestamp has no valid value.")
     end select
   end subroutine time_values
+
+  !> \brief determine time-stepping time-dimension depending on given datetimes.
+  subroutine time_stepping(t_var, timestamp, start_time, delta, timestep, t_values)
+    type(NcVariable), intent(in) :: t_var !< time variable
+    integer(i4), intent(in) :: timestamp !< timestamp location selector
+    type(datetime), intent(out) :: start_time !< starting time in units
+    type(timedelta), intent(out) :: delta !< time delta in units
+    integer(i4), intent(out) ::  timestep !< time step indicator
+    integer(i4), allocatable, dimension(:), intent(out) :: t_values !< time axis values for end of time spans
+    integer(i4), allocatable, dimension(:) :: tmp_arr, t_diffs
+    type(timedelta) :: loc_delta ! local time delta in units
+    type(datetime) :: loc_date
+    integer(i4) :: dt, i
+    real(dp) :: dt_dp
+    logical :: is_monthly, is_yearly
+    character(len=256) :: tmp_str
+    type(NcVariable) :: tb_var
+    integer(i4), allocatable, dimension(:,:) :: t_bnds
+
+    call t_var%getAttribute("units", tmp_str)
+    call decode_cf_time_units(trim(tmp_str), delta, start_time)
+    ! check bounds
+    if (t_var%hasAttribute("bounds")) then
+      call t_var%getAttribute("bounds", tmp_str)
+      tb_var = t_var%parent%getVariable(trim(tmp_str))
+      call tb_var%getData(t_bnds)
+      t_values = t_bnds(2, :) ! upper bound as reference value
+    else if (timestamp == end_timestamp) then
+      call t_var%getData(t_values)
+    else if (timestamp == start_timestamp) then
+      call t_var%getData(tmp_arr)
+      if (size(tmp_arr) == 1_i4) then
+        ! assume same step as with initial value
+        allocate(t_values(1), source=2*tmp_arr(1))
+      else
+        allocate(t_values(size(tmp_arr)))
+        t_values(:size(tmp_arr)-1) = tmp_arr(2:)
+        ! assume last time-step has same size as second last
+        t_values(size(tmp_arr)) = 2 * tmp_arr(size(tmp_arr)) - tmp_arr(size(tmp_arr)-1)
+      end if
+    else ! center or others
+      call error_message("time_stepping: can't convert center of time-span to output time values")
+    end if
+
+    ! check t_values for stepping
+    if (size(t_values)==1) then
+      if (allocated(t_bnds)) then
+        loc_delta = (t_bnds(2,1) - t_bnds(1,1)) * delta
+      else
+        loc_delta = delta
+      end if
+      if (loc_delta == one_day()) then
+        timestep = daily
+      else if (loc_delta == one_hour()) then
+        timestep = hourly
+      else
+        call error_message("time_stepping: could not determine time step size")
+      end if
+    else
+      if (allocated(t_bnds)) then
+        t_diffs = t_bnds(2,:) - t_bnds(1,:)
+      else
+        t_diffs = t_values(2:) - t_values(:size(t_values)-1)
+      end if
+      dt = t_diffs(1)
+      if (all(t_diffs==dt)) then
+        loc_delta = dt * delta
+        if (loc_delta == one_day()) then
+          timestep = daily
+        else if (loc_delta == one_hour()) then
+          timestep = hourly
+        else
+          dt_dp = loc_delta / one_hour()
+          timestep = nint(dt_dp, i4)
+          if (.not.is_close(dt_dp, real(timestep, dp))) call error_message("time_stepping: could not determine time step size")
+        end if
+      else
+        is_yearly = .true.
+        is_monthly = .true.
+        do i = 1_i4, size(t_values)
+          loc_date = start_time + t_values(i) * delta
+          is_monthly = is_monthly .and. loc_date%is_new_month()
+          is_yearly = is_yearly .and. loc_date%is_new_year()
+        end do
+        if (is_yearly) timestep = yearly
+        if (is_monthly) timestep = monthly
+        if (.not.(is_yearly.or.is_monthly)) timestep = varying
+      end if
+    end if
+
+  end subroutine time_stepping
+
+  !> \brief get time index for current time
+  integer(i4) function time_index(times, current_time, raise, found)
+    type(datetime), dimension(:), intent(in) :: times !< available times
+    type(datetime), intent(in) :: current_time !< current read time
+    logical, intent(in), optional :: raise !< switch to raise error if time not found
+    logical, intent(out), optional :: found !< time was found
+    integer(i4) :: i
+    logical :: found_ = .false.
+    logical :: raise_ = .true.
+    if (present(raise)) raise_ = raise
+    do i = 1_i4, size(times)
+      if (current_time == times(i)) then
+        found_ = .true.
+        exit
+      end if
+    end do
+    if (.not.found_.and.raise_) call error_message("time_index: current time not available: ", current_time%str())
+    if (.not.found_) i = 0_i4
+    if (present(found)) found = found_
+    time_index = i
+  end function time_index
 
   !> \brief initialize output_variable
   subroutine out_var_init(self, meta, nc, grid, dims, double_precision, deflate_level)
@@ -253,6 +402,114 @@ contains
     self%counter = 0_i4
   end subroutine out_var_write
 
+  !> \brief initialize input_variable
+  subroutine in_var_init(self, meta, nc, grid)
+    implicit none
+    class(input_variable), intent(inout) :: self
+    type(var), intent(in) :: meta !< variable definition
+    type(NcDataset), intent(in) :: nc !< NcDataset to write
+    type(grid_t), pointer, intent(in) :: grid !< grid definition
+    type(NcDimension), dimension(:), allocatable :: dims
+    type(NcVariable) :: t_var
+    integer(i4) :: nx, ny, rnk
+    character(len=256) :: tmp_str
+    self%name = meta%name
+    self%nc = nc%getVariable(self%name)
+    self%grid => grid
+    rnk = self%nc%getRank()
+    if (rnk < 2_i4) call error_message("input_variable: given variable has too few dimensions: ", trim(nc%fname), ":", self%name)
+    if (rnk > 3_i4) call error_message("input_variable: given variable has too many dimensions: ", trim(nc%fname), ":", self%name)
+    dims = self%nc%getDimensions()
+    nx = dims(1)%getLength()
+    ny = dims(2)%getLength()
+    if (nx /= grid%nx .or. ny /= grid%ny) call error_message("input_variable: variable not matching grid: ", self%name)
+
+    self%static = meta%static
+    if (rnk == 3_i4) then
+      t_var = nc%getVariable(trim(dims(3)%getName()))
+      if (.not.is_t_axis(t_var)) call error_message("input_variable: 3rd axis is not time: ", self%name)
+      if (meta%static) call error_message("input_variable: variable not static as expected: ", self%name)
+    else
+      if (.not.meta%static) call error_message("input_variable: variable not temporal as expected: ", self%name)
+    end if
+
+    if (allocated(meta%standard_name)) self%standard_name = meta%standard_name
+    if (self%nc%hasAttribute("standard_name")) then
+      call self%nc%getAttribute("standard_name", tmp_str)
+      self%standard_name = trim(tmp_str)
+    end if
+    if (allocated(meta%standard_name)) then
+      if (meta%standard_name/=self%standard_name) call warn_message("input_variable: variable standard name not as expected: ", &
+                                                                    self%name, ", ", meta%standard_name, "=/=", self%standard_name)
+    end if
+
+    if (allocated(meta%units)) self%units = meta%units
+    if (self%nc%hasAttribute("units")) then
+      call self%nc%getAttribute("units", tmp_str)
+      self%units = trim(tmp_str)
+    end if
+    if (allocated(meta%units)) then
+      if (meta%units/=self%units) call warn_message("input_variable: variable units not as expected: ", &
+                                                    self%name, ", ", meta%units, "=/=", self%units)
+    end if
+
+    ! don't check long-name
+    if (allocated(meta%long_name)) self%long_name = meta%long_name
+    if (self%nc%hasAttribute("long_name")) then
+      call self%nc%getAttribute("long_name", tmp_str)
+      self%long_name = trim(tmp_str)
+    end if
+  end subroutine in_var_init
+
+  !> \brief read from input variable
+  subroutine in_var_read(self, flip_y, t_index, data, data_matrix)
+    implicit none
+    class(input_variable), intent(inout) :: self
+    logical, intent(in) :: flip_y !< flip data along y-axis
+    integer(i4), intent(in), optional :: t_index !< current time step
+    real(dp), dimension(self%grid%ncells), optional, intent(out) :: data !< read data packed by grid mask
+    real(dp), dimension(self%grid%nx, self%grid%ny), optional, intent(out) :: data_matrix !< read data as 2D array
+    real(dp), dimension(:,:), allocatable :: read_data
+    if (self%static) then
+      call self%nc%getData(read_data)
+    else
+      if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
+      if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
+      call self%nc%getData(read_data, start=[1_i4, 1_i4, t_index], cnt=[self%grid%nx, self%grid%ny, 1_i4])
+    end if
+    if (flip_y) call flip(read_data, idim=2)
+    if (present(data)) data = pack(read_data, self%grid%mask)
+    if (present(data_matrix)) data_matrix = read_data
+    deallocate(read_data)
+  end subroutine in_var_read
+
+  !> \brief read from input variable
+  subroutine in_var_read_chunk(self, flip_y, t_index, t_size, data, data_matrix)
+    implicit none
+    class(input_variable), intent(inout) :: self
+    logical, intent(in) :: flip_y !< flip data along y-axis
+    integer(i4), intent(in) :: t_index !< current time step
+    integer(i4), intent(in) :: t_size !< chunk size
+    real(dp), dimension(:,:), allocatable, optional, intent(out) :: data !< read data packed by grid mask
+    real(dp), dimension(:,:,:), allocatable, optional, intent(out) :: data_matrix !< read data as 2D array
+    real(dp), dimension(:,:,:), allocatable :: read_data
+    integer(i4) :: i
+    if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
+    call self%nc%getData(read_data, start=[1_i4, 1_i4, t_index], cnt=[self%grid%nx, self%grid%ny, t_size])
+    if (flip_y) call flip(read_data, idim=2)
+    if (present(data)) then
+      allocate(data(self%grid%ncells, t_size))
+      do i = 1_i4, t_size
+        data(:,i) = pack(read_data(:,:,i), self%grid%mask)
+      end do
+    end if
+    if (present(data_matrix)) then
+      allocate(data_matrix(self%grid%nx, self%grid%ny, t_size))
+      data_matrix = read_data
+    end if
+    deallocate(read_data)
+  end subroutine in_var_read_chunk
+
   !> \brief Initialize output_dataset
   !> \details Create and initialize the output file. If new a new output
   !! variable needs to be written, this is the first of two
@@ -278,7 +535,6 @@ contains
     logical, intent(in), optional :: double_precision !< switch to select double precision variables (.true. by default)
     integer(i4), intent(in), optional :: deflate_level !< deflate level for compression
 
-    type(output_variable), pointer :: variable
     character(:), allocatable :: units, units_dt
     type(NcDimension) :: t_dim, b_dim, x_dim, y_dim, dims(3)
     type(NcVariable) :: t_var
@@ -413,5 +669,158 @@ contains
     call self%nc%close()
     deallocate(self%vars)
   end subroutine output_close
+
+  !> \brief Initialize input_dataset
+  !> \details Create and initialize the output file. If new a new output
+  subroutine input_init(self, path, vars, grid, timestamp)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: path !< path to the file
+    type(var), dimension(:), intent(in) :: vars !< variables of the output file
+    type(grid_t), intent(in), pointer :: grid !< grid definition to check against
+    integer(i4), intent(in), optional :: timestamp !< time stamp location in time span (0: begin, 1: center, 2: end (default))
+    type(NcDimension), allocatable :: dims(:)
+    type(NcVariable) :: t_var
+    integer(i4) :: i
+    logical :: y_inc
+
+    self%path = trim(path)
+    self%nc = NcDataset(self%path, "r")
+    self%grid => grid
+    self%nvars = size(vars)
+    if (self%nvars == 0_i4) call error_message("input_dataset: no variables selected")
+
+    allocate(self%vars(self%nvars))
+    self%static = .true.
+    self%timestep = no_time
+    do i = 1_i4, self%nvars
+      call self%vars(i)%init(vars(i), self%nc, self%grid)
+      if (.not.self%vars(i)%static .and. self%static) then
+        self%static = .false.
+        dims = self%vars(i)%nc%getDimensions()
+        t_var = self%nc%getVariable(trim(dims(3)%getName()))
+        call time_stepping(t_var, timestamp, self%start_time, self%delta, self%timestep, self%t_values)
+        self%times = [(self%start_time + self%t_values(i) * self%delta, i=1_i4,size(self%t_values))]
+      end if
+    end do
+    if (allocated(dims)) deallocate(dims)
+    dims = self%vars(1)%nc%getDimensions()
+    if (self%nc%hasVariable(trim(dims(2)%getName()))) then
+      call check_uniform_axis(self%nc%getVariable(trim(dims(2)%getName())), increasing=y_inc)
+      self%flip_y = y_inc.neqv.(self%grid%y_direction==bottom_up)
+    else
+      self%flip_y = .false.
+    end if
+
+  end subroutine input_init
+
+  !> \brief Read an input variable for a single time step
+  subroutine input_read(self, name, current_time, data, data_matrix)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    type(datetime), intent(in), optional :: current_time !< current time step
+    real(dp), dimension(self%grid%ncells), optional, intent(out) :: data !< read data packed by grid mask
+    real(dp), dimension(self%grid%nx, self%grid%ny), optional, intent(out) :: data_matrix !< read data as 2D array
+    integer(i4) :: i, t_index
+    do i = 1_i4, self%nvars
+      if (self%vars(i)%name == name) then
+        t_index = 0_i4
+        if (present(current_time) .and. allocated(self%times)) t_index = time_index(self%times, current_time)
+        call self%vars(i)%read(flip_y=self%flip_y, t_index=t_index, data=data, data_matrix=data_matrix)
+        return
+      end if
+    end do
+    call error_message("input%read: variable not present: ", name)
+  end subroutine input_read
+
+  !> \brief Read a static input variable
+  subroutine input_read_static(self, name, data, data_matrix)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    real(dp), dimension(self%grid%ncells), optional, intent(out) :: data !< read data packed by grid mask
+    real(dp), dimension(self%grid%nx, self%grid%ny), optional, intent(out) :: data_matrix !< read data as 2D array
+    integer(i4) :: i
+    do i = 1_i4, self%nvars
+      if (self%vars(i)%name == name) then
+        call self%vars(i)%read(flip_y=self%flip_y, data=data, data_matrix=data_matrix)
+        return
+      end if
+    end do
+    call error_message("input%read: variable not present: ", name)
+  end subroutine input_read_static
+
+  !> \brief Read an input variable for a given time frame
+  subroutine input_read_chunk(self, name, timeframe_start, timeframe_end, times, data, data_matrix)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
+    type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
+    type(datetime), dimension(:), allocatable, intent(out) :: times !< timestamps for the data stack
+    real(dp), dimension(:,:), allocatable, optional, intent(out) :: data !< read data packed by grid mask
+    real(dp), dimension(:,:,:), allocatable, optional, intent(out) :: data_matrix !< read data as 2D array
+    integer(i4) :: i, t_start, t_size, t_end, t_index
+    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    do i = 1_i4, self%nvars
+      if (self%vars(i)%name == name) then
+        if (timeframe_start < self%times(1)) then
+          t_start = 0_i4
+        else
+          t_start = time_index(self%times, timeframe_start)
+        end if
+        if (timeframe_end > self%times(size(self%times))) then
+          t_end = size(self%times)
+        else
+          t_end = time_index(self%times, timeframe_end)
+        end if
+        t_size = t_end - t_start
+        t_index = t_start + 1_i4 ! times array has endpoints as references for time-spans, so we start with the next one
+        print*, "id", t_index, " size", t_size
+        allocate(times(t_size), source=self%times(t_index:t_end))
+        if (present(data)) allocate(data(self%grid%ncells, t_size))
+        if (present(data_matrix)) allocate(data_matrix(self%grid%nx, self%grid%ny, t_size))
+        ! if data or data_matrix is not allocated they are recognized as ".not.present" by fortran
+        call self%vars(i)%read_chunk(flip_y=self%flip_y, t_index=t_index, t_size=t_size, data=data, data_matrix=data_matrix)
+        return
+      end if
+    end do
+    call error_message("input%read: variable not present: ", name)
+  end subroutine input_read_chunk
+
+  !> \brief Get times array for selected chunk time frame
+  subroutine input_chunk_times(self, timeframe_start, timeframe_end, times)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
+    type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
+    type(datetime), dimension(:), allocatable, intent(out) :: times !< timestamps for the data stack
+    integer(i4) :: t_start, t_size, t_end, t_index
+    if (self%static) call error_message("input%chunk_times: file has no time: ", self%path)
+    if (timeframe_start < self%times(1)) then
+      t_start = 0_i4
+    else
+      t_start = time_index(self%times, timeframe_start)
+    end if
+    if (timeframe_end > self%times(size(self%times))) then
+      t_end = size(self%times)
+    else
+      t_end = time_index(self%times, timeframe_end)
+    end if
+    t_size = t_end - t_start
+    t_index = t_start + 1_i4 ! times array has endpoints as references for time-spans, so we start with the next one
+    allocate(times(t_size), source=self%times(t_index:t_end))
+  end subroutine input_chunk_times
+
+  !> \brief Close the file
+  subroutine input_close(self)
+    implicit none
+    class(input_dataset) :: self
+    call self%nc%close()
+    deallocate(self%vars)
+    if (allocated(self%times)) deallocate(self%times)
+    if (allocated(self%t_values)) deallocate(self%t_values)
+  end subroutine input_close
 
 end module mo_gridded_netcdf
