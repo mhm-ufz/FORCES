@@ -71,7 +71,7 @@ contains
     @assertEqual(grid%xllcorner, grd2%xllcorner, tolerance=t, message='xllcorner compare')
     @assertEqual(grid%yllcorner, grd2%yllcorner, tolerance=t, message='yllcorner compare')
 
-    call in_ds%init("height.nc", vars, grd2)
+    call in_ds%init("height.nc", grid=grd2, vars=vars)
     allocate(dem_read(grid%nx, grid%ny))
     allocate(height_read(grid%ncells))
     call in_ds%read("dem", data=dem_read)

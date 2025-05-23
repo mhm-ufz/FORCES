@@ -655,13 +655,13 @@ contains
   end subroutine output_close
 
   !> \brief Initialize input_dataset
-  !> \details Create and initialize the output file. If new a new output
+  !> \details Create and initialize the input file handler.
   subroutine input_init(self, path, vars, grid, timestamp)
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: path !< path to the file
-    type(var), dimension(:), intent(in) :: vars !< variables of the output file
     type(grid_t), intent(in), pointer :: grid !< grid definition to check against
+    type(var), dimension(:), intent(in) :: vars !< variables of the output file
     integer(i4), intent(in), optional :: timestamp !< time stamp location in time span (0: begin, 1: center, 2: end (default))
     type(NcDimension), allocatable :: dims(:)
     type(NcVariable) :: t_var
