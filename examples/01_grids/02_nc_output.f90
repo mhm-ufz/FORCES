@@ -31,7 +31,7 @@ program netcdf_output
   model_step = timedelta(hours=1_i4)
 
   ! output time config
-  write_step = daily
+  write_step = monthly
   delta = time_units_delta(write_step, center_timestamp)
 
   ! initialize grid from DEM ascii file
@@ -52,6 +52,7 @@ program netcdf_output
   current_time = start_time
   factor = 0.0_dp
   do while(current_time < end_time)
+    ! update time first
     current_time = current_time + model_step
     ! temporal toy model
     factor = factor + 0.01_dp
