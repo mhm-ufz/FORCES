@@ -16,7 +16,7 @@
 !! - S. Mueller,          Dec 2022
 !!   - unified module for mHM and mRM
 !! - S. Mueller,          May 2025
-!!   - rewrote for FORCES and use general grid datetime type
+!!   - rewrote for FORCES and use general grid and datetime types
 !!
 !> \authors Matthias Zink
 !> \authors Sebastian Müller
@@ -174,15 +174,15 @@ contains
     if (present(timestamp)) stamp = timestamp
     res = "hours" ! default
     if (stamp == center_timestamp) then
-      if (step > 0_i4 .and. mod(step, 2) == 1) res = "minutes"
+      if (step > no_time .and. mod(step, 2) == 1) res = "minutes"
     else
-      if (step < 0_i4) res = "days"
-      if (step > 0_i4 .and. mod(step, 24) == 0) res = "days"
+      if (step < no_time .and. step >= yearly ) res = "days"
+      if (step > no_time .and. mod(step, 24) == 0) res = "days"
     end if
   end function time_units_delta
 
   !> \brief generate values for the time-dimension depending on given datetimes.
-  subroutine time_values(start_time,  previous_time, current_time, delta, timestamp, t_start, t_end, t_stamp)
+  subroutine time_values(start_time, previous_time, current_time, delta, timestamp, t_start, t_end, t_stamp)
     type(datetime), intent(in) :: start_time !< starting time in units
     type(datetime), intent(in) :: previous_time !< previous write-out time
     type(datetime), intent(in) :: current_time !< current write-out time
@@ -289,9 +289,13 @@ contains
           is_monthly = is_monthly .and. loc_date%is_new_month()
           is_yearly = is_yearly .and. loc_date%is_new_year()
         end do
-        if (is_yearly) timestep = yearly
-        if (is_monthly) timestep = monthly
-        if (.not.(is_yearly.or.is_monthly)) timestep = varying
+        if (is_yearly) then
+          timestep = yearly
+        else if (is_monthly) then
+          timestep = monthly
+        else
+          timestep = varying
+        end if
       end if
     end if
 
@@ -495,16 +499,13 @@ contains
   end subroutine in_var_read_chunk
 
   !> \brief Initialize output_dataset
-  !> \details Create and initialize the output file. If new a new output
-  !! variable needs to be written, this is the first of two
-  !! procedures to change (second: updateDataset)
+  !> \details Create and initialize the output file handler.
   !> \changelog
   !! - Robert Schweppe Jun 2018
   !!   - refactoring and reformatting
   !! - Sebastian Mueller Jul 2020
   !!   - added output for river temperature
   !!
-  !> \return type(output_dataset)
   !> \authors Matthias Zink
   !> \date Apr 2013
   subroutine output_init(self, path, grid, vars, start_time, delta, timestamp, double_precision, deflate_level)
