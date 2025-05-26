@@ -67,6 +67,8 @@ module mo_gridded_netcdf
     character(:), allocatable :: kind          !< kind of array for IO ('sp', 'dp' (real default), 'i4' (int default), 'i8')
     logical :: static = .false.                !< static variable (without time dimension)
     logical :: avg = .false.                   !< average data (only for writing)
+  contains
+    procedure, public :: meta => var_meta
   end type var
 
   !> \class output_variable
@@ -124,6 +126,7 @@ module mo_gridded_netcdf
     generic, public :: update => output_update_sp, output_update_dp, output_update_i4, output_update_i8
     procedure, public :: write => output_write
     procedure, public :: write_static => output_write_static
+    procedure, public :: meta => output_meta
     procedure, public :: close => output_close
   end type output_dataset
 
@@ -174,6 +177,7 @@ module mo_gridded_netcdf
     generic, public :: read_chunk_by_ids => input_read_chunk_by_ids_pack_i8, input_read_chunk_by_ids_matrix_i8
     ! others
     procedure, public :: chunk_times => input_chunk_times
+    procedure, public :: meta => input_meta
     procedure, public :: close => input_close
   end type input_dataset
 
@@ -339,6 +343,20 @@ contains
     if (present(found)) found = found_
     time_index = i
   end function time_index
+
+  !> \brief Get variable meta data.
+  !> \return \ref var meta data definition
+  type(var) function var_meta(this)
+    class(var), intent(in) :: this
+    if (allocated(this%name)) var_meta%name = this%name
+    if (allocated(this%long_name)) var_meta%long_name = this%long_name
+    if (allocated(this%standard_name)) var_meta%standard_name = this%standard_name
+    if (allocated(this%units)) var_meta%units = this%units
+    if (allocated(this%dtype)) var_meta%dtype = this%dtype
+    if (allocated(this%kind)) var_meta%kind = this%kind
+    var_meta%static = this%static
+    var_meta%avg = this%avg
+  end function var_meta
 
   !> \brief initialize output_variable
   subroutine out_var_init(self, meta, nc, grid, dims, deflate_level)
@@ -922,6 +940,22 @@ contains
     deallocate(self%vars)
   end subroutine output_close
 
+  !> \brief Get variable meta data.
+  !> \return \ref var meta data definition
+  type(var) function output_meta(self, name)
+    implicit none
+    class(output_dataset) :: self
+    character(*), intent(in) :: name !< name of the variable
+    integer(i4) :: i
+    do i = 1_i4, self%nvars
+      if (self%vars(i)%name == name) then
+        output_meta = self%vars(i)%meta()
+        return
+      end if
+    end do
+    call error_message("output%meta: variable not present: ", name)
+  end function output_meta
+
   !> \brief Initialize input_dataset
   !> \details Create and initialize the input file handler.
   subroutine input_init(self, path, vars, grid, timestamp)
@@ -1423,6 +1457,22 @@ contains
     if (present(t_size)) t_size = t_cnt
     if (present(times)) allocate(times(t_cnt), source=self%times(t_id:t_end))
   end subroutine input_chunk_times
+
+  !> \brief Get variable meta data.
+  !> \return \ref var meta data definition
+  type(var) function input_meta(self, name)
+    implicit none
+    class(input_dataset) :: self
+    character(*), intent(in) :: name !< name of the variable
+    integer(i4) :: i
+    do i = 1_i4, self%nvars
+      if (self%vars(i)%name == name) then
+        input_meta = self%vars(i)%meta()
+        return
+      end if
+    end do
+    call error_message("input%meta: variable not present: ", name)
+  end function input_meta
 
   !> \brief Close the file
   subroutine input_close(self)
