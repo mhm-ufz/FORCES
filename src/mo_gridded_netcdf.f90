@@ -25,12 +25,11 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_gridded_netcdf
 
-  use mo_kind, only : i4, dp, sp
+  use mo_kind, only : i4, i8, dp, sp
+  use mo_constants, only : nodata_dp, nodata_sp, nodata_i4, nodata_i8
   use mo_grid, only: grid_t, cartesian, is_t_axis, check_uniform_axis, bottom_up
-  use mo_constants, only : nodata_dp, nodata_sp
   use mo_netcdf, only : NcDataset, NcDimension, NcVariable
   use mo_datetime, only : datetime, timedelta, delta_from_string, decode_cf_time_units, one_day, one_hour
-  use mo_list, only : list, key_list
   use mo_message, only : error_message, warn_message
   use mo_utils, only: is_close, flip
   implicit none
@@ -60,10 +59,12 @@ module mo_gridded_netcdf
   !> \class var
   !> \brief variable metadata definition for a 2D variable
   type var
-    character(:), allocatable :: name          !< variable name in the NetCDF file
+    character(:), allocatable :: name          !< variable name in the NetCDF file (required)
     character(:), allocatable :: long_name     !< descriptive variable name
     character(:), allocatable :: standard_name !< standard variable name following CF-Conventions
     character(:), allocatable :: units         !< variable units
+    character(:), allocatable :: dtype         !< variable data type in file ('f32', 'f64' (default), 'i16', 'i32', 'i64')
+    character(:), allocatable :: kind          !< kind of array for IO ('sp', 'dp' (real default), 'i4' (int default), 'i8')
     logical :: static = .false.                !< static variable (without time dimension)
     logical :: avg = .false.                   !< average data (only for writing)
   end type var
@@ -73,12 +74,16 @@ module mo_gridded_netcdf
   type, extends(var) :: output_variable
     type(NcVariable) :: nc                     !< nc variable which contains the variable
     type(grid_t), pointer :: grid => null()    !< horizontal grid the data is defined on
-    real(dp), allocatable :: data(:)           !< store the data between writes
+    real(sp), allocatable :: data_sp(:)        !< store the data between writes (real)
+    real(dp), allocatable :: data_dp(:)        !< store the data between writes (real)
+    integer(i4), allocatable :: data_i4(:)     !< store the data between writes (integer)
+    integer(i8), allocatable :: data_i8(:)     !< store the data between writes (integer)
     integer(i4) :: counter = 0_i4              !< count the number of updateVariable calls
     logical :: static_written = .false.        !< static variable was written
   contains
     procedure, public :: init => out_var_init
-    procedure, public :: update => out_var_update
+    procedure, private :: out_var_update_sp, out_var_update_dp, out_var_update_i4, out_var_update_i8
+    generic, public :: update => out_var_update_sp, out_var_update_dp, out_var_update_i4, out_var_update_i8
     procedure, public :: write => out_var_write
   end type output_variable
 
@@ -89,8 +94,10 @@ module mo_gridded_netcdf
     type(grid_t), pointer :: grid => null()    !< horizontal grid the data is defined on
   contains
     procedure, public :: init => in_var_init
-    procedure, public :: read => in_var_read
-    procedure, public :: read_chunk => in_var_read_chunk
+    procedure, private :: in_var_read_sp, in_var_read_dp, in_var_read_i4, in_var_read_i8
+    generic, public :: read => in_var_read_sp, in_var_read_dp, in_var_read_i4, in_var_read_i8
+    procedure, private :: in_var_read_chunk_sp, in_var_read_chunk_dp, in_var_read_chunk_i4, in_var_read_chunk_i8
+    generic, public :: read_chunk => in_var_read_chunk_sp, in_var_read_chunk_dp, in_var_read_chunk_i4, in_var_read_chunk_i8
   end type input_variable
 
   !> \class output_dataset
@@ -110,11 +117,11 @@ module mo_gridded_netcdf
     type(datetime) :: start_time                  !< start time for time units
     type(timedelta) :: delta                      !< time step in time units definition
     integer(i4) :: timestamp = end_timestamp      !< time stamp reference (0: begin, 1: center, 2: end of time interval)
-    logical :: double_precision = .true.          !< output precision switch for nc files
     integer(i4) :: deflate_level = 6_i4           !< deflate level for compression
   contains
     procedure, public :: init => output_init
-    procedure, public :: update => output_update
+    procedure, private :: output_update_sp, output_update_dp, output_update_i4, output_update_i8
+    generic, public :: update => output_update_sp, output_update_dp, output_update_i4, output_update_i8
     procedure, public :: write => output_write
     procedure, public :: write_static => output_write_static
     procedure, public :: close => output_close
@@ -138,29 +145,39 @@ module mo_gridded_netcdf
     type(datetime), allocatable :: times(:)       !< time axis values for ends of time spans
   contains
     procedure, public :: init => input_init
-    procedure, private :: input_read_pack, input_read_matrix
-    generic, public :: read => input_read_pack, input_read_matrix
-    procedure, private :: input_read_chunk_pack, input_read_chunk_matrix
-    generic, public :: read_chunk => input_read_chunk_pack, input_read_chunk_matrix
-    procedure, private :: input_read_chunk_by_ids_pack, input_read_chunk_by_ids_matrix
-    generic, public :: read_chunk_by_ids => input_read_chunk_by_ids_pack, input_read_chunk_by_ids_matrix
+    ! read
+    procedure, private :: input_read_pack_sp, input_read_matrix_sp
+    generic, public :: read => input_read_pack_sp, input_read_matrix_sp
+    procedure, private :: input_read_pack_dp, input_read_matrix_dp
+    generic, public :: read => input_read_pack_dp, input_read_matrix_dp
+    procedure, private :: input_read_pack_i4, input_read_matrix_i4
+    generic, public :: read => input_read_pack_i4, input_read_matrix_i4
+    procedure, private :: input_read_pack_i8, input_read_matrix_i8
+    generic, public :: read => input_read_pack_i8, input_read_matrix_i8
+    ! read_chunk
+    procedure, private :: input_read_chunk_pack_sp, input_read_chunk_matrix_sp
+    generic, public :: read_chunk => input_read_chunk_pack_sp, input_read_chunk_matrix_sp
+    procedure, private :: input_read_chunk_pack_dp, input_read_chunk_matrix_dp
+    generic, public :: read_chunk => input_read_chunk_pack_dp, input_read_chunk_matrix_dp
+    procedure, private :: input_read_chunk_pack_i4, input_read_chunk_matrix_i4
+    generic, public :: read_chunk => input_read_chunk_pack_i4, input_read_chunk_matrix_i4
+    procedure, private :: input_read_chunk_pack_i8, input_read_chunk_matrix_i8
+    generic, public :: read_chunk => input_read_chunk_pack_i8, input_read_chunk_matrix_i8
+    ! read_chunk_by_ids
+    procedure, private :: input_read_chunk_by_ids_pack_sp, input_read_chunk_by_ids_matrix_sp
+    generic, public :: read_chunk_by_ids => input_read_chunk_by_ids_pack_sp, input_read_chunk_by_ids_matrix_sp
+    procedure, private :: input_read_chunk_by_ids_pack_dp, input_read_chunk_by_ids_matrix_dp
+    generic, public :: read_chunk_by_ids => input_read_chunk_by_ids_pack_dp, input_read_chunk_by_ids_matrix_dp
+    procedure, private :: input_read_chunk_by_ids_pack_i4, input_read_chunk_by_ids_matrix_i4
+    generic, public :: read_chunk_by_ids => input_read_chunk_by_ids_pack_i4, input_read_chunk_by_ids_matrix_i4
+    procedure, private :: input_read_chunk_by_ids_pack_i8, input_read_chunk_by_ids_matrix_i8
+    generic, public :: read_chunk_by_ids => input_read_chunk_by_ids_pack_i8, input_read_chunk_by_ids_matrix_i8
+    ! others
     procedure, public :: chunk_times => input_chunk_times
     procedure, public :: close => input_close
   end type input_dataset
 
 contains
-
-  !> \brief variable dtype for single or double precision.
-  !> \return "f64" or "f32"
-  character(3) function dtype(double_precision)
-    implicit none
-    logical, intent(in) :: double_precision !< flag to use double precision
-    if ( double_precision ) then
-      dtype = "f64"
-    else
-      dtype = "f32"
-    end if
-  end function dtype
 
   !> \brief Determine time units delta from time stepping and selected timestamp.
   !> \return "minutes", "hours" or "days"
@@ -324,24 +341,25 @@ contains
   end function time_index
 
   !> \brief initialize output_variable
-  subroutine out_var_init(self, meta, nc, grid, dims, double_precision, deflate_level)
+  subroutine out_var_init(self, meta, nc, grid, dims, deflate_level)
     implicit none
     class(output_variable), intent(inout) :: self
     type(var), intent(in) :: meta !< variable definition
     type(NcDataset), intent(in) :: nc !< NcDataset to write
     type(grid_t), pointer, intent(in) :: grid !< grid definition
     type(NcDimension), dimension(:), intent(in) :: dims !< dimensions in the file
-    logical, intent(in) :: double_precision !< flag to use double precision
     integer(i4), intent(in) :: deflate_level !< deflate level for compression
 
     self%name = meta%name
     self%static = meta%static
     self%avg = meta%avg
+    self%dtype = "f64" ! default to double
+    if (allocated(meta%dtype)) self%dtype = trim(meta%dtype)
 
     if (self%static) then
-      self%nc = nc%setVariable(self%name, dtype(double_precision), dims(:2), deflate_level=deflate_level, shuffle=.true.)
+      self%nc = nc%setVariable(self%name, self%dtype, dims(:2), deflate_level=deflate_level, shuffle=.true.)
     else
-      self%nc = nc%setVariable(self%name, dtype(double_precision), dims(:3), deflate_level=deflate_level, shuffle=.true.)
+      self%nc = nc%setVariable(self%name, self%dtype, dims(:3), deflate_level=deflate_level, shuffle=.true.)
     end if
 
     if (allocated(meta%long_name)) self%long_name = meta%long_name
@@ -352,33 +370,87 @@ contains
     if (allocated(self%standard_name)) call self%nc%setAttribute("standard_name", self%standard_name)
     if (allocated(self%units)) call self%nc%setAttribute("units", self%units)
 
-    if (double_precision) then
-      call self%nc%setFillValue(nodata_dp)
-      call self%nc%setAttribute("missing_value", nodata_dp)
-    else
-      call self%nc%setFillValue(nodata_sp)
-      call self%nc%setAttribute("missing_value", nodata_sp)
-    end if
-
     self%grid => grid
-    allocate(self%data(self%grid%ncells), source=0.0_dp)
+    ! input data is still either real(dp) or integer(i4)
+    select case(self%dtype)
+      case("f32")
+        call self%nc%setFillValue(nodata_sp)
+        call self%nc%setAttribute("missing_value", nodata_sp)
+        self%kind = "dp" ! double precision as default for real data
+      case("f64")
+        call self%nc%setFillValue(nodata_dp)
+        call self%nc%setAttribute("missing_value", nodata_dp)
+        self%kind = "dp" ! double precision as default for real data
+      case("i32")
+        call self%nc%setFillValue(nodata_i4)
+        call self%nc%setAttribute("missing_value", nodata_i4)
+        self%kind = "i4" ! 4 byte integers as default for int data
+      case("i64")
+        call self%nc%setFillValue(nodata_i8)
+        call self%nc%setAttribute("missing_value", nodata_i8)
+        self%kind = "i4" ! 4 byte integers as default for int data
+      case default
+        call error_message("output_variable: unsupported dtype: ", self%name, ": ", self%dtype)
+    end select
+    if (allocated(meta%kind)) then
+      self%kind = meta%kind
+      if ((self%dtype(1:1) == "f" .and. meta%kind(2:2) /= "p") .or. (self%dtype(1:1) == "i" .and. meta%kind(1:1) /= "i")) &
+        call warn_message("output_variable: variable dtype and array kind will result in conversion: ", &
+                          self%name, ", dtype: ", self%dtype, ", kind:", self%kind)
+    end if
+    select case(self%kind)
+      case("sp")
+        allocate(self%data_sp(self%grid%ncells), source=0.0_sp)
+      case("dp")
+        allocate(self%data_dp(self%grid%ncells), source=0.0_dp)
+      case("i4")
+        allocate(self%data_i4(self%grid%ncells), source=0_i4)
+      case("i8")
+        allocate(self%data_i8(self%grid%ncells), source=0_i8)
+      case default
+        call error_message("output_variable: unsupported kind: ", self%name, ": ", self%kind)
+    end select
   end subroutine out_var_init
 
   !> \brief Update output_variable
-  !> \details Add the array given as actual argument to the derived type's component 'data'
-  !> \changelog
-  !! - Robert Schweppe Jun 2018
-  !!   - refactoring and reformatting
-  !!
-  !> \authors David Schaefer
-  !> \date June 2015
-  subroutine out_var_update(self, data)
+  subroutine out_var_update_sp(self, data)
+    implicit none
+    class(output_variable), intent(inout) :: self
+    real(sp), intent(in), dimension(:) :: data !< data for current time step
+    if (.not.allocated(self%data_sp)) call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=sp")
+    self%data_sp = self%data_sp + data
+    self%counter = self%counter + 1_i4
+  end subroutine out_var_update_sp
+
+  !> \brief Update output_variable
+  subroutine out_var_update_dp(self, data)
     implicit none
     class(output_variable), intent(inout) :: self
     real(dp), intent(in), dimension(:) :: data !< data for current time step
-    self%data = self%data + data
+    if (.not.allocated(self%data_dp)) call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=dp")
+    self%data_dp = self%data_dp + data
     self%counter = self%counter + 1_i4
-  end subroutine out_var_update
+  end subroutine out_var_update_dp
+
+  !> \brief Update output_variable
+  subroutine out_var_update_i4(self, data)
+    implicit none
+    class(output_variable), intent(inout) :: self
+    integer(i4), intent(in), dimension(:) :: data !< data for current time step
+    if (.not.allocated(self%data_i4)) call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=i4")
+    self%data_i4 = self%data_i4 + data
+    self%counter = self%counter + 1_i4
+  end subroutine out_var_update_i4
+
+  !> \brief Update output_variable
+  subroutine out_var_update_i8(self, data)
+    implicit none
+    class(output_variable), intent(inout) :: self
+    integer(i8), intent(in), dimension(:) :: data !< data for current time step
+    if (.not.allocated(self%data_i8)) call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=i8")
+    self%data_i8 = self%data_i8 + data
+    self%counter = self%counter + 1_i4
+  end subroutine out_var_update_i8
 
   !> \brief Write timestep to file
   !> \details Write the content of the derived types's component 'data' to file, average if necessary
@@ -394,18 +466,54 @@ contains
     !> index along the time dimension of the netcdf variable
     integer(i4), intent(in), optional :: t_index
     if (self%static .and. self%static_written) return
-    if (self%counter == 0_i4) call error_message("out_variable: no data was added before writing: ", self%name)
+    if (self%counter == 0_i4) call error_message("output_variable: no data was added before writing: ", self%name)
     if (self%avg) then
-      self%data = self%data / real(self%counter, dp)
+      select case(self%kind)
+        case("sp")
+          self%data_sp = self%data_sp / real(self%counter, sp)
+        case("dp")
+          self%data_dp = self%data_dp / real(self%counter, dp)
+        case("i4")
+          self%data_i4 = self%data_i4 / self%counter ! this is rounding
+        case("i8")
+          self%data_i8 = self%data_i8 / int(self%counter, i8)  ! this is rounding
+      end select
     end if
     if (self%static) then
-      call self%nc%setData(self%grid%unpack(self%data))
+      select case(self%kind)
+        case("sp")
+          call self%nc%setData(self%grid%unpack(self%data_sp))
+        case("dp")
+          call self%nc%setData(self%grid%unpack(self%data_dp))
+        case("i4")
+          call self%nc%setData(self%grid%unpack(self%data_i4))
+        case("i8")
+          call self%nc%setData(self%grid%unpack(self%data_i8))
+      end select
       self%static_written = .true.
     else
-      if (.not.present(t_index)) call error_message("out_variable: no time index was given for temporal variable: ", self%name)
-      call self%nc%setData(self%grid%unpack(self%data), [1_i4, 1_i4, t_index])
+      if (.not.present(t_index)) call error_message("output_variable: no time index was given for temporal variable: ", self%name)
+      select case(self%kind)
+        case("sp")
+          call self%nc%setData(self%grid%unpack(self%data_sp), [1_i4, 1_i4, t_index])
+        case("dp")
+          call self%nc%setData(self%grid%unpack(self%data_dp), [1_i4, 1_i4, t_index])
+        case("i4")
+          call self%nc%setData(self%grid%unpack(self%data_i4), [1_i4, 1_i4, t_index])
+        case("i8")
+          call self%nc%setData(self%grid%unpack(self%data_i8), [1_i4, 1_i4, t_index])
+      end select
     end if
-    self%data = 0.0_dp
+      select case(self%kind)
+        case("sp")
+          self%data_sp = 0.0_sp
+        case("dp")
+          self%data_dp = 0.0_dp
+        case("i4")
+          self%data_i4 = 0_i4
+        case("i8")
+          self%data_i8 = 0_i8
+      end select
     self%counter = 0_i4
   end subroutine out_var_write
 
@@ -440,14 +548,37 @@ contains
       if (.not.meta%static) call error_message("input_variable: variable not temporal as expected: ", self%name)
     end if
 
+    self%dtype = trim(self%nc%getDtype())
+    select case(self%dtype(1:1))
+      case("f")
+        self%kind = "dp"
+      case("i")
+        self%kind = "i4"
+      case default
+        call error_message("input_variable: unsupported dtype: ", self%name, ": ", self%dtype)
+    end select
+    if (allocated(meta%dtype)) then
+      if (meta%dtype/=self%dtype) &
+        call warn_message("input_variable: variable dtype not as expected: ", &
+                          self%name, ", ", meta%dtype, "=/=", self%dtype)
+    end if
+
+    if (allocated(meta%kind)) then
+      self%kind = meta%kind
+      if ((self%dtype(1:1) == "f" .and. meta%kind(2:2) /= "p") .or. (self%dtype(1:1) == "i" .and. meta%kind(1:1) /= "i")) &
+        call warn_message("input_variable: variable dtype and array kind will result in conversion: ", &
+                          self%name, ", dtype: ", self%dtype, ", kind:", self%kind)
+    end if
+
     if (allocated(meta%standard_name)) self%standard_name = meta%standard_name
     if (self%nc%hasAttribute("standard_name")) then
       call self%nc%getAttribute("standard_name", tmp_str)
       self%standard_name = trim(tmp_str)
     end if
     if (allocated(meta%standard_name)) then
-      if (meta%standard_name/=self%standard_name) call warn_message("input_variable: variable standard name not as expected: ", &
-                                                                    self%name, ", ", meta%standard_name, "=/=", self%standard_name)
+      if (meta%standard_name/=self%standard_name) &
+        call warn_message("input_variable: variable standard name not as expected: ", &
+                          self%name, ", ", meta%standard_name, "=/=", self%standard_name)
     end if
 
     if (allocated(meta%units)) self%units = meta%units
@@ -456,8 +587,9 @@ contains
       self%units = trim(tmp_str)
     end if
     if (allocated(meta%units)) then
-      if (meta%units/=self%units) call warn_message("input_variable: variable units not as expected: ", &
-                                                    self%name, ", ", meta%units, "=/=", self%units)
+      if (meta%units/=self%units) &
+        call warn_message("input_variable: variable units not as expected: ", &
+                          self%name, ", ", meta%units, "=/=", self%units)
     end if
 
     ! don't check long-name
@@ -469,7 +601,24 @@ contains
   end subroutine in_var_init
 
   !> \brief read from input variable
-  subroutine in_var_read(self, flip_y, t_index, data)
+  subroutine in_var_read_sp(self, flip_y, t_index, data)
+    implicit none
+    class(input_variable), intent(inout) :: self
+    logical, intent(in) :: flip_y !< flip data along y-axis
+    integer(i4), intent(in), optional :: t_index !< current time step
+    real(sp), dimension(:, :), allocatable, intent(out) :: data !< read data
+    if (self%static) then
+      call self%nc%getData(data)
+    else
+      if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
+      if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
+      call self%nc%getData(data, start=[1_i4, 1_i4, t_index], cnt=[self%grid%nx, self%grid%ny, 1_i4])
+    end if
+    if (flip_y) call flip(data, idim=2)
+  end subroutine in_var_read_sp
+
+  !> \brief read from input variable
+  subroutine in_var_read_dp(self, flip_y, t_index, data)
     implicit none
     class(input_variable), intent(inout) :: self
     logical, intent(in) :: flip_y !< flip data along y-axis
@@ -483,10 +632,57 @@ contains
       call self%nc%getData(data, start=[1_i4, 1_i4, t_index], cnt=[self%grid%nx, self%grid%ny, 1_i4])
     end if
     if (flip_y) call flip(data, idim=2)
-  end subroutine in_var_read
+  end subroutine in_var_read_dp
 
   !> \brief read from input variable
-  subroutine in_var_read_chunk(self, flip_y, t_index, t_size, data)
+  subroutine in_var_read_i4(self, flip_y, t_index, data)
+    implicit none
+    class(input_variable), intent(inout) :: self
+    logical, intent(in) :: flip_y !< flip data along y-axis
+    integer(i4), intent(in), optional :: t_index !< current time step
+    integer(i4), dimension(:, :), allocatable, intent(out) :: data !< read data
+    if (self%static) then
+      call self%nc%getData(data)
+    else
+      if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
+      if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
+      call self%nc%getData(data, start=[1_i4, 1_i4, t_index], cnt=[self%grid%nx, self%grid%ny, 1_i4])
+    end if
+    if (flip_y) call flip(data, idim=2)
+  end subroutine in_var_read_i4
+
+  !> \brief read from input variable
+  subroutine in_var_read_i8(self, flip_y, t_index, data)
+    implicit none
+    class(input_variable), intent(inout) :: self
+    logical, intent(in) :: flip_y !< flip data along y-axis
+    integer(i4), intent(in), optional :: t_index !< current time step
+    integer(i8), dimension(:, :), allocatable, intent(out) :: data !< read data
+    if (self%static) then
+      call self%nc%getData(data)
+    else
+      if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
+      if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
+      call self%nc%getData(data, start=[1_i4, 1_i4, t_index], cnt=[self%grid%nx, self%grid%ny, 1_i4])
+    end if
+    if (flip_y) call flip(data, idim=2)
+  end subroutine in_var_read_i8
+
+  !> \brief read from input variable
+  subroutine in_var_read_chunk_sp(self, flip_y, t_index, t_size, data)
+    implicit none
+    class(input_variable), intent(inout) :: self
+    logical, intent(in) :: flip_y !< flip data along y-axis
+    integer(i4), intent(in) :: t_index !< current time step
+    integer(i4), intent(in) :: t_size !< chunk size
+    real(sp), dimension(:,:,:), allocatable, intent(out) :: data !< read data
+    if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
+    call self%nc%getData(data, start=[1_i4, 1_i4, t_index], cnt=[self%grid%nx, self%grid%ny, t_size])
+    if (flip_y) call flip(data, idim=2)
+  end subroutine in_var_read_chunk_sp
+
+  !> \brief read from input variable
+  subroutine in_var_read_chunk_dp(self, flip_y, t_index, t_size, data)
     implicit none
     class(input_variable), intent(inout) :: self
     logical, intent(in) :: flip_y !< flip data along y-axis
@@ -496,7 +692,33 @@ contains
     if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
     call self%nc%getData(data, start=[1_i4, 1_i4, t_index], cnt=[self%grid%nx, self%grid%ny, t_size])
     if (flip_y) call flip(data, idim=2)
-  end subroutine in_var_read_chunk
+  end subroutine in_var_read_chunk_dp
+
+  !> \brief read from input variable
+  subroutine in_var_read_chunk_i4(self, flip_y, t_index, t_size, data)
+    implicit none
+    class(input_variable), intent(inout) :: self
+    logical, intent(in) :: flip_y !< flip data along y-axis
+    integer(i4), intent(in) :: t_index !< current time step
+    integer(i4), intent(in) :: t_size !< chunk size
+    integer(i4), dimension(:,:,:), allocatable, intent(out) :: data !< read data
+    if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
+    call self%nc%getData(data, start=[1_i4, 1_i4, t_index], cnt=[self%grid%nx, self%grid%ny, t_size])
+    if (flip_y) call flip(data, idim=2)
+  end subroutine in_var_read_chunk_i4
+
+  !> \brief read from input variable
+  subroutine in_var_read_chunk_i8(self, flip_y, t_index, t_size, data)
+    implicit none
+    class(input_variable), intent(inout) :: self
+    logical, intent(in) :: flip_y !< flip data along y-axis
+    integer(i4), intent(in) :: t_index !< current time step
+    integer(i4), intent(in) :: t_size !< chunk size
+    integer(i8), dimension(:,:,:), allocatable, intent(out) :: data !< read data
+    if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
+    call self%nc%getData(data, start=[1_i4, 1_i4, t_index], cnt=[self%grid%nx, self%grid%ny, t_size])
+    if (flip_y) call flip(data, idim=2)
+  end subroutine in_var_read_chunk_i8
 
   !> \brief Initialize output_dataset
   !> \details Create and initialize the output file handler.
@@ -508,7 +730,7 @@ contains
   !!
   !> \authors Matthias Zink
   !> \date Apr 2013
-  subroutine output_init(self, path, grid, vars, start_time, delta, timestamp, double_precision, deflate_level)
+  subroutine output_init(self, path, grid, vars, start_time, delta, timestamp, deflate_level, grid_double_precision)
     implicit none
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: path !< path to the file
@@ -517,8 +739,8 @@ contains
     type(datetime), intent(in), optional :: start_time !< reference time
     character(*), intent(in), optional :: delta !< time units delta ("minutes", "hours" (default), "days")
     integer(i4), intent(in), optional :: timestamp !< time stamp location in time span (0: begin, 1: center, 2: end (default))
-    logical, intent(in), optional :: double_precision !< switch to select double precision variables (.true. by default)
     integer(i4), intent(in), optional :: deflate_level !< deflate level for compression
+    logical, optional, intent(in) :: grid_double_precision !< whether to use double precision to store grid (default .true.)
 
     character(:), allocatable :: units, units_dt
     type(NcDimension) :: t_dim, b_dim, x_dim, y_dim, dims(3)
@@ -530,15 +752,13 @@ contains
     self%grid => grid
     self%counter = 0_i4
 
-    self%double_precision = .true.
-    if (present(double_precision)) self%double_precision = double_precision
     self%deflate_level = 6_i4
     if (present(deflate_level)) self%deflate_level = deflate_level
     self%timestamp = end_timestamp
     if (present(timestamp)) self%timestamp = timestamp
 
     ! write grid specification to file
-    call self%grid%to_netcdf(self%nc, double_precision=self%double_precision)
+    call self%grid%to_netcdf(self%nc, double_precision=grid_double_precision)
 
     self%nvars = size(vars)
     self%static = .true.
@@ -576,13 +796,30 @@ contains
 
     allocate(self%vars(self%nvars))
     do i = 1_i4, self%nvars
-      call self%vars(i)%init(vars(i), self%nc, self%grid, dims, self%double_precision, self%deflate_level)
+      call self%vars(i)%init(vars(i), self%nc, self%grid, dims, self%deflate_level)
     end do
   end subroutine output_init
 
   !> \brief Update a variable
   !> \details Add the array given as actual argument to the derived type's component 'data'
-  subroutine output_update(self, name, data)
+  subroutine output_update_sp(self, name, data)
+    implicit none
+    class(output_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    real(sp), intent(in), dimension(:) :: data !< data for current time step
+    integer(i4) :: i
+    do i = 1_i4, self%nvars
+      if (self%vars(i)%name == name) then
+        call self%vars(i)%update(data)
+        return
+      end if
+    end do
+    call error_message("output%update: variable not present: ", name)
+  end subroutine output_update_sp
+
+  !> \brief Update a variable
+  !> \details Add the array given as actual argument to the derived type's component 'data'
+  subroutine output_update_dp(self, name, data)
     implicit none
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
@@ -595,7 +832,41 @@ contains
       end if
     end do
     call error_message("output%update: variable not present: ", name)
-  end subroutine output_update
+  end subroutine output_update_dp
+
+  !> \brief Update a variable
+  !> \details Add the array given as actual argument to the derived type's component 'data'
+  subroutine output_update_i4(self, name, data)
+    implicit none
+    class(output_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    integer(i4), intent(in), dimension(:) :: data !< data for current time step
+    integer(i4) :: i
+    do i = 1_i4, self%nvars
+      if (self%vars(i)%name == name) then
+        call self%vars(i)%update(data)
+        return
+      end if
+    end do
+    call error_message("output%update: variable not present: ", name)
+  end subroutine output_update_i4
+
+  !> \brief Update a variable
+  !> \details Add the array given as actual argument to the derived type's component 'data'
+  subroutine output_update_i8(self, name, data)
+    implicit none
+    class(output_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    integer(i8), intent(in), dimension(:) :: data !< data for current time step
+    integer(i4) :: i
+    do i = 1_i4, self%nvars
+      if (self%vars(i)%name == name) then
+        call self%vars(i)%update(data)
+        return
+      end if
+    end do
+    call error_message("output%update: variable not present: ", name)
+  end subroutine output_update_i8
 
   !> \brief Write all accumulated data.
   !> \details Write all accumulated and potentially averaged data to disk.
@@ -699,8 +970,117 @@ contains
 
   end subroutine input_init
 
+  ! sp -----
+
   !> \brief Read an input variable for a single time step
-  subroutine input_read_matrix(self, name, data, current_time)
+  subroutine input_read_matrix_sp(self, name, data, current_time)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    real(sp), dimension(self%grid%nx, self%grid%ny), intent(out) :: data !< read data
+    type(datetime), intent(in), optional :: current_time !< current time step
+    real(sp), dimension(:,:), allocatable :: read_data
+    integer(i4) :: i, t_index
+    do i = 1_i4, self%nvars
+      if (self%vars(i)%name == name) then
+        t_index = 0_i4 ! indicate missing current_time
+        if (present(current_time) .and. allocated(self%times)) t_index = time_index(self%times, current_time)
+        call self%vars(i)%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
+        data = read_data
+        return
+      end if
+    end do
+    call error_message("input%read: variable not present: ", name)
+  end subroutine input_read_matrix_sp
+
+  !> \brief Read an input variable for a single time step
+  subroutine input_read_pack_sp(self, name, data, current_time)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    real(sp), dimension(self%grid%ncells), intent(out) :: data !< read data
+    type(datetime), intent(in), optional :: current_time !< current time step
+    real(sp), dimension(self%grid%nx, self%grid%ny) :: data_matrix !< read data
+    call self%input_read_matrix_sp(name, data_matrix, current_time)
+    data = pack(data_matrix, self%grid%mask)
+  end subroutine input_read_pack_sp
+
+  !> \brief Read an input variable for a given time frame
+  subroutine input_read_chunk_matrix_sp(self, name, data, timeframe_start, timeframe_end, times)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    real(sp), dimension(:,:,:), allocatable, intent(out) :: data !< read data
+    type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
+    type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
+    type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
+    integer(i4) :: t_index, t_size
+    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
+    call self%input_read_chunk_by_ids_matrix_sp(name, data, t_index, t_size)
+  end subroutine input_read_chunk_matrix_sp
+
+  !> \brief Read an input variable for a given time frame
+  subroutine input_read_chunk_pack_sp(self, name, data, timeframe_start, timeframe_end, times)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    real(sp), dimension(:,:), allocatable, intent(out) :: data !< read data
+    type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
+    type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
+    type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
+    real(sp), dimension(:,:,:), allocatable :: data_matrix !< read data
+    integer(i4) :: i, n
+    call self%input_read_chunk_matrix_sp(name, data_matrix, timeframe_start, timeframe_end, times)
+    n = size(data_matrix, dim=3)
+    allocate(data(self%grid%ncells, n))
+    do i = 1_i4, n
+      data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
+    end do
+  end subroutine input_read_chunk_pack_sp
+
+  !> \brief Read an input variable for a given time frame
+  subroutine input_read_chunk_by_ids_matrix_sp(self, name, data, t_index, t_size)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    real(sp), dimension(:,:,:), allocatable, intent(out) :: data !< read data
+    integer(i4), intent(in) :: t_index !< start index of time frame
+    integer(i4), intent(in) :: t_size !< chunk size
+    integer(i4) :: i
+    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    do i = 1_i4, self%nvars
+      if (self%vars(i)%name == name) then
+        allocate(data(self%grid%nx, self%grid%ny, t_size))
+        call self%vars(i)%read_chunk(flip_y=self%flip_y, t_index=t_index, t_size=t_size, data=data)
+        return
+      end if
+    end do
+    call error_message("input%read: variable not present: ", name)
+  end subroutine input_read_chunk_by_ids_matrix_sp
+
+  !> \brief Read an input variable for a given time frame
+  subroutine input_read_chunk_by_ids_pack_sp(self, name, data, t_index, t_size)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    real(sp), dimension(:,:), allocatable, intent(out) :: data !< read data
+    integer(i4), intent(in) :: t_index !< start index of time frame
+    integer(i4), intent(in) :: t_size !< chunk size
+    real(sp), dimension(:,:,:), allocatable :: data_matrix
+    integer(i4) :: i, n
+    call self%input_read_chunk_by_ids_matrix_sp(name, data_matrix, t_index, t_size)
+    n = size(data_matrix, dim=3)
+    allocate(data(self%grid%ncells, n))
+    do i = 1_i4, n
+      data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
+    end do
+  end subroutine input_read_chunk_by_ids_pack_sp
+
+  ! dp -----
+
+  !> \brief Read an input variable for a single time step
+  subroutine input_read_matrix_dp(self, name, data, current_time)
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
@@ -718,22 +1098,22 @@ contains
       end if
     end do
     call error_message("input%read: variable not present: ", name)
-  end subroutine input_read_matrix
+  end subroutine input_read_matrix_dp
 
   !> \brief Read an input variable for a single time step
-  subroutine input_read_pack(self, name, data, current_time)
+  subroutine input_read_pack_dp(self, name, data, current_time)
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     real(dp), dimension(self%grid%ncells), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     real(dp), dimension(self%grid%nx, self%grid%ny) :: data_matrix !< read data
-    call self%input_read_matrix(name, data_matrix, current_time)
+    call self%input_read_matrix_dp(name, data_matrix, current_time)
     data = pack(data_matrix, self%grid%mask)
-  end subroutine input_read_pack
+  end subroutine input_read_pack_dp
 
   !> \brief Read an input variable for a given time frame
-  subroutine input_read_chunk_matrix(self, name, data, timeframe_start, timeframe_end, times)
+  subroutine input_read_chunk_matrix_dp(self, name, data, timeframe_start, timeframe_end, times)
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
@@ -744,11 +1124,11 @@ contains
     integer(i4) :: t_index, t_size
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
-    call self%read_chunk_by_ids(name, data, t_index, t_size)
-  end subroutine input_read_chunk_matrix
+    call self%input_read_chunk_by_ids_matrix_dp(name, data, t_index, t_size)
+  end subroutine input_read_chunk_matrix_dp
 
   !> \brief Read an input variable for a given time frame
-  subroutine input_read_chunk_pack(self, name, data, timeframe_start, timeframe_end, times)
+  subroutine input_read_chunk_pack_dp(self, name, data, timeframe_start, timeframe_end, times)
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
@@ -758,16 +1138,16 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     real(dp), dimension(:,:,:), allocatable :: data_matrix !< read data
     integer(i4) :: i, n
-    call self%input_read_chunk_matrix(name, data_matrix, timeframe_start, timeframe_end, times)
+    call self%input_read_chunk_matrix_dp(name, data_matrix, timeframe_start, timeframe_end, times)
     n = size(data_matrix, dim=3)
     allocate(data(self%grid%ncells, n))
     do i = 1_i4, n
       data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
-  end subroutine input_read_chunk_pack
+  end subroutine input_read_chunk_pack_dp
 
   !> \brief Read an input variable for a given time frame
-  subroutine input_read_chunk_by_ids_matrix(self, name, data, t_index, t_size)
+  subroutine input_read_chunk_by_ids_matrix_dp(self, name, data, t_index, t_size)
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
@@ -784,10 +1164,10 @@ contains
       end if
     end do
     call error_message("input%read: variable not present: ", name)
-  end subroutine input_read_chunk_by_ids_matrix
+  end subroutine input_read_chunk_by_ids_matrix_dp
 
   !> \brief Read an input variable for a given time frame
-  subroutine input_read_chunk_by_ids_pack(self, name, data, t_index, t_size)
+  subroutine input_read_chunk_by_ids_pack_dp(self, name, data, t_index, t_size)
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
@@ -796,13 +1176,229 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     real(dp), dimension(:,:,:), allocatable :: data_matrix
     integer(i4) :: i, n
-    call self%input_read_chunk_by_ids_matrix(name, data_matrix, t_index, t_size)
+    call self%input_read_chunk_by_ids_matrix_dp(name, data_matrix, t_index, t_size)
     n = size(data_matrix, dim=3)
     allocate(data(self%grid%ncells, n))
     do i = 1_i4, n
       data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
-  end subroutine input_read_chunk_by_ids_pack
+  end subroutine input_read_chunk_by_ids_pack_dp
+
+  ! i4 -----
+
+  !> \brief Read an input variable for a single time step
+  subroutine input_read_matrix_i4(self, name, data, current_time)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    integer(i4), dimension(self%grid%nx, self%grid%ny), intent(out) :: data !< read data
+    type(datetime), intent(in), optional :: current_time !< current time step
+    integer(i4), dimension(:,:), allocatable :: read_data
+    integer(i4) :: i, t_index
+    do i = 1_i4, self%nvars
+      if (self%vars(i)%name == name) then
+        t_index = 0_i4 ! indicate missing current_time
+        if (present(current_time) .and. allocated(self%times)) t_index = time_index(self%times, current_time)
+        call self%vars(i)%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
+        data = read_data
+        return
+      end if
+    end do
+    call error_message("input%read: variable not present: ", name)
+  end subroutine input_read_matrix_i4
+
+  !> \brief Read an input variable for a single time step
+  subroutine input_read_pack_i4(self, name, data, current_time)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    integer(i4), dimension(self%grid%ncells), intent(out) :: data !< read data
+    type(datetime), intent(in), optional :: current_time !< current time step
+    integer(i4), dimension(self%grid%nx, self%grid%ny) :: data_matrix !< read data
+    call self%input_read_matrix_i4(name, data_matrix, current_time)
+    data = pack(data_matrix, self%grid%mask)
+  end subroutine input_read_pack_i4
+
+  !> \brief Read an input variable for a given time frame
+  subroutine input_read_chunk_matrix_i4(self, name, data, timeframe_start, timeframe_end, times)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    integer(i4), dimension(:,:,:), allocatable, intent(out) :: data !< read data
+    type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
+    type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
+    type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
+    integer(i4) :: t_index, t_size
+    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
+    call self%input_read_chunk_by_ids_matrix_i4(name, data, t_index, t_size)
+  end subroutine input_read_chunk_matrix_i4
+
+  !> \brief Read an input variable for a given time frame
+  subroutine input_read_chunk_pack_i4(self, name, data, timeframe_start, timeframe_end, times)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    integer(i4), dimension(:,:), allocatable, intent(out) :: data !< read data
+    type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
+    type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
+    type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
+    integer(i4), dimension(:,:,:), allocatable :: data_matrix !< read data
+    integer(i4) :: i, n
+    call self%input_read_chunk_matrix_i4(name, data_matrix, timeframe_start, timeframe_end, times)
+    n = size(data_matrix, dim=3)
+    allocate(data(self%grid%ncells, n))
+    do i = 1_i4, n
+      data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
+    end do
+  end subroutine input_read_chunk_pack_i4
+
+  !> \brief Read an input variable for a given time frame
+  subroutine input_read_chunk_by_ids_matrix_i4(self, name, data, t_index, t_size)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    integer(i4), dimension(:,:,:), allocatable, intent(out) :: data !< read data
+    integer(i4), intent(in) :: t_index !< start index of time frame
+    integer(i4), intent(in) :: t_size !< chunk size
+    integer(i4) :: i
+    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    do i = 1_i4, self%nvars
+      if (self%vars(i)%name == name) then
+        allocate(data(self%grid%nx, self%grid%ny, t_size))
+        call self%vars(i)%read_chunk(flip_y=self%flip_y, t_index=t_index, t_size=t_size, data=data)
+        return
+      end if
+    end do
+    call error_message("input%read: variable not present: ", name)
+  end subroutine input_read_chunk_by_ids_matrix_i4
+
+  !> \brief Read an input variable for a given time frame
+  subroutine input_read_chunk_by_ids_pack_i4(self, name, data, t_index, t_size)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    integer(i4), dimension(:,:), allocatable, intent(out) :: data !< read data
+    integer(i4), intent(in) :: t_index !< start index of time frame
+    integer(i4), intent(in) :: t_size !< chunk size
+    integer(i4), dimension(:,:,:), allocatable :: data_matrix
+    integer(i4) :: i, n
+    call self%input_read_chunk_by_ids_matrix_i4(name, data_matrix, t_index, t_size)
+    n = size(data_matrix, dim=3)
+    allocate(data(self%grid%ncells, n))
+    do i = 1_i4, n
+      data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
+    end do
+  end subroutine input_read_chunk_by_ids_pack_i4
+
+  ! i8 -----
+
+  !> \brief Read an input variable for a single time step
+  subroutine input_read_matrix_i8(self, name, data, current_time)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    integer(i8), dimension(self%grid%nx, self%grid%ny), intent(out) :: data !< read data
+    type(datetime), intent(in), optional :: current_time !< current time step
+    integer(i8), dimension(:,:), allocatable :: read_data
+    integer(i4) :: i, t_index
+    do i = 1_i4, self%nvars
+      if (self%vars(i)%name == name) then
+        t_index = 0_i4 ! indicate missing current_time
+        if (present(current_time) .and. allocated(self%times)) t_index = time_index(self%times, current_time)
+        call self%vars(i)%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
+        data = read_data
+        return
+      end if
+    end do
+    call error_message("input%read: variable not present: ", name)
+  end subroutine input_read_matrix_i8
+
+  !> \brief Read an input variable for a single time step
+  subroutine input_read_pack_i8(self, name, data, current_time)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    integer(i8), dimension(self%grid%ncells), intent(out) :: data !< read data
+    type(datetime), intent(in), optional :: current_time !< current time step
+    integer(i8), dimension(self%grid%nx, self%grid%ny) :: data_matrix !< read data
+    call self%input_read_matrix_i8(name, data_matrix, current_time)
+    data = pack(data_matrix, self%grid%mask)
+  end subroutine input_read_pack_i8
+
+  !> \brief Read an input variable for a given time frame
+  subroutine input_read_chunk_matrix_i8(self, name, data, timeframe_start, timeframe_end, times)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    integer(i8), dimension(:,:,:), allocatable, intent(out) :: data !< read data
+    type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
+    type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
+    type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
+    integer(i4) :: t_index, t_size
+    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
+    call self%input_read_chunk_by_ids_matrix_i8(name, data, t_index, t_size)
+  end subroutine input_read_chunk_matrix_i8
+
+  !> \brief Read an input variable for a given time frame
+  subroutine input_read_chunk_pack_i8(self, name, data, timeframe_start, timeframe_end, times)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    integer(i8), dimension(:,:), allocatable, intent(out) :: data !< read data
+    type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
+    type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
+    type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
+    integer(i8), dimension(:,:,:), allocatable :: data_matrix !< read data
+    integer(i4) :: i, n
+    call self%input_read_chunk_matrix_i8(name, data_matrix, timeframe_start, timeframe_end, times)
+    n = size(data_matrix, dim=3)
+    allocate(data(self%grid%ncells, n))
+    do i = 1_i4, n
+      data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
+    end do
+  end subroutine input_read_chunk_pack_i8
+
+  !> \brief Read an input variable for a given time frame
+  subroutine input_read_chunk_by_ids_matrix_i8(self, name, data, t_index, t_size)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    integer(i8), dimension(:,:,:), allocatable, intent(out) :: data !< read data
+    integer(i4), intent(in) :: t_index !< start index of time frame
+    integer(i4), intent(in) :: t_size !< chunk size
+    integer(i4) :: i
+    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    do i = 1_i4, self%nvars
+      if (self%vars(i)%name == name) then
+        allocate(data(self%grid%nx, self%grid%ny, t_size))
+        call self%vars(i)%read_chunk(flip_y=self%flip_y, t_index=t_index, t_size=t_size, data=data)
+        return
+      end if
+    end do
+    call error_message("input%read: variable not present: ", name)
+  end subroutine input_read_chunk_by_ids_matrix_i8
+
+  !> \brief Read an input variable for a given time frame
+  subroutine input_read_chunk_by_ids_pack_i8(self, name, data, t_index, t_size)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< name of the variable
+    integer(i8), dimension(:,:), allocatable, intent(out) :: data !< read data
+    integer(i4), intent(in) :: t_index !< start index of time frame
+    integer(i4), intent(in) :: t_size !< chunk size
+    integer(i8), dimension(:,:,:), allocatable :: data_matrix
+    integer(i4) :: i, n
+    call self%input_read_chunk_by_ids_matrix_i8(name, data_matrix, t_index, t_size)
+    n = size(data_matrix, dim=3)
+    allocate(data(self%grid%ncells, n))
+    do i = 1_i4, n
+      data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
+    end do
+  end subroutine input_read_chunk_by_ids_pack_i8
+
+  ! others ---
 
   !> \brief Get times array for selected chunk time frame
   subroutine input_chunk_times(self, timeframe_start, timeframe_end, times, t_index, t_size)

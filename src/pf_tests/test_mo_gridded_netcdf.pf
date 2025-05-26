@@ -10,7 +10,7 @@ contains
 
   @test
   subroutine test_output()
-    use mo_kind, only: dp, i4
+    use mo_kind, only: dp, i4, sp, i8
     use mo_grid, only: grid_t
     use mo_gridded_netcdf, only: var, output_dataset, center_timestamp, time_units_delta, daily, input_dataset
     use mo_datetime, only: datetime, timedelta
@@ -22,6 +22,10 @@ contains
     type(input_dataset) :: in_ds
     type(datetime), allocatable :: times(:)
     real(dp), allocatable :: dem(:,:), height(:), heights(:), dem_read(:,:), height_read(:), h_chunk(:,:)
+    real(sp), allocatable :: dem_sp(:,:)
+    integer(i4), allocatable :: dem_i4(:,:)
+    integer(i8), allocatable :: dem_i8(:,:)
+
     type(var), allocatable :: vars(:)
     real(dp) :: factor
     integer(i4) :: write_step
@@ -43,7 +47,7 @@ contains
     height = grid%pack(dem)
 
     allocate(vars(0))
-    vars = [vars, var(name="dem", units="m", static=.true.)]
+    vars = [vars, var(name="dem", units="m", static=.true., dtype="f32", kind="dp")]
     vars = [vars, var(name="height", units="m", avg=.true., static=.false.)]
     call out_ds%init(path="height.nc", grid=grid, vars=vars, start_time=start_time, delta=delta, timestamp=center_timestamp)
     call out_ds%update("dem", height)
@@ -73,8 +77,14 @@ contains
 
     call in_ds%init("height.nc", grid=grd2, vars=vars)
     allocate(dem_read(grid%nx, grid%ny))
+    allocate(dem_sp(grid%nx, grid%ny))
+    allocate(dem_i4(grid%nx, grid%ny))
+    allocate(dem_i8(grid%nx, grid%ny))
     allocate(height_read(grid%ncells))
     call in_ds%read("dem", data=dem_read)
+    call in_ds%read("dem", data=dem_sp)
+    call in_ds%read("dem", data=dem_i4)
+    call in_ds%read("dem", data=dem_i8)
     call in_ds%read("height", data=height_read, current_time=datetime("2025-01-11"))
     call in_ds%read_chunk("height", &
       timeframe_start=datetime("2025-01-10"), &
@@ -82,6 +92,9 @@ contains
       times=times, data=h_chunk)
     call in_ds%close()
 
+    @assertEqual(dem_i4, nint(dem, i4), message='static read check i4')
+    @assertEqual(dem_i8, nint(dem, i8), message='static read check i8')
+    @assertEqual(dem_sp, real(dem, sp), tolerance=real(t, sp), message='static read check sp')
     @assertEqual(dem_read, dem, tolerance=t, message='static read check')
     @assertEqual(height_read, heights, tolerance=t, message='temporal read check')
     @assertEqual(size(times), size(h_chunk, dim=2))
