@@ -1,7 +1,7 @@
 !> \file mo_gridded_netcdf.f90
 !> \copydoc mo_gridded_netcdf
 
-!> \brief Creates NetCDF input or output files for gridded data.
+!> \brief Creates NetCDF input or output files for gridded 2D data.
 !> \details NetCDF is first initialized and later on variables are put to the NetCDF.
 !! \par Examples
 !! - \ref 02_nc_output.f90 : \copybrief 02_nc_output.f90
@@ -482,26 +482,26 @@ contains
     if (self%static) then
       select case(self%kind)
         case("sp")
-          call self%nc%setData(self%grid%unpack(self%data_sp))
+          call self%nc%setData(unpack(self%data_sp, self%grid%mask, nodata_sp))
         case("dp")
-          call self%nc%setData(self%grid%unpack(self%data_dp))
+          call self%nc%setData(unpack(self%data_dp, self%grid%mask, nodata_dp))
         case("i4")
-          call self%nc%setData(self%grid%unpack(self%data_i4))
+          call self%nc%setData(unpack(self%data_i4, self%grid%mask, nodata_i4))
         case("i8")
-          call self%nc%setData(self%grid%unpack(self%data_i8))
+          call self%nc%setData(unpack(self%data_i8, self%grid%mask, nodata_i8))
       end select
       self%static_written = .true.
     else
       if (.not.present(t_index)) call error_message("output_variable: no time index was given for temporal variable: ", self%name)
       select case(self%kind)
         case("sp")
-          call self%nc%setData(self%grid%unpack(self%data_sp), [1_i4, 1_i4, t_index])
+          call self%nc%setData(unpack(self%data_sp, self%grid%mask, nodata_sp), [1_i4, 1_i4, t_index])
         case("dp")
-          call self%nc%setData(self%grid%unpack(self%data_dp), [1_i4, 1_i4, t_index])
+          call self%nc%setData(unpack(self%data_dp, self%grid%mask, nodata_dp), [1_i4, 1_i4, t_index])
         case("i4")
-          call self%nc%setData(self%grid%unpack(self%data_i4), [1_i4, 1_i4, t_index])
+          call self%nc%setData(unpack(self%data_i4, self%grid%mask, nodata_i4), [1_i4, 1_i4, t_index])
         case("i8")
-          call self%nc%setData(self%grid%unpack(self%data_i8), [1_i4, 1_i4, t_index])
+          call self%nc%setData(unpack(self%data_i8, self%grid%mask, nodata_i8), [1_i4, 1_i4, t_index])
       end select
     end if
       select case(self%kind)
@@ -722,13 +722,9 @@ contains
 
   !> \brief Initialize output_dataset
   !> \details Create and initialize the output file handler.
-  !> \changelog
-  !! - Robert Schweppe Jun 2018
-  !!   - refactoring and reformatting
-  !! - Sebastian Mueller Jul 2020
-  !!   - added output for river temperature
-  !!
   !> \authors Matthias Zink
+  !> \authors Robert Schweppe
+  !> \authors Sebastian Müller
   !> \date Apr 2013
   subroutine output_init(self, path, grid, vars, start_time, delta, timestamp, deflate_level, grid_double_precision)
     implicit none
