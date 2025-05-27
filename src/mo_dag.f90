@@ -103,10 +103,9 @@ module mo_dag
   contains
     procedure :: nedges
     procedure :: ndependents
-    private
-    generic :: set_edges => set_edge_vector, add_edge
-    procedure :: set_edge_vector, add_edge
-    procedure :: add_dependent
+    generic, private :: set_edges => set_edge_vector, add_edge
+    procedure, private :: set_edge_vector, add_edge
+    procedure, private :: add_dependent
   end type node
 
   !> \class dag
