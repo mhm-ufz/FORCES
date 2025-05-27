@@ -101,12 +101,12 @@ module mo_dag
     integer(i8),dimension(:),allocatable :: dependents
     integer(i8) :: tag = 0_i8 !< node tag for external reference (will stay the same even when the DAG is modified)
   contains
+    procedure :: nedges
+    procedure :: ndependents
     private
     generic :: set_edges => set_edge_vector, add_edge
     procedure :: set_edge_vector, add_edge
     procedure :: add_dependent
-    procedure :: nedges
-    procedure :: ndependents
   end type node
 
   !> \class dag
@@ -312,7 +312,7 @@ contains
   end subroutine dag_destroy
 
   !> \brief number of edges for this node
-  integer(i8) function nedges(this)
+  pure integer(i8) function nedges(this)
     class(node),intent(in) :: this
     if (allocated(this%edges)) then
       nedges = size(this%edges)
@@ -322,7 +322,7 @@ contains
   end function nedges
 
   !> \brief number of dependents for this node
-  integer(i8) function ndependents(this)
+  pure integer(i8) function ndependents(this)
     class(node),intent(in) :: this
     if (allocated(this%dependents)) then
       ndependents = size(this%dependents)
