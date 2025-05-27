@@ -142,8 +142,8 @@ show-env-vars:
   script:
     - source $MODULE_LOAD_SCRIPT
     - cmake -B $BUILD_DIR $CMAKE_FLAGS
-    - cmake --build $BUILD_DIR --parallel
-    - cmake --build $BUILD_DIR --parallel --target $BUILD_TARGET
+    - cmake --build $BUILD_DIR --parallel 4
+    - cmake --build $BUILD_DIR --parallel 4 --target $BUILD_TARGET
     - $POST_RUN_CMD
   artifacts:
     when: always

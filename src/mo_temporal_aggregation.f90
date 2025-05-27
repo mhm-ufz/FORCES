@@ -1,6 +1,5 @@
 !> \file mo_temporal_aggregation.f90
-!> \brief \copybrief mo_temporal_aggregation
-!> \details \copydetails mo_temporal_aggregation
+!> \copydoc mo_temporal_aggregation
 
 !> \brief Temporal aggregation for time series (averaging)
 !> \details This module does temporal aggregation (averaging) of time series

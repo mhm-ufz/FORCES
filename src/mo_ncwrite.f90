@@ -1,6 +1,5 @@
 !> \file mo_ncwrite.f90
-!> \brief \copybrief mo_ncwrite
-!> \details \copydetails mo_ncwrite
+!> \copydoc mo_ncwrite
 
 !> \brief Writing netcdf files
 !> \details Subroutines for writing arrays on nc file using the netcdf4 library.

@@ -1,6 +1,5 @@
 !> \file mo_integrate.f90
-!> \brief \copybrief mo_integrate
-!> \details \copydetails mo_integrate
+!> \copydoc mo_integrate
 
 !> \brief Provides integration routines
 !> \details This module provides routine for numerical integration such a Newton-Cotes formulas, etc.

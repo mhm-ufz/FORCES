@@ -1,6 +1,5 @@
 !> \file mo_kind.f90
-!> \brief \copybrief mo_kind
-!> \details \copydetails mo_kind
+!> \copydoc mo_kind
 
 !> \brief Define number representations
 !> \details This module declares the desired ranges and precisions of the number representations,

@@ -1,6 +1,5 @@
 !> \file mo_os.f90
-!> \brief \copybrief mo_os
-!> \details \copydetails mo_os
+!> \copydoc mo_os
 
 !> \brief Path and directory management.
 !> \details Path handling and existence checks for files and directories.

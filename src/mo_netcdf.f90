@@ -1,6 +1,5 @@
 !> \file mo_netcdf.f90
-!> \brief \copybrief mo_netcdf
-!> \details \copydetails mo_netcdf
+!> \copydoc mo_netcdf
 
 
 

@@ -184,6 +184,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   - authors: Jacob Williams
   - license: BSD 3-Clause License (included)
 
+- `flist` (`src/mo_list.f90`)
+  - purpose: A generic list implementation.
+  - sources: https://github.com/jacobwilliams/flist
+  - authors: Jacob Williams
+  - license: BSD 3-Clause License (included)
+
 - `jams-fortran`
   - purpose: FORCES is a minimal fork of the jams-fortran library that was formerly developed at the CHS department
   - sources: https://github.com/mcuntz/jams_fortran

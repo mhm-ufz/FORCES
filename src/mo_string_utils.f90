@@ -1,6 +1,5 @@
 !> \file mo_string_utils.f90
-!> \brief \copybrief mo_string_utils
-!> \details \copydetails mo_string_utils
+!> \copydoc mo_string_utils
 
 !> \brief String utilities
 !> \details This module provides string conversion and checking utilities.

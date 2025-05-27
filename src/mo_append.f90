@@ -1,6 +1,5 @@
 !> \file mo_append.f90
-!> \brief \copybrief mo_append
-!> \details \copydetails mo_append
+!> \copydoc mo_append
 
 !> \brief Append values on existing arrays.
 !> \details Provides routines to append (rows) and paste (columns) scalars, vectors,

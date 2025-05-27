@@ -1,6 +1,5 @@
 !> \file    mo_io.f90
-!> \brief \copybrief mo_io
-!> \details \copydetails mo_io
+!> \copydoc mo_io
 
 !> \brief   File reading routines.
 !> \details This module provides routines to load a file into an array.

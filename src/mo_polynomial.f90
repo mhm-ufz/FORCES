@@ -1,6 +1,5 @@
 !> \file    mo_polynomial.f90
-!> \brief   \copybrief mo_polynomial
-!> \details \copydetails mo_polynomial
+!> \copydoc mo_polynomial
 
 !> \brief   Module to handle polynomials.
 !> \details This module provides routines to deal with polynomials like evaluation, root finding or derivation.

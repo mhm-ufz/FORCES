@@ -257,6 +257,30 @@ contains
     @assertTrue(datetime("1992-10-01 15:15:00") == datetime("1992-10T15:15"))
     @assertTrue(datetime("1992-01-01 15:15:00") == datetime("1992 15:15"))
 
+    ! next new dates
+    date1 = datetime("2024-12-07 12:32:30")
+    date2 = datetime("2024-11-07 12:32:30")
+    day1 = date1%date()
+    day2 = date2%date()
+    time1 = date1%time()
+
+    @assertTrue(date1%next_new_year() == datetime(2025))
+    @assertTrue(date1%next_new_month() == datetime(2025))
+    @assertTrue(date2%next_new_month() == datetime(2024, 12))
+    @assertTrue(date1%next_new_day() == datetime(2024, 12, 8))
+    @assertTrue(date1%next_new_week() == datetime(2024, 12, 9))
+    @assertTrue(date1%next_new_hour() == datetime(2024, 12, 7, 13))
+    @assertTrue(date1%next_new_minute() == datetime(2024, 12, 7, 12, 33))
+
+    @assertTrue(day1%next_new_year() == puredate(2025))
+    @assertTrue(day1%next_new_month() == puredate(2025))
+    @assertTrue(day2%next_new_month() == puredate(2024, 12))
+    @assertTrue(day1%next_new_day() == puredate(2024, 12, 8))
+    @assertTrue(day1%next_new_week() == puredate(2024, 12, 9))
+
+    @assertTrue(time1%next_new_hour() == puretime(13, 0))
+    @assertTrue(time1%next_new_minute() == puretime(12, 33))
+
   end subroutine test_datetime_types
 
 end module test_mo_datetime

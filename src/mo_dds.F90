@@ -1,6 +1,5 @@
 !> \file mo_dds.f90
-!> \brief \copybrief mo_dds
-!> \details \copydetails mo_dds
+!> \copydoc mo_dds
 
 !> \brief Dynamically Dimensioned Search (DDS)
 !> \details This module provides routines for Dynamically Dimensioned Search (DDS)

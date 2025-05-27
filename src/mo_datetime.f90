@@ -1,6 +1,5 @@
 !> \file    mo_datetime.f90
-!> \brief   \copybrief mo_datetime
-!> \details \copydetails mo_datetime
+!> \copydoc mo_datetime
 
 !> \brief   Types to deal with datetimes.
 !> \details This module provides four types to deal with date and time
@@ -102,7 +101,7 @@ module mo_datetime
 
   use mo_kind, only: i4, i8, dp
   use mo_message, only: error_message
-  use mo_string_utils, only : num2str
+  use mo_string_utils, only : num2str, divide_string
   use mo_julian, only : dec2date, date2dec
 
   implicit none
@@ -129,6 +128,9 @@ module mo_datetime
   public :: is_leap_year
   public :: days_in_month
   public :: days_in_year
+  ! helpers
+  public :: decode_cf_time_units
+  public :: delta_from_string
 
   private
 
@@ -167,6 +169,10 @@ module mo_datetime
     procedure, public :: is_new_year => d_is_new_year
     procedure, public :: is_new_month => d_is_new_month
     procedure, public :: is_new_week => d_is_new_week
+    procedure, public :: next_new_year => d_next_new_year
+    procedure, public :: next_new_month => d_next_new_month
+    procedure, public :: next_new_week => d_next_new_week
+    procedure, public :: next_new_day => d_next_new_day
     procedure, private :: d_eq, d_eq_dt
     generic, public :: operator(==) => d_eq, d_eq_dt
     procedure, private :: d_neq, d_neq_dt
@@ -201,6 +207,8 @@ module mo_datetime
     procedure, public :: is_new_day => t_is_new_day
     procedure, public :: is_new_hour => t_is_new_hour
     procedure, public :: is_new_minute => t_is_new_minute
+    procedure, public :: next_new_hour => t_next_new_hour
+    procedure, public :: next_new_minute => t_next_new_minute
     procedure, private :: t_copy
     generic, public :: assignment(=) => t_copy
     procedure, private :: t_eq
@@ -245,6 +253,12 @@ module mo_datetime
     procedure, public :: is_new_day
     procedure, public :: is_new_hour
     procedure, public :: is_new_minute
+    procedure, public :: next_new_year
+    procedure, public :: next_new_month
+    procedure, public :: next_new_week
+    procedure, public :: next_new_day
+    procedure, public :: next_new_hour
+    procedure, public :: next_new_minute
     procedure, private :: dt_copy_dt, dt_copy_d
     generic, public :: assignment(=) => dt_copy_dt, dt_copy_d
     procedure, private :: dt_eq, dt_eq_d
@@ -328,6 +342,40 @@ module mo_datetime
   end interface timedelta
 
 contains
+
+  !> \brief get \ref timedelta from given string
+  type(timedelta) function delta_from_string(str)
+    character(*), intent(in) :: str !< "days", "hours", "minutes", "seconds"
+    select case(trim(str))
+      case("days")
+        delta_from_string = td_init(days=1_i4)
+      case("hours")
+        delta_from_string = td_init(hours=1_i4)
+      case("minutes")
+        delta_from_string = td_init(minutes=1_i4)
+      case("seconds")
+        delta_from_string = td_init(seconds=1_i4)
+      case default
+        call error_message("datetime: units not valid for a cf-convention time. Got: ", str)
+    end select
+  end function delta_from_string
+
+  !> \brief reference datetime and delta from cf-string for time units
+  subroutine decode_cf_time_units(string, delta, ref_datetime)
+    character(*), intent(in) :: string
+    type(timedelta), intent(out) :: delta
+    type(datetime), intent(out) :: ref_datetime
+    type(puredate) :: ref_date
+    type(puretime) :: ref_time
+    character(256), dimension(:), allocatable :: str_arr
+    call divide_string(trim(string), ' ', str_arr)
+    delta = delta_from_string(str_arr(1))
+    if (trim(str_arr(2)) /= "since") call error_message("datetime: expected 'since' for cf-convetion. Got: ", trim(str_arr(2)))
+    ref_date = d_from_string(str_arr(3))
+    ref_time = midnight()
+    if(size(str_arr) > 3_i4) ref_time = t_from_string(str_arr(4))
+    ref_datetime = dt_from_date_time(ref_date, ref_time)
+  end subroutine decode_cf_time_units
 
   ! CONSTANT DELTAS
 
@@ -600,7 +648,6 @@ contains
 
   !> \brief datetime from string
   type(datetime) function dt_from_string(string)
-    use mo_string_utils, only : divide_string
     character(*), intent(in) :: string
     type(puredate) :: in_date
     type(puretime) :: in_time
@@ -618,31 +665,11 @@ contains
 
   !> \brief datetime from cf-string and value
   type(datetime) function dt_from_cf(string, value)
-    use mo_string_utils, only : divide_string
     character(*), intent(in) :: string
     integer(i4), intent(in) :: value
-    type(puredate) :: in_date
-    type(puretime) :: in_time
     type(timedelta) :: delta
-    character(256), dimension(:), allocatable :: str_arr
-    call divide_string(trim(string), ' ', str_arr)
-    select case(trim(str_arr(1)))
-      case("days")
-        delta = td_init(days=value)
-      case("hours")
-        delta = td_init(hours=value)
-      case("minutes")
-        delta = td_init(minutes=value)
-      case("seconds")
-        delta = td_init(seconds=value)
-      case default
-        call error_message("datetime: units not valid for a cf-convetion time. Got: ", trim(str_arr(1)))
-    end select
-    if (trim(str_arr(2)) /= "since") call error_message("datetime: expected 'since' for cf-convetion. Got: ", trim(str_arr(2)))
-    in_date = d_from_string(str_arr(3))
-    in_time = midnight()
-    if(size(str_arr) > 3_i4) in_time = t_from_string(str_arr(4))
-    dt_from_cf = dt_from_date_time(in_date, in_time) + delta
+    call decode_cf_time_units(string, delta, dt_from_cf)
+    dt_from_cf = dt_from_cf + value * delta
   end function dt_from_cf
 
   !> \brief datetime from date and time
@@ -816,6 +843,54 @@ contains
     class(datetime), intent(in) :: this
     is_new_minute = this%second == 0_i4
   end function is_new_minute
+
+  !> \brief next new year from this date
+  type(datetime) function next_new_year(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    next_new_year = dt_init(this%year+1_i4)
+  end function next_new_year
+
+  !> \brief next new month from this date
+  type(datetime) function next_new_month(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    if (this%month == 12_i4) then
+      next_new_month = dt_init(this%year+1_i4)
+    else
+      next_new_month = dt_init(this%year, this%month+1_i4)
+    end if
+  end function next_new_month
+
+  !> \brief next new week from this date
+  type(datetime) function next_new_week(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    integer(i4) :: wd ! weekday
+    wd = this%weekday()
+    next_new_week = dt_init(this%year, this%month, this%day) + (WEEK_DAYS - wd + 1_i4) * one_day()
+  end function next_new_week
+
+  !> \brief next new day from this date
+  type(datetime) function next_new_day(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    next_new_day = dt_init(this%year, this%month, this%day) + one_day()
+  end function next_new_day
+
+  !> \brief next new hour from this date
+  type(datetime) function next_new_hour(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    next_new_hour = dt_init(this%year, this%month, this%day, this%hour) + one_hour()
+  end function next_new_hour
+
+  !> \brief next new minute from this date
+  type(datetime) function next_new_minute(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    next_new_minute = dt_init(this%year, this%month, this%day, this%hour, this%minute) + one_minute()
+  end function next_new_minute
 
   !> \brief (==) equal comparison of datetimes
   pure logical function dt_eq(this, that)
@@ -994,7 +1069,6 @@ contains
 
   !> \brief date from string
   type(puredate) function d_from_string(string)
-    use mo_string_utils, only : divide_string
     character(*), intent(in) :: string
     character(256), dimension(:), allocatable :: date_str
     integer(i4) :: year, month, day
@@ -1103,6 +1177,40 @@ contains
     class(puredate), intent(in) :: this
     d_is_new_week = this%weekday() == 1_i4
   end function d_is_new_week
+
+  !> \brief next new year from this date
+  type(puredate) function d_next_new_year(this)
+    implicit none
+    class(puredate), intent(in) :: this
+    d_next_new_year = d_init(this%year+1_i4)
+  end function d_next_new_year
+
+  !> \brief next new month from this date
+  type(puredate) function d_next_new_month(this)
+    implicit none
+    class(puredate), intent(in) :: this
+    if (this%month == 12_i4) then
+      d_next_new_month = d_init(this%year+1_i4)
+    else
+      d_next_new_month = d_init(this%year, this%month+1_i4)
+    end if
+  end function d_next_new_month
+
+  !> \brief next new week from this date
+  type(puredate) function d_next_new_week(this)
+    implicit none
+    class(puredate), intent(in) :: this
+    integer(i4) :: wd ! weekday
+    wd = this%weekday()
+    d_next_new_week = d_init(this%year, this%month, this%day) + (WEEK_DAYS - wd + 1_i4) * one_day()
+  end function d_next_new_week
+
+  !> \brief next new day from this date
+  type(puredate) function d_next_new_day(this)
+    implicit none
+    class(puredate), intent(in) :: this
+    d_next_new_day = d_init(this%year, this%month, this%day) + one_day()
+  end function d_next_new_day
 
   !> \brief (==) equal comparison of dates
   pure logical function d_eq(this, that)
@@ -1277,7 +1385,6 @@ contains
 
   !> \brief time from string
   type(puretime) function t_from_string(string)
-    use mo_string_utils, only : divide_string
     character(*), intent(in) :: string
     character(256), dimension(:), allocatable :: time_str
     integer(i4) :: hour, minute, second
@@ -1366,6 +1473,20 @@ contains
     class(puretime), intent(in) :: this
     t_is_new_minute = this%second == 0_i4
   end function t_is_new_minute
+
+  !> \brief next new hour from this time
+  type(puretime) function t_next_new_hour(this)
+    implicit none
+    class(puretime), intent(in) :: this
+    t_next_new_hour = t_init(this%hour, 0_i4) + one_hour()
+  end function t_next_new_hour
+
+  !> \brief next new minute from this time
+  type(puretime) function t_next_new_minute(this)
+    implicit none
+    class(puretime), intent(in) :: this
+    t_next_new_minute = t_init(this%hour, this%minute) + one_minute()
+  end function t_next_new_minute
 
   !> \brief (==) equal comparison of times
   pure logical function t_eq(this, that)
