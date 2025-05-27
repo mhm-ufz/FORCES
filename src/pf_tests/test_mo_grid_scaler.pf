@@ -1,7 +1,7 @@
-module test_mo_regridder
+module test_mo_grid_scaler
   use funit
   use mo_grid, only: grid_t, cartesian, top_down, bottom_up
-  use mo_regridder, only: regridder, up_h_mean, up_p_mean, up_min, up_max, up_sum, up_laf, up_fraction
+  use mo_grid_scaler, only: regridder, up_h_mean, up_p_mean, up_min, up_max, up_sum, up_laf, up_fraction
   use mo_kind, only: i4, dp
   use mo_constants, only: nodata_dp
   use mo_utils, only: flip, flipped, is_close
@@ -193,4 +193,4 @@ contains
 
   end subroutine test_regrid
 
-end module test_mo_regridder
+end module test_mo_grid_scaler

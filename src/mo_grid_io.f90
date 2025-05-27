@@ -1,5 +1,5 @@
-!> \file mo_gridded_netcdf.f90
-!> \copydoc mo_gridded_netcdf
+!> \file mo_grid_io.f90
+!> \copydoc mo_grid_io
 
 !> \brief Creates NetCDF input or output files for gridded 2D data.
 !> \details NetCDF is first initialized and later on variables are put to the NetCDF.
@@ -23,7 +23,7 @@
 !> \date Apr 2013
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
-module mo_gridded_netcdf
+module mo_grid_io
 
   use mo_kind, only : i4, i8, dp, sp
   use mo_constants, only : nodata_dp, nodata_sp, nodata_i4, nodata_i8
@@ -1405,4 +1405,4 @@ contains
     if (allocated(self%t_values)) deallocate(self%t_values)
   end subroutine input_close
 
-end module mo_gridded_netcdf
+end module mo_grid_io

@@ -14,8 +14,8 @@ program netcdf_regridder
   use mo_kind, only: dp, i4
   use mo_cli, only: cli_parser
   use mo_grid, only: grid_t
-  use mo_regridder, only: regridder, up_a_mean, up_h_mean, up_g_mean
-  use mo_gridded_netcdf, only: var, output_dataset, input_dataset
+  use mo_grid_scaler, only: regridder, up_a_mean, up_h_mean, up_g_mean
+  use mo_grid_io, only: var, output_dataset, input_dataset
   implicit none
   type(cli_parser) :: parser
   type(grid_t), target :: grid_i, grid_o

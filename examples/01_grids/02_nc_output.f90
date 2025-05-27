@@ -12,7 +12,7 @@
 program netcdf_output
   use mo_kind, only: dp, i4
   use mo_grid, only: grid_t
-  use mo_gridded_netcdf, only: var, output_dataset, center_timestamp, time_units_delta, hourly, daily, monthly, yearly
+  use mo_grid_io, only: var, output_dataset, center_timestamp, time_units_delta, hourly, daily, monthly, yearly
   use mo_datetime, only: datetime, timedelta
   implicit none
   type(datetime) :: start_time, end_time, current_time

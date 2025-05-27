@@ -1,5 +1,5 @@
-!> \file    mo_regridder.f90
-!> \copydoc mo_regridder
+!> \file    mo_grid_scaler.f90
+!> \copydoc mo_grid_scaler
 
 !> \brief   Regridding utils.
 !> \details This module provides a regridder for rectangular grids with cellsizes that have an integer ratio.
@@ -11,7 +11,7 @@
 !> \date    Mar 2025
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
-module mo_regridder
+module mo_grid_scaler
 
   use, intrinsic :: ieee_arithmetic, only : ieee_is_finite, ieee_is_nan, ieee_is_negative
   use mo_kind, only: i4, i8, dp
@@ -958,4 +958,4 @@ contains
     if (scaling_mode /= down_scaling) call error_message("regridder: not setup for downscaling.")
   end subroutine check_downscaling
 
-end module mo_regridder
+end module mo_grid_scaler

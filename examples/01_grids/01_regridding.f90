@@ -11,8 +11,8 @@ program regrid
   use mo_kind, only: dp
   use mo_constants, only: nodata_dp
   use mo_grid, only: grid_t
-  use mo_regridder, only: regridder, up_a_mean
-  use mo_gridded_netcdf, only: var, output_dataset
+  use mo_grid_scaler, only: regridder, up_a_mean
+  use mo_grid_io, only: var, output_dataset
   implicit none
   type(grid_t), target :: cgrid, fgrid
   type(regridder) :: upscaler
