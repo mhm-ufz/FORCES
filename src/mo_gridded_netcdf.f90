@@ -358,6 +358,23 @@ contains
     var_meta%avg = this%avg
   end function var_meta
 
+  !> \brief Get variable index in vars array.
+  !> \return index
+  integer(i4) function var_index(vars, name, method)
+    class(var), dimension(:), intent(in) :: vars !< variables array
+    character(*), intent(in) :: name !< name of the variable
+    character(*), intent(in) :: method !< method calling this
+    integer(i4) :: i
+    var_index = 0_i4
+    do i = 1_i4, size(vars)
+      if (vars(i)%name == name) then
+        var_index = i
+        return
+      end if
+    end do
+    call error_message(method, ": variable not present: ", name)
+  end function var_index
+
   !> \brief initialize output_variable
   subroutine out_var_init(self, meta, nc, grid, dims, deflate_level)
     implicit none
@@ -821,14 +838,7 @@ contains
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     real(sp), intent(in), dimension(:) :: data !< data for current time step
-    integer(i4) :: i
-    do i = 1_i4, self%nvars
-      if (self%vars(i)%name == name) then
-        call self%vars(i)%update(data)
-        return
-      end if
-    end do
-    call error_message("output%update: variable not present: ", name)
+    call self%vars(var_index(self%vars, name, "output%update"))%update(data)
   end subroutine output_update_sp
 
   !> \brief Update a variable
@@ -838,14 +848,7 @@ contains
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     real(dp), intent(in), dimension(:) :: data !< data for current time step
-    integer(i4) :: i
-    do i = 1_i4, self%nvars
-      if (self%vars(i)%name == name) then
-        call self%vars(i)%update(data)
-        return
-      end if
-    end do
-    call error_message("output%update: variable not present: ", name)
+    call self%vars(var_index(self%vars, name, "output%update"))%update(data)
   end subroutine output_update_dp
 
   !> \brief Update a variable
@@ -855,14 +858,7 @@ contains
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     integer(i4), intent(in), dimension(:) :: data !< data for current time step
-    integer(i4) :: i
-    do i = 1_i4, self%nvars
-      if (self%vars(i)%name == name) then
-        call self%vars(i)%update(data)
-        return
-      end if
-    end do
-    call error_message("output%update: variable not present: ", name)
+    call self%vars(var_index(self%vars, name, "output%update"))%update(data)
   end subroutine output_update_i4
 
   !> \brief Update a variable
@@ -872,14 +868,7 @@ contains
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     integer(i8), intent(in), dimension(:) :: data !< data for current time step
-    integer(i4) :: i
-    do i = 1_i4, self%nvars
-      if (self%vars(i)%name == name) then
-        call self%vars(i)%update(data)
-        return
-      end if
-    end do
-    call error_message("output%update: variable not present: ", name)
+    call self%vars(var_index(self%vars, name, "output%update"))%update(data)
   end subroutine output_update_i8
 
   !> \brief Write all accumulated data.
@@ -896,9 +885,7 @@ contains
     type(datetime), intent(in), optional :: current_time !< end time of the current time span
     integer(i4) :: i, t_start, t_end, t_stamp
     type(NcVariable) :: t_var
-
     self%counter = self%counter + 1_i4
-
     ! add to time variable
     if (.not.self%static) then
       if (.not.present(current_time)) call error_message("output: no time was given: ", self%path)
@@ -911,7 +898,7 @@ contains
       call t_var%setData(t_end, [2, self%counter])
       self%previous_time = current_time
     end if
-
+    ! write all variables
     do i = 1_i4, self%nvars
       call self%vars(i)%write(self%counter)
     end do
@@ -927,6 +914,15 @@ contains
     end do
   end subroutine output_write_static
 
+  !> \brief Get variable meta data.
+  !> \return \ref var meta data definition
+  type(var) function output_meta(self, name)
+    implicit none
+    class(output_dataset) :: self
+    character(*), intent(in) :: name !< name of the variable
+    output_meta = self%vars(var_index(self%vars, name, "output%meta"))%meta()
+  end function output_meta
+
   !> \brief Close the file
   subroutine output_close(self)
     implicit none
@@ -939,22 +935,6 @@ contains
     call self%nc%close()
     deallocate(self%vars)
   end subroutine output_close
-
-  !> \brief Get variable meta data.
-  !> \return \ref var meta data definition
-  type(var) function output_meta(self, name)
-    implicit none
-    class(output_dataset) :: self
-    character(*), intent(in) :: name !< name of the variable
-    integer(i4) :: i
-    do i = 1_i4, self%nvars
-      if (self%vars(i)%name == name) then
-        output_meta = self%vars(i)%meta()
-        return
-      end if
-    end do
-    call error_message("output%meta: variable not present: ", name)
-  end function output_meta
 
   !> \brief Initialize input_dataset
   !> \details Create and initialize the input file handler.
@@ -1010,17 +990,11 @@ contains
     real(sp), dimension(self%grid%nx, self%grid%ny), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     real(sp), dimension(:,:), allocatable :: read_data
-    integer(i4) :: i, t_index
-    do i = 1_i4, self%nvars
-      if (self%vars(i)%name == name) then
-        t_index = 0_i4 ! indicate missing current_time
-        if (present(current_time) .and. allocated(self%times)) t_index = time_index(self%times, current_time)
-        call self%vars(i)%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
-        data = read_data
-        return
-      end if
-    end do
-    call error_message("input%read: variable not present: ", name)
+    integer(i4) :: t_index
+    t_index = 0_i4 ! indicate missing current_time
+    if (present(current_time) .and. allocated(self%times)) t_index = time_index(self%times, current_time)
+    call self%vars(var_index(self%vars, name, "input%read"))%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
+    data = read_data
   end subroutine input_read_matrix_sp
 
   !> \brief Read an input variable for a single time step
@@ -1077,16 +1051,9 @@ contains
     real(sp), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    integer(i4) :: i
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
-    do i = 1_i4, self%nvars
-      if (self%vars(i)%name == name) then
-        allocate(data(self%grid%nx, self%grid%ny, t_size))
-        call self%vars(i)%read_chunk(flip_y=self%flip_y, t_index=t_index, t_size=t_size, data=data)
-        return
-      end if
-    end do
-    call error_message("input%read: variable not present: ", name)
+    allocate(data(self%grid%nx, self%grid%ny, t_size))
+    call self%vars(var_index(self%vars, name, "input%read"))%read_chunk(flip_y=self%flip_y, t_index=t_index, t_size=t_size, data=data)
   end subroutine input_read_chunk_by_ids_matrix_sp
 
   !> \brief Read an input variable for a given time frame
@@ -1117,17 +1084,11 @@ contains
     real(dp), dimension(self%grid%nx, self%grid%ny), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     real(dp), dimension(:,:), allocatable :: read_data
-    integer(i4) :: i, t_index
-    do i = 1_i4, self%nvars
-      if (self%vars(i)%name == name) then
-        t_index = 0_i4 ! indicate missing current_time
-        if (present(current_time) .and. allocated(self%times)) t_index = time_index(self%times, current_time)
-        call self%vars(i)%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
-        data = read_data
-        return
-      end if
-    end do
-    call error_message("input%read: variable not present: ", name)
+    integer(i4) :: t_index
+    t_index = 0_i4 ! indicate missing current_time
+    if (present(current_time) .and. allocated(self%times)) t_index = time_index(self%times, current_time)
+    call self%vars(var_index(self%vars, name, "input%read"))%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
+    data = read_data
   end subroutine input_read_matrix_dp
 
   !> \brief Read an input variable for a single time step
@@ -1184,16 +1145,9 @@ contains
     real(dp), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    integer(i4) :: i
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
-    do i = 1_i4, self%nvars
-      if (self%vars(i)%name == name) then
-        allocate(data(self%grid%nx, self%grid%ny, t_size))
-        call self%vars(i)%read_chunk(flip_y=self%flip_y, t_index=t_index, t_size=t_size, data=data)
-        return
-      end if
-    end do
-    call error_message("input%read: variable not present: ", name)
+    allocate(data(self%grid%nx, self%grid%ny, t_size))
+    call self%vars(var_index(self%vars, name, "input%read"))%read_chunk(flip_y=self%flip_y, t_index=t_index, t_size=t_size, data=data)
   end subroutine input_read_chunk_by_ids_matrix_dp
 
   !> \brief Read an input variable for a given time frame
@@ -1224,17 +1178,11 @@ contains
     integer(i4), dimension(self%grid%nx, self%grid%ny), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4), dimension(:,:), allocatable :: read_data
-    integer(i4) :: i, t_index
-    do i = 1_i4, self%nvars
-      if (self%vars(i)%name == name) then
-        t_index = 0_i4 ! indicate missing current_time
-        if (present(current_time) .and. allocated(self%times)) t_index = time_index(self%times, current_time)
-        call self%vars(i)%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
-        data = read_data
-        return
-      end if
-    end do
-    call error_message("input%read: variable not present: ", name)
+    integer(i4) :: t_index
+    t_index = 0_i4 ! indicate missing current_time
+    if (present(current_time) .and. allocated(self%times)) t_index = time_index(self%times, current_time)
+    call self%vars(var_index(self%vars, name, "input%read"))%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
+    data = read_data
   end subroutine input_read_matrix_i4
 
   !> \brief Read an input variable for a single time step
@@ -1291,16 +1239,9 @@ contains
     integer(i4), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    integer(i4) :: i
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
-    do i = 1_i4, self%nvars
-      if (self%vars(i)%name == name) then
-        allocate(data(self%grid%nx, self%grid%ny, t_size))
-        call self%vars(i)%read_chunk(flip_y=self%flip_y, t_index=t_index, t_size=t_size, data=data)
-        return
-      end if
-    end do
-    call error_message("input%read: variable not present: ", name)
+    allocate(data(self%grid%nx, self%grid%ny, t_size))
+    call self%vars(var_index(self%vars, name, "input%read"))%read_chunk(flip_y=self%flip_y, t_index=t_index, t_size=t_size, data=data)
   end subroutine input_read_chunk_by_ids_matrix_i4
 
   !> \brief Read an input variable for a given time frame
@@ -1331,17 +1272,11 @@ contains
     integer(i8), dimension(self%grid%nx, self%grid%ny), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i8), dimension(:,:), allocatable :: read_data
-    integer(i4) :: i, t_index
-    do i = 1_i4, self%nvars
-      if (self%vars(i)%name == name) then
-        t_index = 0_i4 ! indicate missing current_time
-        if (present(current_time) .and. allocated(self%times)) t_index = time_index(self%times, current_time)
-        call self%vars(i)%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
-        data = read_data
-        return
-      end if
-    end do
-    call error_message("input%read: variable not present: ", name)
+    integer(i4) :: t_index
+    t_index = 0_i4 ! indicate missing current_time
+    if (present(current_time) .and. allocated(self%times)) t_index = time_index(self%times, current_time)
+    call self%vars(var_index(self%vars, name, "input%read"))%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
+    data = read_data
   end subroutine input_read_matrix_i8
 
   !> \brief Read an input variable for a single time step
@@ -1398,16 +1333,9 @@ contains
     integer(i8), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    integer(i4) :: i
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
-    do i = 1_i4, self%nvars
-      if (self%vars(i)%name == name) then
-        allocate(data(self%grid%nx, self%grid%ny, t_size))
-        call self%vars(i)%read_chunk(flip_y=self%flip_y, t_index=t_index, t_size=t_size, data=data)
-        return
-      end if
-    end do
-    call error_message("input%read: variable not present: ", name)
+    allocate(data(self%grid%nx, self%grid%ny, t_size))
+    call self%vars(var_index(self%vars, name, "input%read"))%read_chunk(flip_y=self%flip_y, t_index=t_index, t_size=t_size, data=data)
   end subroutine input_read_chunk_by_ids_matrix_i8
 
   !> \brief Read an input variable for a given time frame
@@ -1464,14 +1392,7 @@ contains
     implicit none
     class(input_dataset) :: self
     character(*), intent(in) :: name !< name of the variable
-    integer(i4) :: i
-    do i = 1_i4, self%nvars
-      if (self%vars(i)%name == name) then
-        input_meta = self%vars(i)%meta()
-        return
-      end if
-    end do
-    call error_message("input%meta: variable not present: ", name)
+    input_meta = self%vars(var_index(self%vars, name, "input%meta"))%meta()
   end function input_meta
 
   !> \brief Close the file
