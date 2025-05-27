@@ -1,6 +1,5 @@
 !> \file mo_cost.f90
-!> \brief \copybrief mo_cost
-!> \details \copydetails mo_cost
+!> \copydoc mo_cost
 
 !>  \brief Added for testing purposes of test_mo_anneal
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.

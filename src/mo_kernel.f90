@@ -1,6 +1,5 @@
 !> \file mo_kernel.f90
-!> \brief \copybrief mo_kernel
-!> \details \copydetails mo_kernel
+!> \copydoc mo_kernel
 
 !> \brief   Module for kernel regression and kernel density estimation.
 !> \details This module provides routines for kernel regression of data as well as kernel density

@@ -1,6 +1,5 @@
 !> \file mo_corr.f90
-!> \brief \copybrief mo_corr
-!> \details \copydetails mo_corr
+!> \copydoc mo_corr
 
 !> \brief Provides autocorrelation function calculations.
 !> \author Sebastian Mueller

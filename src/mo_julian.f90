@@ -1,6 +1,5 @@
 !> \file mo_julian.f90
-!> \brief \copybrief mo_julian
-!> \details \copydetails mo_julian
+!> \copydoc mo_julian
 
 !> \brief Julian date conversion routines
 !> \details Julian date to and from day, month, year, and also from day, month, year, hour, minute, and second.

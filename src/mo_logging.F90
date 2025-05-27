@@ -1,7 +1,6 @@
 #include "logging.h"
 !> \file    mo_logging.F90
-!> \brief   \copybrief mo_logging
-!> \details \copydetails mo_logging
+!> \copydoc mo_logging
 
 !> \brief   Module providing a logging framework.
 !> \version 0.1

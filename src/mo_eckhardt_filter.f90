@@ -1,6 +1,5 @@
 !> \file    mo_eckhardt_filter.f90
-!> \brief \copybrief mo_eckhardt_filter
-!> \details \copydetails mo_eckhardt_filter
+!> \copydoc mo_eckhardt_filter
 
 !> \brief   Eckhardt filter for baseflow index calculation.
 !> \details This module provides routines for the Eckardt filter to analyse discharge time series and extract the baseflow.

@@ -1,6 +1,5 @@
 !> \file mo_xor4096.f90
-!> \brief \copybrief mo_xor4096
-!> \details \copydetails mo_xor4096
+!> \copydoc mo_xor4096
 
 !> \brief XOR4096-based random number generator
 !> \details This module provides random number generator based on xor4096 algorithm.
