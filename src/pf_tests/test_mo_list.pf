@@ -1,0 +1,213 @@
+module test_mo_list
+  use funit
+  use mo_list, only: list, key_class, key_list
+  use mo_kind, only: i4, i8
+  use mo_message, only: error_message
+
+  implicit none
+
+  type, extends(key_class) :: ikey
+    integer(i8) :: id
+  contains
+    procedure :: key_equal => key_eq_i8
+    procedure :: key_assign => key_assign_i8
+  end type ikey
+
+  private
+
+  public :: test_list
+
+contains
+
+  pure elemental logical function key_eq_i8(this,  that)
+    class(ikey), intent(in) :: this
+    class(key_class), intent(in) :: that ! needs to be class(key_class) to match interface
+    key_eq_i8 = .false.
+    select type (that)
+      class is (ikey)
+        key_eq_i8 = this%id == that%id
+    end select
+  end function key_eq_i8
+
+  subroutine key_assign_i8(this,  that)
+    class(ikey), intent(inout) :: this
+    class(key_class), intent(in) :: that ! needs to be class(key_class) to match interface
+    select type (that)
+      type is (ikey)
+        this%id = that%id
+      class default
+        call error_message("ikey: key is not an ikey.")
+    end select
+  end subroutine key_assign_i8
+
+  subroutine get_type(lst, key, int_val, real_val, char_val)
+    class(list), intent(in) :: lst
+    class(*), intent(in) :: key
+    integer, pointer, intent(out), optional :: int_val
+    real, pointer, intent(out), optional :: real_val
+    character(:), pointer, intent(out), optional :: char_val
+    class(*), pointer :: p
+    ! init to null
+    if (present(int_val)) int_val => null()
+    if (present(real_val)) real_val => null()
+    if (present(char_val)) char_val => null()
+    ! get data
+    call lst%get(key, p)
+    if (associated(p)) then
+      select type (p)
+        type is (integer)
+          if (present(int_val)) int_val => p
+        type is (real)
+          if (present(real_val)) real_val => p
+        type is (character(*))
+          if (present(char_val)) char_val => p
+      end select
+    end if
+  end subroutine get_type
+
+  @test
+  subroutine test_list()
+    implicit none
+    type(list) :: lst, clst, dclst
+    type(key_list) :: keys, keys2
+    type(ikey) :: k1, k2
+    integer, pointer :: ival => null()
+    integer(i4), pointer :: i4val => null()
+    integer(i4) :: i4copy
+    real, pointer :: rval => null()
+    real, target :: tval
+    character(:), pointer :: cval => null()
+    character(:), allocatable :: ccopy
+    real :: t = 1000.0 * epsilon(1.0)
+
+    tval = 3.1415
+
+    call lst%add("age", 30)
+    call lst%add("year", 1990)
+    call lst%add("temp", 27.9)
+
+    call get_type(lst, "age", int_val=ival)
+    call get_type(lst, "temp", real_val=rval)
+
+    @assertTrue(associated(ival), message='associated integer check')
+    @assertTrue(associated(rval), message='associated real check')
+    @assertEqual(ival, 30, message='lst integer check')
+    @assertEqual(rval, 27.9, tolerance=t, message='lst real check')
+
+    call get_type(lst, "year", int_val=ival)
+    @assertEqual(ival, 1990, message='lst 2nd integer check')
+
+    call lst%remove("year")
+    @assertFalse(lst%has("year"), message='missing key check')
+    call lst%remove("age")
+    @assertFalse(lst%has("age"), message='missing key check')
+
+    call lst%add("name", "John")
+    call get_type(lst, "name", char_val=cval)
+    @assertTrue(associated(cval), message='associated char check')
+    @assertEqual(len(cval), 4, message='lst 1st char check')
+    @assertEqual(cval, "John", message='lst 2nd char check')
+
+    @assertFalse(lst%has("hobby"), message='missing key check')
+
+    call lst%remove("name")
+    @assertFalse(lst%has("name"), message='missing key check')
+
+    call lst%add(1_i4, "an integer key")
+    call lst%add(2_i4, 2.0)
+
+    call get_type(lst, key=1_i4, char_val=cval)
+    @assertEqual(cval, "an integer key", message='int key check')
+
+    call get_type(lst, key=2_i4, real_val=rval)
+    @assertEqual(rval, 2.0, tolerance=t, message='2nd int key check')
+
+    call lst%add(2_i4, 4.0, replace=.true.)
+    call get_type(lst, key=2_i4, real_val=rval)
+    @assertEqual(rval, 4.0, tolerance=t, message='replaced item check')
+    @assertEqual(lst%size(), 3_i4, message='check size is 3')
+
+    ! check key list
+    k1 = ikey(20_i8)
+    call lst%add(k1, "a beautiful key you have there!")
+
+    keys = lst%keys()
+    @assertEqual(keys%get_type(1_i4), "str", message='check string key type')
+    @assertEqual(keys%get_type(2_i4), "int", message='check integer key type')
+    @assertEqual(keys%get_type(3_i4), "int", message='check integer key type')
+    @assertEqual(keys%get_type(4_i4), "cls", message='check class key type')
+
+    @assertEqual(lst%size(), keys%size(), message='check size is number of keys')
+    call keys%get_key(1_i4, ccopy)
+    @assertEqual(ccopy, "temp", message='check str keys match')
+    call keys%get_key(2_i4, i4copy)
+    @assertEqual(i4copy, 1_i4, message='check int keys match')
+    call keys%get_key(3_i4, i4copy)
+    @assertEqual(i4copy, 2_i4, message='check int keys match')
+    call keys%get_key(4_i4, k2)
+    @assertTrue(k1==k2, message='check ikey keys match')
+    keys2 = keys ! check assignment
+    call keys%destroy()
+    @assertEqual(keys%size(), 0_i4, message='check size is 0')
+    @assertEqual(keys2%size(), 4_i4, message='check size is number of keys')
+
+    call lst%add_target("target", tval)
+    call lst%get_keys(keys2)
+    clst = lst
+    call lst%deepcopy(dclst)
+    call clst%get_keys(keys)
+    @assertTrue(keys==keys2, message='check copied list keys')
+    @assertTrue(keys.eqv.keys2, message='check copied list keys eqv')
+    call keys%destroy()
+    call dclst%get_keys(keys)
+    @assertTrue(keys==keys2, message='check deep copied list keys')
+    @assertTrue(keys.eqv.keys2, message='check deep copied list keys eqv')
+    @assertEqual(clst%size(), 5_i4, message='check copied list size is 5')
+    @assertEqual(dclst%size(), 5_i4, message='check deep copied list size is 5')
+
+    call keys%destroy()
+    call keys2%destroy()
+
+    call keys%add(1_i4, "test1")
+    call keys%add(2_i4, "test2")
+    call keys2%add(1_i4, "test2")
+    call keys2%add(2_i4, "test1")
+    @assertFalse(keys==keys2, message='check eqv key lists not eq')
+    @assertTrue(keys.eqv.keys2, message='check eqv key lists')
+
+    call clst%destroy()
+    call dclst%destroy()
+
+    call lst%remove("target")
+    call lst%remove("temp")
+    call lst%remove(2_i4)
+    call lst%remove(1_i4)
+    call lst%remove(k2)
+
+    @assertFalse(lst%has("age"), message='missing key check')
+    @assertFalse(lst%has("year"), message='missing key check')
+    @assertFalse(lst%has("temp"), message='missing key check')
+    @assertFalse(lst%has("name"), message='missing key check')
+    @assertFalse(lst%has(1_i4), message='missing key check')
+    @assertFalse(lst%has(2_i4), message='missing key check')
+    @assertEqual(lst%size(), 0_i4, message='check size is zero')
+
+    call lst%add_target("target", tval)
+    call get_type(lst, key="target", real_val=rval)
+    @assertEqual(rval, tval, tolerance=t, message='target item check')
+    tval = 4.0
+    @assertEqual(rval, tval, tolerance=t, message='2nd target item check')
+    call lst%remove("target")
+    @assertFalse(lst%has("target"), message='missing key check')
+
+    k1 = ikey(20_i8)
+    call lst%add(k1, "a beautiful key you have there!")
+    @assertTrue(lst%has(k1), message='type key check')
+    call lst%remove(k1)
+    @assertFalse(lst%has(k1), message='2nd type key check')
+
+    call lst%add(10_i4, "a last entry to say goodbye and check the destroyer")
+
+  end subroutine test_list
+
+end module test_mo_list

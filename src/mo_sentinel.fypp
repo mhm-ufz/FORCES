@@ -3,8 +3,7 @@
 #:set ALL_KINDS_TYPES = INT_KINDS_TYPES + REAL_KINDS_TYPES + CMPLX_KINDS_TYPES + CHAR_KINDS_TYPES
 #:set NUM_KINDS_TYPES = INT_KINDS_TYPES + REAL_KINDS_TYPES + CMPLX_KINDS_TYPES
 !> \file    mo_sentinel.f90
-!> \brief   \copybrief mo_sentinel
-!> \details \copydetails mo_sentinel
+!> \copydoc mo_sentinel
 
 !> \brief   Module to handle sentinels.
 !> \details This module provides standard sentinels for all used types as well as set, get and check routines.

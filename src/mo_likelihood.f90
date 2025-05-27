@@ -1,6 +1,5 @@
 !> \file mo_likelihood.f90
-!> \brief \copybrief mo_likelihood
-!> \details \copydetails mo_likelihood
+!> \copydoc mo_likelihood
 
 !>  \brief Added for testing purposes of test_mo_mcmc
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.

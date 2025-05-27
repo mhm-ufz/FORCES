@@ -1,6 +1,5 @@
 !> \file mo_orderpack.f90
-!> \brief \copybrief mo_orderpack
-!> \details \copydetails mo_orderpack
+!> \copydoc mo_orderpack
 
 !> \brief Sort and ranking routines
 !> \details
@@ -273,7 +272,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_orderpack
 
-  USE mo_kind, ONLY : i4, sp, dp
+  USE mo_kind, ONLY : i4, i8, sp, dp
   USE mo_utils, ONLY : ne, eq, le
 
   IMPLICIT NONE
@@ -6834,9 +6833,9 @@ CONTAINS
     Integer(kind = i4), Dimension (:), Intent (Out) :: IMULT
     ! __________________________________________________________
     !
-    Integer(kind = i4), Dimension (Size(XDONT)) :: IWRKT
-    Integer(kind = i4), Dimension (Size(XDONT)) :: ICNTT
-    Integer(kind = i4) :: ICRS
+    Integer(kind = i8), Dimension (Size(XDONT)) :: IWRKT
+    Integer(kind = i8), Dimension (Size(XDONT)) :: ICNTT
+    Integer(kind = i8) :: ICRS
     ! __________________________________________________________
     Call UNIINV (XDONT, IWRKT)
     ICNTT = 0
@@ -6861,9 +6860,9 @@ CONTAINS
     Integer(kind = i4), Dimension (:), Intent (Out) :: IMULT
     ! __________________________________________________________
     !
-    Integer(kind = i4), Dimension (Size(XDONT)) :: IWRKT
-    Integer(kind = i4), Dimension (Size(XDONT)) :: ICNTT
-    Integer(kind = i4) :: ICRS
+    Integer(kind = i8), Dimension (Size(XDONT)) :: IWRKT
+    Integer(kind = i8), Dimension (Size(XDONT)) :: ICNTT
+    Integer(kind = i8) :: ICRS
     ! __________________________________________________________
     Call UNIINV (XDONT, IWRKT)
     ICNTT = 0
@@ -6888,9 +6887,9 @@ CONTAINS
     Integer(kind = i4), Dimension (:), Intent (Out) :: IMULT
     ! __________________________________________________________
     !
-    Integer(kind = i4), Dimension (Size(XDONT)) :: IWRKT
-    Integer(kind = i4), Dimension (Size(XDONT)) :: ICNTT
-    Integer(kind = i4) :: ICRS
+    Integer(kind = i8), Dimension (Size(XDONT)) :: IWRKT
+    Integer(kind = i8), Dimension (Size(XDONT)) :: ICNTT
+    Integer(kind = i8) :: ICRS
     ! __________________________________________________________
     Call UNIINV (XDONT, IWRKT)
     ICNTT = 0
@@ -10958,14 +10957,14 @@ CONTAINS
     ! __________________________________________________________
     ! __________________________________________________________
     real(kind = dp), Dimension (:), Intent (In) :: XDONT
-    Integer(kind = i4), Dimension (:), Intent (Out) :: IGOEST
+    Integer(kind = i8), Dimension (:), Intent (Out) :: IGOEST
     ! __________________________________________________________
     real(kind = dp) :: XTST, XDONA, XDONB
     !
     ! __________________________________________________________
-    Integer(kind = i4), Dimension (SIZE(IGOEST)) :: JWRKT, IRNGT
-    Integer(kind = i4) :: LMTNA, LMTNC, IRNG, IRNG1, IRNG2, NUNI
-    Integer(kind = i4) :: NVAL, IIND, IWRKD, IWRK, IWRKF, JINDA, IINDA, IINDB
+    Integer(kind = i8), Dimension (SIZE(IGOEST)) :: JWRKT, IRNGT
+    Integer(kind = i8) :: LMTNA, LMTNC, IRNG, IRNG1, IRNG2, NUNI
+    Integer(kind = i8) :: NVAL, IIND, IWRKD, IWRK, IWRKF, JINDA, IINDA, IINDB
     !
     NVAL = Min (SIZE(XDONT), SIZE(IGOEST))
     !
@@ -11205,14 +11204,14 @@ CONTAINS
     ! __________________________________________________________
     ! _________________________________________________________
     Real(kind = sp), Dimension (:), Intent (In) :: XDONT
-    Integer(kind = i4), Dimension (:), Intent (Out) :: IGOEST
+    Integer(kind = i8), Dimension (:), Intent (Out) :: IGOEST
     ! __________________________________________________________
     Real(kind = sp) :: XTST, XDONA, XDONB
     !
     ! __________________________________________________________
-    Integer(kind = i4), Dimension (SIZE(IGOEST)) :: JWRKT, IRNGT
-    Integer(kind = i4) :: LMTNA, LMTNC, IRNG, IRNG1, IRNG2, NUNI
-    Integer(kind = i4) :: NVAL, IIND, IWRKD, IWRK, IWRKF, JINDA, IINDA, IINDB
+    Integer(kind = i8), Dimension (SIZE(IGOEST)) :: JWRKT, IRNGT
+    Integer(kind = i8) :: LMTNA, LMTNC, IRNG, IRNG1, IRNG2, NUNI
+    Integer(kind = i8) :: NVAL, IIND, IWRKD, IWRK, IWRKF, JINDA, IINDA, IINDB
     !
     NVAL = Min (SIZE(XDONT), SIZE(IGOEST))
     !
@@ -11452,14 +11451,14 @@ CONTAINS
     ! __________________________________________________________
     ! __________________________________________________________
     Integer(kind = i4), Dimension (:), Intent (In) :: XDONT
-    Integer(kind = i4), Dimension (:), Intent (Out) :: IGOEST
+    Integer(kind = i8), Dimension (:), Intent (Out) :: IGOEST
     ! __________________________________________________________
-    Integer(kind = i4) :: XTST, XDONA, XDONB
+    Integer(kind = i8) :: XTST, XDONA, XDONB
     !
     ! __________________________________________________________
-    Integer(kind = i4), Dimension (SIZE(IGOEST)) :: JWRKT, IRNGT
-    Integer(kind = i4) :: LMTNA, LMTNC, IRNG, IRNG1, IRNG2, NUNI
-    Integer(kind = i4) :: NVAL, IIND, IWRKD, IWRK, IWRKF, JINDA, IINDA, IINDB
+    Integer(kind = i8), Dimension (SIZE(IGOEST)) :: JWRKT, IRNGT
+    Integer(kind = i8) :: LMTNA, LMTNC, IRNG, IRNG1, IRNG2, NUNI
+    Integer(kind = i8) :: NVAL, IIND, IWRKD, IWRK, IWRKF, JINDA, IINDA, IINDB
     !
     NVAL = Min (SIZE(XDONT), SIZE(IGOEST))
     !
@@ -14035,10 +14034,10 @@ CONTAINS
     Integer(kind = i4), Dimension (:), Intent (Out) :: IRNGT
     Integer(kind = i4), Intent (Out) :: NUNI
     ! __________________________________________________________
-    Integer(kind = i4), Dimension (SIZE(IRNGT)) :: JWRKT
-    Integer(kind = i4) :: LMTNA, LMTNC, IRNG, IRNG1, IRNG2
-    Integer(kind = i4) :: NVAL, IIND, IWRKD, IWRK, IWRKF, JINDA, IINDA, IINDB
-    Integer(kind = i4) :: XTST, XVALA, XVALB
+    Integer(kind = i8), Dimension (SIZE(IRNGT)) :: JWRKT
+    Integer(kind = i8) :: LMTNA, LMTNC, IRNG, IRNG1, IRNG2
+    Integer(kind = i8) :: NVAL, IIND, IWRKD, IWRK, IWRKF, JINDA, IINDA, IINDB
+    Integer(kind = i8) :: XTST, XVALA, XVALB
     !
     !
     NVAL = Min (SIZE(XVALT), SIZE(IRNGT))
@@ -14280,9 +14279,9 @@ CONTAINS
     Integer(kind = i4), Intent (Out) :: NUNI
     ! __________________________________________________________
     !
-    Integer(kind = i4), Dimension (Size(XDONT)) :: IWRKT
+    Integer(kind = i8), Dimension (Size(XDONT)) :: IWRKT
     Logical, Dimension (Size(XDONT)) :: IFMPTYT
-    Integer(kind = i4) :: ICRS
+    Integer(kind = i8) :: ICRS
     ! __________________________________________________________
     Call UNIINV (XDONT, IWRKT)
     IFMPTYT = .True.
@@ -14309,9 +14308,9 @@ CONTAINS
     Integer(kind = i4), Intent (Out) :: NUNI
     ! __________________________________________________________
     !
-    Integer(kind = i4), Dimension (Size(XDONT)) :: IWRKT
+    Integer(kind = i8), Dimension (Size(XDONT)) :: IWRKT
     Logical, Dimension (Size(XDONT)) :: IFMPTYT
-    Integer(kind = i4) :: ICRS
+    Integer(kind = i8) :: ICRS
     ! __________________________________________________________
     Call UNIINV (XDONT, IWRKT)
     IFMPTYT = .True.
@@ -14338,9 +14337,9 @@ CONTAINS
     Integer(kind = i4), Intent (Out) :: NUNI
     ! __________________________________________________________
     !
-    Integer(kind = i4), Dimension (Size(XDONT)) :: IWRKT
+    Integer(kind = i8), Dimension (Size(XDONT)) :: IWRKT
     Logical, Dimension (Size(XDONT)) :: IFMPTYT
-    Integer(kind = i4) :: ICRS
+    Integer(kind = i8) :: ICRS
     ! __________________________________________________________
     Call UNIINV (XDONT, IWRKT)
     IFMPTYT = .True.

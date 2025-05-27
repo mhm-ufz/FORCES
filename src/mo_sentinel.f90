@@ -1,6 +1,5 @@
 !> \file    mo_sentinel.f90
-!> \brief   \copybrief mo_sentinel
-!> \details \copydetails mo_sentinel
+!> \copydoc mo_sentinel
 
 !> \brief   Module to handle sentinels.
 !> \details This module provides standard sentinels for all used types as well as set, get and check routines.

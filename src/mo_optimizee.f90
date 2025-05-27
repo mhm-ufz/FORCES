@@ -1,6 +1,5 @@
 !> \file mo_optimizee.f90
-!> \brief \copybrief mo_optimizee
-!> \details \copydetails mo_optimizee
+!> \copydoc mo_optimizee
 
 !> \brief Utility functions, such as interface definitions, for optimization routines.
 !> \details An abstract type \ref optimizee is provided to be used with the optimization functions

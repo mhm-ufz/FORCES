@@ -1,7 +1,6 @@
 #include "logging.h"
 !> \file mo_message.f90
-!> \brief \copybrief mo_message
-!> \details \copydetails mo_message
+!> \copydoc mo_message
 
 !> \brief Write out concatenated strings
 !> \details Write out several strings concatenated on standard out or a given unit, either advancing or not.
@@ -19,10 +18,16 @@ MODULE mo_message
   PRIVATE
 
   PUBLIC :: message         ! versatile routine to write out strings in file or on screen
+  PUBLIC :: warn_message    ! write warning message to ERROR_UNIT
   PUBLIC :: error_message   ! write error message to ERROR_UNIT and call stop 1
 
-  logical, public, save :: show_msg = .true. !< global control switch to show normal messages
-  logical, public, save :: show_err = .true. !< global control switch to show error messages
+  logical, public, save :: show_msg = .true.  !< global control switch to show normal messages
+  logical, public, save :: show_warn = .true. !< global control switch to show warning messages
+  logical, public, save :: show_err = .true.  !< global control switch to show error messages
+
+  integer, public, save :: unit_msg = nout    !< global standard output unit (stdout by default)
+  integer, public, save :: unit_warn = nerr   !< global standard warning unit (stderr by default)
+  integer, public, save :: unit_err = nerr    !< global standard error unit (stderr by default)
 
   ! ------------------------------------------------------------------
 
@@ -109,7 +114,7 @@ CONTAINS
     ! short circuit if message should not be shown
     if (.not. show_ ) return
 
-    uni_ = nout
+    uni_ = unit_msg
     advance_ = 'yes'
     reset_format_ = .false.
     if ( present(uni) ) uni_ = uni
@@ -158,15 +163,56 @@ CONTAINS
     logical :: show_, raise_
 
     show_ = show_err
+    uni_ = unit_err
     raise_ = .true.
-    uni_ = nerr
     if ( present(show) ) show_ = show
+    if ( present(uni) ) uni_ = uni
     if ( present(raise) ) raise_ = raise
-    if (present(uni) ) uni_ = uni
 
     call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, uni_, advance, show_, reset_format)
     if ( raise_ ) stop 1
 
   END SUBROUTINE error_message
+
+  !> \brief Write out a warning message to stderr.
+  SUBROUTINE warn_message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, &
+    uni, advance, show, raise, reset_format)
+
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t01  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t02  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t03  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t04  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t05  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t06  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t07  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t08  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t09  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t10  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t11  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t12  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t13  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t14  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t15  !< optional string arguments
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: t16  !< optional string arguments
+    INTEGER, INTENT(IN), OPTIONAL :: uni  !< Unit to write to (default: stderr)
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< add linebreak after message, default: 'yes', else 'no'
+    LOGICAL, INTENT(IN), OPTIONAL :: show  !< control if message should be shown (show_warn as default)
+    LOGICAL, INTENT(IN), OPTIONAL :: raise  !< control if an exception is raised with error code 1 (.false. as default)
+    LOGICAL, INTENT(IN), OPTIONAL :: reset_format  !< Reset formatting (default: .false.)
+
+    INTEGER :: uni_
+    logical :: show_, raise_
+
+    show_ = show_warn
+    uni_ = unit_warn
+    raise_ = .false.
+    if ( present(show) ) show_ = show
+    if ( present(uni) ) uni_ = uni
+    if ( present(raise) ) raise_ = raise
+
+    call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, uni_, advance, show_, reset_format)
+    if ( raise_ ) stop 1
+
+  END SUBROUTINE warn_message
 
 END MODULE mo_message

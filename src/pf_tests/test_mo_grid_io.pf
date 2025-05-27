@@ -1,0 +1,106 @@
+module test_mo_grid_io
+  use funit
+  implicit none
+
+  private
+
+  public :: test_output
+
+contains
+
+  @test
+  subroutine test_output()
+    use mo_kind, only: dp, i4, sp, i8
+    use mo_grid, only: grid_t
+    use mo_grid_io, only: var, output_dataset, center_timestamp, time_units_delta, daily, input_dataset
+    use mo_datetime, only: datetime, timedelta
+    implicit none
+    type(datetime) :: start_time, end_time, current_time
+    type(timedelta) :: model_step
+    type(grid_t), target :: grid, grd2
+    type(output_dataset) :: out_ds
+    type(input_dataset) :: in_ds
+    type(datetime), allocatable :: times(:)
+    real(dp), allocatable :: dem(:,:), height(:), heights(:), dem_read(:,:), height_read(:), h_chunk(:,:)
+    real(sp), allocatable :: dem_sp(:,:)
+    integer(i4), allocatable :: dem_i4(:,:)
+    integer(i8), allocatable :: dem_i8(:,:)
+
+    type(var), allocatable :: vars(:)
+    real(dp) :: factor
+    integer(i4) :: write_step
+    character(:), allocatable :: delta
+    real(dp) :: t=1.0E-5_dp
+
+    ! model time config
+    start_time = datetime("2025-01-01")
+    end_time = datetime("2025-01-15")
+    model_step = timedelta(hours=1_i4)
+
+    ! output time config
+    write_step = daily
+    delta = time_units_delta(write_step, center_timestamp)
+
+    ! initialize grid from DEM ascii file
+    call grid%from_ascii_file("./files/dem.asc")
+    call grid%read_data("./files/dem.asc", dem)
+    height = grid%pack(dem)
+
+    allocate(vars(0))
+    vars = [vars, var(name="dem", units="m", static=.true., dtype="f32", kind="dp")]
+    vars = [vars, var(name="height", units="m", avg=.true., static=.false.)]
+    call out_ds%init(path="height.nc", grid=grid, vars=vars, start_time=start_time, delta=delta, timestamp=center_timestamp)
+    call out_ds%update("dem", height)
+    call out_ds%write_static()
+
+    ! model time loop
+    current_time = start_time
+    factor = 0.0_dp
+    allocate(heights(grid%ncells), source=0.0_dp)
+    do while(current_time < end_time)
+      factor = factor + 0.01_dp
+      if (current_time%date()==datetime("2025-01-10")) heights = heights + height * cos(factor)
+      current_time = current_time + model_step
+      call out_ds%update("height", height * cos(factor))
+      if (current_time%is_new_day()) call out_ds%write(current_time)
+    end do
+    call out_ds%close()
+
+    heights = heights / 24.0_dp
+
+    call grd2%from_netcdf("height.nc", "height")
+    @assertEqual(grid%ncells, grd2%ncells, message='ncells compare')
+    @assertEqual(grid%nx, grd2%nx, message='nx compare')
+    @assertEqual(grid%ny, grd2%ny, message='ny compare')
+    @assertEqual(grid%xllcorner, grd2%xllcorner, tolerance=t, message='xllcorner compare')
+    @assertEqual(grid%yllcorner, grd2%yllcorner, tolerance=t, message='yllcorner compare')
+
+    call in_ds%init("height.nc", grid=grd2, vars=vars)
+    allocate(dem_read(grid%nx, grid%ny))
+    allocate(dem_sp(grid%nx, grid%ny))
+    allocate(dem_i4(grid%nx, grid%ny))
+    allocate(dem_i8(grid%nx, grid%ny))
+    allocate(height_read(grid%ncells))
+    call in_ds%read("dem", data=dem_read)
+    call in_ds%read("dem", data=dem_sp)
+    call in_ds%read("dem", data=dem_i4)
+    call in_ds%read("dem", data=dem_i8)
+    call in_ds%read("height", data=height_read, current_time=datetime("2025-01-11"))
+    call in_ds%read_chunk("height", &
+      timeframe_start=datetime("2025-01-10"), &
+      timeframe_end=datetime("2025-01-15"), &
+      times=times, data=h_chunk)
+    call in_ds%close()
+
+    @assertEqual(dem_i4, nint(dem, i4), message='static read check i4')
+    @assertEqual(dem_i8, nint(dem, i8), message='static read check i8')
+    @assertEqual(dem_sp, real(dem, sp), tolerance=real(t, sp), message='static read check sp')
+    @assertEqual(dem_read, dem, tolerance=t, message='static read check')
+    @assertEqual(height_read, heights, tolerance=t, message='temporal read check')
+    @assertEqual(size(times), size(h_chunk, dim=2))
+    @assertTrue(times(1)==datetime("2025-01-11"), message='checking start time frame')
+    @assertTrue(times(size(Times))==datetime("2025-01-15"), message='checking end time frame')
+    @assertFalse(in_ds%flip_y, "not flipping input since grid is equal")
+  end subroutine test_output
+
+end module test_mo_grid_io

@@ -1,6 +1,5 @@
 !> \file mo_nelmin.f90
-!> \brief \copybrief mo_nelmin
-!> \details \copydetails mo_nelmin
+!> \copydoc mo_nelmin
 
 !> \brief Nelder-Mead algorithm
 !> \details This module provides NELMIN, which minimizes a function using the Nelder-Mead algorithm

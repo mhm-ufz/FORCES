@@ -24,6 +24,22 @@ project(FORCES
 add_subdirectory(./src)
 set (LIB_NAME forces)
 
+set(FORCES_EXE "" CACHE FILEPATH "Path to an executable linking against forces.")
+if(FORCES_EXE)
+  if(IS_ABSOLUTE ${FORCES_EXE})
+    set(EXE_PATH ${FORCES_EXE})
+  else()
+    set(EXE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/${FORCES_EXE}")
+  endif()
+  if(EXISTS ${EXE_PATH})
+    message(STATUS "FORCES: found executable: ${EXE_PATH}")
+    add_executable(main ${EXE_PATH})
+    target_link_libraries(main PRIVATE forces)
+  else()
+    message(FATAL_ERROR "FORCES: could not find executable: ${EXE_PATH}")
+  endif()
+endif()
+
 # add full version and date to pre-processor flags (qoutes need in before hand)
 target_compile_definitions(${LIB_NAME} PRIVATE
   FORCESVERSION='${FORCES_VER_DEV}'

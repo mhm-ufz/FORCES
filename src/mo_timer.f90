@@ -1,6 +1,5 @@
 !> \file mo_timer.f90
-!> \brief \copybrief mo_timer
-!> \details \copydetails mo_timer
+!> \copydoc mo_timer
 
 !> \brief Timing routines
 !> \details This module uses F90 cpu time routines to allowing setting of
