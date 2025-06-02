@@ -98,6 +98,7 @@ module mo_grid
 #endif
     procedure, public :: extent
     procedure, public :: total_area
+    procedure, public :: id_matrix
     procedure, public :: x_axis
     procedure, public :: y_axis
     procedure, public :: x_vertices
@@ -524,7 +525,7 @@ contains
   !> \date    Mar 2025
   function layer_pack_sp(this, data) result(out_data)
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     real(sp), intent(in) :: data(:,:,:) !< (x,y,z)
     real(sp), allocatable :: out_data(:,:) !< (n,z)
     integer(i4) :: i
@@ -541,7 +542,7 @@ contains
   !> \date    Mar 2025
   function layer_pack_dp(this, data) result(out_data)
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     real(dp), intent(in) :: data(:,:,:) !< (x,y,z)
     real(dp), allocatable :: out_data(:,:) !< (n,z)
     integer(i4) :: i
@@ -558,7 +559,7 @@ contains
   !> \date    Mar 2025
   function layer_pack_i4(this, data) result(out_data)
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     integer(i4), intent(in) :: data(:,:,:) !< (x,y,z)
     integer(i4), allocatable :: out_data(:,:) !< (n,z)
     integer(i4) :: i
@@ -575,7 +576,7 @@ contains
   !> \date    Mar 2025
   function layer_pack_i8(this, data) result(out_data)
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     integer(i8), intent(in) :: data(:,:,:) !< (x,y,z)
     integer(i8), allocatable :: out_data(:,:) !< (n,z)
     integer(i4) :: i
@@ -592,7 +593,7 @@ contains
   !> \date    Mar 2025
   function layer_pack_lgt(this, data) result(out_data)
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     logical, intent(in) :: data(:,:,:) !< (x,y,z)
     logical, allocatable :: out_data(:,:) !< (n,z)
     integer(i4) :: i
@@ -610,7 +611,7 @@ contains
   function layer_unpack_sp(this, data) result(out_data)
     use mo_constants, only : nodata_sp
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     real(sp), intent(in) :: data(:,:)
     real(sp), allocatable :: out_data(:,:,:)
     integer(i4) :: i
@@ -628,7 +629,7 @@ contains
   function layer_unpack_dp(this, data) result(out_data)
     use mo_constants, only : nodata_dp
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     real(dp), intent(in) :: data(:,:)
     real(dp), allocatable :: out_data(:,:,:)
     integer(i4) :: i
@@ -646,7 +647,7 @@ contains
   function layer_unpack_i4(this, data) result(out_data)
     use mo_constants, only : nodata_i4
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     integer(i4), intent(in) :: data(:,:)
     integer(i4), allocatable :: out_data(:,:,:)
     integer(i4) :: i
@@ -664,7 +665,7 @@ contains
   function layer_unpack_i8(this, data) result(out_data)
     use mo_constants, only : nodata_i8
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     integer(i8), intent(in) :: data(:,:)
     integer(i8), allocatable :: out_data(:,:,:)
     integer(i4) :: i
@@ -681,7 +682,7 @@ contains
   !> \date    Mar 2025
   function layer_unpack_lgt(this, data) result(out_data)
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     logical, intent(in) :: data(:,:)
     logical, allocatable :: out_data(:,:,:)
     integer(i4) :: i
@@ -1346,6 +1347,18 @@ contains
     end if
 
   end function total_area
+
+  !> \brief Matrix of cell IDs.
+  !> \return `integer(i8) :: id_matrix(nx,ny)`
+  !> \authors Sebastian Müller
+  !> \date Jun 2025
+  function id_matrix(this)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i8), dimension(this%nx, this%ny) :: id_matrix
+    integer(i8) :: i
+    id_matrix = this%unpack([(i, i=1_i8, this%ncells)])
+  end function id_matrix
 
   !> \brief x-axis of the grid cell centers
   !> \return `real(dp), allocatable, dimension(:) :: x_axis`
@@ -2294,7 +2307,7 @@ contains
   !> \date    Mar 2025
   function pack_data_sp(this, data) result(out_data)
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     real(sp), intent(in) :: data(:,:)
     real(sp), allocatable :: out_data(:)
     call this%check_shape(shape(data, kind=i8))
@@ -2308,7 +2321,7 @@ contains
   !> \date    Mar 2025
   function pack_data_dp(this, data) result(out_data)
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     real(dp), intent(in) :: data(:,:)
     real(dp), allocatable :: out_data(:)
     call this%check_shape(shape(data, kind=i8))
@@ -2322,7 +2335,7 @@ contains
   !> \date    Mar 2025
   function pack_data_i4(this, data) result(out_data)
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     integer(i4), intent(in) :: data(:,:)
     integer(i4), allocatable :: out_data(:)
     call this%check_shape(shape(data, kind=i8))
@@ -2336,7 +2349,7 @@ contains
   !> \date    Mar 2025
   function pack_data_i8(this, data) result(out_data)
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     integer(i8), intent(in) :: data(:,:)
     integer(i8), allocatable :: out_data(:)
     call this%check_shape(shape(data, kind=i8))
@@ -2350,7 +2363,7 @@ contains
   !> \date    Mar 2025
   function pack_data_lgt(this, data) result(out_data)
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     logical, intent(in) :: data(:,:)
     logical, allocatable :: out_data(:)
     call this%check_shape(shape(data, kind=i8))
@@ -2365,7 +2378,7 @@ contains
   function unpack_data_sp(this, data) result(out_data)
     use mo_constants, only : nodata_sp
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     real(sp), intent(in) :: data(:)
     real(sp), allocatable :: out_data(:,:)
     call this%check_shape_packed(shape(data, kind=i8))
@@ -2380,7 +2393,7 @@ contains
   function unpack_data_dp(this, data) result(out_data)
     use mo_constants, only : nodata_dp
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     real(dp), intent(in) :: data(:)
     real(dp), allocatable :: out_data(:,:)
     call this%check_shape_packed(shape(data, kind=i8))
@@ -2395,7 +2408,7 @@ contains
   function unpack_data_i4(this, data) result(out_data)
     use mo_constants, only : nodata_i4
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     integer(i4), intent(in) :: data(:)
     integer(i4), allocatable :: out_data(:,:)
     call this%check_shape_packed(shape(data, kind=i8))
@@ -2410,7 +2423,7 @@ contains
   function unpack_data_i8(this, data) result(out_data)
     use mo_constants, only : nodata_i8
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     integer(i8), intent(in) :: data(:)
     integer(i8), allocatable :: out_data(:,:)
     call this%check_shape_packed(shape(data, kind=i8))
@@ -2424,7 +2437,7 @@ contains
   !> \date    Mar 2025
   function unpack_data_lgt(this, data) result(out_data)
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     logical, intent(in) :: data(:)
     logical, allocatable :: out_data(:,:)
     call this%check_shape_packed(shape(data, kind=i8))
