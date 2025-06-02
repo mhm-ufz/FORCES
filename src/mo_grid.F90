@@ -26,6 +26,7 @@ module mo_grid
   public :: read_ascii_grid
   public :: read_ascii_header
   public :: id_bounds
+  public :: dist_latlon
 #ifdef FORCES_WITH_NETCDF
   public :: is_x_axis
   public :: is_y_axis
@@ -99,6 +100,8 @@ module mo_grid
     procedure, public :: extent
     procedure, public :: total_area
     procedure, public :: id_matrix
+    procedure, public :: cell_id
+    procedure, public :: closest_cell_id
     procedure, public :: x_axis
     procedure, public :: y_axis
     procedure, public :: x_vertices
@@ -1359,6 +1362,52 @@ contains
     integer(i8) :: i
     id_matrix = this%unpack([(i, i=1_i8, this%ncells)])
   end function id_matrix
+
+  !> \brief Cell ID for given matrix indices.
+  !> \return `integer(i8) :: cell_id`
+  !> \authors Sebastian Müller
+  !> \date Jun 2025
+  integer(i8) function cell_id(this, indices)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i4), intent(in) :: indices(2) !< matrix indices (x_i,y_i)
+    logical, dimension(this%ncells) :: cell_loc
+    cell_loc = (this%cell_ij(:, 1) == indices(1)).and.(this%cell_ij(:, 2) == indices(2))
+    cell_id = findloc(cell_loc, .true., dim=1, kind=i8)
+    if (cell_id == 0_i8) call error_message("grid%cell_id: given indices not found.")
+  end function cell_id
+
+  !> \brief Closest cell ID for given coordinates.
+  !> \return `integer(i8) :: closest_cell_id`
+  !> \authors Sebastian Müller
+  !> \date Jun 2025
+  integer(i8) function closest_cell_id(this, coords, use_aux)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), intent(in) :: coords(2) !< coordiantes (x,y) or (lon,lat)
+    logical, intent(in), optional :: use_aux !< use auxilliar coordinates (lon,lat)
+    real(dp), allocatable :: xax(:), yax(:)
+    real(dp) :: c(this%ncells, 2), dist(this%ncells)
+    integer(i8) :: i
+    logical :: aux = .false.
+    if (present(use_aux)) aux = use_aux
+    if (aux .and. .not.this%has_aux_coords()) call error_message("grid%closest_cell_id: no auxilliar coordniates defined.")
+    if (aux) then
+      c(:,1) = [(this%lon(this%cell_ij(i,1),this%cell_ij(i,2)), i=1_i8,this%ncells)]
+      c(:,2) = [(this%lat(this%cell_ij(i,1),this%cell_ij(i,2)), i=1_i8,this%ncells)]
+    else
+      xax = this%x_axis()
+      yax = this%y_axis()
+      c(:,1) = [(xax(this%cell_ij(i,1)), i=1_i8,this%ncells)]
+      c(:,2) = [(yax(this%cell_ij(i,2)), i=1_i8,this%ncells)]
+    end if
+    if (aux.or.this%coordsys==spherical) then
+      dist = [(dist_latlon(c(i,2), c(i,1), coords(2), coords(1)), i=1_i8,this%ncells)]
+    else
+      dist = [(sqrt((c(i,1)-coords(1))**2 + (c(i,2)-coords(2))**2), i=1_i8,this%ncells)]
+    end if
+    closest_cell_id = minloc(dist, dim=1)
+  end function closest_cell_id
 
   !> \brief x-axis of the grid cell centers
   !> \return `real(dp), allocatable, dimension(:) :: x_axis`
@@ -3184,5 +3233,27 @@ contains
     end if
 
   end subroutine id_bounds
+
+  !> \brief distance between two points on the sphere [m]
+  pure real(dp) function dist_latlon(lat1, lon1, lat2, lon2)
+    use mo_constants, only : RadiusEarth_dp, deg2rad_dp
+    real(dp), intent(in) :: lat1
+    real(dp), intent(in) :: lon1
+    real(dp), intent(in) :: lat2
+    real(dp), intent(in) :: lon2
+    real(dp) :: theta1, phi1, theta2, phi2
+    real(dp) :: term1, term2, term3, temp
+
+    theta1 = deg2rad_dp * lon1
+    phi1 = deg2rad_dp * lat1
+    theta2 = deg2rad_dp * lon2
+    phi2 = deg2rad_dp * lat2
+
+    term1 = cos(phi1) * cos(theta1) * cos(phi2) * cos(theta2)
+    term2 = cos(phi1) * sin(theta1) * cos(phi2) * sin(theta2)
+    term3 = sin(phi1) * sin(phi2)
+    temp = min(term1 + term2 + term3, 1.0_dp)
+    dist_latlon = RadiusEarth_dp * acos(temp);
+  end function dist_latlon
 
 end module mo_grid
