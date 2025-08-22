@@ -16,7 +16,7 @@ module mo_grid_scaler
   use, intrinsic :: ieee_arithmetic, only : ieee_is_finite, ieee_is_nan, ieee_is_negative
   use mo_kind, only: i4, i8, dp
   use mo_grid, only: grid_t, id_bounds
-  use mo_utils, only: is_close, eq
+  use mo_utils, only: is_close, eq, flipped
   use mo_string_utils, only: num2str
   use mo_message, only: error_message
   use mo_constants, only: nodata_i4, nodata_dp
@@ -28,6 +28,7 @@ module mo_grid_scaler
   !> \name Scaling Indicators
   !> \brief Constants to indicate the scaling mode of the \ref regridder.
   !!@{
+  integer(i4), public, parameter :: no_scaling = -1_i4 !< grids have same resolution
   integer(i4), public, parameter :: up_scaling = 0_i4 !< from fine to coarse grid
   integer(i4), public, parameter :: down_scaling = 1_i4 !< from coarse to fine grid
   !!@}
@@ -87,6 +88,7 @@ module mo_grid_scaler
     integer(i4) :: upscaling_operator = up_a_mean         !< default upscaling operator when executing (default: arithmetic mean)
     integer(i4) :: downscaling_operator = down_nearest    !< default downscaling operator when executing (default: nearest neighbor)
     integer(i4) :: factor                                 !< coarse_grid % cellsize / fine_grid % cellsize
+    logical :: y_dir_match                                !< coarse_grid % y_direction == fine_grid % y_direction
     integer(i4), dimension(:), allocatable :: y_lb        !< lower bound for y-id on fine grid (coarse\%ncells)
     integer(i4), dimension(:), allocatable :: y_ub        !< upper bound for y-id on fine grid (coarse\%ncells)
     integer(i4), dimension(:), allocatable :: x_lb        !< lower bound for x-id on fine grid (coarse\%ncells)
@@ -181,17 +183,24 @@ contains
       call target_grid%check_is_filled_by(source_grid, tol=tol)
       this%fine_grid => source_grid
       this%coarse_grid => target_grid
-    else
+    else if (source_grid%cellsize > target_grid%cellsize) then
       this%scaling_mode = down_scaling
       call target_grid%check_is_covered_by(source_grid, tol=tol)
       this%fine_grid => target_grid
       this%coarse_grid => source_grid
+    else ! equal resolutions (only type conversion, masking and flipping)
+      ! TODO: should we skip allocating the grid mapper arrays below to safe memory?
+      this%scaling_mode = no_scaling
+      call target_grid%check_is_filled_by(source_grid, tol=tol)
+      this%fine_grid => source_grid
+      this%coarse_grid => target_grid
     end if
 
     if (present(upscaling_operator)) this%upscaling_operator = upscaling_operator
     if (present(downscaling_operator)) this%downscaling_operator = downscaling_operator
 
     this%factor = nint(this%coarse_grid%cellsize / this%fine_grid%cellsize, i4)
+    this%y_dir_match = this%source_grid%y_direction == this%target_grid%y_direction
 
     allocate(this%y_lb(this%coarse_grid%ncells))
     allocate(this%y_ub(this%coarse_grid%ncells))
@@ -199,10 +208,8 @@ contains
     allocate(this%x_ub(this%coarse_grid%ncells))
     allocate(this%n_subcells(this%coarse_grid%ncells))
     allocate(this%id_map(this%fine_grid%ncells))
-    allocate(this%weights(this%fine_grid%nx, this%fine_grid%ny))
 
     allocate(coarse_id_matrix(this%fine_grid%nx, this%fine_grid%ny), source=nodata_i8)
-    allocate(weights(this%fine_grid%ncells))
 
     k = 0_i8
     do jc = 1, this%coarse_grid%ny
@@ -233,15 +240,21 @@ contains
     this%id_map = this%fine_grid%pack(coarse_id_matrix)
     deallocate(coarse_id_matrix)
 
+    ! determine weights
+    allocate(this%weights(this%fine_grid%nx, this%fine_grid%ny))
+    allocate(weights(this%fine_grid%ncells), source=1.0_dp) ! 1.0 as default (also when uncovered) and when resolutions are equal
+
     ! generate weights from area fractions
-    !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i8, this%fine_grid%ncells
-      weights(k) = this%fine_grid%cell_area(k) / this%coarse_grid%cell_area(this%id_map(k))
-    end do
-    !$omp end parallel do
+    if (this%scaling_mode /= no_scaling) then
+      !$omp parallel do default(shared) private(k) schedule(static)
+      do k = 1_i8, this%fine_grid%ncells
+        if (this%id_map(k) == nodata_i8) cycle ! skip uncovered coarse cells in up-scaling
+        weights(k) = this%fine_grid%cell_area(k) / this%coarse_grid%cell_area(this%id_map(k))
+      end do
+      !$omp end parallel do
+    end if
     this%weights = this%fine_grid%unpack(weights)
     deallocate(weights)
-
   end subroutine regridder_init
 
   !> \brief Default arguments to execute regridder (arithmetic mean as upscaling, nearest neighbor as downscaling)
@@ -319,8 +332,14 @@ contains
 
     integer(i4) :: up_operator, down_operator
     call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
-
-    if (this%scaling_mode == up_scaling) then
+    ! shortcut if resolution is equal (only masking and flipping)
+    if (this%scaling_mode == no_scaling) then
+      if (this%y_dir_match) then
+        out_data = pack(in_data, this%target_grid%mask)
+      else
+        out_data = pack(flipped(in_data, idim=2), this%target_grid%mask)
+      end if
+    else if (this%scaling_mode == up_scaling) then
       select case (up_operator)
         case (up_p_mean)
           call this%upscale_p_mean(in_data, out_data, p)
@@ -422,8 +441,14 @@ contains
 
     integer(i4) :: up_operator, down_operator
     call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
-
-    if (this%scaling_mode == up_scaling) then
+    ! shortcut if resolution is equal (only masking and flipping)
+    if (this%scaling_mode == no_scaling) then
+      if (this%y_dir_match) then
+        out_data = pack(in_data, this%target_grid%mask)
+      else
+        out_data = pack(flipped(in_data, idim=2), this%target_grid%mask)
+      end if
+    else if (this%scaling_mode == up_scaling) then
       select case (up_operator)
         case (up_p_mean)
           call error_message("regridder: p-mean upscaling operator not supported for integer data.")
@@ -526,8 +551,14 @@ contains
 
     integer(i4) :: up_operator, down_operator
     call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
-
-    if (this%scaling_mode == up_scaling) then
+    ! shortcut if resolution is equal (only converting, masking and flipping)
+    if (this%scaling_mode == no_scaling) then
+      if (this%y_dir_match) then
+        out_data = pack(real(in_data, dp), this%target_grid%mask)
+      else
+        out_data = pack(flipped(real(in_data, dp), idim=2), this%target_grid%mask)
+      end if
+    else if (this%scaling_mode == up_scaling) then
       select case (up_operator)
         case (up_p_mean)
           call this%upscale_p_mean(real(in_data, dp), out_data, p)
