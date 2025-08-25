@@ -1065,7 +1065,6 @@ contains
     implicit none
     class(datetime), intent(in) :: this
     class(puredate), intent(in) :: that
-    integer(i4) :: this_ordinal, that_ordinal
     dt_geq_d = this%date_to_ordinal() >= that%to_ordinal()
   end function dt_geq_d
 
