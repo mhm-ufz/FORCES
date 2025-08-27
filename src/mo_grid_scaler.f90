@@ -150,11 +150,11 @@ module mo_grid_scaler
     procedure, private :: upscale_laf => regridder_upscale_laf
     procedure, private :: upscale_fraction => regridder_upscale_fraction
     procedure, private :: regridder_downscale_nearest_dp_1d, regridder_downscale_nearest_i4_1d
-    generic, private :: downscale_nearest => regridder_downscale_nearest_dp_1d, regridder_downscale_nearest_i4_1d
+    generic, public :: downscale_nearest => regridder_downscale_nearest_dp_1d, regridder_downscale_nearest_i4_1d
     procedure, private :: regridder_downscale_nearest_dp_2d, regridder_downscale_nearest_i4_2d
-    generic, private :: downscale_nearest => regridder_downscale_nearest_dp_2d, regridder_downscale_nearest_i4_2d
+    generic, public :: downscale_nearest => regridder_downscale_nearest_dp_2d, regridder_downscale_nearest_i4_2d
     procedure, private :: regridder_downscale_split_1d, regridder_downscale_split_2d
-    generic, private :: downscale_split => regridder_downscale_split_1d, regridder_downscale_split_2d
+    generic, public :: downscale_split => regridder_downscale_split_1d, regridder_downscale_split_2d
   end type regridder
 
 contains
@@ -940,8 +940,8 @@ contains
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k,i,j) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
-      i = this%fine_grid%cell_ij(this%id_map(k), 1)
-      j = this%fine_grid%cell_ij(this%id_map(k), 2)
+      i = this%coarse_grid%cell_ij(this%id_map(k), 1)
+      j = this%coarse_grid%cell_ij(this%id_map(k), 2)
       out_data(k) = in_data(i,j)
     end do
     !$omp end parallel do
@@ -956,8 +956,8 @@ contains
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k,i,j) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
-      i = this%fine_grid%cell_ij(this%id_map(k), 1)
-      j = this%fine_grid%cell_ij(this%id_map(k), 2)
+      i = this%coarse_grid%cell_ij(this%id_map(k), 1)
+      j = this%coarse_grid%cell_ij(this%id_map(k), 2)
       out_data(k) = in_data(i,j)
     end do
     !$omp end parallel do
@@ -972,8 +972,8 @@ contains
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(k,i,j) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
-      i = this%fine_grid%cell_ij(this%id_map(k), 1)
-      j = this%fine_grid%cell_ij(this%id_map(k), 2)
+      i = this%coarse_grid%cell_ij(this%id_map(k), 1)
+      j = this%coarse_grid%cell_ij(this%id_map(k), 2)
       out_data(k) = in_data(i,j) / real(this%n_subcells(this%id_map(k)), dp)
     end do
     !$omp end parallel do
