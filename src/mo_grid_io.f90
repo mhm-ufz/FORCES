@@ -938,13 +938,15 @@ contains
 
   !> \brief Initialize input_dataset
   !> \details Create and initialize the input file handler.
-  subroutine input_init(self, path, vars, grid, timestamp)
+  subroutine input_init(self, path, vars, grid, timestamp, grid_init_var)
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: path !< path to the file
     type(grid_t), intent(in), pointer :: grid !< grid definition to check against
     type(var), dimension(:), intent(in) :: vars !< variables of the output file
     integer(i4), intent(in), optional :: timestamp !< time stamp location in time span (0: begin, 1: center, 2: end (default))
+    !> nc variable name to determine the grid from (by default, grid is assumed to be already initialized)
+    character(*), intent(in), optional :: grid_init_var
     type(NcDimension), allocatable :: dims(:)
     type(NcVariable) :: t_var
     integer(i4) :: i
@@ -953,6 +955,7 @@ contains
     self%path = trim(path)
     self%nc = NcDataset(self%path, "r")
     self%grid => grid
+    if (present(grid_init_var)) call self%grid%from_netcdf(self%nc, grid_init_var)
     self%nvars = size(vars)
     if (self%nvars == 0_i4) call error_message("input_dataset: no variables selected")
 
