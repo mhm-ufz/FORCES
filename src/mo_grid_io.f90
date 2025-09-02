@@ -34,7 +34,7 @@ module mo_grid_io
   use mo_utils, only: is_close, flip
   implicit none
 
-  public :: var, output_dataset, input_dataset, time_units_delta, time_index
+  public :: var, output_dataset, input_dataset, time_units_delta, time_index, var_index
 
   private
 
@@ -539,16 +539,17 @@ contains
           call self%nc%setData(unpack(self%data_i8, self%grid%mask, nodata_i8), [1_i4, 1_i4, t_index])
       end select
     end if
-      select case(self%kind)
-        case("sp")
-          self%data_sp = 0.0_sp
-        case("dp")
-          self%data_dp = 0.0_dp
-        case("i4")
-          self%data_i4 = 0_i4
-        case("i8")
-          self%data_i8 = 0_i8
-      end select
+    ! reset
+    select case(self%kind)
+      case("sp")
+        self%data_sp = 0.0_sp
+      case("dp")
+        self%data_dp = 0.0_dp
+      case("i4")
+        self%data_i4 = 0_i4
+      case("i8")
+        self%data_i8 = 0_i8
+    end select
     self%counter = 0_i4
   end subroutine out_var_write
 
