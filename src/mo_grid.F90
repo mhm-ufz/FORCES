@@ -1248,8 +1248,10 @@ contains
     if (this%coordsys==cartesian) then
       call x_var%setAttribute("long_name", "x coordinate of projection")
       call x_var%setAttribute("standard_name", "projection_x_coordinate")
+      call x_var%setAttribute("units", "m") ! TODO: this should be configurable
       call y_var%setAttribute("long_name", "y coordinate of projection")
       call y_var%setAttribute("standard_name", "projection_y_coordinate")
+      call y_var%setAttribute("units", "m") ! TODO: this should be configurable
     else
       call x_var%setAttribute("long_name", "longitude")
       call x_var%setAttribute("standard_name", "longitude")
