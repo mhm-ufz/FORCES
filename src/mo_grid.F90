@@ -915,13 +915,14 @@ contains
     type(NcDimension), dimension(:), allocatable :: dims
 
     integer(i4), dimension(:), allocatable :: shp, start, cnt
-    integer(i4) :: nx, ny, rnk, coordsys, y_dir
+    integer(i4) :: nx, ny, rnk, coordsys, y_dir, i
     real(dp) :: xll, yll, cellsize, cs_x, cs_y, tol_
     real(dp), allocatable, dimension(:,:) :: dummy
     character(len=256) :: tmp_str
     character(len=256), allocatable, dimension(:) :: coords_str
+    character(:), allocatable :: lat_name, lon_name
     logical, allocatable, dimension(:,:) :: mask
-    logical :: y_inc, read_mask_, read_aux_, x_sph, y_sph, x_cart, y_cart, flip_y
+    logical :: y_inc, read_mask_, read_aux_, x_sph, y_sph, x_cart, y_cart, flip_y, found_lat, found_lon
 
     y_dir = keep_y
     if (present(y_direction)) y_dir = y_direction
@@ -1006,9 +1007,28 @@ contains
     if (read_aux_ .and. coordsys == cartesian .and. ncvar%hasAttribute("coordinates")) then
       call ncvar%getAttribute("coordinates", tmp_str)
       coords_str = splitString(trim(tmp_str), " ")
-      if (size(coords_str) < 2) &
-        call error_message("grid % from_netcdf: too few auxilliar coordinates: ", trim(nc%fname), ":", var, " - ", trim(tmp_str))
-      ! lon should be last coordinate and lat second last
+      ! search for lat-lon variables in given coordinates
+      found_lat = .false.
+      found_lon = .false.
+      do i = 1_i4, size(coords_str)
+        ncvar = nc%getVariable(trim(coords_str(i)))
+        if (.not.found_lat) then
+          if (is_lat_coord(ncvar)) then
+            found_lat = .true.
+            lat_name = trim(coords_str(i))
+          end if
+        end if
+        if (.not.found_lon) then
+          if (is_lon_coord(ncvar)) then
+            found_lon = .true.
+            lon_name = trim(coords_str(i))
+          end if
+        end if
+      end do
+      if (.not.(found_lat.and.found_lon)) then
+        call error_message( "grid % from_netcdf: could not find lat/lon auxilliar coordinates: ", &
+                           trim(nc%fname), ":", var, " - ", trim(tmp_str))
+      end if
       call this%aux_from_netcdf(nc, lat=trim(coords_str(size(coords_str)-1)), lon=trim(coords_str(size(coords_str))))
     end if
 
