@@ -32,6 +32,8 @@ module mo_grid
   public :: is_y_axis
   public :: is_z_axis
   public :: is_t_axis
+  public :: is_lon_coord
+  public :: is_lat_coord
   public :: check_uniform_axis
 #endif
 
