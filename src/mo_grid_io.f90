@@ -406,6 +406,8 @@ contains
     if (allocated(self%units)) call self%nc%setAttribute("units", self%units)
 
     self%grid => grid
+    if (self%grid%has_aux_coords()) call self%nc%setAttribute("coordinates", "lat lon")
+
     ! input data is still either real(dp) or integer(i4)
     select case(self%dtype)
       case("f32")
