@@ -532,7 +532,7 @@ contains
     allocate(order%level_start(level), source=level_start(1_i8:level))
     allocate(order%level_end(level), source=level_end(1_i8:level))
     allocate(order%level_size(level))
-    order%level_size = order%level_end - order%level_start + 1_i4
+    order%level_size = order%level_end - order%level_start + 1_i8
     deallocate(visit_level, level_start, level_end)
   end subroutine dag_kahn_level_order
 
