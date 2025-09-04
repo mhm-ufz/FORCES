@@ -88,6 +88,7 @@ module mo_dag
     integer(i8), allocatable :: id(:)           !< Node indices in topological order
     integer(i8), allocatable :: level_start(:)  !< Start indices in id(:) for respective level
     integer(i8), allocatable :: level_end(:)    !< End indices in id(:) for respective level
+    integer(i8), allocatable :: level_size(:)   !< Size of respective level
   end type order_t
 
   !> \class node
@@ -528,8 +529,10 @@ contains
 
     istat = 0_i8
     call move_alloc(id, order%id)
-    allocate(order%level_start(level), source=level_start(1:level))
-    allocate(order%level_end(level), source=level_end(1:level))
+    allocate(order%level_start(level), source=level_start(1_i8:level))
+    allocate(order%level_end(level), source=level_end(1_i8:level))
+    allocate(order%level_size(level))
+    order%level_size = order%level_end - order%level_start + 1_i4
     deallocate(visit_level, level_start, level_end)
   end subroutine dag_kahn_level_order
 
