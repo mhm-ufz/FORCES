@@ -126,8 +126,7 @@ module mo_dag
     procedure :: add_edge            => dag_add_edge
     procedure :: set_edges           => dag_set_edges
     procedure :: toposort            => dag_toposort
-    procedure :: levelsort           => dag_kahn_level_order
-    procedure :: levelsort_inv       => dag_kahn_level_order_inv
+    procedure :: levelsort           => dag_levelsort
     procedure :: generate_dependency_matrix => dag_generate_dependency_matrix
     procedure :: traverse            => dag_traverse
     procedure :: subgraph            => dag_subgraph
@@ -135,6 +134,7 @@ module mo_dag
     procedure :: get_dependents      => dag_get_dependents
     procedure :: destroy             => dag_destroy
     procedure :: tag_to_id
+    procedure, private :: levelsort_head, levelsort_root
     procedure, private :: rebuild_tag_map
   end type dag
 
@@ -485,16 +485,37 @@ contains
   end subroutine dag_toposort
 
   !> \brief Sorting DAG by levels for parallelization based on Kahn's algorithm
-  subroutine dag_kahn_level_order(this, order, istat)
+  subroutine dag_levelsort(this, order, istat, root, reverse)
     implicit none
     class(dag), intent(in) :: this
-    type(order_t), intent(out) :: order
-    integer(i8), intent(out) :: istat
+    type(order_t), intent(out) :: order       !< level based order
+    integer(i8), intent(out) :: istat         !< status code (0 - no error, -1 - cycle found)
+    logical, intent(in), optional :: root    !< levels as distance from graph roots (default: .false.)
+    logical, intent(in), optional :: reverse !< reverse order (default: .false.)
+    logical :: root_
+    root_ = .false.
+    if (present(root)) root_ = root
+    if (root) then
+      call this%levelsort_root(order, istat, reverse)
+    else
+      call this%levelsort_head(order, istat, reverse)
+    end if
+  end subroutine dag_levelsort
+
+  !> \brief Sorting DAG by levels for parallelization based on Kahn's algorithm
+  subroutine levelsort_head(this, order, istat, reverse)
+    implicit none
+    class(dag), intent(in) :: this
+    type(order_t), intent(out) :: order       !< level based order
+    integer(i8), intent(out) :: istat         !< status code (0 - no error, -1 - cycle found)
+    logical, intent(in), optional :: reverse  !< reverse order (default: .false.)
 
     integer(i8) :: i, j, k, m, n, count, level, added_this_level
     integer(i8), allocatable :: level_start(:), level_end(:), id(:), visit_level(:)
-    logical :: ready
+    logical :: ready, rev
 
+    rev = .false.
+    if (present(reverse)) rev = reverse
     n = this%n ! in the worst case of a linear DAG, we get as many levels as nodes
     allocate(visit_level(n), source=0_i8)
     allocate(level_start(n))
@@ -558,20 +579,24 @@ contains
     allocate(order%level_size(level))
     order%level_size = order%level_end - order%level_start + 1_i8
     order%n_levels = level
+    if (rev) call order%reverse()
     deallocate(visit_level, level_start, level_end)
-  end subroutine dag_kahn_level_order
+  end subroutine levelsort_head
 
   !> \brief Sorting DAG by levels for parallelization based on Kahn's algorithm starting at roots.
-  subroutine dag_kahn_level_order_inv(this, order, istat)
+  subroutine levelsort_root(this, order, istat, reverse)
     implicit none
     class(dag), intent(in) :: this
-    type(order_t), intent(out) :: order
-    integer(i8), intent(out) :: istat
+    type(order_t), intent(out) :: order       !< level based order
+    integer(i8), intent(out) :: istat         !< status code (0 - no error, -1 - cycle found)
+    logical, intent(in), optional :: reverse  !< reverse order (default: .false.)
 
     integer(i8) :: i, j, k, m, n, count, level, added_this_level
     integer(i8), allocatable :: level_start(:), level_end(:), id(:), visit_level(:)
-    logical :: ready
+    logical :: ready, rev
 
+    rev = .false.
+    if (present(reverse)) rev = reverse
     n = this%n ! in the worst case of a linear DAG, we get as many levels as nodes
     allocate(visit_level(n), source=0_i8)
     allocate(level_start(n))
@@ -635,9 +660,9 @@ contains
     allocate(order%level_size(level))
     order%level_size = order%level_end - order%level_start + 1_i8
     order%n_levels = level
+    if (.not.rev) call order%reverse()
     deallocate(visit_level, level_start, level_end)
-    call order%reverse()
-  end subroutine dag_kahn_level_order_inv
+  end subroutine levelsort_root
 
   !> \brief Generate the dependency matrix for the DAG.
   !> \details This is an \(n \times n \) matrix with elements \(A_{ij}\),
