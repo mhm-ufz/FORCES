@@ -459,8 +459,8 @@ MODULE mo_utils
   !>        \date May 2014
   INTERFACE swap
     MODULE PROCEDURE &
-            swap_xy_dp, swap_xy_sp, swap_xy_i4, &
-            swap_vec_dp, swap_vec_sp, swap_vec_i4
+            swap_xy_dp, swap_xy_sp, swap_xy_i4, swap_xy_i8, &
+            swap_vec_dp, swap_vec_sp, swap_vec_i4, swap_vec_i8
   END INTERFACE swap
 
 
@@ -1304,6 +1304,18 @@ CONTAINS
 
   end subroutine swap_xy_i4
 
+  elemental pure subroutine swap_xy_i8(x, y)
+
+    integer(i8), intent(inout) :: x
+    integer(i8), intent(inout) :: y
+
+    integer(i8) :: z
+
+    z = x
+    x = y
+    y = z
+
+  end subroutine swap_xy_i8
 
   subroutine swap_vec_dp(x, i1, i2)
 
@@ -1346,6 +1358,20 @@ CONTAINS
     x(i2) = z
 
   end subroutine swap_vec_i4
+
+  subroutine swap_vec_i8(x, i1, i2)
+
+    integer(i8), dimension(:), intent(inout) :: x
+    integer(i8), intent(in) :: i1
+    integer(i8), intent(in) :: i2
+
+    integer(i8) :: z
+
+    z = x(i1)
+    x(i1) = x(i2)
+    x(i2) = z
+
+  end subroutine swap_vec_i8
 
   ! ------------------------------------------------------------------
 
