@@ -38,7 +38,7 @@
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_dag
-  use mo_kind, only : i8
+  use mo_kind, only : i8, i4
 
   ! Control constants for depth-first traversal behavior.
   ! These values are returned by `visit()` to control DFS branching.
@@ -127,6 +127,7 @@ module mo_dag
     procedure :: set_edges           => dag_set_edges
     procedure :: toposort            => dag_toposort
     procedure :: levelsort           => dag_kahn_level_order
+    procedure :: levelsort_inv       => dag_kahn_level_order_inv
     procedure :: generate_dependency_matrix => dag_generate_dependency_matrix
     procedure :: traverse            => dag_traverse
     procedure :: subgraph            => dag_subgraph
@@ -143,13 +144,20 @@ contains
   subroutine order_reverse(this)
     use mo_utils, only: flip
     class(order_t), intent(inout) :: this
+    integer(i8), allocatable :: tmp(:)
+    integer(i8) :: n
     call flip(this%id, idim=1_i4)
     call flip(this%level_size, idim=1_i4)
     call flip(this%level_start, idim=1_i4)
     call flip(this%level_end, idim=1_i4)
     ! numbering needs to match reversed id array
-    this%level_start = this%n_levels + 1_i8 - this%level_start
-    this%level_end = this%n_levels + 1_i8 - this%level_end
+    call move_alloc(this%level_start, tmp)
+    call move_alloc(this%level_end, this%level_start)
+    call move_alloc(tmp, this%level_end)
+    ! call swap(this%level_start, this%level_end)
+    n = size(this%id)
+    this%level_start = n + 1_i8 - this%level_start
+    this%level_end = n + 1_i8 - this%level_end
   end subroutine
 
   !> \brief Simple visit function to visit all dependencies.
@@ -535,7 +543,7 @@ contains
       end do
 
       if (added_this_level == 0_i8) exit ! cycle detected
-      level_end(level) = count ! all added nodes form the new level
+      level_end(level) = count ! all added nodes from the new level
     end do
 
     if (count /= n) then ! cycle detected
@@ -552,6 +560,84 @@ contains
     order%n_levels = level
     deallocate(visit_level, level_start, level_end)
   end subroutine dag_kahn_level_order
+
+  !> \brief Sorting DAG by levels for parallelization based on Kahn's algorithm starting at roots.
+  subroutine dag_kahn_level_order_inv(this, order, istat)
+    implicit none
+    class(dag), intent(in) :: this
+    type(order_t), intent(out) :: order
+    integer(i8), intent(out) :: istat
+
+    integer(i8) :: i, j, k, m, n, count, level, added_this_level
+    integer(i8), allocatable :: level_start(:), level_end(:), id(:), visit_level(:)
+    logical :: ready
+
+    n = this%n ! in the worst case of a linear DAG, we get as many levels as nodes
+    allocate(visit_level(n), source=0_i8)
+    allocate(level_start(n))
+    allocate(level_end(n))
+    allocate(id(n))
+
+    ! first scan for all dependent free nodes
+    count = 0_i8
+    level = 1_i8
+    do i = 1_i8, n
+      if (this%nodes(i)%ndependents() > 0_i8) cycle
+      count = count + 1_i8
+      id(count) = i
+      visit_level(i) = level
+    end do
+
+    level_start(level) = 1_i8
+    level_end(level) = count
+
+    do while (count < n)
+      added_this_level = 0_i8
+      level = level + 1_i8
+      level_start(level) = count + 1_i8
+
+      ! scan all edges of previous level
+      do i = level_start(level-1_i8), level_end(level-1_i8)
+        if (.not.allocated(this%nodes(id(i))%edges)) cycle
+        do j = 1_i8, size(this%nodes(id(i))%edges)
+          k = this%nodes(id(i))%edges(j)
+          if (visit_level(k)>0_i8) cycle ! dependency already treated by earlier node in this level
+          ready = .true.
+          do m = 1_i8, this%nodes(k)%ndependents() ! non empty since it is a dependency
+            if ( visit_level(this%nodes(k)%dependents(m)) == 0_i8 &
+            .or. visit_level(this%nodes(k)%dependents(m)) == level ) then
+              ready = .false. ! some dependents not yet ready (0 - not ready, level - not added in previous levels)
+              exit
+            end if
+          end do
+          if (ready) then
+            count = count + 1_i8
+            id(count) = k
+            visit_level(k) = level
+            added_this_level = added_this_level + 1_i8
+          end if
+        end do
+      end do
+
+      if (added_this_level == 0_i8) exit ! cycle detected
+      level_end(level) = count ! all added nodes from the new level
+    end do
+
+    if (count /= n) then ! cycle detected
+      istat = -1_i8
+      return
+    end if
+
+    istat = 0_i8
+    call move_alloc(id, order%id)
+    allocate(order%level_start(level), source=level_start(1_i8:level))
+    allocate(order%level_end(level), source=level_end(1_i8:level))
+    allocate(order%level_size(level))
+    order%level_size = order%level_end - order%level_start + 1_i8
+    order%n_levels = level
+    deallocate(visit_level, level_start, level_end)
+    call order%reverse()
+  end subroutine dag_kahn_level_order_inv
 
   !> \brief Generate the dependency matrix for the DAG.
   !> \details This is an \(n \times n \) matrix with elements \(A_{ij}\),
