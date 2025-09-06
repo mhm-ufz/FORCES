@@ -89,6 +89,9 @@ module mo_dag
     integer(i8), allocatable :: level_start(:)  !< Start indices in id(:) for respective level
     integer(i8), allocatable :: level_end(:)    !< End indices in id(:) for respective level
     integer(i8), allocatable :: level_size(:)   !< Size of respective level
+    integer(i8) :: n_levels                     !< Number of levels
+  contains
+    procedure :: reverse => order_reverse
   end type order_t
 
   !> \class node
@@ -135,6 +138,19 @@ module mo_dag
   end type dag
 
 contains
+
+  !> \brief Reverse order.
+  subroutine order_reverse(this)
+    use mo_utils, only: flip
+    class(order_t), intent(inout) :: this
+    call flip(this%id, idim=1_i4)
+    call flip(this%level_size, idim=1_i4)
+    call flip(this%level_start, idim=1_i4)
+    call flip(this%level_end, idim=1_i4)
+    ! numbering needs to match reversed id array
+    this%level_start = this%n_levels + 1_i8 - this%level_start
+    this%level_end = this%n_levels + 1_i8 - this%level_end
+  end subroutine
 
   !> \brief Simple visit function to visit all dependencies.
   function visit_simple(this, id, tag) result(action)
@@ -533,6 +549,7 @@ contains
     allocate(order%level_end(level), source=level_end(1_i8:level))
     allocate(order%level_size(level))
     order%level_size = order%level_end - order%level_start + 1_i8
+    order%n_levels = level
     deallocate(visit_level, level_start, level_end)
   end subroutine dag_kahn_level_order
 
