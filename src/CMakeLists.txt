@@ -108,20 +108,30 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   # set the preprocessor
   target_compile_definitions(${LIB_NAME} PRIVATE "GFORTRAN")
   # free line length to enable logging (only needed for gfortran)
-  target_compile_options(${LIB_NAME} PUBLIC -ffree-line-length-none)
   target_compile_options(${LIB_NAME} PRIVATE
-    -ffree-form -ffixed-line-length-132
-    $<$<CONFIG:DEBUG>:-Og -g -Wall -Wextra -fimplicit-none -fbacktrace -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=snan -pedantic-errors>
-    $<$<CONFIG:RELEASE>:-O3 -fno-peel-loops>
+    -ffree-line-length-none
+    $<$<CONFIG:DEBUG>:-Og -g -Wall -Wextra -Wimplicit-interface -Wsurprising
+      -fimplicit-none -fbacktrace -fcheck=all
+      -ffpe-trap=zero,overflow,underflow -finit-real=snan -pedantic-errors>
+    $<$<CONFIG:RELEASE>:-O3>
   )
 endif()
-if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
+# ifort (Classic)
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   target_compile_definitions(${LIB_NAME} PRIVATE "INTEL")
   target_compile_options(${LIB_NAME} PRIVATE
-    -nofixed "SHELL:-assume byterecl" "SHELL:-fp-model source" -m64 "SHELL:-assume realloc-lhs"
-    # -fstack-protector-all -fstack-security-check were previously on in debug mode, still needed?
-    $<$<CONFIG:DEBUG>:-g "SHELL:-warn all" "SHELL:-check all" -debug -traceback -fp-stack-check -O0>
-    $<$<CONFIG:RELEASE>:-O3 -qoverride-limits>
+    -nofixed "SHELL:-assume byterecl" -standard-realloc-lhs
+    $<$<CONFIG:DEBUG>:-g -fp-model=source "SHELL:-warn all" "SHELL:-check all" -debug -traceback -fp-stack-check -O0 -ftrapuv -fpe0>
+    $<$<CONFIG:RELEASE>:-O3 -qoverride-limits -fp-model=precise -fprotect-parens>
+  )
+endif()
+# ifx (IntelLLVM)
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
+  target_compile_definitions(${LIB_NAME} PRIVATE "INTEL")
+  target_compile_options(${LIB_NAME} PRIVATE
+    -nofixed "SHELL:-assume byterecl" -standard-realloc-lhs
+    $<$<CONFIG:DEBUG>:-g -fp-model=source "SHELL:-warn all" "SHELL:-check all" "SHELL:-check nouninit" -traceback -O0 -init=snan,arrays -fpe0>
+    $<$<CONFIG:RELEASE>:-O3 -qoverride-limits -fp-model=precise -fprotect-parens>
   )
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
