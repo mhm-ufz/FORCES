@@ -39,6 +39,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_dag
   use mo_kind, only : i8, i4
+  use mo_utils, only: optval
 
   ! Control constants for depth-first traversal behavior.
   ! These values are returned by `visit()` to control DFS branching.
@@ -178,10 +179,9 @@ contains
 
     integer(i8) :: top, dep, action, i, j
     integer(i8), allocatable :: stack(:)
+    logical :: down_
 
-    logical :: down_ = .false.
-    if (present(down)) down_ = down
-
+    down_ = optval(down, .false.)
     allocate(stack(this%n))
     if (present(ids)) then
       top = size(ids)
@@ -238,10 +238,9 @@ contains
     type(dag) :: subgraph !< dag containing the subgraph containing given nodes and their dependencies
     integer(i8), allocatable :: idmap(:), subtags(:)
     integer(i8) :: i, j, nsub
+    logical :: down_
 
-    logical :: down_ = .false.
-    if (present(down)) down_ = down
-
+    down_ = optval(down, .false.)
     allocate(handler%visited(this%n), source=.false.)
     call this%traverse(handler, ids, down)
 
@@ -493,9 +492,9 @@ contains
     logical, intent(in), optional :: root    !< levels as distance from graph roots (default: .false.)
     logical, intent(in), optional :: reverse !< reverse order (default: .false.)
     logical :: root_
-    root_ = .false.
-    if (present(root)) root_ = root
-    if (root) then
+
+    root_ = optval(root, .false.)
+    if (root_) then
       call this%levelsort_root(order, istat, reverse)
     else
       call this%levelsort_head(order, istat, reverse)
@@ -514,8 +513,7 @@ contains
     integer(i8), allocatable :: level_start(:), level_end(:), id(:), visit_level(:)
     logical :: ready, rev
 
-    rev = .false.
-    if (present(reverse)) rev = reverse
+    rev = optval(reverse, .false.)
     n = this%n ! in the worst case of a linear DAG, we get as many levels as nodes
     allocate(visit_level(n), source=0_i8)
     allocate(level_start(n))
@@ -595,8 +593,7 @@ contains
     integer(i8), allocatable :: level_start(:), level_end(:), id(:), visit_level(:)
     logical :: ready, rev
 
-    rev = .false.
-    if (present(reverse)) rev = reverse
+    rev = optval(reverse, .false.)
     n = this%n ! in the worst case of a linear DAG, we get as many levels as nodes
     allocate(visit_level(n), source=0_i8)
     allocate(level_start(n))
