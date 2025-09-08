@@ -18,7 +18,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_utils
 
-  USE mo_kind, only : sp, dp, i1, i4, i8, spc, dpc
+  USE mo_kind, only : sp, dp, i1, i2, i4, i8, spc, dpc
   USE mo_string_utils, only : toupper
 
   IMPLICIT NONE
@@ -45,9 +45,17 @@ MODULE mo_utils
   PUBLIC :: special_value ! Special IEEE values
   PUBLIC :: relational_operator_dp, relational_operator_sp ! abstract interface for relational operators
 
+  public :: optval ! handle optional values with defaults
   public :: flip ! flips a dimension of an array
   public :: flipped ! creates a flipped array at a dimension of an array
   public :: unpack_chunkwise ! chunk version of the unpack operation
+
+  !> \brief handle optional values with defaults
+  interface optval
+    procedure optval_lgt, optval_character
+    procedure optval_i1, optval_i2, optval_i4, optval_i8
+    procedure optval_sp, optval_dp, optval_spc, optval_dpc
+  end interface
 
   !> \brief flip an array at a certain dimension
   interface flip
@@ -2765,5 +2773,115 @@ CONTAINS
 
   end function unpack_chunkwise_i1
 
+  pure elemental function optval_lgt(x, default) result(y)
+    logical, intent(in), optional :: x
+    logical, intent(in) :: default
+    logical :: y
+    if (present(x)) then
+       y = x
+    else
+       y = default
+    end if
+  end function
+
+  pure elemental function optval_i1(x, default) result(y)
+    integer(i1), intent(in), optional :: x
+    integer(i1), intent(in) :: default
+    integer(i1) :: y
+    if (present(x)) then
+       y = x
+    else
+       y = default
+    end if
+  end function
+
+  pure elemental function optval_i2(x, default) result(y)
+    integer(i2), intent(in), optional :: x
+    integer(i2), intent(in) :: default
+    integer(i2) :: y
+    if (present(x)) then
+       y = x
+    else
+       y = default
+    end if
+  end function
+
+  pure elemental function optval_i4(x, default) result(y)
+    integer(i4), intent(in), optional :: x
+    integer(i4), intent(in) :: default
+    integer(i4) :: y
+    if (present(x)) then
+       y = x
+    else
+       y = default
+    end if
+  end function
+
+  pure elemental function optval_i8(x, default) result(y)
+    integer(i8), intent(in), optional :: x
+    integer(i8), intent(in) :: default
+    integer(i8) :: y
+    if (present(x)) then
+       y = x
+    else
+       y = default
+    end if
+  end function
+
+  pure elemental function optval_sp(x, default) result(y)
+    real(sp), intent(in), optional :: x
+    real(sp), intent(in) :: default
+    real(sp) :: y
+    if (present(x)) then
+       y = x
+    else
+       y = default
+    end if
+  end function
+
+  pure elemental function optval_dp(x, default) result(y)
+    real(dp), intent(in), optional :: x
+    real(dp), intent(in) :: default
+    real(dp) :: y
+    if (present(x)) then
+       y = x
+    else
+       y = default
+    end if
+  end function
+
+  pure elemental function optval_spc(x, default) result(y)
+    complex(spc), intent(in), optional :: x
+    complex(spc), intent(in) :: default
+    complex(spc) :: y
+    if (present(x)) then
+       y = x
+    else
+       y = default
+    end if
+  end function
+
+  pure elemental function optval_dpc(x, default) result(y)
+    complex(dpc), intent(in), optional :: x
+    complex(dpc), intent(in) :: default
+    complex(dpc) :: y
+    if (present(x)) then
+       y = x
+    else
+       y = default
+    end if
+  end function
+
+  ! Cannot be made elemental
+  pure function optval_character(x, default) result(y)
+    character(len=*), intent(in), optional :: x
+    character(len=*), intent(in) :: default
+    character(len=:), allocatable :: y
+    if (present(x)) then
+       y = x
+    else
+       y = default
+    end if
+  end function optval_character
 
 END MODULE mo_utils
