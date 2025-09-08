@@ -121,7 +121,7 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   target_compile_definitions(${LIB_NAME} PRIVATE "INTEL")
   target_compile_options(${LIB_NAME} PRIVATE
     -nofixed "SHELL:-assume byterecl" -standard-realloc-lhs
-    $<$<CONFIG:DEBUG>:-g -fp-model=source "SHELL:-warn all" "SHELL:-check all" -debug -traceback -fp-stack-check -O0 -ftrapuv -fpe0>
+    $<$<CONFIG:DEBUG>:-g -fp-model=source "SHELL:-warn all" "SHELL:-check all" "SHELL:-check noarg_temp_created" -debug -traceback -fp-stack-check -O0 -ftrapuv -fpe0>
     $<$<CONFIG:RELEASE>:-O3 -qoverride-limits -fp-model=precise -fprotect-parens>
   )
 endif()
@@ -130,7 +130,7 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
   target_compile_definitions(${LIB_NAME} PRIVATE "INTEL")
   target_compile_options(${LIB_NAME} PRIVATE
     -nofixed "SHELL:-assume byterecl" -standard-realloc-lhs
-    $<$<CONFIG:DEBUG>:-g -fp-model=source "SHELL:-warn all" "SHELL:-check all" "SHELL:-check nouninit" -traceback -O0 -init=snan,arrays -fpe0>
+    $<$<CONFIG:DEBUG>:-g -fp-model=source "SHELL:-warn all" "SHELL:-check all" "SHELL:-check noarg_temp_created" "SHELL:-check nouninit" -traceback -O0 -init=snan,arrays -fpe0>
     $<$<CONFIG:RELEASE>:-O3 -qoverride-limits -fp-model=precise -fprotect-parens>
   )
 endif()
