@@ -613,11 +613,11 @@ contains
     integer(i4), intent(out), optional :: minute        !< 0 <= minute < 60
     integer(i4), intent(out), optional :: second        !< 0 <= second < 60
     integer(i4) :: remain_sec
-    if present(hour) hour = sod / HOUR_SECONDS
+    if (present(hour)) hour = sod / HOUR_SECONDS
     remain_sec = mod(sod, HOUR_SECONDS)
-    if present(minute) minute = remain_sec / MINUTE_SECONDS
+    if (present(minute)) minute = remain_sec / MINUTE_SECONDS
     remain_sec = mod(sod, MINUTE_SECONDS)
-    if present(second) second = remain_sec
+    if (present(second)) second = remain_sec
   end subroutine day_second_to_time
 
   !> \brief check if a given year is valid
