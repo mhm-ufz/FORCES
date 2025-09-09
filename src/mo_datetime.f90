@@ -262,6 +262,7 @@ module mo_datetime
     procedure, public :: next_new_hour
     procedure, public :: next_new_minute
     procedure, public :: add => dt_add
+    procedure, public :: sub => dt_sub
     procedure, private :: dt_copy_dt, dt_copy_d
     generic, public :: assignment(=) => dt_copy_dt, dt_copy_d
     procedure, private :: dt_eq, dt_eq_d
@@ -980,17 +981,17 @@ contains
   end function next_new_minute
 
   !> \brief add a timedelta to a datetime in-place
-  subroutine dt_add(this, add)
+  subroutine dt_add(this, delta)
     implicit none
     class(datetime), intent(inout) :: this
-    class(timedelta), intent(in) :: add
+    class(timedelta), intent(in) :: delta
     integer(i4) :: doy, sod, tmp_sec, tmp_day, new_sod, new_doy, new_year
     doy = this%doy()
     sod = this%day_second()
-    tmp_sec = sod + add%seconds
+    tmp_sec = sod + delta%seconds
     tmp_day = tmp_sec / DAY_SECONDS
     new_sod = mod(tmp_sec, DAY_SECONDS)
-    new_doy = doy + tmp_day + add%days
+    new_doy = doy + tmp_day + delta%days
     new_year = this%year
     do while(new_doy > days_in_year(new_year))
       new_doy = new_doy - days_in_year(new_year)
@@ -1005,6 +1006,36 @@ contains
     call doy_to_month_day(this%year, new_doy, this%month, this%day)
     call day_second_to_time(new_sod, this%hour, this%minute, this%second)
   end subroutine dt_add
+
+  !> \brief subtract a timedelta from a datetime in-place
+  subroutine dt_sub(this, delta)
+    implicit none
+    class(datetime), intent(inout) :: this
+    class(timedelta), intent(in) :: delta
+    integer(i4) :: doy, sod, new_sod, new_doy, new_year
+    doy = this%doy()
+    sod = this%day_second()
+    if (delta%seconds > sod) then
+      new_sod = sod - delta%seconds + DAY_SECONDS
+      new_doy = doy - delta%days - 1_i4
+    else
+      new_sod = sod - delta%seconds
+      new_doy = doy - delta%days
+    end if
+    new_year = this%year
+    do while(new_doy > days_in_year(new_year))
+      new_doy = new_doy - days_in_year(new_year)
+      new_year = new_year + 1_i4
+    end do
+    do while(new_doy < 1_i4)
+      new_year = new_year - 1_i4
+      new_doy = new_doy + days_in_year(new_year)
+    end do
+    ! update datetime
+    this%year = new_year
+    call doy_to_month_day(this%year, new_doy, this%month, this%day)
+    call day_second_to_time(new_sod, this%hour, this%minute, this%second)
+  end subroutine dt_sub
 
   !> \brief (==) equal comparison of datetimes
   pure logical function dt_eq(this, that)
