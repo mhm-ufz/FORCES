@@ -614,10 +614,12 @@ contains
     integer(i4), intent(out), optional :: minute        !< 0 <= minute < 60
     integer(i4), intent(out), optional :: second        !< 0 <= second < 60
     integer(i4) :: remain_sec
-    if (present(hour)) hour = sod / HOUR_SECONDS
-    remain_sec = mod(sod, HOUR_SECONDS)
+    ! for pure function, we can't raise errors, so we force sod to be valid
+    remain_sec = min(max(sod, 0_i4), DAY_SECONDS - 1_i4)
+    if (present(hour)) hour = remain_sec / HOUR_SECONDS
+    remain_sec = mod(remain_sec, HOUR_SECONDS)
     if (present(minute)) minute = remain_sec / MINUTE_SECONDS
-    remain_sec = mod(sod, MINUTE_SECONDS)
+    remain_sec = mod(remain_sec, MINUTE_SECONDS)
     if (present(second)) second = remain_sec
   end subroutine day_second_to_time
 
