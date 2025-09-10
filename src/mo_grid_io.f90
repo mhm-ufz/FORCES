@@ -242,7 +242,7 @@ contains
     integer(i4), allocatable, dimension(:), intent(out) :: t_bounds !< time axis bound values
     integer(i4), allocatable, dimension(:) :: tmp_arr, t_diffs
     type(timedelta) :: loc_delta ! local time delta in units
-    type(datetime) :: loc_date, prev_date
+    type(datetime) :: loc_date
     integer(i4) :: dt, i
     real(dp) :: dt_dp
     logical :: is_monthly, is_yearly
@@ -1432,7 +1432,6 @@ contains
     type(datetime), intent(in) :: current_time !< current read time
     integer(i8) :: current_delta_sec
     integer(i4) :: t_val
-    logical :: remainder
     if (.not.allocated(self%times)) call error_message("input%time_index: file is static and has no time dimension")
     ! seconds since start date
     current_delta_sec = int(current_time%date_to_ordinal(), i8) * 86400_i8 + int(current_time%day_second(), i8) - self%start_ord_sec
