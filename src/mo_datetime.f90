@@ -990,12 +990,18 @@ contains
   type(datetime) function dt_next_new_day(this)
     implicit none
     class(datetime), intent(in) :: this
-    integer :: dim, mon
-    dim = days_in_month(this%year, this%month)
-    dt_next_new_day%day = mod(this%day + 1_i4, dim)
-    mon = this%month + (this%day + 1_i4 / dim)
-    dt_next_new_day%month = mod(mon, YEAR_MONTHS)
-    dt_next_new_day%year = this%year + mon / YEAR_MONTHS
+    if (this%day == days_in_month(this%year, this%month)) then
+      if (this%month == YEAR_MONTHS) then
+        dt_next_new_day%year = this%year + 1_i4
+      else
+        dt_next_new_day%month = this%month + 1_i4
+        dt_next_new_day%year = this%year
+      end if
+    else
+      dt_next_new_day%day = this%day + 1_i4
+      dt_next_new_day%month = this%month
+      dt_next_new_day%year = this%year
+    end if
   end function dt_next_new_day
 
   !> \brief next new hour from this date
@@ -1501,7 +1507,18 @@ contains
   type(puredate) function d_next_new_day(this)
     implicit none
     class(puredate), intent(in) :: this
-    d_next_new_day = this + one_day()
+    if (this%day == days_in_month(this%year, this%month)) then
+      if (this%month == YEAR_MONTHS) then
+        d_next_new_day%year = this%year + 1_i4
+      else
+        d_next_new_day%month = this%month + 1_i4
+        d_next_new_day%year = this%year
+      end if
+    else
+      d_next_new_day%day = this%day + 1_i4
+      d_next_new_day%month = this%month
+      d_next_new_day%year = this%year
+    end if
   end function d_next_new_day
 
   !> \brief previous new year from this date
