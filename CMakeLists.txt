@@ -17,7 +17,7 @@ project(FORCES
   VERSION ${FORCES_VER}
   DESCRIPTION "FORtran library for Computational Environmental Systems"
   HOMEPAGE_URL "https://git.ufz.de/chs/forces/"
-  LANGUAGES Fortran
+  LANGUAGES Fortran C
 )
 
 # library module specific settings (defined after coverage definition)
