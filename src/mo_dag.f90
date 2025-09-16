@@ -3,6 +3,8 @@
 
 !> \brief   Module providing an implementation of an directed acyclic graph (DAG).
 !> \details A simple DAG implementation based on daglib (https://github.com/jacobwilliams/daglib).
+!! \par Examples
+!! - \ref 01_dag_sort.f90 : \copybrief 01_dag_sort.f90
 !> \copyright daglib was originally released under the BSD 3-Clause license (included below).
 !!
 !! Copyright (c) 2018-2023, Jacob Williams
@@ -117,6 +119,9 @@ module mo_dag
   !> \class dag
   !> \brief A directed acyclic graph (DAG).
   !> \details A collection of nodes that are connected (have a dependency) to other nodes.
+  !!
+  !! \par Examples
+  !! - \ref 01_dag_sort.f90 : \copybrief 01_dag_sort.f90
   type,public :: dag
     integer(i8) :: n = 0 !< number of nodes (size of `nodes` array)
     !> The nodes in the DAG. The index in this array is used by the edges of the nodes.
