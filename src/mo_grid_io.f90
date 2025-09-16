@@ -34,7 +34,7 @@ module mo_grid_io
   use mo_utils, only: is_close, flip
   implicit none
 
-  public :: var, output_dataset, input_dataset, time_units_delta, time_index
+  public :: var, output_dataset, input_dataset, time_units_delta, time_index, var_index, time_values
 
   private
 
@@ -143,9 +143,12 @@ module mo_grid_io
     logical :: flip_y                             !< whether to flip arrays along y-direction
     type(datetime) :: start_time                  !< start time for time units
     type(timedelta) :: delta                      !< time step in time units definition
+    integer(i8) :: delta_sec                      !< time step in time units definition in seconds
+    integer(i8) :: start_ord_sec                  !< ordinal seconds of start time
     integer(i4) :: timestep                       !< timestep in the file
     integer(i4), allocatable :: t_values(:)       !< time axis values for ends of time spans
-    type(datetime), allocatable :: times(:)       !< time axis values for ends of time spans
+    integer(i4), allocatable :: t_bounds(:)       !< time axis bound values
+    type(datetime), allocatable :: times(:)       !< times for ends of time spans
   contains
     procedure, public :: init => input_init
     ! read
@@ -176,6 +179,7 @@ module mo_grid_io
     procedure, private :: input_read_chunk_by_ids_pack_i8, input_read_chunk_by_ids_matrix_i8
     generic, public :: read_chunk_by_ids => input_read_chunk_by_ids_pack_i8, input_read_chunk_by_ids_matrix_i8
     ! others
+    procedure, public :: time_index => input_time_index
     procedure, public :: chunk_times => input_chunk_times
     procedure, public :: meta => input_meta
     procedure, public :: close => input_close
@@ -228,13 +232,14 @@ contains
   end subroutine time_values
 
   !> \brief determine time-stepping time-dimension depending on given datetimes.
-  subroutine time_stepping(t_var, timestamp, start_time, delta, timestep, t_values)
+  subroutine time_stepping(t_var, timestamp, start_time, delta, timestep, t_values, t_bounds)
     type(NcVariable), intent(in) :: t_var !< time variable
     integer(i4), intent(in) :: timestamp !< timestamp location selector
     type(datetime), intent(out) :: start_time !< starting time in units
     type(timedelta), intent(out) :: delta !< time delta in units
     integer(i4), intent(out) ::  timestep !< time step indicator
     integer(i4), allocatable, dimension(:), intent(out) :: t_values !< time axis values for end of time spans
+    integer(i4), allocatable, dimension(:), intent(out) :: t_bounds !< time axis bound values
     integer(i4), allocatable, dimension(:) :: tmp_arr, t_diffs
     type(timedelta) :: loc_delta ! local time delta in units
     type(datetime) :: loc_date
@@ -318,6 +323,32 @@ contains
           timestep = varying
         end if
       end if
+    end if
+
+    ! generate bounds values
+    allocate(t_bounds(size(t_values) + 1))
+    t_bounds(2:) = t_values
+    if (allocated(t_bnds)) then
+      t_bounds(1) = t_bnds(1,1)
+    else
+      ! guess lower bound
+      loc_date = start_time + t_values(1) * delta
+      select case(timestep)
+        case(varying)
+          t_bounds(1) = t_values(1) - 1_i4 ! one delta step before
+        case(yearly)
+          loc_delta = loc_date%previous_new_year() - start_time
+          t_bounds(1) = int(loc_delta%total_seconds() / delta%total_seconds(), i4)
+        case(monthly)
+          loc_delta = loc_date%previous_new_month() - start_time
+          t_bounds(1) = int(loc_delta%total_seconds() / delta%total_seconds(), i4)
+        case(daily)
+          loc_delta = loc_date%previous_new_day() - start_time
+          t_bounds(1) = int(loc_delta%total_seconds() / delta%total_seconds(), i4)
+        case default ! hour based delta
+          loc_delta = loc_date - timestep * one_hour() - start_time
+          t_bounds(1) = int(loc_delta%total_seconds() / delta%total_seconds(), i4)
+      end select
     end if
 
   end subroutine time_stepping
@@ -406,6 +437,8 @@ contains
     if (allocated(self%units)) call self%nc%setAttribute("units", self%units)
 
     self%grid => grid
+    if (self%grid%has_aux_coords()) call self%nc%setAttribute("coordinates", "lat lon")
+
     ! input data is still either real(dp) or integer(i4)
     select case(self%dtype)
       case("f32")
@@ -539,16 +572,17 @@ contains
           call self%nc%setData(unpack(self%data_i8, self%grid%mask, nodata_i8), [1_i4, 1_i4, t_index])
       end select
     end if
-      select case(self%kind)
-        case("sp")
-          self%data_sp = 0.0_sp
-        case("dp")
-          self%data_dp = 0.0_dp
-        case("i4")
-          self%data_i4 = 0_i4
-        case("i8")
-          self%data_i8 = 0_i8
-      end select
+    ! reset
+    select case(self%kind)
+      case("sp")
+        self%data_sp = 0.0_sp
+      case("dp")
+        self%data_dp = 0.0_dp
+      case("i4")
+        self%data_i4 = 0_i4
+      case("i8")
+        self%data_i8 = 0_i8
+    end select
     self%counter = 0_i4
   end subroutine out_var_write
 
@@ -938,13 +972,15 @@ contains
 
   !> \brief Initialize input_dataset
   !> \details Create and initialize the input file handler.
-  subroutine input_init(self, path, vars, grid, timestamp)
+  subroutine input_init(self, path, vars, grid, timestamp, grid_init_var)
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: path !< path to the file
     type(grid_t), intent(in), pointer :: grid !< grid definition to check against
     type(var), dimension(:), intent(in) :: vars !< variables of the output file
     integer(i4), intent(in), optional :: timestamp !< time stamp location in time span (0: begin, 1: center, 2: end (default))
+    !> nc variable name to determine the grid from (by default, grid is assumed to be already initialized)
+    character(*), intent(in), optional :: grid_init_var
     type(NcDimension), allocatable :: dims(:)
     type(NcVariable) :: t_var
     integer(i4) :: i
@@ -953,6 +989,7 @@ contains
     self%path = trim(path)
     self%nc = NcDataset(self%path, "r")
     self%grid => grid
+    if (present(grid_init_var)) call self%grid%from_netcdf(self%nc, grid_init_var)
     self%nvars = size(vars)
     if (self%nvars == 0_i4) call error_message("input_dataset: no variables selected")
 
@@ -965,8 +1002,10 @@ contains
         self%static = .false.
         dims = self%vars(i)%nc%getDimensions()
         t_var = self%nc%getVariable(trim(dims(3)%getName()))
-        call time_stepping(t_var, timestamp, self%start_time, self%delta, self%timestep, self%t_values)
+        call time_stepping(t_var, timestamp, self%start_time, self%delta, self%timestep, self%t_values, self%t_bounds)
         self%times = [(self%start_time + self%t_values(i) * self%delta, i=1_i4,size(self%t_values))]
+        self%delta_sec = self%delta%total_seconds()
+        self%start_ord_sec = int(self%start_time%date_to_ordinal(), i8) * 86400_i8 + int(self%start_time%day_second(), i8)
       end if
     end do
     if (allocated(dims)) deallocate(dims)
@@ -992,7 +1031,7 @@ contains
     real(sp), dimension(:,:), allocatable :: read_data
     integer(i4) :: t_index
     t_index = 0_i4 ! indicate missing current_time
-    if (present(current_time) .and. allocated(self%times)) t_index = time_index(self%times, current_time)
+    if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
     call self%vars(var_index(self%vars, name, "input%read"))%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
     data = read_data
   end subroutine input_read_matrix_sp
@@ -1086,7 +1125,7 @@ contains
     real(dp), dimension(:,:), allocatable :: read_data
     integer(i4) :: t_index
     t_index = 0_i4 ! indicate missing current_time
-    if (present(current_time) .and. allocated(self%times)) t_index = time_index(self%times, current_time)
+    if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
     call self%vars(var_index(self%vars, name, "input%read"))%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
     data = read_data
   end subroutine input_read_matrix_dp
@@ -1180,7 +1219,7 @@ contains
     integer(i4), dimension(:,:), allocatable :: read_data
     integer(i4) :: t_index
     t_index = 0_i4 ! indicate missing current_time
-    if (present(current_time) .and. allocated(self%times)) t_index = time_index(self%times, current_time)
+    if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
     call self%vars(var_index(self%vars, name, "input%read"))%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
     data = read_data
   end subroutine input_read_matrix_i4
@@ -1274,7 +1313,7 @@ contains
     integer(i8), dimension(:,:), allocatable :: read_data
     integer(i4) :: t_index
     t_index = 0_i4 ! indicate missing current_time
-    if (present(current_time) .and. allocated(self%times)) t_index = time_index(self%times, current_time)
+    if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
     call self%vars(var_index(self%vars, name, "input%read"))%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
     data = read_data
   end subroutine input_read_matrix_i8
@@ -1372,12 +1411,12 @@ contains
     if (timeframe_start < self%times(1)) then
       t_start = 0_i4
     else
-      t_start = time_index(self%times, timeframe_start)
+      t_start = self%time_index(timeframe_start)
     end if
     if (timeframe_end > self%times(size(self%times))) then
       t_end = size(self%times)
     else
-      t_end = time_index(self%times, timeframe_end)
+      t_end = self%time_index(timeframe_end)
     end if
     t_cnt = t_end - t_start
     t_id = t_start + 1_i4 ! times array has endpoints as references for time-spans, so we start with the next one
@@ -1385,6 +1424,27 @@ contains
     if (present(t_size)) t_size = t_cnt
     if (present(times)) allocate(times(t_cnt), source=self%times(t_id:t_end))
   end subroutine input_chunk_times
+
+  !> \brief Get time index for interval containing selected time
+  integer(i4) function input_time_index(self, current_time)
+    implicit none
+    class(input_dataset), intent(in) :: self
+    type(datetime), intent(in) :: current_time !< current read time
+    integer(i8) :: current_delta_sec
+    integer(i4) :: t_val
+    if (.not.allocated(self%times)) call error_message("input%time_index: file is static and has no time dimension")
+    ! seconds since start date
+    current_delta_sec = int(current_time%date_to_ordinal(), i8) * 86400_i8 + int(current_time%day_second(), i8) - self%start_ord_sec
+    ! calculate time value for current time for time units in file
+    t_val = int(current_delta_sec / self%delta_sec, i4) ! division with remainder
+    if (mod(current_delta_sec, self%delta_sec) > 0_i8) t_val = t_val + 1_i4 ! next step if remaining sub-step time
+    ! locate the value in the time values of the file
+    if (t_val < self%t_bounds(1)) call error_message("input%time_index: read time not covered by file.")
+    do input_time_index = 1_i4, size(self%t_values)
+      if (self%t_bounds(input_time_index) < t_val .and. t_val <= self%t_bounds(input_time_index+1_i4)) return
+    end do
+    call error_message("input%time_index: read time not covered by file.")
+  end function input_time_index
 
   !> \brief Get variable meta data.
   !> \return \ref var meta data definition

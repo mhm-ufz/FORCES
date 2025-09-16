@@ -63,7 +63,7 @@ contains
     end do
 
     do i = 1, max_rows_
-      read(u, "(*(es24.16e3,1x))") d(i, :)
+      read(u, *) d(i, :)
     end do
 
     close(u)
@@ -105,7 +105,7 @@ contains
     end do
 
     do i = 1, max_rows_
-      read(u, "(*(es15.8e2,1x))") d(i, :)
+      read(u, *) d(i, :)
     end do
 
     close(u)

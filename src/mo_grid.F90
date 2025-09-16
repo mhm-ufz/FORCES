@@ -26,11 +26,14 @@ module mo_grid
   public :: read_ascii_grid
   public :: read_ascii_header
   public :: id_bounds
+  public :: dist_latlon
 #ifdef FORCES_WITH_NETCDF
   public :: is_x_axis
   public :: is_y_axis
   public :: is_z_axis
   public :: is_t_axis
+  public :: is_lon_coord
+  public :: is_lat_coord
   public :: check_uniform_axis
 #endif
 
@@ -98,6 +101,9 @@ module mo_grid
 #endif
     procedure, public :: extent
     procedure, public :: total_area
+    procedure, public :: id_matrix
+    procedure, public :: cell_id
+    procedure, public :: closest_cell_id
     procedure, public :: x_axis
     procedure, public :: y_axis
     procedure, public :: x_vertices
@@ -524,7 +530,7 @@ contains
   !> \date    Mar 2025
   function layer_pack_sp(this, data) result(out_data)
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     real(sp), intent(in) :: data(:,:,:) !< (x,y,z)
     real(sp), allocatable :: out_data(:,:) !< (n,z)
     integer(i4) :: i
@@ -541,7 +547,7 @@ contains
   !> \date    Mar 2025
   function layer_pack_dp(this, data) result(out_data)
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     real(dp), intent(in) :: data(:,:,:) !< (x,y,z)
     real(dp), allocatable :: out_data(:,:) !< (n,z)
     integer(i4) :: i
@@ -558,7 +564,7 @@ contains
   !> \date    Mar 2025
   function layer_pack_i4(this, data) result(out_data)
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     integer(i4), intent(in) :: data(:,:,:) !< (x,y,z)
     integer(i4), allocatable :: out_data(:,:) !< (n,z)
     integer(i4) :: i
@@ -575,7 +581,7 @@ contains
   !> \date    Mar 2025
   function layer_pack_i8(this, data) result(out_data)
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     integer(i8), intent(in) :: data(:,:,:) !< (x,y,z)
     integer(i8), allocatable :: out_data(:,:) !< (n,z)
     integer(i4) :: i
@@ -592,7 +598,7 @@ contains
   !> \date    Mar 2025
   function layer_pack_lgt(this, data) result(out_data)
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     logical, intent(in) :: data(:,:,:) !< (x,y,z)
     logical, allocatable :: out_data(:,:) !< (n,z)
     integer(i4) :: i
@@ -610,7 +616,7 @@ contains
   function layer_unpack_sp(this, data) result(out_data)
     use mo_constants, only : nodata_sp
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     real(sp), intent(in) :: data(:,:)
     real(sp), allocatable :: out_data(:,:,:)
     integer(i4) :: i
@@ -628,7 +634,7 @@ contains
   function layer_unpack_dp(this, data) result(out_data)
     use mo_constants, only : nodata_dp
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     real(dp), intent(in) :: data(:,:)
     real(dp), allocatable :: out_data(:,:,:)
     integer(i4) :: i
@@ -646,7 +652,7 @@ contains
   function layer_unpack_i4(this, data) result(out_data)
     use mo_constants, only : nodata_i4
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     integer(i4), intent(in) :: data(:,:)
     integer(i4), allocatable :: out_data(:,:,:)
     integer(i4) :: i
@@ -664,7 +670,7 @@ contains
   function layer_unpack_i8(this, data) result(out_data)
     use mo_constants, only : nodata_i8
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     integer(i8), intent(in) :: data(:,:)
     integer(i8), allocatable :: out_data(:,:,:)
     integer(i4) :: i
@@ -681,7 +687,7 @@ contains
   !> \date    Mar 2025
   function layer_unpack_lgt(this, data) result(out_data)
     implicit none
-    class(layered_grid_t), intent(inout) :: this
+    class(layered_grid_t), intent(in) :: this
     logical, intent(in) :: data(:,:)
     logical, allocatable :: out_data(:,:,:)
     integer(i4) :: i
@@ -909,13 +915,14 @@ contains
     type(NcDimension), dimension(:), allocatable :: dims
 
     integer(i4), dimension(:), allocatable :: shp, start, cnt
-    integer(i4) :: nx, ny, rnk, coordsys, y_dir
+    integer(i4) :: nx, ny, rnk, coordsys, y_dir, i
     real(dp) :: xll, yll, cellsize, cs_x, cs_y, tol_
     real(dp), allocatable, dimension(:,:) :: dummy
     character(len=256) :: tmp_str
     character(len=256), allocatable, dimension(:) :: coords_str
+    character(:), allocatable :: lat_name, lon_name
     logical, allocatable, dimension(:,:) :: mask
-    logical :: y_inc, read_mask_, read_aux_, x_sph, y_sph, x_cart, y_cart, flip_y
+    logical :: y_inc, read_mask_, read_aux_, x_sph, y_sph, x_cart, y_cart, flip_y, found_lat, found_lon
 
     y_dir = keep_y
     if (present(y_direction)) y_dir = y_direction
@@ -1000,9 +1007,28 @@ contains
     if (read_aux_ .and. coordsys == cartesian .and. ncvar%hasAttribute("coordinates")) then
       call ncvar%getAttribute("coordinates", tmp_str)
       coords_str = splitString(trim(tmp_str), " ")
-      if (size(coords_str) < 2) &
-        call error_message("grid % from_netcdf: too few auxilliar coordinates: ", trim(nc%fname), ":", var, " - ", trim(tmp_str))
-      ! lon should be last coordinate and lat second last
+      ! search for lat-lon variables in given coordinates
+      found_lat = .false.
+      found_lon = .false.
+      do i = 1_i4, size(coords_str)
+        ncvar = nc%getVariable(trim(coords_str(i)))
+        if (.not.found_lat) then
+          if (is_lat_coord(ncvar)) then
+            found_lat = .true.
+            lat_name = trim(coords_str(i))
+          end if
+        end if
+        if (.not.found_lon) then
+          if (is_lon_coord(ncvar)) then
+            found_lon = .true.
+            lon_name = trim(coords_str(i))
+          end if
+        end if
+      end do
+      if (.not.(found_lat.and.found_lon)) then
+        call error_message( "grid % from_netcdf: could not find lat/lon auxilliar coordinates: ", &
+                           trim(nc%fname), ":", var, " - ", trim(tmp_str))
+      end if
       call this%aux_from_netcdf(nc, lat=trim(coords_str(size(coords_str)-1)), lon=trim(coords_str(size(coords_str))))
     end if
 
@@ -1244,8 +1270,10 @@ contains
     if (this%coordsys==cartesian) then
       call x_var%setAttribute("long_name", "x coordinate of projection")
       call x_var%setAttribute("standard_name", "projection_x_coordinate")
+      call x_var%setAttribute("units", "m") ! TODO: this should be configurable
       call y_var%setAttribute("long_name", "y coordinate of projection")
       call y_var%setAttribute("standard_name", "projection_y_coordinate")
+      call y_var%setAttribute("units", "m") ! TODO: this should be configurable
     else
       call x_var%setAttribute("long_name", "longitude")
       call x_var%setAttribute("standard_name", "longitude")
@@ -1346,6 +1374,64 @@ contains
     end if
 
   end function total_area
+
+  !> \brief Matrix of cell IDs.
+  !> \return `integer(i8) :: id_matrix(nx,ny)`
+  !> \authors Sebastian Müller
+  !> \date Jun 2025
+  function id_matrix(this)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i8), dimension(this%nx, this%ny) :: id_matrix
+    integer(i8) :: i
+    id_matrix = this%unpack([(i, i=1_i8, this%ncells)])
+  end function id_matrix
+
+  !> \brief Cell ID for given matrix indices.
+  !> \return `integer(i8) :: cell_id`
+  !> \authors Sebastian Müller
+  !> \date Jun 2025
+  integer(i8) function cell_id(this, indices)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i4), intent(in) :: indices(2) !< matrix indices (x_i,y_i)
+    logical, dimension(this%ncells) :: cell_loc
+    cell_loc = (this%cell_ij(:, 1) == indices(1)).and.(this%cell_ij(:, 2) == indices(2))
+    cell_id = findloc(cell_loc, .true., dim=1, kind=i8)
+    if (cell_id == 0_i8) call error_message("grid%cell_id: given indices not found.")
+  end function cell_id
+
+  !> \brief Closest cell ID for given coordinates.
+  !> \return `integer(i8) :: closest_cell_id`
+  !> \authors Sebastian Müller
+  !> \date Jun 2025
+  integer(i8) function closest_cell_id(this, coords, use_aux)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), intent(in) :: coords(2) !< coordiantes (x,y) or (lon,lat)
+    logical, intent(in), optional :: use_aux !< use auxilliar coordinates (lon,lat)
+    real(dp), allocatable :: xax(:), yax(:)
+    real(dp) :: c(this%ncells, 2), dist(this%ncells)
+    integer(i8) :: i
+    logical :: aux = .false.
+    if (present(use_aux)) aux = use_aux
+    if (aux .and. .not.this%has_aux_coords()) call error_message("grid%closest_cell_id: no auxilliar coordniates defined.")
+    if (aux) then
+      c(:,1) = [(this%lon(this%cell_ij(i,1),this%cell_ij(i,2)), i=1_i8,this%ncells)]
+      c(:,2) = [(this%lat(this%cell_ij(i,1),this%cell_ij(i,2)), i=1_i8,this%ncells)]
+    else
+      xax = this%x_axis()
+      yax = this%y_axis()
+      c(:,1) = [(xax(this%cell_ij(i,1)), i=1_i8,this%ncells)]
+      c(:,2) = [(yax(this%cell_ij(i,2)), i=1_i8,this%ncells)]
+    end if
+    if (aux.or.this%coordsys==spherical) then
+      dist = [(dist_latlon(c(i,2), c(i,1), coords(2), coords(1)), i=1_i8,this%ncells)]
+    else
+      dist = [(sqrt((c(i,1)-coords(1))**2 + (c(i,2)-coords(2))**2), i=1_i8,this%ncells)]
+    end if
+    closest_cell_id = minloc(dist, dim=1)
+  end function closest_cell_id
 
   !> \brief x-axis of the grid cell centers
   !> \return `real(dp), allocatable, dimension(:) :: x_axis`
@@ -2037,7 +2123,7 @@ contains
     if (this%coordsys == cartesian) then
       is_periodic = .false.
     else
-      is_periodic = is_close(360.0_dp, this%nx * this%cellsize)
+      is_periodic = is_close(360.0_dp, this%nx * this%cellsize - this%xllcorner)
     endif
   end function is_periodic
 
@@ -2294,7 +2380,7 @@ contains
   !> \date    Mar 2025
   function pack_data_sp(this, data) result(out_data)
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     real(sp), intent(in) :: data(:,:)
     real(sp), allocatable :: out_data(:)
     call this%check_shape(shape(data, kind=i8))
@@ -2308,7 +2394,7 @@ contains
   !> \date    Mar 2025
   function pack_data_dp(this, data) result(out_data)
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     real(dp), intent(in) :: data(:,:)
     real(dp), allocatable :: out_data(:)
     call this%check_shape(shape(data, kind=i8))
@@ -2322,7 +2408,7 @@ contains
   !> \date    Mar 2025
   function pack_data_i4(this, data) result(out_data)
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     integer(i4), intent(in) :: data(:,:)
     integer(i4), allocatable :: out_data(:)
     call this%check_shape(shape(data, kind=i8))
@@ -2336,7 +2422,7 @@ contains
   !> \date    Mar 2025
   function pack_data_i8(this, data) result(out_data)
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     integer(i8), intent(in) :: data(:,:)
     integer(i8), allocatable :: out_data(:)
     call this%check_shape(shape(data, kind=i8))
@@ -2350,7 +2436,7 @@ contains
   !> \date    Mar 2025
   function pack_data_lgt(this, data) result(out_data)
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     logical, intent(in) :: data(:,:)
     logical, allocatable :: out_data(:)
     call this%check_shape(shape(data, kind=i8))
@@ -2365,7 +2451,7 @@ contains
   function unpack_data_sp(this, data) result(out_data)
     use mo_constants, only : nodata_sp
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     real(sp), intent(in) :: data(:)
     real(sp), allocatable :: out_data(:,:)
     call this%check_shape_packed(shape(data, kind=i8))
@@ -2380,7 +2466,7 @@ contains
   function unpack_data_dp(this, data) result(out_data)
     use mo_constants, only : nodata_dp
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     real(dp), intent(in) :: data(:)
     real(dp), allocatable :: out_data(:,:)
     call this%check_shape_packed(shape(data, kind=i8))
@@ -2395,7 +2481,7 @@ contains
   function unpack_data_i4(this, data) result(out_data)
     use mo_constants, only : nodata_i4
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     integer(i4), intent(in) :: data(:)
     integer(i4), allocatable :: out_data(:,:)
     call this%check_shape_packed(shape(data, kind=i8))
@@ -2410,7 +2496,7 @@ contains
   function unpack_data_i8(this, data) result(out_data)
     use mo_constants, only : nodata_i8
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     integer(i8), intent(in) :: data(:)
     integer(i8), allocatable :: out_data(:,:)
     call this%check_shape_packed(shape(data, kind=i8))
@@ -2424,7 +2510,7 @@ contains
   !> \date    Mar 2025
   function unpack_data_lgt(this, data) result(out_data)
     implicit none
-    class(grid_t), intent(inout) :: this
+    class(grid_t), intent(in) :: this
     logical, intent(in) :: data(:)
     logical, allocatable :: out_data(:,:)
     call this%check_shape_packed(shape(data, kind=i8))
@@ -3171,5 +3257,27 @@ contains
     end if
 
   end subroutine id_bounds
+
+  !> \brief distance between two points on the sphere [m]
+  pure real(dp) function dist_latlon(lat1, lon1, lat2, lon2)
+    use mo_constants, only : RadiusEarth_dp, deg2rad_dp
+    real(dp), intent(in) :: lat1
+    real(dp), intent(in) :: lon1
+    real(dp), intent(in) :: lat2
+    real(dp), intent(in) :: lon2
+    real(dp) :: theta1, phi1, theta2, phi2
+    real(dp) :: term1, term2, term3, temp
+
+    theta1 = deg2rad_dp * lon1
+    phi1 = deg2rad_dp * lat1
+    theta2 = deg2rad_dp * lon2
+    phi2 = deg2rad_dp * lat2
+
+    term1 = cos(phi1) * cos(theta1) * cos(phi2) * cos(theta2)
+    term2 = cos(phi1) * sin(theta1) * cos(phi2) * sin(theta2)
+    term3 = sin(phi1) * sin(phi2)
+    temp = min(term1 + term2 + term3, 1.0_dp)
+    dist_latlon = RadiusEarth_dp * acos(temp);
+  end function dist_latlon
 
 end module mo_grid

@@ -173,6 +173,13 @@ module mo_datetime
     procedure, public :: next_new_month => d_next_new_month
     procedure, public :: next_new_week => d_next_new_week
     procedure, public :: next_new_day => d_next_new_day
+    procedure, public :: previous_new_year => d_previous_new_year
+    procedure, public :: previous_new_month => d_previous_new_month
+    procedure, public :: previous_new_week => d_previous_new_week
+    procedure, public :: previous_new_day => d_previous_new_day
+    procedure, public :: year_start => d_year_start
+    procedure, public :: month_start => d_month_start
+    procedure, public :: week_start => d_week_start
     procedure, private :: d_eq, d_eq_dt
     generic, public :: operator(==) => d_eq, d_eq_dt
     procedure, private :: d_neq, d_neq_dt
@@ -209,6 +216,10 @@ module mo_datetime
     procedure, public :: is_new_minute => t_is_new_minute
     procedure, public :: next_new_hour => t_next_new_hour
     procedure, public :: next_new_minute => t_next_new_minute
+    procedure, public :: previous_new_hour => t_previous_new_hour
+    procedure, public :: previous_new_minute => t_previous_new_minute
+    procedure, public :: hour_start => t_hour_start
+    procedure, public :: minute_start => t_minute_start
     procedure, private :: t_copy
     generic, public :: assignment(=) => t_copy
     procedure, private :: t_eq
@@ -247,18 +258,34 @@ module mo_datetime
     procedure, public :: julian => dt_julian
     procedure, public :: weekday => dt_weekday
     procedure, public :: doy => dt_doy
+    procedure, public :: date_to_ordinal => dt_date_to_ordinal
+    procedure, public :: day_second => dt_day_second
     procedure, public :: is_new_year
     procedure, public :: is_new_month
     procedure, public :: is_new_week
     procedure, public :: is_new_day
     procedure, public :: is_new_hour
     procedure, public :: is_new_minute
-    procedure, public :: next_new_year
-    procedure, public :: next_new_month
-    procedure, public :: next_new_week
-    procedure, public :: next_new_day
-    procedure, public :: next_new_hour
-    procedure, public :: next_new_minute
+    procedure, public :: next_new_year => dt_next_new_year
+    procedure, public :: next_new_month => dt_next_new_month
+    procedure, public :: next_new_week => dt_next_new_week
+    procedure, public :: next_new_day => dt_next_new_day
+    procedure, public :: next_new_hour => dt_next_new_hour
+    procedure, public :: next_new_minute => dt_next_new_minute
+    procedure, public :: previous_new_year => dt_previous_new_year
+    procedure, public :: previous_new_month => dt_previous_new_month
+    procedure, public :: previous_new_week => dt_previous_new_week
+    procedure, public :: previous_new_day => dt_previous_new_day
+    procedure, public :: previous_new_hour => dt_previous_new_hour
+    procedure, public :: previous_new_minute => dt_previous_new_minute
+    procedure, public :: year_start => dt_year_start
+    procedure, public :: month_start => dt_month_start
+    procedure, public :: week_start => dt_week_start
+    procedure, public :: day_start => dt_day_start
+    procedure, public :: hour_start => dt_hour_start
+    procedure, public :: minute_start => dt_minute_start
+    procedure, public :: add => dt_add
+    procedure, public :: sub => dt_sub
     procedure, private :: dt_copy_dt, dt_copy_d
     generic, public :: assignment(=) => dt_copy_dt, dt_copy_d
     procedure, private :: dt_eq, dt_eq_d
@@ -342,6 +369,61 @@ module mo_datetime
   end interface timedelta
 
 contains
+
+  pure integer(i4) function default(component)
+    integer(i4), intent(in), optional :: component
+    if (present(component)) then
+      default = component
+    else
+      default = 0_i4
+    end if
+  end function default
+
+  !> \brief check datetime equality with components
+  pure logical function datetime_eq(y1, y2, m1, m2, d1, d2, h1, h2, min1, min2, s1, s2)
+    integer(i4), intent(in) :: y1, y2, m1, m2, d1, d2
+    integer(i4), intent(in), optional :: h1, h2, min1, min2, s1, s2
+    datetime_eq = .false.
+    if (y1 /= y2) return
+    if (m1 /= m2) return
+    if (d1 /= d2) return
+    ! assume 0 as default for time components
+    if (default(h1) /= default(h2)) return
+    if (default(min1) /= default(min2)) return
+    if (default(s1) /= default(s2)) return
+    datetime_eq = .true.
+  end function datetime_eq
+
+  !> \brief day of the year
+  pure integer(i4) function date_to_doy(year, month, day)
+    implicit none
+    integer(i4), intent(in) :: year           !< 1 <= year <= 9999
+    integer(i4), intent(in) :: month          !< 1 <= month <= 12
+    integer(i4), intent(in) :: day            !< 1 <= day <= number of days in the given month and year
+    integer(i4) :: i
+    date_to_doy = day
+    do i=1_i4, month-1_i4
+      date_to_doy = date_to_doy + days_in_month(year=year, month=i)
+    end do
+  end function date_to_doy
+
+  !> \brief convert date to number of days since year 1
+  pure integer(i4) function date_to_ordinal(year, month, day)
+    implicit none
+    integer(i4), intent(in) :: year           !< 1 <= year <= 9999
+    integer(i4), intent(in) :: month          !< 1 <= month <= 12
+    integer(i4), intent(in) :: day            !< 1 <= day <= number of days in the given month and year
+    date_to_ordinal = days_before_year(year) + date_to_doy(year, month, day)
+  end function date_to_ordinal
+
+  !> \brief time to second of the day
+  pure integer(i4) function day_second(hour, minute, second)
+    implicit none
+    integer(i4), intent(in) :: hour           !< 0 <= hour < 24
+    integer(i4), intent(in) :: minute         !< 0 <= minute < 60
+    integer(i4), intent(in) :: second         !< 0 <= second < 60
+    day_second = hour * HOUR_SECONDS + minute * MINUTE_SECONDS + second
+  end function day_second
 
   !> \brief get \ref timedelta from given string
   type(timedelta) function delta_from_string(str)
@@ -546,6 +628,23 @@ contains
     if (present(month)) month = i
     if (present(day)) day = remain
   end subroutine doy_to_month_day
+
+  !> \brief get time from second of the day
+  pure subroutine day_second_to_time(sod, hour, minute, second)
+    implicit none
+    integer(i4), intent(in) :: sod                      !< 0 <= sod < 86400
+    integer(i4), intent(out), optional :: hour          !< 0 <= hour < 24
+    integer(i4), intent(out), optional :: minute        !< 0 <= minute < 60
+    integer(i4), intent(out), optional :: second        !< 0 <= second < 60
+    integer(i4) :: remain_sec
+    ! for pure function, we can't raise errors, so we force sod to be valid
+    remain_sec = min(max(sod, 0_i4), DAY_SECONDS - 1_i4)
+    if (present(hour)) hour = remain_sec / HOUR_SECONDS
+    remain_sec = mod(remain_sec, HOUR_SECONDS)
+    if (present(minute)) minute = remain_sec / MINUTE_SECONDS
+    remain_sec = mod(remain_sec, MINUTE_SECONDS)
+    if (present(second)) second = remain_sec
+  end subroutine day_second_to_time
 
   !> \brief check if a given year is valid
   subroutine check_year(year)
@@ -799,8 +898,22 @@ contains
   pure integer(i4) function dt_doy(this)
     implicit none
     class(datetime), intent(in) :: this
-    dt_doy = d_doy(this%date())
+    dt_doy = date_to_doy(this%year, this%month, this%day)
   end function dt_doy
+
+  !> \brief convert date to number of days since year 1
+  pure integer(i4) function dt_date_to_ordinal(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    dt_date_to_ordinal = date_to_ordinal(this%year, this%month, this%day)
+  end function dt_date_to_ordinal
+
+  !> \brief time to second of the day
+  pure integer(i4) function dt_day_second(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    dt_day_second = day_second(this%hour, this%minute, this%second)
+  end function dt_day_second
 
   !> \brief datetime is a new year
   pure logical function is_new_year(this)
@@ -845,58 +958,239 @@ contains
   end function is_new_minute
 
   !> \brief next new year from this date
-  type(datetime) function next_new_year(this)
+  type(datetime) function dt_next_new_year(this)
     implicit none
     class(datetime), intent(in) :: this
-    next_new_year = dt_init(this%year+1_i4)
-  end function next_new_year
+    dt_next_new_year%year = this%year+1_i4
+  end function dt_next_new_year
 
   !> \brief next new month from this date
-  type(datetime) function next_new_month(this)
+  type(datetime) function dt_next_new_month(this)
     implicit none
     class(datetime), intent(in) :: this
-    if (this%month == 12_i4) then
-      next_new_month = dt_init(this%year+1_i4)
+    if (this%month == YEAR_MONTHS) then
+      dt_next_new_month%year = this%year+1_i4
     else
-      next_new_month = dt_init(this%year, this%month+1_i4)
+      dt_next_new_month%year = this%year
+      dt_next_new_month%month = this%month+1_i4
     end if
-  end function next_new_month
+  end function dt_next_new_month
 
   !> \brief next new week from this date
-  type(datetime) function next_new_week(this)
+  type(datetime) function dt_next_new_week(this)
     implicit none
     class(datetime), intent(in) :: this
-    integer(i4) :: wd ! weekday
-    wd = this%weekday()
-    next_new_week = dt_init(this%year, this%month, this%day) + (WEEK_DAYS - wd + 1_i4) * one_day()
-  end function next_new_week
+    dt_next_new_week%year = this%year
+    dt_next_new_week%month = this%month
+    dt_next_new_week%day = this%day
+    dt_next_new_week = dt_next_new_week + (WEEK_DAYS - this%weekday() + 1_i4) * one_day()
+  end function dt_next_new_week
 
   !> \brief next new day from this date
-  type(datetime) function next_new_day(this)
+  type(datetime) function dt_next_new_day(this)
     implicit none
     class(datetime), intent(in) :: this
-    next_new_day = dt_init(this%year, this%month, this%day) + one_day()
-  end function next_new_day
+    if (this%day == days_in_month(this%year, this%month)) then
+      if (this%month == YEAR_MONTHS) then
+        dt_next_new_day%year = this%year + 1_i4
+      else
+        dt_next_new_day%month = this%month + 1_i4
+        dt_next_new_day%year = this%year
+      end if
+    else
+      dt_next_new_day%day = this%day + 1_i4
+      dt_next_new_day%month = this%month
+      dt_next_new_day%year = this%year
+    end if
+  end function dt_next_new_day
 
   !> \brief next new hour from this date
-  type(datetime) function next_new_hour(this)
+  type(datetime) function dt_next_new_hour(this)
     implicit none
     class(datetime), intent(in) :: this
-    next_new_hour = dt_init(this%year, this%month, this%day, this%hour) + one_hour()
-  end function next_new_hour
+    dt_next_new_hour%year = this%year
+    dt_next_new_hour%month = this%month
+    dt_next_new_hour%day = this%day
+    dt_next_new_hour%hour = this%hour
+    dt_next_new_hour = dt_next_new_hour + one_hour()
+  end function dt_next_new_hour
 
   !> \brief next new minute from this date
-  type(datetime) function next_new_minute(this)
+  type(datetime) function dt_next_new_minute(this)
     implicit none
     class(datetime), intent(in) :: this
-    next_new_minute = dt_init(this%year, this%month, this%day, this%hour, this%minute) + one_minute()
-  end function next_new_minute
+    dt_next_new_minute%year = this%year
+    dt_next_new_minute%month = this%month
+    dt_next_new_minute%day = this%day
+    dt_next_new_minute%hour = this%hour
+    dt_next_new_minute%minute = this%minute
+    dt_next_new_minute = dt_next_new_minute + one_minute()
+  end function dt_next_new_minute
+
+  !> \brief previous new year from this date
+  type(datetime) function dt_previous_new_year(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    dt_previous_new_year%year = this%year-1_i4
+  end function dt_previous_new_year
+
+  !> \brief previous new month from this date
+  type(datetime) function dt_previous_new_month(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    if (this%month == 1_i4) then
+      dt_previous_new_month%year = this%year-1_i4
+      dt_previous_new_month%month = YEAR_MONTHS
+    else
+      dt_previous_new_month%year = this%year
+      dt_previous_new_month%month = this%month-1_i4
+    end if
+  end function dt_previous_new_month
+
+  !> \brief previous new week from this date
+  type(datetime) function dt_previous_new_week(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    dt_previous_new_week = this%day_start() + (1_i4 - this%weekday() - WEEK_DAYS) * one_day()
+  end function dt_previous_new_week
+
+  !> \brief previous new day from this date
+  type(datetime) function dt_previous_new_day(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    dt_previous_new_day = this%day_start() - one_day()
+  end function dt_previous_new_day
+
+  !> \brief previous new hour from this time
+  type(datetime) function dt_previous_new_hour(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    dt_previous_new_hour = this%hour_start() - one_hour()
+  end function dt_previous_new_hour
+
+  !> \brief previous new minute from this time
+  type(datetime) function dt_previous_new_minute(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    dt_previous_new_minute = this%minute_start() - one_minute()
+  end function dt_previous_new_minute
+
+  !> \brief start of current year
+  type(datetime) function dt_year_start(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    dt_year_start%year = this%year
+  end function dt_year_start
+
+  !> \brief start of current month
+  type(datetime) function dt_month_start(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    dt_month_start%year = this%year
+    dt_month_start%month = this%month
+  end function dt_month_start
+
+  !> \brief start of current week
+  type(datetime) function dt_week_start(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    dt_week_start = this%day_start() + (1_i4 - this%weekday()) * one_day()
+  end function dt_week_start
+
+  !> \brief start of current day
+  type(datetime) function dt_day_start(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    dt_day_start%year = this%year
+    dt_day_start%month = this%month
+    dt_day_start%day = this%day
+  end function dt_day_start
+
+  !> \brief start of current hour
+  type(datetime) function dt_hour_start(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    dt_hour_start%year = this%year
+    dt_hour_start%month = this%month
+    dt_hour_start%day = this%day
+    dt_hour_start%hour = this%hour
+  end function dt_hour_start
+
+  !> \brief start of current minute
+  type(datetime) function dt_minute_start(this)
+    implicit none
+    class(datetime), intent(in) :: this
+    dt_minute_start%year = this%year
+    dt_minute_start%month = this%month
+    dt_minute_start%day = this%day
+    dt_minute_start%hour = this%hour
+    dt_minute_start%minute = this%minute
+  end function dt_minute_start
+
+  !> \brief add a timedelta to a datetime in-place
+  subroutine dt_add(this, delta)
+    implicit none
+    class(datetime), intent(inout) :: this
+    class(timedelta), intent(in) :: delta
+    integer(i4) :: doy, sod, tmp_sec, tmp_day, new_sod, new_doy, new_year
+    doy = this%doy()
+    sod = this%day_second()
+    tmp_sec = sod + delta%seconds
+    tmp_day = tmp_sec / DAY_SECONDS
+    new_sod = mod(tmp_sec, DAY_SECONDS)
+    new_doy = doy + tmp_day + delta%days
+    new_year = this%year
+    do while(new_doy > days_in_year(new_year))
+      new_doy = new_doy - days_in_year(new_year)
+      new_year = new_year + 1_i4
+    end do
+    do while(new_doy < 1_i4)
+      new_year = new_year - 1_i4
+      new_doy = new_doy + days_in_year(new_year)
+    end do
+    ! update datetime
+    this%year = new_year
+    call doy_to_month_day(this%year, new_doy, this%month, this%day)
+    call day_second_to_time(new_sod, this%hour, this%minute, this%second)
+  end subroutine dt_add
+
+  !> \brief subtract a timedelta from a datetime in-place
+  subroutine dt_sub(this, delta)
+    implicit none
+    class(datetime), intent(inout) :: this
+    class(timedelta), intent(in) :: delta
+    integer(i4) :: doy, sod, new_sod, new_doy, new_year
+    doy = this%doy()
+    sod = this%day_second()
+    if (delta%seconds > sod) then
+      new_sod = sod - delta%seconds + DAY_SECONDS
+      new_doy = doy - delta%days - 1_i4
+    else
+      new_sod = sod - delta%seconds
+      new_doy = doy - delta%days
+    end if
+    new_year = this%year
+    do while(new_doy > days_in_year(new_year))
+      new_doy = new_doy - days_in_year(new_year)
+      new_year = new_year + 1_i4
+    end do
+    do while(new_doy < 1_i4)
+      new_year = new_year - 1_i4
+      new_doy = new_doy + days_in_year(new_year)
+    end do
+    ! update datetime
+    this%year = new_year
+    call doy_to_month_day(this%year, new_doy, this%month, this%day)
+    call day_second_to_time(new_sod, this%hour, this%minute, this%second)
+  end subroutine dt_sub
 
   !> \brief (==) equal comparison of datetimes
   pure logical function dt_eq(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
-    dt_eq = this%date() == that%date()  .and. this%time() == that%time()
+    dt_eq = datetime_eq( &
+      this%year, that%year, this%month, that%month, this%day, that%day, &
+      this%hour, that%hour, this%minute, that%minute, this%second, that%second)
   end function dt_eq
 
   !> \brief (==) equal comparison of datetime and date
@@ -904,7 +1198,9 @@ contains
     implicit none
     class(datetime), intent(in) :: this
     class(puredate), intent(in) :: that
-    dt_eq_d = dt_eq(this, that%to_datetime())
+    dt_eq_d = datetime_eq( &
+      this%year, that%year, this%month, that%month, this%day, that%day, &
+      this%hour, 0_i4, this%minute, 0_i4, this%second, 0_i4)
   end function dt_eq_d
 
   !> \brief (/=) not equal comparison of datetimes
@@ -926,7 +1222,10 @@ contains
   pure logical function dt_lt(this, that)
     implicit none
     class(datetime), intent(in) :: this, that
-    dt_lt = this%date() < that%date() .or. (this%date() == that%date() .and. this%time() < that%time())
+    integer(i4) :: this_ordinal, that_ordinal
+    this_ordinal = this%date_to_ordinal()
+    that_ordinal = that%date_to_ordinal()
+    dt_lt = this_ordinal < that_ordinal .or. (this_ordinal == that_ordinal .and. this%day_second() < that%day_second())
   end function dt_lt
 
   !> \brief (<) less than comparison of datetime and date
@@ -935,7 +1234,7 @@ contains
     class(datetime), intent(in) :: this
     class(puredate), intent(in) :: that
     ! they need to be unequal
-    dt_lt_d = dt_lt(this, that%to_datetime())
+    dt_lt_d = this%date_to_ordinal() < that%to_ordinal()
   end function dt_lt_d
 
   !> \brief (>) greater than comparison of datetimes
@@ -950,8 +1249,11 @@ contains
     implicit none
     class(datetime), intent(in) :: this
     class(puredate), intent(in) :: that
+    integer(i4) :: this_ordinal, that_ordinal
     ! they need to be unequal
-    dt_gt_d = dt_gt(this, that%to_datetime())
+    this_ordinal = this%date_to_ordinal()
+    that_ordinal = that%to_ordinal()
+    dt_gt_d = this_ordinal > that_ordinal .or. (this_ordinal == that_ordinal .and. this%day_second() > 0_i4)
   end function dt_gt_d
 
   !> \brief (<=) less than or equal comparison of datetimes
@@ -966,8 +1268,10 @@ contains
     implicit none
     class(datetime), intent(in) :: this
     class(puredate), intent(in) :: that
-    ! they need to be unequal
-    dt_leq_d = dt_leq(this, that%to_datetime())
+    integer(i4) :: this_ordinal, that_ordinal
+    this_ordinal = this%date_to_ordinal()
+    that_ordinal = that%to_ordinal()
+    dt_leq_d = this_ordinal < that_ordinal .or. (this_ordinal == that_ordinal .and. this%day_second() == 0_i4)
   end function dt_leq_d
 
   !> \brief (>=) greater than or equal comparison of datetimes
@@ -982,8 +1286,7 @@ contains
     implicit none
     class(datetime), intent(in) :: this
     class(puredate), intent(in) :: that
-    ! they need to be unequal
-    dt_geq_d = dt_geq(this, that%to_datetime())
+    dt_geq_d = this%date_to_ordinal() >= that%to_ordinal()
   end function dt_geq_d
 
   !> \brief (+) add a timedelta to a datetime
@@ -1121,7 +1424,7 @@ contains
   pure integer(i4) function to_ordinal(this)
     implicit none
     class(puredate), intent(in) :: this
-    to_ordinal = days_before_year(this%year) + this%doy()
+    to_ordinal = date_to_ordinal(this%year, this%month, this%day)
   end function to_ordinal
 
   !> \brief string representation of the date
@@ -1150,11 +1453,7 @@ contains
   pure integer(i4) function d_doy(this)
     implicit none
     class(puredate), intent(in) :: this
-    integer(i4) :: i
-    d_doy = this%day
-    do i=1_i4, this%month-1_i4
-      d_doy = d_doy + days_in_month(year=this%year, month=i)
-    end do
+    d_doy = date_to_doy(this%year, this%month, this%day)
   end function d_doy
 
   !> \brief date is a new year
@@ -1182,17 +1481,18 @@ contains
   type(puredate) function d_next_new_year(this)
     implicit none
     class(puredate), intent(in) :: this
-    d_next_new_year = d_init(this%year+1_i4)
+    d_next_new_year%year = this%year+1_i4
   end function d_next_new_year
 
   !> \brief next new month from this date
   type(puredate) function d_next_new_month(this)
     implicit none
     class(puredate), intent(in) :: this
-    if (this%month == 12_i4) then
-      d_next_new_month = d_init(this%year+1_i4)
+    if (this%month == YEAR_MONTHS) then
+      d_next_new_month%year = this%year+1_i4
     else
-      d_next_new_month = d_init(this%year, this%month+1_i4)
+      d_next_new_month%year = this%year
+      d_next_new_month%month = this%month+1_i4
     end if
   end function d_next_new_month
 
@@ -1200,17 +1500,82 @@ contains
   type(puredate) function d_next_new_week(this)
     implicit none
     class(puredate), intent(in) :: this
-    integer(i4) :: wd ! weekday
-    wd = this%weekday()
-    d_next_new_week = d_init(this%year, this%month, this%day) + (WEEK_DAYS - wd + 1_i4) * one_day()
+    d_next_new_week = this + (WEEK_DAYS - this%weekday() + 1_i4) * one_day()
   end function d_next_new_week
 
   !> \brief next new day from this date
   type(puredate) function d_next_new_day(this)
     implicit none
     class(puredate), intent(in) :: this
-    d_next_new_day = d_init(this%year, this%month, this%day) + one_day()
+    if (this%day == days_in_month(this%year, this%month)) then
+      if (this%month == YEAR_MONTHS) then
+        d_next_new_day%year = this%year + 1_i4
+      else
+        d_next_new_day%month = this%month + 1_i4
+        d_next_new_day%year = this%year
+      end if
+    else
+      d_next_new_day%day = this%day + 1_i4
+      d_next_new_day%month = this%month
+      d_next_new_day%year = this%year
+    end if
   end function d_next_new_day
+
+  !> \brief previous new year from this date
+  type(puredate) function d_previous_new_year(this)
+    implicit none
+    class(puredate), intent(in) :: this
+    d_previous_new_year%year = this%year-1_i4
+  end function d_previous_new_year
+
+  !> \brief previous new month from this date
+  type(puredate) function d_previous_new_month(this)
+    implicit none
+    class(puredate), intent(in) :: this
+    if (this%month == 1_i4) then
+      d_previous_new_month%year = this%year-1_i4
+      d_previous_new_month%month = YEAR_MONTHS
+    else
+      d_previous_new_month%year = this%year
+      d_previous_new_month%month = this%month - 1_i4
+    end if
+  end function d_previous_new_month
+
+  !> \brief previous new week from this date
+  type(puredate) function d_previous_new_week(this)
+    implicit none
+    class(puredate), intent(in) :: this
+    d_previous_new_week = this + (1_i4 - this%weekday() - WEEK_DAYS) * one_day()
+  end function d_previous_new_week
+
+  !> \brief previous new day from this date
+  type(puredate) function d_previous_new_day(this)
+    implicit none
+    class(puredate), intent(in) :: this
+    d_previous_new_day = this - one_day()
+  end function d_previous_new_day
+
+  !> \brief previous new year from this date
+  type(puredate) function d_year_start(this)
+    implicit none
+    class(puredate), intent(in) :: this
+    d_year_start%year = this%year
+  end function d_year_start
+
+  !> \brief previous new month from this date
+  type(puredate) function d_month_start(this)
+    implicit none
+    class(puredate), intent(in) :: this
+    d_month_start%year = this%year
+    d_month_start%month = this%month
+  end function d_month_start
+
+  !> \brief previous new week from this date
+  type(puredate) function d_week_start(this)
+    implicit none
+    class(puredate), intent(in) :: this
+    d_week_start = this + (1_i4 - this%weekday()) * one_day()
+  end function d_week_start
 
   !> \brief (==) equal comparison of dates
   pure logical function d_eq(this, that)
@@ -1224,7 +1589,9 @@ contains
     implicit none
     class(puredate), intent(in) :: this
     class(datetime), intent(in) :: that
-    d_eq_dt = dt_eq(this%to_datetime(), that)
+    d_eq_dt = datetime_eq( &
+      this%year, that%year, this%month, that%month, this%day, that%day, &
+      0_i4, that%hour, 0_i4, that%minute, 0_i4, that%second)
   end function d_eq_dt
 
   !> \brief (/=) not equal comparison of dates
@@ -1239,7 +1606,7 @@ contains
     implicit none
     class(puredate), intent(in) :: this
     class(datetime), intent(in) :: that
-    d_neq_dt = dt_neq(this%to_datetime(), that)
+    d_neq_dt = .not. d_eq_dt(this, that)
   end function d_neq_dt
 
   !> \brief (<) less than comparison of dates
@@ -1254,7 +1621,11 @@ contains
     implicit none
     class(puredate), intent(in) :: this
     class(datetime), intent(in) :: that
-    d_lt_dt = dt_lt(this%to_datetime(), that)
+    integer(i4) :: this_ordinal, that_ordinal
+    ! they need to be unequal
+    this_ordinal = this%to_ordinal()
+    that_ordinal = that%date_to_ordinal()
+    d_lt_dt = this_ordinal < that_ordinal .or. (this_ordinal == that_ordinal .and. that%day_second() > 0_i4)
   end function d_lt_dt
 
   !> \brief (>) greater than comparison of dates
@@ -1269,7 +1640,7 @@ contains
     implicit none
     class(puredate), intent(in) :: this
     class(datetime), intent(in) :: that
-    d_gt_dt = dt_gt(this%to_datetime(), that)
+    d_gt_dt = this%to_ordinal() > that%date_to_ordinal()
   end function d_gt_dt
 
   !> \brief (<=) less than or equal comparison of dates
@@ -1284,7 +1655,7 @@ contains
     implicit none
     class(puredate), intent(in) :: this
     class(datetime), intent(in) :: that
-    d_leq_dt = dt_leq(this%to_datetime(), that)
+    d_leq_dt = this%to_ordinal() <= that%date_to_ordinal()
   end function d_leq_dt
 
   !> \brief (>=) greater than or equal comparison of dates
@@ -1299,7 +1670,11 @@ contains
     implicit none
     class(puredate), intent(in) :: this
     class(datetime), intent(in) :: that
-    d_geq_dt = dt_geq(this%to_datetime(), that)
+    integer(i4) :: this_ordinal, that_ordinal
+    ! they need to be unequal
+    this_ordinal = this%to_ordinal()
+    that_ordinal = that%date_to_ordinal()
+    d_geq_dt = this_ordinal > that_ordinal .or. (this_ordinal == that_ordinal .and. that%day_second() == 0_i4)
   end function d_geq_dt
 
   !> \brief (+) add a timedelta to a date
@@ -1450,7 +1825,7 @@ contains
   pure integer(i4) function t_day_second(this)
     implicit none
     class(puretime), intent(in) :: this
-    t_day_second = this%hour * HOUR_SECONDS + this%minute * MINUTE_SECONDS + this%second
+    t_day_second = day_second(this%hour, this%minute, this%second)
   end function t_day_second
 
   !> \brief time is a new day / midnight
@@ -1478,15 +1853,50 @@ contains
   type(puretime) function t_next_new_hour(this)
     implicit none
     class(puretime), intent(in) :: this
-    t_next_new_hour = t_init(this%hour, 0_i4) + one_hour()
+    t_next_new_hour%hour = mod(this%hour + 1_i4, DAY_HOURS)
   end function t_next_new_hour
 
   !> \brief next new minute from this time
   type(puretime) function t_next_new_minute(this)
     implicit none
     class(puretime), intent(in) :: this
-    t_next_new_minute = t_init(this%hour, this%minute) + one_minute()
+    t_next_new_minute%hour = this%hour + (this%minute + 1_i4) / HOUR_MINUTES
+    t_next_new_minute%minute = mod(this%minute + 1_i4, HOUR_MINUTES)
   end function t_next_new_minute
+
+  !> \brief previous new hour from this time
+  type(puretime) function t_previous_new_hour(this)
+    implicit none
+    class(puretime), intent(in) :: this
+    t_previous_new_hour%hour = modulo(this%hour - 1_i4, DAY_HOURS)
+  end function t_previous_new_hour
+
+  !> \brief previous new minute from this time
+  type(puretime) function t_previous_new_minute(this)
+    implicit none
+    class(puretime), intent(in) :: this
+    t_previous_new_minute%minute = modulo(this%minute - 1_i4, HOUR_MINUTES)
+    if (this%minute == 0_i4) then
+      t_previous_new_minute%hour = modulo(this%hour - 1_i4, DAY_HOURS)
+    else
+      t_previous_new_minute%hour = this%hour
+    end if
+  end function t_previous_new_minute
+
+  !> \brief start of current hour
+  type(puretime) function t_hour_start(this)
+    implicit none
+    class(puretime), intent(in) :: this
+    t_hour_start%hour = this%hour
+  end function t_hour_start
+
+  !> \brief start of current minute
+  type(puretime) function t_minute_start(this)
+    implicit none
+    class(puretime), intent(in) :: this
+    t_minute_start%hour = this%hour
+    t_minute_start%minute = this%minute
+  end function t_minute_start
 
   !> \brief (==) equal comparison of times
   pure logical function t_eq(this, that)

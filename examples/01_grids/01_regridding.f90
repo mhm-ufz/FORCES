@@ -11,11 +11,11 @@ program regrid
   use mo_kind, only: dp
   use mo_constants, only: nodata_dp
   use mo_grid, only: grid_t
-  use mo_grid_scaler, only: regridder, up_a_mean
+  use mo_grid_scaler, only: scaler_t, up_a_mean
   use mo_grid_io, only: var, output_dataset
   implicit none
   type(grid_t), target :: cgrid, fgrid
-  type(regridder) :: upscaler
+  type(scaler_t) :: upscaler
   type(output_dataset) :: ds1, ds2
   real(dp), allocatable :: dem(:,:), cdem(:)
   type(var), allocatable :: vars(:)
