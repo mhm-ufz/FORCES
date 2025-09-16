@@ -39,7 +39,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_dag
   use mo_kind, only : i8, i4
-  use mo_utils, only: optval
+  use mo_utils, only: optval, swap
 
   ! Control constants for depth-first traversal behavior.
   ! These values are returned by `visit()` to control DFS branching.
@@ -106,11 +106,12 @@ module mo_dag
     integer(i8),dimension(:),allocatable :: dependents
     integer(i8) :: tag = 0_i8 !< node tag for external reference (will stay the same even when the DAG is modified)
   contains
-    procedure :: nedges
-    procedure :: ndependents
+    procedure :: nedges => node_nedges
+    procedure :: ndependents => node_ndependents
     generic, private :: set_edges => set_edge_vector, add_edge
-    procedure, private :: set_edge_vector, add_edge
-    procedure, private :: add_dependent
+    procedure, private :: set_edge_vector => node_set_edge_vector
+    procedure, private :: add_edge => node_add_edge
+    procedure, private :: add_dependent => node_add_dependent
   end type node
 
   !> \class dag
@@ -123,20 +124,21 @@ module mo_dag
     integer(i8), private, dimension(:), allocatable :: tag_to_id_map !< Maps node tag to array index
     integer(i8), private :: max_tag = 0_i8 !< Max tag value in current DAG (for bounds)
   contains
-    procedure :: init                => dag_set_nodes
-    procedure :: add_edge            => dag_add_edge
-    procedure :: set_edges           => dag_set_edges
-    procedure :: toposort            => dag_toposort
-    procedure :: levelsort           => dag_levelsort
+    procedure :: init                       => dag_set_nodes
+    procedure :: add_edge                   => dag_add_edge
+    procedure :: set_edges                  => dag_set_edges
+    procedure :: toposort                   => dag_toposort
+    procedure :: levelsort                  => dag_levelsort
     procedure :: generate_dependency_matrix => dag_generate_dependency_matrix
-    procedure :: traverse            => dag_traverse
-    procedure :: subgraph            => dag_subgraph
-    procedure :: get_dependencies    => dag_get_dependencies
-    procedure :: get_dependents      => dag_get_dependents
-    procedure :: destroy             => dag_destroy
-    procedure :: tag_to_id
-    procedure, private :: levelsort_head, levelsort_root
-    procedure, private :: rebuild_tag_map
+    procedure :: traverse                   => dag_traverse
+    procedure :: subgraph                   => dag_subgraph
+    procedure :: get_dependencies           => dag_get_dependencies
+    procedure :: get_dependents             => dag_get_dependents
+    procedure :: destroy                    => dag_destroy
+    procedure :: tag_to_id                  => dag_tag_to_id
+    procedure, private :: levelsort_head    => dag_levelsort_head
+    procedure, private :: levelsort_root    => dag_levelsort_root
+    procedure, private :: rebuild_tag_map   => dag_rebuild_tag_map
   end type dag
 
 contains
@@ -169,6 +171,62 @@ contains
     integer(i8) :: action
     action = dfs_continue
   end function
+
+  !> \brief number of edges for this node
+  pure integer(i8) function node_nedges(this)
+    class(node),intent(in) :: this
+    if (allocated(this%edges)) then
+      node_nedges = size(this%edges)
+    else
+      node_nedges = 0_i8
+    end if
+  end function node_nedges
+
+  !> \brief number of dependents for this node
+  pure integer(i8) function node_ndependents(this)
+    class(node),intent(in) :: this
+    if (allocated(this%dependents)) then
+      node_ndependents = size(this%dependents)
+    else
+      node_ndependents = 0_i8
+    end if
+  end function node_ndependents
+
+  !> \brief Specify the edge indices for this node
+  subroutine node_set_edge_vector(this,edges)
+    class(node),intent(inout) :: this
+    integer(i8),dimension(:),intent(in) :: edges
+    this%edges = edges
+    call sort_ascending(this%edges)
+  end subroutine node_set_edge_vector
+
+  !> \brief Add an edge index for this node
+  subroutine node_add_edge(this,e)
+    class(node),intent(inout) :: this
+    integer(i8),intent(in) :: e
+    if (allocated(this%edges)) then
+      if (.not. any(e==this%edges)) then ! don't add if already there
+        this%edges = [this%edges, e]
+        call sort_ascending(this%edges)
+      end if
+    else
+      this%edges = [e]
+    end if
+  end subroutine node_add_edge
+
+  !> \brief Add a dependent index for this node
+  subroutine node_add_dependent(this,d)
+    class(node),intent(inout) :: this
+    integer(i8),intent(in) :: d
+    if (allocated(this%dependents)) then
+      if (.not. any(d==this%dependents)) then ! don't add if already there
+        this%dependents = [this%dependents, d]
+        call sort_ascending(this%dependents)
+      end if
+    else
+      this%dependents = [d]
+    end if
+  end subroutine node_add_dependent
 
   !> \brief Traverse graph from given starting node.
   subroutine dag_traverse(this, handler, ids, down)
@@ -300,7 +358,7 @@ contains
   end function dag_get_dependents
 
   !> \brief Rebuild the map from node tags to array indices.
-  subroutine rebuild_tag_map(this)
+  subroutine dag_rebuild_tag_map(this)
     class(dag), intent(inout) :: this
     integer(i8) :: i
     if (allocated(this%tag_to_id_map)) deallocate(this%tag_to_id_map)
@@ -310,11 +368,11 @@ contains
     do i = 1_i8, this%n
       this%tag_to_id_map(this%nodes(i)%tag) = i
     end do
-  end subroutine rebuild_tag_map
+  end subroutine dag_rebuild_tag_map
 
   !> \brief Get the current array index for a given node tag.
   !> \details Returns -1 if the tag does not exist or is out of bounds.
-  pure elemental function tag_to_id(this, tag) result(id)
+  pure elemental function dag_tag_to_id(this, tag) result(id)
     class(dag), intent(in) :: this
     integer(i8), intent(in) :: tag
     integer(i8) :: id
@@ -325,7 +383,7 @@ contains
     else
       id = this%tag_to_id_map(tag)
     end if
-  end function tag_to_id
+  end function dag_tag_to_id
 
   !> \brief Destroy the `dag`.
   subroutine dag_destroy(this)
@@ -333,62 +391,6 @@ contains
     this%n = 0_i8
     if (allocated(this%nodes)) deallocate(this%nodes)
   end subroutine dag_destroy
-
-  !> \brief number of edges for this node
-  pure integer(i8) function nedges(this)
-    class(node),intent(in) :: this
-    if (allocated(this%edges)) then
-      nedges = size(this%edges)
-    else
-      nedges = 0_i8
-    end if
-  end function nedges
-
-  !> \brief number of dependents for this node
-  pure integer(i8) function ndependents(this)
-    class(node),intent(in) :: this
-    if (allocated(this%dependents)) then
-      ndependents = size(this%dependents)
-    else
-      ndependents = 0_i8
-    end if
-  end function ndependents
-
-  !> \brief Specify the edge indices for this node
-  subroutine set_edge_vector(this,edges)
-    class(node),intent(inout) :: this
-    integer(i8),dimension(:),intent(in) :: edges
-    this%edges = edges
-    call sort_ascending(this%edges)
-  end subroutine set_edge_vector
-
-  !> \brief Add an edge index for this node
-  subroutine add_edge(this,e)
-    class(node),intent(inout) :: this
-    integer(i8),intent(in) :: e
-    if (allocated(this%edges)) then
-      if (.not. any(e==this%edges)) then ! don't add if already there
-        this%edges = [this%edges, e]
-        call sort_ascending(this%edges)
-      end if
-    else
-      this%edges = [e]
-    end if
-  end subroutine add_edge
-
-  !> \brief Add a dependent index for this node
-  subroutine add_dependent(this,d)
-    class(node),intent(inout) :: this
-    integer(i8),intent(in) :: d
-    if (allocated(this%dependents)) then
-      if (.not. any(d==this%dependents)) then ! don't add if already there
-        this%dependents = [this%dependents, d]
-        call sort_ascending(this%dependents)
-      end if
-    else
-      this%dependents = [d]
-    end if
-  end subroutine add_dependent
 
   !> \brief Set the number of nodes in the dag.
   subroutine dag_set_nodes(this, n, tags)
@@ -489,8 +491,8 @@ contains
     class(dag), intent(in) :: this
     type(order_t), intent(out) :: order       !< level based order
     integer(i8), intent(out) :: istat         !< status code (0 - no error, -1 - cycle found)
-    logical, intent(in), optional :: root    !< levels as distance from graph roots (default: .false.)
-    logical, intent(in), optional :: reverse !< reverse order (default: .false.)
+    logical, intent(in), optional :: root     !< levels as distance from graph roots (default: .false.)
+    logical, intent(in), optional :: reverse  !< reverse order (default: .false.)
     logical :: root_
 
     root_ = optval(root, .false.)
@@ -502,7 +504,7 @@ contains
   end subroutine dag_levelsort
 
   !> \brief Sorting DAG by levels for parallelization based on Kahn's algorithm
-  subroutine levelsort_head(this, order, istat, reverse)
+  subroutine dag_levelsort_head(this, order, istat, reverse)
     implicit none
     class(dag), intent(in) :: this
     type(order_t), intent(out) :: order       !< level based order
@@ -579,10 +581,10 @@ contains
     order%n_levels = level
     if (rev) call order%reverse()
     deallocate(visit_level, level_start, level_end)
-  end subroutine levelsort_head
+  end subroutine dag_levelsort_head
 
   !> \brief Sorting DAG by levels for parallelization based on Kahn's algorithm starting at roots.
-  subroutine levelsort_root(this, order, istat, reverse)
+  subroutine dag_levelsort_root(this, order, istat, reverse)
     implicit none
     class(dag), intent(in) :: this
     type(order_t), intent(out) :: order       !< level based order
@@ -659,7 +661,7 @@ contains
     order%n_levels = level
     if (.not.rev) call order%reverse()
     deallocate(visit_level, level_start, level_end)
-  end subroutine levelsort_root
+  end subroutine dag_levelsort_root
 
   !> \brief Generate the dependency matrix for the DAG.
   !> \details This is an \(n \times n \) matrix with elements \(A_{ij}\),
@@ -736,15 +738,5 @@ contains
     end subroutine partition
 
   end subroutine sort_ascending
-
-  !> \brief Swap two edge values.
-  pure elemental subroutine swap(x,y)
-    integer(i8),intent(inout) :: x
-    integer(i8),intent(inout) :: y
-    integer(i8) :: tmp
-    tmp = x
-    x = y
-    y = tmp
-  end subroutine swap
 
 end module mo_dag

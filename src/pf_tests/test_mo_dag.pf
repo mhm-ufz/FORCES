@@ -1,0 +1,232 @@
+module test_mo_dag
+  use funit
+    use mo_dag, only: dag, order_t
+    use mo_kind, only: i8
+
+  implicit none
+
+  private
+
+  public :: test_dag_sort
+  public :: test_dag_single_node
+  public :: test_dag_cycle_detection
+  public :: test_dag_dependencies
+  public :: test_dag_dependents
+  public :: test_dag_subgraph
+  public :: test_dag_tag_to_id
+  public :: test_dag_levelsort_with_root
+
+contains
+
+  @test
+  subroutine test_dag_sort()
+    implicit none
+    type(dag) :: network
+    integer(i8),dimension(:),allocatable :: order
+    type(order_t) :: ord
+    integer(i8) :: istat
+
+    !    1 -> 2 -> 6
+    !    |    |    A
+    !    V    V    |
+    !    3 <- 5 -> 4
+    !
+    ! order: 1 2 5 3 4 6
+    call network%init(6_i8)
+    call network%set_edges(2_i8,[1_i8])     ! 2 depends on 1
+    call network%set_edges(3_i8,[5_i8,1_i8])   ! 3 depends on 5 and 1
+    call network%set_edges(4_i8,[5_i8])     ! 4 depends on 5
+    call network%set_edges(5_i8,[2_i8])     ! 5 depends on 2
+    call network%set_edges(6_i8,[2_i8,4_i8])   ! 6 depends on 2 and 4
+
+    ! toposort
+    call network%toposort(order,istat)
+    @assertEqual(order, int([1, 2, 5, 3, 4, 6], i8), message='dag: check toposort order')
+    @assertEqual(istat, 0_i8, message='dag: check toposort istat')
+
+    ! levelsort
+    call network%levelsort(ord, istat)
+    print*, ord%level_size
+    @assertEqual(ord%id, int([1, 2, 5, 3, 4, 6], i8), message='dag: check levelsort order')
+    @assertEqual(istat, 0_i8, message='dag: check levelsort istat')
+    @assertEqual(ord%n_levels, 5_i8, message='dag: check levelsort number of levels')
+    @assertEqual(ord%level_size, int([1, 1, 1, 2, 1], i8), message='dag: check levelsort size')
+  end subroutine test_dag_sort
+
+  @test
+  subroutine test_dag_single_node()
+    use mo_dag, only: dag
+    implicit none
+    type(dag) :: network
+    integer(i8),dimension(:),allocatable :: order
+    integer(i8) :: istat
+
+    ! Test single node DAG
+    call network%init(1_i8)
+    call network%toposort(order,istat)
+    @assertEqual(istat, 0_i8, message='dag: check toposort istat for single node')
+    @assertEqual(order, int([1], i8), message='dag: check toposort order for single node')
+  end subroutine test_dag_single_node
+
+  @test
+  subroutine test_dag_cycle_detection()
+    implicit none
+    type(dag) :: network
+    integer(i8),dimension(:),allocatable :: order
+    integer(i8) :: istat
+
+    ! Test cycle detection
+    call network%init(3_i8)
+    call network%set_edges(1_i8, [2_i8])     ! 1 -> 2
+    call network%set_edges(2_i8, [3_i8])     ! 2 -> 3
+    call network%set_edges(3_i8, [1_i8])     ! 3 -> 1  (cycle!)
+
+    call network%toposort(order,istat)
+    @assertEqual(istat, -1_i8, message='dag: check toposort istat for cycle')
+    @assertEqual(allocated(order), .false., message='dag: check that order is not allocated for cycle')
+  end subroutine test_dag_cycle_detection
+
+  @test
+  subroutine test_dag_dependencies()
+    implicit none
+    type(dag) :: network
+    integer(i8),dimension(:),allocatable :: deps
+    integer(i8) :: i
+
+    ! Test dependency graph
+    call network%init(5_i8)
+    call network%set_edges(2_i8, [1_i8])     ! 2 depends on 1
+    call network%set_edges(3_i8, [5_i8,1_i8]) ! 3 depends on 5 and 1
+    call network%set_edges(4_i8, [5_i8])     ! 4 depends on 5
+    call network%set_edges(5_i8, [2_i8])     ! 5 depends on 2
+
+    ! Test get_dependencies for node 2 (should return 1)
+    deps = network%get_dependencies(2_i8)
+    @assertEqual(size(deps), 1_i8, message='dag: check number of dependencies for node 2')
+    @assertEqual(deps(1), 1_i8, message='dag: check dependency for node 2')
+
+    ! Test get_dependencies for node 3 (should return 1 and 5)
+    deps = network%get_dependencies(3_i8)
+    @assertEqual(size(deps), 3_i8, message='dag: check number of dependencies for node 3')
+    @assertEqual(deps(1), 1_i8, message='dag: check first dependency for node 3')
+    @assertEqual(deps(2), 2_i8, message='dag: check second dependency for node 3')
+    @assertEqual(deps(3), 5_i8, message='dag: check third dependency for node 3')
+
+    ! Test get_dependencies for node 1 (should return 0)
+    deps = network%get_dependencies(1_i8)
+    @assertEqual(size(deps), 0_i8, message='dag: check number of dependencies for node 1')
+  end subroutine test_dag_dependencies
+
+  @test
+  subroutine test_dag_dependents()
+    implicit none
+    type(dag) :: network
+    integer(i8),dimension(:),allocatable :: deps
+    integer(i8) :: i
+
+    ! Test dependency graph
+    call network%init(5_i8)
+    call network%set_edges(2_i8, [1_i8])     ! 2 depends on 1
+    call network%set_edges(3_i8, [5_i8,1_i8]) ! 3 depends on 5 and 1
+    call network%set_edges(4_i8, [5_i8])     ! 4 depends on 5
+    call network%set_edges(5_i8, [2_i8])     ! 5 depends on 2
+
+    ! Test get_dependents for node 1 (should return 2 and 3)
+    deps = network%get_dependents(1_i8)
+    @assertEqual(size(deps), 4_i8, message='dag: check number of dependents for node 1')
+    @assertEqual(deps(1), 2_i8, message='dag: check first dependent for node 1')
+    @assertEqual(deps(2), 3_i8, message='dag: check second dependent for node 1')
+    @assertEqual(deps(3), 4_i8, message='dag: check third dependent for node 1')
+    @assertEqual(deps(4), 5_i8, message='dag: check fourth dependent for node 1')
+
+    ! Test get_dependents for node 5 (should return 3 and 4)
+    deps = network%get_dependents(5_i8)
+    @assertEqual(size(deps), 2_i8, message='dag: check number of dependents for node 5')
+    @assertEqual(deps(1), 3_i8, message='dag: check first dependent for node 5')
+    @assertEqual(deps(2), 4_i8, message='dag: check second dependent for node 5')
+
+    ! Test get_dependents for node 2 (should return 5)
+    deps = network%get_dependents(2_i8)
+    @assertEqual(size(deps), 3_i8, message='dag: check number of dependents for node 2')
+    @assertEqual(deps(1), 3_i8, message='dag: check first dependent for node 2')
+    @assertEqual(deps(2), 4_i8, message='dag: check second dependent for node 2')
+    @assertEqual(deps(3), 5_i8, message='dag: check third dependent for node 2')
+  end subroutine test_dag_dependents
+
+  @test
+  subroutine test_dag_subgraph()
+    implicit none
+    type(dag) :: network, subgraph
+    integer(i8),dimension(:),allocatable :: order
+    integer(i8) :: istat
+
+    ! Test subgraph generation
+    call network%init(6_i8)
+    call network%set_edges(2_i8, [1_i8])     ! 2 depends on 1
+    call network%set_edges(3_i8, [5_i8,1_i8]) ! 3 depends on 5 and 1
+    call network%set_edges(4_i8, [5_i8])     ! 4 depends on 5
+    call network%set_edges(5_i8, [2_i8])     ! 5 depends on 2
+    call network%set_edges(6_i8, [2_i8,4_i8]) ! 6 depends on 2 and 4
+
+    ! Generate subgraph containing nodes starting at node 3
+    subgraph = network%subgraph([3_i8])
+
+    call subgraph%toposort(order, istat)
+    @assertEqual(istat, 0_i8, message='dag: check subgraph toposort istat')
+    @assertEqual(size(order), 4_i8, message='dag: check subgraph order size')
+
+    ! The subgraph should contain the nodes 1, 3, 5 in topological order
+    ! Node 1 should have no dependencies
+    ! Node 3 depends on 1 and 5
+    ! Node 5 depends on 2 (but 2 is not in the subgraph)
+  end subroutine test_dag_subgraph
+
+  @test
+  subroutine test_dag_tag_to_id()
+    implicit none
+    type(dag) :: network
+    integer(i8) :: id
+
+    ! Test tag to id mapping with custom tags
+    call network%init(4_i8, [10_i8, 20_i8, 30_i8, 40_i8])
+
+    ! Test tag to id mapping
+    id = network%tag_to_id(10_i8)
+    @assertEqual(id, 1_i8, message='dag: check tag_to_id for tag 10')
+
+    id = network%tag_to_id(20_i8)
+    @assertEqual(id, 2_i8, message='dag: check tag_to_id for tag 20')
+
+    id = network%tag_to_id(30_i8)
+    @assertEqual(id, 3_i8, message='dag: check tag_to_id for tag 30')
+
+    id = network%tag_to_id(40_i8)
+    @assertEqual(id, 4_i8, message='dag: check tag_to_id for tag 40')
+
+    ! Test non-existent tag
+    id = network%tag_to_id(99_i8)
+    @assertEqual(id, -1_i8, message='dag: check tag_to_id for non-existent tag')
+  end subroutine test_dag_tag_to_id
+
+  @test
+  subroutine test_dag_levelsort_with_root()
+    implicit none
+    type(dag) :: network
+    type(order_t) :: ord
+    integer(i8) :: istat
+
+    ! Test levelsort with root option (reverse)
+    call network%init(6_i8)
+    call network%set_edges(2_i8, [1_i8])     ! 2 depends on 1
+    call network%set_edges(3_i8, [5_i8,1_i8])   ! 3 depends on 5 and 1
+    call network%set_edges(4_i8, [5_i8])     ! 4 depends on 5
+    call network%set_edges(5_i8, [2_i8])     ! 5 depends on 2
+    call network%set_edges(6_i8, [2_i8,4_i8])   ! 6 depends on 2 and 4
+
+    ! level sort with root option
+    call network%levelsort(ord, istat, root=.true.)
+    @assertEqual(istat, 0_i8, message='dag: check levelsort istat with root')
+    @assertEqual(ord%n_levels, 5_i8, message='dag: check levelsort number of levels with root')
+  end subroutine test_dag_levelsort_with_root
+
+end module test_mo_dag
