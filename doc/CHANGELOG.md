@@ -4,6 +4,63 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
+## v0.7.0 - 2025-09
+- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.6.1...v0.7.0) for details.
+
+### Enhancements
+- added examples folder ([80](https://git.ufz.de/chs/forces/-/merge_requests/80))
+- add `mo_dag`: a Directed Acyclic Graph implementation motivated by the routing module of mHM derived from https://github.com/jacobwilliams/daglib ([89](https://git.ufz.de/chs/forces/-/merge_requests/89))
+- add `mo_list`: a generic linked list implementation derived from https://github.com/jacobwilliams/flist ([88](https://git.ufz.de/chs/forces/-/merge_requests/88))
+- reworked optimization routines: added `mo_optimizee` to provide an abstract base class for optimization targets ([81](https://git.ufz.de/chs/forces/-/merge_requests/81), [83](https://git.ufz.de/chs/forces/-/merge_requests/83), [85](https://git.ufz.de/chs/forces/-/merge_requests/85))
+- add `mo_polynomial`: module to deal with polynomials like evaluation, root finding or derivation ([82](https://git.ufz.de/chs/forces/-/merge_requests/82))
+- add `mo_grid`: ([80](https://git.ufz.de/chs/forces/-/merge_requests/80), [89](https://git.ufz.de/chs/forces/-/merge_requests/89))
+  - added `grid_t` class to hold a uniform grid definition
+    - single cell-size
+    - Cartesian and Spherical grid support
+    - aux-coordinates support
+    - support for periodic spherical grids (along lon-axis)
+    - NetCDF in/out routines
+    - ascii grid in/out routines
+    - aux-coords upscaling support (lat-lon coordinates estimated from fine grid by averaging)
+    - derive coarse/fine grids based on target resolution or scaling factor
+   - supports flipping y-axis (top-down or bottom-up)
+- add `mo_grid_io`: ([80](https://git.ufz.de/chs/forces/-/merge_requests/80))
+  - handlers for netcdf files based on a grid (`input_dataset`, `output_dataset`)
+  - uses `datetime` to select data on time dimension
+- add `mo_grid_scaler`: ([80](https://git.ufz.de/chs/forces/-/merge_requests/80))
+  - regridder implementation based on grid type
+  - can be used for up and down scaling
+  - wide range of scaling operators provided
+- `mo_message`: ([80](https://git.ufz.de/chs/forces/-/merge_requests/80))
+  - add `warn_message` as 3rd option
+- `mo_utils`: ([80](https://git.ufz.de/chs/forces/-/merge_requests/80), [89](https://git.ufz.de/chs/forces/-/merge_requests/89))
+  - add `flip` and `flipped` for sp/dp/i4/i8 for 1-4 dims
+  - add `optval` as helper function for most data types to set default values from optional values (`internal_val = optval(val, default)`)
+  - add support for `i8` integers in swap
+- `mo_datetime`: ([80](https://git.ufz.de/chs/forces/-/merge_requests/80), [86](https://git.ufz.de/chs/forces/-/merge_requests/86), [89](https://git.ufz.de/chs/forces/-/merge_requests/89))
+  - added `decode_cf_time_units`: convert cf time units to a reference `datatime` and a `timedelta` (`"hours since 1990-06-01 12:00"`)
+  - added `delta_from_string`: cf string for time delta (like `"hours"`) to `timedelta` (like `timedelta(hours=1)`)
+  - add `<step>_start`, `next_new_<step>` and `previous_new_<step>` where step can be year/month/week/day/hour/minute
+  - add `add` and `sub` for in-place addition and subtraction of `timedelta`
+  - faster date/time comparison (no intermediate type instances)
+  - better conversion from string
+  - allow 'T' as time separator
+  - allow missing entries (e.g. no second given)
+- CI/CMake: ([80](https://git.ufz.de/chs/forces/-/merge_requests/80), [89](https://git.ufz.de/chs/forces/-/merge_requests/89))
+  - added language `C` to CMake project to catch error when NetCDF is linked against HDF5 (e.g. libnetcdf 4.9.3 on conda forge ([Pull Request](https://github.com/conda-forge/libnetcdf-feedstock/pull/207))) and triggers the FindHDF5 script of CMake which tries to compile a test C program
+  - cleaned up compile flags in CMake
+  - added explicit support for IntelLLVM
+  - add debug jobs for all intel compilers in CI
+  - added `FORCES_EXE` option to CMake to compile a singe executable linked against forces
+
+### Changes
+- `mo_orderpack`: use `i8` for indexing variables to be able to use huge arrays ([90](https://git.ufz.de/chs/forces/-/merge_requests/90))
+- `mo_io`: use plain `read(u,*)` in `loadtxt` to read floats ([89](https://git.ufz.de/chs/forces/-/merge_requests/89))
+
+### Bugfixes
+- `mo_logging`: set stderr as default unit ([87](https://git.ufz.de/chs/forces/-/merge_requests/87))
+
+
 ## v0.6.1 - 2024-03
 - See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.6.0...v0.6.1) for details.
 
