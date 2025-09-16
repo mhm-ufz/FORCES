@@ -5,7 +5,8 @@
 !> \details This module provides a scaler for rectangular grids with cellsizes that have an integer ratio.
 !! \par Examples
 !! - \ref 01_regridding.f90 : \copybrief 01_regridding.f90
-!!   \include 01_regridding.f90
+!! - \ref 03_nc_regridder.f90 : \copybrief 03_nc_regridder.f90
+!!   \include 03_nc_regridder.f90
 !> \version 0.1
 !> \authors Sebastian Mueller
 !> \date    Mar 2025
@@ -54,7 +55,7 @@ module mo_grid_scaler
   integer(i4), public, parameter :: down_split = 1_i4 !< inverse sum downscaling operator with equal summands
   !!@}
 
-  !> \class   scaler
+  !> \class   scaler_t
   !> \brief   Scaler type to remap data on regular grids with an integer cellsize ratio and matching lower left corner.
   !> \details Scaler to up or down scale values on given grid. Provides an \ref execute method to regrid packed/unpacked data.
   !!
@@ -77,8 +78,7 @@ module mo_grid_scaler
   !!
   !! \par Examples
   !! - \ref 01_regridding.f90 : \copybrief 01_regridding.f90
-  !> \example 01_regridding.f90
-  !> \copydoc regrid
+  !! - \ref 03_nc_regridder.f90 : \copybrief 03_nc_regridder.f90
   type, public :: scaler_t
     integer(i4) :: scaling_mode                           !< \ref up_scaling (0) or \ref down_scaling (1)
     type(grid_t), pointer :: source_grid => null()        !< source grid
