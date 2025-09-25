@@ -1,4 +1,7 @@
-!> \file    03_nc_regridder.f90
+!> \file    01_grids/03_nc_regridder.f90
+!> \copydoc netcdf_regridder
+
+!> \example 01_grids/03_nc_regridder.f90
 !> \copydoc netcdf_regridder
 
 !> \brief   NetCDF regridding example.

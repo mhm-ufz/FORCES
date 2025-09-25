@@ -7,9 +7,6 @@
  *
  * @copyright This file was originally published under the MIT license.
  *
- */
-
-/**
  * Copyright (c) 2016 Daan van Vugt
  *
  * Permission is hereby granted, free of charge, to any person

@@ -8,6 +8,9 @@
 !!          Ascii grids actually represent data with a decreasing y-axis and in yx order.
 !! \par Examples
 !! - \ref 01_regridding.f90 : \copybrief 01_regridding.f90
+!!   \include 01_regridding.f90
+!! - \ref 02_nc_output.f90 : \copybrief 02_nc_output.f90
+!! - \ref 03_nc_regridder.f90 : \copybrief 03_nc_regridder.f90
 !> \version 0.1
 !> \authors Sebastian Mueller
 !> \date    Mar 2024
@@ -38,20 +41,22 @@ module mo_grid
 #endif
 
   private
+
   !> \name Coordinate System Selectors
-  !> \brief Constants to specify the coordinate system in the \ref grid.
+  !> \brief Constants to specify the coordinate system in the \ref grid_t.
   !!@{
   integer(i4), public, parameter :: cartesian = 0_i4 !<    Cartesian coordinate system.
   integer(i4), public, parameter :: spherical = 1_i4 !< Spherical coordinates in degrees.
   !!@}
-  ! integer(i4), public, parameter :: coordsys_sph_rad = 2_i4
+
   !> \name Y-Axis Direction Selectors
-  !> \brief Constants to specify the y-axis direction in the \ref grid.
+  !> \brief Constants to specify the y-axis direction in the \ref grid_t.
   !!@{
   integer(i4), public, parameter :: keep_y = -1_i4 !< keep y-axis direction.
   integer(i4), public, parameter :: top_down = 0_i4 !< y-axis with decreasing values.
   integer(i4), public, parameter :: bottom_up = 1_i4 !< y-axis with increasing values.
   !!@}
+
   !> \name Lower-Left Corner Alignment Selectors
   !> \brief Constants to the alignment of the lower-left corner of grids.
   !!@{
@@ -61,13 +66,12 @@ module mo_grid
   integer(i4), public, parameter :: upper_right = 3_i4 !< align in upper right corner
   !!@}
 
-  !> \class   grid
+  !> \class   grid_t
   !> \brief   2D grid description with data in xy order..
   !> \details This type represents uniform grids with data in xy order with strictly increasing or decreasing y-axis.
   !!          ASCII grid files have the opposite behavior: yx order, with decreasing y-axis.
   !!          NetCDF files natively have yx order, but since Fortran arrays are column-major order,
   !!          the data read from .nc files is in xy order. The x-axis will always be increasing.
-  !!
   !! \par Examples
   !! - \ref 01_regridding.f90 : \copybrief 01_regridding.f90
   type, public :: grid_t
@@ -139,7 +143,7 @@ module mo_grid
     generic, public :: unpack => unpack_data_sp, unpack_data_dp, unpack_data_i4, unpack_data_i8, unpack_data_lgt
   end type grid_t
 
-  !> \class   layered_grid
+  !> \class   layered_grid_t
   !> \brief   3D layered grid description with layer data in xy order.
   !> \details This type represents uniform layered grids with layer data in xy order with increasing x-axis and monotonic y-axis.
   !!          The z-axis is described by a monotonic layers array.

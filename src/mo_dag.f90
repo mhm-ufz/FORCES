@@ -5,6 +5,7 @@
 !> \details A simple DAG implementation based on daglib (https://github.com/jacobwilliams/daglib).
 !! \par Examples
 !! - \ref 01_dag_sort.f90 : \copybrief 01_dag_sort.f90
+!!   \include 01_dag_sort.f90
 !> \copyright daglib was originally released under the BSD 3-Clause license (included below).
 !!
 !! Copyright (c) 2018-2023, Jacob Williams

@@ -1,4 +1,7 @@
-!> \file    02_nc_output.f90
+!> \file    01_grids/02_nc_output.f90
+!> \copydoc netcdf_output
+
+!> \example 01_grids/02_nc_output.f90
 !> \copydoc netcdf_output
 
 !> \brief   Output example.

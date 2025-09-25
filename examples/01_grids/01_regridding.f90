@@ -1,4 +1,7 @@
-!> \file    01_regridding.f90
+!> \file    01_grids/01_regridding.f90
+!> \copydoc regrid
+
+!> \example 01_grids/01_regridding.f90
 !> \copydoc regrid
 
 !> \brief   Regridding example for a DEM.

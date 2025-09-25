@@ -1,4 +1,7 @@
-!> \file    01_dag_sort.f90
+!> \file    02_dag/01_dag_sort.f90
+!> \copydoc dag_sort
+
+!> \example 02_dag/01_dag_sort.f90
 !> \copydoc dag_sort
 
 !> \brief   Example for creating and sorting a DAG.
