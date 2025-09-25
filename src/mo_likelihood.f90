@@ -64,7 +64,7 @@ CONTAINS
 
     allocate(sim_data(1))
     call sim_data(1)%add(name="runoff", ndim=2_i4)
-    call eval(config, sim_data=sim_data)
+    call eval(config, sim_data)
     call sim_data(1)%set_pointer(name="runoff", ptr=runoff)
     errors(:) = runoff(:,1)-data()
     likelihood_dp = exp(-0.5_dp * sum( errors(:) * errors(:) / stddev_global**2 ))
@@ -93,7 +93,7 @@ CONTAINS
 
     allocate(sim_data(1))
     call sim_data(1)%add(name="runoff", ndim=2_i4)
-    call eval(config, sim_data=sim_data)
+    call eval(config, sim_data)
     call sim_data(1)%set_pointer(name="runoff", ptr=runoff)
     errors(:) = runoff(:,1)-data()
     loglikelihood_dp = -0.5_dp * sum( errors(:) * errors(:) / stddev_global**2 )
@@ -123,7 +123,7 @@ CONTAINS
 
     allocate(sim_data(1))
     call sim_data(1)%add(name="runoff", ndim=2_i4)
-    call eval(config, sim_data=sim_data)
+    call eval(config, sim_data)
     call sim_data(1)%set_pointer(name="runoff", ptr=runoff)
     errors(:) = runoff(:,1)-data()
     likelihood_stddev_dp = exp(-0.5_dp * sum( errors(:) * errors(:) / stddev_in**2 ))
@@ -162,7 +162,7 @@ CONTAINS
 
     allocate(sim_data(1))
     call sim_data(1)%add(name="runoff", ndim=2_i4)
-    call eval(config, sim_data=sim_data)
+    call eval(config, sim_data)
     call sim_data(1)%set_pointer(name="runoff", ptr=runoff)
     errors(:) = runoff(:,1)-data()
     loglikelihood_stddev_dp = -0.5_dp * sum( errors(:) * errors(:) / stddev_in**2 )
