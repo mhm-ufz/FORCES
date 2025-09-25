@@ -4,6 +4,14 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
+## v0.7.1 - 2025-09
+- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.7.0...v0.7.1) for details.
+
+### Bugfixes
+- GCC15: procedure pointers should be called with positional arguments ([93](https://git.ufz.de/chs/forces/-/merge_requests/93))
+- doc: make all examples visible in the documentation ([92](https://git.ufz.de/chs/forces/-/merge_requests/92))
+
+
 ## v0.7.0 - 2025-09
 - See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.6.1...v0.7.0) for details.
 
