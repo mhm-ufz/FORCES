@@ -23,6 +23,7 @@ module mo_os
   public :: check_path_exists
   public :: check_path_isfile
   public :: check_path_isdir
+  public :: path_cwd
   public :: path_exists
   public :: path_isfile
   public :: path_isdir
@@ -211,6 +212,21 @@ contains
     if (present(answer)) answer = isdir
 
   end subroutine check_path_isdir
+
+  ! ------------------------------------------------------------------
+  !> \brief Return .true. if path refers to an existing path.
+  !> \author Sebastian Mueller
+  !> \date Mar 2023
+  function path_cwd(status, verbose, raise) result(cwd)
+    implicit none
+    integer(i4), intent(out), optional :: status !< error status (will prevent error raise if present)
+    logical, intent(in), optional :: verbose !< Be verbose or not (default: setting of SHOW_MSG/SHOW_ERR)
+    logical, intent(in), optional :: raise !< Throw an error if current directory can't be determined (default: .true.)
+    character(:), allocatable     :: cwd !< current working directory
+    character(len=max_path_len) :: cwdpath
+    call get_cwd(cwdpath, status, verbose, raise)
+    cwd = trim(cwdpath)
+  end function path_cwd
 
   ! ------------------------------------------------------------------
   !> \brief Return .true. if path refers to an existing path.
@@ -517,6 +533,7 @@ contains
     character(:), allocatable     :: posix !< posix version of the path
 
     posix = trim(replace_text(path, "\\", sep))
+    posix = trim(replace_text(posix, "\", sep))
 
   end function path_as_posix
 
