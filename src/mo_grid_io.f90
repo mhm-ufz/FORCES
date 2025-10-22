@@ -110,9 +110,8 @@ module mo_grid_io
   type, extends(var) :: input_variable
     type(NcVariable) :: nc                     !< nc variable which contains the variable
     type(grid_t), pointer :: grid => null()    !< horizontal grid the data is defined on
-    integer(i4) :: layer_dim = 0_i4            !< dimension index for layer axis (0 => none)
-    integer(i4) :: time_dim = 0_i4             !< dimension index for time axis (0 => none)
     integer(i4) :: nlayers = 0_i4              !< number of layers (0 for none)
+    integer(i4) :: rank = 0_i4                 !< rank of the variable
   contains
     procedure, public :: init => in_var_init
     procedure, private :: in_var_read_sp, in_var_read_dp, in_var_read_i1, in_var_read_i2, in_var_read_i4, in_var_read_i8
@@ -1031,15 +1030,15 @@ contains
     type(NcDataset), intent(in) :: nc !< NcDataset to write
     type(grid_t), pointer, intent(in) :: grid !< grid definition
     type(NcDimension), dimension(:), allocatable :: dims
-    type(NcVariable) :: t_var, axis_var
-    integer(i4) :: nx, ny, rnk
-    integer(i4) :: layer_dim_idx, time_dim_idx, idx
+    type(NcVariable) :: coord_var
+    integer(i4) :: nx, ny, rnk, expected_rank
     character(len=256) :: tmp_str
     self%name = meta%name
     self%nc = nc%getVariable(self%name)
     self%grid => grid
     dims = self%nc%getDimensions()
     rnk = size(dims)
+    self%rank = rnk
     if (rnk < 2_i4) call error_message("input_variable: given variable has too few dimensions: ", trim(nc%fname), ":", self%name)
     if (rnk > 4_i4) call error_message("input_variable: given variable has too many dimensions: ", trim(nc%fname), ":", self%name)
     nx = dims(1)%getLength()
@@ -1047,48 +1046,30 @@ contains
     if (nx /= grid%nx .or. ny /= grid%ny) call error_message("input_variable: variable not matching grid: ", self%name)
 
     self%layered = meta%layered
-    self%nlayers = 0_i4
-    layer_dim_idx = 0_i4
-    time_dim_idx = 0_i4
-    do idx = 3_i4, rnk
-      if (.not.nc%hasVariable(trim(dims(idx)%getName()))) cycle
-      axis_var = nc%getVariable(trim(dims(idx)%getName()))
-      if (is_t_axis(axis_var)) then
-        time_dim_idx = idx
-      else if (is_z_axis(axis_var)) then
-        layer_dim_idx = idx
-      else
-        call error_message("input_variable: unsupported axis for dimension ", trim(dims(idx)%getName()), ": ", self%name)
-      end if
-    end do
-    if (layer_dim_idx > 0_i4) then
-      self%layered = .true.
-      self%nlayers = dims(layer_dim_idx)%getLength()
-      if (self%nlayers <= 1_i4) then
-        self%layered = .false.
-        self%nlayers = 0_i4
-        layer_dim_idx = 0_i4
-      else if (.not.meta%layered) then
-        call warn_message('input_variable: metadata not marked layered but z-axis found: ' // trim(self%name))
-      end if
-    else
-      if (meta%layered) then
-        call warn_message('input_variable: expected layered data but no z-axis found: ' // trim(self%name))
-      end if
-    end if
-
     self%static = meta%static
-    if (time_dim_idx > 0_i4) then
-      t_var = nc%getVariable(trim(dims(time_dim_idx)%getName()))
-      if (.not.is_t_axis(t_var)) call error_message("input_variable: time axis not identified: ", self%name)
-      if (meta%static) call error_message("input_variable: variable not static as expected: ", self%name)
-      self%static = .false.
-    else
-      if (.not.meta%static) call error_message("input_variable: variable not temporal as expected: ", self%name)
+    self%nlayers = 0_i4
+    expected_rank = 2_i4
+    if (self%layered) expected_rank = expected_rank + 1_i4
+    if (.not.self%static) expected_rank = expected_rank + 1_i4
+    if (rnk /= expected_rank) call error_message("input_variable: rank mismatch: ", self%name)
+
+    if (self%layered) then
+      if (.not.nc%hasVariable(trim(dims(3)%getName()))) then
+        call error_message("input_variable: coordinate variable missing for z dimension: ", self%name)
+      end if
+      coord_var = nc%getVariable(trim(dims(3)%getName()))
+      if (.not.is_z_axis(coord_var)) call error_message("input_variable: z axis not identified: ", self%name)
+      self%nlayers = dims(3)%getLength()
+      if (self%nlayers <= 0_i4) call error_message("input_variable: z dimension without layers: ", self%name)
     end if
 
-    self%layer_dim = layer_dim_idx
-    self%time_dim = time_dim_idx
+    if (.not.self%static) then
+      if (.not.nc%hasVariable(trim(dims(rnk)%getName()))) then
+        call error_message("input_variable: coordinate variable missing for time dimension: ", self%name)
+      end if
+      coord_var = nc%getVariable(trim(dims(rnk)%getName()))
+      if (.not.is_t_axis(coord_var)) call error_message("input_variable: time axis not identified: ", self%name)
+    end if
 
     self%dtype = trim(self%nc%getDtype())
     select case(self%dtype(1:1))
@@ -1149,22 +1130,17 @@ contains
     logical, intent(in) :: flip_y !< flip data along y-axis
     integer(i4), intent(in), optional :: t_index !< current time step
     real(sp), dimension(:, :), allocatable, intent(out) :: data !< read data
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
     end if
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    if (.not.self%static) then
-      start(self%time_dim) = t_index
-      cnt(self%time_dim) = 1_i4
-    end if
+    if (.not.self%static) start(3) = t_index
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1176,23 +1152,18 @@ contains
     logical, intent(in) :: flip_y !< flip data along y-axis
     integer(i4), intent(in), optional :: t_index !< current time step
     real(sp), dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read_layered: temporal variable need a time: ", self%name)
     end if
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    cnt(self%layer_dim) = self%nlayers
-    if (.not.self%static) then
-      start(self%time_dim) = t_index
-      cnt(self%time_dim) = 1_i4
-    end if
+    cnt(3) = self%nlayers
+    if (.not.self%static) start(4) = t_index
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1205,22 +1176,17 @@ contains
     logical, intent(in) :: flip_y !< flip data along y-axis
     integer(i4), intent(in), optional :: t_index !< current time step
     real(dp), dimension(:, :), allocatable, intent(out) :: data !< read data
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
     end if
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    if (.not.self%static) then
-      start(self%time_dim) = t_index
-      cnt(self%time_dim) = 1_i4
-    end if
+    if (.not.self%static) start(3) = t_index
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1232,23 +1198,18 @@ contains
     logical, intent(in) :: flip_y !< flip data along y-axis
     integer(i4), intent(in), optional :: t_index !< current time step
     real(dp), dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read_layered: temporal variable need a time: ", self%name)
     end if
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    cnt(self%layer_dim) = self%nlayers
-    if (.not.self%static) then
-      start(self%time_dim) = t_index
-      cnt(self%time_dim) = 1_i4
-    end if
+    cnt(3) = self%nlayers
+    if (.not.self%static) start(4) = t_index
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1261,22 +1222,17 @@ contains
     logical, intent(in) :: flip_y !< flip data along y-axis
     integer(i4), intent(in), optional :: t_index !< current time step
     integer(i1), dimension(:, :), allocatable, intent(out) :: data !< read data
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
     end if
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    if (.not.self%static) then
-      start(self%time_dim) = t_index
-      cnt(self%time_dim) = 1_i4
-    end if
+    if (.not.self%static) start(3) = t_index
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1288,23 +1244,18 @@ contains
     logical, intent(in) :: flip_y !< flip data along y-axis
     integer(i4), intent(in), optional :: t_index !< current time step
     integer(i1), dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read_layered: temporal variable need a time: ", self%name)
     end if
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    cnt(self%layer_dim) = self%nlayers
-    if (.not.self%static) then
-      start(self%time_dim) = t_index
-      cnt(self%time_dim) = 1_i4
-    end if
+    cnt(3) = self%nlayers
+    if (.not.self%static) start(4) = t_index
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1317,22 +1268,17 @@ contains
     logical, intent(in) :: flip_y !< flip data along y-axis
     integer(i4), intent(in), optional :: t_index !< current time step
     integer(i2), dimension(:, :), allocatable, intent(out) :: data !< read data
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
     end if
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    if (.not.self%static) then
-      start(self%time_dim) = t_index
-      cnt(self%time_dim) = 1_i4
-    end if
+    if (.not.self%static) start(3) = t_index
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1344,23 +1290,18 @@ contains
     logical, intent(in) :: flip_y !< flip data along y-axis
     integer(i4), intent(in), optional :: t_index !< current time step
     integer(i2), dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read_layered: temporal variable need a time: ", self%name)
     end if
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    cnt(self%layer_dim) = self%nlayers
-    if (.not.self%static) then
-      start(self%time_dim) = t_index
-      cnt(self%time_dim) = 1_i4
-    end if
+    cnt(3) = self%nlayers
+    if (.not.self%static) start(4) = t_index
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1373,22 +1314,17 @@ contains
     logical, intent(in) :: flip_y !< flip data along y-axis
     integer(i4), intent(in), optional :: t_index !< current time step
     integer(i4), dimension(:, :), allocatable, intent(out) :: data !< read data
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
     end if
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    if (.not.self%static) then
-      start(self%time_dim) = t_index
-      cnt(self%time_dim) = 1_i4
-    end if
+    if (.not.self%static) start(3) = t_index
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1400,23 +1336,18 @@ contains
     logical, intent(in) :: flip_y !< flip data along y-axis
     integer(i4), intent(in), optional :: t_index !< current time step
     integer(i4), dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read_layered: temporal variable need a time: ", self%name)
     end if
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    cnt(self%layer_dim) = self%nlayers
-    if (.not.self%static) then
-      start(self%time_dim) = t_index
-      cnt(self%time_dim) = 1_i4
-    end if
+    cnt(3) = self%nlayers
+    if (.not.self%static) start(4) = t_index
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1429,22 +1360,17 @@ contains
     logical, intent(in) :: flip_y !< flip data along y-axis
     integer(i4), intent(in), optional :: t_index !< current time step
     integer(i8), dimension(:, :), allocatable, intent(out) :: data !< read data
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
     end if
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    if (.not.self%static) then
-      start(self%time_dim) = t_index
-      cnt(self%time_dim) = 1_i4
-    end if
+    if (.not.self%static) start(3) = t_index
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1456,23 +1382,18 @@ contains
     logical, intent(in) :: flip_y !< flip data along y-axis
     integer(i4), intent(in), optional :: t_index !< current time step
     integer(i8), dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read_layered: temporal variable need a time: ", self%name)
     end if
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    cnt(self%layer_dim) = self%nlayers
-    if (.not.self%static) then
-      start(self%time_dim) = t_index
-      cnt(self%time_dim) = 1_i4
-    end if
+    cnt(3) = self%nlayers
+    if (.not.self%static) start(4) = t_index
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1486,17 +1407,15 @@ contains
     integer(i4), intent(in) :: t_index !< current time step
     integer(i4), intent(in) :: t_size !< chunk size
     real(sp), dimension(:,:,:), allocatable, intent(out) :: data !< read data
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
     if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    start(self%time_dim) = t_index
-    cnt(self%time_dim) = t_size
+    start(3) = t_index
+    cnt(3) = t_size
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1509,19 +1428,17 @@ contains
     integer(i4), intent(in) :: t_index !< current time step
     integer(i4), intent(in) :: t_size !< chunk size
     real(sp), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
     if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
-    if (self%time_dim == 0_i4) call error_message("input%read_chunk_layered: time dimension missing: ", self%name)
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    if (self%nlayers <= 0_i4) call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    cnt(self%layer_dim) = self%nlayers
-    start(self%time_dim) = t_index
-    cnt(self%time_dim) = t_size
+    cnt(3) = self%nlayers
+    start(4) = t_index
+    cnt(4) = t_size
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1535,17 +1452,15 @@ contains
     integer(i4), intent(in) :: t_index !< current time step
     integer(i4), intent(in) :: t_size !< chunk size
     real(dp), dimension(:,:,:), allocatable, intent(out) :: data !< read data
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
     if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    start(self%time_dim) = t_index
-    cnt(self%time_dim) = t_size
+    start(3) = t_index
+    cnt(3) = t_size
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1558,19 +1473,17 @@ contains
     integer(i4), intent(in) :: t_index !< current time step
     integer(i4), intent(in) :: t_size !< chunk size
     real(dp), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
     if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
-    if (self%time_dim == 0_i4) call error_message("input%read_chunk_layered: time dimension missing: ", self%name)
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    if (self%nlayers <= 0_i4) call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    cnt(self%layer_dim) = self%nlayers
-    start(self%time_dim) = t_index
-    cnt(self%time_dim) = t_size
+    cnt(3) = self%nlayers
+    start(4) = t_index
+    cnt(4) = t_size
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1584,17 +1497,15 @@ contains
     integer(i4), intent(in) :: t_index !< current time step
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i1), dimension(:,:,:), allocatable, intent(out) :: data !< read data
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
     if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    start(self%time_dim) = t_index
-    cnt(self%time_dim) = t_size
+    start(3) = t_index
+    cnt(3) = t_size
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1607,19 +1518,17 @@ contains
     integer(i4), intent(in) :: t_index !< current time step
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i1), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
     if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
-    if (self%time_dim == 0_i4) call error_message("input%read_chunk_layered: time dimension missing: ", self%name)
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    if (self%nlayers <= 0_i4) call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    cnt(self%layer_dim) = self%nlayers
-    start(self%time_dim) = t_index
-    cnt(self%time_dim) = t_size
+    cnt(3) = self%nlayers
+    start(4) = t_index
+    cnt(4) = t_size
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1633,17 +1542,15 @@ contains
     integer(i4), intent(in) :: t_index !< current time step
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i2), dimension(:,:,:), allocatable, intent(out) :: data !< read data
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
     if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    start(self%time_dim) = t_index
-    cnt(self%time_dim) = t_size
+    start(3) = t_index
+    cnt(3) = t_size
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1656,19 +1563,17 @@ contains
     integer(i4), intent(in) :: t_index !< current time step
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i2), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
     if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
-    if (self%time_dim == 0_i4) call error_message("input%read_chunk_layered: time dimension missing: ", self%name)
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    if (self%nlayers <= 0_i4) call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    cnt(self%layer_dim) = self%nlayers
-    start(self%time_dim) = t_index
-    cnt(self%time_dim) = t_size
+    cnt(3) = self%nlayers
+    start(4) = t_index
+    cnt(4) = t_size
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1682,17 +1587,15 @@ contains
     integer(i4), intent(in) :: t_index !< current time step
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i4), dimension(:,:,:), allocatable, intent(out) :: data !< read data
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
     if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    start(self%time_dim) = t_index
-    cnt(self%time_dim) = t_size
+    start(3) = t_index
+    cnt(3) = t_size
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1705,19 +1608,17 @@ contains
     integer(i4), intent(in) :: t_index !< current time step
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i4), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
     if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
-    if (self%time_dim == 0_i4) call error_message("input%read_chunk_layered: time dimension missing: ", self%name)
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    if (self%nlayers <= 0_i4) call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    cnt(self%layer_dim) = self%nlayers
-    start(self%time_dim) = t_index
-    cnt(self%time_dim) = t_size
+    cnt(3) = self%nlayers
+    start(4) = t_index
+    cnt(4) = t_size
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1731,17 +1632,15 @@ contains
     integer(i4), intent(in) :: t_index !< current time step
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i8), dimension(:,:,:), allocatable, intent(out) :: data !< read data
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
     if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    start(self%time_dim) = t_index
-    cnt(self%time_dim) = t_size
+    start(3) = t_index
+    cnt(3) = t_size
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -1754,19 +1653,17 @@ contains
     integer(i4), intent(in) :: t_index !< current time step
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i8), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
-    integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
     if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
-    if (self%time_dim == 0_i4) call error_message("input%read_chunk_layered: time dimension missing: ", self%name)
-    rank = self%nc%getRank()
-    allocate(start(rank), source=1_i4)
-    allocate(cnt(rank))
+    if (self%nlayers <= 0_i4) call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
+    allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
-    cnt(self%layer_dim) = self%nlayers
-    start(self%time_dim) = t_index
-    cnt(self%time_dim) = t_size
+    cnt(3) = self%nlayers
+    start(4) = t_index
+    cnt(4) = t_size
     call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
@@ -2159,8 +2056,7 @@ contains
       if (.not.self%vars(i)%static .and. self%static) then
         self%static = .false.
         dims = self%vars(i)%nc%getDimensions()
-        if (self%vars(i)%time_dim == 0_i4) call error_message("input: temporal variable without time axis: ", self%vars(i)%name)
-        t_var = self%nc%getVariable(trim(dims(self%vars(i)%time_dim)%getName()))
+        t_var = self%nc%getVariable(trim(dims(size(dims))%getName()))
         call time_stepping(t_var, timestamp, self%start_time, self%delta, self%timestep, self%t_values, self%t_bounds)
         self%times = [(self%start_time + self%t_values(i) * self%delta, i=1_i4,size(self%t_values))]
         self%delta_sec = self%delta%total_seconds()
@@ -2191,13 +2087,14 @@ contains
     integer(i4) :: nl, i
 
     if (self%has_layer) return
-    if (var%layer_dim == 0_i4) call error_message("input: layered variable without layer dimension: ", var%name)
+    if (.not.var%layered) call error_message("input: layered metadata missing for variable: ", var%name)
     nl = var%nlayers
-    if (nl <= 1_i4) return
+    if (nl <= 0_i4) call error_message("input: layered variable without layers: ", var%name)
     self%nlayers = nl
 
     vdims = var%nc%getDimensions()
-    z_name = trim(vdims(var%layer_dim)%getName())
+    if (size(vdims) < 3_i4) call error_message("input: layered variable missing z dimension: ", var%name)
+    z_name = trim(vdims(3)%getName())
     if (.not.self%nc%hasVariable(z_name)) call error_message("input: layer axis variable not found: ", z_name)
 
     z_var = self%nc%getVariable(z_name)
