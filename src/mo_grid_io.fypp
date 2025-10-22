@@ -1,6 +1,6 @@
 #:include "common.fypp"
 #:set GRID_IO_REAL_KINDS_TYPES = REAL_KINDS_TYPES
-#:set GRID_IO_INT_KINDS_TYPES = [pair for pair in INT_KINDS_TYPES if pair[0] in ["i4", "i8"]]
+#:set GRID_IO_INT_KINDS_TYPES = INT_KINDS_TYPES
 #:set GRID_IO_ALL_KINDS_TYPES = GRID_IO_REAL_KINDS_TYPES + GRID_IO_INT_KINDS_TYPES
 #:set GRID_IO_ALL_KINDS = [pair[0] for pair in GRID_IO_ALL_KINDS_TYPES]
 #!
@@ -193,8 +193,8 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_grid_io
 
-  use mo_kind, only : i4, i8, dp, sp
-  use mo_constants, only : nodata_dp, nodata_sp, nodata_i4, nodata_i8
+  use mo_kind, only : i1, i2, i4, i8, dp, sp
+  use mo_constants, only : nodata_dp, nodata_sp, nodata_i1, nodata_i2, nodata_i4, nodata_i8
   use mo_grid, only: grid_t, cartesian, is_t_axis, check_uniform_axis, bottom_up
   use mo_netcdf, only : NcDataset, NcDimension, NcVariable
   use mo_datetime, only : datetime, timedelta, delta_from_string, decode_cf_time_units, one_day, one_hour
@@ -231,8 +231,8 @@ module mo_grid_io
     character(:), allocatable :: long_name     !< descriptive variable name
     character(:), allocatable :: standard_name !< standard variable name following CF-Conventions
     character(:), allocatable :: units         !< variable units
-    character(:), allocatable :: dtype         !< variable data type in file ('f32', 'f64' (default), 'i16', 'i32', 'i64')
-    character(:), allocatable :: kind          !< kind of array for IO ('sp', 'dp' (real default), 'i4' (int default), 'i8')
+    character(:), allocatable :: dtype         !< variable data type in file ('f32', 'f64' (default), 'i8', 'i16', 'i32', 'i64')
+    character(:), allocatable :: kind          !< kind of array for IO ('sp', 'dp' (real def.), 'i1', 'i2', 'i4' (int def.), 'i8')
     logical :: static = .false.                !< static variable (without time dimension)
     logical :: avg = .false.                   !< average data (only for writing)
   contains
@@ -246,6 +246,8 @@ module mo_grid_io
     type(grid_t), pointer :: grid => null()    !< horizontal grid the data is defined on
     real(sp), allocatable :: data_sp(:)        !< store the data between writes (real)
     real(dp), allocatable :: data_dp(:)        !< store the data between writes (real)
+    integer(i1), allocatable :: data_i1(:)     !< store the data between writes (integer)
+    integer(i2), allocatable :: data_i2(:)     !< store the data between writes (integer)
     integer(i4), allocatable :: data_i4(:)     !< store the data between writes (integer)
     integer(i8), allocatable :: data_i8(:)     !< store the data between writes (integer)
     integer(i4) :: counter = 0_i4              !< count the number of updateVariable calls
@@ -599,7 +601,7 @@ contains
     self%grid => grid
     if (self%grid%has_aux_coords()) call self%nc%setAttribute("coordinates", "lat lon")
 
-    ! input data is still either real(dp) or integer(i4)
+    ! default array kind follows the NetCDF dtype unless overridden by metadata
     select case(self%dtype)
       case("f32")
         call self%nc%setFillValue(nodata_sp)
@@ -609,6 +611,14 @@ contains
         call self%nc%setFillValue(nodata_dp)
         call self%nc%setAttribute("missing_value", nodata_dp)
         self%kind = "dp" ! double precision as default for real data
+      case("i8")
+        call self%nc%setFillValue(nodata_i1)
+        call self%nc%setAttribute("missing_value", nodata_i1)
+        self%kind = "i4" ! 4 byte integers as default for int data
+      case("i16")
+        call self%nc%setFillValue(nodata_i2)
+        call self%nc%setAttribute("missing_value", nodata_i2)
+        self%kind = "i4" ! 4 byte integers as default for int data
       case("i32")
         call self%nc%setFillValue(nodata_i4)
         call self%nc%setAttribute("missing_value", nodata_i4)
@@ -631,6 +641,10 @@ contains
         allocate(self%data_sp(self%grid%ncells), source=0.0_sp)
       case("dp")
         allocate(self%data_dp(self%grid%ncells), source=0.0_dp)
+      case("i1")
+        allocate(self%data_i1(self%grid%ncells), source=0_i1)
+      case("i2")
+        allocate(self%data_i2(self%grid%ncells), source=0_i2)
       case("i4")
         allocate(self%data_i4(self%grid%ncells), source=0_i4)
       case("i8")
@@ -666,6 +680,10 @@ contains
           self%data_sp = self%data_sp / real(self%counter, sp)
         case("dp")
           self%data_dp = self%data_dp / real(self%counter, dp)
+        case("i1")
+          self%data_i1 = int(int(self%data_i1, kind=i4) / self%counter, kind=i1) ! rounding to i1
+        case("i2")
+          self%data_i2 = int(int(self%data_i2, kind=i4) / self%counter, kind=i2) ! rounding to i2
         case("i4")
           self%data_i4 = self%data_i4 / self%counter ! this is rounding
         case("i8")
@@ -678,6 +696,10 @@ contains
           call self%nc%setData(unpack(self%data_sp, self%grid%mask, nodata_sp))
         case("dp")
           call self%nc%setData(unpack(self%data_dp, self%grid%mask, nodata_dp))
+        case("i1")
+          call self%nc%setData(unpack(self%data_i1, self%grid%mask, nodata_i1))
+        case("i2")
+          call self%nc%setData(unpack(self%data_i2, self%grid%mask, nodata_i2))
         case("i4")
           call self%nc%setData(unpack(self%data_i4, self%grid%mask, nodata_i4))
         case("i8")
@@ -691,6 +713,10 @@ contains
           call self%nc%setData(unpack(self%data_sp, self%grid%mask, nodata_sp), [1_i4, 1_i4, t_index])
         case("dp")
           call self%nc%setData(unpack(self%data_dp, self%grid%mask, nodata_dp), [1_i4, 1_i4, t_index])
+        case("i1")
+          call self%nc%setData(unpack(self%data_i1, self%grid%mask, nodata_i1), [1_i4, 1_i4, t_index])
+        case("i2")
+          call self%nc%setData(unpack(self%data_i2, self%grid%mask, nodata_i2), [1_i4, 1_i4, t_index])
         case("i4")
           call self%nc%setData(unpack(self%data_i4, self%grid%mask, nodata_i4), [1_i4, 1_i4, t_index])
         case("i8")
@@ -703,6 +729,10 @@ contains
         self%data_sp = 0.0_sp
       case("dp")
         self%data_dp = 0.0_dp
+      case("i1")
+        self%data_i1 = 0_i1
+      case("i2")
+        self%data_i2 = 0_i2
       case("i4")
         self%data_i4 = 0_i4
       case("i8")
@@ -743,6 +773,7 @@ contains
     end if
 
     self%dtype = trim(self%nc%getDtype())
+    ! default array kind unless overridden by metadata (floating point: double precision, integer: 4 byte)
     select case(self%dtype(1:1))
       case("f")
         self%kind = "dp"
