@@ -67,7 +67,7 @@ module mo_grid_io
     character(:), allocatable :: kind          !< kind of array for IO ('sp', 'dp' (real def.), 'i1', 'i2', 'i4' (int def.), 'i8')
     logical :: static = .false.                !< static variable (without time dimension)
     logical :: avg = .false.                   !< average data (only for writing)
-    integer(i4) :: nlayers = 0_i4              !< number of layers (0 => no vertical layering)
+    logical :: layered = .false.               !< variable is layered
   contains
     procedure, public :: meta => var_meta
   end type var
@@ -89,15 +89,18 @@ module mo_grid_io
     integer(i4), allocatable :: data_layered_i4(:,:) !< store layered data between writes (integer)
     integer(i8), allocatable :: data_i8(:)     !< store the data between writes (integer)
     integer(i8), allocatable :: data_layered_i8(:,:) !< store layered data between writes (integer)
+    integer(i4) :: nlayers = 0_i4              !< number of layers for buffered data
     integer(i4) :: counter = 0_i4              !< count the number of updateVariable calls
     logical :: static_written = .false.        !< static variable was written
   contains
     procedure, public :: init => out_var_init
     procedure, private :: out_var_update_sp, out_var_update_dp, out_var_update_i1, out_var_update_i2, out_var_update_i4,&
-        & out_var_update_i8, out_var_update_layered_sp, out_var_update_layered_dp, out_var_update_layered_i1,&
-        & out_var_update_layered_i2, out_var_update_layered_i4, out_var_update_layered_i8
+        & out_var_update_i8
     generic, public :: update => out_var_update_sp, out_var_update_dp, out_var_update_i1, out_var_update_i2, out_var_update_i4,&
-        & out_var_update_i8, out_var_update_layered_sp, out_var_update_layered_dp, out_var_update_layered_i1,&
+        & out_var_update_i8
+    procedure, private :: out_var_update_layered_sp, out_var_update_layered_dp, out_var_update_layered_i1,&
+        & out_var_update_layered_i2, out_var_update_layered_i4, out_var_update_layered_i8
+    generic, public :: update_layered => out_var_update_layered_sp, out_var_update_layered_dp, out_var_update_layered_i1,&
         & out_var_update_layered_i2, out_var_update_layered_i4, out_var_update_layered_i8
     procedure, public :: write => out_var_write
   end type output_variable
@@ -109,19 +112,22 @@ module mo_grid_io
     type(grid_t), pointer :: grid => null()    !< horizontal grid the data is defined on
     integer(i4) :: layer_dim = 0_i4            !< dimension index for layer axis (0 => none)
     integer(i4) :: time_dim = 0_i4             !< dimension index for time axis (0 => none)
+    integer(i4) :: nlayers = 0_i4              !< number of layers (0 for none)
   contains
     procedure, public :: init => in_var_init
-    procedure, private :: in_var_read_sp, in_var_read_dp, in_var_read_i1, in_var_read_i2, in_var_read_i4, in_var_read_i8,&
-        & in_var_read_layered_sp, in_var_read_layered_dp, in_var_read_layered_i1, in_var_read_layered_i2, in_var_read_layered_i4,&
-        & in_var_read_layered_i8
-    generic, public :: read => in_var_read_sp, in_var_read_dp, in_var_read_i1, in_var_read_i2, in_var_read_i4, in_var_read_i8,&
-        & in_var_read_layered_sp, in_var_read_layered_dp, in_var_read_layered_i1, in_var_read_layered_i2, in_var_read_layered_i4,&
-        & in_var_read_layered_i8
+    procedure, private :: in_var_read_sp, in_var_read_dp, in_var_read_i1, in_var_read_i2, in_var_read_i4, in_var_read_i8
+    procedure, private :: in_var_read_layered_sp, in_var_read_layered_dp, in_var_read_layered_i1, in_var_read_layered_i2,&
+        & in_var_read_layered_i4, in_var_read_layered_i8
+    generic, public :: read => in_var_read_sp, in_var_read_dp, in_var_read_i1, in_var_read_i2, in_var_read_i4, in_var_read_i8
+    generic, public :: read_layered => in_var_read_layered_sp, in_var_read_layered_dp, in_var_read_layered_i1,&
+        & in_var_read_layered_i2, in_var_read_layered_i4, in_var_read_layered_i8
     procedure, private :: in_var_read_chunk_sp, in_var_read_chunk_dp, in_var_read_chunk_i1, in_var_read_chunk_i2,&
-        & in_var_read_chunk_i4, in_var_read_chunk_i8, in_var_read_chunk_layered_sp, in_var_read_chunk_layered_dp,&
-        & in_var_read_chunk_layered_i1, in_var_read_chunk_layered_i2, in_var_read_chunk_layered_i4, in_var_read_chunk_layered_i8
+        & in_var_read_chunk_i4, in_var_read_chunk_i8
+    procedure, private :: in_var_read_chunk_layered_sp, in_var_read_chunk_layered_dp, in_var_read_chunk_layered_i1,&
+        & in_var_read_chunk_layered_i2, in_var_read_chunk_layered_i4, in_var_read_chunk_layered_i8
     generic, public :: read_chunk => in_var_read_chunk_sp, in_var_read_chunk_dp, in_var_read_chunk_i1, in_var_read_chunk_i2,&
-        & in_var_read_chunk_i4, in_var_read_chunk_i8, in_var_read_chunk_layered_sp, in_var_read_chunk_layered_dp,&
+        & in_var_read_chunk_i4, in_var_read_chunk_i8
+    generic, public :: read_chunk_layered => in_var_read_chunk_layered_sp, in_var_read_chunk_layered_dp,&
         & in_var_read_chunk_layered_i1, in_var_read_chunk_layered_i2, in_var_read_chunk_layered_i4, in_var_read_chunk_layered_i8
   end type input_variable
 
@@ -138,6 +144,7 @@ module mo_grid_io
     integer(i4) :: nvars                          !< number of variables
     logical :: static                             !< only static variables (without time dimension)
     logical :: has_layer = .false.                !< dataset includes vertical layers
+    integer(i4) :: nlayers = 0_i4                 !< number of layers in dataset
     integer(i4) :: counter = 0_i4                 !< count written time steps
     type(datetime) :: previous_time               !< previous time steps for bounds
     type(datetime) :: start_time                  !< start time for time units
@@ -149,11 +156,12 @@ module mo_grid_io
     real(dp), allocatable :: layer_vertices(:)    !< layer bounds
   contains
     procedure, public :: init => output_init
-    procedure, private :: output_update_sp, output_update_dp, output_update_i1, output_update_i2, output_update_i4,&
-        & output_update_i8, output_update_layered_sp, output_update_layered_dp, output_update_layered_i1,&
-        & output_update_layered_i2, output_update_layered_i4, output_update_layered_i8
+    procedure, private :: output_update_sp, output_update_dp, output_update_i1, output_update_i2, output_update_i4, output_update_i8
     generic, public :: update => output_update_sp, output_update_dp, output_update_i1, output_update_i2, output_update_i4,&
-        & output_update_i8, output_update_layered_sp, output_update_layered_dp, output_update_layered_i1,&
+        & output_update_i8
+    procedure, private :: output_update_layered_sp, output_update_layered_dp, output_update_layered_i1, output_update_layered_i2,&
+        & output_update_layered_i4, output_update_layered_i8
+    generic, public :: update_layered => output_update_layered_sp, output_update_layered_dp, output_update_layered_i1,&
         & output_update_layered_i2, output_update_layered_i4, output_update_layered_i8
     procedure, public :: write => output_write
     procedure, public :: write_static => output_write_static
@@ -181,91 +189,66 @@ module mo_grid_io
     integer(i4), allocatable :: t_bounds(:)       !< time axis bound values
     type(datetime), allocatable :: times(:)       !< times for ends of time spans
     logical :: has_layer = .false.                !< dataset includes vertical layers
+    integer(i4) :: nlayers = 0_i4                 !< number of layers in dataset
     logical :: positive_up = .false.              !< indicates upwards as positive direction for layers
     real(dp), allocatable :: layer(:)             !< reference depth/height per layer
     real(dp), allocatable :: layer_vertices(:)    !< layer bounds
   contains
     procedure, public :: init => input_init
     ! read
-    procedure, private :: input_read_pack_sp, input_read_matrix_sp
-    generic, public :: read => input_read_pack_sp, input_read_matrix_sp
-    procedure, private :: input_read_pack_layered_sp, input_read_matrix_layered_sp
-    generic, public :: read_layered => input_read_pack_layered_sp, input_read_matrix_layered_sp
-    procedure, private :: input_read_pack_dp, input_read_matrix_dp
-    generic, public :: read => input_read_pack_dp, input_read_matrix_dp
-    procedure, private :: input_read_pack_layered_dp, input_read_matrix_layered_dp
-    generic, public :: read_layered => input_read_pack_layered_dp, input_read_matrix_layered_dp
-    procedure, private :: input_read_pack_i1, input_read_matrix_i1
-    generic, public :: read => input_read_pack_i1, input_read_matrix_i1
-    procedure, private :: input_read_pack_layered_i1, input_read_matrix_layered_i1
-    generic, public :: read_layered => input_read_pack_layered_i1, input_read_matrix_layered_i1
-    procedure, private :: input_read_pack_i2, input_read_matrix_i2
-    generic, public :: read => input_read_pack_i2, input_read_matrix_i2
-    procedure, private :: input_read_pack_layered_i2, input_read_matrix_layered_i2
-    generic, public :: read_layered => input_read_pack_layered_i2, input_read_matrix_layered_i2
-    procedure, private :: input_read_pack_i4, input_read_matrix_i4
-    generic, public :: read => input_read_pack_i4, input_read_matrix_i4
-    procedure, private :: input_read_pack_layered_i4, input_read_matrix_layered_i4
-    generic, public :: read_layered => input_read_pack_layered_i4, input_read_matrix_layered_i4
-    procedure, private :: input_read_pack_i8, input_read_matrix_i8
-    generic, public :: read => input_read_pack_i8, input_read_matrix_i8
-    procedure, private :: input_read_pack_layered_i8, input_read_matrix_layered_i8
-    generic, public :: read_layered => input_read_pack_layered_i8, input_read_matrix_layered_i8
+    procedure, private :: input_read_pack_sp, input_read_pack_dp, input_read_pack_i1, input_read_pack_i2, input_read_pack_i4,&
+        & input_read_pack_i8, input_read_matrix_sp, input_read_matrix_dp, input_read_matrix_i1, input_read_matrix_i2,&
+        & input_read_matrix_i4, input_read_matrix_i8
+    generic, public :: read => input_read_pack_sp, input_read_pack_dp, input_read_pack_i1, input_read_pack_i2, input_read_pack_i4,&
+        & input_read_pack_i8, input_read_matrix_sp, input_read_matrix_dp, input_read_matrix_i1, input_read_matrix_i2,&
+        & input_read_matrix_i4, input_read_matrix_i8
+    procedure, private :: input_read_pack_layered_sp, input_read_pack_layered_dp, input_read_pack_layered_i1,&
+        & input_read_pack_layered_i2, input_read_pack_layered_i4, input_read_pack_layered_i8, input_read_matrix_layered_sp,&
+        & input_read_matrix_layered_dp, input_read_matrix_layered_i1, input_read_matrix_layered_i2, input_read_matrix_layered_i4,&
+        & input_read_matrix_layered_i8
+    generic, public :: read_layered => input_read_pack_layered_sp, input_read_pack_layered_dp, input_read_pack_layered_i1,&
+        & input_read_pack_layered_i2, input_read_pack_layered_i4, input_read_pack_layered_i8, input_read_matrix_layered_sp,&
+        & input_read_matrix_layered_dp, input_read_matrix_layered_i1, input_read_matrix_layered_i2, input_read_matrix_layered_i4,&
+        & input_read_matrix_layered_i8
     ! read_chunk
-    procedure, private :: input_read_chunk_pack_sp, input_read_chunk_matrix_sp
-    generic, public :: read_chunk => input_read_chunk_pack_sp, input_read_chunk_matrix_sp
-    procedure, private :: input_read_chunk_pack_layered_sp, input_read_chunk_matrix_layered_sp
-    generic, public :: read_chunk_layered => input_read_chunk_pack_layered_sp, input_read_chunk_matrix_layered_sp
-    procedure, private :: input_read_chunk_pack_dp, input_read_chunk_matrix_dp
-    generic, public :: read_chunk => input_read_chunk_pack_dp, input_read_chunk_matrix_dp
-    procedure, private :: input_read_chunk_pack_layered_dp, input_read_chunk_matrix_layered_dp
-    generic, public :: read_chunk_layered => input_read_chunk_pack_layered_dp, input_read_chunk_matrix_layered_dp
-    procedure, private :: input_read_chunk_pack_i1, input_read_chunk_matrix_i1
-    generic, public :: read_chunk => input_read_chunk_pack_i1, input_read_chunk_matrix_i1
-    procedure, private :: input_read_chunk_pack_layered_i1, input_read_chunk_matrix_layered_i1
-    generic, public :: read_chunk_layered => input_read_chunk_pack_layered_i1, input_read_chunk_matrix_layered_i1
-    procedure, private :: input_read_chunk_pack_i2, input_read_chunk_matrix_i2
-    generic, public :: read_chunk => input_read_chunk_pack_i2, input_read_chunk_matrix_i2
-    procedure, private :: input_read_chunk_pack_layered_i2, input_read_chunk_matrix_layered_i2
-    generic, public :: read_chunk_layered => input_read_chunk_pack_layered_i2, input_read_chunk_matrix_layered_i2
-    procedure, private :: input_read_chunk_pack_i4, input_read_chunk_matrix_i4
-    generic, public :: read_chunk => input_read_chunk_pack_i4, input_read_chunk_matrix_i4
-    procedure, private :: input_read_chunk_pack_layered_i4, input_read_chunk_matrix_layered_i4
-    generic, public :: read_chunk_layered => input_read_chunk_pack_layered_i4, input_read_chunk_matrix_layered_i4
-    procedure, private :: input_read_chunk_pack_i8, input_read_chunk_matrix_i8
-    generic, public :: read_chunk => input_read_chunk_pack_i8, input_read_chunk_matrix_i8
-    procedure, private :: input_read_chunk_pack_layered_i8, input_read_chunk_matrix_layered_i8
-    generic, public :: read_chunk_layered => input_read_chunk_pack_layered_i8, input_read_chunk_matrix_layered_i8
+    procedure, private :: input_read_chunk_pack_sp, input_read_chunk_pack_dp, input_read_chunk_pack_i1, input_read_chunk_pack_i2,&
+        & input_read_chunk_pack_i4, input_read_chunk_pack_i8, input_read_chunk_matrix_sp, input_read_chunk_matrix_dp,&
+        & input_read_chunk_matrix_i1, input_read_chunk_matrix_i2, input_read_chunk_matrix_i4, input_read_chunk_matrix_i8
+    generic, public :: read_chunk => input_read_chunk_pack_sp, input_read_chunk_pack_dp, input_read_chunk_pack_i1,&
+        & input_read_chunk_pack_i2, input_read_chunk_pack_i4, input_read_chunk_pack_i8, input_read_chunk_matrix_sp,&
+        & input_read_chunk_matrix_dp, input_read_chunk_matrix_i1, input_read_chunk_matrix_i2, input_read_chunk_matrix_i4,&
+        & input_read_chunk_matrix_i8
+    procedure, private :: input_read_chunk_pack_layered_sp, input_read_chunk_pack_layered_dp, input_read_chunk_pack_layered_i1,&
+        & input_read_chunk_pack_layered_i2, input_read_chunk_pack_layered_i4, input_read_chunk_pack_layered_i8,&
+        & input_read_chunk_matrix_layered_sp, input_read_chunk_matrix_layered_dp, input_read_chunk_matrix_layered_i1,&
+        & input_read_chunk_matrix_layered_i2, input_read_chunk_matrix_layered_i4, input_read_chunk_matrix_layered_i8
+    generic, public :: read_chunk_layered => input_read_chunk_pack_layered_sp, input_read_chunk_pack_layered_dp,&
+        & input_read_chunk_pack_layered_i1, input_read_chunk_pack_layered_i2, input_read_chunk_pack_layered_i4,&
+        & input_read_chunk_pack_layered_i8, input_read_chunk_matrix_layered_sp, input_read_chunk_matrix_layered_dp,&
+        & input_read_chunk_matrix_layered_i1, input_read_chunk_matrix_layered_i2, input_read_chunk_matrix_layered_i4,&
+        & input_read_chunk_matrix_layered_i8
     ! read_chunk_by_ids
-    procedure, private :: input_read_chunk_by_ids_pack_sp, input_read_chunk_by_ids_matrix_sp
-    generic, public :: read_chunk_by_ids => input_read_chunk_by_ids_pack_sp, input_read_chunk_by_ids_matrix_sp
-    procedure, private :: input_read_chunk_by_ids_pack_layered_sp, input_read_chunk_by_ids_matrix_layered_sp
+    procedure, private :: input_read_chunk_by_ids_pack_sp, input_read_chunk_by_ids_pack_dp, input_read_chunk_by_ids_pack_i1,&
+        & input_read_chunk_by_ids_pack_i2, input_read_chunk_by_ids_pack_i4, input_read_chunk_by_ids_pack_i8,&
+        & input_read_chunk_by_ids_matrix_sp, input_read_chunk_by_ids_matrix_dp, input_read_chunk_by_ids_matrix_i1,&
+        & input_read_chunk_by_ids_matrix_i2, input_read_chunk_by_ids_matrix_i4, input_read_chunk_by_ids_matrix_i8
+    generic, public :: read_chunk_by_ids => input_read_chunk_by_ids_pack_sp, input_read_chunk_by_ids_pack_dp,&
+        & input_read_chunk_by_ids_pack_i1, input_read_chunk_by_ids_pack_i2, input_read_chunk_by_ids_pack_i4,&
+        & input_read_chunk_by_ids_pack_i8, input_read_chunk_by_ids_matrix_sp, input_read_chunk_by_ids_matrix_dp,&
+        & input_read_chunk_by_ids_matrix_i1, input_read_chunk_by_ids_matrix_i2, input_read_chunk_by_ids_matrix_i4,&
+        & input_read_chunk_by_ids_matrix_i8
+    procedure, private :: input_read_chunk_by_ids_pack_layered_sp, input_read_chunk_by_ids_pack_layered_dp,&
+        & input_read_chunk_by_ids_pack_layered_i1, input_read_chunk_by_ids_pack_layered_i2,&
+        & input_read_chunk_by_ids_pack_layered_i4, input_read_chunk_by_ids_pack_layered_i8,&
+        & input_read_chunk_by_ids_matrix_layered_sp, input_read_chunk_by_ids_matrix_layered_dp,&
+        & input_read_chunk_by_ids_matrix_layered_i1, input_read_chunk_by_ids_matrix_layered_i2,&
+        & input_read_chunk_by_ids_matrix_layered_i4, input_read_chunk_by_ids_matrix_layered_i8
     generic, public :: read_chunk_by_ids_layered => input_read_chunk_by_ids_pack_layered_sp,&
-        & input_read_chunk_by_ids_matrix_layered_sp
-    procedure, private :: input_read_chunk_by_ids_pack_dp, input_read_chunk_by_ids_matrix_dp
-    generic, public :: read_chunk_by_ids => input_read_chunk_by_ids_pack_dp, input_read_chunk_by_ids_matrix_dp
-    procedure, private :: input_read_chunk_by_ids_pack_layered_dp, input_read_chunk_by_ids_matrix_layered_dp
-    generic, public :: read_chunk_by_ids_layered => input_read_chunk_by_ids_pack_layered_dp,&
-        & input_read_chunk_by_ids_matrix_layered_dp
-    procedure, private :: input_read_chunk_by_ids_pack_i1, input_read_chunk_by_ids_matrix_i1
-    generic, public :: read_chunk_by_ids => input_read_chunk_by_ids_pack_i1, input_read_chunk_by_ids_matrix_i1
-    procedure, private :: input_read_chunk_by_ids_pack_layered_i1, input_read_chunk_by_ids_matrix_layered_i1
-    generic, public :: read_chunk_by_ids_layered => input_read_chunk_by_ids_pack_layered_i1,&
-        & input_read_chunk_by_ids_matrix_layered_i1
-    procedure, private :: input_read_chunk_by_ids_pack_i2, input_read_chunk_by_ids_matrix_i2
-    generic, public :: read_chunk_by_ids => input_read_chunk_by_ids_pack_i2, input_read_chunk_by_ids_matrix_i2
-    procedure, private :: input_read_chunk_by_ids_pack_layered_i2, input_read_chunk_by_ids_matrix_layered_i2
-    generic, public :: read_chunk_by_ids_layered => input_read_chunk_by_ids_pack_layered_i2,&
-        & input_read_chunk_by_ids_matrix_layered_i2
-    procedure, private :: input_read_chunk_by_ids_pack_i4, input_read_chunk_by_ids_matrix_i4
-    generic, public :: read_chunk_by_ids => input_read_chunk_by_ids_pack_i4, input_read_chunk_by_ids_matrix_i4
-    procedure, private :: input_read_chunk_by_ids_pack_layered_i4, input_read_chunk_by_ids_matrix_layered_i4
-    generic, public :: read_chunk_by_ids_layered => input_read_chunk_by_ids_pack_layered_i4,&
-        & input_read_chunk_by_ids_matrix_layered_i4
-    procedure, private :: input_read_chunk_by_ids_pack_i8, input_read_chunk_by_ids_matrix_i8
-    generic, public :: read_chunk_by_ids => input_read_chunk_by_ids_pack_i8, input_read_chunk_by_ids_matrix_i8
-    procedure, private :: input_read_chunk_by_ids_pack_layered_i8, input_read_chunk_by_ids_matrix_layered_i8
-    generic, public :: read_chunk_by_ids_layered => input_read_chunk_by_ids_pack_layered_i8,&
+        & input_read_chunk_by_ids_pack_layered_dp, input_read_chunk_by_ids_pack_layered_i1,&
+        & input_read_chunk_by_ids_pack_layered_i2, input_read_chunk_by_ids_pack_layered_i4,&
+        & input_read_chunk_by_ids_pack_layered_i8, input_read_chunk_by_ids_matrix_layered_sp,&
+        & input_read_chunk_by_ids_matrix_layered_dp, input_read_chunk_by_ids_matrix_layered_i1,&
+        & input_read_chunk_by_ids_matrix_layered_i2, input_read_chunk_by_ids_matrix_layered_i4,&
         & input_read_chunk_by_ids_matrix_layered_i8
     ! others
     procedure, public :: time_index => input_time_index
@@ -476,7 +459,7 @@ contains
     if (allocated(this%kind)) var_meta%kind = this%kind
     var_meta%static = this%static
     var_meta%avg = this%avg
-    var_meta%nlayers = this%nlayers
+    var_meta%layered = this%layered
   end function var_meta
 
   !> \brief Get variable index in vars array.
@@ -513,26 +496,33 @@ contains
     self%name = meta%name
     self%static = meta%static
     self%avg = meta%avg
-    self%nlayers = meta%nlayers
+    self%layered = meta%layered
+    self%nlayers = 0_i4
     self%dtype = "f64" ! default to double
     if (allocated(meta%dtype)) self%dtype = trim(meta%dtype)
 
-    has_layer_var = self%nlayers > 0_i4
+    has_layer_var = self%layered
     has_time = .not.self%static
-    if (has_layer_var .and. size(dims) < 3) then
-      call error_message("output_variable: layered variable but dataset has no layer dimension: ", self%name)
+    nd = 2_i4
+    if (has_layer_var) nd = nd + 1_i4
+    if (has_time) nd = nd + 1_i4
+    if (size(dims) < nd) then
+      call error_message("output_variable: given dimensions not enough to setup variable: ", self%name)
     end if
-    nd = 2
-    if (has_layer_var) nd = nd + 1
-    if (has_time) nd = nd + 1
     allocate(var_dims(nd))
     var_dims(1) = dims(1)
     var_dims(2) = dims(2)
     idx = 3
     if (has_layer_var) then
       var_dims(idx) = dims(3)
+      self%nlayers = dims(3)%getLength()
       idx = idx + 1
+      if (self%nlayers <= 1_i4) then
+        self%layered = .false.
+        self%nlayers = 0_i4
+      end if
     end if
+    if (.not.has_layer_var) self%layered = .false.
     if (has_time) then
       var_dims(idx) = dims(size(dims))
     end if
@@ -586,37 +576,37 @@ contains
     end if
     select case(self%kind)
       case("sp")
-        if (self%nlayers > 0_i4) then
+        if (self%layered) then
           allocate(self%data_layered_sp(self%grid%ncells, self%nlayers), source=0.0_sp)
         else
           allocate(self%data_sp(self%grid%ncells), source=0.0_sp)
         end if
       case("dp")
-        if (self%nlayers > 0_i4) then
+        if (self%layered) then
           allocate(self%data_layered_dp(self%grid%ncells, self%nlayers), source=0.0_dp)
         else
           allocate(self%data_dp(self%grid%ncells), source=0.0_dp)
         end if
       case("i1")
-        if (self%nlayers > 0_i4) then
+        if (self%layered) then
           allocate(self%data_layered_i1(self%grid%ncells, self%nlayers), source=0_i1)
         else
           allocate(self%data_i1(self%grid%ncells), source=0_i1)
         end if
       case("i2")
-        if (self%nlayers > 0_i4) then
+        if (self%layered) then
           allocate(self%data_layered_i2(self%grid%ncells, self%nlayers), source=0_i2)
         else
           allocate(self%data_i2(self%grid%ncells), source=0_i2)
         end if
       case("i4")
-        if (self%nlayers > 0_i4) then
+        if (self%layered) then
           allocate(self%data_layered_i4(self%grid%ncells, self%nlayers), source=0_i4)
         else
           allocate(self%data_i4(self%grid%ncells), source=0_i4)
         end if
       case("i8")
-        if (self%nlayers > 0_i4) then
+        if (self%layered) then
           allocate(self%data_layered_i8(self%grid%ncells, self%nlayers), source=0_i8)
         else
           allocate(self%data_i8(self%grid%ncells), source=0_i8)
@@ -631,7 +621,7 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     real(sp), intent(in), dimension(:) :: data !< data for current time step
-    if (self%nlayers > 0_i4) call error_message("output_variable: layered data requires update_layered: ", self%name)
+    if (self%layered) call error_message("output_variable: layered data requires update_layered: ", self%name)
     if (.not.allocated(self%data_sp)) call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=sp")
     if (size(data) /= self%grid%ncells) call error_message("output_variable: data size mismatch: ", self%name)
     self%data_sp = self%data_sp + data
@@ -643,7 +633,7 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     real(sp), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    if (self%nlayers == 0_i4) call error_message("output_variable: non-layered data requires update: ", self%name)
+    if (.not.self%layered) call error_message("output_variable: non-layered data requires update: ", self%name)
     if (size(data,2) /= self%nlayers) call error_message("output_variable: layered data dimension mismatch: ", self%name)
     if (size(data,1) /= self%grid%ncells) call error_message("output_variable: layered data cell count mismatch: ", self%name)
     if (.not.allocated(self%data_layered_sp)) call error_message("output_variable: wrong kind for layered data: ", self%name)
@@ -656,7 +646,7 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     real(dp), intent(in), dimension(:) :: data !< data for current time step
-    if (self%nlayers > 0_i4) call error_message("output_variable: layered data requires update_layered: ", self%name)
+    if (self%layered) call error_message("output_variable: layered data requires update_layered: ", self%name)
     if (.not.allocated(self%data_dp)) call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=dp")
     if (size(data) /= self%grid%ncells) call error_message("output_variable: data size mismatch: ", self%name)
     self%data_dp = self%data_dp + data
@@ -668,7 +658,7 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     real(dp), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    if (self%nlayers == 0_i4) call error_message("output_variable: non-layered data requires update: ", self%name)
+    if (.not.self%layered) call error_message("output_variable: non-layered data requires update: ", self%name)
     if (size(data,2) /= self%nlayers) call error_message("output_variable: layered data dimension mismatch: ", self%name)
     if (size(data,1) /= self%grid%ncells) call error_message("output_variable: layered data cell count mismatch: ", self%name)
     if (.not.allocated(self%data_layered_dp)) call error_message("output_variable: wrong kind for layered data: ", self%name)
@@ -681,7 +671,7 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     integer(i1), intent(in), dimension(:) :: data !< data for current time step
-    if (self%nlayers > 0_i4) call error_message("output_variable: layered data requires update_layered: ", self%name)
+    if (self%layered) call error_message("output_variable: layered data requires update_layered: ", self%name)
     if (.not.allocated(self%data_i1)) call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=i1")
     if (size(data) /= self%grid%ncells) call error_message("output_variable: data size mismatch: ", self%name)
     self%data_i1 = self%data_i1 + data
@@ -693,7 +683,7 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     integer(i1), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    if (self%nlayers == 0_i4) call error_message("output_variable: non-layered data requires update: ", self%name)
+    if (.not.self%layered) call error_message("output_variable: non-layered data requires update: ", self%name)
     if (size(data,2) /= self%nlayers) call error_message("output_variable: layered data dimension mismatch: ", self%name)
     if (size(data,1) /= self%grid%ncells) call error_message("output_variable: layered data cell count mismatch: ", self%name)
     if (.not.allocated(self%data_layered_i1)) call error_message("output_variable: wrong kind for layered data: ", self%name)
@@ -706,7 +696,7 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     integer(i2), intent(in), dimension(:) :: data !< data for current time step
-    if (self%nlayers > 0_i4) call error_message("output_variable: layered data requires update_layered: ", self%name)
+    if (self%layered) call error_message("output_variable: layered data requires update_layered: ", self%name)
     if (.not.allocated(self%data_i2)) call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=i2")
     if (size(data) /= self%grid%ncells) call error_message("output_variable: data size mismatch: ", self%name)
     self%data_i2 = self%data_i2 + data
@@ -718,7 +708,7 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     integer(i2), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    if (self%nlayers == 0_i4) call error_message("output_variable: non-layered data requires update: ", self%name)
+    if (.not.self%layered) call error_message("output_variable: non-layered data requires update: ", self%name)
     if (size(data,2) /= self%nlayers) call error_message("output_variable: layered data dimension mismatch: ", self%name)
     if (size(data,1) /= self%grid%ncells) call error_message("output_variable: layered data cell count mismatch: ", self%name)
     if (.not.allocated(self%data_layered_i2)) call error_message("output_variable: wrong kind for layered data: ", self%name)
@@ -731,7 +721,7 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     integer(i4), intent(in), dimension(:) :: data !< data for current time step
-    if (self%nlayers > 0_i4) call error_message("output_variable: layered data requires update_layered: ", self%name)
+    if (self%layered) call error_message("output_variable: layered data requires update_layered: ", self%name)
     if (.not.allocated(self%data_i4)) call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=i4")
     if (size(data) /= self%grid%ncells) call error_message("output_variable: data size mismatch: ", self%name)
     self%data_i4 = self%data_i4 + data
@@ -743,7 +733,7 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     integer(i4), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    if (self%nlayers == 0_i4) call error_message("output_variable: non-layered data requires update: ", self%name)
+    if (.not.self%layered) call error_message("output_variable: non-layered data requires update: ", self%name)
     if (size(data,2) /= self%nlayers) call error_message("output_variable: layered data dimension mismatch: ", self%name)
     if (size(data,1) /= self%grid%ncells) call error_message("output_variable: layered data cell count mismatch: ", self%name)
     if (.not.allocated(self%data_layered_i4)) call error_message("output_variable: wrong kind for layered data: ", self%name)
@@ -756,7 +746,7 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     integer(i8), intent(in), dimension(:) :: data !< data for current time step
-    if (self%nlayers > 0_i4) call error_message("output_variable: layered data requires update_layered: ", self%name)
+    if (self%layered) call error_message("output_variable: layered data requires update_layered: ", self%name)
     if (.not.allocated(self%data_i8)) call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=i8")
     if (size(data) /= self%grid%ncells) call error_message("output_variable: data size mismatch: ", self%name)
     self%data_i8 = self%data_i8 + data
@@ -768,7 +758,7 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     integer(i8), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    if (self%nlayers == 0_i4) call error_message("output_variable: non-layered data requires update: ", self%name)
+    if (.not.self%layered) call error_message("output_variable: non-layered data requires update: ", self%name)
     if (size(data,2) /= self%nlayers) call error_message("output_variable: layered data dimension mismatch: ", self%name)
     if (size(data,1) /= self%grid%ncells) call error_message("output_variable: layered data cell count mismatch: ", self%name)
     if (.not.allocated(self%data_layered_i8)) call error_message("output_variable: wrong kind for layered data: ", self%name)
@@ -801,37 +791,37 @@ contains
     if (self%avg) then
       select case(self%kind)
         case("sp")
-          if (self%nlayers > 0_i4) then
+          if (self%layered) then
             self%data_layered_sp = self%data_layered_sp / real(self%counter, sp)
           else
             self%data_sp = self%data_sp / real(self%counter, sp)
           end if
         case("dp")
-          if (self%nlayers > 0_i4) then
+          if (self%layered) then
             self%data_layered_dp = self%data_layered_dp / real(self%counter, dp)
           else
             self%data_dp = self%data_dp / real(self%counter, dp)
           end if
         case("i1")
-          if (self%nlayers > 0_i4) then
+          if (self%layered) then
             self%data_layered_i1 = int(int(self%data_layered_i1, kind=i4) / self%counter, kind=i1)
           else
             self%data_i1 = int(int(self%data_i1, kind=i4) / self%counter, kind=i1)
           end if
         case("i2")
-          if (self%nlayers > 0_i4) then
+          if (self%layered) then
             self%data_layered_i2 = int(int(self%data_layered_i2, kind=i4) / self%counter, kind=i2)
           else
             self%data_i2 = int(int(self%data_i2, kind=i4) / self%counter, kind=i2)
           end if
         case("i4")
-          if (self%nlayers > 0_i4) then
+          if (self%layered) then
             self%data_layered_i4 = self%data_layered_i4 / self%counter
           else
             self%data_i4 = self%data_i4 / self%counter
           end if ! this is rounding
         case("i8")
-          if (self%nlayers > 0_i4) then
+          if (self%layered) then
             self%data_layered_i8 = self%data_layered_i8 / int(self%counter, i8)
           else
             self%data_i8 = self%data_i8 / int(self%counter, i8)
@@ -841,7 +831,7 @@ contains
     if (self%static) then
       select case(self%kind)
         case("sp")
-          if (self%nlayers > 0_i4) then
+          if (self%layered) then
             allocate(buffer_sp(self%grid%nx, self%grid%ny, self%nlayers))
             do layer_idx = 1_i4, self%nlayers
               buffer_sp(:,:,layer_idx) = unpack(self%data_layered_sp(:,layer_idx), self%grid%mask, nodata_sp)
@@ -852,7 +842,7 @@ contains
             call self%nc%setData(unpack(self%data_sp, self%grid%mask, nodata_sp))
           end if
         case("dp")
-          if (self%nlayers > 0_i4) then
+          if (self%layered) then
             allocate(buffer_dp(self%grid%nx, self%grid%ny, self%nlayers))
             do layer_idx = 1_i4, self%nlayers
               buffer_dp(:,:,layer_idx) = unpack(self%data_layered_dp(:,layer_idx), self%grid%mask, nodata_dp)
@@ -863,7 +853,7 @@ contains
             call self%nc%setData(unpack(self%data_dp, self%grid%mask, nodata_dp))
           end if
         case("i1")
-          if (self%nlayers > 0_i4) then
+          if (self%layered) then
             allocate(buffer_i1(self%grid%nx, self%grid%ny, self%nlayers))
             do layer_idx = 1_i4, self%nlayers
               buffer_i1(:,:,layer_idx) = unpack(self%data_layered_i1(:,layer_idx), self%grid%mask, nodata_i1)
@@ -874,7 +864,7 @@ contains
             call self%nc%setData(unpack(self%data_i1, self%grid%mask, nodata_i1))
           end if
         case("i2")
-          if (self%nlayers > 0_i4) then
+          if (self%layered) then
             allocate(buffer_i2(self%grid%nx, self%grid%ny, self%nlayers))
             do layer_idx = 1_i4, self%nlayers
               buffer_i2(:,:,layer_idx) = unpack(self%data_layered_i2(:,layer_idx), self%grid%mask, nodata_i2)
@@ -885,7 +875,7 @@ contains
             call self%nc%setData(unpack(self%data_i2, self%grid%mask, nodata_i2))
           end if
         case("i4")
-          if (self%nlayers > 0_i4) then
+          if (self%layered) then
             allocate(buffer_i4(self%grid%nx, self%grid%ny, self%nlayers))
             do layer_idx = 1_i4, self%nlayers
               buffer_i4(:,:,layer_idx) = unpack(self%data_layered_i4(:,layer_idx), self%grid%mask, nodata_i4)
@@ -896,7 +886,7 @@ contains
             call self%nc%setData(unpack(self%data_i4, self%grid%mask, nodata_i4))
           end if
         case("i8")
-          if (self%nlayers > 0_i4) then
+          if (self%layered) then
             allocate(buffer_i8(self%grid%nx, self%grid%ny, self%nlayers))
             do layer_idx = 1_i4, self%nlayers
               buffer_i8(:,:,layer_idx) = unpack(self%data_layered_i8(:,layer_idx), self%grid%mask, nodata_i8)
@@ -912,7 +902,7 @@ contains
       if (.not.present(t_index)) call error_message("output_variable: no time index was given for temporal variable: ", self%name)
       select case(self%kind)
         case("sp")
-          if (self%nlayers > 0_i4) then
+          if (self%layered) then
             allocate(buffer_sp(self%grid%nx, self%grid%ny, self%nlayers))
             do layer_idx = 1_i4, self%nlayers
               buffer_sp(:,:,layer_idx) = unpack(self%data_layered_sp(:,layer_idx), self%grid%mask, nodata_sp)
@@ -925,7 +915,7 @@ contains
             call self%nc%setData(unpack(self%data_sp, self%grid%mask, nodata_sp), [1_i4, 1_i4, t_index])
           end if
         case("dp")
-          if (self%nlayers > 0_i4) then
+          if (self%layered) then
             allocate(buffer_dp(self%grid%nx, self%grid%ny, self%nlayers))
             do layer_idx = 1_i4, self%nlayers
               buffer_dp(:,:,layer_idx) = unpack(self%data_layered_dp(:,layer_idx), self%grid%mask, nodata_dp)
@@ -938,7 +928,7 @@ contains
             call self%nc%setData(unpack(self%data_dp, self%grid%mask, nodata_dp), [1_i4, 1_i4, t_index])
           end if
         case("i1")
-          if (self%nlayers > 0_i4) then
+          if (self%layered) then
             allocate(buffer_i1(self%grid%nx, self%grid%ny, self%nlayers))
             do layer_idx = 1_i4, self%nlayers
               buffer_i1(:,:,layer_idx) = unpack(self%data_layered_i1(:,layer_idx), self%grid%mask, nodata_i1)
@@ -951,7 +941,7 @@ contains
             call self%nc%setData(unpack(self%data_i1, self%grid%mask, nodata_i1), [1_i4, 1_i4, t_index])
           end if
         case("i2")
-          if (self%nlayers > 0_i4) then
+          if (self%layered) then
             allocate(buffer_i2(self%grid%nx, self%grid%ny, self%nlayers))
             do layer_idx = 1_i4, self%nlayers
               buffer_i2(:,:,layer_idx) = unpack(self%data_layered_i2(:,layer_idx), self%grid%mask, nodata_i2)
@@ -964,7 +954,7 @@ contains
             call self%nc%setData(unpack(self%data_i2, self%grid%mask, nodata_i2), [1_i4, 1_i4, t_index])
           end if
         case("i4")
-          if (self%nlayers > 0_i4) then
+          if (self%layered) then
             allocate(buffer_i4(self%grid%nx, self%grid%ny, self%nlayers))
             do layer_idx = 1_i4, self%nlayers
               buffer_i4(:,:,layer_idx) = unpack(self%data_layered_i4(:,layer_idx), self%grid%mask, nodata_i4)
@@ -977,7 +967,7 @@ contains
             call self%nc%setData(unpack(self%data_i4, self%grid%mask, nodata_i4), [1_i4, 1_i4, t_index])
           end if
         case("i8")
-          if (self%nlayers > 0_i4) then
+          if (self%layered) then
             allocate(buffer_i8(self%grid%nx, self%grid%ny, self%nlayers))
             do layer_idx = 1_i4, self%nlayers
               buffer_i8(:,:,layer_idx) = unpack(self%data_layered_i8(:,layer_idx), self%grid%mask, nodata_i8)
@@ -994,37 +984,37 @@ contains
     ! reset
     select case(self%kind)
       case("sp")
-        if (self%nlayers > 0_i4) then
+        if (self%layered) then
           self%data_layered_sp = 0.0_sp
         else
           self%data_sp = 0.0_sp
         end if
       case("dp")
-        if (self%nlayers > 0_i4) then
+        if (self%layered) then
           self%data_layered_dp = 0.0_dp
         else
           self%data_dp = 0.0_dp
         end if
       case("i1")
-        if (self%nlayers > 0_i4) then
+        if (self%layered) then
           self%data_layered_i1 = 0_i1
         else
           self%data_i1 = 0_i1
         end if
       case("i2")
-        if (self%nlayers > 0_i4) then
+        if (self%layered) then
           self%data_layered_i2 = 0_i2
         else
           self%data_i2 = 0_i2
         end if
       case("i4")
-        if (self%nlayers > 0_i4) then
+        if (self%layered) then
           self%data_layered_i4 = 0_i4
         else
           self%data_i4 = 0_i4
         end if
       case("i8")
-        if (self%nlayers > 0_i4) then
+        if (self%layered) then
           self%data_layered_i8 = 0_i8
         else
           self%data_i8 = 0_i8
@@ -1044,7 +1034,6 @@ contains
     type(NcVariable) :: t_var, axis_var
     integer(i4) :: nx, ny, rnk
     integer(i4) :: layer_dim_idx, time_dim_idx, idx
-    character(len=32) :: str_meta, str_self
     character(len=256) :: tmp_str
     self%name = meta%name
     self%nc = nc%getVariable(self%name)
@@ -1057,6 +1046,7 @@ contains
     ny = dims(2)%getLength()
     if (nx /= grid%nx .or. ny /= grid%ny) call error_message("input_variable: variable not matching grid: ", self%name)
 
+    self%layered = meta%layered
     self%nlayers = 0_i4
     layer_dim_idx = 0_i4
     time_dim_idx = 0_i4
@@ -1072,19 +1062,17 @@ contains
       end if
     end do
     if (layer_dim_idx > 0_i4) then
+      self%layered = .true.
       self%nlayers = dims(layer_dim_idx)%getLength()
-      if (meta%nlayers > 0_i4 .and. meta%nlayers /= self%nlayers) then
-        write(str_meta, '(I0)') meta%nlayers
-        write(str_self, '(I0)') self%nlayers
-        call warn_message('input_variable: variable layers not as expected: ' // trim(self%name) // &
-                          ', ' // trim(str_meta) // '=/=' // trim(str_self))
-      end if
       if (self%nlayers <= 1_i4) then
+        self%layered = .false.
         self%nlayers = 0_i4
         layer_dim_idx = 0_i4
+      else if (.not.meta%layered) then
+        call warn_message('input_variable: metadata not marked layered but z-axis found: ' // trim(self%name))
       end if
     else
-      if (meta%nlayers > 0_i4) then
+      if (meta%layered) then
         call warn_message('input_variable: expected layered data but no z-axis found: ' // trim(self%name))
       end if
     end if
@@ -1163,37 +1151,22 @@ contains
     real(sp), dimension(:, :), allocatable, intent(out) :: data !< read data
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
-    real(sp), allocatable :: tmp3(:, :, :)
-    if (self%nlayers > 0_i4) call error_message("input_variable: layered data requires layered read: ", self%name)
-    rank = self%nc%getRank()
+    if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
     end if
-    select case(rank)
-      case(2)
-        allocate(data(self%grid%nx, self%grid%ny))
-        call self%nc%getData(data)
-      case(3)
-        if (.not.self%static) then
-          allocate(start(rank), cnt(rank))
-          start = 1_i4
-          cnt = 1_i4
-          start(1) = 1_i4; cnt(1) = self%grid%nx
-          start(2) = 1_i4; cnt(2) = self%grid%ny
-          start(self%time_dim) = t_index
-          cnt(self%time_dim) = 1_i4
-          allocate(tmp3(self%grid%nx, self%grid%ny, 1))
-          call self%nc%getData(tmp3, start=start, cnt=cnt)
-          allocate(data(self%grid%nx, self%grid%ny))
-          data = tmp3(:,:,1)
-          deallocate(tmp3, start, cnt)
-        else
-          call error_message("input%read: unexpected third dimension for static variable: ", self%name)
-        end if
-      case default
-        call error_message("input%read: unsupported rank for non-layered variable: ", self%name)
-    end select
+    rank = self%nc%getRank()
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
+    if (.not.self%static) then
+      start(self%time_dim) = t_index
+      cnt(self%time_dim) = 1_i4
+    end if
+    call self%nc%getData(data, start=start, cnt=cnt)
+    deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_sp
   !> \brief read from layered input variable
@@ -1205,38 +1178,22 @@ contains
     real(sp), dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
-    real(sp), allocatable :: tmp(:,:,:,:)
-    if (self%nlayers == 0_i4) call error_message("input_variable: variable not layered: ", self%name)
-    rank = self%nc%getRank()
+    if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read_layered: temporal variable need a time: ", self%name)
     end if
-    allocate(start(rank), cnt(rank))
-    start = 1_i4
-    cnt = 1_i4
-    start(1) = 1_i4; cnt(1) = self%grid%nx
-    start(2) = 1_i4; cnt(2) = self%grid%ny
-    if (self%layer_dim > 0_i4) then
-      start(self%layer_dim) = 1_i4
-      cnt(self%layer_dim) = self%nlayers
-    end if
-    if (.not.self%static .and. self%time_dim > 0_i4) then
+    rank = self%nc%getRank()
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
+    cnt(self%layer_dim) = self%nlayers
+    if (.not.self%static) then
       start(self%time_dim) = t_index
       cnt(self%time_dim) = 1_i4
     end if
-    allocate(data(self%grid%nx, self%grid%ny, self%nlayers))
-    select case(rank)
-      case(3)
-        call self%nc%getData(data, start=start, cnt=cnt)
-      case(4)
-        allocate(tmp(self%grid%nx, self%grid%ny, self%nlayers, 1))
-        call self%nc%getData(tmp, start=start, cnt=cnt)
-        data = tmp(:,:,:,1)
-        deallocate(tmp)
-      case default
-        call error_message("input%read_layered: unsupported rank: ", self%name)
-    end select
+    call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_layered_sp
@@ -1250,37 +1207,22 @@ contains
     real(dp), dimension(:, :), allocatable, intent(out) :: data !< read data
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
-    real(dp), allocatable :: tmp3(:, :, :)
-    if (self%nlayers > 0_i4) call error_message("input_variable: layered data requires layered read: ", self%name)
-    rank = self%nc%getRank()
+    if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
     end if
-    select case(rank)
-      case(2)
-        allocate(data(self%grid%nx, self%grid%ny))
-        call self%nc%getData(data)
-      case(3)
-        if (.not.self%static) then
-          allocate(start(rank), cnt(rank))
-          start = 1_i4
-          cnt = 1_i4
-          start(1) = 1_i4; cnt(1) = self%grid%nx
-          start(2) = 1_i4; cnt(2) = self%grid%ny
-          start(self%time_dim) = t_index
-          cnt(self%time_dim) = 1_i4
-          allocate(tmp3(self%grid%nx, self%grid%ny, 1))
-          call self%nc%getData(tmp3, start=start, cnt=cnt)
-          allocate(data(self%grid%nx, self%grid%ny))
-          data = tmp3(:,:,1)
-          deallocate(tmp3, start, cnt)
-        else
-          call error_message("input%read: unexpected third dimension for static variable: ", self%name)
-        end if
-      case default
-        call error_message("input%read: unsupported rank for non-layered variable: ", self%name)
-    end select
+    rank = self%nc%getRank()
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
+    if (.not.self%static) then
+      start(self%time_dim) = t_index
+      cnt(self%time_dim) = 1_i4
+    end if
+    call self%nc%getData(data, start=start, cnt=cnt)
+    deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_dp
   !> \brief read from layered input variable
@@ -1292,38 +1234,22 @@ contains
     real(dp), dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
-    real(dp), allocatable :: tmp(:,:,:,:)
-    if (self%nlayers == 0_i4) call error_message("input_variable: variable not layered: ", self%name)
-    rank = self%nc%getRank()
+    if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read_layered: temporal variable need a time: ", self%name)
     end if
-    allocate(start(rank), cnt(rank))
-    start = 1_i4
-    cnt = 1_i4
-    start(1) = 1_i4; cnt(1) = self%grid%nx
-    start(2) = 1_i4; cnt(2) = self%grid%ny
-    if (self%layer_dim > 0_i4) then
-      start(self%layer_dim) = 1_i4
-      cnt(self%layer_dim) = self%nlayers
-    end if
-    if (.not.self%static .and. self%time_dim > 0_i4) then
+    rank = self%nc%getRank()
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
+    cnt(self%layer_dim) = self%nlayers
+    if (.not.self%static) then
       start(self%time_dim) = t_index
       cnt(self%time_dim) = 1_i4
     end if
-    allocate(data(self%grid%nx, self%grid%ny, self%nlayers))
-    select case(rank)
-      case(3)
-        call self%nc%getData(data, start=start, cnt=cnt)
-      case(4)
-        allocate(tmp(self%grid%nx, self%grid%ny, self%nlayers, 1))
-        call self%nc%getData(tmp, start=start, cnt=cnt)
-        data = tmp(:,:,:,1)
-        deallocate(tmp)
-      case default
-        call error_message("input%read_layered: unsupported rank: ", self%name)
-    end select
+    call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_layered_dp
@@ -1337,37 +1263,22 @@ contains
     integer(i1), dimension(:, :), allocatable, intent(out) :: data !< read data
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
-    integer(i1), allocatable :: tmp3(:, :, :)
-    if (self%nlayers > 0_i4) call error_message("input_variable: layered data requires layered read: ", self%name)
-    rank = self%nc%getRank()
+    if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
     end if
-    select case(rank)
-      case(2)
-        allocate(data(self%grid%nx, self%grid%ny))
-        call self%nc%getData(data)
-      case(3)
-        if (.not.self%static) then
-          allocate(start(rank), cnt(rank))
-          start = 1_i4
-          cnt = 1_i4
-          start(1) = 1_i4; cnt(1) = self%grid%nx
-          start(2) = 1_i4; cnt(2) = self%grid%ny
-          start(self%time_dim) = t_index
-          cnt(self%time_dim) = 1_i4
-          allocate(tmp3(self%grid%nx, self%grid%ny, 1))
-          call self%nc%getData(tmp3, start=start, cnt=cnt)
-          allocate(data(self%grid%nx, self%grid%ny))
-          data = tmp3(:,:,1)
-          deallocate(tmp3, start, cnt)
-        else
-          call error_message("input%read: unexpected third dimension for static variable: ", self%name)
-        end if
-      case default
-        call error_message("input%read: unsupported rank for non-layered variable: ", self%name)
-    end select
+    rank = self%nc%getRank()
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
+    if (.not.self%static) then
+      start(self%time_dim) = t_index
+      cnt(self%time_dim) = 1_i4
+    end if
+    call self%nc%getData(data, start=start, cnt=cnt)
+    deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_i1
   !> \brief read from layered input variable
@@ -1379,38 +1290,22 @@ contains
     integer(i1), dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
-    integer(i1), allocatable :: tmp(:,:,:,:)
-    if (self%nlayers == 0_i4) call error_message("input_variable: variable not layered: ", self%name)
-    rank = self%nc%getRank()
+    if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read_layered: temporal variable need a time: ", self%name)
     end if
-    allocate(start(rank), cnt(rank))
-    start = 1_i4
-    cnt = 1_i4
-    start(1) = 1_i4; cnt(1) = self%grid%nx
-    start(2) = 1_i4; cnt(2) = self%grid%ny
-    if (self%layer_dim > 0_i4) then
-      start(self%layer_dim) = 1_i4
-      cnt(self%layer_dim) = self%nlayers
-    end if
-    if (.not.self%static .and. self%time_dim > 0_i4) then
+    rank = self%nc%getRank()
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
+    cnt(self%layer_dim) = self%nlayers
+    if (.not.self%static) then
       start(self%time_dim) = t_index
       cnt(self%time_dim) = 1_i4
     end if
-    allocate(data(self%grid%nx, self%grid%ny, self%nlayers))
-    select case(rank)
-      case(3)
-        call self%nc%getData(data, start=start, cnt=cnt)
-      case(4)
-        allocate(tmp(self%grid%nx, self%grid%ny, self%nlayers, 1))
-        call self%nc%getData(tmp, start=start, cnt=cnt)
-        data = tmp(:,:,:,1)
-        deallocate(tmp)
-      case default
-        call error_message("input%read_layered: unsupported rank: ", self%name)
-    end select
+    call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_layered_i1
@@ -1424,37 +1319,22 @@ contains
     integer(i2), dimension(:, :), allocatable, intent(out) :: data !< read data
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
-    integer(i2), allocatable :: tmp3(:, :, :)
-    if (self%nlayers > 0_i4) call error_message("input_variable: layered data requires layered read: ", self%name)
-    rank = self%nc%getRank()
+    if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
     end if
-    select case(rank)
-      case(2)
-        allocate(data(self%grid%nx, self%grid%ny))
-        call self%nc%getData(data)
-      case(3)
-        if (.not.self%static) then
-          allocate(start(rank), cnt(rank))
-          start = 1_i4
-          cnt = 1_i4
-          start(1) = 1_i4; cnt(1) = self%grid%nx
-          start(2) = 1_i4; cnt(2) = self%grid%ny
-          start(self%time_dim) = t_index
-          cnt(self%time_dim) = 1_i4
-          allocate(tmp3(self%grid%nx, self%grid%ny, 1))
-          call self%nc%getData(tmp3, start=start, cnt=cnt)
-          allocate(data(self%grid%nx, self%grid%ny))
-          data = tmp3(:,:,1)
-          deallocate(tmp3, start, cnt)
-        else
-          call error_message("input%read: unexpected third dimension for static variable: ", self%name)
-        end if
-      case default
-        call error_message("input%read: unsupported rank for non-layered variable: ", self%name)
-    end select
+    rank = self%nc%getRank()
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
+    if (.not.self%static) then
+      start(self%time_dim) = t_index
+      cnt(self%time_dim) = 1_i4
+    end if
+    call self%nc%getData(data, start=start, cnt=cnt)
+    deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_i2
   !> \brief read from layered input variable
@@ -1466,38 +1346,22 @@ contains
     integer(i2), dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
-    integer(i2), allocatable :: tmp(:,:,:,:)
-    if (self%nlayers == 0_i4) call error_message("input_variable: variable not layered: ", self%name)
-    rank = self%nc%getRank()
+    if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read_layered: temporal variable need a time: ", self%name)
     end if
-    allocate(start(rank), cnt(rank))
-    start = 1_i4
-    cnt = 1_i4
-    start(1) = 1_i4; cnt(1) = self%grid%nx
-    start(2) = 1_i4; cnt(2) = self%grid%ny
-    if (self%layer_dim > 0_i4) then
-      start(self%layer_dim) = 1_i4
-      cnt(self%layer_dim) = self%nlayers
-    end if
-    if (.not.self%static .and. self%time_dim > 0_i4) then
+    rank = self%nc%getRank()
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
+    cnt(self%layer_dim) = self%nlayers
+    if (.not.self%static) then
       start(self%time_dim) = t_index
       cnt(self%time_dim) = 1_i4
     end if
-    allocate(data(self%grid%nx, self%grid%ny, self%nlayers))
-    select case(rank)
-      case(3)
-        call self%nc%getData(data, start=start, cnt=cnt)
-      case(4)
-        allocate(tmp(self%grid%nx, self%grid%ny, self%nlayers, 1))
-        call self%nc%getData(tmp, start=start, cnt=cnt)
-        data = tmp(:,:,:,1)
-        deallocate(tmp)
-      case default
-        call error_message("input%read_layered: unsupported rank: ", self%name)
-    end select
+    call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_layered_i2
@@ -1511,37 +1375,22 @@ contains
     integer(i4), dimension(:, :), allocatable, intent(out) :: data !< read data
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
-    integer(i4), allocatable :: tmp3(:, :, :)
-    if (self%nlayers > 0_i4) call error_message("input_variable: layered data requires layered read: ", self%name)
-    rank = self%nc%getRank()
+    if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
     end if
-    select case(rank)
-      case(2)
-        allocate(data(self%grid%nx, self%grid%ny))
-        call self%nc%getData(data)
-      case(3)
-        if (.not.self%static) then
-          allocate(start(rank), cnt(rank))
-          start = 1_i4
-          cnt = 1_i4
-          start(1) = 1_i4; cnt(1) = self%grid%nx
-          start(2) = 1_i4; cnt(2) = self%grid%ny
-          start(self%time_dim) = t_index
-          cnt(self%time_dim) = 1_i4
-          allocate(tmp3(self%grid%nx, self%grid%ny, 1))
-          call self%nc%getData(tmp3, start=start, cnt=cnt)
-          allocate(data(self%grid%nx, self%grid%ny))
-          data = tmp3(:,:,1)
-          deallocate(tmp3, start, cnt)
-        else
-          call error_message("input%read: unexpected third dimension for static variable: ", self%name)
-        end if
-      case default
-        call error_message("input%read: unsupported rank for non-layered variable: ", self%name)
-    end select
+    rank = self%nc%getRank()
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
+    if (.not.self%static) then
+      start(self%time_dim) = t_index
+      cnt(self%time_dim) = 1_i4
+    end if
+    call self%nc%getData(data, start=start, cnt=cnt)
+    deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_i4
   !> \brief read from layered input variable
@@ -1553,38 +1402,22 @@ contains
     integer(i4), dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
-    integer(i4), allocatable :: tmp(:,:,:,:)
-    if (self%nlayers == 0_i4) call error_message("input_variable: variable not layered: ", self%name)
-    rank = self%nc%getRank()
+    if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read_layered: temporal variable need a time: ", self%name)
     end if
-    allocate(start(rank), cnt(rank))
-    start = 1_i4
-    cnt = 1_i4
-    start(1) = 1_i4; cnt(1) = self%grid%nx
-    start(2) = 1_i4; cnt(2) = self%grid%ny
-    if (self%layer_dim > 0_i4) then
-      start(self%layer_dim) = 1_i4
-      cnt(self%layer_dim) = self%nlayers
-    end if
-    if (.not.self%static .and. self%time_dim > 0_i4) then
+    rank = self%nc%getRank()
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
+    cnt(self%layer_dim) = self%nlayers
+    if (.not.self%static) then
       start(self%time_dim) = t_index
       cnt(self%time_dim) = 1_i4
     end if
-    allocate(data(self%grid%nx, self%grid%ny, self%nlayers))
-    select case(rank)
-      case(3)
-        call self%nc%getData(data, start=start, cnt=cnt)
-      case(4)
-        allocate(tmp(self%grid%nx, self%grid%ny, self%nlayers, 1))
-        call self%nc%getData(tmp, start=start, cnt=cnt)
-        data = tmp(:,:,:,1)
-        deallocate(tmp)
-      case default
-        call error_message("input%read_layered: unsupported rank: ", self%name)
-    end select
+    call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_layered_i4
@@ -1598,37 +1431,22 @@ contains
     integer(i8), dimension(:, :), allocatable, intent(out) :: data !< read data
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
-    integer(i8), allocatable :: tmp3(:, :, :)
-    if (self%nlayers > 0_i4) call error_message("input_variable: layered data requires layered read: ", self%name)
-    rank = self%nc%getRank()
+    if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
     end if
-    select case(rank)
-      case(2)
-        allocate(data(self%grid%nx, self%grid%ny))
-        call self%nc%getData(data)
-      case(3)
-        if (.not.self%static) then
-          allocate(start(rank), cnt(rank))
-          start = 1_i4
-          cnt = 1_i4
-          start(1) = 1_i4; cnt(1) = self%grid%nx
-          start(2) = 1_i4; cnt(2) = self%grid%ny
-          start(self%time_dim) = t_index
-          cnt(self%time_dim) = 1_i4
-          allocate(tmp3(self%grid%nx, self%grid%ny, 1))
-          call self%nc%getData(tmp3, start=start, cnt=cnt)
-          allocate(data(self%grid%nx, self%grid%ny))
-          data = tmp3(:,:,1)
-          deallocate(tmp3, start, cnt)
-        else
-          call error_message("input%read: unexpected third dimension for static variable: ", self%name)
-        end if
-      case default
-        call error_message("input%read: unsupported rank for non-layered variable: ", self%name)
-    end select
+    rank = self%nc%getRank()
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
+    if (.not.self%static) then
+      start(self%time_dim) = t_index
+      cnt(self%time_dim) = 1_i4
+    end if
+    call self%nc%getData(data, start=start, cnt=cnt)
+    deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_i8
   !> \brief read from layered input variable
@@ -1640,38 +1458,22 @@ contains
     integer(i8), dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
-    integer(i8), allocatable :: tmp(:,:,:,:)
-    if (self%nlayers == 0_i4) call error_message("input_variable: variable not layered: ", self%name)
-    rank = self%nc%getRank()
+    if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
       if (t_index==0_i4) call error_message("input%read_layered: temporal variable need a time: ", self%name)
     end if
-    allocate(start(rank), cnt(rank))
-    start = 1_i4
-    cnt = 1_i4
-    start(1) = 1_i4; cnt(1) = self%grid%nx
-    start(2) = 1_i4; cnt(2) = self%grid%ny
-    if (self%layer_dim > 0_i4) then
-      start(self%layer_dim) = 1_i4
-      cnt(self%layer_dim) = self%nlayers
-    end if
-    if (.not.self%static .and. self%time_dim > 0_i4) then
+    rank = self%nc%getRank()
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
+    cnt(self%layer_dim) = self%nlayers
+    if (.not.self%static) then
       start(self%time_dim) = t_index
       cnt(self%time_dim) = 1_i4
     end if
-    allocate(data(self%grid%nx, self%grid%ny, self%nlayers))
-    select case(rank)
-      case(3)
-        call self%nc%getData(data, start=start, cnt=cnt)
-      case(4)
-        allocate(tmp(self%grid%nx, self%grid%ny, self%nlayers, 1))
-        call self%nc%getData(tmp, start=start, cnt=cnt)
-        data = tmp(:,:,:,1)
-        deallocate(tmp)
-      case default
-        call error_message("input%read_layered: unsupported rank: ", self%name)
-    end select
+    call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_layered_i8
@@ -1687,23 +1489,15 @@ contains
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
-    if (self%nlayers > 0_i4) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
+    if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
     rank = self%nc%getRank()
-    if (self%time_dim == 0_i4) call error_message("input%read_chunk: time dimension missing: ", self%name)
-    allocate(start(rank), cnt(rank))
-    start = 1_i4
-    cnt = 1_i4
-    start(1) = 1_i4; cnt(1) = self%grid%nx
-    start(2) = 1_i4; cnt(2) = self%grid%ny
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
     start(self%time_dim) = t_index
     cnt(self%time_dim) = t_size
-    allocate(data(self%grid%nx, self%grid%ny, t_size))
-    select case(rank)
-      case(3)
-        call self%nc%getData(data, start=start, cnt=cnt)
-      case default
-        call error_message("input%read_chunk: unsupported rank for non-layered chunk: ", self%name)
-    end select
+    call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_sp
@@ -1718,24 +1512,17 @@ contains
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
-    if (self%nlayers == 0_i4) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
+    if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
     if (self%time_dim == 0_i4) call error_message("input%read_chunk_layered: time dimension missing: ", self%name)
     rank = self%nc%getRank()
-    allocate(start(rank), cnt(rank))
-    start = 1_i4
-    cnt = 1_i4
-    start(1) = 1_i4; cnt(1) = self%grid%nx
-    start(2) = 1_i4; cnt(2) = self%grid%ny
-    start(self%layer_dim) = 1_i4; cnt(self%layer_dim) = self%nlayers
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
+    cnt(self%layer_dim) = self%nlayers
     start(self%time_dim) = t_index
     cnt(self%time_dim) = t_size
-    allocate(data(self%grid%nx, self%grid%ny, self%nlayers, t_size))
-    select case(rank)
-      case(4)
-        call self%nc%getData(data, start=start, cnt=cnt)
-      case default
-        call error_message("input%read_chunk_layered: unsupported rank: ", self%name)
-    end select
+    call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_layered_sp
@@ -1751,23 +1538,15 @@ contains
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
-    if (self%nlayers > 0_i4) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
+    if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
     rank = self%nc%getRank()
-    if (self%time_dim == 0_i4) call error_message("input%read_chunk: time dimension missing: ", self%name)
-    allocate(start(rank), cnt(rank))
-    start = 1_i4
-    cnt = 1_i4
-    start(1) = 1_i4; cnt(1) = self%grid%nx
-    start(2) = 1_i4; cnt(2) = self%grid%ny
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
     start(self%time_dim) = t_index
     cnt(self%time_dim) = t_size
-    allocate(data(self%grid%nx, self%grid%ny, t_size))
-    select case(rank)
-      case(3)
-        call self%nc%getData(data, start=start, cnt=cnt)
-      case default
-        call error_message("input%read_chunk: unsupported rank for non-layered chunk: ", self%name)
-    end select
+    call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_dp
@@ -1782,24 +1561,17 @@ contains
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
-    if (self%nlayers == 0_i4) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
+    if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
     if (self%time_dim == 0_i4) call error_message("input%read_chunk_layered: time dimension missing: ", self%name)
     rank = self%nc%getRank()
-    allocate(start(rank), cnt(rank))
-    start = 1_i4
-    cnt = 1_i4
-    start(1) = 1_i4; cnt(1) = self%grid%nx
-    start(2) = 1_i4; cnt(2) = self%grid%ny
-    start(self%layer_dim) = 1_i4; cnt(self%layer_dim) = self%nlayers
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
+    cnt(self%layer_dim) = self%nlayers
     start(self%time_dim) = t_index
     cnt(self%time_dim) = t_size
-    allocate(data(self%grid%nx, self%grid%ny, self%nlayers, t_size))
-    select case(rank)
-      case(4)
-        call self%nc%getData(data, start=start, cnt=cnt)
-      case default
-        call error_message("input%read_chunk_layered: unsupported rank: ", self%name)
-    end select
+    call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_layered_dp
@@ -1815,23 +1587,15 @@ contains
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
-    if (self%nlayers > 0_i4) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
+    if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
     rank = self%nc%getRank()
-    if (self%time_dim == 0_i4) call error_message("input%read_chunk: time dimension missing: ", self%name)
-    allocate(start(rank), cnt(rank))
-    start = 1_i4
-    cnt = 1_i4
-    start(1) = 1_i4; cnt(1) = self%grid%nx
-    start(2) = 1_i4; cnt(2) = self%grid%ny
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
     start(self%time_dim) = t_index
     cnt(self%time_dim) = t_size
-    allocate(data(self%grid%nx, self%grid%ny, t_size))
-    select case(rank)
-      case(3)
-        call self%nc%getData(data, start=start, cnt=cnt)
-      case default
-        call error_message("input%read_chunk: unsupported rank for non-layered chunk: ", self%name)
-    end select
+    call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_i1
@@ -1846,24 +1610,17 @@ contains
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
-    if (self%nlayers == 0_i4) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
+    if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
     if (self%time_dim == 0_i4) call error_message("input%read_chunk_layered: time dimension missing: ", self%name)
     rank = self%nc%getRank()
-    allocate(start(rank), cnt(rank))
-    start = 1_i4
-    cnt = 1_i4
-    start(1) = 1_i4; cnt(1) = self%grid%nx
-    start(2) = 1_i4; cnt(2) = self%grid%ny
-    start(self%layer_dim) = 1_i4; cnt(self%layer_dim) = self%nlayers
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
+    cnt(self%layer_dim) = self%nlayers
     start(self%time_dim) = t_index
     cnt(self%time_dim) = t_size
-    allocate(data(self%grid%nx, self%grid%ny, self%nlayers, t_size))
-    select case(rank)
-      case(4)
-        call self%nc%getData(data, start=start, cnt=cnt)
-      case default
-        call error_message("input%read_chunk_layered: unsupported rank: ", self%name)
-    end select
+    call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_layered_i1
@@ -1879,23 +1636,15 @@ contains
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
-    if (self%nlayers > 0_i4) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
+    if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
     rank = self%nc%getRank()
-    if (self%time_dim == 0_i4) call error_message("input%read_chunk: time dimension missing: ", self%name)
-    allocate(start(rank), cnt(rank))
-    start = 1_i4
-    cnt = 1_i4
-    start(1) = 1_i4; cnt(1) = self%grid%nx
-    start(2) = 1_i4; cnt(2) = self%grid%ny
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
     start(self%time_dim) = t_index
     cnt(self%time_dim) = t_size
-    allocate(data(self%grid%nx, self%grid%ny, t_size))
-    select case(rank)
-      case(3)
-        call self%nc%getData(data, start=start, cnt=cnt)
-      case default
-        call error_message("input%read_chunk: unsupported rank for non-layered chunk: ", self%name)
-    end select
+    call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_i2
@@ -1910,24 +1659,17 @@ contains
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
-    if (self%nlayers == 0_i4) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
+    if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
     if (self%time_dim == 0_i4) call error_message("input%read_chunk_layered: time dimension missing: ", self%name)
     rank = self%nc%getRank()
-    allocate(start(rank), cnt(rank))
-    start = 1_i4
-    cnt = 1_i4
-    start(1) = 1_i4; cnt(1) = self%grid%nx
-    start(2) = 1_i4; cnt(2) = self%grid%ny
-    start(self%layer_dim) = 1_i4; cnt(self%layer_dim) = self%nlayers
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
+    cnt(self%layer_dim) = self%nlayers
     start(self%time_dim) = t_index
     cnt(self%time_dim) = t_size
-    allocate(data(self%grid%nx, self%grid%ny, self%nlayers, t_size))
-    select case(rank)
-      case(4)
-        call self%nc%getData(data, start=start, cnt=cnt)
-      case default
-        call error_message("input%read_chunk_layered: unsupported rank: ", self%name)
-    end select
+    call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_layered_i2
@@ -1943,23 +1685,15 @@ contains
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
-    if (self%nlayers > 0_i4) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
+    if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
     rank = self%nc%getRank()
-    if (self%time_dim == 0_i4) call error_message("input%read_chunk: time dimension missing: ", self%name)
-    allocate(start(rank), cnt(rank))
-    start = 1_i4
-    cnt = 1_i4
-    start(1) = 1_i4; cnt(1) = self%grid%nx
-    start(2) = 1_i4; cnt(2) = self%grid%ny
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
     start(self%time_dim) = t_index
     cnt(self%time_dim) = t_size
-    allocate(data(self%grid%nx, self%grid%ny, t_size))
-    select case(rank)
-      case(3)
-        call self%nc%getData(data, start=start, cnt=cnt)
-      case default
-        call error_message("input%read_chunk: unsupported rank for non-layered chunk: ", self%name)
-    end select
+    call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_i4
@@ -1974,24 +1708,17 @@ contains
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
-    if (self%nlayers == 0_i4) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
+    if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
     if (self%time_dim == 0_i4) call error_message("input%read_chunk_layered: time dimension missing: ", self%name)
     rank = self%nc%getRank()
-    allocate(start(rank), cnt(rank))
-    start = 1_i4
-    cnt = 1_i4
-    start(1) = 1_i4; cnt(1) = self%grid%nx
-    start(2) = 1_i4; cnt(2) = self%grid%ny
-    start(self%layer_dim) = 1_i4; cnt(self%layer_dim) = self%nlayers
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
+    cnt(self%layer_dim) = self%nlayers
     start(self%time_dim) = t_index
     cnt(self%time_dim) = t_size
-    allocate(data(self%grid%nx, self%grid%ny, self%nlayers, t_size))
-    select case(rank)
-      case(4)
-        call self%nc%getData(data, start=start, cnt=cnt)
-      case default
-        call error_message("input%read_chunk_layered: unsupported rank: ", self%name)
-    end select
+    call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_layered_i4
@@ -2007,23 +1734,15 @@ contains
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
-    if (self%nlayers > 0_i4) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
+    if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
     rank = self%nc%getRank()
-    if (self%time_dim == 0_i4) call error_message("input%read_chunk: time dimension missing: ", self%name)
-    allocate(start(rank), cnt(rank))
-    start = 1_i4
-    cnt = 1_i4
-    start(1) = 1_i4; cnt(1) = self%grid%nx
-    start(2) = 1_i4; cnt(2) = self%grid%ny
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
     start(self%time_dim) = t_index
     cnt(self%time_dim) = t_size
-    allocate(data(self%grid%nx, self%grid%ny, t_size))
-    select case(rank)
-      case(3)
-        call self%nc%getData(data, start=start, cnt=cnt)
-      case default
-        call error_message("input%read_chunk: unsupported rank for non-layered chunk: ", self%name)
-    end select
+    call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_i8
@@ -2038,24 +1757,17 @@ contains
     integer(i4) :: rank
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
-    if (self%nlayers == 0_i4) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
+    if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
     if (self%time_dim == 0_i4) call error_message("input%read_chunk_layered: time dimension missing: ", self%name)
     rank = self%nc%getRank()
-    allocate(start(rank), cnt(rank))
-    start = 1_i4
-    cnt = 1_i4
-    start(1) = 1_i4; cnt(1) = self%grid%nx
-    start(2) = 1_i4; cnt(2) = self%grid%ny
-    start(self%layer_dim) = 1_i4; cnt(self%layer_dim) = self%nlayers
+    allocate(start(rank), source=1_i4)
+    allocate(cnt(rank))
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
+    cnt(self%layer_dim) = self%nlayers
     start(self%time_dim) = t_index
     cnt(self%time_dim) = t_size
-    allocate(data(self%grid%nx, self%grid%ny, self%nlayers, t_size))
-    select case(rank)
-      case(4)
-        call self%nc%getData(data, start=start, cnt=cnt)
-      case default
-        call error_message("input%read_chunk_layered: unsupported rank: ", self%name)
-    end select
+    call self%nc%getData(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_layered_i8
@@ -2092,6 +1804,7 @@ contains
     self%nc = NcDataset(self%path, "w")
     self%grid => grid
     self%counter = 0_i4
+    self%nlayers = 0_i4
 
     self%deflate_level = 6_i4
     if (present(deflate_level)) self%deflate_level = deflate_level
@@ -2110,17 +1823,9 @@ contains
       allocate(self%layer(size(layer)), source=layer)
       allocate(self%layer_vertices(size(layer_vertices)), source=layer_vertices)
       self%has_layer = .true.
+      self%nlayers = size(self%layer)
     else if (present(layer_vertices)) then
       call error_message("output: layer information incomplete without layer array")
-    end if
-
-    if (self%has_layer) then
-      if (size(self%layer) < 1) then
-      call warn_message('output: single layer provided, treating as non-layered')
-        deallocate(self%layer)
-        deallocate(self%layer_vertices)
-        self%has_layer = .false.
-      end if
     end if
 
     double_precision_ = .true.
@@ -2134,7 +1839,7 @@ contains
     self%nvars = size(vars)
     if (.not.self%has_layer) then
       do i = 1_i4, self%nvars
-        if (vars(i)%nlayers > 0_i4) call error_message("output: layered variable requires layer metadata: ", vars(i)%name)
+        if (vars(i)%layered) call error_message("output: layered variable requires layer metadata: ", vars(i)%name)
       end do
     end if
     self%static = .true.
@@ -2232,6 +1937,7 @@ contains
     end if
     deallocate(z_bounds)
     self%has_layer = .true.
+    self%nlayers = size(self%layer)
   end subroutine output_define_z_axis
 
   !> \brief Update a variable
@@ -2241,10 +1947,7 @@ contains
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     real(sp), intent(in), dimension(:) :: data !< data for current time step
-    integer(i4) :: idx
-    idx = var_index(self%vars, name, "output%update")
-    if (self%vars(idx)%nlayers > 0_i4) call error_message("output%update: layered variable requires layered update: ", name)
-    call self%vars(idx)%update(data)
+    call self%vars(var_index(self%vars, name, "output%update"))%update(data)
   end subroutine output_update_sp
 
   !> \brief Update a layered variable
@@ -2253,10 +1956,7 @@ contains
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     real(sp), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    integer(i4) :: idx
-    idx = var_index(self%vars, name, "output%update_layered")
-    if (self%vars(idx)%nlayers == 0_i4) call error_message("output%update_layered: variable not layered: ", name)
-    call self%vars(idx)%update(data)
+    call self%vars(var_index(self%vars, name, "output%update_layered"))%update_layered(data)
   end subroutine output_update_layered_sp
 
   !> \brief Update a variable
@@ -2266,10 +1966,7 @@ contains
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     real(dp), intent(in), dimension(:) :: data !< data for current time step
-    integer(i4) :: idx
-    idx = var_index(self%vars, name, "output%update")
-    if (self%vars(idx)%nlayers > 0_i4) call error_message("output%update: layered variable requires layered update: ", name)
-    call self%vars(idx)%update(data)
+    call self%vars(var_index(self%vars, name, "output%update"))%update(data)
   end subroutine output_update_dp
 
   !> \brief Update a layered variable
@@ -2278,10 +1975,7 @@ contains
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     real(dp), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    integer(i4) :: idx
-    idx = var_index(self%vars, name, "output%update_layered")
-    if (self%vars(idx)%nlayers == 0_i4) call error_message("output%update_layered: variable not layered: ", name)
-    call self%vars(idx)%update(data)
+    call self%vars(var_index(self%vars, name, "output%update_layered"))%update_layered(data)
   end subroutine output_update_layered_dp
 
   !> \brief Update a variable
@@ -2291,10 +1985,7 @@ contains
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     integer(i1), intent(in), dimension(:) :: data !< data for current time step
-    integer(i4) :: idx
-    idx = var_index(self%vars, name, "output%update")
-    if (self%vars(idx)%nlayers > 0_i4) call error_message("output%update: layered variable requires layered update: ", name)
-    call self%vars(idx)%update(data)
+    call self%vars(var_index(self%vars, name, "output%update"))%update(data)
   end subroutine output_update_i1
 
   !> \brief Update a layered variable
@@ -2303,10 +1994,7 @@ contains
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     integer(i1), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    integer(i4) :: idx
-    idx = var_index(self%vars, name, "output%update_layered")
-    if (self%vars(idx)%nlayers == 0_i4) call error_message("output%update_layered: variable not layered: ", name)
-    call self%vars(idx)%update(data)
+    call self%vars(var_index(self%vars, name, "output%update_layered"))%update_layered(data)
   end subroutine output_update_layered_i1
 
   !> \brief Update a variable
@@ -2316,10 +2004,7 @@ contains
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     integer(i2), intent(in), dimension(:) :: data !< data for current time step
-    integer(i4) :: idx
-    idx = var_index(self%vars, name, "output%update")
-    if (self%vars(idx)%nlayers > 0_i4) call error_message("output%update: layered variable requires layered update: ", name)
-    call self%vars(idx)%update(data)
+    call self%vars(var_index(self%vars, name, "output%update"))%update(data)
   end subroutine output_update_i2
 
   !> \brief Update a layered variable
@@ -2328,10 +2013,7 @@ contains
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     integer(i2), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    integer(i4) :: idx
-    idx = var_index(self%vars, name, "output%update_layered")
-    if (self%vars(idx)%nlayers == 0_i4) call error_message("output%update_layered: variable not layered: ", name)
-    call self%vars(idx)%update(data)
+    call self%vars(var_index(self%vars, name, "output%update_layered"))%update_layered(data)
   end subroutine output_update_layered_i2
 
   !> \brief Update a variable
@@ -2341,10 +2023,7 @@ contains
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     integer(i4), intent(in), dimension(:) :: data !< data for current time step
-    integer(i4) :: idx
-    idx = var_index(self%vars, name, "output%update")
-    if (self%vars(idx)%nlayers > 0_i4) call error_message("output%update: layered variable requires layered update: ", name)
-    call self%vars(idx)%update(data)
+    call self%vars(var_index(self%vars, name, "output%update"))%update(data)
   end subroutine output_update_i4
 
   !> \brief Update a layered variable
@@ -2353,10 +2032,7 @@ contains
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     integer(i4), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    integer(i4) :: idx
-    idx = var_index(self%vars, name, "output%update_layered")
-    if (self%vars(idx)%nlayers == 0_i4) call error_message("output%update_layered: variable not layered: ", name)
-    call self%vars(idx)%update(data)
+    call self%vars(var_index(self%vars, name, "output%update_layered"))%update_layered(data)
   end subroutine output_update_layered_i4
 
   !> \brief Update a variable
@@ -2366,10 +2042,7 @@ contains
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     integer(i8), intent(in), dimension(:) :: data !< data for current time step
-    integer(i4) :: idx
-    idx = var_index(self%vars, name, "output%update")
-    if (self%vars(idx)%nlayers > 0_i4) call error_message("output%update: layered variable requires layered update: ", name)
-    call self%vars(idx)%update(data)
+    call self%vars(var_index(self%vars, name, "output%update"))%update(data)
   end subroutine output_update_i8
 
   !> \brief Update a layered variable
@@ -2378,10 +2051,7 @@ contains
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     integer(i8), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    integer(i4) :: idx
-    idx = var_index(self%vars, name, "output%update_layered")
-    if (self%vars(idx)%nlayers == 0_i4) call error_message("output%update_layered: variable not layered: ", name)
-    call self%vars(idx)%update(data)
+    call self%vars(var_index(self%vars, name, "output%update_layered"))%update_layered(data)
   end subroutine output_update_layered_i8
 
   !> \brief Write all accumulated data.
@@ -2470,6 +2140,7 @@ contains
     self%path = trim(path)
     self%nc = NcDataset(self%path, "r")
     self%grid => grid
+    self%nlayers = 0_i4
     if (present(grid_init_var)) call self%grid%from_netcdf(self%nc, grid_init_var)
     self%nvars = size(vars)
     if (self%nvars == 0_i4) call error_message("input_dataset: no variables selected")
@@ -2484,9 +2155,7 @@ contains
     self%timestep = no_time
     do i = 1_i4, self%nvars
       call self%vars(i)%init(vars(i), self%nc, self%grid)
-      if (self%vars(i)%nlayers > 1_i4 .and. .not.self%has_layer) then
-        call input_define_layers(self, self%vars(i))
-      end if
+      if (self%vars(i)%layered .and. .not.self%has_layer) call input_define_layers(self, self%vars(i))
       if (.not.self%vars(i)%static .and. self%static) then
         self%static = .false.
         dims = self%vars(i)%nc%getDimensions()
@@ -2525,6 +2194,7 @@ contains
     if (var%layer_dim == 0_i4) call error_message("input: layered variable without layer dimension: ", var%name)
     nl = var%nlayers
     if (nl <= 1_i4) return
+    self%nlayers = nl
 
     vdims = var%nc%getDimensions()
     z_name = trim(vdims(var%layer_dim)%getName())
@@ -2598,9 +2268,6 @@ contains
     integer(i4) :: t_index
     t_index = 0_i4 ! indicate missing current_time
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
-    if (self%vars(var_index(self%vars, name, "input%read"))%nlayers > 0_i4) then
-      call error_message("input%read_matrix: layered variable requires layered read: ", name)
-    end if
     call self%vars(var_index(self%vars, name, "input%read"))%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
     data = read_data
   end subroutine input_read_matrix_sp
@@ -2610,16 +2277,14 @@ contains
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
-    real(sp), dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
+    real(sp), dimension(self%grid%nx, self%grid%ny, self%nlayers), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     real(sp), dimension(:,:,:), allocatable :: read_data
-    integer(i4) :: t_index, vidx
-    vidx = var_index(self%vars, name, "input%read_layered")
-    if (self%vars(vidx)%nlayers == 0_i4) call error_message("input%read_matrix_layered: variable not layered: ", name)
+    integer(i4) :: t_index
     t_index = 0_i4
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
-    call self%vars(vidx)%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
-    allocate(data(self%grid%nx, self%grid%ny, self%vars(vidx)%nlayers))
+    call self%vars(var_index(self%vars, name, "input%read_layered"))%read_layered(flip_y=self%flip_y, t_index=t_index,&
+        & data=read_data)
     data = read_data
   end subroutine input_read_matrix_layered_sp
 
@@ -2630,7 +2295,7 @@ contains
     character(*), intent(in) :: name !< name of the variable
     real(sp), dimension(self%grid%ncells), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
-    real(sp), dimension(self%grid%nx, self%grid%ny) :: data_matrix !< read data
+    real(sp), dimension(self%grid%nx, self%grid%ny) :: data_matrix
     call self%input_read_matrix_sp(name, data_matrix, current_time)
     data = pack(data_matrix, self%grid%mask)
   end subroutine input_read_pack_sp
@@ -2640,15 +2305,13 @@ contains
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
-    real(sp), dimension(:,:), allocatable, intent(out) :: data !< read data (ncells, layer)
+    real(sp), dimension(self%grid%ncells, self%nlayers), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
-    real(sp), dimension(:,:,:), allocatable :: data_matrix !< read data
-    integer(i4) :: nl, vidx, layer_idx
+    real(sp) :: data_matrix(self%grid%nx, self%grid%ny, self%nlayers)
+    integer(i4) :: i
     call self%input_read_matrix_layered_sp(name, data_matrix, current_time)
-    nl = size(data_matrix, 3)
-    allocate(data(self%grid%ncells, nl))
-    do layer_idx = 1_i4, nl
-      data(:, layer_idx) = pack(data_matrix(:,:,layer_idx), self%grid%mask)
+    do i = 1_i4, self%nlayers
+      data(:, i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
   end subroutine input_read_pack_layered_sp
 
@@ -2663,9 +2326,6 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
-    if (self%vars(var_index(self%vars, name, "input%read_chunk"))%nlayers > 0_i4) then
-      call error_message("input%read_chunk_matrix: layered variable requires layered read: ", name)
-    end if
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_sp(name, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_sp
@@ -2680,10 +2340,7 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
-    integer(i4) :: vidx
     if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
-    vidx = var_index(self%vars, name, "input%read_chunk_layered")
-    if (self%vars(vidx)%nlayers == 0_i4) call error_message("input%read_chunk_matrix_layered: variable not layered: ", name)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_layered_sp(name, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_layered_sp
@@ -2698,11 +2355,11 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     real(sp), dimension(:,:,:), allocatable :: data_matrix !< read data
-    integer(i4) :: i, n
+    integer(i4) :: i, nt
     call self%input_read_chunk_matrix_sp(name, data_matrix, timeframe_start, timeframe_end, times)
-    n = size(data_matrix, dim=3)
-    allocate(data(self%grid%ncells, n))
-    do i = 1_i4, n
+    nt = size(data_matrix, 3, kind=i4)
+    allocate(data(self%grid%ncells, nt))
+    do i = 1_i4, nt
       data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
   end subroutine input_read_chunk_pack_sp
@@ -2717,14 +2374,13 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     real(sp), dimension(:,:,:,:), allocatable :: data_matrix !< read data
-    integer(i4) :: i, nl, nt, layer_idx
+    integer(i4) :: i, j, nt
     call self%input_read_chunk_matrix_layered_sp(name, data_matrix, timeframe_start, timeframe_end, times)
-    nl = size(data_matrix, 3)
-    nt = size(data_matrix, 4)
-    allocate(data(self%grid%ncells, nl, nt))
+    nt = size(data_matrix,4, kind=i4)
+    allocate(data(self%grid%ncells, self%nlayers, nt))
     do i = 1_i4, nt
-      do layer_idx = 1_i4, nl
-        data(:, layer_idx, i) = pack(data_matrix(:,:,layer_idx,i), self%grid%mask)
+      do j = 1_i4, self%nlayers
+        data(:, j, i) = pack(data_matrix(:,:,j,i), self%grid%mask)
       end do
     end do
   end subroutine input_read_chunk_pack_layered_sp
@@ -2738,8 +2394,7 @@ contains
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
-    allocate(data(self%grid%nx, self%grid%ny, t_size))
-    call self%vars(var_index(self%vars, name, "input%read"))%read_chunk(self%flip_y, t_index, t_size, data)
+    call self%vars(var_index(self%vars, name, "input%read_chunk"))%read_chunk(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_sp
 
   !> \brief Read layered input variable chunk by ids
@@ -2752,9 +2407,7 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i4) :: vidx
     if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
-    vidx = var_index(self%vars, name, "input%read_chunk_layered")
-    if (self%vars(vidx)%nlayers == 0_i4) call error_message("input%read_chunk_by_ids_matrix_layered: variable not layered: ", name)
-    call self%vars(vidx)%read_chunk(self%flip_y, t_index, t_size, data)
+    call self%vars(var_index(self%vars, name, "input%read_chunk_layered"))%read_chunk_layered(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_layered_sp
 
   !> \brief Read an input variable for a given time frame
@@ -2766,11 +2419,10 @@ contains
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
     real(sp), dimension(:,:,:), allocatable :: data_matrix
-    integer(i4) :: i, n
+    integer(i4) :: i
     call self%input_read_chunk_by_ids_matrix_sp(name, data_matrix, t_index, t_size)
-    n = size(data_matrix, dim=3)
-    allocate(data(self%grid%ncells, n))
-    do i = 1_i4, n
+    allocate(data(self%grid%ncells, t_size))
+    do i = 1_i4, t_size
       data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
   end subroutine input_read_chunk_by_ids_pack_sp
@@ -2784,13 +2436,12 @@ contains
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
     real(sp), dimension(:,:,:,:), allocatable :: data_matrix
-    integer(i4) :: i, nl, layer_idx
+    integer(i4) :: i, j
     call self%input_read_chunk_by_ids_matrix_layered_sp(name, data_matrix, t_index, t_size)
-    nl = size(data_matrix, 3)
-    allocate(data(self%grid%ncells, nl, t_size))
+    allocate(data(self%grid%ncells, self%nlayers, t_size))
     do i = 1_i4, t_size
-      do layer_idx = 1_i4, nl
-        data(:, layer_idx, i) = pack(data_matrix(:,:,layer_idx,i), self%grid%mask)
+      do j = 1_i4, self%nlayers
+        data(:,j,i) = pack(data_matrix(:,:,j,i), self%grid%mask)
       end do
     end do
   end subroutine input_read_chunk_by_ids_pack_layered_sp
@@ -2808,9 +2459,6 @@ contains
     integer(i4) :: t_index
     t_index = 0_i4 ! indicate missing current_time
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
-    if (self%vars(var_index(self%vars, name, "input%read"))%nlayers > 0_i4) then
-      call error_message("input%read_matrix: layered variable requires layered read: ", name)
-    end if
     call self%vars(var_index(self%vars, name, "input%read"))%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
     data = read_data
   end subroutine input_read_matrix_dp
@@ -2820,16 +2468,14 @@ contains
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
-    real(dp), dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
+    real(dp), dimension(self%grid%nx, self%grid%ny, self%nlayers), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     real(dp), dimension(:,:,:), allocatable :: read_data
-    integer(i4) :: t_index, vidx
-    vidx = var_index(self%vars, name, "input%read_layered")
-    if (self%vars(vidx)%nlayers == 0_i4) call error_message("input%read_matrix_layered: variable not layered: ", name)
+    integer(i4) :: t_index
     t_index = 0_i4
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
-    call self%vars(vidx)%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
-    allocate(data(self%grid%nx, self%grid%ny, self%vars(vidx)%nlayers))
+    call self%vars(var_index(self%vars, name, "input%read_layered"))%read_layered(flip_y=self%flip_y, t_index=t_index,&
+        & data=read_data)
     data = read_data
   end subroutine input_read_matrix_layered_dp
 
@@ -2840,7 +2486,7 @@ contains
     character(*), intent(in) :: name !< name of the variable
     real(dp), dimension(self%grid%ncells), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
-    real(dp), dimension(self%grid%nx, self%grid%ny) :: data_matrix !< read data
+    real(dp), dimension(self%grid%nx, self%grid%ny) :: data_matrix
     call self%input_read_matrix_dp(name, data_matrix, current_time)
     data = pack(data_matrix, self%grid%mask)
   end subroutine input_read_pack_dp
@@ -2850,15 +2496,13 @@ contains
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
-    real(dp), dimension(:,:), allocatable, intent(out) :: data !< read data (ncells, layer)
+    real(dp), dimension(self%grid%ncells, self%nlayers), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
-    real(dp), dimension(:,:,:), allocatable :: data_matrix !< read data
-    integer(i4) :: nl, vidx, layer_idx
+    real(dp) :: data_matrix(self%grid%nx, self%grid%ny, self%nlayers)
+    integer(i4) :: i
     call self%input_read_matrix_layered_dp(name, data_matrix, current_time)
-    nl = size(data_matrix, 3)
-    allocate(data(self%grid%ncells, nl))
-    do layer_idx = 1_i4, nl
-      data(:, layer_idx) = pack(data_matrix(:,:,layer_idx), self%grid%mask)
+    do i = 1_i4, self%nlayers
+      data(:, i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
   end subroutine input_read_pack_layered_dp
 
@@ -2873,9 +2517,6 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
-    if (self%vars(var_index(self%vars, name, "input%read_chunk"))%nlayers > 0_i4) then
-      call error_message("input%read_chunk_matrix: layered variable requires layered read: ", name)
-    end if
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_dp(name, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_dp
@@ -2890,10 +2531,7 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
-    integer(i4) :: vidx
     if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
-    vidx = var_index(self%vars, name, "input%read_chunk_layered")
-    if (self%vars(vidx)%nlayers == 0_i4) call error_message("input%read_chunk_matrix_layered: variable not layered: ", name)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_layered_dp(name, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_layered_dp
@@ -2908,11 +2546,11 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     real(dp), dimension(:,:,:), allocatable :: data_matrix !< read data
-    integer(i4) :: i, n
+    integer(i4) :: i, nt
     call self%input_read_chunk_matrix_dp(name, data_matrix, timeframe_start, timeframe_end, times)
-    n = size(data_matrix, dim=3)
-    allocate(data(self%grid%ncells, n))
-    do i = 1_i4, n
+    nt = size(data_matrix, 3, kind=i4)
+    allocate(data(self%grid%ncells, nt))
+    do i = 1_i4, nt
       data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
   end subroutine input_read_chunk_pack_dp
@@ -2927,14 +2565,13 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     real(dp), dimension(:,:,:,:), allocatable :: data_matrix !< read data
-    integer(i4) :: i, nl, nt, layer_idx
+    integer(i4) :: i, j, nt
     call self%input_read_chunk_matrix_layered_dp(name, data_matrix, timeframe_start, timeframe_end, times)
-    nl = size(data_matrix, 3)
-    nt = size(data_matrix, 4)
-    allocate(data(self%grid%ncells, nl, nt))
+    nt = size(data_matrix,4, kind=i4)
+    allocate(data(self%grid%ncells, self%nlayers, nt))
     do i = 1_i4, nt
-      do layer_idx = 1_i4, nl
-        data(:, layer_idx, i) = pack(data_matrix(:,:,layer_idx,i), self%grid%mask)
+      do j = 1_i4, self%nlayers
+        data(:, j, i) = pack(data_matrix(:,:,j,i), self%grid%mask)
       end do
     end do
   end subroutine input_read_chunk_pack_layered_dp
@@ -2948,8 +2585,7 @@ contains
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
-    allocate(data(self%grid%nx, self%grid%ny, t_size))
-    call self%vars(var_index(self%vars, name, "input%read"))%read_chunk(self%flip_y, t_index, t_size, data)
+    call self%vars(var_index(self%vars, name, "input%read_chunk"))%read_chunk(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_dp
 
   !> \brief Read layered input variable chunk by ids
@@ -2962,9 +2598,7 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i4) :: vidx
     if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
-    vidx = var_index(self%vars, name, "input%read_chunk_layered")
-    if (self%vars(vidx)%nlayers == 0_i4) call error_message("input%read_chunk_by_ids_matrix_layered: variable not layered: ", name)
-    call self%vars(vidx)%read_chunk(self%flip_y, t_index, t_size, data)
+    call self%vars(var_index(self%vars, name, "input%read_chunk_layered"))%read_chunk_layered(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_layered_dp
 
   !> \brief Read an input variable for a given time frame
@@ -2976,11 +2610,10 @@ contains
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
     real(dp), dimension(:,:,:), allocatable :: data_matrix
-    integer(i4) :: i, n
+    integer(i4) :: i
     call self%input_read_chunk_by_ids_matrix_dp(name, data_matrix, t_index, t_size)
-    n = size(data_matrix, dim=3)
-    allocate(data(self%grid%ncells, n))
-    do i = 1_i4, n
+    allocate(data(self%grid%ncells, t_size))
+    do i = 1_i4, t_size
       data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
   end subroutine input_read_chunk_by_ids_pack_dp
@@ -2994,13 +2627,12 @@ contains
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
     real(dp), dimension(:,:,:,:), allocatable :: data_matrix
-    integer(i4) :: i, nl, layer_idx
+    integer(i4) :: i, j
     call self%input_read_chunk_by_ids_matrix_layered_dp(name, data_matrix, t_index, t_size)
-    nl = size(data_matrix, 3)
-    allocate(data(self%grid%ncells, nl, t_size))
+    allocate(data(self%grid%ncells, self%nlayers, t_size))
     do i = 1_i4, t_size
-      do layer_idx = 1_i4, nl
-        data(:, layer_idx, i) = pack(data_matrix(:,:,layer_idx,i), self%grid%mask)
+      do j = 1_i4, self%nlayers
+        data(:,j,i) = pack(data_matrix(:,:,j,i), self%grid%mask)
       end do
     end do
   end subroutine input_read_chunk_by_ids_pack_layered_dp
@@ -3018,9 +2650,6 @@ contains
     integer(i4) :: t_index
     t_index = 0_i4 ! indicate missing current_time
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
-    if (self%vars(var_index(self%vars, name, "input%read"))%nlayers > 0_i4) then
-      call error_message("input%read_matrix: layered variable requires layered read: ", name)
-    end if
     call self%vars(var_index(self%vars, name, "input%read"))%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
     data = read_data
   end subroutine input_read_matrix_i1
@@ -3030,16 +2659,14 @@ contains
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
-    integer(i1), dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
+    integer(i1), dimension(self%grid%nx, self%grid%ny, self%nlayers), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i1), dimension(:,:,:), allocatable :: read_data
-    integer(i4) :: t_index, vidx
-    vidx = var_index(self%vars, name, "input%read_layered")
-    if (self%vars(vidx)%nlayers == 0_i4) call error_message("input%read_matrix_layered: variable not layered: ", name)
+    integer(i4) :: t_index
     t_index = 0_i4
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
-    call self%vars(vidx)%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
-    allocate(data(self%grid%nx, self%grid%ny, self%vars(vidx)%nlayers))
+    call self%vars(var_index(self%vars, name, "input%read_layered"))%read_layered(flip_y=self%flip_y, t_index=t_index,&
+        & data=read_data)
     data = read_data
   end subroutine input_read_matrix_layered_i1
 
@@ -3050,7 +2677,7 @@ contains
     character(*), intent(in) :: name !< name of the variable
     integer(i1), dimension(self%grid%ncells), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
-    integer(i1), dimension(self%grid%nx, self%grid%ny) :: data_matrix !< read data
+    integer(i1), dimension(self%grid%nx, self%grid%ny) :: data_matrix
     call self%input_read_matrix_i1(name, data_matrix, current_time)
     data = pack(data_matrix, self%grid%mask)
   end subroutine input_read_pack_i1
@@ -3060,15 +2687,13 @@ contains
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
-    integer(i1), dimension(:,:), allocatable, intent(out) :: data !< read data (ncells, layer)
+    integer(i1), dimension(self%grid%ncells, self%nlayers), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
-    integer(i1), dimension(:,:,:), allocatable :: data_matrix !< read data
-    integer(i4) :: nl, vidx, layer_idx
+    integer(i1) :: data_matrix(self%grid%nx, self%grid%ny, self%nlayers)
+    integer(i4) :: i
     call self%input_read_matrix_layered_i1(name, data_matrix, current_time)
-    nl = size(data_matrix, 3)
-    allocate(data(self%grid%ncells, nl))
-    do layer_idx = 1_i4, nl
-      data(:, layer_idx) = pack(data_matrix(:,:,layer_idx), self%grid%mask)
+    do i = 1_i4, self%nlayers
+      data(:, i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
   end subroutine input_read_pack_layered_i1
 
@@ -3083,9 +2708,6 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
-    if (self%vars(var_index(self%vars, name, "input%read_chunk"))%nlayers > 0_i4) then
-      call error_message("input%read_chunk_matrix: layered variable requires layered read: ", name)
-    end if
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_i1(name, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_i1
@@ -3100,10 +2722,7 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
-    integer(i4) :: vidx
     if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
-    vidx = var_index(self%vars, name, "input%read_chunk_layered")
-    if (self%vars(vidx)%nlayers == 0_i4) call error_message("input%read_chunk_matrix_layered: variable not layered: ", name)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_layered_i1(name, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_layered_i1
@@ -3118,11 +2737,11 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i1), dimension(:,:,:), allocatable :: data_matrix !< read data
-    integer(i4) :: i, n
+    integer(i4) :: i, nt
     call self%input_read_chunk_matrix_i1(name, data_matrix, timeframe_start, timeframe_end, times)
-    n = size(data_matrix, dim=3)
-    allocate(data(self%grid%ncells, n))
-    do i = 1_i4, n
+    nt = size(data_matrix, 3, kind=i4)
+    allocate(data(self%grid%ncells, nt))
+    do i = 1_i4, nt
       data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
   end subroutine input_read_chunk_pack_i1
@@ -3137,14 +2756,13 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i1), dimension(:,:,:,:), allocatable :: data_matrix !< read data
-    integer(i4) :: i, nl, nt, layer_idx
+    integer(i4) :: i, j, nt
     call self%input_read_chunk_matrix_layered_i1(name, data_matrix, timeframe_start, timeframe_end, times)
-    nl = size(data_matrix, 3)
-    nt = size(data_matrix, 4)
-    allocate(data(self%grid%ncells, nl, nt))
+    nt = size(data_matrix,4, kind=i4)
+    allocate(data(self%grid%ncells, self%nlayers, nt))
     do i = 1_i4, nt
-      do layer_idx = 1_i4, nl
-        data(:, layer_idx, i) = pack(data_matrix(:,:,layer_idx,i), self%grid%mask)
+      do j = 1_i4, self%nlayers
+        data(:, j, i) = pack(data_matrix(:,:,j,i), self%grid%mask)
       end do
     end do
   end subroutine input_read_chunk_pack_layered_i1
@@ -3158,8 +2776,7 @@ contains
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
-    allocate(data(self%grid%nx, self%grid%ny, t_size))
-    call self%vars(var_index(self%vars, name, "input%read"))%read_chunk(self%flip_y, t_index, t_size, data)
+    call self%vars(var_index(self%vars, name, "input%read_chunk"))%read_chunk(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_i1
 
   !> \brief Read layered input variable chunk by ids
@@ -3172,9 +2789,7 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i4) :: vidx
     if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
-    vidx = var_index(self%vars, name, "input%read_chunk_layered")
-    if (self%vars(vidx)%nlayers == 0_i4) call error_message("input%read_chunk_by_ids_matrix_layered: variable not layered: ", name)
-    call self%vars(vidx)%read_chunk(self%flip_y, t_index, t_size, data)
+    call self%vars(var_index(self%vars, name, "input%read_chunk_layered"))%read_chunk_layered(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_layered_i1
 
   !> \brief Read an input variable for a given time frame
@@ -3186,11 +2801,10 @@ contains
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i1), dimension(:,:,:), allocatable :: data_matrix
-    integer(i4) :: i, n
+    integer(i4) :: i
     call self%input_read_chunk_by_ids_matrix_i1(name, data_matrix, t_index, t_size)
-    n = size(data_matrix, dim=3)
-    allocate(data(self%grid%ncells, n))
-    do i = 1_i4, n
+    allocate(data(self%grid%ncells, t_size))
+    do i = 1_i4, t_size
       data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
   end subroutine input_read_chunk_by_ids_pack_i1
@@ -3204,13 +2818,12 @@ contains
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i1), dimension(:,:,:,:), allocatable :: data_matrix
-    integer(i4) :: i, nl, layer_idx
+    integer(i4) :: i, j
     call self%input_read_chunk_by_ids_matrix_layered_i1(name, data_matrix, t_index, t_size)
-    nl = size(data_matrix, 3)
-    allocate(data(self%grid%ncells, nl, t_size))
+    allocate(data(self%grid%ncells, self%nlayers, t_size))
     do i = 1_i4, t_size
-      do layer_idx = 1_i4, nl
-        data(:, layer_idx, i) = pack(data_matrix(:,:,layer_idx,i), self%grid%mask)
+      do j = 1_i4, self%nlayers
+        data(:,j,i) = pack(data_matrix(:,:,j,i), self%grid%mask)
       end do
     end do
   end subroutine input_read_chunk_by_ids_pack_layered_i1
@@ -3228,9 +2841,6 @@ contains
     integer(i4) :: t_index
     t_index = 0_i4 ! indicate missing current_time
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
-    if (self%vars(var_index(self%vars, name, "input%read"))%nlayers > 0_i4) then
-      call error_message("input%read_matrix: layered variable requires layered read: ", name)
-    end if
     call self%vars(var_index(self%vars, name, "input%read"))%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
     data = read_data
   end subroutine input_read_matrix_i2
@@ -3240,16 +2850,14 @@ contains
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
-    integer(i2), dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
+    integer(i2), dimension(self%grid%nx, self%grid%ny, self%nlayers), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i2), dimension(:,:,:), allocatable :: read_data
-    integer(i4) :: t_index, vidx
-    vidx = var_index(self%vars, name, "input%read_layered")
-    if (self%vars(vidx)%nlayers == 0_i4) call error_message("input%read_matrix_layered: variable not layered: ", name)
+    integer(i4) :: t_index
     t_index = 0_i4
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
-    call self%vars(vidx)%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
-    allocate(data(self%grid%nx, self%grid%ny, self%vars(vidx)%nlayers))
+    call self%vars(var_index(self%vars, name, "input%read_layered"))%read_layered(flip_y=self%flip_y, t_index=t_index,&
+        & data=read_data)
     data = read_data
   end subroutine input_read_matrix_layered_i2
 
@@ -3260,7 +2868,7 @@ contains
     character(*), intent(in) :: name !< name of the variable
     integer(i2), dimension(self%grid%ncells), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
-    integer(i2), dimension(self%grid%nx, self%grid%ny) :: data_matrix !< read data
+    integer(i2), dimension(self%grid%nx, self%grid%ny) :: data_matrix
     call self%input_read_matrix_i2(name, data_matrix, current_time)
     data = pack(data_matrix, self%grid%mask)
   end subroutine input_read_pack_i2
@@ -3270,15 +2878,13 @@ contains
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
-    integer(i2), dimension(:,:), allocatable, intent(out) :: data !< read data (ncells, layer)
+    integer(i2), dimension(self%grid%ncells, self%nlayers), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
-    integer(i2), dimension(:,:,:), allocatable :: data_matrix !< read data
-    integer(i4) :: nl, vidx, layer_idx
+    integer(i2) :: data_matrix(self%grid%nx, self%grid%ny, self%nlayers)
+    integer(i4) :: i
     call self%input_read_matrix_layered_i2(name, data_matrix, current_time)
-    nl = size(data_matrix, 3)
-    allocate(data(self%grid%ncells, nl))
-    do layer_idx = 1_i4, nl
-      data(:, layer_idx) = pack(data_matrix(:,:,layer_idx), self%grid%mask)
+    do i = 1_i4, self%nlayers
+      data(:, i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
   end subroutine input_read_pack_layered_i2
 
@@ -3293,9 +2899,6 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
-    if (self%vars(var_index(self%vars, name, "input%read_chunk"))%nlayers > 0_i4) then
-      call error_message("input%read_chunk_matrix: layered variable requires layered read: ", name)
-    end if
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_i2(name, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_i2
@@ -3310,10 +2913,7 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
-    integer(i4) :: vidx
     if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
-    vidx = var_index(self%vars, name, "input%read_chunk_layered")
-    if (self%vars(vidx)%nlayers == 0_i4) call error_message("input%read_chunk_matrix_layered: variable not layered: ", name)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_layered_i2(name, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_layered_i2
@@ -3328,11 +2928,11 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i2), dimension(:,:,:), allocatable :: data_matrix !< read data
-    integer(i4) :: i, n
+    integer(i4) :: i, nt
     call self%input_read_chunk_matrix_i2(name, data_matrix, timeframe_start, timeframe_end, times)
-    n = size(data_matrix, dim=3)
-    allocate(data(self%grid%ncells, n))
-    do i = 1_i4, n
+    nt = size(data_matrix, 3, kind=i4)
+    allocate(data(self%grid%ncells, nt))
+    do i = 1_i4, nt
       data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
   end subroutine input_read_chunk_pack_i2
@@ -3347,14 +2947,13 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i2), dimension(:,:,:,:), allocatable :: data_matrix !< read data
-    integer(i4) :: i, nl, nt, layer_idx
+    integer(i4) :: i, j, nt
     call self%input_read_chunk_matrix_layered_i2(name, data_matrix, timeframe_start, timeframe_end, times)
-    nl = size(data_matrix, 3)
-    nt = size(data_matrix, 4)
-    allocate(data(self%grid%ncells, nl, nt))
+    nt = size(data_matrix,4, kind=i4)
+    allocate(data(self%grid%ncells, self%nlayers, nt))
     do i = 1_i4, nt
-      do layer_idx = 1_i4, nl
-        data(:, layer_idx, i) = pack(data_matrix(:,:,layer_idx,i), self%grid%mask)
+      do j = 1_i4, self%nlayers
+        data(:, j, i) = pack(data_matrix(:,:,j,i), self%grid%mask)
       end do
     end do
   end subroutine input_read_chunk_pack_layered_i2
@@ -3368,8 +2967,7 @@ contains
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
-    allocate(data(self%grid%nx, self%grid%ny, t_size))
-    call self%vars(var_index(self%vars, name, "input%read"))%read_chunk(self%flip_y, t_index, t_size, data)
+    call self%vars(var_index(self%vars, name, "input%read_chunk"))%read_chunk(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_i2
 
   !> \brief Read layered input variable chunk by ids
@@ -3382,9 +2980,7 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i4) :: vidx
     if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
-    vidx = var_index(self%vars, name, "input%read_chunk_layered")
-    if (self%vars(vidx)%nlayers == 0_i4) call error_message("input%read_chunk_by_ids_matrix_layered: variable not layered: ", name)
-    call self%vars(vidx)%read_chunk(self%flip_y, t_index, t_size, data)
+    call self%vars(var_index(self%vars, name, "input%read_chunk_layered"))%read_chunk_layered(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_layered_i2
 
   !> \brief Read an input variable for a given time frame
@@ -3396,11 +2992,10 @@ contains
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i2), dimension(:,:,:), allocatable :: data_matrix
-    integer(i4) :: i, n
+    integer(i4) :: i
     call self%input_read_chunk_by_ids_matrix_i2(name, data_matrix, t_index, t_size)
-    n = size(data_matrix, dim=3)
-    allocate(data(self%grid%ncells, n))
-    do i = 1_i4, n
+    allocate(data(self%grid%ncells, t_size))
+    do i = 1_i4, t_size
       data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
   end subroutine input_read_chunk_by_ids_pack_i2
@@ -3414,13 +3009,12 @@ contains
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i2), dimension(:,:,:,:), allocatable :: data_matrix
-    integer(i4) :: i, nl, layer_idx
+    integer(i4) :: i, j
     call self%input_read_chunk_by_ids_matrix_layered_i2(name, data_matrix, t_index, t_size)
-    nl = size(data_matrix, 3)
-    allocate(data(self%grid%ncells, nl, t_size))
+    allocate(data(self%grid%ncells, self%nlayers, t_size))
     do i = 1_i4, t_size
-      do layer_idx = 1_i4, nl
-        data(:, layer_idx, i) = pack(data_matrix(:,:,layer_idx,i), self%grid%mask)
+      do j = 1_i4, self%nlayers
+        data(:,j,i) = pack(data_matrix(:,:,j,i), self%grid%mask)
       end do
     end do
   end subroutine input_read_chunk_by_ids_pack_layered_i2
@@ -3438,9 +3032,6 @@ contains
     integer(i4) :: t_index
     t_index = 0_i4 ! indicate missing current_time
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
-    if (self%vars(var_index(self%vars, name, "input%read"))%nlayers > 0_i4) then
-      call error_message("input%read_matrix: layered variable requires layered read: ", name)
-    end if
     call self%vars(var_index(self%vars, name, "input%read"))%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
     data = read_data
   end subroutine input_read_matrix_i4
@@ -3450,16 +3041,14 @@ contains
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
-    integer(i4), dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
+    integer(i4), dimension(self%grid%nx, self%grid%ny, self%nlayers), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4), dimension(:,:,:), allocatable :: read_data
-    integer(i4) :: t_index, vidx
-    vidx = var_index(self%vars, name, "input%read_layered")
-    if (self%vars(vidx)%nlayers == 0_i4) call error_message("input%read_matrix_layered: variable not layered: ", name)
+    integer(i4) :: t_index
     t_index = 0_i4
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
-    call self%vars(vidx)%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
-    allocate(data(self%grid%nx, self%grid%ny, self%vars(vidx)%nlayers))
+    call self%vars(var_index(self%vars, name, "input%read_layered"))%read_layered(flip_y=self%flip_y, t_index=t_index,&
+        & data=read_data)
     data = read_data
   end subroutine input_read_matrix_layered_i4
 
@@ -3470,7 +3059,7 @@ contains
     character(*), intent(in) :: name !< name of the variable
     integer(i4), dimension(self%grid%ncells), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
-    integer(i4), dimension(self%grid%nx, self%grid%ny) :: data_matrix !< read data
+    integer(i4), dimension(self%grid%nx, self%grid%ny) :: data_matrix
     call self%input_read_matrix_i4(name, data_matrix, current_time)
     data = pack(data_matrix, self%grid%mask)
   end subroutine input_read_pack_i4
@@ -3480,15 +3069,13 @@ contains
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
-    integer(i4), dimension(:,:), allocatable, intent(out) :: data !< read data (ncells, layer)
+    integer(i4), dimension(self%grid%ncells, self%nlayers), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
-    integer(i4), dimension(:,:,:), allocatable :: data_matrix !< read data
-    integer(i4) :: nl, vidx, layer_idx
+    integer(i4) :: data_matrix(self%grid%nx, self%grid%ny, self%nlayers)
+    integer(i4) :: i
     call self%input_read_matrix_layered_i4(name, data_matrix, current_time)
-    nl = size(data_matrix, 3)
-    allocate(data(self%grid%ncells, nl))
-    do layer_idx = 1_i4, nl
-      data(:, layer_idx) = pack(data_matrix(:,:,layer_idx), self%grid%mask)
+    do i = 1_i4, self%nlayers
+      data(:, i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
   end subroutine input_read_pack_layered_i4
 
@@ -3503,9 +3090,6 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
-    if (self%vars(var_index(self%vars, name, "input%read_chunk"))%nlayers > 0_i4) then
-      call error_message("input%read_chunk_matrix: layered variable requires layered read: ", name)
-    end if
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_i4(name, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_i4
@@ -3520,10 +3104,7 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
-    integer(i4) :: vidx
     if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
-    vidx = var_index(self%vars, name, "input%read_chunk_layered")
-    if (self%vars(vidx)%nlayers == 0_i4) call error_message("input%read_chunk_matrix_layered: variable not layered: ", name)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_layered_i4(name, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_layered_i4
@@ -3538,11 +3119,11 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4), dimension(:,:,:), allocatable :: data_matrix !< read data
-    integer(i4) :: i, n
+    integer(i4) :: i, nt
     call self%input_read_chunk_matrix_i4(name, data_matrix, timeframe_start, timeframe_end, times)
-    n = size(data_matrix, dim=3)
-    allocate(data(self%grid%ncells, n))
-    do i = 1_i4, n
+    nt = size(data_matrix, 3, kind=i4)
+    allocate(data(self%grid%ncells, nt))
+    do i = 1_i4, nt
       data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
   end subroutine input_read_chunk_pack_i4
@@ -3557,14 +3138,13 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4), dimension(:,:,:,:), allocatable :: data_matrix !< read data
-    integer(i4) :: i, nl, nt, layer_idx
+    integer(i4) :: i, j, nt
     call self%input_read_chunk_matrix_layered_i4(name, data_matrix, timeframe_start, timeframe_end, times)
-    nl = size(data_matrix, 3)
-    nt = size(data_matrix, 4)
-    allocate(data(self%grid%ncells, nl, nt))
+    nt = size(data_matrix,4, kind=i4)
+    allocate(data(self%grid%ncells, self%nlayers, nt))
     do i = 1_i4, nt
-      do layer_idx = 1_i4, nl
-        data(:, layer_idx, i) = pack(data_matrix(:,:,layer_idx,i), self%grid%mask)
+      do j = 1_i4, self%nlayers
+        data(:, j, i) = pack(data_matrix(:,:,j,i), self%grid%mask)
       end do
     end do
   end subroutine input_read_chunk_pack_layered_i4
@@ -3578,8 +3158,7 @@ contains
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
-    allocate(data(self%grid%nx, self%grid%ny, t_size))
-    call self%vars(var_index(self%vars, name, "input%read"))%read_chunk(self%flip_y, t_index, t_size, data)
+    call self%vars(var_index(self%vars, name, "input%read_chunk"))%read_chunk(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_i4
 
   !> \brief Read layered input variable chunk by ids
@@ -3592,9 +3171,7 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i4) :: vidx
     if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
-    vidx = var_index(self%vars, name, "input%read_chunk_layered")
-    if (self%vars(vidx)%nlayers == 0_i4) call error_message("input%read_chunk_by_ids_matrix_layered: variable not layered: ", name)
-    call self%vars(vidx)%read_chunk(self%flip_y, t_index, t_size, data)
+    call self%vars(var_index(self%vars, name, "input%read_chunk_layered"))%read_chunk_layered(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_layered_i4
 
   !> \brief Read an input variable for a given time frame
@@ -3606,11 +3183,10 @@ contains
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i4), dimension(:,:,:), allocatable :: data_matrix
-    integer(i4) :: i, n
+    integer(i4) :: i
     call self%input_read_chunk_by_ids_matrix_i4(name, data_matrix, t_index, t_size)
-    n = size(data_matrix, dim=3)
-    allocate(data(self%grid%ncells, n))
-    do i = 1_i4, n
+    allocate(data(self%grid%ncells, t_size))
+    do i = 1_i4, t_size
       data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
   end subroutine input_read_chunk_by_ids_pack_i4
@@ -3624,13 +3200,12 @@ contains
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i4), dimension(:,:,:,:), allocatable :: data_matrix
-    integer(i4) :: i, nl, layer_idx
+    integer(i4) :: i, j
     call self%input_read_chunk_by_ids_matrix_layered_i4(name, data_matrix, t_index, t_size)
-    nl = size(data_matrix, 3)
-    allocate(data(self%grid%ncells, nl, t_size))
+    allocate(data(self%grid%ncells, self%nlayers, t_size))
     do i = 1_i4, t_size
-      do layer_idx = 1_i4, nl
-        data(:, layer_idx, i) = pack(data_matrix(:,:,layer_idx,i), self%grid%mask)
+      do j = 1_i4, self%nlayers
+        data(:,j,i) = pack(data_matrix(:,:,j,i), self%grid%mask)
       end do
     end do
   end subroutine input_read_chunk_by_ids_pack_layered_i4
@@ -3648,9 +3223,6 @@ contains
     integer(i4) :: t_index
     t_index = 0_i4 ! indicate missing current_time
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
-    if (self%vars(var_index(self%vars, name, "input%read"))%nlayers > 0_i4) then
-      call error_message("input%read_matrix: layered variable requires layered read: ", name)
-    end if
     call self%vars(var_index(self%vars, name, "input%read"))%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
     data = read_data
   end subroutine input_read_matrix_i8
@@ -3660,16 +3232,14 @@ contains
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
-    integer(i8), dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
+    integer(i8), dimension(self%grid%nx, self%grid%ny, self%nlayers), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i8), dimension(:,:,:), allocatable :: read_data
-    integer(i4) :: t_index, vidx
-    vidx = var_index(self%vars, name, "input%read_layered")
-    if (self%vars(vidx)%nlayers == 0_i4) call error_message("input%read_matrix_layered: variable not layered: ", name)
+    integer(i4) :: t_index
     t_index = 0_i4
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
-    call self%vars(vidx)%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
-    allocate(data(self%grid%nx, self%grid%ny, self%vars(vidx)%nlayers))
+    call self%vars(var_index(self%vars, name, "input%read_layered"))%read_layered(flip_y=self%flip_y, t_index=t_index,&
+        & data=read_data)
     data = read_data
   end subroutine input_read_matrix_layered_i8
 
@@ -3680,7 +3250,7 @@ contains
     character(*), intent(in) :: name !< name of the variable
     integer(i8), dimension(self%grid%ncells), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
-    integer(i8), dimension(self%grid%nx, self%grid%ny) :: data_matrix !< read data
+    integer(i8), dimension(self%grid%nx, self%grid%ny) :: data_matrix
     call self%input_read_matrix_i8(name, data_matrix, current_time)
     data = pack(data_matrix, self%grid%mask)
   end subroutine input_read_pack_i8
@@ -3690,15 +3260,13 @@ contains
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
-    integer(i8), dimension(:,:), allocatable, intent(out) :: data !< read data (ncells, layer)
+    integer(i8), dimension(self%grid%ncells, self%nlayers), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
-    integer(i8), dimension(:,:,:), allocatable :: data_matrix !< read data
-    integer(i4) :: nl, vidx, layer_idx
+    integer(i8) :: data_matrix(self%grid%nx, self%grid%ny, self%nlayers)
+    integer(i4) :: i
     call self%input_read_matrix_layered_i8(name, data_matrix, current_time)
-    nl = size(data_matrix, 3)
-    allocate(data(self%grid%ncells, nl))
-    do layer_idx = 1_i4, nl
-      data(:, layer_idx) = pack(data_matrix(:,:,layer_idx), self%grid%mask)
+    do i = 1_i4, self%nlayers
+      data(:, i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
   end subroutine input_read_pack_layered_i8
 
@@ -3713,9 +3281,6 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
-    if (self%vars(var_index(self%vars, name, "input%read_chunk"))%nlayers > 0_i4) then
-      call error_message("input%read_chunk_matrix: layered variable requires layered read: ", name)
-    end if
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_i8(name, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_i8
@@ -3730,10 +3295,7 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
-    integer(i4) :: vidx
     if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
-    vidx = var_index(self%vars, name, "input%read_chunk_layered")
-    if (self%vars(vidx)%nlayers == 0_i4) call error_message("input%read_chunk_matrix_layered: variable not layered: ", name)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_layered_i8(name, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_layered_i8
@@ -3748,11 +3310,11 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i8), dimension(:,:,:), allocatable :: data_matrix !< read data
-    integer(i4) :: i, n
+    integer(i4) :: i, nt
     call self%input_read_chunk_matrix_i8(name, data_matrix, timeframe_start, timeframe_end, times)
-    n = size(data_matrix, dim=3)
-    allocate(data(self%grid%ncells, n))
-    do i = 1_i4, n
+    nt = size(data_matrix, 3, kind=i4)
+    allocate(data(self%grid%ncells, nt))
+    do i = 1_i4, nt
       data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
   end subroutine input_read_chunk_pack_i8
@@ -3767,14 +3329,13 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i8), dimension(:,:,:,:), allocatable :: data_matrix !< read data
-    integer(i4) :: i, nl, nt, layer_idx
+    integer(i4) :: i, j, nt
     call self%input_read_chunk_matrix_layered_i8(name, data_matrix, timeframe_start, timeframe_end, times)
-    nl = size(data_matrix, 3)
-    nt = size(data_matrix, 4)
-    allocate(data(self%grid%ncells, nl, nt))
+    nt = size(data_matrix,4, kind=i4)
+    allocate(data(self%grid%ncells, self%nlayers, nt))
     do i = 1_i4, nt
-      do layer_idx = 1_i4, nl
-        data(:, layer_idx, i) = pack(data_matrix(:,:,layer_idx,i), self%grid%mask)
+      do j = 1_i4, self%nlayers
+        data(:, j, i) = pack(data_matrix(:,:,j,i), self%grid%mask)
       end do
     end do
   end subroutine input_read_chunk_pack_layered_i8
@@ -3788,8 +3349,7 @@ contains
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
-    allocate(data(self%grid%nx, self%grid%ny, t_size))
-    call self%vars(var_index(self%vars, name, "input%read"))%read_chunk(self%flip_y, t_index, t_size, data)
+    call self%vars(var_index(self%vars, name, "input%read_chunk"))%read_chunk(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_i8
 
   !> \brief Read layered input variable chunk by ids
@@ -3802,9 +3362,7 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i4) :: vidx
     if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
-    vidx = var_index(self%vars, name, "input%read_chunk_layered")
-    if (self%vars(vidx)%nlayers == 0_i4) call error_message("input%read_chunk_by_ids_matrix_layered: variable not layered: ", name)
-    call self%vars(vidx)%read_chunk(self%flip_y, t_index, t_size, data)
+    call self%vars(var_index(self%vars, name, "input%read_chunk_layered"))%read_chunk_layered(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_layered_i8
 
   !> \brief Read an input variable for a given time frame
@@ -3816,11 +3374,10 @@ contains
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i8), dimension(:,:,:), allocatable :: data_matrix
-    integer(i4) :: i, n
+    integer(i4) :: i
     call self%input_read_chunk_by_ids_matrix_i8(name, data_matrix, t_index, t_size)
-    n = size(data_matrix, dim=3)
-    allocate(data(self%grid%ncells, n))
-    do i = 1_i4, n
+    allocate(data(self%grid%ncells, t_size))
+    do i = 1_i4, t_size
       data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
   end subroutine input_read_chunk_by_ids_pack_i8
@@ -3834,13 +3391,12 @@ contains
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i8), dimension(:,:,:,:), allocatable :: data_matrix
-    integer(i4) :: i, nl, layer_idx
+    integer(i4) :: i, j
     call self%input_read_chunk_by_ids_matrix_layered_i8(name, data_matrix, t_index, t_size)
-    nl = size(data_matrix, 3)
-    allocate(data(self%grid%ncells, nl, t_size))
+    allocate(data(self%grid%ncells, self%nlayers, t_size))
     do i = 1_i4, t_size
-      do layer_idx = 1_i4, nl
-        data(:, layer_idx, i) = pack(data_matrix(:,:,layer_idx,i), self%grid%mask)
+      do j = 1_i4, self%nlayers
+        data(:,j,i) = pack(data_matrix(:,:,j,i), self%grid%mask)
       end do
     end do
   end subroutine input_read_chunk_by_ids_pack_layered_i8
