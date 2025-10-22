@@ -61,6 +61,8 @@ MODULE mo_utils
   interface flip
     procedure flip_1D_sp, flip_2D_sp, flip_3D_sp, flip_4D_sp
     procedure flip_1D_dp, flip_2D_dp, flip_3D_dp, flip_4D_dp
+    procedure flip_1D_i1, flip_2D_i1, flip_3D_i1, flip_4D_i1
+    procedure flip_1D_i2, flip_2D_i2, flip_3D_i2, flip_4D_i2
     procedure flip_1D_i4, flip_2D_i4, flip_3D_i4, flip_4D_i4
     procedure flip_1D_i8, flip_2D_i8, flip_3D_i8, flip_4D_i8
     procedure flip_1D_lgt, flip_2D_lgt, flip_3D_lgt, flip_4D_lgt
@@ -70,8 +72,9 @@ MODULE mo_utils
   interface flipped
     procedure flipped_1D_sp, flipped_2D_sp, flipped_3D_sp, flipped_4D_sp
     procedure flipped_1D_dp, flipped_2D_dp, flipped_3D_dp, flipped_4D_dp
+    procedure flipped_1D_i1, flipped_2D_i1, flipped_3D_i1, flipped_4D_i1
     procedure flipped_1D_i4, flipped_2D_i4, flipped_3D_i4, flipped_4D_i4
-    procedure flipped_1D_i8, flipped_2D_i8, flipped_3D_i8, flipped_4D_i8
+    procedure flipped_1D_i2, flipped_2D_i2, flipped_3D_i2, flipped_4D_i2
     procedure flipped_1D_lgt, flipped_2D_lgt, flipped_3D_lgt, flipped_4D_lgt
   end interface
 
@@ -1761,6 +1764,262 @@ CONTAINS
     end select
   end subroutine flip_4D_dp
 
+  subroutine flip_1D_i1(data, iDim)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: error_message
+    integer(i1), dimension(:), intent(inout) :: data
+    integer(i4), intent(in) :: iDim
+    integer(i8) :: i, n
+    integer(i1) :: tmp
+
+    if (iDim > 1_i4) then
+      call error_message('Cannot flip 1D-array at dimension ', compress(trim(num2str(iDim))))
+    end if
+
+    n = size(data)
+    do i = 1_i8, n / 2_i8
+      tmp = data(i)
+      data(i) = data(n - i + 1_i8)
+      data(n - i + 1_i8) = tmp
+    end do
+  end subroutine flip_1D_i1
+
+  subroutine flip_2D_i1(data, iDim)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: error_message
+    integer(i1), dimension(:, :), intent(inout) :: data
+    integer(i4), intent(in) :: iDim
+    integer(i8) :: i, j, n1, n2
+    integer(i1) :: tmp
+
+    n1 = size(data, 1)
+    n2 = size(data, 2)
+
+    select case (iDim)
+      case (1_i4)
+        do j = 1_i8, n2; do i = 1_i8, n1 / 2_i8
+          tmp = data(i, j)
+          data(i, j) = data(n1 - i + 1_i8, j)
+          data(n1 - i + 1_i8, j) = tmp
+        end do; end do
+      case (2_i4)
+        do i = 1_i8, n1; do j = 1_i8, n2 / 2_i8
+          tmp = data(i, j)
+          data(i, j) = data(i, n2 - j + 1_i8)
+          data(i, n2 - j + 1_i8) = tmp
+        end do; end do
+      case default
+        call error_message('Cannot flip 2D-array at dimension ', compress(trim(num2str(iDim))))
+    end select
+  end subroutine flip_2D_i1
+
+  subroutine flip_3D_i1(data, iDim)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: error_message
+    integer(i1), dimension(:, :, :), intent(inout) :: data
+    integer(i4), intent(in) :: iDim
+    integer(i8) :: i, j, k, n1, n2, n3
+    integer(i1) :: tmp
+
+    n1 = size(data, 1)
+    n2 = size(data, 2)
+    n3 = size(data, 3)
+
+    select case (iDim)
+      case (1_i4)
+        do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1 / 2_i8
+          tmp = data(i, j, k)
+          data(i, j, k) = data(n1 - i + 1_i8, j, k)
+          data(n1 - i + 1_i8, j, k) = tmp
+        end do; end do; end do
+      case (2_i4)
+        do k = 1_i8, n3; do j = 1_i8, n2 / 2_i8; do i = 1_i8, n1
+          tmp = data(i, j, k)
+          data(i, j, k) = data(i, n2 - j + 1_i8, k)
+          data(i, n2 - j + 1_i8, k) = tmp
+        end do; end do; end do
+      case (3_i4)
+        do k = 1_i8, n3 / 2_i8; do j = 1_i8, n2; do i = 1_i8, n1
+          tmp = data(i, j, k)
+          data(i, j, k) = data(i, j, n3 - k + 1_i8)
+          data(i, j, n3 - k + 1_i8) = tmp
+        end do; end do; end do
+      case default
+        call error_message('Cannot flip 3D-array at dimension ', compress(trim(num2str(iDim))))
+    end select
+  end subroutine flip_3D_i1
+
+  subroutine flip_4D_i1(data, iDim)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: error_message
+    integer(i1), dimension(:, :, :, :), intent(inout) :: data
+    integer(i4), intent(in) :: iDim
+    integer(i8) :: i, j, k, l, n1, n2, n3, n4
+    integer(i1) :: tmp
+
+    n1 = size(data, 1)
+    n2 = size(data, 2)
+    n3 = size(data, 3)
+    n4 = size(data, 4)
+
+    select case (iDim)
+      case (1_i4)
+        do l = 1_i8, n4; do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1 / 2_i8
+          tmp = data(i, j, k, l)
+          data(i, j, k, l) = data(n1 - i + 1_i8, j, k, l)
+          data(n1 - i + 1_i8, j, k, l) = tmp
+        end do; end do; end do; end do
+      case (2_i4)
+        do l = 1_i8, n4; do k = 1_i8, n3; do j = 1_i8, n2 / 2_i8; do i = 1_i8, n1
+          tmp = data(i, j, k, l)
+          data(i, j, k, l) = data(i, n2 - j + 1_i8, k, l)
+          data(i, n2 - j + 1_i8, k, l) = tmp
+        end do; end do; end do; end do
+      case (3_i4)
+        do l = 1_i8, n4; do k = 1_i8, n3 / 2_i8; do j = 1_i8, n2; do i = 1_i8, n1
+          tmp = data(i, j, k, l)
+          data(i, j, k, l) = data(i, j, n3 - k + 1_i8, l)
+          data(i, j, n3 - k + 1_i8, l) = tmp
+        end do; end do; end do; end do
+      case (4_i4)
+        do l = 1_i8, n4 / 2_i8; do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1
+          tmp = data(i, j, k, l)
+          data(i, j, k, l) = data(i, j, k, n4 - l + 1_i8)
+          data(i, j, k, n4 - l + 1_i8) = tmp
+        end do; end do; end do; end do
+      case default
+        call error_message('Cannot flip 4D-array at dimension ', compress(trim(num2str(iDim))))
+    end select
+  end subroutine flip_4D_i1
+
+  subroutine flip_1D_i2(data, iDim)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: error_message
+    integer(i2), dimension(:), intent(inout) :: data
+    integer(i4), intent(in) :: iDim
+    integer(i8) :: i, n
+    integer(i2) :: tmp
+
+    if (iDim > 1_i4) then
+      call error_message('Cannot flip 1D-array at dimension ', compress(trim(num2str(iDim))))
+    end if
+
+    n = size(data)
+    do i = 1_i8, n / 2_i8
+      tmp = data(i)
+      data(i) = data(n - i + 1_i8)
+      data(n - i + 1_i8) = tmp
+    end do
+  end subroutine flip_1D_i2
+
+  subroutine flip_2D_i2(data, iDim)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: error_message
+    integer(i2), dimension(:, :), intent(inout) :: data
+    integer(i4), intent(in) :: iDim
+    integer(i8) :: i, j, n1, n2
+    integer(i2) :: tmp
+
+    n1 = size(data, 1)
+    n2 = size(data, 2)
+
+    select case (iDim)
+      case (1_i4)
+        do j = 1_i8, n2; do i = 1_i8, n1 / 2_i8
+          tmp = data(i, j)
+          data(i, j) = data(n1 - i + 1_i8, j)
+          data(n1 - i + 1_i8, j) = tmp
+        end do; end do
+      case (2_i4)
+        do i = 1_i8, n1; do j = 1_i8, n2 / 2_i8
+          tmp = data(i, j)
+          data(i, j) = data(i, n2 - j + 1_i8)
+          data(i, n2 - j + 1_i8) = tmp
+        end do; end do
+      case default
+        call error_message('Cannot flip 2D-array at dimension ', compress(trim(num2str(iDim))))
+    end select
+  end subroutine flip_2D_i2
+
+  subroutine flip_3D_i2(data, iDim)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: error_message
+    integer(i2), dimension(:, :, :), intent(inout) :: data
+    integer(i4), intent(in) :: iDim
+    integer(i8) :: i, j, k, n1, n2, n3
+    integer(i2) :: tmp
+
+    n1 = size(data, 1)
+    n2 = size(data, 2)
+    n3 = size(data, 3)
+
+    select case (iDim)
+      case (1_i4)
+        do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1 / 2_i8
+          tmp = data(i, j, k)
+          data(i, j, k) = data(n1 - i + 1_i8, j, k)
+          data(n1 - i + 1_i8, j, k) = tmp
+        end do; end do; end do
+      case (2_i4)
+        do k = 1_i8, n3; do j = 1_i8, n2 / 2_i8; do i = 1_i8, n1
+          tmp = data(i, j, k)
+          data(i, j, k) = data(i, n2 - j + 1_i8, k)
+          data(i, n2 - j + 1_i8, k) = tmp
+        end do; end do; end do
+      case (3_i4)
+        do k = 1_i8, n3 / 2_i8; do j = 1_i8, n2; do i = 1_i8, n1
+          tmp = data(i, j, k)
+          data(i, j, k) = data(i, j, n3 - k + 1_i8)
+          data(i, j, n3 - k + 1_i8) = tmp
+        end do; end do; end do
+      case default
+        call error_message('Cannot flip 3D-array at dimension ', compress(trim(num2str(iDim))))
+    end select
+  end subroutine flip_3D_i2
+
+  subroutine flip_4D_i2(data, iDim)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: error_message
+    integer(i2), dimension(:, :, :, :), intent(inout) :: data
+    integer(i4), intent(in) :: iDim
+    integer(i8) :: i, j, k, l, n1, n2, n3, n4
+    integer(i2) :: tmp
+
+    n1 = size(data, 1)
+    n2 = size(data, 2)
+    n3 = size(data, 3)
+    n4 = size(data, 4)
+
+    select case (iDim)
+      case (1_i4)
+        do l = 1_i8, n4; do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1 / 2_i8
+          tmp = data(i, j, k, l)
+          data(i, j, k, l) = data(n1 - i + 1_i8, j, k, l)
+          data(n1 - i + 1_i8, j, k, l) = tmp
+        end do; end do; end do; end do
+      case (2_i4)
+        do l = 1_i8, n4; do k = 1_i8, n3; do j = 1_i8, n2 / 2_i8; do i = 1_i8, n1
+          tmp = data(i, j, k, l)
+          data(i, j, k, l) = data(i, n2 - j + 1_i8, k, l)
+          data(i, n2 - j + 1_i8, k, l) = tmp
+        end do; end do; end do; end do
+      case (3_i4)
+        do l = 1_i8, n4; do k = 1_i8, n3 / 2_i8; do j = 1_i8, n2; do i = 1_i8, n1
+          tmp = data(i, j, k, l)
+          data(i, j, k, l) = data(i, j, n3 - k + 1_i8, l)
+          data(i, j, n3 - k + 1_i8, l) = tmp
+        end do; end do; end do; end do
+      case (4_i4)
+        do l = 1_i8, n4 / 2_i8; do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1
+          tmp = data(i, j, k, l)
+          data(i, j, k, l) = data(i, j, k, n4 - l + 1_i8)
+          data(i, j, k, n4 - l + 1_i8) = tmp
+        end do; end do; end do; end do
+      case default
+        call error_message('Cannot flip 4D-array at dimension ', compress(trim(num2str(iDim))))
+    end select
+  end subroutine flip_4D_i2
+
   subroutine flip_1D_i4(data, iDim)
     use mo_string_utils, only: compress, num2str
     use mo_message, only: error_message
@@ -2360,6 +2619,222 @@ CONTAINS
         call error_message('Cannot flip 4D-array at dimension '//compress(trim(num2str(iDim))))
     end select
   end function flipped_4D_dp
+
+  function flipped_1D_i1(data, iDim) result(flip_data)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: error_message
+    integer(i1), dimension(:), intent(in) :: data
+    integer(i4), intent(in) :: iDim
+    integer(i1), dimension(size(data)) :: flip_data
+    integer(i8) :: i, n
+
+    if (iDim > 1_i4) then
+      call error_message('Cannot flip 1D-array at dimension '//compress(trim(num2str(iDim))))
+    end if
+
+    n = size(data)
+    do i = 1_i8, n
+      flip_data(n - i + 1_i8) = data(i)
+    end do
+  end function flipped_1D_i1
+
+  function flipped_2D_i1(data, iDim) result(flip_data)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: error_message
+    integer(i1), dimension(:, :), intent(in) :: data
+    integer(i4), intent(in) :: iDim
+    integer(i1), dimension(size(data, 1), size(data, 2)) :: flip_data
+    integer(i8) :: i, j, n1, n2
+
+    n1 = size(data, 1)
+    n2 = size(data, 2)
+
+    select case (iDim)
+      case (1_i4)
+        do j = 1_i8, n2; do i = 1_i8, n1
+          flip_data(n1 - i + 1_i8, j) = data(i, j)
+        end do; end do
+      case (2_i4)
+        do i = 1_i8, n1; do j = 1_i8, n2
+          flip_data(i, n2 - j + 1_i8) = data(i, j)
+        end do; end do
+      case default
+        call error_message('Cannot flip 2D-array at dimension '//compress(trim(num2str(iDim))))
+    end select
+  end function flipped_2D_i1
+
+  function flipped_3D_i1(data, iDim) result(flip_data)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: error_message
+    integer(i1), dimension(:, :, :), intent(in) :: data
+    integer(i4), intent(in) :: iDim
+    integer(i1), dimension(size(data, 1), size(data, 2), size(data, 3)) :: flip_data
+    integer(i8) :: i, j, k, n1, n2, n3
+
+    n1 = size(data, 1)
+    n2 = size(data, 2)
+    n3 = size(data, 3)
+
+    select case (iDim)
+      case (1_i4)
+        do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1
+          flip_data(n1 - i + 1_i8, j, k) = data(i, j, k)
+        end do; end do; end do
+      case (2_i4)
+        do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1
+          flip_data(i, n2 - j + 1_i8, k) = data(i, j, k)
+        end do; end do; end do
+      case (3_i4)
+        do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1
+          flip_data(i, j, n3 - k + 1_i8) = data(i, j, k)
+        end do; end do; end do
+      case default
+        call error_message('Cannot flip 3D-array at dimension '//compress(trim(num2str(iDim))))
+    end select
+  end function flipped_3D_i1
+
+  function flipped_4D_i1(data, iDim) result(flip_data)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: error_message
+    integer(i1), dimension(:, :, :, :), intent(in) :: data
+    integer(i4), intent(in) :: iDim
+    integer(i1), dimension(size(data, 1), size(data, 2), size(data, 3), size(data, 4)) :: flip_data
+    integer(i8) :: i, j, k, l, n1, n2, n3, n4
+
+    n1 = size(data, 1)
+    n2 = size(data, 2)
+    n3 = size(data, 3)
+    n4 = size(data, 4)
+
+    select case (iDim)
+      case (1_i4)
+        do l = 1_i8, n4; do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1
+          flip_data(n1 - i + 1_i8, j, k, l) = data(i, j, k, l)
+        end do; end do; end do; end do
+      case (2_i4)
+        do l = 1_i8, n4; do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1
+          flip_data(i, n2 - j + 1_i8, k, l) = data(i, j, k, l)
+        end do; end do; end do; end do
+      case (3_i4)
+        do l = 1_i8, n4; do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1
+          flip_data(i, j, n3 - k + 1_i8, l) = data(i, j, k, l)
+        end do; end do; end do; end do
+      case (4_i4)
+        do l = 1_i8, n4; do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1
+          flip_data(i, j, k, n4 - l + 1_i8) = data(i, j, k, l)
+        end do; end do; end do; end do
+      case default
+        call error_message('Cannot flip 4D-array at dimension '//compress(trim(num2str(iDim))))
+    end select
+  end function flipped_4D_i1
+
+  function flipped_1D_i2(data, iDim) result(flip_data)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: error_message
+    integer(i2), dimension(:), intent(in) :: data
+    integer(i4), intent(in) :: iDim
+    integer(i2), dimension(size(data)) :: flip_data
+    integer(i8) :: i, n
+
+    if (iDim > 1_i4) then
+      call error_message('Cannot flip 1D-array at dimension '//compress(trim(num2str(iDim))))
+    end if
+
+    n = size(data)
+    do i = 1_i8, n
+      flip_data(n - i + 1_i8) = data(i)
+    end do
+  end function flipped_1D_i2
+
+  function flipped_2D_i2(data, iDim) result(flip_data)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: error_message
+    integer(i2), dimension(:, :), intent(in) :: data
+    integer(i4), intent(in) :: iDim
+    integer(i2), dimension(size(data, 1), size(data, 2)) :: flip_data
+    integer(i8) :: i, j, n1, n2
+
+    n1 = size(data, 1)
+    n2 = size(data, 2)
+
+    select case (iDim)
+      case (1_i4)
+        do j = 1_i8, n2; do i = 1_i8, n1
+          flip_data(n1 - i + 1_i8, j) = data(i, j)
+        end do; end do
+      case (2_i4)
+        do i = 1_i8, n1; do j = 1_i8, n2
+          flip_data(i, n2 - j + 1_i8) = data(i, j)
+        end do; end do
+      case default
+        call error_message('Cannot flip 2D-array at dimension '//compress(trim(num2str(iDim))))
+    end select
+  end function flipped_2D_i2
+
+  function flipped_3D_i2(data, iDim) result(flip_data)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: error_message
+    integer(i2), dimension(:, :, :), intent(in) :: data
+    integer(i4), intent(in) :: iDim
+    integer(i2), dimension(size(data, 1), size(data, 2), size(data, 3)) :: flip_data
+    integer(i8) :: i, j, k, n1, n2, n3
+
+    n1 = size(data, 1)
+    n2 = size(data, 2)
+    n3 = size(data, 3)
+
+    select case (iDim)
+      case (1_i4)
+        do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1
+          flip_data(n1 - i + 1_i8, j, k) = data(i, j, k)
+        end do; end do; end do
+      case (2_i4)
+        do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1
+          flip_data(i, n2 - j + 1_i8, k) = data(i, j, k)
+        end do; end do; end do
+      case (3_i4)
+        do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1
+          flip_data(i, j, n3 - k + 1_i8) = data(i, j, k)
+        end do; end do; end do
+      case default
+        call error_message('Cannot flip 3D-array at dimension '//compress(trim(num2str(iDim))))
+    end select
+  end function flipped_3D_i2
+
+  function flipped_4D_i2(data, iDim) result(flip_data)
+    use mo_string_utils, only: compress, num2str
+    use mo_message, only: error_message
+    integer(i2), dimension(:, :, :, :), intent(in) :: data
+    integer(i4), intent(in) :: iDim
+    integer(i2), dimension(size(data, 1), size(data, 2), size(data, 3), size(data, 4)) :: flip_data
+    integer(i8) :: i, j, k, l, n1, n2, n3, n4
+
+    n1 = size(data, 1)
+    n2 = size(data, 2)
+    n3 = size(data, 3)
+    n4 = size(data, 4)
+
+    select case (iDim)
+      case (1_i4)
+        do l = 1_i8, n4; do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1
+          flip_data(n1 - i + 1_i8, j, k, l) = data(i, j, k, l)
+        end do; end do; end do; end do
+      case (2_i4)
+        do l = 1_i8, n4; do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1
+          flip_data(i, n2 - j + 1_i8, k, l) = data(i, j, k, l)
+        end do; end do; end do; end do
+      case (3_i4)
+        do l = 1_i8, n4; do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1
+          flip_data(i, j, n3 - k + 1_i8, l) = data(i, j, k, l)
+        end do; end do; end do; end do
+      case (4_i4)
+        do l = 1_i8, n4; do k = 1_i8, n3; do j = 1_i8, n2; do i = 1_i8, n1
+          flip_data(i, j, k, n4 - l + 1_i8) = data(i, j, k, l)
+        end do; end do; end do; end do
+      case default
+        call error_message('Cannot flip 4D-array at dimension '//compress(trim(num2str(iDim))))
+    end select
+  end function flipped_4D_i2
 
   function flipped_1D_i4(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
