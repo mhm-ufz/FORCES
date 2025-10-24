@@ -953,15 +953,17 @@ contains
   !> \changelog
   !! - Robert Schweppe Jun 2018
   !!   - refactoring and reformatting
-  !!
-  !> \authors David Schafer
+  !! - Sebastian Müller Oct 2025
+  !!   - support all int/float kinds and layered variables
+  !> \authors Sebastian, Müller, David Schafer, Robert Schweppe
   !> \date June 2015
   subroutine out_var_write(self, t_index)
     implicit none
     class(output_variable), intent(inout) :: self
     !> index along the time dimension of the netcdf variable
     integer(i4), intent(in), optional :: t_index
-    integer(i4) :: layer_idx
+    integer(i4) :: layer_idx, start_rank
+    integer(i4), allocatable :: start(:)
     real(sp), allocatable :: buffer_sp(:,:,:)
     real(dp), allocatable :: buffer_dp(:,:,:)
     integer(i1), allocatable :: buffer_i1(:,:,:)
@@ -970,226 +972,108 @@ contains
     integer(i8), allocatable :: buffer_i8(:,:,:)
     if (self%static .and. self%static_written) return
     if (self%counter == 0_i4) call error_message("output_variable: no data was added before writing: ", self%name)
-    if (self%avg) then
-      select case(self%kind)
-        case("sp")
-          if (self%layered) then
-            self%data_layered_sp = self%data_layered_sp / real(self%counter, sp)
-          else
-            self%data_sp = self%data_sp / real(self%counter, sp)
-          end if
-        case("dp")
-          if (self%layered) then
-            self%data_layered_dp = self%data_layered_dp / real(self%counter, dp)
-          else
-            self%data_dp = self%data_dp / real(self%counter, dp)
-          end if
-        case("i1")
-          if (self%layered) then
-            self%data_layered_i1 = int(int(self%data_layered_i1, kind=i4) / self%counter, kind=i1)
-          else
-            self%data_i1 = int(int(self%data_i1, kind=i4) / self%counter, kind=i1)
-          end if
-        case("i2")
-          if (self%layered) then
-            self%data_layered_i2 = int(int(self%data_layered_i2, kind=i4) / self%counter, kind=i2)
-          else
-            self%data_i2 = int(int(self%data_i2, kind=i4) / self%counter, kind=i2)
-          end if
-        case("i4")
-          if (self%layered) then
-            self%data_layered_i4 = self%data_layered_i4 / self%counter
-          else
-            self%data_i4 = self%data_i4 / self%counter
-          end if ! this is rounding
-        case("i8")
-          if (self%layered) then
-            self%data_layered_i8 = self%data_layered_i8 / int(self%counter, i8)
-          else
-            self%data_i8 = self%data_i8 / int(self%counter, i8)
-          end if  ! this is rounding
-      end select
-    end if
-    if (self%static) then
-      select case(self%kind)
-        case("sp")
-          if (self%layered) then
-            allocate(buffer_sp(self%grid%nx, self%grid%ny, self%nlayers))
-            do layer_idx = 1_i4, self%nlayers
-              buffer_sp(:,:,layer_idx) = unpack(self%data_layered_sp(:,layer_idx), self%grid%mask, nodata_sp)
-            end do
-            call self%nc%setData(buffer_sp)
-            deallocate(buffer_sp)
-          else
-            call self%nc%setData(unpack(self%data_sp, self%grid%mask, nodata_sp))
-          end if
-        case("dp")
-          if (self%layered) then
-            allocate(buffer_dp(self%grid%nx, self%grid%ny, self%nlayers))
-            do layer_idx = 1_i4, self%nlayers
-              buffer_dp(:,:,layer_idx) = unpack(self%data_layered_dp(:,layer_idx), self%grid%mask, nodata_dp)
-            end do
-            call self%nc%setData(buffer_dp)
-            deallocate(buffer_dp)
-          else
-            call self%nc%setData(unpack(self%data_dp, self%grid%mask, nodata_dp))
-          end if
-        case("i1")
-          if (self%layered) then
-            allocate(buffer_i1(self%grid%nx, self%grid%ny, self%nlayers))
-            do layer_idx = 1_i4, self%nlayers
-              buffer_i1(:,:,layer_idx) = unpack(self%data_layered_i1(:,layer_idx), self%grid%mask, nodata_i1)
-            end do
-            call self%nc%setData(buffer_i1)
-            deallocate(buffer_i1)
-          else
-            call self%nc%setData(unpack(self%data_i1, self%grid%mask, nodata_i1))
-          end if
-        case("i2")
-          if (self%layered) then
-            allocate(buffer_i2(self%grid%nx, self%grid%ny, self%nlayers))
-            do layer_idx = 1_i4, self%nlayers
-              buffer_i2(:,:,layer_idx) = unpack(self%data_layered_i2(:,layer_idx), self%grid%mask, nodata_i2)
-            end do
-            call self%nc%setData(buffer_i2)
-            deallocate(buffer_i2)
-          else
-            call self%nc%setData(unpack(self%data_i2, self%grid%mask, nodata_i2))
-          end if
-        case("i4")
-          if (self%layered) then
-            allocate(buffer_i4(self%grid%nx, self%grid%ny, self%nlayers))
-            do layer_idx = 1_i4, self%nlayers
-              buffer_i4(:,:,layer_idx) = unpack(self%data_layered_i4(:,layer_idx), self%grid%mask, nodata_i4)
-            end do
-            call self%nc%setData(buffer_i4)
-            deallocate(buffer_i4)
-          else
-            call self%nc%setData(unpack(self%data_i4, self%grid%mask, nodata_i4))
-          end if
-        case("i8")
-          if (self%layered) then
-            allocate(buffer_i8(self%grid%nx, self%grid%ny, self%nlayers))
-            do layer_idx = 1_i4, self%nlayers
-              buffer_i8(:,:,layer_idx) = unpack(self%data_layered_i8(:,layer_idx), self%grid%mask, nodata_i8)
-            end do
-            call self%nc%setData(buffer_i8)
-            deallocate(buffer_i8)
-          else
-            call self%nc%setData(unpack(self%data_i8, self%grid%mask, nodata_i8))
-          end if
-      end select
-      self%static_written = .true.
-    else
+    if (.not.self%static) then
       if (.not.present(t_index)) call error_message("output_variable: no time index was given for temporal variable: ", self%name)
-      select case(self%kind)
-        case("sp")
-          if (self%layered) then
-            allocate(buffer_sp(self%grid%nx, self%grid%ny, self%nlayers))
-            do layer_idx = 1_i4, self%nlayers
-              buffer_sp(:,:,layer_idx) = unpack(self%data_layered_sp(:,layer_idx), self%grid%mask, nodata_sp)
-            end do
-            call self%nc%setData(buffer_sp, [1_i4, 1_i4, 1_i4, t_index])
-            deallocate(buffer_sp)
-          else
-            call self%nc%setData(unpack(self%data_sp, self%grid%mask, nodata_sp), [1_i4, 1_i4, t_index])
-          end if
-        case("dp")
-          if (self%layered) then
-            allocate(buffer_dp(self%grid%nx, self%grid%ny, self%nlayers))
-            do layer_idx = 1_i4, self%nlayers
-              buffer_dp(:,:,layer_idx) = unpack(self%data_layered_dp(:,layer_idx), self%grid%mask, nodata_dp)
-            end do
-            call self%nc%setData(buffer_dp, [1_i4, 1_i4, 1_i4, t_index])
-            deallocate(buffer_dp)
-          else
-            call self%nc%setData(unpack(self%data_dp, self%grid%mask, nodata_dp), [1_i4, 1_i4, t_index])
-          end if
-        case("i1")
-          if (self%layered) then
-            allocate(buffer_i1(self%grid%nx, self%grid%ny, self%nlayers))
-            do layer_idx = 1_i4, self%nlayers
-              buffer_i1(:,:,layer_idx) = unpack(self%data_layered_i1(:,layer_idx), self%grid%mask, nodata_i1)
-            end do
-            call self%nc%setData(buffer_i1, [1_i4, 1_i4, 1_i4, t_index])
-            deallocate(buffer_i1)
-          else
-            call self%nc%setData(unpack(self%data_i1, self%grid%mask, nodata_i1), [1_i4, 1_i4, t_index])
-          end if
-        case("i2")
-          if (self%layered) then
-            allocate(buffer_i2(self%grid%nx, self%grid%ny, self%nlayers))
-            do layer_idx = 1_i4, self%nlayers
-              buffer_i2(:,:,layer_idx) = unpack(self%data_layered_i2(:,layer_idx), self%grid%mask, nodata_i2)
-            end do
-            call self%nc%setData(buffer_i2, [1_i4, 1_i4, 1_i4, t_index])
-            deallocate(buffer_i2)
-          else
-            call self%nc%setData(unpack(self%data_i2, self%grid%mask, nodata_i2), [1_i4, 1_i4, t_index])
-          end if
-        case("i4")
-          if (self%layered) then
-            allocate(buffer_i4(self%grid%nx, self%grid%ny, self%nlayers))
-            do layer_idx = 1_i4, self%nlayers
-              buffer_i4(:,:,layer_idx) = unpack(self%data_layered_i4(:,layer_idx), self%grid%mask, nodata_i4)
-            end do
-            call self%nc%setData(buffer_i4, [1_i4, 1_i4, 1_i4, t_index])
-            deallocate(buffer_i4)
-          else
-            call self%nc%setData(unpack(self%data_i4, self%grid%mask, nodata_i4), [1_i4, 1_i4, t_index])
-          end if
-        case("i8")
-          if (self%layered) then
-            allocate(buffer_i8(self%grid%nx, self%grid%ny, self%nlayers))
-            do layer_idx = 1_i4, self%nlayers
-              buffer_i8(:,:,layer_idx) = unpack(self%data_layered_i8(:,layer_idx), self%grid%mask, nodata_i8)
-            end do
-            call self%nc%setData(buffer_i8, [1_i4, 1_i4, 1_i4, t_index])
-            deallocate(buffer_i8)
-          else
-            call self%nc%setData(unpack(self%data_i8, self%grid%mask, nodata_i8), [1_i4, 1_i4, t_index])
-          end if
-      end select
     end if
-    ! reset
+    start_rank = 2_i4
+    if (self%layered) start_rank = start_rank + 1_i4
+    if (.not.self%static) start_rank = start_rank + 1_i4
+    allocate(start(start_rank), source=1_i4)
+    if (.not.self%static) start(start_rank) = t_index
     select case(self%kind)
       case("sp")
         if (self%layered) then
+          if (self%avg) self%data_layered_sp = self%data_layered_sp / real(self%counter, sp)
+          allocate(buffer_sp(self%grid%nx, self%grid%ny, self%nlayers))
+          do layer_idx = 1_i4, self%nlayers
+            buffer_sp(:,:,layer_idx) = unpack(self%data_layered_sp(:,layer_idx), self%grid%mask, nodata_sp)
+          end do
+          call self%nc%setData(buffer_sp, start=start)
+          deallocate(buffer_sp)
           self%data_layered_sp = 0.0_sp
         else
+          if (self%avg) self%data_sp = self%data_sp / real(self%counter, sp)
+          call self%nc%setData(unpack(self%data_sp, self%grid%mask, nodata_sp), start=start)
           self%data_sp = 0.0_sp
         end if
       case("dp")
         if (self%layered) then
+          if (self%avg) self%data_layered_dp = self%data_layered_dp / real(self%counter, dp)
+          allocate(buffer_dp(self%grid%nx, self%grid%ny, self%nlayers))
+          do layer_idx = 1_i4, self%nlayers
+            buffer_dp(:,:,layer_idx) = unpack(self%data_layered_dp(:,layer_idx), self%grid%mask, nodata_dp)
+          end do
+          call self%nc%setData(buffer_dp, start=start)
+          deallocate(buffer_dp)
           self%data_layered_dp = 0.0_dp
         else
+          if (self%avg) self%data_dp = self%data_dp / real(self%counter, dp)
+          call self%nc%setData(unpack(self%data_dp, self%grid%mask, nodata_dp), start=start)
           self%data_dp = 0.0_dp
         end if
       case("i1")
         if (self%layered) then
+          if (self%avg) self%data_layered_i1 = int(int(self%data_layered_i1, kind=i4) / self%counter, kind=i1)
+          allocate(buffer_i1(self%grid%nx, self%grid%ny, self%nlayers))
+          do layer_idx = 1_i4, self%nlayers
+            buffer_i1(:,:,layer_idx) = unpack(self%data_layered_i1(:,layer_idx), self%grid%mask, nodata_i1)
+          end do
+          call self%nc%setData(buffer_i1, start=start)
+          deallocate(buffer_i1)
           self%data_layered_i1 = 0_i1
         else
+          if (self%avg) self%data_i1 = int(int(self%data_i1, kind=i4) / self%counter, kind=i1)
+          call self%nc%setData(unpack(self%data_i1, self%grid%mask, nodata_i1), start=start)
           self%data_i1 = 0_i1
         end if
       case("i2")
         if (self%layered) then
+          if (self%avg) self%data_layered_i2 = int(int(self%data_layered_i2, kind=i4) / self%counter, kind=i2)
+          allocate(buffer_i2(self%grid%nx, self%grid%ny, self%nlayers))
+          do layer_idx = 1_i4, self%nlayers
+            buffer_i2(:,:,layer_idx) = unpack(self%data_layered_i2(:,layer_idx), self%grid%mask, nodata_i2)
+          end do
+          call self%nc%setData(buffer_i2, start=start)
+          deallocate(buffer_i2)
           self%data_layered_i2 = 0_i2
         else
+          if (self%avg) self%data_i2 = int(int(self%data_i2, kind=i4) / self%counter, kind=i2)
+          call self%nc%setData(unpack(self%data_i2, self%grid%mask, nodata_i2), start=start)
           self%data_i2 = 0_i2
         end if
       case("i4")
         if (self%layered) then
+          if (self%avg) self%data_layered_i4 = self%data_layered_i4 / self%counter
+          allocate(buffer_i4(self%grid%nx, self%grid%ny, self%nlayers))
+          do layer_idx = 1_i4, self%nlayers
+            buffer_i4(:,:,layer_idx) = unpack(self%data_layered_i4(:,layer_idx), self%grid%mask, nodata_i4)
+          end do
+          call self%nc%setData(buffer_i4, start=start)
+          deallocate(buffer_i4)
           self%data_layered_i4 = 0_i4
         else
+          if (self%avg) self%data_i4 = self%data_i4 / self%counter
+          call self%nc%setData(unpack(self%data_i4, self%grid%mask, nodata_i4), start=start)
           self%data_i4 = 0_i4
         end if
       case("i8")
         if (self%layered) then
+          if (self%avg) self%data_layered_i8 = self%data_layered_i8 / int(self%counter, i8)
+          allocate(buffer_i8(self%grid%nx, self%grid%ny, self%nlayers))
+          do layer_idx = 1_i4, self%nlayers
+            buffer_i8(:,:,layer_idx) = unpack(self%data_layered_i8(:,layer_idx), self%grid%mask, nodata_i8)
+          end do
+          call self%nc%setData(buffer_i8, start=start)
+          deallocate(buffer_i8)
           self%data_layered_i8 = 0_i8
         else
+          if (self%avg) self%data_i8 = self%data_i8 / int(self%counter, i8)
+          call self%nc%setData(unpack(self%data_i8, self%grid%mask, nodata_i8), start=start)
           self%data_i8 = 0_i8
         end if
     end select
+    if (allocated(start)) deallocate(start)
+    if (self%static) self%static_written = .true.
     self%counter = 0_i4
   end subroutine out_var_write
 
