@@ -155,6 +155,7 @@ module mo_grid_io
     real(dp), allocatable :: layer_vertices(:)    !< layer bounds
   contains
     procedure, public :: init => output_init
+    procedure, private :: define_z_axis => output_define_z_axis
     procedure, private :: output_update_sp, output_update_dp, output_update_i1, output_update_i2, output_update_i4, output_update_i8
     generic, public :: update => output_update_sp, output_update_dp, output_update_i1, output_update_i2, output_update_i4,&
         & output_update_i8
@@ -194,6 +195,7 @@ module mo_grid_io
     real(dp), allocatable :: layer_vertices(:)    !< layer bounds
   contains
     procedure, public :: init => input_init
+    procedure, private :: define_layers => input_define_layers
     ! read
     procedure, private :: input_read_pack_sp, input_read_pack_dp, input_read_pack_i1, input_read_pack_i2, input_read_pack_i4,&
         & input_read_pack_i8, input_read_matrix_sp, input_read_matrix_dp, input_read_matrix_i1, input_read_matrix_i2,&
@@ -1603,7 +1605,7 @@ contains
     ! write grid specification to file
     call self%grid%to_netcdf(self%nc, double_precision=grid_double_precision)
 
-    if (self%has_layer) call output_define_z_axis(self, double_precision_)
+    if (self%has_layer) call self%define_z_axis(double_precision_)
 
     self%nvars = size(vars)
     if (.not.self%has_layer) then
@@ -1924,7 +1926,7 @@ contains
     self%timestep = no_time
     do i = 1_i4, self%nvars
       call self%vars(i)%init(vars(i), self%nc, self%grid)
-      if (self%vars(i)%layered .and. .not.self%has_layer) call input_define_layers(self, self%vars(i))
+      if (self%vars(i)%layered .and. .not.self%has_layer) call self%define_layers(self%vars(i))
       if (.not.self%vars(i)%static .and. self%static) then
         self%static = .false.
         dims = self%vars(i)%nc%getDimensions()
@@ -1946,79 +1948,53 @@ contains
 
   end subroutine input_init
 
-  subroutine input_define_layers(self, var)
+  subroutine input_define_layers(self, layer_var)
     implicit none
     class(input_dataset), intent(inout) :: self
-    class(input_variable), intent(in) :: var
+    class(input_variable), intent(in) :: layer_var
     character(len=256) :: z_name, bounds_name, pos_attr
     type(NcVariable) :: z_var, zb_var
     character(:), allocatable :: dtype
-    real(sp), allocatable :: tmp_sp(:), tmp_bounds_sp(:,:)
-    real(dp), allocatable :: tmp_bounds_dp(:,:)
+    real(dp), allocatable :: bounds(:,:)
     type(NcDimension), allocatable :: vdims(:)
     integer(i4) :: nl, i
 
     if (self%has_layer) return
-    if (.not.var%layered) call error_message("input: layered metadata missing for variable: ", var%name)
-    nl = var%nlayers
-    if (nl <= 0_i4) call error_message("input: layered variable without layers: ", var%name)
+    if (.not.layer_var%layered) call error_message("input: layered metadata missing for variable: ", layer_var%name)
+    nl = layer_var%nlayers
+    if (nl <= 0_i4) call error_message("input: layered variable without layers: ", layer_var%name)
     self%nlayers = nl
 
-    vdims = var%nc%getDimensions()
-    if (size(vdims) < 3_i4) call error_message("input: layered variable missing z dimension: ", var%name)
+    vdims = layer_var%nc%getDimensions()
+    if (size(vdims) < 3_i4) call error_message("input: layered variable missing z dimension: ", layer_var%name)
     z_name = trim(vdims(3)%getName())
     if (.not.self%nc%hasVariable(z_name)) call error_message("input: layer axis variable not found: ", z_name)
 
     z_var = self%nc%getVariable(z_name)
     if (.not.is_z_axis(z_var)) call warn_message('input: axis variable missing axis="Z" attribute: ' // trim(z_name))
-    dtype = z_var%getDtype()
-    select case(trim(dtype))
-      case("f32")
-        call z_var%getData(tmp_sp)
-        if (size(tmp_sp) /= nl) call error_message("input: layer axis size mismatch: ", z_name)
-        allocate(self%layer(nl))
-        self%layer = real(tmp_sp, dp)
-        deallocate(tmp_sp)
-      case default
-        call z_var%getData(self%layer)
-        if (size(self%layer) /= nl) call error_message("input: layer axis size mismatch: ", z_name)
-    end select
+
+    call z_var%getData(self%layer)
+    if (size(self%layer) /= nl) call error_message("input: layer axis size mismatch: ", z_name)
+
     if (z_var%hasAttribute("positive")) then
       call z_var%getAttribute("positive", pos_attr)
       self%positive_up = trim(pos_attr) == "up"
     end if
 
-    bounds_name = trim(z_name) // "_bnds"
-    if (z_var%hasAttribute("bounds")) call z_var%getAttribute("bounds", bounds_name)
-    if (.not.self%nc%hasVariable(bounds_name)) then
-      call error_message("input: vertical axis bounds variable not found: ", bounds_name)
+    allocate(self%layer_vertices(nl+1))
+    if (z_var%hasAttribute("bounds")) then
+      call z_var%getAttribute("bounds", bounds_name)
+      zb_var = self%nc%getVariable(trim(bounds_name))
+      call zb_var%getData(bounds)
+      self%layer_vertices(:nl) = bounds(1_i4,:)
+      self%layer_vertices(nl+1_i4) = bounds(2_i4,nl)
+      deallocate(bounds)
+    else
+      ! by default, bounds start at 0 and have endpoints as reference values
+      ! TODO: should we warn here?
+      self%layer_vertices(1) = 0.0_dp
+      self%layer_vertices(2_i4:nl+1_i4) = self%layer
     end if
-    zb_var = self%nc%getVariable(bounds_name)
-    dtype = zb_var%getDtype()
-    select case(trim(dtype))
-      case("f32")
-        call zb_var%getData(tmp_bounds_sp)
-        if (size(tmp_bounds_sp,1) /= 2) call error_message("input: z_bnds rank mismatch for ", bounds_name)
-        if (size(tmp_bounds_sp,2) /= nl) call error_message("input: z_bnds layer mismatch for ", bounds_name)
-        allocate(self%layer_vertices(nl+1))
-        self%layer_vertices(1) = real(tmp_bounds_sp(1,1), dp)
-        do i = 2_i4, nl
-          self%layer_vertices(i) = real(tmp_bounds_sp(2, i-1), dp)
-        end do
-        self%layer_vertices(nl+1) = real(tmp_bounds_sp(2, nl), dp)
-        deallocate(tmp_bounds_sp)
-      case default
-        call zb_var%getData(tmp_bounds_dp)
-        if (size(tmp_bounds_dp,1) /= 2) call error_message("input: z_bnds rank mismatch for ", bounds_name)
-        if (size(tmp_bounds_dp,2) /= nl) call error_message("input: z_bnds layer mismatch for ", bounds_name)
-        allocate(self%layer_vertices(nl+1))
-        self%layer_vertices(1) = tmp_bounds_dp(1,1)
-        do i = 2_i4, nl
-          self%layer_vertices(i) = tmp_bounds_dp(2, i-1)
-        end do
-        self%layer_vertices(nl+1) = tmp_bounds_dp(2, nl)
-        deallocate(tmp_bounds_dp)
-    end select
 
     self%has_layer = .true.
     if (allocated(vdims)) deallocate(vdims)
