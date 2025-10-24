@@ -985,7 +985,7 @@ contains
     select case(self%kind)
       case("sp")
         if (self%layered) then
-          if (self%avg) self%data_layered_sp = self%data_layered_sp / real(self%counter, sp)
+          if (self%avg.and.self%counter>1_i4) self%data_layered_sp = self%data_layered_sp / real(self%counter, sp)
           allocate(buffer_sp(self%grid%nx, self%grid%ny, self%nlayers))
           do layer_idx = 1_i4, self%nlayers
             buffer_sp(:,:,layer_idx) = unpack(self%data_layered_sp(:,layer_idx), self%grid%mask, nodata_sp)
@@ -994,13 +994,13 @@ contains
           deallocate(buffer_sp)
           self%data_layered_sp = 0.0_sp
         else
-          if (self%avg) self%data_sp = self%data_sp / real(self%counter, sp)
+          if (self%avg.and.self%counter>1_i4) self%data_sp = self%data_sp / real(self%counter, sp)
           call self%nc%setData(unpack(self%data_sp, self%grid%mask, nodata_sp), start=start)
           self%data_sp = 0.0_sp
         end if
       case("dp")
         if (self%layered) then
-          if (self%avg) self%data_layered_dp = self%data_layered_dp / real(self%counter, dp)
+          if (self%avg.and.self%counter>1_i4) self%data_layered_dp = self%data_layered_dp / real(self%counter, dp)
           allocate(buffer_dp(self%grid%nx, self%grid%ny, self%nlayers))
           do layer_idx = 1_i4, self%nlayers
             buffer_dp(:,:,layer_idx) = unpack(self%data_layered_dp(:,layer_idx), self%grid%mask, nodata_dp)
@@ -1009,13 +1009,13 @@ contains
           deallocate(buffer_dp)
           self%data_layered_dp = 0.0_dp
         else
-          if (self%avg) self%data_dp = self%data_dp / real(self%counter, dp)
+          if (self%avg.and.self%counter>1_i4) self%data_dp = self%data_dp / real(self%counter, dp)
           call self%nc%setData(unpack(self%data_dp, self%grid%mask, nodata_dp), start=start)
           self%data_dp = 0.0_dp
         end if
       case("i1")
         if (self%layered) then
-          if (self%avg) self%data_layered_i1 = int(int(self%data_layered_i1, kind=i4) / self%counter, kind=i1)
+          if (self%avg.and.self%counter>1_i4) self%data_layered_i1 = int(int(self%data_layered_i1, kind=i4) / self%counter, kind=i1)
           allocate(buffer_i1(self%grid%nx, self%grid%ny, self%nlayers))
           do layer_idx = 1_i4, self%nlayers
             buffer_i1(:,:,layer_idx) = unpack(self%data_layered_i1(:,layer_idx), self%grid%mask, nodata_i1)
@@ -1024,13 +1024,13 @@ contains
           deallocate(buffer_i1)
           self%data_layered_i1 = 0_i1
         else
-          if (self%avg) self%data_i1 = int(int(self%data_i1, kind=i4) / self%counter, kind=i1)
+          if (self%avg.and.self%counter>1_i4) self%data_i1 = int(int(self%data_i1, kind=i4) / self%counter, kind=i1)
           call self%nc%setData(unpack(self%data_i1, self%grid%mask, nodata_i1), start=start)
           self%data_i1 = 0_i1
         end if
       case("i2")
         if (self%layered) then
-          if (self%avg) self%data_layered_i2 = int(int(self%data_layered_i2, kind=i4) / self%counter, kind=i2)
+          if (self%avg.and.self%counter>1_i4) self%data_layered_i2 = int(int(self%data_layered_i2, kind=i4) / self%counter, kind=i2)
           allocate(buffer_i2(self%grid%nx, self%grid%ny, self%nlayers))
           do layer_idx = 1_i4, self%nlayers
             buffer_i2(:,:,layer_idx) = unpack(self%data_layered_i2(:,layer_idx), self%grid%mask, nodata_i2)
@@ -1039,13 +1039,13 @@ contains
           deallocate(buffer_i2)
           self%data_layered_i2 = 0_i2
         else
-          if (self%avg) self%data_i2 = int(int(self%data_i2, kind=i4) / self%counter, kind=i2)
+          if (self%avg.and.self%counter>1_i4) self%data_i2 = int(int(self%data_i2, kind=i4) / self%counter, kind=i2)
           call self%nc%setData(unpack(self%data_i2, self%grid%mask, nodata_i2), start=start)
           self%data_i2 = 0_i2
         end if
       case("i4")
         if (self%layered) then
-          if (self%avg) self%data_layered_i4 = self%data_layered_i4 / self%counter
+          if (self%avg.and.self%counter>1_i4) self%data_layered_i4 = self%data_layered_i4 / self%counter
           allocate(buffer_i4(self%grid%nx, self%grid%ny, self%nlayers))
           do layer_idx = 1_i4, self%nlayers
             buffer_i4(:,:,layer_idx) = unpack(self%data_layered_i4(:,layer_idx), self%grid%mask, nodata_i4)
@@ -1054,13 +1054,13 @@ contains
           deallocate(buffer_i4)
           self%data_layered_i4 = 0_i4
         else
-          if (self%avg) self%data_i4 = self%data_i4 / self%counter
+          if (self%avg.and.self%counter>1_i4) self%data_i4 = self%data_i4 / self%counter
           call self%nc%setData(unpack(self%data_i4, self%grid%mask, nodata_i4), start=start)
           self%data_i4 = 0_i4
         end if
       case("i8")
         if (self%layered) then
-          if (self%avg) self%data_layered_i8 = self%data_layered_i8 / int(self%counter, i8)
+          if (self%avg.and.self%counter>1_i4) self%data_layered_i8 = self%data_layered_i8 / int(self%counter, i8)
           allocate(buffer_i8(self%grid%nx, self%grid%ny, self%nlayers))
           do layer_idx = 1_i4, self%nlayers
             buffer_i8(:,:,layer_idx) = unpack(self%data_layered_i8(:,layer_idx), self%grid%mask, nodata_i8)
@@ -1069,7 +1069,7 @@ contains
           deallocate(buffer_i8)
           self%data_layered_i8 = 0_i8
         else
-          if (self%avg) self%data_i8 = self%data_i8 / int(self%counter, i8)
+          if (self%avg.and.self%counter>1_i4) self%data_i8 = self%data_i8 / int(self%counter, i8)
           call self%nc%setData(unpack(self%data_i8, self%grid%mask, nodata_i8), start=start)
           self%data_i8 = 0_i8
         end if
