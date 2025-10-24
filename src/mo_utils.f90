@@ -73,8 +73,9 @@ MODULE mo_utils
     procedure flipped_1D_sp, flipped_2D_sp, flipped_3D_sp, flipped_4D_sp
     procedure flipped_1D_dp, flipped_2D_dp, flipped_3D_dp, flipped_4D_dp
     procedure flipped_1D_i1, flipped_2D_i1, flipped_3D_i1, flipped_4D_i1
-    procedure flipped_1D_i4, flipped_2D_i4, flipped_3D_i4, flipped_4D_i4
     procedure flipped_1D_i2, flipped_2D_i2, flipped_3D_i2, flipped_4D_i2
+    procedure flipped_1D_i4, flipped_2D_i4, flipped_3D_i4, flipped_4D_i4
+    procedure flipped_1D_i8, flipped_2D_i8, flipped_3D_i8, flipped_4D_i8
     procedure flipped_1D_lgt, flipped_2D_lgt, flipped_3D_lgt, flipped_4D_lgt
   end interface
 
