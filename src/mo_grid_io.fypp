@@ -1329,11 +1329,9 @@ contains
     type(NcVariable) :: z_var, zb_var
     real(dp), allocatable :: z_bounds(:,:)
     character(3) :: dtype
-    logical :: use_double
 
-    use_double = double_precision
     dtype = "f32"
-    if (use_double) dtype = "f64"
+    if (double_precision) dtype = "f64"
 
     z_dim = self%nc%setDimension("z", size(self%layer))
     b_dim = self%nc%getDimension("bnds")
@@ -1352,7 +1350,7 @@ contains
     allocate(z_bounds(2, size(self%layer)))
     z_bounds(1,:) = self%layer_vertices(:size(self%layer))
     z_bounds(2,:) = self%layer_vertices(2:)
-    if (use_double) then
+    if (double_precision) then
       call z_var%setData(self%layer)
       call zb_var%setData(z_bounds)
     else
