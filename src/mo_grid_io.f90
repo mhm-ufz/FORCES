@@ -779,12 +779,12 @@ contains
     !> index along the time dimension of the netcdf variable
     integer(i4), intent(in), optional :: t_index
     integer(i4) :: layer_idx
-    real(sp), allocatable :: buffer_sp(:,:,:), buffer_sp4(:,:,:,:)
-    real(dp), allocatable :: buffer_dp(:,:,:), buffer_dp4(:,:,:,:)
-    integer(i1), allocatable :: buffer_i1(:,:,:), buffer_i14(:,:,:,:)
-    integer(i2), allocatable :: buffer_i2(:,:,:), buffer_i24(:,:,:,:)
-    integer(i4), allocatable :: buffer_i4(:,:,:), buffer_i44(:,:,:,:)
-    integer(i8), allocatable :: buffer_i8(:,:,:), buffer_i84(:,:,:,:)
+    real(sp), allocatable :: buffer_sp(:,:,:)
+    real(dp), allocatable :: buffer_dp(:,:,:)
+    integer(i1), allocatable :: buffer_i1(:,:,:)
+    integer(i2), allocatable :: buffer_i2(:,:,:)
+    integer(i4), allocatable :: buffer_i4(:,:,:)
+    integer(i8), allocatable :: buffer_i8(:,:,:)
     if (self%static .and. self%static_written) return
     if (self%counter == 0_i4) call error_message("output_variable: no data was added before writing: ", self%name)
     if (self%avg) then
@@ -906,10 +906,8 @@ contains
             do layer_idx = 1_i4, self%nlayers
               buffer_sp(:,:,layer_idx) = unpack(self%data_layered_sp(:,layer_idx), self%grid%mask, nodata_sp)
             end do
-            allocate(buffer_sp4(self%grid%nx, self%grid%ny, self%nlayers, 1))
-            buffer_sp4(:,:,:,1) = buffer_sp
-            call self%nc%setData(buffer_sp4, [1_i4, 1_i4, 1_i4, t_index])
-            deallocate(buffer_sp4, buffer_sp)
+            call self%nc%setData(buffer_sp, [1_i4, 1_i4, 1_i4, t_index])
+            deallocate(buffer_sp)
           else
             call self%nc%setData(unpack(self%data_sp, self%grid%mask, nodata_sp), [1_i4, 1_i4, t_index])
           end if
@@ -919,10 +917,8 @@ contains
             do layer_idx = 1_i4, self%nlayers
               buffer_dp(:,:,layer_idx) = unpack(self%data_layered_dp(:,layer_idx), self%grid%mask, nodata_dp)
             end do
-            allocate(buffer_dp4(self%grid%nx, self%grid%ny, self%nlayers, 1))
-            buffer_dp4(:,:,:,1) = buffer_dp
-            call self%nc%setData(buffer_dp4, [1_i4, 1_i4, 1_i4, t_index])
-            deallocate(buffer_dp4, buffer_dp)
+            call self%nc%setData(buffer_dp, [1_i4, 1_i4, 1_i4, t_index])
+            deallocate(buffer_dp)
           else
             call self%nc%setData(unpack(self%data_dp, self%grid%mask, nodata_dp), [1_i4, 1_i4, t_index])
           end if
@@ -932,10 +928,8 @@ contains
             do layer_idx = 1_i4, self%nlayers
               buffer_i1(:,:,layer_idx) = unpack(self%data_layered_i1(:,layer_idx), self%grid%mask, nodata_i1)
             end do
-            allocate(buffer_i14(self%grid%nx, self%grid%ny, self%nlayers, 1))
-            buffer_i14(:,:,:,1) = buffer_i1
-            call self%nc%setData(buffer_i14, [1_i4, 1_i4, 1_i4, t_index])
-            deallocate(buffer_i14, buffer_i1)
+            call self%nc%setData(buffer_i1, [1_i4, 1_i4, 1_i4, t_index])
+            deallocate(buffer_i1)
           else
             call self%nc%setData(unpack(self%data_i1, self%grid%mask, nodata_i1), [1_i4, 1_i4, t_index])
           end if
@@ -945,10 +939,8 @@ contains
             do layer_idx = 1_i4, self%nlayers
               buffer_i2(:,:,layer_idx) = unpack(self%data_layered_i2(:,layer_idx), self%grid%mask, nodata_i2)
             end do
-            allocate(buffer_i24(self%grid%nx, self%grid%ny, self%nlayers, 1))
-            buffer_i24(:,:,:,1) = buffer_i2
-            call self%nc%setData(buffer_i24, [1_i4, 1_i4, 1_i4, t_index])
-            deallocate(buffer_i24, buffer_i2)
+            call self%nc%setData(buffer_i2, [1_i4, 1_i4, 1_i4, t_index])
+            deallocate(buffer_i2)
           else
             call self%nc%setData(unpack(self%data_i2, self%grid%mask, nodata_i2), [1_i4, 1_i4, t_index])
           end if
@@ -958,10 +950,8 @@ contains
             do layer_idx = 1_i4, self%nlayers
               buffer_i4(:,:,layer_idx) = unpack(self%data_layered_i4(:,layer_idx), self%grid%mask, nodata_i4)
             end do
-            allocate(buffer_i44(self%grid%nx, self%grid%ny, self%nlayers, 1))
-            buffer_i44(:,:,:,1) = buffer_i4
-            call self%nc%setData(buffer_i44, [1_i4, 1_i4, 1_i4, t_index])
-            deallocate(buffer_i44, buffer_i4)
+            call self%nc%setData(buffer_i4, [1_i4, 1_i4, 1_i4, t_index])
+            deallocate(buffer_i4)
           else
             call self%nc%setData(unpack(self%data_i4, self%grid%mask, nodata_i4), [1_i4, 1_i4, t_index])
           end if
@@ -971,10 +961,8 @@ contains
             do layer_idx = 1_i4, self%nlayers
               buffer_i8(:,:,layer_idx) = unpack(self%data_layered_i8(:,layer_idx), self%grid%mask, nodata_i8)
             end do
-            allocate(buffer_i84(self%grid%nx, self%grid%ny, self%nlayers, 1))
-            buffer_i84(:,:,:,1) = buffer_i8
-            call self%nc%setData(buffer_i84, [1_i4, 1_i4, 1_i4, t_index])
-            deallocate(buffer_i84, buffer_i8)
+            call self%nc%setData(buffer_i8, [1_i4, 1_i4, 1_i4, t_index])
+            deallocate(buffer_i8)
           else
             call self%nc%setData(unpack(self%data_i8, self%grid%mask, nodata_i8), [1_i4, 1_i4, t_index])
           end if
