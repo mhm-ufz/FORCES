@@ -143,14 +143,14 @@ module mo_grid_io
     type(output_variable), allocatable :: vars(:) !< store all created (dynamic) variables
     integer(i4) :: nvars                          !< number of variables
     logical :: static                             !< only static variables (without time dimension)
-    logical :: has_layer = .false.                !< dataset includes vertical layers
-    integer(i4) :: nlayers = 0_i4                 !< number of layers in dataset
     integer(i4) :: counter = 0_i4                 !< count written time steps
     type(datetime) :: previous_time               !< previous time steps for bounds
     type(datetime) :: start_time                  !< start time for time units
     type(timedelta) :: delta                      !< time step in time units definition
     integer(i4) :: timestamp = end_timestamp      !< time stamp reference (0: begin, 1: center, 2: end of time interval)
     integer(i4) :: deflate_level = 6_i4           !< deflate level for compression
+    logical :: has_layer = .false.                !< dataset includes vertical layers
+    integer(i4) :: nlayers = 0_i4                 !< number of layers in dataset
     logical :: positive_up = .false.              !< indicates upwards as positive direction for layers
     real(dp), allocatable :: layer(:)             !< reference depth/height per layer
     real(dp), allocatable :: layer_vertices(:)    !< layer bounds
@@ -1562,7 +1562,7 @@ contains
     logical, optional, intent(in) :: grid_double_precision !< whether to use double precision to store grid (default .true.)
     real(dp), intent(in), optional, dimension(:) :: layer !< layer depths/heights
     real(dp), intent(in), optional, dimension(:) :: layer_vertices !< bounds for layers
-    logical, intent(in), optional :: positive_up !< sign convention for vertical axis
+    logical, intent(in), optional :: positive_up !< sign convention for vertical axis (default .false., i.e. depth)
 
     character(:), allocatable :: units, units_dt
     type(NcDimension) :: t_dim, b_dim, x_dim, y_dim, z_dim
