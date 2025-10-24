@@ -75,23 +75,24 @@ module mo_grid_io
   !> \class output_variable
   !> \brief netcdf output variable container for a 2D variable
   type, extends(var) :: output_variable
-    type(NcVariable) :: nc                     !< nc variable which contains the variable
-    type(grid_t), pointer :: grid => null()    !< horizontal grid the data is defined on
-    real(sp), allocatable :: data_sp(:)        !< store the data between writes (real)
-    real(sp), allocatable :: data_layered_sp(:,:) !< store layered data between writes (real)
-    real(dp), allocatable :: data_dp(:)        !< store the data between writes (real)
-    real(dp), allocatable :: data_layered_dp(:,:) !< store layered data between writes (real)
-    integer(i1), allocatable :: data_i1(:)     !< store the data between writes (integer)
+    type(NcVariable) :: nc                           !< nc variable which contains the variable
+    type(grid_t), pointer :: grid => null()          !< horizontal grid the data is defined on
+    real(sp), allocatable :: data_sp(:)              !< store the data between writes (real)
+    real(sp), allocatable :: data_layered_sp(:,:)    !< store layered data between writes (real)
+    real(dp), allocatable :: data_dp(:)              !< store the data between writes (real)
+    real(dp), allocatable :: data_layered_dp(:,:)    !< store layered data between writes (real)
+    integer(i1), allocatable :: data_i1(:)           !< store the data between writes (integer)
     integer(i1), allocatable :: data_layered_i1(:,:) !< store layered data between writes (integer)
-    integer(i2), allocatable :: data_i2(:)     !< store the data between writes (integer)
+    integer(i2), allocatable :: data_i2(:)           !< store the data between writes (integer)
     integer(i2), allocatable :: data_layered_i2(:,:) !< store layered data between writes (integer)
-    integer(i4), allocatable :: data_i4(:)     !< store the data between writes (integer)
+    integer(i4), allocatable :: data_i4(:)           !< store the data between writes (integer)
     integer(i4), allocatable :: data_layered_i4(:,:) !< store layered data between writes (integer)
-    integer(i8), allocatable :: data_i8(:)     !< store the data between writes (integer)
+    integer(i8), allocatable :: data_i8(:)           !< store the data between writes (integer)
     integer(i8), allocatable :: data_layered_i8(:,:) !< store layered data between writes (integer)
-    integer(i4) :: nlayers = 0_i4              !< number of layers for buffered data
-    integer(i4) :: counter = 0_i4              !< count the number of updateVariable calls
-    logical :: static_written = .false.        !< static variable was written
+    integer(i4) :: nlayers = 0_i4                    !< number of layers for buffered data
+    integer(i4) :: rank = 0_i4                       !< rank of the variable
+    integer(i4) :: counter = 0_i4                    !< count the number of updateVariable calls
+    logical :: static_written = .false.              !< static variable was written
   contains
     procedure, public :: init => out_var_init
     procedure, private :: out_var_update_sp, out_var_update_dp, out_var_update_i1, out_var_update_i2, out_var_update_i4,&
@@ -491,8 +492,7 @@ contains
     integer(i4), intent(in) :: deflate_level !< deflate level for compression
     type(NcDimension), allocatable :: var_dims(:)
     logical :: has_layer_var, has_time
-    integer(i4) :: nd, idx
-    integer(i4) :: npoints
+    integer(i4) :: idx, npoints
 
     self%name = meta%name
     self%static = meta%static
@@ -504,13 +504,13 @@ contains
 
     has_layer_var = self%layered
     has_time = .not.self%static
-    nd = 2_i4
-    if (has_layer_var) nd = nd + 1_i4
-    if (has_time) nd = nd + 1_i4
-    if (size(dims) < nd) then
+    self%rank = 2_i4
+    if (has_layer_var) self%rank = self%rank + 1_i4
+    if (has_time) self%rank = self%rank + 1_i4
+    if (size(dims) < self%rank) then
       call error_message("output_variable: given dimensions not enough to setup variable: ", self%name)
     end if
-    allocate(var_dims(nd))
+    allocate(var_dims(self%rank))
     var_dims(1) = dims(1)
     var_dims(2) = dims(2)
     idx = 3
@@ -781,7 +781,7 @@ contains
     class(output_variable), intent(inout) :: self
     !> index along the time dimension of the netcdf variable
     integer(i4), intent(in), optional :: t_index
-    integer(i4) :: layer_idx, start_rank
+    integer(i4) :: layer_idx
     integer(i4), allocatable :: start(:)
     real(sp), allocatable :: buffer_sp(:,:,:)
     real(dp), allocatable :: buffer_dp(:,:,:)
@@ -794,11 +794,8 @@ contains
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("output_variable: no time index was given for temporal variable: ", self%name)
     end if
-    start_rank = 2_i4
-    if (self%layered) start_rank = start_rank + 1_i4
-    if (.not.self%static) start_rank = start_rank + 1_i4
-    allocate(start(start_rank), source=1_i4)
-    if (.not.self%static) start(start_rank) = t_index
+    allocate(start(self%rank), source=1_i4)
+    if (.not.self%static) start(self%rank) = t_index
     select case(self%kind)
       case("sp")
         if (self%layered) then
@@ -923,11 +920,10 @@ contains
     self%static = meta%static
     self%nlayers = 0_i4
     expected_rank = 2_i4
-    if (self%layered) expected_rank = expected_rank + 1_i4
-    if (.not.self%static) expected_rank = expected_rank + 1_i4
-    if (rnk /= expected_rank) call error_message("input_variable: rank mismatch: ", self%name)
 
     if (self%layered) then
+      expected_rank = expected_rank + 1_i4
+      if (rnk < expected_rank) call error_message("input_variable: z dimension missing for layered variable: ", self%name)
       if (.not.nc%hasVariable(trim(dims(3)%getName()))) then
         call error_message("input_variable: coordinate variable missing for z dimension: ", self%name)
       end if
@@ -938,12 +934,16 @@ contains
     end if
 
     if (.not.self%static) then
+      expected_rank = expected_rank + 1_i4
+      if (rnk < expected_rank) call error_message("input_variable: time dimension missing for temporal variable: ", self%name)
       if (.not.nc%hasVariable(trim(dims(rnk)%getName()))) then
         call error_message("input_variable: coordinate variable missing for time dimension: ", self%name)
       end if
       coord_var = nc%getVariable(trim(dims(rnk)%getName()))
       if (.not.is_t_axis(coord_var)) call error_message("input_variable: time axis not identified: ", self%name)
     end if
+
+    if (rnk /= expected_rank) call error_message("input_variable: rank mismatch: ", self%name)
 
     self%dtype = trim(self%nc%getDtype())
     select case(self%dtype(1:1))
@@ -1663,6 +1663,8 @@ contains
 
     allocate(self%vars(self%nvars))
     do i = 1_i4, self%nvars
+      if (vars(i)%layered .and. .not.self%has_layer) &
+        call error_message("output_init: variable requires layer dimension but none defined: ", vars(i)%name)
       call self%vars(i)%init(vars(i), self%nc, self%grid, dims, self%deflate_level)
     end do
     deallocate(dims)
