@@ -232,30 +232,44 @@ module mo_netcdf
     generic, public :: setData => setData_0d_sp !< set data
     procedure, private :: getData_0d_sp
     generic, public :: getData => getData_0d_sp !< get data
+    procedure, private :: readInto_0d_sp
+    generic, public :: readInto => readInto_0d_sp !< read into existing buffer
     procedure, private :: setData_1d_sp
     generic, public :: setData => setData_1d_sp !< set data
     procedure, private :: getData_1d_sp
     generic, public :: getData => getData_1d_sp !< get data
+    procedure, private :: readInto_1d_sp
+    generic, public :: readInto => readInto_1d_sp !< read into existing buffer
     procedure, private :: setData_2d_sp
     generic, public :: setData => setData_2d_sp !< set data
     procedure, private :: getData_2d_sp
     generic, public :: getData => getData_2d_sp !< get data
+    procedure, private :: readInto_2d_sp
+    generic, public :: readInto => readInto_2d_sp !< read into existing buffer
     procedure, private :: setData_3d_sp
     generic, public :: setData => setData_3d_sp !< set data
     procedure, private :: getData_3d_sp
     generic, public :: getData => getData_3d_sp !< get data
+    procedure, private :: readInto_3d_sp
+    generic, public :: readInto => readInto_3d_sp !< read into existing buffer
     procedure, private :: setData_4d_sp
     generic, public :: setData => setData_4d_sp !< set data
     procedure, private :: getData_4d_sp
     generic, public :: getData => getData_4d_sp !< get data
+    procedure, private :: readInto_4d_sp
+    generic, public :: readInto => readInto_4d_sp !< read into existing buffer
     procedure, private :: setData_5d_sp
     generic, public :: setData => setData_5d_sp !< set data
     procedure, private :: getData_5d_sp
     generic, public :: getData => getData_5d_sp !< get data
+    procedure, private :: readInto_5d_sp
+    generic, public :: readInto => readInto_5d_sp !< read into existing buffer
     procedure, private :: setData_6d_sp
     generic, public :: setData => setData_6d_sp !< set data
     procedure, private :: getData_6d_sp
     generic, public :: getData => getData_6d_sp !< get data
+    procedure, private :: readInto_6d_sp
+    generic, public :: readInto => readInto_6d_sp !< read into existing buffer
     procedure, private :: getCFAttributes_sp
     generic, public :: getCFAttributes => getCFAttributes_sp !< get CF attributes
     procedure, private :: setVariableFillValue_sp
@@ -266,30 +280,44 @@ module mo_netcdf
     generic, public :: setData => setData_0d_dp !< set data
     procedure, private :: getData_0d_dp
     generic, public :: getData => getData_0d_dp !< get data
+    procedure, private :: readInto_0d_dp
+    generic, public :: readInto => readInto_0d_dp !< read into existing buffer
     procedure, private :: setData_1d_dp
     generic, public :: setData => setData_1d_dp !< set data
     procedure, private :: getData_1d_dp
     generic, public :: getData => getData_1d_dp !< get data
+    procedure, private :: readInto_1d_dp
+    generic, public :: readInto => readInto_1d_dp !< read into existing buffer
     procedure, private :: setData_2d_dp
     generic, public :: setData => setData_2d_dp !< set data
     procedure, private :: getData_2d_dp
     generic, public :: getData => getData_2d_dp !< get data
+    procedure, private :: readInto_2d_dp
+    generic, public :: readInto => readInto_2d_dp !< read into existing buffer
     procedure, private :: setData_3d_dp
     generic, public :: setData => setData_3d_dp !< set data
     procedure, private :: getData_3d_dp
     generic, public :: getData => getData_3d_dp !< get data
+    procedure, private :: readInto_3d_dp
+    generic, public :: readInto => readInto_3d_dp !< read into existing buffer
     procedure, private :: setData_4d_dp
     generic, public :: setData => setData_4d_dp !< set data
     procedure, private :: getData_4d_dp
     generic, public :: getData => getData_4d_dp !< get data
+    procedure, private :: readInto_4d_dp
+    generic, public :: readInto => readInto_4d_dp !< read into existing buffer
     procedure, private :: setData_5d_dp
     generic, public :: setData => setData_5d_dp !< set data
     procedure, private :: getData_5d_dp
     generic, public :: getData => getData_5d_dp !< get data
+    procedure, private :: readInto_5d_dp
+    generic, public :: readInto => readInto_5d_dp !< read into existing buffer
     procedure, private :: setData_6d_dp
     generic, public :: setData => setData_6d_dp !< set data
     procedure, private :: getData_6d_dp
     generic, public :: getData => getData_6d_dp !< get data
+    procedure, private :: readInto_6d_dp
+    generic, public :: readInto => readInto_6d_dp !< read into existing buffer
     procedure, private :: getCFAttributes_dp
     generic, public :: getCFAttributes => getCFAttributes_dp !< get CF attributes
     procedure, private :: setVariableFillValue_dp
@@ -300,30 +328,44 @@ module mo_netcdf
     generic, public :: setData => setData_0d_i1 !< set data
     procedure, private :: getData_0d_i1
     generic, public :: getData => getData_0d_i1 !< get data
+    procedure, private :: readInto_0d_i1
+    generic, public :: readInto => readInto_0d_i1 !< read into existing buffer
     procedure, private :: setData_1d_i1
     generic, public :: setData => setData_1d_i1 !< set data
     procedure, private :: getData_1d_i1
     generic, public :: getData => getData_1d_i1 !< get data
+    procedure, private :: readInto_1d_i1
+    generic, public :: readInto => readInto_1d_i1 !< read into existing buffer
     procedure, private :: setData_2d_i1
     generic, public :: setData => setData_2d_i1 !< set data
     procedure, private :: getData_2d_i1
     generic, public :: getData => getData_2d_i1 !< get data
+    procedure, private :: readInto_2d_i1
+    generic, public :: readInto => readInto_2d_i1 !< read into existing buffer
     procedure, private :: setData_3d_i1
     generic, public :: setData => setData_3d_i1 !< set data
     procedure, private :: getData_3d_i1
     generic, public :: getData => getData_3d_i1 !< get data
+    procedure, private :: readInto_3d_i1
+    generic, public :: readInto => readInto_3d_i1 !< read into existing buffer
     procedure, private :: setData_4d_i1
     generic, public :: setData => setData_4d_i1 !< set data
     procedure, private :: getData_4d_i1
     generic, public :: getData => getData_4d_i1 !< get data
+    procedure, private :: readInto_4d_i1
+    generic, public :: readInto => readInto_4d_i1 !< read into existing buffer
     procedure, private :: setData_5d_i1
     generic, public :: setData => setData_5d_i1 !< set data
     procedure, private :: getData_5d_i1
     generic, public :: getData => getData_5d_i1 !< get data
+    procedure, private :: readInto_5d_i1
+    generic, public :: readInto => readInto_5d_i1 !< read into existing buffer
     procedure, private :: setData_6d_i1
     generic, public :: setData => setData_6d_i1 !< set data
     procedure, private :: getData_6d_i1
     generic, public :: getData => getData_6d_i1 !< get data
+    procedure, private :: readInto_6d_i1
+    generic, public :: readInto => readInto_6d_i1 !< read into existing buffer
     procedure, private :: getCFAttributes_i1
     generic, public :: getCFAttributes => getCFAttributes_i1 !< get CF attributes
     procedure, private :: setVariableFillValue_i1
@@ -334,30 +376,44 @@ module mo_netcdf
     generic, public :: setData => setData_0d_i2 !< set data
     procedure, private :: getData_0d_i2
     generic, public :: getData => getData_0d_i2 !< get data
+    procedure, private :: readInto_0d_i2
+    generic, public :: readInto => readInto_0d_i2 !< read into existing buffer
     procedure, private :: setData_1d_i2
     generic, public :: setData => setData_1d_i2 !< set data
     procedure, private :: getData_1d_i2
     generic, public :: getData => getData_1d_i2 !< get data
+    procedure, private :: readInto_1d_i2
+    generic, public :: readInto => readInto_1d_i2 !< read into existing buffer
     procedure, private :: setData_2d_i2
     generic, public :: setData => setData_2d_i2 !< set data
     procedure, private :: getData_2d_i2
     generic, public :: getData => getData_2d_i2 !< get data
+    procedure, private :: readInto_2d_i2
+    generic, public :: readInto => readInto_2d_i2 !< read into existing buffer
     procedure, private :: setData_3d_i2
     generic, public :: setData => setData_3d_i2 !< set data
     procedure, private :: getData_3d_i2
     generic, public :: getData => getData_3d_i2 !< get data
+    procedure, private :: readInto_3d_i2
+    generic, public :: readInto => readInto_3d_i2 !< read into existing buffer
     procedure, private :: setData_4d_i2
     generic, public :: setData => setData_4d_i2 !< set data
     procedure, private :: getData_4d_i2
     generic, public :: getData => getData_4d_i2 !< get data
+    procedure, private :: readInto_4d_i2
+    generic, public :: readInto => readInto_4d_i2 !< read into existing buffer
     procedure, private :: setData_5d_i2
     generic, public :: setData => setData_5d_i2 !< set data
     procedure, private :: getData_5d_i2
     generic, public :: getData => getData_5d_i2 !< get data
+    procedure, private :: readInto_5d_i2
+    generic, public :: readInto => readInto_5d_i2 !< read into existing buffer
     procedure, private :: setData_6d_i2
     generic, public :: setData => setData_6d_i2 !< set data
     procedure, private :: getData_6d_i2
     generic, public :: getData => getData_6d_i2 !< get data
+    procedure, private :: readInto_6d_i2
+    generic, public :: readInto => readInto_6d_i2 !< read into existing buffer
     procedure, private :: getCFAttributes_i2
     generic, public :: getCFAttributes => getCFAttributes_i2 !< get CF attributes
     procedure, private :: setVariableFillValue_i2
@@ -368,30 +424,44 @@ module mo_netcdf
     generic, public :: setData => setData_0d_i4 !< set data
     procedure, private :: getData_0d_i4
     generic, public :: getData => getData_0d_i4 !< get data
+    procedure, private :: readInto_0d_i4
+    generic, public :: readInto => readInto_0d_i4 !< read into existing buffer
     procedure, private :: setData_1d_i4
     generic, public :: setData => setData_1d_i4 !< set data
     procedure, private :: getData_1d_i4
     generic, public :: getData => getData_1d_i4 !< get data
+    procedure, private :: readInto_1d_i4
+    generic, public :: readInto => readInto_1d_i4 !< read into existing buffer
     procedure, private :: setData_2d_i4
     generic, public :: setData => setData_2d_i4 !< set data
     procedure, private :: getData_2d_i4
     generic, public :: getData => getData_2d_i4 !< get data
+    procedure, private :: readInto_2d_i4
+    generic, public :: readInto => readInto_2d_i4 !< read into existing buffer
     procedure, private :: setData_3d_i4
     generic, public :: setData => setData_3d_i4 !< set data
     procedure, private :: getData_3d_i4
     generic, public :: getData => getData_3d_i4 !< get data
+    procedure, private :: readInto_3d_i4
+    generic, public :: readInto => readInto_3d_i4 !< read into existing buffer
     procedure, private :: setData_4d_i4
     generic, public :: setData => setData_4d_i4 !< set data
     procedure, private :: getData_4d_i4
     generic, public :: getData => getData_4d_i4 !< get data
+    procedure, private :: readInto_4d_i4
+    generic, public :: readInto => readInto_4d_i4 !< read into existing buffer
     procedure, private :: setData_5d_i4
     generic, public :: setData => setData_5d_i4 !< set data
     procedure, private :: getData_5d_i4
     generic, public :: getData => getData_5d_i4 !< get data
+    procedure, private :: readInto_5d_i4
+    generic, public :: readInto => readInto_5d_i4 !< read into existing buffer
     procedure, private :: setData_6d_i4
     generic, public :: setData => setData_6d_i4 !< set data
     procedure, private :: getData_6d_i4
     generic, public :: getData => getData_6d_i4 !< get data
+    procedure, private :: readInto_6d_i4
+    generic, public :: readInto => readInto_6d_i4 !< read into existing buffer
     procedure, private :: getCFAttributes_i4
     generic, public :: getCFAttributes => getCFAttributes_i4 !< get CF attributes
     procedure, private :: setVariableFillValue_i4
@@ -402,30 +472,44 @@ module mo_netcdf
     generic, public :: setData => setData_0d_i8 !< set data
     procedure, private :: getData_0d_i8
     generic, public :: getData => getData_0d_i8 !< get data
+    procedure, private :: readInto_0d_i8
+    generic, public :: readInto => readInto_0d_i8 !< read into existing buffer
     procedure, private :: setData_1d_i8
     generic, public :: setData => setData_1d_i8 !< set data
     procedure, private :: getData_1d_i8
     generic, public :: getData => getData_1d_i8 !< get data
+    procedure, private :: readInto_1d_i8
+    generic, public :: readInto => readInto_1d_i8 !< read into existing buffer
     procedure, private :: setData_2d_i8
     generic, public :: setData => setData_2d_i8 !< set data
     procedure, private :: getData_2d_i8
     generic, public :: getData => getData_2d_i8 !< get data
+    procedure, private :: readInto_2d_i8
+    generic, public :: readInto => readInto_2d_i8 !< read into existing buffer
     procedure, private :: setData_3d_i8
     generic, public :: setData => setData_3d_i8 !< set data
     procedure, private :: getData_3d_i8
     generic, public :: getData => getData_3d_i8 !< get data
+    procedure, private :: readInto_3d_i8
+    generic, public :: readInto => readInto_3d_i8 !< read into existing buffer
     procedure, private :: setData_4d_i8
     generic, public :: setData => setData_4d_i8 !< set data
     procedure, private :: getData_4d_i8
     generic, public :: getData => getData_4d_i8 !< get data
+    procedure, private :: readInto_4d_i8
+    generic, public :: readInto => readInto_4d_i8 !< read into existing buffer
     procedure, private :: setData_5d_i8
     generic, public :: setData => setData_5d_i8 !< set data
     procedure, private :: getData_5d_i8
     generic, public :: getData => getData_5d_i8 !< get data
+    procedure, private :: readInto_5d_i8
+    generic, public :: readInto => readInto_5d_i8 !< read into existing buffer
     procedure, private :: setData_6d_i8
     generic, public :: setData => setData_6d_i8 !< set data
     procedure, private :: getData_6d_i8
     generic, public :: getData => getData_6d_i8 !< get data
+    procedure, private :: readInto_6d_i8
+    generic, public :: readInto => readInto_6d_i8 !< read into existing buffer
     procedure, private :: getCFAttributes_i8
     generic, public :: getCFAttributes => getCFAttributes_i8 !< get CF attributes
     procedure, private :: setVariableFillValue_i8
@@ -1495,6 +1579,7 @@ contains
 
 
 
+
   subroutine getData_0d_sp(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     real(sp), intent(out), allocatable :: data
@@ -1526,6 +1611,38 @@ contains
     end if
 
   end subroutine getData_0d_sp
+
+  subroutine readInto_0d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out) :: data
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    real(sp) :: tmp(1)
+
+    call check (nf90_get_var(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+    if (present(mask)) then
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto_0d_sp
 
   subroutine setData_0d_sp(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
@@ -1571,6 +1688,56 @@ contains
 
   end subroutine getData_1d_sp
 
+  subroutine readInto_1d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out) :: data(:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto_1d_sp
+
   subroutine setData_1d_sp(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     real(sp), intent(in) :: values(:)
@@ -1614,6 +1781,56 @@ contains
     end if
 
   end subroutine getData_2d_sp
+
+  subroutine readInto_2d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out) :: data(:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto_2d_sp
 
   subroutine setData_2d_sp(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
@@ -1659,6 +1876,56 @@ contains
 
   end subroutine getData_3d_sp
 
+  subroutine readInto_3d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out) :: data(:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto_3d_sp
+
   subroutine setData_3d_sp(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     real(sp), intent(in) :: values(:,:,:)
@@ -1702,6 +1969,56 @@ contains
     end if
 
   end subroutine getData_4d_sp
+
+  subroutine readInto_4d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out) :: data(:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto_4d_sp
 
   subroutine setData_4d_sp(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
@@ -1747,6 +2064,56 @@ contains
 
   end subroutine getData_5d_sp
 
+  subroutine readInto_5d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out) :: data(:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto_5d_sp
+
   subroutine setData_5d_sp(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     real(sp), intent(in) :: values(:,:,:,:,:)
@@ -1790,6 +2157,56 @@ contains
     end if
 
   end subroutine getData_6d_sp
+
+  subroutine readInto_6d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out) :: data(:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto_6d_sp
 
   subroutine setData_6d_sp(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
@@ -1881,6 +2298,38 @@ contains
 
   end subroutine getData_0d_dp
 
+  subroutine readInto_0d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out) :: data
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    real(dp) :: tmp(1)
+
+    call check (nf90_get_var(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+    if (present(mask)) then
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto_0d_dp
+
   subroutine setData_0d_dp(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     real(dp), intent(in) :: values
@@ -1924,6 +2373,56 @@ contains
     end if
 
   end subroutine getData_1d_dp
+
+  subroutine readInto_1d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out) :: data(:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto_1d_dp
 
   subroutine setData_1d_dp(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
@@ -1969,6 +2468,56 @@ contains
 
   end subroutine getData_2d_dp
 
+  subroutine readInto_2d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out) :: data(:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto_2d_dp
+
   subroutine setData_2d_dp(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     real(dp), intent(in) :: values(:,:)
@@ -2012,6 +2561,56 @@ contains
     end if
 
   end subroutine getData_3d_dp
+
+  subroutine readInto_3d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out) :: data(:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto_3d_dp
 
   subroutine setData_3d_dp(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
@@ -2057,6 +2656,56 @@ contains
 
   end subroutine getData_4d_dp
 
+  subroutine readInto_4d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out) :: data(:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto_4d_dp
+
   subroutine setData_4d_dp(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     real(dp), intent(in) :: values(:,:,:,:)
@@ -2101,6 +2750,56 @@ contains
 
   end subroutine getData_5d_dp
 
+  subroutine readInto_5d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out) :: data(:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto_5d_dp
+
   subroutine setData_5d_dp(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     real(dp), intent(in) :: values(:,:,:,:,:)
@@ -2144,6 +2843,56 @@ contains
     end if
 
   end subroutine getData_6d_dp
+
+  subroutine readInto_6d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out) :: data(:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto_6d_dp
 
   subroutine setData_6d_dp(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
@@ -2233,6 +2982,36 @@ contains
 
   end subroutine getData_0d_i1
 
+  subroutine readInto_0d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out) :: data
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i1) :: tmp(1)
+
+    call check (nf90_get_var(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+    if (present(mask)) then
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_0d_i1
+
   subroutine setData_0d_i1(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     integer(i1), intent(in) :: values
@@ -2274,6 +3053,54 @@ contains
     end if
 
   end subroutine getData_1d_i1
+
+  subroutine readInto_1d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out) :: data(:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_1d_i1
 
   subroutine setData_1d_i1(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
@@ -2317,6 +3144,54 @@ contains
 
   end subroutine getData_2d_i1
 
+  subroutine readInto_2d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out) :: data(:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_2d_i1
+
   subroutine setData_2d_i1(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     integer(i1), intent(in) :: values(:,:)
@@ -2358,6 +3233,54 @@ contains
     end if
 
   end subroutine getData_3d_i1
+
+  subroutine readInto_3d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out) :: data(:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_3d_i1
 
   subroutine setData_3d_i1(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
@@ -2401,6 +3324,54 @@ contains
 
   end subroutine getData_4d_i1
 
+  subroutine readInto_4d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out) :: data(:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_4d_i1
+
   subroutine setData_4d_i1(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     integer(i1), intent(in) :: values(:,:,:,:)
@@ -2443,6 +3414,54 @@ contains
 
   end subroutine getData_5d_i1
 
+  subroutine readInto_5d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out) :: data(:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_5d_i1
+
   subroutine setData_5d_i1(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     integer(i1), intent(in) :: values(:,:,:,:,:)
@@ -2484,6 +3503,54 @@ contains
     end if
 
   end subroutine getData_6d_i1
+
+  subroutine readInto_6d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out) :: data(:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_6d_i1
 
   subroutine setData_6d_i1(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
@@ -2570,6 +3637,36 @@ contains
 
   end subroutine getData_0d_i2
 
+  subroutine readInto_0d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out) :: data
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i2) :: tmp(1)
+
+    call check (nf90_get_var(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+    if (present(mask)) then
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_0d_i2
+
   subroutine setData_0d_i2(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     integer(i2), intent(in) :: values
@@ -2611,6 +3708,54 @@ contains
     end if
 
   end subroutine getData_1d_i2
+
+  subroutine readInto_1d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out) :: data(:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_1d_i2
 
   subroutine setData_1d_i2(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
@@ -2654,6 +3799,54 @@ contains
 
   end subroutine getData_2d_i2
 
+  subroutine readInto_2d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out) :: data(:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_2d_i2
+
   subroutine setData_2d_i2(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     integer(i2), intent(in) :: values(:,:)
@@ -2695,6 +3888,54 @@ contains
     end if
 
   end subroutine getData_3d_i2
+
+  subroutine readInto_3d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out) :: data(:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_3d_i2
 
   subroutine setData_3d_i2(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
@@ -2738,6 +3979,54 @@ contains
 
   end subroutine getData_4d_i2
 
+  subroutine readInto_4d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out) :: data(:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_4d_i2
+
   subroutine setData_4d_i2(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     integer(i2), intent(in) :: values(:,:,:,:)
@@ -2780,6 +4069,54 @@ contains
 
   end subroutine getData_5d_i2
 
+  subroutine readInto_5d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out) :: data(:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_5d_i2
+
   subroutine setData_5d_i2(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     integer(i2), intent(in) :: values(:,:,:,:,:)
@@ -2821,6 +4158,54 @@ contains
     end if
 
   end subroutine getData_6d_i2
+
+  subroutine readInto_6d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out) :: data(:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_6d_i2
 
   subroutine setData_6d_i2(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
@@ -2907,6 +4292,36 @@ contains
 
   end subroutine getData_0d_i4
 
+  subroutine readInto_0d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out) :: data
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i4) :: tmp(1)
+
+    call check (nf90_get_var(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+    if (present(mask)) then
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_0d_i4
+
   subroutine setData_0d_i4(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     integer(i4), intent(in) :: values
@@ -2948,6 +4363,54 @@ contains
     end if
 
   end subroutine getData_1d_i4
+
+  subroutine readInto_1d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out) :: data(:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_1d_i4
 
   subroutine setData_1d_i4(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
@@ -2991,6 +4454,54 @@ contains
 
   end subroutine getData_2d_i4
 
+  subroutine readInto_2d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out) :: data(:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_2d_i4
+
   subroutine setData_2d_i4(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     integer(i4), intent(in) :: values(:,:)
@@ -3032,6 +4543,54 @@ contains
     end if
 
   end subroutine getData_3d_i4
+
+  subroutine readInto_3d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out) :: data(:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_3d_i4
 
   subroutine setData_3d_i4(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
@@ -3075,6 +4634,54 @@ contains
 
   end subroutine getData_4d_i4
 
+  subroutine readInto_4d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out) :: data(:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_4d_i4
+
   subroutine setData_4d_i4(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     integer(i4), intent(in) :: values(:,:,:,:)
@@ -3117,6 +4724,54 @@ contains
 
   end subroutine getData_5d_i4
 
+  subroutine readInto_5d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out) :: data(:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_5d_i4
+
   subroutine setData_5d_i4(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     integer(i4), intent(in) :: values(:,:,:,:,:)
@@ -3158,6 +4813,54 @@ contains
     end if
 
   end subroutine getData_6d_i4
+
+  subroutine readInto_6d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out) :: data(:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_6d_i4
 
   subroutine setData_6d_i4(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
@@ -3244,6 +4947,36 @@ contains
 
   end subroutine getData_0d_i8
 
+  subroutine readInto_0d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out) :: data
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i8) :: tmp(1)
+
+    call check (nf90_get_var(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+    if (present(mask)) then
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_0d_i8
+
   subroutine setData_0d_i8(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     integer(i8), intent(in) :: values
@@ -3285,6 +5018,54 @@ contains
     end if
 
   end subroutine getData_1d_i8
+
+  subroutine readInto_1d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out) :: data(:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_1d_i8
 
   subroutine setData_1d_i8(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
@@ -3328,6 +5109,54 @@ contains
 
   end subroutine getData_2d_i8
 
+  subroutine readInto_2d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out) :: data(:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_2d_i8
+
   subroutine setData_2d_i8(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     integer(i8), intent(in) :: values(:,:)
@@ -3369,6 +5198,54 @@ contains
     end if
 
   end subroutine getData_3d_i8
+
+  subroutine readInto_3d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out) :: data(:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_3d_i8
 
   subroutine setData_3d_i8(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
@@ -3412,6 +5289,54 @@ contains
 
   end subroutine getData_4d_i8
 
+  subroutine readInto_4d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out) :: data(:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_4d_i8
+
   subroutine setData_4d_i8(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     integer(i8), intent(in) :: values(:,:,:,:)
@@ -3454,6 +5379,54 @@ contains
 
   end subroutine getData_5d_i8
 
+  subroutine readInto_5d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out) :: data(:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_5d_i8
+
   subroutine setData_5d_i8(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
     integer(i8), intent(in) :: values(:,:,:,:,:)
@@ -3495,6 +5468,54 @@ contains
     end if
 
   end subroutine getData_6d_i8
+
+  subroutine readInto_6d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out) :: data(:,:,:,:,:,:)
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank})
+    integer(i4) :: maskshape(${rank})
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto_6d_i8
 
   subroutine setData_6d_i8(self, values, start, cnt, stride, map)
     class(NcVariable), intent(in) :: self
