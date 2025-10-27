@@ -59,7 +59,7 @@
     class(input_variable), intent(inout) :: self
     logical, intent(in) :: flip_y !< flip data along y-axis
     integer(i4), intent(in), optional :: t_index !< current time step
-    ${type}$, dimension(:, :), allocatable, intent(out) :: data !< read data
+    ${type}$, dimension(:, :), intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
@@ -71,7 +71,7 @@
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
     if (.not.self%static) start(3) = t_index
-    call self%nc%getData(data, start=start, cnt=cnt)
+    call self%nc%readInto(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_${kind}$
@@ -84,7 +84,7 @@
     class(input_variable), intent(inout) :: self
     logical, intent(in) :: flip_y !< flip data along y-axis
     integer(i4), intent(in), optional :: t_index !< current time step
-    ${type}$, dimension(:,:,:), allocatable, intent(out) :: data !< read data (nx, ny, layer)
+    ${type}$, dimension(:,:,:), intent(out) :: data !< read data (nx, ny, layer)
     integer(i4), allocatable :: start(:), cnt(:)
     if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
@@ -97,7 +97,7 @@
     cnt(2) = self%grid%ny
     cnt(3) = self%nlayers
     if (.not.self%static) start(4) = t_index
-    call self%nc%getData(data, start=start, cnt=cnt)
+    call self%nc%readInto(data, start=start, cnt=cnt)
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_layered_${kind}$
@@ -161,12 +161,10 @@
     character(*), intent(in) :: name !< name of the variable
     ${type}$, dimension(self%grid%nx, self%grid%ny), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
-    ${type}$, dimension(:,:), allocatable :: read_data
     integer(i4) :: t_index
     t_index = 0_i4 ! indicate missing current_time
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
-    call self%vars(var_index(self%vars, name, "input%read"))%read(flip_y=self%flip_y, t_index=t_index, data=read_data)
-    data = read_data
+    call self%vars(var_index(self%vars, name, "input%read"))%read(flip_y=self%flip_y, t_index=t_index, data=data)
   end subroutine input_read_matrix_${kind}$
 #:enddef
 #!
@@ -178,12 +176,10 @@
     character(*), intent(in) :: name !< name of the variable
     ${type}$, dimension(self%grid%nx, self%grid%ny, self%nlayers), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
-    ${type}$, dimension(:,:,:), allocatable :: read_data
     integer(i4) :: t_index
     t_index = 0_i4
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
-    call self%vars(var_index(self%vars, name, "input%read_layered"))%read_layered(flip_y=self%flip_y, t_index=t_index, data=read_data)
-    data = read_data
+    call self%vars(var_index(self%vars, name, "input%read_layered"))%read_layered(flip_y=self%flip_y, t_index=t_index, data=data)
   end subroutine input_read_matrix_layered_${kind}$
 #:enddef
 #!
