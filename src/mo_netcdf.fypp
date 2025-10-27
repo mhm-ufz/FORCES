@@ -1104,8 +1104,8 @@ $: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+
     ${type}$ :: fillValue, minValue, maxValue
 #: if rank > 0
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(${rank}$)
+    integer(i4) :: maskshape(${rank}$)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)

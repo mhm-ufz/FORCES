@@ -1697,8 +1697,8 @@ contains
     integer(i4) :: flagMissing
     real(sp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(1)
+    integer(i4) :: maskshape(1)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -1791,8 +1791,8 @@ contains
     integer(i4) :: flagMissing
     real(sp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(2)
+    integer(i4) :: maskshape(2)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -1885,8 +1885,8 @@ contains
     integer(i4) :: flagMissing
     real(sp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(3)
+    integer(i4) :: maskshape(3)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -1979,8 +1979,8 @@ contains
     integer(i4) :: flagMissing
     real(sp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(4)
+    integer(i4) :: maskshape(4)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -2073,8 +2073,8 @@ contains
     integer(i4) :: flagMissing
     real(sp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(5)
+    integer(i4) :: maskshape(5)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -2167,8 +2167,8 @@ contains
     integer(i4) :: flagMissing
     real(sp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(6)
+    integer(i4) :: maskshape(6)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -2383,8 +2383,8 @@ contains
     integer(i4) :: flagMissing
     real(dp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(1)
+    integer(i4) :: maskshape(1)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -2477,8 +2477,8 @@ contains
     integer(i4) :: flagMissing
     real(dp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(2)
+    integer(i4) :: maskshape(2)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -2571,8 +2571,8 @@ contains
     integer(i4) :: flagMissing
     real(dp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(3)
+    integer(i4) :: maskshape(3)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -2665,8 +2665,8 @@ contains
     integer(i4) :: flagMissing
     real(dp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(4)
+    integer(i4) :: maskshape(4)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -2759,8 +2759,8 @@ contains
     integer(i4) :: flagMissing
     real(dp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(5)
+    integer(i4) :: maskshape(5)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -2853,8 +2853,8 @@ contains
     integer(i4) :: flagMissing
     real(dp) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(6)
+    integer(i4) :: maskshape(6)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -3063,8 +3063,8 @@ contains
     integer(i4) :: flagMissing
     integer(i1) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(1)
+    integer(i4) :: maskshape(1)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -3153,8 +3153,8 @@ contains
     integer(i4) :: flagMissing
     integer(i1) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(2)
+    integer(i4) :: maskshape(2)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -3243,8 +3243,8 @@ contains
     integer(i4) :: flagMissing
     integer(i1) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(3)
+    integer(i4) :: maskshape(3)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -3333,8 +3333,8 @@ contains
     integer(i4) :: flagMissing
     integer(i1) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(4)
+    integer(i4) :: maskshape(4)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -3423,8 +3423,8 @@ contains
     integer(i4) :: flagMissing
     integer(i1) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(5)
+    integer(i4) :: maskshape(5)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -3513,8 +3513,8 @@ contains
     integer(i4) :: flagMissing
     integer(i1) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(6)
+    integer(i4) :: maskshape(6)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -3718,8 +3718,8 @@ contains
     integer(i4) :: flagMissing
     integer(i2) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(1)
+    integer(i4) :: maskshape(1)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -3808,8 +3808,8 @@ contains
     integer(i4) :: flagMissing
     integer(i2) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(2)
+    integer(i4) :: maskshape(2)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -3898,8 +3898,8 @@ contains
     integer(i4) :: flagMissing
     integer(i2) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(3)
+    integer(i4) :: maskshape(3)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -3988,8 +3988,8 @@ contains
     integer(i4) :: flagMissing
     integer(i2) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(4)
+    integer(i4) :: maskshape(4)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -4078,8 +4078,8 @@ contains
     integer(i4) :: flagMissing
     integer(i2) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(5)
+    integer(i4) :: maskshape(5)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -4168,8 +4168,8 @@ contains
     integer(i4) :: flagMissing
     integer(i2) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(6)
+    integer(i4) :: maskshape(6)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -4373,8 +4373,8 @@ contains
     integer(i4) :: flagMissing
     integer(i4) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(1)
+    integer(i4) :: maskshape(1)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -4463,8 +4463,8 @@ contains
     integer(i4) :: flagMissing
     integer(i4) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(2)
+    integer(i4) :: maskshape(2)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -4553,8 +4553,8 @@ contains
     integer(i4) :: flagMissing
     integer(i4) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(3)
+    integer(i4) :: maskshape(3)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -4643,8 +4643,8 @@ contains
     integer(i4) :: flagMissing
     integer(i4) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(4)
+    integer(i4) :: maskshape(4)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -4733,8 +4733,8 @@ contains
     integer(i4) :: flagMissing
     integer(i4) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(5)
+    integer(i4) :: maskshape(5)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -4823,8 +4823,8 @@ contains
     integer(i4) :: flagMissing
     integer(i4) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(6)
+    integer(i4) :: maskshape(6)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -5028,8 +5028,8 @@ contains
     integer(i4) :: flagMissing
     integer(i8) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(1)
+    integer(i4) :: maskshape(1)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -5118,8 +5118,8 @@ contains
     integer(i4) :: flagMissing
     integer(i8) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(2)
+    integer(i4) :: maskshape(2)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -5208,8 +5208,8 @@ contains
     integer(i4) :: flagMissing
     integer(i8) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(3)
+    integer(i4) :: maskshape(3)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -5298,8 +5298,8 @@ contains
     integer(i4) :: flagMissing
     integer(i8) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(4)
+    integer(i4) :: maskshape(4)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -5388,8 +5388,8 @@ contains
     integer(i4) :: flagMissing
     integer(i8) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(5)
+    integer(i4) :: maskshape(5)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
@@ -5478,8 +5478,8 @@ contains
     integer(i4) :: flagMissing
     integer(i8) :: fillValue, minValue, maxValue
     integer(i4), allocatable :: slcshape(:), expected_shape(:)
-    integer(i4) :: datashape(${rank})
-    integer(i4) :: maskshape(${rank})
+    integer(i4) :: datashape(6)
+    integer(i4) :: maskshape(6)
 
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
