@@ -4185,7 +4185,7 @@ contains
     class(input_dataset), intent(in) :: self
     type(datetime), intent(in) :: current_time !< current read time
     integer(i8) :: current_delta_sec
-    integer(i4) :: t_val
+    integer(i4) :: t_val, left, right
     if (.not.allocated(self%times)) call error_message("input%time_index: file is static and has no time dimension")
     ! seconds since start date
     current_delta_sec = int(current_time%date_to_ordinal(), i8) * 86400_i8 + int(current_time%day_second(), i8) - self%start_ord_sec
@@ -4193,11 +4193,22 @@ contains
     t_val = int(current_delta_sec / self%delta_sec, i4) ! division with remainder
     if (mod(current_delta_sec, self%delta_sec) > 0_i8) t_val = t_val + 1_i4 ! next step if remaining sub-step time
     ! locate the value in the time values of the file
-    if (t_val < self%t_bounds(1)) call error_message("input%time_index: read time not covered by file.")
-    do input_time_index = 1_i4, size(self%t_values)
-      if (self%t_bounds(input_time_index) < t_val .and. t_val <= self%t_bounds(input_time_index+1_i4)) return
+    left = 1_i4
+    right = size(self%t_values)
+    if ((t_val < self%t_bounds(left)) .or. (t_val > self%t_bounds(right+1_i4))) then
+      call error_message("input%time_index: read time not covered by file.")
+    end if
+    ! binary search for the correct time index
+    do while (left <= right)
+      input_time_index = (left + right) / 2_i4
+      if (t_val <= self%t_bounds(input_time_index)) then
+        right = input_time_index - 1_i4
+      else if (t_val > self%t_bounds(input_time_index + 1_i4)) then
+        left = input_time_index + 1_i4
+      else
+        return ! found
+      end if
     end do
-    call error_message("input%time_index: read time not covered by file.")
   end function input_time_index
 
   !> \brief Get variable meta data.
