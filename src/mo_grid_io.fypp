@@ -39,8 +39,18 @@
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     ${type}$, intent(in), dimension(:) :: data !< data for current time step
-    call self%vars(var_index(self%vars, name, "output%update"))%update(data)
+    call self%output_update_id_${kind}$(self%var_index(name), data)
   end subroutine output_update_${kind}$
+
+  !> \brief Update a variable by id
+  subroutine output_update_id_${kind}$(self, var_id, data)
+    implicit none
+    class(output_dataset), intent(inout) :: self
+    integer(i4), intent(in) :: var_id !< variable index
+    ${type}$, intent(in), dimension(:) :: data !< data for current time step
+    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("output%update_id: invalid variable id")
+    call self%vars(var_id)%update(data)
+  end subroutine output_update_id_${kind}$
 
   !> \brief Update a layered variable
   subroutine output_update_layered_${kind}$(self, name, data)
@@ -48,8 +58,18 @@
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
     ${type}$, intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    call self%vars(var_index(self%vars, name, "output%update_layered"))%update_layered(data)
+    call self%output_update_layered_id_${kind}$(self%var_index(name), data)
   end subroutine output_update_layered_${kind}$
+
+  !> \brief Update a layered variable by id
+  subroutine output_update_layered_id_${kind}$(self, var_id, data)
+    implicit none
+    class(output_dataset), intent(inout) :: self
+    integer(i4), intent(in) :: var_id !< variable index
+    ${type}$, intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
+    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("output%update_layered_id: invalid variable id")
+    call self%vars(var_id)%update_layered(data)
+  end subroutine output_update_layered_id_${kind}$
 #:enddef
 #!
 #:def render_in_var_read(kind, type)
@@ -161,11 +181,22 @@
     character(*), intent(in) :: name !< name of the variable
     ${type}$, dimension(self%grid%nx, self%grid%ny), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
+    call self%input_read_matrix_id_${kind}$(self%var_index(name), data, current_time)
+  end subroutine input_read_matrix_${kind}$
+
+  !> \brief Read an input variable for a single time step by id
+  subroutine input_read_matrix_id_${kind}$(self, var_id, data, current_time)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    integer(i4), intent(in) :: var_id !< variable index
+    ${type}$, dimension(self%grid%nx, self%grid%ny), intent(out) :: data !< read data
+    type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4) :: t_index
+    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_id: invalid variable id")
     t_index = 0_i4 ! indicate missing current_time
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
-    call self%vars(var_index(self%vars, name, "input%read"))%read(flip_y=self%flip_y, t_index=t_index, data=data)
-  end subroutine input_read_matrix_${kind}$
+    call self%vars(var_id)%read(flip_y=self%flip_y, t_index=t_index, data=data)
+  end subroutine input_read_matrix_id_${kind}$
 #:enddef
 #!
 #:def render_input_read_matrix_layered(kind, type)
@@ -176,11 +207,22 @@
     character(*), intent(in) :: name !< name of the variable
     ${type}$, dimension(self%grid%nx, self%grid%ny, self%nlayers), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
+    call self%input_read_matrix_layered_id_${kind}$(self%var_index(name), data, current_time)
+  end subroutine input_read_matrix_layered_${kind}$
+
+  !> \brief Read a layered input variable for a single time step by id
+  subroutine input_read_matrix_layered_id_${kind}$(self, var_id, data, current_time)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    integer(i4), intent(in) :: var_id !< variable index
+    ${type}$, dimension(self%grid%nx, self%grid%ny, self%nlayers), intent(out) :: data !< read data
+    type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4) :: t_index
+    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_layered_id: invalid variable id")
     t_index = 0_i4
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
-    call self%vars(var_index(self%vars, name, "input%read_layered"))%read_layered(flip_y=self%flip_y, t_index=t_index, data=data)
-  end subroutine input_read_matrix_layered_${kind}$
+    call self%vars(var_id)%read_layered(flip_y=self%flip_y, t_index=t_index, data=data)
+  end subroutine input_read_matrix_layered_id_${kind}$
 #:enddef
 #!
 #:def render_input_read_pack(kind, type)
@@ -191,10 +233,21 @@
     character(*), intent(in) :: name !< name of the variable
     ${type}$, dimension(self%grid%ncells), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
-    ${type}$, dimension(self%grid%nx, self%grid%ny) :: data_matrix
-    call self%input_read_matrix_${kind}$(name, data_matrix, current_time)
-    data = pack(data_matrix, self%grid%mask)
+    call self%input_read_pack_id_${kind}$(self%var_index(name), data, current_time)
   end subroutine input_read_pack_${kind}$
+
+  !> \brief Read an input variable for a single time step by id
+  subroutine input_read_pack_id_${kind}$(self, var_id, data, current_time)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    integer(i4), intent(in) :: var_id !< variable index
+    ${type}$, dimension(self%grid%ncells), intent(out) :: data !< read data
+    type(datetime), intent(in), optional :: current_time !< current time step
+    ${type}$, dimension(self%grid%nx, self%grid%ny) :: data_matrix
+    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_id: invalid variable id")
+    call self%input_read_matrix_id_${kind}$(var_id, data_matrix, current_time)
+    data = pack(data_matrix, self%grid%mask)
+  end subroutine input_read_pack_id_${kind}$
 #:enddef
 #!
 #:def render_input_read_pack_layered(kind, type)
@@ -205,13 +258,24 @@
     character(*), intent(in) :: name !< name of the variable
     ${type}$, dimension(self%grid%ncells, self%nlayers), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
+    call self%input_read_pack_layered_id_${kind}$(self%var_index(name), data, current_time)
+  end subroutine input_read_pack_layered_${kind}$
+
+  !> \brief Read a layered input variable for a single time step as packed array by id
+  subroutine input_read_pack_layered_id_${kind}$(self, var_id, data, current_time)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    integer(i4), intent(in) :: var_id !< variable index
+    ${type}$, dimension(self%grid%ncells, self%nlayers), intent(out) :: data !< read data
+    type(datetime), intent(in), optional :: current_time !< current time step
     ${type}$ :: data_matrix(self%grid%nx, self%grid%ny, self%nlayers)
     integer(i4) :: i
-    call self%input_read_matrix_layered_${kind}$(name, data_matrix, current_time)
+    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_layered_id: invalid variable id")
+    call self%input_read_matrix_layered_id_${kind}$(var_id, data_matrix, current_time)
     do i = 1_i4, self%nlayers
       data(:, i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
-  end subroutine input_read_pack_layered_${kind}$
+  end subroutine input_read_pack_layered_id_${kind}$
 #:enddef
 #!
 #:def render_input_read_chunk_matrix(kind, type)
@@ -224,11 +288,24 @@
     type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
+    call self%input_read_chunk_matrix_id_${kind}$(self%var_index(name), data, timeframe_start, timeframe_end, times)
+  end subroutine input_read_chunk_matrix_${kind}$
+
+  !> \brief Read an input variable for a given time frame by id
+  subroutine input_read_chunk_matrix_id_${kind}$(self, var_id, data, timeframe_start, timeframe_end, times)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    integer(i4), intent(in) :: var_id !< variable index
+    ${type}$, dimension(:,:,:), allocatable, intent(out) :: data !< read data
+    type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
+    type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
+    type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
+    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
     if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
-    call self%input_read_chunk_by_ids_matrix_${kind}$(name, data, t_index, t_size)
-  end subroutine input_read_chunk_matrix_${kind}$
+    call self%input_read_chunk_by_ids_matrix_id_${kind}$(var_id, data, t_index, t_size)
+  end subroutine input_read_chunk_matrix_id_${kind}$
 #:enddef
 #!
 #:def render_input_read_chunk_matrix_layered(kind, type)
@@ -241,11 +318,24 @@
     type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
+    call self%input_read_chunk_matrix_layered_id_${kind}$(self%var_index(name), data, timeframe_start, timeframe_end, times)
+  end subroutine input_read_chunk_matrix_layered_${kind}$
+
+  !> \brief Read a layered input variable for a given time frame by id
+  subroutine input_read_chunk_matrix_layered_id_${kind}$(self, var_id, data, timeframe_start, timeframe_end, times)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    integer(i4), intent(in) :: var_id !< variable index
+    ${type}$, dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
+    type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
+    type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
+    type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
+    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
     if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
-    call self%input_read_chunk_by_ids_matrix_layered_${kind}$(name, data, t_index, t_size)
-  end subroutine input_read_chunk_matrix_layered_${kind}$
+    call self%input_read_chunk_by_ids_matrix_layered_id_${kind}$(var_id, data, t_index, t_size)
+  end subroutine input_read_chunk_matrix_layered_id_${kind}$
 #:enddef
 #!
 #:def render_input_read_chunk_pack(kind, type)
@@ -258,15 +348,28 @@
     type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
+    call self%input_read_chunk_pack_id_${kind}$(self%var_index(name), data, timeframe_start, timeframe_end, times)
+  end subroutine input_read_chunk_pack_${kind}$
+
+  !> \brief Read an input variable for a given time frame by id
+  subroutine input_read_chunk_pack_id_${kind}$(self, var_id, data, timeframe_start, timeframe_end, times)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    integer(i4), intent(in) :: var_id !< variable index
+    ${type}$, dimension(:,:), allocatable, intent(out) :: data !< read data
+    type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
+    type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
+    type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     ${type}$, dimension(:,:,:), allocatable :: data_matrix !< read data
     integer(i4) :: i, nt
-    call self%input_read_chunk_matrix_${kind}$(name, data_matrix, timeframe_start, timeframe_end, times)
+    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
+    call self%input_read_chunk_matrix_id_${kind}$(var_id, data_matrix, timeframe_start, timeframe_end, times)
     nt = size(data_matrix, 3, kind=i4)
     allocate(data(self%grid%ncells, nt))
     do i = 1_i4, nt
       data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
-  end subroutine input_read_chunk_pack_${kind}$
+  end subroutine input_read_chunk_pack_id_${kind}$
 #:enddef
 #!
 #:def render_input_read_chunk_pack_layered(kind, type)
@@ -279,9 +382,22 @@
     type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
+    call self%input_read_chunk_pack_layered_id_${kind}$(self%var_index(name), data, timeframe_start, timeframe_end, times)
+  end subroutine input_read_chunk_pack_layered_${kind}$
+
+  !> \brief Read a layered input variable for a given time frame packed to 2-D by id
+  subroutine input_read_chunk_pack_layered_id_${kind}$(self, var_id, data, timeframe_start, timeframe_end, times)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    integer(i4), intent(in) :: var_id !< variable index
+    ${type}$, dimension(:,:,:), allocatable, intent(out) :: data !< read data (ncells, layer, time)
+    type(datetime), intent(in) :: timeframe_start !< start of time frame (excluding)
+    type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
+    type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     ${type}$, dimension(:,:,:,:), allocatable :: data_matrix !< read data
     integer(i4) :: i, j, nt
-    call self%input_read_chunk_matrix_layered_${kind}$(name, data_matrix, timeframe_start, timeframe_end, times)
+    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
+    call self%input_read_chunk_matrix_layered_id_${kind}$(var_id, data_matrix, timeframe_start, timeframe_end, times)
     nt = size(data_matrix,4, kind=i4)
     allocate(data(self%grid%ncells, self%nlayers, nt))
     do i = 1_i4, nt
@@ -289,7 +405,7 @@
         data(:, j, i) = pack(data_matrix(:,:,j,i), self%grid%mask)
       end do
     end do
-  end subroutine input_read_chunk_pack_layered_${kind}$
+  end subroutine input_read_chunk_pack_layered_id_${kind}$
 #:enddef
 #!
 #:def render_input_read_chunk_by_ids_matrix(kind, type)
@@ -301,9 +417,21 @@
     ${type}$, dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
-    call self%vars(var_index(self%vars, name, "input%read_chunk"))%read_chunk(self%flip_y, t_index, t_size, data)
+    call self%input_read_chunk_by_ids_matrix_id_${kind}$(self%var_index(name), data, t_index, t_size)
   end subroutine input_read_chunk_by_ids_matrix_${kind}$
+
+  !> \brief Read an input variable chunk by ids by id
+  subroutine input_read_chunk_by_ids_matrix_id_${kind}$(self, var_id, data, t_index, t_size)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    integer(i4), intent(in) :: var_id !< variable index
+    ${type}$, dimension(:,:,:), allocatable, intent(out) :: data !< read data
+    integer(i4), intent(in) :: t_index !< start index of time frame
+    integer(i4), intent(in) :: t_size !< chunk size
+    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
+    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    call self%vars(var_id)%read_chunk(self%flip_y, t_index, t_size, data)
+  end subroutine input_read_chunk_by_ids_matrix_id_${kind}$
 #:enddef
 #!
 #:def render_input_read_chunk_by_ids_matrix_layered(kind, type)
@@ -315,10 +443,21 @@
     ${type}$, dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    integer(i4) :: vidx
-    if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
-    call self%vars(var_index(self%vars, name, "input%read_chunk_layered"))%read_chunk_layered(self%flip_y, t_index, t_size, data)
+    call self%input_read_chunk_by_ids_matrix_layered_id_${kind}$(self%var_index(name), data, t_index, t_size)
   end subroutine input_read_chunk_by_ids_matrix_layered_${kind}$
+
+  !> \brief Read layered input variable chunk by ids using id
+  subroutine input_read_chunk_by_ids_matrix_layered_id_${kind}$(self, var_id, data, t_index, t_size)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    integer(i4), intent(in) :: var_id !< variable index
+    ${type}$, dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
+    integer(i4), intent(in) :: t_index !< start index of time frame
+    integer(i4), intent(in) :: t_size !< chunk size
+    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
+    call self%vars(var_id)%read_chunk_layered(self%flip_y, t_index, t_size, data)
+  end subroutine input_read_chunk_by_ids_matrix_layered_id_${kind}$
 #:enddef
 #!
 #:def render_input_read_chunk_by_ids_pack(kind, type)
@@ -330,14 +469,26 @@
     ${type}$, dimension(:,:), allocatable, intent(out) :: data !< read data
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
+    call self%input_read_chunk_by_ids_pack_id_${kind}$(self%var_index(name), data, t_index, t_size)
+  end subroutine input_read_chunk_by_ids_pack_${kind}$
+
+  !> \brief Read an input variable chunk by ids packed by id
+  subroutine input_read_chunk_by_ids_pack_id_${kind}$(self, var_id, data, t_index, t_size)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    integer(i4), intent(in) :: var_id !< variable index
+    ${type}$, dimension(:,:), allocatable, intent(out) :: data !< read data
+    integer(i4), intent(in) :: t_index !< start index of time frame
+    integer(i4), intent(in) :: t_size !< chunk size
     ${type}$, dimension(:,:,:), allocatable :: data_matrix
     integer(i4) :: i
-    call self%input_read_chunk_by_ids_matrix_${kind}$(name, data_matrix, t_index, t_size)
+    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
+    call self%input_read_chunk_by_ids_matrix_id_${kind}$(var_id, data_matrix, t_index, t_size)
     allocate(data(self%grid%ncells, t_size))
     do i = 1_i4, t_size
       data(:,i) = pack(data_matrix(:,:,i), self%grid%mask)
     end do
-  end subroutine input_read_chunk_by_ids_pack_${kind}$
+  end subroutine input_read_chunk_by_ids_pack_id_${kind}$
 #:enddef
 #!
 #:def render_input_read_chunk_by_ids_pack_layered(kind, type)
@@ -349,16 +500,28 @@
     ${type}$, dimension(:,:,:), allocatable, intent(out) :: data !< read data (ncells, layer, time)
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
+    call self%input_read_chunk_by_ids_pack_layered_id_${kind}$(self%var_index(name), data, t_index, t_size)
+  end subroutine input_read_chunk_by_ids_pack_layered_${kind}$
+
+  !> \brief Read layered input variable chunk by ids packed by id
+  subroutine input_read_chunk_by_ids_pack_layered_id_${kind}$(self, var_id, data, t_index, t_size)
+    implicit none
+    class(input_dataset), intent(inout) :: self
+    integer(i4), intent(in) :: var_id !< variable index
+    ${type}$, dimension(:,:,:), allocatable, intent(out) :: data !< read data (ncells, layer, time)
+    integer(i4), intent(in) :: t_index !< start index of time frame
+    integer(i4), intent(in) :: t_size !< chunk size
     ${type}$, dimension(:,:,:,:), allocatable :: data_matrix
     integer(i4) :: i, j
-    call self%input_read_chunk_by_ids_matrix_layered_${kind}$(name, data_matrix, t_index, t_size)
+    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
+    call self%input_read_chunk_by_ids_matrix_layered_id_${kind}$(var_id, data_matrix, t_index, t_size)
     allocate(data(self%grid%ncells, self%nlayers, t_size))
     do i = 1_i4, t_size
       do j = 1_i4, self%nlayers
         data(:,j,i) = pack(data_matrix(:,:,j,i), self%grid%mask)
       end do
     end do
-  end subroutine input_read_chunk_by_ids_pack_layered_${kind}$
+  end subroutine input_read_chunk_by_ids_pack_layered_id_${kind}$
 #:enddef
 #!
 !> \file mo_grid_io.f90
@@ -517,14 +680,19 @@ module mo_grid_io
     procedure, public :: init => output_init
     procedure, private :: define_z_axis => output_define_z_axis
 #:set OUTPUT_UPDATE_PROCS = ["output_update_{}".format(kind) for kind in GRID_IO_ALL_KINDS]
+#:set OUTPUT_UPDATE_ID_PROCS = ["output_update_id_{}".format(kind) for kind in GRID_IO_ALL_KINDS]
+#:set OUTPUT_UPDATE_ALL_PROCS = OUTPUT_UPDATE_PROCS + OUTPUT_UPDATE_ID_PROCS
 #:set OUTPUT_UPDATE_LAYERED_PROCS = ["output_update_layered_{}".format(kind) for kind in GRID_IO_ALL_KINDS]
-    procedure, private :: ${", ".join(OUTPUT_UPDATE_PROCS)}$
-    generic, public :: update => ${", ".join(OUTPUT_UPDATE_PROCS)}$
-    procedure, private :: ${", ".join(OUTPUT_UPDATE_LAYERED_PROCS)}$
-    generic, public :: update_layered => ${", ".join(OUTPUT_UPDATE_LAYERED_PROCS)}$
+#:set OUTPUT_UPDATE_LAYERED_ID_PROCS = ["output_update_layered_id_{}".format(kind) for kind in GRID_IO_ALL_KINDS]
+#:set OUTPUT_UPDATE_LAYERED_ALL_PROCS = OUTPUT_UPDATE_LAYERED_PROCS + OUTPUT_UPDATE_LAYERED_ID_PROCS
+    procedure, private :: ${", ".join(OUTPUT_UPDATE_ALL_PROCS)}$
+    generic, public :: update => ${", ".join(OUTPUT_UPDATE_ALL_PROCS)}$
+    procedure, private :: ${", ".join(OUTPUT_UPDATE_LAYERED_ALL_PROCS)}$
+    generic, public :: update_layered => ${", ".join(OUTPUT_UPDATE_LAYERED_ALL_PROCS)}$
     procedure, public :: write => output_write
     procedure, public :: write_static => output_write_static
     procedure, public :: meta => output_meta
+    procedure, public :: var_index => output_var_index
     procedure, public :: close => output_close
   end type output_dataset
 
@@ -557,26 +725,39 @@ module mo_grid_io
     procedure, private :: define_layers => input_define_layers
     ! read
 #:set INPUT_READ_PROCS = ["input_read_pack_{}".format(kind) for kind in GRID_IO_ALL_KINDS] + ["input_read_matrix_{}".format(kind) for kind in GRID_IO_ALL_KINDS]
+#:set INPUT_READ_ID_PROCS = ["input_read_pack_id_{}".format(kind) for kind in GRID_IO_ALL_KINDS] + ["input_read_matrix_id_{}".format(kind) for kind in GRID_IO_ALL_KINDS]
+#:set INPUT_READ_ALL_PROCS = INPUT_READ_PROCS + INPUT_READ_ID_PROCS
 #:set INPUT_READ_LAYERED_PROCS = ["input_read_pack_layered_{}".format(kind) for kind in GRID_IO_ALL_KINDS] + ["input_read_matrix_layered_{}".format(kind) for kind in GRID_IO_ALL_KINDS]
-    procedure, private :: ${", ".join(INPUT_READ_PROCS)}$
-    generic, public :: read => ${", ".join(INPUT_READ_PROCS)}$
-    procedure, private :: ${", ".join(INPUT_READ_LAYERED_PROCS)}$
-    generic, public :: read_layered => ${", ".join(INPUT_READ_LAYERED_PROCS)}$
+#:set INPUT_READ_LAYERED_ID_PROCS = ["input_read_pack_layered_id_{}".format(kind) for kind in GRID_IO_ALL_KINDS] + ["input_read_matrix_layered_id_{}".format(kind) for kind in GRID_IO_ALL_KINDS]
+#:set INPUT_READ_LAYERED_ALL_PROCS = INPUT_READ_LAYERED_PROCS + INPUT_READ_LAYERED_ID_PROCS
+    procedure, private :: ${", ".join(INPUT_READ_ALL_PROCS)}$
+    generic, public :: read => ${", ".join(INPUT_READ_ALL_PROCS)}$
+    procedure, private :: ${", ".join(INPUT_READ_LAYERED_ALL_PROCS)}$
+    generic, public :: read_layered => ${", ".join(INPUT_READ_LAYERED_ALL_PROCS)}$
     ! read_chunk
 #:set INPUT_READ_CHUNK_PROCS = ["input_read_chunk_pack_{}".format(kind) for kind in GRID_IO_ALL_KINDS] + ["input_read_chunk_matrix_{}".format(kind) for kind in GRID_IO_ALL_KINDS]
 #:set INPUT_READ_CHUNK_LAYERED_PROCS = ["input_read_chunk_pack_layered_{}".format(kind) for kind in GRID_IO_ALL_KINDS] + ["input_read_chunk_matrix_layered_{}".format(kind) for kind in GRID_IO_ALL_KINDS]
-    procedure, private :: ${", ".join(INPUT_READ_CHUNK_PROCS)}$
-    generic, public :: read_chunk => ${", ".join(INPUT_READ_CHUNK_PROCS)}$
-    procedure, private :: ${", ".join(INPUT_READ_CHUNK_LAYERED_PROCS)}$
-    generic, public :: read_chunk_layered => ${", ".join(INPUT_READ_CHUNK_LAYERED_PROCS)}$
+#:set INPUT_READ_CHUNK_ID_PROCS = ["input_read_chunk_pack_id_{}".format(kind) for kind in GRID_IO_ALL_KINDS] + ["input_read_chunk_matrix_id_{}".format(kind) for kind in GRID_IO_ALL_KINDS]
+#:set INPUT_READ_CHUNK_ALL_PROCS = INPUT_READ_CHUNK_PROCS + INPUT_READ_CHUNK_ID_PROCS
+#:set INPUT_READ_CHUNK_LAYERED_ID_PROCS = ["input_read_chunk_pack_layered_id_{}".format(kind) for kind in GRID_IO_ALL_KINDS] + ["input_read_chunk_matrix_layered_id_{}".format(kind) for kind in GRID_IO_ALL_KINDS]
+#:set INPUT_READ_CHUNK_LAYERED_ALL_PROCS = INPUT_READ_CHUNK_LAYERED_PROCS + INPUT_READ_CHUNK_LAYERED_ID_PROCS
+    procedure, private :: ${", ".join(INPUT_READ_CHUNK_ALL_PROCS)}$
+    generic, public :: read_chunk => ${", ".join(INPUT_READ_CHUNK_ALL_PROCS)}$
+    procedure, private :: ${", ".join(INPUT_READ_CHUNK_LAYERED_ALL_PROCS)}$
+    generic, public :: read_chunk_layered => ${", ".join(INPUT_READ_CHUNK_LAYERED_ALL_PROCS)}$
     ! read_chunk_by_ids
 #:set INPUT_READ_BY_IDS_PROCS = ["input_read_chunk_by_ids_pack_{}".format(kind) for kind in GRID_IO_ALL_KINDS] + ["input_read_chunk_by_ids_matrix_{}".format(kind) for kind in GRID_IO_ALL_KINDS]
 #:set INPUT_READ_BY_IDS_LAYERED_PROCS = ["input_read_chunk_by_ids_pack_layered_{}".format(kind) for kind in GRID_IO_ALL_KINDS] + ["input_read_chunk_by_ids_matrix_layered_{}".format(kind) for kind in GRID_IO_ALL_KINDS]
-    procedure, private :: ${", ".join(INPUT_READ_BY_IDS_PROCS)}$
-    generic, public :: read_chunk_by_ids => ${", ".join(INPUT_READ_BY_IDS_PROCS)}$
-    procedure, private :: ${", ".join(INPUT_READ_BY_IDS_LAYERED_PROCS)}$
-    generic, public :: read_chunk_by_ids_layered => ${", ".join(INPUT_READ_BY_IDS_LAYERED_PROCS)}$
+#:set INPUT_READ_BY_IDS_ID_PROCS = ["input_read_chunk_by_ids_pack_id_{}".format(kind) for kind in GRID_IO_ALL_KINDS] + ["input_read_chunk_by_ids_matrix_id_{}".format(kind) for kind in GRID_IO_ALL_KINDS]
+#:set INPUT_READ_BY_IDS_ALL_PROCS = INPUT_READ_BY_IDS_PROCS + INPUT_READ_BY_IDS_ID_PROCS
+#:set INPUT_READ_BY_IDS_LAYERED_ID_PROCS = ["input_read_chunk_by_ids_pack_layered_id_{}".format(kind) for kind in GRID_IO_ALL_KINDS] + ["input_read_chunk_by_ids_matrix_layered_id_{}".format(kind) for kind in GRID_IO_ALL_KINDS]
+#:set INPUT_READ_BY_IDS_LAYERED_ALL_PROCS = INPUT_READ_BY_IDS_LAYERED_PROCS + INPUT_READ_BY_IDS_LAYERED_ID_PROCS
+    procedure, private :: ${", ".join(INPUT_READ_BY_IDS_ALL_PROCS)}$
+    generic, public :: read_chunk_by_ids => ${", ".join(INPUT_READ_BY_IDS_ALL_PROCS)}$
+    procedure, private :: ${", ".join(INPUT_READ_BY_IDS_LAYERED_ALL_PROCS)}$
+    generic, public :: read_chunk_by_ids_layered => ${", ".join(INPUT_READ_BY_IDS_LAYERED_ALL_PROCS)}$
     ! others
+    procedure, public :: var_index => input_var_index
     procedure, public :: time_index => input_time_index
     procedure, public :: chunk_times => input_chunk_times
     procedure, public :: meta => input_meta
@@ -1394,13 +1575,21 @@ contains
     end do
   end subroutine output_write_static
 
+  !> \brief Get variable index in dataset by name.
+  integer(i4) function output_var_index(self, name)
+    implicit none
+    class(output_dataset), intent(in) :: self
+    character(*), intent(in) :: name !< name of the variable
+    output_var_index = var_index(self%vars, name, "output%var_index")
+  end function output_var_index
+
   !> \brief Get variable meta data.
   !> \return \ref var meta data definition
   type(var) function output_meta(self, name)
     implicit none
     class(output_dataset) :: self
     character(*), intent(in) :: name !< name of the variable
-    output_meta = self%vars(var_index(self%vars, name, "output%meta"))%meta()
+    output_meta = self%vars(self%var_index(name))%meta()
   end function output_meta
 
   !> \brief Close the file
@@ -1526,6 +1715,14 @@ contains
     if (allocated(vdims)) deallocate(vdims)
   end subroutine input_define_layers
 
+  !> \brief Get variable index in dataset by name.
+  integer(i4) function input_var_index(self, name)
+    implicit none
+    class(input_dataset), intent(in) :: self
+    character(*), intent(in) :: name !< name of the variable
+    input_var_index = var_index(self%vars, name, "input%var_index")
+  end function input_var_index
+
 #:for kind, type in GRID_IO_ALL_KINDS_TYPES
   ! ${kind}$ -----
 
@@ -1624,7 +1821,7 @@ contains
     implicit none
     class(input_dataset) :: self
     character(*), intent(in) :: name !< name of the variable
-    input_meta = self%vars(var_index(self%vars, name, "input%meta"))%meta()
+    input_meta = self%vars(self%var_index(name))%meta()
   end function input_meta
 
   !> \brief Close the file
