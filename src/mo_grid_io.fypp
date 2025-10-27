@@ -960,110 +960,95 @@ contains
     class(output_variable), intent(inout) :: self
     !> index along the time dimension of the netcdf variable
     integer(i4), intent(in), optional :: t_index
-    integer(i4) :: layer_idx
-    integer(i4), allocatable :: start(:)
-    real(sp), allocatable :: buffer_sp(:,:,:)
-    real(dp), allocatable :: buffer_dp(:,:,:)
-    integer(i1), allocatable :: buffer_i1(:,:,:)
-    integer(i2), allocatable :: buffer_i2(:,:,:)
-    integer(i4), allocatable :: buffer_i4(:,:,:)
-    integer(i8), allocatable :: buffer_i8(:,:,:)
+    integer(i4) :: i
+    integer(i4), allocatable :: start(:), cnt(:)
     if (self%static .and. self%static_written) return
     if (self%counter == 0_i4) call error_message("output_variable: no data was added before writing: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("output_variable: no time index was given for temporal variable: ", self%name)
     end if
     allocate(start(self%rank), source=1_i4)
+    allocate(cnt(self%rank), source=1_i4)
+    cnt(1) = self%grid%nx
+    cnt(2) = self%grid%ny
     if (.not.self%static) start(self%rank) = t_index
     select case(self%kind)
       case("sp")
         if (self%layered) then
           if (self%avg.and.self%counter>1_i4) self%data_layered_sp = self%data_layered_sp / real(self%counter, sp)
-          allocate(buffer_sp(self%grid%nx, self%grid%ny, self%nlayers))
-          do layer_idx = 1_i4, self%nlayers
-            buffer_sp(:,:,layer_idx) = unpack(self%data_layered_sp(:,layer_idx), self%grid%mask, nodata_sp)
+          do i = 1_i4, self%nlayers
+            start(3) = i
+            call self%nc%setData(unpack(self%data_layered_sp(:,i), self%grid%mask, nodata_sp), start=start, cnt=cnt)
           end do
-          call self%nc%setData(buffer_sp, start=start)
-          deallocate(buffer_sp)
           self%data_layered_sp = 0.0_sp
         else
           if (self%avg.and.self%counter>1_i4) self%data_sp = self%data_sp / real(self%counter, sp)
-          call self%nc%setData(unpack(self%data_sp, self%grid%mask, nodata_sp), start=start)
+          call self%nc%setData(unpack(self%data_sp, self%grid%mask, nodata_sp), start=start, cnt=cnt)
           self%data_sp = 0.0_sp
         end if
       case("dp")
         if (self%layered) then
           if (self%avg.and.self%counter>1_i4) self%data_layered_dp = self%data_layered_dp / real(self%counter, dp)
-          allocate(buffer_dp(self%grid%nx, self%grid%ny, self%nlayers))
-          do layer_idx = 1_i4, self%nlayers
-            buffer_dp(:,:,layer_idx) = unpack(self%data_layered_dp(:,layer_idx), self%grid%mask, nodata_dp)
+          do i = 1_i4, self%nlayers
+            start(3) = i
+            call self%nc%setData(unpack(self%data_layered_dp(:,i), self%grid%mask, nodata_dp), start=start, cnt=cnt)
           end do
-          call self%nc%setData(buffer_dp, start=start)
-          deallocate(buffer_dp)
           self%data_layered_dp = 0.0_dp
         else
           if (self%avg.and.self%counter>1_i4) self%data_dp = self%data_dp / real(self%counter, dp)
-          call self%nc%setData(unpack(self%data_dp, self%grid%mask, nodata_dp), start=start)
+          call self%nc%setData(unpack(self%data_dp, self%grid%mask, nodata_dp), start=start, cnt=cnt)
           self%data_dp = 0.0_dp
         end if
       case("i1")
         if (self%layered) then
           if (self%avg.and.self%counter>1_i4) self%data_layered_i1 = int(int(self%data_layered_i1, kind=i4) / self%counter, kind=i1)
-          allocate(buffer_i1(self%grid%nx, self%grid%ny, self%nlayers))
-          do layer_idx = 1_i4, self%nlayers
-            buffer_i1(:,:,layer_idx) = unpack(self%data_layered_i1(:,layer_idx), self%grid%mask, nodata_i1)
+          do i = 1_i4, self%nlayers
+            start(3) = i
+            call self%nc%setData(unpack(self%data_layered_i1(:,i), self%grid%mask, nodata_i1), start=start, cnt=cnt)
           end do
-          call self%nc%setData(buffer_i1, start=start)
-          deallocate(buffer_i1)
           self%data_layered_i1 = 0_i1
         else
           if (self%avg.and.self%counter>1_i4) self%data_i1 = int(int(self%data_i1, kind=i4) / self%counter, kind=i1)
-          call self%nc%setData(unpack(self%data_i1, self%grid%mask, nodata_i1), start=start)
+          call self%nc%setData(unpack(self%data_i1, self%grid%mask, nodata_i1), start=start, cnt=cnt)
           self%data_i1 = 0_i1
         end if
       case("i2")
         if (self%layered) then
           if (self%avg.and.self%counter>1_i4) self%data_layered_i2 = int(int(self%data_layered_i2, kind=i4) / self%counter, kind=i2)
-          allocate(buffer_i2(self%grid%nx, self%grid%ny, self%nlayers))
-          do layer_idx = 1_i4, self%nlayers
-            buffer_i2(:,:,layer_idx) = unpack(self%data_layered_i2(:,layer_idx), self%grid%mask, nodata_i2)
+          do i = 1_i4, self%nlayers
+            start(3) = i
+            call self%nc%setData(unpack(self%data_layered_i2(:,i), self%grid%mask, nodata_i2), start=start, cnt=cnt)
           end do
-          call self%nc%setData(buffer_i2, start=start)
-          deallocate(buffer_i2)
           self%data_layered_i2 = 0_i2
         else
           if (self%avg.and.self%counter>1_i4) self%data_i2 = int(int(self%data_i2, kind=i4) / self%counter, kind=i2)
-          call self%nc%setData(unpack(self%data_i2, self%grid%mask, nodata_i2), start=start)
+          call self%nc%setData(unpack(self%data_i2, self%grid%mask, nodata_i2), start=start, cnt=cnt)
           self%data_i2 = 0_i2
         end if
       case("i4")
         if (self%layered) then
           if (self%avg.and.self%counter>1_i4) self%data_layered_i4 = self%data_layered_i4 / self%counter
-          allocate(buffer_i4(self%grid%nx, self%grid%ny, self%nlayers))
-          do layer_idx = 1_i4, self%nlayers
-            buffer_i4(:,:,layer_idx) = unpack(self%data_layered_i4(:,layer_idx), self%grid%mask, nodata_i4)
+          do i = 1_i4, self%nlayers
+            start(3) = i
+            call self%nc%setData(unpack(self%data_layered_i4(:,i), self%grid%mask, nodata_i4), start=start, cnt=cnt)
           end do
-          call self%nc%setData(buffer_i4, start=start)
-          deallocate(buffer_i4)
           self%data_layered_i4 = 0_i4
         else
           if (self%avg.and.self%counter>1_i4) self%data_i4 = self%data_i4 / self%counter
-          call self%nc%setData(unpack(self%data_i4, self%grid%mask, nodata_i4), start=start)
+          call self%nc%setData(unpack(self%data_i4, self%grid%mask, nodata_i4), start=start, cnt=cnt)
           self%data_i4 = 0_i4
         end if
       case("i8")
         if (self%layered) then
           if (self%avg.and.self%counter>1_i4) self%data_layered_i8 = self%data_layered_i8 / int(self%counter, i8)
-          allocate(buffer_i8(self%grid%nx, self%grid%ny, self%nlayers))
-          do layer_idx = 1_i4, self%nlayers
-            buffer_i8(:,:,layer_idx) = unpack(self%data_layered_i8(:,layer_idx), self%grid%mask, nodata_i8)
+          do i = 1_i4, self%nlayers
+            start(3) = i
+            call self%nc%setData(unpack(self%data_layered_i8(:,i), self%grid%mask, nodata_i8), start=start, cnt=cnt)
           end do
-          call self%nc%setData(buffer_i8, start=start)
-          deallocate(buffer_i8)
           self%data_layered_i8 = 0_i8
         else
           if (self%avg.and.self%counter>1_i4) self%data_i8 = self%data_i8 / int(self%counter, i8)
-          call self%nc%setData(unpack(self%data_i8, self%grid%mask, nodata_i8), start=start)
+          call self%nc%setData(unpack(self%data_i8, self%grid%mask, nodata_i8), start=start, cnt=cnt)
           self%data_i8 = 0_i8
         end if
     end select
