@@ -18,9 +18,9 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_grid
 
-  use mo_kind, only: i4, i8, dp, sp
-  use mo_utils, only: flip
-  use mo_message, only : error_message, warn_message
+  use mo_kind, only: i1, i2, i4, i8, dp, sp
+  use mo_utils, only: flip, optval
+  use mo_message, only : error_message, warn_message, message
   use mo_string_utils, only : num2str
 
   implicit none
@@ -28,6 +28,7 @@ module mo_grid
   public :: write_ascii_grid
   public :: read_ascii_grid
   public :: read_ascii_header
+  public :: coarse_id
   public :: id_bounds
   public :: dist_latlon
 #ifdef FORCES_WITH_NETCDF
@@ -918,18 +919,15 @@ contains
     type(NcVariable) :: ncvar, xvar, yvar
     type(NcDimension), dimension(:), allocatable :: dims
 
-    integer(i4), dimension(:), allocatable :: shp, start, cnt
-    integer(i4) :: nx, ny, rnk, coordsys, y_dir, i
-    real(dp) :: xll, yll, cellsize, cs_x, cs_y, tol_
-    real(dp), allocatable, dimension(:,:) :: dummy
+    integer(i4) :: rnk, i
+    real(dp) :: cs_x, cs_y, tol_
     character(len=256) :: tmp_str
     character(len=256), allocatable, dimension(:) :: coords_str
     character(:), allocatable :: lat_name, lon_name
-    logical, allocatable, dimension(:,:) :: mask
     logical :: y_inc, read_mask_, read_aux_, x_sph, y_sph, x_cart, y_cart, flip_y, found_lat, found_lon
 
-    y_dir = keep_y
-    if (present(y_direction)) y_dir = y_direction
+    this%y_direction = keep_y
+    if (present(y_direction)) this%y_direction = y_direction
 
     tol_ = 1.e-7_dp
     read_mask_ = .true.
@@ -943,8 +941,8 @@ contains
     if (rnk < 2) call error_message("grid % from_netcdf: given variable has too few dimensions: ", trim(nc%fname), ":", var)
 
     dims = ncvar%getDimensions()
-    nx = dims(1)%getLength()
-    ny = dims(2)%getLength()
+    this%nx = dims(1)%getLength()
+    this%ny = dims(2)%getLength()
     xvar = nc%getVariable(trim(dims(1)%getName()))
     yvar = nc%getVariable(trim(dims(2)%getName()))
 
@@ -964,22 +962,22 @@ contains
     if (.not.(x_sph.eqv.y_sph)) &
       call error_message("grid % from_netcdf: x and y axis seem to have different coordinate systems: ", trim(nc%fname), ":", var)
 
-    coordsys = cartesian
-    if (x_sph) coordsys = spherical
+    this%coordsys = cartesian
+    if (x_sph) this%coordsys = spherical
 
     ! check axis uniformity and monotonicity
-    call check_uniform_axis(xvar, cellsize=cs_x, origin=xll, tol=tol)
-    call check_uniform_axis(yvar, cellsize=cs_y, origin=yll, increasing=y_inc, tol=tol)
-    if (y_dir == keep_y) then
-      y_dir = top_down
-      if (y_inc) y_dir = bottom_up
+    call check_uniform_axis(xvar, cellsize=cs_x, origin=this%xllcorner, tol=tol)
+    call check_uniform_axis(yvar, cellsize=cs_y, origin=this%yllcorner, increasing=y_inc, tol=tol)
+    if (this%y_direction == keep_y) then
+      this%y_direction = top_down
+      if (y_inc) this%y_direction = bottom_up
     end if
     ! check y_dir
-    if (.not.any(y_dir==[bottom_up, top_down])) &
-      call error_message("grid % from_netcdf: y-direction not valid: ", trim(num2str(y_dir)))
+    if (.not.any(this%y_direction==[bottom_up, top_down])) &
+      call error_message("grid % from_netcdf: y-direction not valid: ", trim(num2str(this%y_direction)))
 
     ! warn about flipping if present axis is not in desired direction
-    flip_y = y_inc.neqv.(y_dir==bottom_up)
+    flip_y = y_inc.neqv.(this%y_direction==bottom_up)
     if (flip_y) then
       call warn_message("grid % from_netcdf: y axis direction is oposite to desired one (inefficient flipping). ", &
                         "You could flip the file beforehand with: 'cdo invertlat <ifile> <ofile>'. ", trim(nc%fname), ":", var)
@@ -987,28 +985,14 @@ contains
     ! check cellsize in x and y direction
     if (.not.is_close(cs_x, cs_y, rtol=0.0_dp, atol=tol_)) &
       call error_message("grid % from_netcdf: x and y axis have different cell sizes: ", trim(nc%fname), ":", var)
-    cellsize = cs_x
+    this%cellsize = cs_x
 
     ! get mask from variable mask (assumed to be constant over time)
-    if (read_mask_) then
-      shp = ncvar%getShape()
-      allocate(start(rnk), source=1_i4)
-      allocate(cnt(rnk), source=1_i4)
-      ! only use first 2 dims and use first layer of potential other dims (z, time, soil-layer etc.)
-      cnt(:2) = shp(:2)
-      call ncvar%getData(dummy, start=start, cnt=cnt, mask=mask)
-      ! flip mask if y-axis is decreasing in nc-file
-      if (flip_y) call flip(mask, iDim=2)
-      deallocate(dummy)
-    else
-      allocate(mask(nx, ny))
-      mask(:,:) = .true.
-    end if
+    if (read_mask_) call mask_from_ncvar(ncvar, this%mask, flip_y)
+    call this%calculate_cell_ids()
+    call this%calculate_cell_area()
 
-    call this%init(nx, ny, xll, yll, cellsize, coordsys, mask, y_dir)
-    deallocate(mask)
-
-    if (read_aux_ .and. coordsys == cartesian .and. ncvar%hasAttribute("coordinates")) then
+    if (read_aux_ .and. this%coordsys == cartesian .and. ncvar%hasAttribute("coordinates")) then
       call ncvar%getAttribute("coordinates", tmp_str)
       coords_str = splitString(trim(tmp_str), " ")
       ! search for lat-lon variables in given coordinates
@@ -1845,11 +1829,14 @@ contains
   logical function any_missing(this)
     implicit none
     class(grid_t), intent(in) :: this
-    if (.not. this%has_mask()) then
-      any_missing = .false.
-    else
-      any_missing = .not. all(this%mask)
-    end if
+    integer(i4) :: j
+    any_missing = .false.
+    if (.not. this%has_mask()) return
+    !$omp parallel do default(shared) schedule(static) reduction(.or.: any_missing)
+    do j = 1, this%ny
+      any_missing = any_missing .or. (.not. all(this%mask(:, j)))
+    end do
+    !$omp end parallel do
   end function any_missing
 
   !> \brief check if given grid is covered by coarser grid
@@ -1888,6 +1875,7 @@ contains
 
     if ( check_mask_ .and. coarse_grid%any_missing()) then
       if (.not. this%any_missing()) call error_message("grid % check_is_covered_by: coarse grid is masked, this grid not.")
+      !$omp parallel do default(shared) private(i,j,i_lb,i_ub,j_lb,j_ub) schedule(static)
       do j = 1, coarse_grid%ny
         do i = 1, coarse_grid%nx
           if ( coarse_grid%mask(i, j)) cycle
@@ -1899,6 +1887,7 @@ contains
             call error_message("grid % check_is_covered_by: fine cells outside of coarse mask.")
         end do
       end do
+      !$omp end parallel do
     end if
   end subroutine check_is_covered_by
 
@@ -1929,7 +1918,8 @@ contains
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     logical, optional, intent(in) :: check_mask !< whether to check if fine mask fills coarse mask
 
-    integer(i4) :: factor, i, j, i_lb, i_ub, j_lb, j_ub
+    integer(i4) :: factor, i_lb, i_ub, j_lb, j_ub
+    integer(i8) :: k
     logical :: check_mask_
 
     check_mask_ = .true.
@@ -1952,18 +1942,17 @@ contains
     end if
 
     if ( check_mask_ .and. fine_grid%any_missing()) then
-      do j = 1, this%ny
-        do i = 1, this%nx
-          if ( .not.this%mask(i, j)) cycle
-          call id_bounds(factor, i, j, &
-            this%y_direction, this%ny, &
-            fine_grid%y_direction, fine_grid%nx, fine_grid%ny, &
-            i_lb, i_ub, j_lb, j_ub)
-          if (.not.any(fine_grid%mask(i_lb:i_ub, j_lb:j_ub))) then
-            call error_message("grid % check_is_filled_by: coarse cells without any filling fine cells found.")
-          end if
-        end do
+      !$omp parallel do default(shared) private(i_lb,i_ub,j_lb,j_ub) schedule(static)
+      do k = 1_i8, this%ncells
+        call id_bounds(factor, this%cell_ij(k,1), this%cell_ij(k,2), &
+          this%y_direction, this%ny, &
+          fine_grid%y_direction, fine_grid%nx, fine_grid%ny, &
+          i_lb, i_ub, j_lb, j_ub)
+        if (.not.any(fine_grid%mask(i_lb:i_ub, j_lb:j_ub))) then
+          call error_message("grid % check_is_filled_by: coarse cells without any filling fine cells found.")
+        end if
       end do
+      !$omp end parallel do
     end if
   end subroutine check_is_filled_by
 
@@ -2023,31 +2012,50 @@ contains
   !! - Sebastian Müller, Mar 2024
   !!   - moved to FORCES
   subroutine calculate_cell_ids(this)
+    use mo_constants, only : nodata_i8
     implicit none
 
     class(grid_t), intent(inout) :: this
 
     integer(i4) :: i, j
     integer(i8) :: k
+    integer(i8), allocatable :: col_cnt(:), cum_cnt(:)
 
     ! if mask not allocated create one with only .true. values
-    if (.not. allocated(this%mask)) then
-      allocate(this%mask(this%nx, this%ny))
-      this%mask = .true.
-    end if
+    if (.not. allocated(this%mask)) allocate(this%mask(this%nx, this%ny), source=.true.)
 
-    this%ncells = count(this%mask)
+    allocate(col_cnt(this%ny), cum_cnt(this%ny))
+
+    !$omp parallel do default(shared) schedule(static)
+    do j = 1_i4, this%ny
+      col_cnt(j) = count(this%mask(:,j))
+    end do
+    !$omp end parallel do
+
+
+    cum_cnt(1) = 0_i8
+    do j = 1_i4, this%ny-1_i4
+      cum_cnt(j+1_i4) = cum_cnt(j) + col_cnt(j)
+    end do
+    this%ncells = cum_cnt(this%ny) + col_cnt(this%ny)
+
+    deallocate(col_cnt)
+
     allocate(this%cell_ij(this%ncells, 2))
 
-    k = 0_i8
-    do j = 1, this%ny
-      do i = 1, this%nx
-        if (.NOT. this%mask(i, j)) cycle
+
+    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    do j = 1_i4, this%ny
+      k = cum_cnt(j)
+      do i = 1_i4, this%nx
+        if (.not.this%mask(i, j)) cycle
         k = k + 1_i8
         this%cell_ij(k, 1) = i
         this%cell_ij(k, 2) = j
       end do
     end do
+    !$omp end parallel do
+
   end subroutine calculate_cell_ids
 
   ! ------------------------------------------------------------------
@@ -2077,9 +2085,10 @@ contains
 
     class(grid_t), intent(inout) :: this
 
-    real(dp), dimension(:, :), allocatable :: cell_area
-    real(dp) :: factor, cell_size_rad, cell_center_lat_rad
+    real(dp) :: factor, cell_size_rad
     integer(i4) :: j
+    integer(i8) :: k
+    real(dp), allocatable :: cell_area_lat(:)
 
     if (.not. allocated(this%cell_area)) allocate(this%cell_area(this%ncells))
 
@@ -2089,7 +2098,6 @@ contains
 
     ! regular lat-lon coordinate system
     else if(this%coordsys .eq. spherical) then
-      allocate(cell_area(this%nx, this%ny))
 
       ! A = R ** 2 * dx * (sin(lat1) - sin(lon2))
       !   = R ** 2 * dx * cos([lat1 + lat2] / 2) * sin(dy / 2) * 2
@@ -2098,18 +2106,14 @@ contains
 
       cell_size_rad = this%cellsize * deg2rad_dp
       factor = (RadiusEarth_dp * cell_size_rad) * (RadiusEarth_dp * sin(cell_size_rad / 2.0_dp) * 2.0_dp)
+      allocate(cell_area_lat(this%ny), source=cos(this%y_axis() * deg2rad_dp) * factor)
 
-      do j = 1, this%ny
-        ! get latitude of cell-center in radians (y-axis is increasing!)
-        cell_center_lat_rad = (this%yllcorner + (real(j, dp) - 0.5_dp) * this%cellsize) * deg2rad_dp
-        ! AREA [m2]
-        cell_area(:, j) = cos(cell_center_lat_rad) * factor
+      !$omp parallel do default(shared) schedule(static)
+      do k = 1_i8, this%ncells
+        this%cell_area(k) = cell_area_lat(this%cell_ij(k, 2))
       end do
-      if (this%y_direction == top_down) call flip(cell_area, idim=2)
-      this%cell_area(:) = pack(cell_area(:, :), this%mask)
+      !$omp end parallel do
 
-      ! free space
-      deallocate(cell_area)
     else
       call error_message("estimate_cell_area: unknown coordsys value: ", num2str(this%coordsys))
     end if
@@ -2196,6 +2200,8 @@ contains
 
     ! create mask at coarse grid
     allocate(coarse_grid%mask(coarse_grid%nx, coarse_grid%ny), source=.false.)
+
+    !$omp parallel do default(shared) private(i,j,i_lb,i_ub,j_lb,j_ub) schedule(static)
     do j = 1, coarse_grid%ny
       do i = 1, coarse_grid%nx
         call id_bounds(factor, i, j, &
@@ -2205,6 +2211,7 @@ contains
         coarse_grid%mask(i, j) = any(this%mask(i_lb : i_ub, j_lb : j_ub))
       end do
     end do
+    !$omp end parallel do
 
     call coarse_grid%calculate_cell_ids()
 
@@ -2810,6 +2817,140 @@ contains
     end if
   end function is_lat_coord
 
+  !> \brief create mask from NetCDF variable.
+  !> \details Create a logical mask from a NetCDF variable where non-missing values are `true` and missing values are `false`.
+  !! This will check for the variable dtype first to use the best fitting kind for reading dummy data.
+  !! Only supports 2D variables and requires the "_FillValue" attribute to be set.
+  !> \authors Sebastian Müller
+  subroutine mask_from_ncvar(var, mask, flip_y)
+    use mo_netcdf, only : NcVariable
+    use mo_utils, only : ne
+    use ieee_arithmetic, only : ieee_is_nan
+    implicit none
+    type(NcVariable), intent(in) :: var !< NetCDF variable to create mask from
+    logical, dimension(:, :), allocatable, intent(out) :: mask !< resulting mask
+    logical, intent(in), optional :: flip_y !< whether to flip the mask in y-direction (default: .false.)
+    integer(i1), dimension(:, :), allocatable :: data_i1
+    integer(i1) :: fv_i1
+    integer(i2), dimension(:, :), allocatable :: data_i2
+    integer(i2) :: fv_i2
+    integer(i4), dimension(:, :), allocatable :: data_i4
+    integer(i4) :: fv_i4
+    integer(i8), dimension(:, :), allocatable :: data_i8
+    integer(i8) :: fv_i8
+    real(sp), dimension(:, :), allocatable :: data_sp
+    real(sp) :: fv_sp
+    real(dp), dimension(:, :), allocatable :: data_dp
+    real(dp) :: fv_dp
+    integer(i4), dimension(:), allocatable :: shp, start, cnt
+    character(:), allocatable :: dtype
+    integer(i4) :: i, nx, ny
+    logical :: is_nan, flip_y_
+
+    flip_y_ = optval(flip_y, default=.false.)
+
+    shp = var%getShape()
+    allocate(start(size(shp)), source=1_i4)
+    allocate(cnt(size(shp)), source=1_i4)
+    ! only use first 2 dims and use first layer of potential other dims (z, time, soil-layer etc.)
+    cnt(:2) = shp(:2)
+    dtype = trim(var%getDtype())
+    select case (dtype)
+      case ("i8")
+        call var%getData(data_i1, start=start, cnt=cnt)
+        call var%getFillValue(fv_i1)
+        ! parallel mask creation
+        nx = size(data_i1, 1)
+        ny = size(data_i1, 2)
+        allocate(mask(nx, ny))
+        !$omp parallel do default(shared) schedule(static)
+        do i = 1_i4, ny
+          mask(:,i) = data_i1(:,i) /= fv_i1
+        end do
+        !$omp end parallel do
+      case ("i16")
+        call var%getData(data_i2, start=start, cnt=cnt)
+        call var%getFillValue(fv_i2)
+        ! parallel mask creation
+        nx = size(data_i1, 1)
+        ny = size(data_i1, 2)
+        allocate(mask(nx, ny))
+        !$omp parallel do default(shared) schedule(static)
+        do i = 1_i4, ny
+          mask(:,i) = data_i2(:,i) /= fv_i2
+        end do
+        !$omp end parallel do
+      case ("i32")
+        call var%getData(data_i4, start=start, cnt=cnt)
+        call var%getFillValue(fv_i4)
+        ! parallel mask creation
+        nx = size(data_i1, 1)
+        ny = size(data_i1, 2)
+        allocate(mask(nx, ny))
+        !$omp parallel do default(shared) schedule(static)
+        do i = 1_i4, ny
+          mask(:,i) = data_i4(:,i) /= fv_i4
+        end do
+        !$omp end parallel do
+      case ("i64")
+        call var%getData(data_i8, start=start, cnt=cnt)
+        call var%getFillValue(fv_i8)
+        ! parallel mask creation
+        nx = size(data_i1, 1)
+        ny = size(data_i1, 2)
+        allocate(mask(nx, ny))
+        !$omp parallel do default(shared) schedule(static)
+        do i = 1_i4, ny
+          mask(:,i) = data_i8(:,i) /= fv_i8
+        end do
+        !$omp end parallel do
+      case ("f32")
+        call var%getData(data_sp, start=start, cnt=cnt)
+        call var%getFillValue(fv_sp)
+        ! parallel mask creation
+        nx = size(data_i1, 1)
+        ny = size(data_i1, 2)
+        allocate(mask(nx, ny))
+        if (ieee_is_nan(fv_sp)) then
+          !$omp parallel do default(shared) schedule(static)
+          do i = 1_i4, ny
+            mask(:,i) = .not.ieee_is_nan(data_sp(:,i))
+          end do
+          !$omp end parallel do
+        else
+          !$omp parallel do default(shared) schedule(static)
+          do i = 1_i4, ny
+            mask(:,i) = ne(data_sp(:,i), fv_sp)
+          end do
+          !$omp end parallel do
+        end if
+      case ("f64")
+        call var%getData(data_dp, start=start, cnt=cnt)
+        call var%getFillValue(fv_dp)
+        ! parallel mask creation
+        nx = size(data_i1, 1)
+        ny = size(data_i1, 2)
+        allocate(mask(nx, ny))
+        if (ieee_is_nan(fv_dp)) then
+          !$omp parallel do default(shared) schedule(static)
+          do i = 1_i4, ny
+            mask(:,i) = .not.ieee_is_nan(data_dp(:,i))
+          end do
+          !$omp end parallel do
+        else
+          !$omp parallel do default(shared) schedule(static)
+          do i = 1_i4, ny
+            mask(:,i) = ne(data_dp(:,i), fv_dp)
+          end do
+          !$omp end parallel do
+        end if
+      case default
+        call error_message("mask_from_ncvar: Unsupported variable type: ", dtype)
+    end select
+    ! flip y-axis to have desired orientation
+    if (flip_y_) call flip(mask, iDim=2)
+  end subroutine mask_from_ncvar
+
 #endif
 
   !> \brief calculate and check cell-size factor for validity.
@@ -3221,11 +3362,33 @@ contains
 
   end subroutine write_ascii_grid_i4
 
+  !> \brief Derive coarse cell indices covering a fine grid cell.
+  !> \details Calculates the coarse grid indices for a given fine grid cell assuming matching lower-left corner.
+  !> \authors Sebastian Müller
+  !> \date Oct 2025
+  pure subroutine coarse_id(factor, fine_i, fine_j, fine_y_dir, fine_ny, coarse_y_dir, coarse_ny, coarse_i, coarse_j)
+    integer(i4), intent(in) :: factor
+    integer(i4), intent(in) :: fine_i !< i index on fine grid (x-axis)
+    integer(i4), intent(in) :: fine_j !< j index on fine grid (y-axis)
+    integer(i4), intent(in) :: fine_y_dir !< y-axis direction on fine grid (0 - top-down, 1 - bottom-up)
+    integer(i4), intent(in) :: fine_ny !< maximum for j index on fine grid (y-axis)
+    integer(i4), intent(in) :: coarse_y_dir !< y-axis direction on coarse grid (0 - top-down, 1 - bottom-up)
+    integer(i4), intent(in) :: coarse_ny !< maximum for j index on coarse grid (y-axis)
+    integer(i4), intent(out) :: coarse_i !< resulting i index on coarse grid (x-axis)
+    integer(i4), intent(out) :: coarse_j !< resulting j index on coarse grid (y-axis)
+    integer(i4) :: j
+    j = fine_j
+    if (fine_y_dir == top_down) j = fine_ny - j + 1_i4
+    coarse_j = (j - 1_i4) / factor + 1_i4
+    coarse_i = (fine_i - 1_i4) / factor + 1_i4
+    if (coarse_y_dir == top_down) coarse_j = coarse_ny - coarse_j + 1_i4
+  end subroutine coarse_id
+
   !> \brief Derive spatial index bounds.
   !> \details Derive spatial index bounds for fine grid cells covered by a coarse grid cell assuming matching lower-left corner.
   !> \authors Sebastian Müller
   !> \date Apr 2025
-  subroutine id_bounds(factor, coarse_i, coarse_j, coarse_y_dir, coarse_ny, fine_y_dir, fine_nx, fine_ny, i_lb, i_ub, j_lb, j_ub)
+  pure subroutine id_bounds(factor, coarse_i, coarse_j, coarse_y_dir, coarse_ny, fine_y_dir, fine_nx, fine_ny, i_lb, i_ub, j_lb, j_ub)
     integer(i4), intent(in) :: factor
     integer(i4), intent(in) :: coarse_i !< i index on coarse grid (x-axis)
     integer(i4), intent(in) :: coarse_j !< j index on coarse grid (y-axis)
