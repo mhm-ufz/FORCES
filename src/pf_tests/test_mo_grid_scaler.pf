@@ -2,7 +2,7 @@ module test_mo_grid_scaler
   use funit
   use mo_grid, only: grid_t, cartesian, top_down, bottom_up
   use mo_grid_scaler, only: scaler_t, up_h_mean, up_p_mean, up_min, up_max, up_sum, up_laf, up_fraction
-  use mo_kind, only: i4, dp
+  use mo_kind, only: i4, dp, i8
   use mo_constants, only: nodata_dp
   use mo_utils, only: flip, flipped, is_close
   ! use mo_netcdf, only: NcDataset, NcVariable, NcDimension
@@ -25,7 +25,8 @@ contains
     ! type(NcVariable) :: var
     real(dp) :: t=1.0E-5_dp
     real(dp) :: ref_val
-    integer(i4) :: xt, xb, yt, yb, i
+    integer(i4) :: xt, xb, yt, yb
+    integer(i8) :: i
     real(dp), allocatable :: dem(:), dem_mat(:,:), cdem(:), cdem_mat(:,:), weights(:), cweights(:)
     integer(i4), allocatable :: lc(:), clc(:), lc_mat(:,:), clc_mat(:,:)
     real(dp), allocatable :: lc1(:), lc2(:), lc3(:), lcf_mat(:,:)
@@ -69,11 +70,8 @@ contains
 
     call upscaler%execute(dem, cdem)
     ! check arithmetic mean upscaling
-    do i = 1, cgrid%ncells
-      xb = upscaler%x_lb(i)
-      xt = upscaler%x_ub(i)
-      yb = upscaler%y_lb(i)
-      yt = upscaler%y_ub(i)
+    do i = 1_i8, cgrid%ncells
+      call upscaler%coarse_bounds(i, xb, xt, yb, yt)
       ! cartesian grid can use n-subcells for weights
       ref_val = sum(dem_mat(xb:xt,yb:yt), fgrid%mask(xb:xt,yb:yt)) / upscaler%n_subcells(i)
       @assertEqual(cdem(i), ref_val, tolerance=t, message='upscaling arithmetic mean check')
@@ -87,11 +85,8 @@ contains
 
     call upscaler%execute(dem, cdem, upscaling_operator=up_p_mean, p=2.1_dp)
     ! check p-mean upscaling
-    do i = 1, cgrid%ncells
-      xb = upscaler%x_lb(i)
-      xt = upscaler%x_ub(i)
-      yb = upscaler%y_lb(i)
-      yt = upscaler%y_ub(i)
+    do i = 1_i8, cgrid%ncells
+      call upscaler%coarse_bounds(i, xb, xt, yb, yt)
       ! cartesian grid can use n-subcells for weights
       ref_val = (sum(dem_mat(xb:xt,yb:yt) ** 2.1_dp, fgrid%mask(xb:xt,yb:yt)) / upscaler%n_subcells(i)) ** (1.0_dp / 2.1_dp)
       @assertEqual(cdem(i), ref_val, tolerance=t, message='upscaling p-mean check (p=2.1)')
@@ -105,11 +100,8 @@ contains
 
     call upscaler%execute(dem, cdem, upscaling_operator=up_p_mean, p=0.0_dp)
     ! check g-mean upscaling
-    do i = 1, cgrid%ncells
-      xb = upscaler%x_lb(i)
-      xt = upscaler%x_ub(i)
-      yb = upscaler%y_lb(i)
-      yt = upscaler%y_ub(i)
+    do i = 1_i8, cgrid%ncells
+      call upscaler%coarse_bounds(i, xb, xt, yb, yt)
       ! cartesian grid can use n-subcells for weights
       ref_val = exp(sum(log(dem_mat(xb:xt,yb:yt)), fgrid%mask(xb:xt,yb:yt)) / upscaler%n_subcells(i))
       @assertEqual(cdem(i), ref_val, tolerance=t, message='upscaling geometric mean check')
@@ -123,11 +115,8 @@ contains
 
     call upscaler%execute(dem, cdem, upscaling_operator=up_h_mean)
     ! check h-mean upscaling
-    do i = 1, cgrid%ncells
-      xb = upscaler%x_lb(i)
-      xt = upscaler%x_ub(i)
-      yb = upscaler%y_lb(i)
-      yt = upscaler%y_ub(i)
+    do i = 1_i8, cgrid%ncells
+      call upscaler%coarse_bounds(i, xb, xt, yb, yt)
       ! cartesian grid can use n-subcells for weights
       ref_val = 1.0_dp / (sum(1.0 / dem_mat(xb:xt,yb:yt), fgrid%mask(xb:xt,yb:yt)) / upscaler%n_subcells(i))
       @assertEqual(cdem(i), ref_val, tolerance=t, message='upscaling harmonic mean check')
@@ -141,11 +130,8 @@ contains
 
     call upscaler%execute(dem, cdem, upscaling_operator=up_min)
     ! check min upscaling
-    do i = 1, cgrid%ncells
-      xb = upscaler%x_lb(i)
-      xt = upscaler%x_ub(i)
-      yb = upscaler%y_lb(i)
-      yt = upscaler%y_ub(i)
+    do i = 1_i8, cgrid%ncells
+      call upscaler%coarse_bounds(i, xb, xt, yb, yt)
       ! cartesian grid can use n-subcells for weights
       ref_val = minval(dem_mat(xb:xt,yb:yt), mask=fgrid%mask(xb:xt,yb:yt))
       @assertEqual(cdem(i), ref_val, tolerance=t, message='upscaling min check')
@@ -159,11 +145,8 @@ contains
 
     call upscaler%execute(dem, cdem, upscaling_operator=up_max)
     ! check max upscaling
-    do i = 1, cgrid%ncells
-      xb = upscaler%x_lb(i)
-      xt = upscaler%x_ub(i)
-      yb = upscaler%y_lb(i)
-      yt = upscaler%y_ub(i)
+    do i = 1_i8, cgrid%ncells
+      call upscaler%coarse_bounds(i, xb, xt, yb, yt)
       ! cartesian grid can use n-subcells for weights
       ref_val = maxval(dem_mat(xb:xt,yb:yt), mask=fgrid%mask(xb:xt,yb:yt))
       @assertEqual(cdem(i), ref_val, tolerance=t, message='upscaling max check')
