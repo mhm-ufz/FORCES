@@ -988,7 +988,7 @@ contains
     this%cellsize = cs_x
 
     ! get mask from variable mask (assumed to be constant over time)
-    if (read_mask_) call mask_from_ncvar(ncvar, this%mask, flip_y)
+    if (read_mask_) call mask_from_var(ncvar, this%mask, flip_y)
     call this%calculate_cell_ids()
     call this%calculate_cell_area()
 
@@ -2012,9 +2012,7 @@ contains
   !! - Sebastian Müller, Mar 2024
   !!   - moved to FORCES
   subroutine calculate_cell_ids(this)
-    use mo_constants, only : nodata_i8
     implicit none
-
     class(grid_t), intent(inout) :: this
 
     integer(i4) :: i, j
@@ -2032,17 +2030,14 @@ contains
     end do
     !$omp end parallel do
 
-
     cum_cnt(1) = 0_i8
     do j = 1_i4, this%ny-1_i4
       cum_cnt(j+1_i4) = cum_cnt(j) + col_cnt(j)
     end do
     this%ncells = cum_cnt(this%ny) + col_cnt(this%ny)
-
     deallocate(col_cnt)
 
     allocate(this%cell_ij(this%ncells, 2))
-
 
     !$omp parallel do default(shared) private(k,i,j) schedule(static)
     do j = 1_i4, this%ny
@@ -2086,7 +2081,6 @@ contains
     class(grid_t), intent(inout) :: this
 
     real(dp) :: factor, cell_size_rad
-    integer(i4) :: j
     integer(i8) :: k
     real(dp), allocatable :: cell_area_lat(:)
 
@@ -2822,7 +2816,7 @@ contains
   !! This will check for the variable dtype first to use the best fitting kind for reading dummy data.
   !! Only supports 2D variables and requires the "_FillValue" attribute to be set.
   !> \authors Sebastian Müller
-  subroutine mask_from_ncvar(var, mask, flip_y)
+  subroutine mask_from_var(var, mask, flip_y)
     use mo_netcdf, only : NcVariable
     use mo_utils, only : ne
     use ieee_arithmetic, only : ieee_is_nan
@@ -2843,9 +2837,9 @@ contains
     real(dp), dimension(:, :), allocatable :: data_dp
     real(dp) :: fv_dp
     integer(i4), dimension(:), allocatable :: shp, start, cnt
-    character(:), allocatable :: dtype
+    character(:), allocatable :: dtype, name
     integer(i4) :: i, nx, ny
-    logical :: is_nan, flip_y_
+    logical :: flip_y_
 
     flip_y_ = optval(flip_y, default=.false.)
 
@@ -2872,8 +2866,8 @@ contains
         call var%getData(data_i2, start=start, cnt=cnt)
         call var%getFillValue(fv_i2)
         ! parallel mask creation
-        nx = size(data_i1, 1)
-        ny = size(data_i1, 2)
+        nx = size(data_i2, 1)
+        ny = size(data_i2, 2)
         allocate(mask(nx, ny))
         !$omp parallel do default(shared) schedule(static)
         do i = 1_i4, ny
@@ -2884,8 +2878,8 @@ contains
         call var%getData(data_i4, start=start, cnt=cnt)
         call var%getFillValue(fv_i4)
         ! parallel mask creation
-        nx = size(data_i1, 1)
-        ny = size(data_i1, 2)
+        nx = size(data_i4, 1)
+        ny = size(data_i4, 2)
         allocate(mask(nx, ny))
         !$omp parallel do default(shared) schedule(static)
         do i = 1_i4, ny
@@ -2896,8 +2890,8 @@ contains
         call var%getData(data_i8, start=start, cnt=cnt)
         call var%getFillValue(fv_i8)
         ! parallel mask creation
-        nx = size(data_i1, 1)
-        ny = size(data_i1, 2)
+        nx = size(data_i8, 1)
+        ny = size(data_i8, 2)
         allocate(mask(nx, ny))
         !$omp parallel do default(shared) schedule(static)
         do i = 1_i4, ny
@@ -2908,8 +2902,8 @@ contains
         call var%getData(data_sp, start=start, cnt=cnt)
         call var%getFillValue(fv_sp)
         ! parallel mask creation
-        nx = size(data_i1, 1)
-        ny = size(data_i1, 2)
+        nx = size(data_sp, 1)
+        ny = size(data_sp, 2)
         allocate(mask(nx, ny))
         if (ieee_is_nan(fv_sp)) then
           !$omp parallel do default(shared) schedule(static)
@@ -2928,8 +2922,8 @@ contains
         call var%getData(data_dp, start=start, cnt=cnt)
         call var%getFillValue(fv_dp)
         ! parallel mask creation
-        nx = size(data_i1, 1)
-        ny = size(data_i1, 2)
+        nx = size(data_dp, 1)
+        ny = size(data_dp, 2)
         allocate(mask(nx, ny))
         if (ieee_is_nan(fv_dp)) then
           !$omp parallel do default(shared) schedule(static)
@@ -2945,11 +2939,12 @@ contains
           !$omp end parallel do
         end if
       case default
-        call error_message("mask_from_ncvar: Unsupported variable type: ", dtype)
+        name = trim(var%getName())
+        call error_message("mask_from_var: Unsupported variable type: ", name, " - dtype: ", dtype)
     end select
     ! flip y-axis to have desired orientation
     if (flip_y_) call flip(mask, iDim=2)
-  end subroutine mask_from_ncvar
+  end subroutine mask_from_var
 
 #endif
 
