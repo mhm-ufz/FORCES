@@ -16,8 +16,8 @@ module mo_grid_scaler
 
   use, intrinsic :: ieee_arithmetic, only : ieee_is_finite, ieee_is_nan, ieee_is_negative
   use mo_kind, only: i4, i8, dp
-  use mo_grid, only: grid_t, id_bounds, coarse_id
-  use mo_utils, only: is_close, eq, flipped
+  use mo_grid, only: grid_t, id_bounds, coarse_ij, check_factor
+  use mo_utils, only: is_close, eq, flipped, optval
   use mo_string_utils, only: num2str
   use mo_message, only: error_message
   use mo_constants, only: nodata_i4, nodata_dp
@@ -86,24 +86,31 @@ module mo_grid_scaler
   !! - \ref 01_regridding.f90 : \copybrief 01_regridding.f90
   !! - \ref 03_nc_regridder.f90 : \copybrief 03_nc_regridder.f90
   type, public :: scaler_t
-    integer(i4) :: scaling_mode                           !< \ref up_scaling (0) or \ref down_scaling (1)
-    type(grid_t), pointer :: source_grid => null()        !< source grid
-    type(grid_t), pointer :: target_grid => null()        !< target grid
-    type(grid_t), pointer :: fine_grid => null()          !< high resolution grid (source when upscaling, target when downscaling)
-    type(grid_t), pointer :: coarse_grid => null()        !< low resolution grid (source when downscaling, target when upscaling)
-    integer(i4) :: upscaling_operator = up_a_mean         !< default upscaling operator when executing (default: arithmetic mean)
-    integer(i4) :: downscaling_operator = down_nearest    !< default downscaling operator when executing (default: nearest neighbor)
-    integer(i4) :: factor                                 !< coarse_grid % cellsize / fine_grid % cellsize
-    logical :: y_dir_match                                !< coarse_grid % y_direction == fine_grid % y_direction
-    integer(i4), dimension(:), allocatable :: y_lb        !< lower bound for y-id on fine grid (coarse\%ncells)
-    integer(i4), dimension(:), allocatable :: y_ub        !< upper bound for y-id on fine grid (coarse\%ncells)
-    integer(i4), dimension(:), allocatable :: x_lb        !< lower bound for x-id on fine grid (coarse\%ncells)
-    integer(i4), dimension(:), allocatable :: x_ub        !< upper bound for x-id on fine grid (coarse\%ncells)
-    integer(i4), dimension(:), allocatable :: n_subcells  !< valid fine grid cells in coarse cell (coarse\%ncells)
-    real(dp), dimension(:, :), allocatable :: weights     !< cell area ratios (fine\%nx,fine\%ny)
-    integer(i8), dimension(:), allocatable :: id_map      !< flat index array of coarse ids (fine\%ncells)
+    integer(i4) :: scaling_mode                             !< \ref up_scaling (0), \ref down_scaling (1) or \ref no_scaling (-1)
+    type(grid_t), pointer :: source_grid => null()          !< source grid
+    type(grid_t), pointer :: target_grid => null()          !< target grid
+    type(grid_t), pointer :: fine_grid => null()            !< high resolution grid (target when downscaling, source otherwise)
+    type(grid_t), pointer :: coarse_grid => null()          !< low resolution grid (source when downscaling, target otherwise)
+    integer(i4) :: upscaling_operator = up_a_mean           !< default upscaling operator when executing (default: arithmetic mean)
+    integer(i4) :: downscaling_operator = down_nearest      !< default downscaling operator when executing (default: nearest)
+    integer(i4) :: weight_mode = weight_area                !< weight mode (default: area based)
+    integer(i4) :: factor                                   !< coarse_grid % cellsize / fine_grid % cellsize
+    logical :: y_dir_match                                  !< coarse_grid % y_direction == fine_grid % y_direction
+    logical :: cache_bounds                                 !< flag to cache bounds for coarse cells
+    integer(i4), private, dimension(:), allocatable :: y_lb !< cached lower bound for y-id on fine grid (coarse\%ncells)
+    integer(i4), private, dimension(:), allocatable :: y_ub !< cached upper bound for y-id on fine grid (coarse\%ncells)
+    integer(i4), private, dimension(:), allocatable :: x_lb !< cached lower bound for x-id on fine grid (coarse\%ncells)
+    integer(i4), private, dimension(:), allocatable :: x_ub !< cached upper bound for x-id on fine grid (coarse\%ncells)
+    integer(i4), dimension(:), allocatable :: n_subcells    !< valid fine grid cells in coarse cell (coarse\%ncells)
+    integer(i8), dimension(:), allocatable :: id_map        !< flat index array of coarse ids (fine\%ncells)
+    real(dp), dimension(:, :), allocatable :: weights       !< cell area ratios (fine\%nx,fine\%ny)
+    real(dp), dimension(:), allocatable :: coarse_weights   !< weights based on sub-cell count (coarse\%ncells)
   contains
     procedure, public :: init => scaler_init
+    procedure, private :: scaler_coarse_ij, scaler_coarse_ij_cell
+    generic, public :: coarse_ij => scaler_coarse_ij, scaler_coarse_ij_cell
+    procedure, private :: scaler_coarse_bounds, scaler_coarse_bounds_cell
+    generic, public :: coarse_bounds => scaler_coarse_bounds, scaler_coarse_bounds_cell
     procedure, public :: operator_init
     ! separate routines for all packed(1d)/unpacked(2d) combinations of IO-data
     procedure, private :: scaler_exe_dp_1d_1d, scaler_exe_dp_1d_2d, scaler_exe_dp_2d_1d, scaler_exe_dp_2d_2d
@@ -166,7 +173,7 @@ module mo_grid_scaler
 contains
 
   !> \brief Setup scaler from given source and target grids
-  subroutine scaler_init(this, source_grid, target_grid, upscaling_operator, downscaling_operator, weight_mode, tol)
+  subroutine scaler_init(this, source_grid, target_grid, upscaling_operator, downscaling_operator, weight_mode, cache_bounds, tol)
     use mo_constants, only : nodata_i8
     implicit none
     class(scaler_t), intent(inout) :: this
@@ -175,87 +182,102 @@ contains
     integer(i4), intent(in), optional :: upscaling_operator !< default upscaling operator to use (up_a_mean by default)
     integer(i4), intent(in), optional :: downscaling_operator !< default downscaling operator to use (down_nearest by default)
     integer(i4), intent(in), optional :: weight_mode !< weight mode (weight_area by default)
+    logical, intent(in), optional :: cache_bounds !< flag to cache coarse cell bounds (default: .true.)
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparison (default: 1.e-7)
 
     integer(i4) :: i_ub, i_lb, j_lb, j_ub, ic, jc, i, j
     integer(i8) :: k
     integer(i8), dimension(:, :), allocatable :: coarse_id_matrix
     real(dp), dimension(:), allocatable :: weights
-    logical :: use_area_weights
+    logical :: is_upscaling
 
-    use_area_weights = .true.
-    if (present(weight_mode)) use_area_weights = (weight_mode == weight_area)
+    this%upscaling_operator = optval(upscaling_operator, default=up_a_mean)
+    this%downscaling_operator = optval(downscaling_operator, default=down_nearest)
+    this%weight_mode = optval(weight_mode, default=weight_area)
+    this%cache_bounds = optval(cache_bounds, default=.true.)
 
     this%source_grid => source_grid
     this%target_grid => target_grid
+    this%y_dir_match = this%source_grid%y_direction == this%target_grid%y_direction
 
-    if (source_grid%cellsize < target_grid%cellsize) then
-      this%scaling_mode = up_scaling
-      call target_grid%check_is_filled_by(source_grid, tol=tol)
-      this%fine_grid => source_grid
-      this%coarse_grid => target_grid
-    else if (source_grid%cellsize > target_grid%cellsize) then
-      this%scaling_mode = down_scaling
-      call target_grid%check_is_covered_by(source_grid, tol=tol)
-      this%fine_grid => target_grid
-      this%coarse_grid => source_grid
-    else ! equal resolutions (only type conversion, masking and flipping)
-      ! TODO: should we skip allocating the grid mapper arrays below to safe memory?
+    ! first check scaling factor
+    is_upscaling = source_grid%cellsize < target_grid%cellsize
+    if (is_upscaling) then
+      call check_factor(source_grid%cellsize, target_grid%cellsize, factor=this%factor, tol=tol)
+    else
+      call check_factor(target_grid%cellsize, source_grid%cellsize, factor=this%factor, tol=tol)
+    end if
+
+    if (this%factor == 1_i4) then
+      ! equal resolutions (only type conversion, masking and flipping)
       this%scaling_mode = no_scaling
       call target_grid%check_is_filled_by(source_grid, tol=tol)
       this%fine_grid => source_grid
       this%coarse_grid => target_grid
+      this%cache_bounds = .false.
+      this%weight_mode = weight_count
+    else if (is_upscaling) then
+      this%scaling_mode = up_scaling
+      call target_grid%check_is_filled_by(source_grid, tol=tol)
+      this%fine_grid => source_grid
+      this%coarse_grid => target_grid
+    else
+      this%scaling_mode = down_scaling
+      call target_grid%check_is_covered_by(source_grid, tol=tol)
+      this%fine_grid => target_grid
+      this%coarse_grid => source_grid
     end if
 
-    if (present(upscaling_operator)) this%upscaling_operator = upscaling_operator
-    if (present(downscaling_operator)) this%downscaling_operator = downscaling_operator
+    if (this%cache_bounds) then
+      allocate(this%y_lb(this%coarse_grid%ncells))
+      allocate(this%y_ub(this%coarse_grid%ncells))
+      allocate(this%x_lb(this%coarse_grid%ncells))
+      allocate(this%x_ub(this%coarse_grid%ncells))
+    end if
 
-    this%factor = nint(this%coarse_grid%cellsize / this%fine_grid%cellsize, i4)
-    this%y_dir_match = this%source_grid%y_direction == this%target_grid%y_direction
-
-    allocate(this%y_lb(this%coarse_grid%ncells))
-    allocate(this%y_ub(this%coarse_grid%ncells))
-    allocate(this%x_lb(this%coarse_grid%ncells))
-    allocate(this%x_ub(this%coarse_grid%ncells))
-    allocate(this%n_subcells(this%coarse_grid%ncells))
     allocate(this%id_map(this%fine_grid%ncells))
-
     allocate(coarse_id_matrix(this%coarse_grid%nx, this%coarse_grid%ny), &
              source=unpack([(k, k=1_i8, this%coarse_grid%ncells)], this%coarse_grid%mask, nodata_i8))
 
-    !$omp parallel do default(shared) private(i_lb,i_ub,j_lb,j_ub) schedule(static)
-    do k = 1_i8, this%coarse_grid%ncells
-      call id_bounds(this%factor, this%coarse_grid%cell_ij(k,1), this%coarse_grid%cell_ij(k,2), &
-        this%coarse_grid%y_direction, this%coarse_grid%ny, &
-        this%fine_grid%y_direction, this%fine_grid%nx, this%fine_grid%ny, &
-        i_lb, i_ub, j_lb, j_ub)
-      ! store bounds
-      this%x_lb(k) = i_lb
-      this%x_ub(k) = i_ub
-      this%y_lb(k) = j_lb
-      this%y_ub(k) = j_ub
-      ! count valid fine cells in coarse cell (mask should be always present here)
-      this%n_subcells(k) = count(this%fine_grid%mask(i_lb : i_ub, j_lb : j_ub))
-    end do
-    !$omp end parallel do
-
     !$omp parallel do default(shared) private(ic,jc) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
-      call coarse_id(this%factor, this%fine_grid%cell_ij(k,1), this%fine_grid%cell_ij(k,2), &
-        this%fine_grid%y_direction, this%fine_grid%ny, &
-        this%coarse_grid%y_direction, this%coarse_grid%ny, &
-        ic, jc)
+      call this%coarse_ij(k, ic, jc)
       this%id_map(k) = coarse_id_matrix(ic, jc) ! this also picks nodata values
     end do
     !$omp end parallel do
+    deallocate(coarse_id_matrix)
 
+    ! skip further initialization for no scaling
     if (this%scaling_mode == no_scaling) then
-      deallocate(coarse_id_matrix)
-      allocate(this%weights(this%fine_grid%nx, this%fine_grid%ny), source=1.0_dp) ! 1.0 as default (also when resolutions are equal)
-    else if (use_area_weights) then
-      deallocate(coarse_id_matrix)
+      ! TODO: this actually doesn't respect smaller target grid masks (should be 0 if source cell has no target coverage)
+      allocate(this%n_subcells(this%coarse_grid%ncells), source=1_i4)
+      allocate(this%coarse_weights(this%coarse_grid%ncells), source=1.0_dp)
+      return
+    end if
+
+    allocate(this%n_subcells(this%coarse_grid%ncells))
+    allocate(this%coarse_weights(this%coarse_grid%ncells))
+    !$omp parallel do default(shared) private(i_lb,i_ub,j_lb,j_ub) schedule(static)
+    do k = 1_i8, this%coarse_grid%ncells
+      ! coarse_bounds only uses cache when called with cell ID, so we are safe here calling with (i,j)
+      call this%coarse_bounds(this%coarse_grid%cell_ij(k,1), this%coarse_grid%cell_ij(k,2), i_lb, i_ub, j_lb, j_ub)
+      ! store bounds
+      if (this%cache_bounds) then
+        this%x_lb(k) = i_lb
+        this%x_ub(k) = i_ub
+        this%y_lb(k) = j_lb
+        this%y_ub(k) = j_ub
+      end if
+      ! count valid fine cells in coarse cell (mask should be always present here)
+      this%n_subcells(k) = count(this%fine_grid%mask(i_lb : i_ub, j_lb : j_ub))
+      ! compute coarse weights for sub-cell count based weighting either way
+      this%coarse_weights(k) = 1.0_dp / real(min(1_i4, this%n_subcells(k)), dp)
+    end do
+    !$omp end parallel do
+
+    ! determine area based weights
+    if (this%weight_mode == weight_area) then
       allocate(this%weights(this%fine_grid%nx, this%fine_grid%ny))
-      ! determine weights
       allocate(weights(this%fine_grid%ncells))
       ! generate weights from area fractions
       !$omp parallel do default(shared) private(k) schedule(static)
@@ -269,29 +291,8 @@ contains
       !$omp end parallel do
       this%weights = this%fine_grid%unpack(weights)
       deallocate(weights)
-    else
-      allocate(this%weights(this%fine_grid%nx, this%fine_grid%ny))
-      !$omp parallel do default(shared) private(i,j,ic,jc) schedule(static)
-      do j = 1, this%fine_grid%ny
-        do i = 1, this%fine_grid%nx
-          if (.not.this%fine_grid%mask(i,j)) then
-            this%weights(i,j) = nodata_dp
-            cycle
-          end if
-          call coarse_id(this%factor, i, j, &
-            this%fine_grid%y_direction, this%fine_grid%ny, &
-            this%coarse_grid%y_direction, this%coarse_grid%ny, &
-            ic, jc)
-          if (.not.this%coarse_grid%mask(ic,jc)) then
-            this%weights(i,j) = 1.0_dp
-            cycle
-          end if
-          this%weights(i,j) = 1.0_dp / real(this%n_subcells(coarse_id_matrix(ic,jc)), dp)
-        end do
-      end do
-      !$omp end parallel do
-      deallocate(coarse_id_matrix)
     end if
+
   end subroutine scaler_init
 
   !> \brief Default arguments to execute scaler (arithmetic mean as upscaling, nearest neighbor as downscaling)
@@ -652,6 +653,7 @@ contains
     real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
     real(dp), intent(in), optional :: p !< exponent for the p-norm (1.0 for arithmetic mean by default)
     integer(i8) :: k
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub
     real(dp) :: p_
     p_ = 1.0_dp
     if (present(p)) p_ = p
@@ -670,16 +672,26 @@ contains
       end if
     else
       call check_upscaling(this%scaling_mode)
-      !$omp parallel do default(shared) private(k) schedule(static)
-      do k = 1_i8, this%coarse_grid%ncells
-        out_data(k) = sum( &
-            pack(in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-                 this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) ** p_ &
-          * pack(this%weights(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-                 this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
-        ) ** (1.0_dp / p_)
-      end do
-      !$omp end parallel do
+      if (this%weight_mode == weight_area) then
+        !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
+        do k = 1_i8, this%coarse_grid%ncells
+          call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+          out_data(k) = sum( &
+              pack(in_data(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)) ** p_ &
+            * pack(this%weights(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)) &
+          ) ** (1.0_dp / p_)
+        end do
+        !$omp end parallel do
+      else
+        !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
+        do k = 1_i8, this%coarse_grid%ncells
+          call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+          out_data(k) = sum( &
+            pack(in_data(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)) ** p_ * this%coarse_weights(k) &
+          ) ** (1.0_dp / p_)
+        end do
+        !$omp end parallel do
+      end if
     end if
   end subroutine scaler_upscale_p_mean
 
@@ -688,17 +700,25 @@ contains
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
     integer(i8) :: k
-
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub
     call check_upscaling(this%scaling_mode)
-    !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i8, this%coarse_grid%ncells
-      out_data(k) = sum( &
-          pack(in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
-        * pack(this%weights(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))))
-    end do
-    !$omp end parallel do
+    if (this%weight_mode == weight_area) then
+      !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
+      do k = 1_i8, this%coarse_grid%ncells
+        call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+        out_data(k) = sum( &
+            pack(in_data(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)) &
+          * pack(this%weights(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)))
+      end do
+      !$omp end parallel do
+    else
+      !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
+      do k = 1_i8, this%coarse_grid%ncells
+        call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+        out_data(k) = sum(pack(in_data(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)) * this%coarse_weights(k))
+      end do
+      !$omp end parallel do
+    end if
   end subroutine scaler_upscale_a_mean
 
   subroutine scaler_upscale_g_mean(this, in_data, out_data)
@@ -706,17 +726,26 @@ contains
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
     integer(i8) :: k
-
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub
     call check_upscaling(this%scaling_mode)
-    !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i8, this%coarse_grid%ncells
-      out_data(k) = exp(sum(log( & ! prod(xi^wi) = exp(sum(wi*log(xi)))
-          pack(in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))) &
-        * pack(this%weights(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))))
-    end do
-    !$omp end parallel do
+    if (this%weight_mode == weight_area) then
+      !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
+      do k = 1_i8, this%coarse_grid%ncells
+        call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+        out_data(k) = exp(sum(log( & ! prod(xi^wi) = exp(sum(wi*log(xi)))
+            pack(in_data(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub))) &
+          * pack(this%weights(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub))))
+      end do
+      !$omp end parallel do
+    else
+      !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
+      do k = 1_i8, this%coarse_grid%ncells
+        call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+        out_data(k) = exp(sum(log( & ! prod(xi^wi) = exp(sum(wi*log(xi)))
+            pack(in_data(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub))) * this%coarse_weights(k)))
+      end do
+      !$omp end parallel do
+    end if
   end subroutine scaler_upscale_g_mean
 
   subroutine scaler_upscale_h_mean(this, in_data, out_data)
@@ -724,17 +753,26 @@ contains
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
     integer(i8) :: k
-
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub
     call check_upscaling(this%scaling_mode)
-    !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i8, this%coarse_grid%ncells
-      out_data(k) = 1.0_dp / sum( 1.0_dp / &
-          pack(in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
-        * pack(this%weights(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))))
-    end do
-    !$omp end parallel do
+    if (this%weight_mode == weight_area) then
+      !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
+      do k = 1_i8, this%coarse_grid%ncells
+        call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+        out_data(k) = 1.0_dp / sum( &
+            1.0_dp / pack(in_data(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)) &
+          * pack(this%weights(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)))
+      end do
+      !$omp end parallel do
+    else
+      !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
+      do k = 1_i8, this%coarse_grid%ncells
+        call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+        out_data(k) = 1.0_dp / sum( &
+          1.0_dp / pack(in_data(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)) * this%coarse_weights(k))
+      end do
+      !$omp end parallel do
+    end if
   end subroutine scaler_upscale_h_mean
 
   subroutine scaler_upscale_min_dp(this, in_data, out_data)
@@ -742,13 +780,12 @@ contains
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
     integer(i8) :: k
-
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub
     call check_upscaling(this%scaling_mode)
-    !$omp parallel do default(shared) private(k) schedule(static)
+    !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
-      out_data(k) = minval( &
-        in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-        mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
+      call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+      out_data(k) = minval(in_data(x_lb:x_ub,y_lb:y_ub), mask=this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub))
     end do
     !$omp end parallel do
   end subroutine scaler_upscale_min_dp
@@ -758,13 +795,12 @@ contains
     integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
     integer(i4), dimension(this%target_grid%ncells), intent(out) :: out_data
     integer(i8) :: k
-
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub
     call check_upscaling(this%scaling_mode)
-    !$omp parallel do default(shared) private(k) schedule(static)
+    !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
-      out_data(k) = minval( &
-        in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-        mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
+      call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+      out_data(k) = minval(in_data(x_lb:x_ub,y_lb:y_ub), mask=this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub))
     end do
     !$omp end parallel do
   end subroutine scaler_upscale_min_i4
@@ -774,13 +810,12 @@ contains
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
     integer(i8) :: k
-
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub
     call check_upscaling(this%scaling_mode)
-    !$omp parallel do default(shared) private(k) schedule(static)
+    !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
-      out_data(k) = maxval( &
-        in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-        mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
+      call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+      out_data(k) = maxval(in_data(x_lb:x_ub,y_lb:y_ub), mask=this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub))
     end do
     !$omp end parallel do
   end subroutine scaler_upscale_max_dp
@@ -790,13 +825,12 @@ contains
     integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
     integer(i4), dimension(this%target_grid%ncells), intent(out) :: out_data
     integer(i8) :: k
-
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub
     call check_upscaling(this%scaling_mode)
-    !$omp parallel do default(shared) private(k) schedule(static)
+    !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
-      out_data(k) = maxval( &
-        in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-        mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
+      call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+      out_data(k) = maxval(in_data(x_lb:x_ub,y_lb:y_ub), mask=this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub))
     end do
     !$omp end parallel do
   end subroutine scaler_upscale_max_i4
@@ -806,13 +840,12 @@ contains
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
     integer(i8) :: k
-
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub
     call check_upscaling(this%scaling_mode)
-    !$omp parallel do default(shared) private(k) schedule(static)
+    !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
-      out_data(k) = sum( &
-        in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-        mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
+      call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+      out_data(k) = sum(in_data(x_lb:x_ub,y_lb:y_ub), mask=this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub))
     end do
     !$omp end parallel do
   end subroutine scaler_upscale_sum_dp
@@ -822,13 +855,12 @@ contains
     integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
     integer(i4), dimension(this%target_grid%ncells), intent(out) :: out_data
     integer(i8) :: k
-
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub
     call check_upscaling(this%scaling_mode)
-    !$omp parallel do default(shared) private(k) schedule(static)
+    !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
-      out_data(k) = sum( &
-        in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-        mask=this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
+      call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+      out_data(k) = sum(in_data(x_lb:x_ub,y_lb:y_ub), mask=this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub))
     end do
     !$omp end parallel do
   end subroutine scaler_upscale_sum_i4
@@ -839,23 +871,29 @@ contains
     real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
     real(dp) :: mean
     integer(i8) :: k
-
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub
     call check_upscaling(this%scaling_mode)
-    !$omp parallel do default(shared) private(k, mean) schedule(static)
-    do k = 1_i8, this%coarse_grid%ncells
-      mean = sum( &
-          pack(in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-              this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
-        * pack(this%weights(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-              this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))))
-      out_data(k) = sum( &
-        ( pack(in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))) &
-        - mean ) ** 2_i4 &
-        * pack(this%weights(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-               this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k))))
-    end do
-    !$omp end parallel do
+    if (this%weight_mode == weight_area) then
+      !$omp parallel do default(shared) private(mean,x_lb,x_ub,y_lb,y_ub) schedule(static)
+      do k = 1_i8, this%coarse_grid%ncells
+        call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+        mean = sum(  pack(in_data(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)) &
+                  * pack(this%weights(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)))
+        out_data(k) = sum( &
+          ( pack(in_data(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)) - mean ) ** 2_i4 &
+          * pack(this%weights(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)))
+      end do
+      !$omp end parallel do
+    else
+      !$omp parallel do default(shared) private(mean,x_lb,x_ub,y_lb,y_ub) schedule(static)
+      do k = 1_i8, this%coarse_grid%ncells
+        call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+        mean = sum(pack(in_data(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)) * this%coarse_weights(k))
+        out_data(k) = sum( &
+          ( pack(in_data(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)) - mean ) ** 2_i4 * this%coarse_weights(k))
+      end do
+      !$omp end parallel do
+    end if
   end subroutine scaler_upscale_var
 
   subroutine scaler_upscale_std(this, in_data, out_data)
@@ -874,7 +912,7 @@ contains
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up operator
     integer(i4) :: i, laf_v, cnt_v, cnt_i, min_v, max_v
     integer(i8) :: k
-
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub
     call check_upscaling(this%scaling_mode)
 
     if (present(vmin)) then
@@ -889,13 +927,14 @@ contains
     endif
     if (min_v > max_v) call error_message("upscale_laf: vmin is bigger than vmax.")
 
-    !$omp parallel do default(shared) private(k, i, laf_v, cnt_v, cnt_i) schedule(static)
+    !$omp parallel do default(shared) private(i,laf_v,cnt_v,cnt_i,x_lb,x_ub,y_lb,y_ub) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
+      call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
       laf_v = min_v
       cnt_v = 0
       do i = min_v, max_v
         ! nodata value should be out of range (-9999) so we don't need to pack data
-        cnt_i = count(in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)) == i)
+        cnt_i = count(in_data(x_lb:x_ub,y_lb:y_ub) == i)
         if (cnt_i > cnt_v) then
           laf_v = i
           cnt_v = cnt_i
@@ -913,20 +952,26 @@ contains
     integer(i4), intent(in), optional :: class_id !< class id to determine area fraction of
     integer(i4) :: cls_id
     integer(i8) :: k
-
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub
     call check_upscaling(this%scaling_mode)
-
-    cls_id = nodata_i4
-    if (present(class_id)) cls_id = class_id
-
-    !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i8, this%coarse_grid%ncells
-      out_data(k) = sum( &
-        this%weights(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)), &
-        mask=(in_data(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)) == cls_id) &
-              .and. this%fine_grid%mask(this%x_lb(k):this%x_ub(k), this%y_lb(k):this%y_ub(k)))
-    end do
-    !$omp end parallel do
+    cls_id = optval(class_id, default=nodata_i4)
+    if (this%weight_mode == weight_area) then
+      !$omp parallel do default(shared) private(k,x_lb,x_ub,y_lb,y_ub) schedule(static)
+      do k = 1_i8, this%coarse_grid%ncells
+        call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+        out_data(k) = sum(this%weights(x_lb:x_ub,y_lb:y_ub), &
+                          mask=(in_data(x_lb:x_ub,y_lb:y_ub)==cls_id).and.this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub))
+      end do
+      !$omp end parallel do
+    else
+      !$omp parallel do default(shared) private(k,x_lb,x_ub,y_lb,y_ub) schedule(static)
+      do k = 1_i8, this%coarse_grid%ncells
+        call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+        out_data(k) = count((in_data(x_lb:x_ub,y_lb:y_ub)==cls_id).and.this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)) &
+                      * this%coarse_weights(k)
+      end do
+      !$omp end parallel do
+    end if
   end subroutine scaler_upscale_fraction
 
   subroutine scaler_downscale_nearest_dp_1d(this, in_data, out_data)
@@ -935,7 +980,7 @@ contains
     real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
     integer(i8) :: k
     call check_downscaling(this%scaling_mode)
-    !$omp parallel do default(shared) private(k) schedule(static)
+    !$omp parallel do default(shared) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
       out_data(k) = in_data(this%id_map(k))
     end do
@@ -948,7 +993,7 @@ contains
     integer(i4), dimension(this%target_grid%ncells), intent(out) :: out_data
     integer(i8) :: k
     call check_downscaling(this%scaling_mode)
-    !$omp parallel do default(shared) private(k) schedule(static)
+    !$omp parallel do default(shared) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
       out_data(k) = in_data(this%id_map(k))
     end do
@@ -961,9 +1006,9 @@ contains
     real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
     integer(i8) :: k
     call check_downscaling(this%scaling_mode)
-    !$omp parallel do default(shared) private(k) schedule(static)
+    !$omp parallel do default(shared) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
-      out_data(k) = in_data(this%id_map(k)) / real(this%n_subcells(this%id_map(k)), dp)
+      out_data(k) = in_data(this%id_map(k)) * this%coarse_weights(this%id_map(k))
     end do
     !$omp end parallel do
   end subroutine scaler_downscale_split_1d
@@ -975,7 +1020,7 @@ contains
     integer(i4) :: i, j
     integer(i8) :: k
     call check_downscaling(this%scaling_mode)
-    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    !$omp parallel do default(shared) private(i,j) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
       i = this%coarse_grid%cell_ij(this%id_map(k), 1)
       j = this%coarse_grid%cell_ij(this%id_map(k), 2)
@@ -991,7 +1036,7 @@ contains
     integer(i4) :: i, j
     integer(i8) :: k
     call check_downscaling(this%scaling_mode)
-    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    !$omp parallel do default(shared) private(i,j) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
       i = this%coarse_grid%cell_ij(this%id_map(k), 1)
       j = this%coarse_grid%cell_ij(this%id_map(k), 2)
@@ -1007,14 +1052,75 @@ contains
     integer(i4) :: i, j
     integer(i8) :: k
     call check_downscaling(this%scaling_mode)
-    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    !$omp parallel do default(shared) private(i,j) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
       i = this%coarse_grid%cell_ij(this%id_map(k), 1)
       j = this%coarse_grid%cell_ij(this%id_map(k), 2)
-      out_data(k) = in_data(i,j) / real(this%n_subcells(this%id_map(k)), dp)
+      out_data(k) = in_data(i,j)  * this%coarse_weights(this%id_map(k))
     end do
     !$omp end parallel do
   end subroutine scaler_downscale_split_2d
+
+  !> \brief Get coarse grid indices from fine grid indices.
+  pure subroutine scaler_coarse_ij(this, fine_i, fine_j, coarse_i, coarse_j)
+    class(scaler_t), intent(in) :: this
+    integer(i4), intent(in) :: fine_i !< i index on fine grid
+    integer(i4), intent(in) :: fine_j !< j index on fine grid
+    integer(i4), intent(out) :: coarse_i !< i index on coarse grid
+    integer(i4), intent(out) :: coarse_j !< j index on coarse grid
+    call coarse_ij(this%factor, fine_i, fine_j, &
+      this%fine_grid%y_direction, this%fine_grid%ny, &
+      this%coarse_grid%y_direction, this%coarse_grid%ny, &
+      coarse_i, coarse_j)
+  end subroutine scaler_coarse_ij
+
+  !> \brief Get coarse grid indices from fine grid cell index.
+  pure subroutine scaler_coarse_ij_cell(this, fine_cell, coarse_i, coarse_j)
+    class(scaler_t), intent(in) :: this
+    integer(i8), intent(in) :: fine_cell !< cell index on fine grid
+    integer(i4), intent(out) :: coarse_i !< i index on coarse grid
+    integer(i4), intent(out) :: coarse_j !< j index on coarse grid
+    call coarse_ij(this%factor, this%fine_grid%cell_ij(fine_cell, 1), this%fine_grid%cell_ij(fine_cell, 2), &
+      this%fine_grid%y_direction, this%fine_grid%ny, &
+      this%coarse_grid%y_direction, this%coarse_grid%ny, &
+      coarse_i, coarse_j)
+  end subroutine scaler_coarse_ij_cell
+
+  !> \brief Get fine cell index bounds from coarse grid indices.
+  pure subroutine scaler_coarse_bounds(this, coarse_i, coarse_j, x_lb, x_ub, y_lb, y_ub)
+    class(scaler_t), intent(in) :: this
+    integer(i4), intent(in) :: coarse_i !< i index on coarse grid
+    integer(i4), intent(in) :: coarse_j !< j index on coarse grid
+    integer(i4), intent(out) :: x_lb !< lower bound in x on fine grid
+    integer(i4), intent(out) :: x_ub !< upper bound in x on fine grid
+    integer(i4), intent(out) :: y_lb !< lower bound in y on fine grid
+    integer(i4), intent(out) :: y_ub !< upper bound in y on fine grid
+    call id_bounds(this%factor, coarse_i, coarse_j, &
+      this%coarse_grid%y_direction, this%coarse_grid%ny, &
+      this%fine_grid%y_direction, this%fine_grid%nx, this%fine_grid%ny, &
+      x_lb, x_ub, y_lb, y_ub)
+  end subroutine scaler_coarse_bounds
+
+  !> \brief Get fine cell index bounds from coarse grid cell index.
+  pure subroutine scaler_coarse_bounds_cell(this, coarse_cell, x_lb, x_ub, y_lb, y_ub)
+    class(scaler_t), intent(in) :: this
+    integer(i8), intent(in) :: coarse_cell !< cell index on coarse grid
+    integer(i4), intent(out) :: x_lb !< lower bound in x on fine grid
+    integer(i4), intent(out) :: x_ub !< upper bound in x on fine grid
+    integer(i4), intent(out) :: y_lb !< lower bound in y on fine grid
+    integer(i4), intent(out) :: y_ub !< upper bound in y on fine grid
+    if (this%cache_bounds) then
+      x_lb = this%x_lb(coarse_cell)
+      x_ub = this%x_ub(coarse_cell)
+      y_lb = this%y_lb(coarse_cell)
+      y_ub = this%y_ub(coarse_cell)
+      return
+    end if
+    call id_bounds(this%factor, this%coarse_grid%cell_ij(coarse_cell,1), this%coarse_grid%cell_ij(coarse_cell,2), &
+      this%coarse_grid%y_direction, this%coarse_grid%ny, &
+      this%fine_grid%y_direction, this%fine_grid%nx, this%fine_grid%ny, &
+      x_lb, x_ub, y_lb, y_ub)
+  end subroutine scaler_coarse_bounds_cell
 
   subroutine check_upscaling(scaling_mode)
     integer(i4), intent(in) :: scaling_mode        !< up_scaling or down_scaling
