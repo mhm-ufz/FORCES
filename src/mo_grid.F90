@@ -28,9 +28,10 @@ module mo_grid
   public :: write_ascii_grid
   public :: read_ascii_grid
   public :: read_ascii_header
-  public :: coarse_id
+  public :: coarse_ij
   public :: id_bounds
   public :: dist_latlon
+  public :: check_factor
 #ifdef FORCES_WITH_NETCDF
   public :: is_x_axis
   public :: is_y_axis
@@ -3361,7 +3362,7 @@ contains
   !> \details Calculates the coarse grid indices for a given fine grid cell assuming matching lower-left corner.
   !> \authors Sebastian Müller
   !> \date Oct 2025
-  pure subroutine coarse_id(factor, fine_i, fine_j, fine_y_dir, fine_ny, coarse_y_dir, coarse_ny, coarse_i, coarse_j)
+  pure subroutine coarse_ij(factor, fine_i, fine_j, fine_y_dir, fine_ny, coarse_y_dir, coarse_ny, coarse_i, coarse_j)
     integer(i4), intent(in) :: factor
     integer(i4), intent(in) :: fine_i !< i index on fine grid (x-axis)
     integer(i4), intent(in) :: fine_j !< j index on fine grid (y-axis)
@@ -3377,7 +3378,7 @@ contains
     coarse_j = (j - 1_i4) / factor + 1_i4
     coarse_i = (fine_i - 1_i4) / factor + 1_i4
     if (coarse_y_dir == top_down) coarse_j = coarse_ny - coarse_j + 1_i4
-  end subroutine coarse_id
+  end subroutine coarse_ij
 
   !> \brief Derive spatial index bounds.
   !> \details Derive spatial index bounds for fine grid cells covered by a coarse grid cell assuming matching lower-left corner.
