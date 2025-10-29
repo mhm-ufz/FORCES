@@ -10,7 +10,6 @@ module test_mo_grid
   private
 
   public :: test_grid
-  public :: test_layer
 
 contains
 
