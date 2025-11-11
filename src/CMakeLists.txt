@@ -108,8 +108,10 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   # set the preprocessor
   target_compile_definitions(${LIB_NAME} PRIVATE "GFORTRAN")
   # free line length to enable logging (only needed for gfortran)
-  target_compile_options(${LIB_NAME} PRIVATE
+  target_compile_options(${LIB_NAME} PUBLIC
     -ffree-line-length-none
+  )
+  target_compile_options(${LIB_NAME} PRIVATE
     $<$<CONFIG:DEBUG>:-Og -g -Wall -Wextra -Wimplicit-interface -Wsurprising
       -fimplicit-none -fbacktrace -fcheck=all
       -ffpe-trap=zero,overflow,underflow -finit-real=snan -pedantic-errors>
