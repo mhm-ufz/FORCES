@@ -22,39 +22,8 @@
 !!            - `log_subtrace(format)`: level 7
 !!          as required.
 !!
-!!          The following example demonstrates the functionality. The `mo_cli` module incorporates logger settings:
-!!          \code{.f90}
-!!          #include 'logging.h'
-!!          program test_log
-!!            use mo_logging
-!!            use mo_cli, only : cli_parser
-!!            implicit none
-!!            type(cli_parser) :: parser
-!!            parser = cli_parser( &
-!!              description='Program with cli and logger.', &
-!!              add_help_option=.true., &
-!!              add_logger_options=.true.)
-!!            call parser%parse()
-!!            log_fatal(*) 'fatal'
-!!            log_error(*) 'error'
-!!            log_warn(*) 'warn'
-!!            log_info(*) 'info'
-!!            log_debug(*) 'debug'
-!!            log_trace(*) 'trace'
-!!            log_subtrace(*) 'subtrace'
-!!          end program test_log
-!!          \endcode
-!!          You can call the program with:
-!!          \code{.sh}
-!!          $ ./prog --quiet
-!!            test.F90:12    FATAL fatal
-!!            test.F90:13    ERROR error
-!!            test.F90:14     WARN warn
-!!          \endcode
-!!          You can see all cli logger options with:
-!!          \code{.sh}
-!!          $ ./prog -h
-!!          \endcode
+!! \par Examples
+!! - \ref 01_logging_cli.F90 : \copybrief 01_logging_cli.F90
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_logging
