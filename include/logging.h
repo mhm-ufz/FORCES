@@ -42,36 +42,42 @@
 #define LOG_LEVEL_TRACE_DEF 6
 #define LOG_LEVEL_SUBTRACE_DEF 7
 
-#define log_macro(level,format) if(logp(level))write(logu(level),format)trim(logl(level,__FILE__,__LINE__))//" ",
-#define log_root(level,format) if(logp(level,0))write(logu(level),format)trim(logl(level,__FILE__,__LINE__))//" ",
+#define log_write(level,format) if(logp(level))write(logu(level),format)logl(level,__FILE__,__LINE__),
+#define log_plain(level,format) if(logp(level))write(logu(level),format)logl(level,__FILE__,__LINE__,.true.),
+#define log_root(level,format) if(logp(level,0))write(logu(level),format)logl(level,__FILE__,__LINE__),
+#define log_plain_root(level,format) if(logp(level,0))write(logu(level),format)logl(level,__FILE__,__LINE__,.true.),
+#define log_core(core,level,format) if(logp(level,core))write(logu(level),format)logl(level,__FILE__,__LINE__),
+#define log_plain_core(core,level,format) if(logp(level,core))write(logu(level),format)logl(level,__FILE__,__LINE__,.true.),
 
 /* First four log levels */
-#define log_fatal(format) log_macro(LOG_LEVEL_FATAL_DEF,format)
-#define log_error(format) log_macro(LOG_LEVEL_ERROR_DEF,format)
-#define log_warn(format) log_macro(LOG_LEVEL_WARN_DEF,format)
-#define log_info(format) log_macro(LOG_LEVEL_INFO_DEF,format)
+#define log_fatal(format) log_write(LOG_LEVEL_FATAL_DEF,format)
+#define log_error(format) log_write(LOG_LEVEL_ERROR_DEF,format)
+#define log_warn(format) log_write(LOG_LEVEL_WARN_DEF,format)
+#define log_info(format) log_write(LOG_LEVEL_INFO_DEF,format)
+#define log_text(format) log_plain(LOG_LEVEL_INFO_DEF,format)
 
 #define log_fatal_root(format) log_root(LOG_LEVEL_FATAL_DEF,format)
 #define log_error_root(format) log_root(LOG_LEVEL_ERROR_DEF,format)
 #define log_warn_root(format) log_root(LOG_LEVEL_WARN_DEF,format)
 #define log_info_root(format) log_root(LOG_LEVEL_INFO_DEF,format)
+#define log_text_root(format) log_plain_root(LOG_LEVEL_INFO_DEF,format)
 
 #ifdef DISABLE_LOG_DEBUG
-#define log_debug(format) if(.false.)write(logu(LOG_LEVEL_DEBUG_DEF),format)
-#define log_debug_root(format) if(.false.)write(logu(LOG_LEVEL_DEBUG_DEF),format)
+#define log_debug(format) ! debug comment:
+#define log_debug_root(format) ! root debug comment:
 #else
-#define log_debug(format) log_macro(LOG_LEVEL_DEBUG_DEF,format)
+#define log_debug(format) log_write(LOG_LEVEL_DEBUG_DEF,format)
 #define log_debug_root(format) log_root(LOG_LEVEL_DEBUG_DEF,format)
 #endif
 
 #ifdef ENABLE_LOG_TRACE
-#define log_trace(format) log_macro(LOG_LEVEL_TRACE_DEF,format)
+#define log_trace(format) log_write(LOG_LEVEL_TRACE_DEF,format)
 #define log_trace_root(format) log_root(LOG_LEVEL_TRACE_DEF,format)
-#define log_subtrace(format) log_macro(LOG_LEVEL_SUBTRACE_DEF,format)
+#define log_subtrace(format) log_write(LOG_LEVEL_SUBTRACE_DEF,format)
 #define log_subtrace_root(format) log_root(LOG_LEVEL_SUBTRACE_DEF,format)
 #else
-#define log_trace(format) if(.false.)write(logu(LOG_LEVEL_TRACE_DEF),format)
-#define log_trace_root(format) if(.false.)write(logu(LOG_LEVEL_TRACE_DEF),format)
-#define log_subtrace(format) if(.false.)write(logu(LOG_LEVEL_SUBTRACE_DEF),format)
-#define log_subtrace_root(format) if(.false.)write(logu(LOG_LEVEL_SUBTRACE_DEF),format)
+#define log_trace(format) ! trace comment:
+#define log_trace_root(format) ! root trace comment:
+#define log_subtrace(format) ! subtrace comment:
+#define log_subtrace_root(format) ! root subtrace comment:
 #endif
