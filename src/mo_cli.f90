@@ -172,17 +172,11 @@ contains
       call new_cli_parser%add_option( &
         name="quiet", s_name="q", repeated=.true., help="Decrease logging verbosity level.")
       call new_cli_parser%add_option( &
-        name="log-output-hostname", help="Output hostname while logging.")
+        name="log-date", help="Output date while logging.")
       call new_cli_parser%add_option( &
-        name="log-force-colors", help="Forces colors for the logger.")
+        name="log-time", help="Output time while logging.")
       call new_cli_parser%add_option( &
-        name="log-no-colors", help="Disable colors while logging.")
-      call new_cli_parser%add_option( &
-        name="log-no-format", help="Disable formatting while logging.")
-      call new_cli_parser%add_option( &
-        name="log-output-date", help="Output date while logging.")
-      call new_cli_parser%add_option( &
-        name="log-output-time", help="Output time while logging.")
+        name="log-line", help="Output file and line information while logging.")
     end if
   end function new_cli_parser
 
@@ -585,12 +579,9 @@ contains
       call log_set_config( &
         verbose = self%option_read_count("verbose"), &
         quiet = self%option_read_count("quiet"), &
-        log_output_hostname = self%option_was_read("log-output-hostname"), &
-        log_force_colors = self%option_was_read("log-force-colors"), &
-        log_no_colors = self%option_was_read("log-no-colors"), &
-        log_no_format = self%option_was_read("log-no-format"), &
-        log_output_date = self%option_was_read("log-output-date"), &
-        log_output_time = self%option_was_read("log-output-time") &
+        log_output_date = self%option_was_read("log-date"), &
+        log_output_time = self%option_was_read("log-time"), &
+        log_output_line = self%option_was_read("log-line") &
       )
     end if
 
