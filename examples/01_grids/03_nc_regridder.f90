@@ -34,13 +34,13 @@ program netcdf_regridder
     description='Simple regridder.', &
     add_version_option=.true., version='1.0')
   call parser%add_option( &
-    'infile', 'i', has_value=.true., required=.true., help='Input netcdf file.')
+    'infile', 'i', has_value=.true., default="./src/pf_tests/files/dem.nc", help='Input netcdf file.')
   call parser%add_option( &
-    'outfile', 'o', has_value=.true., required=.true., help='Output netcdf file.')
+    'outfile', 'o', has_value=.true., default="output.nc", help='Output netcdf file.')
   call parser%add_option( &
-    'var', 'v', has_value=.true., required=.true., help='Variable in the input netcdf file.')
+    'var', 'v', has_value=.true., default="dem", help='Variable in the input netcdf file.')
   call parser%add_option( &
-    name='factor', s_name='f', has_value=.true., required=.true., help='Integer upscaling factor > 1')
+    name='factor', s_name='f', has_value=.true., default="2", help='Integer upscaling factor > 1')
   call parser%add_option( &
     name='upscaler', s_name='u', has_value=.true., default="a", &
     help='Upscaling operator to use ("a" - arithmetic mean, "g" - geometric mean, "h" - harmonic mean)')

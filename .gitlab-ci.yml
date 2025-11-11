@@ -12,6 +12,7 @@ variables:
 stages:
   - info
   - test
+  - examples
   - doc
   - deploy
 
@@ -65,6 +66,11 @@ show-env-vars:
   CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
   BUILD_TARGET: test
   ARTIFACT_PATH: Testing/Temporary
+
+# example variables
+.examples_vars: &examples_vars
+  BUILD_DIR: build_examples
+  CMAKE_FLAGS: '-DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Debug'
 
 # coverage variables
 .coverage_vars: &coverage_vars
@@ -149,6 +155,25 @@ show-env-vars:
     when: always
     paths:
     - $BUILD_DIR/$ARTIFACT_PATH
+
+# template for example jobs
+.examples_template: &examples_template
+  stage: examples
+  script:
+    - source $MODULE_LOAD_SCRIPT
+    - EXAMPLE_FILES="$(find examples -type f -name '*.f90' | sort)"
+    - |
+      if [ -z "$EXAMPLE_FILES" ]; then
+        echo "FORCES: no Fortran examples found under examples/"
+        exit 1
+      fi
+    - |
+      for example in $EXAMPLE_FILES; do
+        echo "FORCES: building and running example ${example}"
+        cmake -B "$BUILD_DIR" $CMAKE_FLAGS -DFORCES_EXE="$example"
+        cmake --build "$BUILD_DIR" --parallel 4
+        ./$BUILD_DIR/main
+      done
 
 # #################
 # ### TEST JOBS ###
@@ -242,6 +267,55 @@ conditional_coverage:
     <<: [*coverage_vars, *conda_vars_02]
     CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON -DFORCES_WITH_OPTIMIZATION=OFF -DFORCES_WITH_NETCDF=OFF'
   <<: *job_template
+
+##################
+### EXAMPLES #####
+##################
+
+examples-conda01:
+  variables:
+    <<: [*examples_vars, *conda_vars_01]
+  <<: *examples_template
+
+examples-conda02:
+  variables:
+    <<: [*examples_vars, *conda_vars_02]
+  <<: *examples_template
+
+examples-conda03:
+  variables:
+    <<: [*examples_vars, *conda_vars_03]
+  <<: *examples_template
+
+examples-conda04:
+  variables:
+    <<: [*examples_vars, *conda_vars_04]
+  <<: *examples_template
+
+examples-gfortran102:
+  variables:
+    <<: [*examples_vars, *gfortran_vars_102]
+  <<: *examples_template
+
+examples-gfortran122:
+  variables:
+    <<: [*examples_vars, *gfortran_vars_122]
+  <<: *examples_template
+
+examples-intel2020b:
+  variables:
+    <<: [*examples_vars, *intel_vars_2020b]
+  <<: *examples_template
+
+examples-intel2023b-classic:
+  variables:
+    <<: [*examples_vars, *intel_vars_2023b-classic]
+  <<: *examples_template
+
+examples-intel2023b-llvm:
+  variables:
+    <<: [*examples_vars, *intel_vars_2023b-llvm]
+  <<: *examples_template
 
 ################
 ### DOC JOBS ###
