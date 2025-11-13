@@ -643,7 +643,7 @@ contains
   !> \details write grid to a netcdf file with possible data variable.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine to_nc_file(this, path, x_name, y_name, aux_lon_name, aux_lat_name, double_precision, append)
+  subroutine to_nc_file(this, path, x_name, y_name, aux_lon_name, aux_lat_name, double_precision, mask, area, append)
     use mo_netcdf, only : NcDataset
     implicit none
     class(grid_t), intent(in) :: this
@@ -653,6 +653,8 @@ contains
     character(*), optional, intent(in) :: aux_lon_name !< name for auxilliar longitude coordinate variable
     character(*), optional, intent(in) :: aux_lat_name !< name for auxilliar latitude coordinate variable
     logical, optional, intent(in) :: double_precision !< whether to use double precision to store axis (default .true.)
+    logical, optional, intent(in) :: mask !< whether to write mask variable (default: .false.)
+    logical, optional, intent(in) :: area !< whether to write cell area variable (default: .false.)
     logical, optional, intent(in) :: append !< whether netcdf file should be opened in append mode (default .false.)
     type(NcDataset) :: nc
     character(1) :: fmode
@@ -661,7 +663,7 @@ contains
       if (append) fmode = "a"
     end if
     nc = NcDataset(path, fmode)
-    call this%to_nc_dataset(nc, x_name, y_name, aux_lon_name, aux_lat_name, double_precision)
+    call this%to_nc_dataset(nc, x_name, y_name, aux_lon_name, aux_lat_name, double_precision, mask, area)
     call nc%close()
   end subroutine to_nc_file
 
@@ -669,10 +671,11 @@ contains
   !> \details write grid to a netcdf dataset with possible data variable.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine to_nc_dataset(this, nc, x_name, y_name, aux_lon_name, aux_lat_name, double_precision)
+  subroutine to_nc_dataset(this, nc, x_name, y_name, aux_lon_name, aux_lat_name, double_precision, mask, area)
     use mo_netcdf, only : NcDataset, NcVariable, NcDimension
     use mo_utils, only : is_close
     use mo_string_utils, only : splitString
+    use mo_constants, only : nodata_sp, nodata_dp
     implicit none
     class(grid_t), intent(in) :: this
     type(NcDataset), intent(inout) :: nc !< NetCDF Dataset
@@ -681,14 +684,17 @@ contains
     character(*), optional, intent(in) :: aux_lon_name !< name for auxilliar longitude coordinate variable
     character(*), optional, intent(in) :: aux_lat_name !< name for auxilliar latitude coordinate variable
     logical, optional, intent(in) :: double_precision !< whether to use double precision to store axis (default .true.)
+    logical, optional, intent(in) :: mask !< whether to write mask variable (default: .false.)
+    logical, optional, intent(in) :: area !< whether to write cell area variable (default: .false.)
     type(NcDimension) :: x_dim, y_dim, b_dim, v_dim
-    type(NcVariable) :: x_var, y_var, xb_var, yb_var
+    type(NcVariable) :: x_var, y_var, xb_var, yb_var, var
+    integer(i1), allocatable, dimension(:,:) :: mask_data
     character(:), allocatable :: xname, yname, lonname, latname
     logical :: double_precision_
     character(3) :: dtype
 
-    double_precision_ = .true.
-    if (present(double_precision)) double_precision_ = double_precision
+    double_precision_ = optval(double_precision, .true.)
+
     dtype = "f32"
     if ( double_precision_ ) dtype = "f64"
 
@@ -792,6 +798,34 @@ contains
       end if
     end if
 
+    if (optval(mask, .false.)) then
+      allocate(mask_data(this%nx, this%ny), source=0_i1)
+      where (this%mask) mask_data = 1_i1
+      var = nc%setVariable("mask", "i8", [x_dim, y_dim])
+      call var%setFillValue(0_i1)
+      call var%setAttribute("missing_value", 0_i1)
+      call var%setAttribute("long_name", "mask")
+      call var%setAttribute("standard_name", "land_binary_mask")
+      call var%setAttribute("units", "1")
+      call var%setData(mask_data)
+      deallocate(mask_data)
+    end if
+
+    if (optval(area, .false.) .and. allocated(this%cell_area)) then
+    var = nc%setVariable("cell_area", dtype, [x_dim, y_dim])
+      if (double_precision_) then
+        call var%setFillValue(nodata_dp)
+        call var%setAttribute("missing_value", nodata_dp)
+      else
+        call var%setFillValue(nodata_sp)
+        call var%setAttribute("missing_value", nodata_sp)
+      end if
+      call var%setAttribute("long_name", "cell area")
+      call var%setAttribute("standard_name", "cell_area")
+      call var%setAttribute("units", "m2") ! TODO: should be configurable
+      call var%setData(this%unpack(this%cell_area))
+    end if
+
   end subroutine to_nc_dataset
 
 #endif
@@ -873,8 +907,8 @@ contains
     real(dp), allocatable :: xax(:), yax(:)
     real(dp) :: c(this%ncells, 2), dist(this%ncells)
     integer(i8) :: i
-    logical :: aux = .false.
-    if (present(use_aux)) aux = use_aux
+    logical :: aux
+    aux = optval(use_aux, .false.)
     if (aux .and. .not.this%has_aux_coords()) call error_message("grid%closest_cell_id: no auxilliar coordniates defined.")
     if (aux) then
       c(:,1) = [(this%lon(this%cell_ij(i,1),this%cell_ij(i,2)), i=1_i8,this%ncells)]
