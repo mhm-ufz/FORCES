@@ -92,8 +92,8 @@ module mo_grid
     real(dp), dimension(:, :), allocatable :: lon_vertices     !< longitude coordinates or the grid nodes, size (nx+1,ny+1)
     integer(i4), dimension(:, :), allocatable :: cell_ij       !< matrix IDs (i,j) per cell in mask, size (ncells, 2)
     logical, dimension(:, :), allocatable :: mask              !< the mask for valid cells in the original grid, size (nx,ny)
-    integer(i4), dimension(:), allocatable :: mask_col_cnt     !< number of valid cells per column in mask, size (nx)
-    integer(i4), dimension(:), allocatable :: mask_cum_col_cnt !< cumulative number of valid cells prior to mask column, size (nx)
+    integer(i8), dimension(:), allocatable :: mask_col_cnt     !< number of valid cells per column in mask, size (nx)
+    integer(i8), dimension(:), allocatable :: mask_cum_col_cnt !< cumulative number of valid cells prior to mask column, size (nx)
   contains
     procedure, public :: init => grid_init
     procedure, public :: from_ascii_file
@@ -1528,7 +1528,6 @@ contains
 
     integer(i4) :: i, j
     integer(i8) :: k
-    integer(i8), allocatable :: col_cnt(:), cum_cnt(:)
 
     ! if mask not allocated create one with only .true. values
     if (.not. allocated(this%mask)) then
@@ -1546,7 +1545,7 @@ contains
 
     !$omp parallel do default(shared) schedule(static)
     do j = 1_i4, this%ny
-      this%mask_col_cnt(j) = count(this%mask(:,j))
+      this%mask_col_cnt(j) = count(this%mask(:,j), kind=i8)
     end do
     !$omp end parallel do
 
@@ -2066,8 +2065,8 @@ contains
     call this%check_shape_packed(shape(out_data, kind=i8))
     !$omp parallel do default(shared) private(k,i,j) schedule(static)
     do j = 1_i4, this%ny
+      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      i = int(this%mask_col_cnt(j), i8)
       out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
     end do
     !$omp end parallel do
@@ -2087,8 +2086,8 @@ contains
     call this%check_shape_packed(shape(out_data, kind=i8))
     !$omp parallel do default(shared) private(k,i,j) schedule(static)
     do j = 1_i4, this%ny
+      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      i = int(this%mask_col_cnt(j), i8)
       out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
     end do
     !$omp end parallel do
@@ -2108,8 +2107,8 @@ contains
     call this%check_shape_packed(shape(out_data, kind=i8))
     !$omp parallel do default(shared) private(k,i,j) schedule(static)
     do j = 1_i4, this%ny
+      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      i = int(this%mask_col_cnt(j), i8)
       out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
     end do
     !$omp end parallel do
@@ -2129,8 +2128,8 @@ contains
     call this%check_shape_packed(shape(out_data, kind=i8))
     !$omp parallel do default(shared) private(k,i,j) schedule(static)
     do j = 1_i4, this%ny
+      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      i = int(this%mask_col_cnt(j), i8)
       out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
     end do
     !$omp end parallel do
@@ -2150,8 +2149,8 @@ contains
     call this%check_shape_packed(shape(out_data, kind=i8))
     !$omp parallel do default(shared) private(k,i,j) schedule(static)
     do j = 1_i4, this%ny
+      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      i = int(this%mask_col_cnt(j), i8)
       out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
     end do
     !$omp end parallel do
@@ -2170,10 +2169,10 @@ contains
     integer(i4) :: j
     call this%check_shape(shape(out_data, kind=i4))
     call this%check_shape_packed(shape(data, kind=i8))
-    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
+      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      i = int(this%mask_col_cnt(j), i8)
       out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), nodata_sp)
     end do
     !$omp end parallel do
@@ -2192,10 +2191,10 @@ contains
     integer(i4) :: j
     call this%check_shape(shape(out_data, kind=i4))
     call this%check_shape_packed(shape(data, kind=i8))
-    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
+      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      i = int(this%mask_col_cnt(j), i8)
       out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), nodata_dp)
     end do
     !$omp end parallel do
@@ -2214,10 +2213,10 @@ contains
     integer(i4) :: j
     call this%check_shape(shape(out_data, kind=i4))
     call this%check_shape_packed(shape(data, kind=i8))
-    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
+      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      i = int(this%mask_col_cnt(j), i8)
       out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), nodata_i4)
     end do
     !$omp end parallel do
@@ -2236,10 +2235,10 @@ contains
     integer(i4) :: j
     call this%check_shape(shape(out_data, kind=i4))
     call this%check_shape_packed(shape(data, kind=i8))
-    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
+      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      i = int(this%mask_col_cnt(j), i8)
       out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), nodata_i8)
     end do
     !$omp end parallel do
@@ -2257,10 +2256,10 @@ contains
     integer(i4) :: j
     call this%check_shape(shape(out_data, kind=i4))
     call this%check_shape_packed(shape(data, kind=i8))
-    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
+      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      i = int(this%mask_col_cnt(j), i8)
       out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), .false.)
     end do
     !$omp end parallel do
