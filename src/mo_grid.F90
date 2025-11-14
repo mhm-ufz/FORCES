@@ -812,7 +812,7 @@ contains
     end if
 
     if (optval(area, .false.) .and. allocated(this%cell_area)) then
-    var = nc%setVariable("cell_area", dtype, [x_dim, y_dim])
+      var = nc%setVariable("cell_area", dtype, [x_dim, y_dim])
       if (double_precision_) then
         call var%setFillValue(nodata_dp)
         call var%setAttribute("missing_value", nodata_dp)
@@ -1526,7 +1526,14 @@ contains
     integer(i8), allocatable :: col_cnt(:), cum_cnt(:)
 
     ! if mask not allocated create one with only .true. values
-    if (.not. allocated(this%mask)) allocate(this%mask(this%nx, this%ny), source=.true.)
+    if (.not. allocated(this%mask)) then
+      allocate(this%mask(this%nx, this%ny))
+      !$omp parallel do default(shared) schedule(static)
+      do j = 1_i4, this%ny
+        this%mask(:,j) = .true.
+      end do
+      !$omp end parallel do
+    end if
 
     allocate(col_cnt(this%ny), cum_cnt(this%ny))
 
@@ -1699,7 +1706,7 @@ contains
       call error_message("derive_coarse_grid: target resolution is not suitable for a periodic grid.")
 
     ! create mask at coarse grid
-    allocate(coarse_grid%mask(coarse_grid%nx, coarse_grid%ny), source=.false.)
+    allocate(coarse_grid%mask(coarse_grid%nx, coarse_grid%ny))
 
     !$omp parallel do default(shared) private(i,j,i_lb,i_ub,j_lb,j_ub) schedule(static)
     do j = 1, coarse_grid%ny
