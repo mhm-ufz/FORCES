@@ -236,8 +236,8 @@ contains
     end if
 
     allocate(this%id_map(this%fine_grid%ncells))
-    allocate(coarse_id_matrix(this%coarse_grid%nx, this%coarse_grid%ny), &
-             source=unpack([(k, k=1_i8, this%coarse_grid%ncells)], this%coarse_grid%mask, nodata_i8))
+    allocate(coarse_id_matrix(this%coarse_grid%nx, this%coarse_grid%ny))
+    call this%coarse_grid%unpack_into([(k, k=1_i8, this%coarse_grid%ncells)], coarse_id_matrix)
 
     !$omp parallel do default(shared) private(ic,jc) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
@@ -289,7 +289,7 @@ contains
         end if
       end do
       !$omp end parallel do
-      this%weights = this%fine_grid%unpack(weights)
+      call this%fine_grid%unpack_into(weights, this%weights)
       deallocate(weights)
     end if
 
@@ -319,8 +319,9 @@ contains
     integer(i4), intent(in), optional :: class_id !< class id for up_fraction operator
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
-    call this%scaler_exe_dp_2d_1d( &
-      unpack(in_data,this%source_grid%mask,nodata_dp), out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
+    real(dp) :: temp_in(this%source_grid%nx,this%source_grid%ny)
+    call this%source_grid%unpack_into(in_data, temp_in)
+    call this%scaler_exe_dp_2d_1d(temp_in, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
   end subroutine scaler_exe_dp_1d_1d
 
   !> \brief Execute scaler for packed real input and unpacked real output.
@@ -334,10 +335,10 @@ contains
     integer(i4), intent(in), optional :: class_id !< class id for up_fraction operator
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
-    real(dp), dimension(this%target_grid%ncells) :: temp
-    call this%scaler_exe_dp_2d_1d( &
-      unpack(in_data,this%source_grid%mask,nodata_dp), temp, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
-    out_data = unpack(temp, this%target_grid%mask, nodata_dp)
+    real(dp) :: temp_out(this%target_grid%ncells), temp_in(this%source_grid%nx,this%source_grid%ny)
+    call this%source_grid%unpack_into(in_data, temp_in)
+    call this%scaler_exe_dp_2d_1d(temp_in, temp_out, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
+    call this%target_grid%unpack_into(temp_out, out_data)
   end subroutine scaler_exe_dp_1d_2d
 
   !> \brief Execute scaler for unpacked real input and output.
@@ -353,7 +354,7 @@ contains
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
     real(dp), dimension(this%target_grid%ncells) :: temp
     call this%scaler_exe_dp_2d_1d(in_data, temp, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
-    out_data = unpack(temp, this%target_grid%mask, nodata_dp)
+    call this%target_grid%unpack_into(temp, out_data)
   end subroutine scaler_exe_dp_2d_2d
 
   !> \brief Execute scaler for unpacked real input and packed real output.
@@ -373,9 +374,9 @@ contains
     ! shortcut if resolution is equal (only masking and flipping)
     if (this%scaling_mode == no_scaling) then
       if (this%y_dir_match) then
-        out_data = pack(in_data, this%target_grid%mask)
+        call this%target_grid%pack_into(in_data, out_data)
       else
-        out_data = pack(flipped(in_data, idim=2), this%target_grid%mask)
+        call this%target_grid%pack_into(flipped(in_data, idim=2), out_data)
       end if
     else if (this%scaling_mode == up_scaling) then
       select case (up_operator)
@@ -428,8 +429,9 @@ contains
     integer(i4), intent(in), optional :: class_id !< class id for up_fraction operator
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
-    call this%scaler_exe_i4_2d_1d( &
-      unpack(in_data,this%source_grid%mask,nodata_i4), out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
+    integer(i4) :: temp_in(this%source_grid%nx,this%source_grid%ny)
+    call this%source_grid%unpack_into(in_data, temp_in)
+    call this%scaler_exe_i4_2d_1d(temp_in, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
   end subroutine scaler_exe_i4_1d_1d
 
   !> \brief Execute scaler for packed integer input and unpacked integer output.
@@ -443,10 +445,10 @@ contains
     integer(i4), intent(in), optional :: class_id !< class id for up_fraction operator
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
-    integer(i4), dimension(this%target_grid%ncells) :: temp
-    call this%scaler_exe_i4_2d_1d( &
-      unpack(in_data,this%source_grid%mask,nodata_i4), temp, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
-    out_data = unpack(temp, this%target_grid%mask, nodata_i4)
+    integer(i4) :: temp_out(this%target_grid%ncells), temp_in(this%source_grid%nx,this%source_grid%ny)
+    call this%source_grid%unpack_into(in_data, temp_in)
+    call this%scaler_exe_i4_2d_1d(temp_in, temp_out, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
+    call this%target_grid%unpack_into(temp_out, out_data)
   end subroutine scaler_exe_i4_1d_2d
 
   !> \brief Execute scaler for unpacked integer input output.
@@ -462,7 +464,7 @@ contains
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
     integer(i4), dimension(this%target_grid%ncells) :: temp
     call this%scaler_exe_i4_2d_1d(in_data, temp, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
-    out_data = unpack(temp, this%target_grid%mask, nodata_i4)
+    call this%target_grid%unpack_into(temp, out_data)
   end subroutine scaler_exe_i4_2d_2d
 
   !> \brief Execute scaler for unpacked integer input and packed integer output.
@@ -482,9 +484,9 @@ contains
     ! shortcut if resolution is equal (only masking and flipping)
     if (this%scaling_mode == no_scaling) then
       if (this%y_dir_match) then
-        out_data = pack(in_data, this%target_grid%mask)
+        call this%target_grid%pack_into(in_data, out_data)
       else
-        out_data = pack(flipped(in_data, idim=2), this%target_grid%mask)
+        call this%target_grid%pack_into(flipped(in_data, idim=2), out_data)
       end if
     else if (this%scaling_mode == up_scaling) then
       select case (up_operator)
@@ -536,8 +538,9 @@ contains
     integer(i4), intent(in), optional :: class_id !< class id for up_fraction operator
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
-    call this%scaler_exe_i4_dp_2d_1d( &
-      unpack(in_data,this%source_grid%mask,nodata_i4), out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
+    integer(i4) :: temp_in(this%source_grid%nx,this%source_grid%ny)
+    call this%source_grid%unpack_into(in_data, temp_in)
+    call this%scaler_exe_i4_dp_2d_1d(temp_in, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
   end subroutine scaler_exe_i4_dp_1d_1d
 
   !> \brief Execute scaler for packed integer input and unpacked real output.
@@ -551,10 +554,11 @@ contains
     integer(i4), intent(in), optional :: class_id !< class id for up_fraction operator
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
-    real(dp), dimension(this%target_grid%ncells) :: temp
-    call this%scaler_exe_i4_dp_2d_1d( &
-      unpack(in_data,this%source_grid%mask,nodata_i4), temp, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
-    out_data = unpack(temp, this%target_grid%mask, nodata_dp)
+    integer(i4) :: temp_in(this%source_grid%nx,this%source_grid%ny)
+    real(dp) :: temp_out(this%target_grid%ncells)
+    call this%source_grid%unpack_into(in_data, temp_in)
+    call this%scaler_exe_i4_dp_2d_1d(temp_in, temp_out, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
+    call this%target_grid%unpack_into(temp_out, out_data)
   end subroutine scaler_exe_i4_dp_1d_2d
 
   !> \brief Execute scaler for unpacked integer input and unpacked real output.
@@ -570,7 +574,7 @@ contains
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
     real(dp), dimension(this%target_grid%ncells) :: temp
     call this%scaler_exe_i4_dp_2d_1d(in_data, temp, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
-    out_data = unpack(temp, this%target_grid%mask, nodata_dp)
+    call this%target_grid%unpack_into(temp, out_data)
   end subroutine scaler_exe_i4_dp_2d_2d
 
   !> \brief Execute scaler for unpacked integer input and packed real output.
@@ -592,9 +596,9 @@ contains
     ! shortcut if resolution is equal (only converting, masking and flipping)
     if (this%scaling_mode == no_scaling) then
       if (this%y_dir_match) then
-        out_data = pack(real(in_data, dp), this%target_grid%mask)
+        call this%target_grid%pack_into(real(in_data, dp), out_data)
       else
-        out_data = pack(flipped(real(in_data, dp), idim=2), this%target_grid%mask)
+        call this%target_grid%pack_into(flipped(real(in_data, dp), idim=2), out_data)
       end if
     else if (this%scaling_mode == up_scaling) then
       select case (up_operator)

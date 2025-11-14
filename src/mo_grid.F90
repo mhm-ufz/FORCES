@@ -81,17 +81,19 @@ module mo_grid
     ! general domain information
     integer(i4) :: nx        !< size of x-axis (number of cols in ascii grid file)
     integer(i4) :: ny        !< size of y-axis (number of rows in ascii grid file)
-    integer(i8) :: ncells   !< number of cells in mask
+    integer(i8) :: ncells    !< number of cells in mask
     real(dp) :: xllcorner    !< x coordinate of the lowerleft corner
     real(dp) :: yllcorner    !< y coordinate of the lowerleft corner
     real(dp) :: cellsize     !< cellsize x = cellsize y
-    real(dp), dimension(:), allocatable :: cell_area !< area of the cell in sqare m, size (ncells)
-    logical, dimension(:, :), allocatable :: mask    !< the mask for valid cells in the original grid, size (nx, ny)
-    real(dp), dimension(:, :), allocatable :: lat    !< 2d longitude array (auxiliary coordinate for X axis), size (nx, ny)
-    real(dp), dimension(:, :), allocatable :: lon    !< 2d latitude  array (auxiliary coordinate for Y axis), size (nx, ny)
-    real(dp), dimension(:, :), allocatable :: lat_vertices  !< latitude coordinates or the grid nodes, size (nx+1, ny+1)
-    real(dp), dimension(:, :), allocatable :: lon_vertices  !< longitude coordinates or the grid nodes, size (nx+1, ny+1)
-    integer(i4), dimension(:, :), allocatable :: cell_ij    !< matrix IDs (i, j) per cell in mask, size (ncells, 2)
+    real(dp), dimension(:), allocatable :: cell_area           !< area of the cell in sqare m, size (ncells)
+    real(dp), dimension(:, :), allocatable :: lat              !< 2d longitude array (auxiliary coordinate for X axis), size (nx,ny)
+    real(dp), dimension(:, :), allocatable :: lon              !< 2d latitude  array (auxiliary coordinate for Y axis), size (nx,ny)
+    real(dp), dimension(:, :), allocatable :: lat_vertices     !< latitude coordinates or the grid nodes, size (nx+1,ny+1)
+    real(dp), dimension(:, :), allocatable :: lon_vertices     !< longitude coordinates or the grid nodes, size (nx+1,ny+1)
+    integer(i4), dimension(:, :), allocatable :: cell_ij       !< matrix IDs (i,j) per cell in mask, size (ncells, 2)
+    logical, dimension(:, :), allocatable :: mask              !< the mask for valid cells in the original grid, size (nx,ny)
+    integer(i4), dimension(:), allocatable :: mask_col_cnt     !< number of valid cells per column in mask, size (nx)
+    integer(i4), dimension(:), allocatable :: mask_cum_col_cnt !< cumulative number of valid cells prior to mask column, size (nx)
   contains
     procedure, public :: init => grid_init
     procedure, public :: from_ascii_file
@@ -142,6 +144,10 @@ module mo_grid
     generic, public :: pack => pack_data_sp, pack_data_dp, pack_data_i4, pack_data_i8, pack_data_lgt
     procedure, private :: unpack_data_sp, unpack_data_dp, unpack_data_i4, unpack_data_i8, unpack_data_lgt
     generic, public :: unpack => unpack_data_sp, unpack_data_dp, unpack_data_i4, unpack_data_i8, unpack_data_lgt
+    procedure, private :: pack_into_sp, pack_into_dp, pack_into_i4, pack_into_i8, pack_into_lgt
+    generic, public :: pack_into => pack_into_sp, pack_into_dp, pack_into_i4, pack_into_i8, pack_into_lgt
+    procedure, private :: unpack_into_sp, unpack_into_dp, unpack_into_i4, unpack_into_i8, unpack_into_lgt
+    generic, public :: unpack_into => unpack_into_sp, unpack_into_dp, unpack_into_i4, unpack_into_i8, unpack_into_lgt
   end type grid_t
 
   !> \brief Reads spatial data files of ASCII format.
@@ -877,7 +883,7 @@ contains
     class(grid_t), intent(in) :: this
     integer(i8), dimension(this%nx, this%ny) :: id_matrix
     integer(i8) :: i
-    id_matrix = this%unpack([(i, i=1_i8, this%ncells)])
+    call this%unpack_into([(i, i=1_i8, this%ncells)], id_matrix)
   end function id_matrix
 
   !> \brief Cell ID for given matrix indices.
@@ -1534,26 +1540,27 @@ contains
       !$omp end parallel do
     end if
 
-    allocate(col_cnt(this%ny), cum_cnt(this%ny))
+    ! allocate arrays for mask column counts and cumulative counts
+    allocate(this%mask_col_cnt(this%ny))
+    allocate(this%mask_cum_col_cnt(this%ny))
 
     !$omp parallel do default(shared) schedule(static)
     do j = 1_i4, this%ny
-      col_cnt(j) = count(this%mask(:,j))
+      this%mask_col_cnt(j) = count(this%mask(:,j))
     end do
     !$omp end parallel do
 
-    cum_cnt(1) = 0_i8
+    this%mask_cum_col_cnt(1) = 0_i8
     do j = 1_i4, this%ny-1_i4
-      cum_cnt(j+1_i4) = cum_cnt(j) + col_cnt(j)
+      this%mask_cum_col_cnt(j+1_i4) = this%mask_cum_col_cnt(j) + this%mask_col_cnt(j)
     end do
-    this%ncells = cum_cnt(this%ny) + col_cnt(this%ny)
-    deallocate(col_cnt)
+    this%ncells = this%mask_cum_col_cnt(this%ny) + this%mask_col_cnt(this%ny)
 
     allocate(this%cell_ij(this%ncells, 2))
 
     !$omp parallel do default(shared) private(k,i,j) schedule(static)
     do j = 1_i4, this%ny
-      k = cum_cnt(j)
+      k = this%mask_cum_col_cnt(j)
       do i = 1_i4, this%nx
         if (.not.this%mask(i, j)) cycle
         k = k + 1_i8
@@ -1725,21 +1732,18 @@ contains
         case(area_sum)
           ! lowres additional properties
           allocate(fine_cell_area(this%nx, this%ny))
-          fine_cell_area(:, :) = this%unpack(this%cell_area)
+          call this%unpack_into(this%cell_area, fine_cell_area)
           allocate(coarse_grid%cell_area(coarse_grid%ncells))
-          k = 0_i8
-          do j = 1_i4, coarse_grid%ny
-            do i = 1_i4, coarse_grid%nx
-              if (.NOT. coarse_grid%mask(i, j)) cycle
-              k = k + 1_i8
-              call id_bounds(factor, i, j, &
-                coarse_grid%y_direction, coarse_grid%ny, &
-                this%y_direction, this%nx, this%ny, &
-                i_lb, i_ub, j_lb, j_ub)
-              ! effective area [km2] & total no. of fine grid cells within a given coarse grid cell
-              coarse_grid%cell_area(k) = sum(fine_cell_area(i_lb : i_ub, j_lb : j_ub), this%mask(i_lb : i_ub, j_lb : j_ub))
-            end do
+          !$omp parallel do default(shared) private(i,j,i_lb,i_ub,j_lb,j_ub) schedule(static)
+          do k = 1_i8, coarse_grid%ncells
+            i = coarse_grid%cell_ij(k, 1)
+            j = coarse_grid%cell_ij(k, 2)
+            call id_bounds(factor, i, j, &
+              coarse_grid%y_direction, coarse_grid%ny, this%y_direction, this%nx, this%ny, &
+              i_lb, i_ub, j_lb, j_ub)
+            coarse_grid%cell_area(k) = sum(fine_cell_area(i_lb : i_ub, j_lb : j_ub), this%mask(i_lb : i_ub, j_lb : j_ub))
           end do
+          !$omp end parallel do
           ! free space
           deallocate(fine_cell_area)
         case(area_full)
@@ -1881,7 +1885,7 @@ contains
   subroutine grid_check_shape(this, data_shape)
     implicit none
     class(grid_t), intent(in) :: this
-    integer(i8), intent(in) :: data_shape(2) !< (x,y)
+    integer(i4), intent(in) :: data_shape(2) !< (x,y)
     if (data_shape(1) /= this%nx .or. data_shape(2) /= this%ny) then
       call error_message( &
         "grid data: data has wrong shape. Expected: (", &
@@ -1913,7 +1917,7 @@ contains
     class(grid_t), intent(in) :: this
     real(sp), intent(in) :: data(:,:)
     real(sp), allocatable :: out_data(:)
-    call this%check_shape(shape(data, kind=i8))
+    call this%check_shape(shape(data, kind=i4))
     allocate(out_data(this%ncells))
     out_data(:) = pack(data, this%mask)
   end function pack_data_sp
@@ -1927,7 +1931,7 @@ contains
     class(grid_t), intent(in) :: this
     real(dp), intent(in) :: data(:,:)
     real(dp), allocatable :: out_data(:)
-    call this%check_shape(shape(data, kind=i8))
+    call this%check_shape(shape(data, kind=i4))
     allocate(out_data(this%ncells))
     out_data(:) = pack(data, this%mask)
   end function pack_data_dp
@@ -1941,7 +1945,7 @@ contains
     class(grid_t), intent(in) :: this
     integer(i4), intent(in) :: data(:,:)
     integer(i4), allocatable :: out_data(:)
-    call this%check_shape(shape(data, kind=i8))
+    call this%check_shape(shape(data, kind=i4))
     allocate(out_data(this%ncells))
     out_data(:) = pack(data, this%mask)
   end function pack_data_i4
@@ -1955,7 +1959,7 @@ contains
     class(grid_t), intent(in) :: this
     integer(i8), intent(in) :: data(:,:)
     integer(i8), allocatable :: out_data(:)
-    call this%check_shape(shape(data, kind=i8))
+    call this%check_shape(shape(data, kind=i4))
     allocate(out_data(this%ncells))
     out_data(:) = pack(data, this%mask)
   end function pack_data_i8
@@ -1969,7 +1973,7 @@ contains
     class(grid_t), intent(in) :: this
     logical, intent(in) :: data(:,:)
     logical, allocatable :: out_data(:)
-    call this%check_shape(shape(data, kind=i8))
+    call this%check_shape(shape(data, kind=i4))
     allocate(out_data(this%ncells))
     out_data(:) = pack(data, this%mask)
   end function pack_data_lgt
@@ -2047,6 +2051,220 @@ contains
     allocate(out_data(this%nx, this%ny))
     out_data(:,:) = unpack(data, this%mask, .false.)
   end function unpack_data_lgt
+
+  !> \brief Pack 2D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine pack_into_sp(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(sp), intent(in) :: data(:,:)
+    real(sp), intent(out) :: out_data(:)
+    integer(i8) :: k, i
+    integer(i4) :: j
+    call this%check_shape(shape(data, kind=i4))
+    call this%check_shape_packed(shape(out_data, kind=i8))
+    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      i = int(this%mask_col_cnt(j), i8)
+      out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
+    end do
+    !$omp end parallel do
+  end subroutine pack_into_sp
+
+  !> \brief Pack 2D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine pack_into_dp(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), intent(in) :: data(:,:)
+    real(dp), intent(out) :: out_data(:)
+    integer(i8) :: k, i
+    integer(i4) :: j
+    call this%check_shape(shape(data, kind=i4))
+    call this%check_shape_packed(shape(out_data, kind=i8))
+    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      i = int(this%mask_col_cnt(j), i8)
+      out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
+    end do
+    !$omp end parallel do
+  end subroutine pack_into_dp
+
+  !> \brief Pack 2D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine pack_into_i4(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i4), intent(in) :: data(:,:)
+    integer(i4), intent(out) :: out_data(:)
+    integer(i8) :: k, i
+    integer(i4) :: j
+    call this%check_shape(shape(data, kind=i4))
+    call this%check_shape_packed(shape(out_data, kind=i8))
+    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      i = int(this%mask_col_cnt(j), i8)
+      out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
+    end do
+    !$omp end parallel do
+  end subroutine pack_into_i4
+
+  !> \brief Pack 2D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine pack_into_i8(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i8), intent(in) :: data(:,:)
+    integer(i8), intent(out) :: out_data(:)
+    integer(i8) :: k, i
+    integer(i4) :: j
+    call this%check_shape(shape(data, kind=i4))
+    call this%check_shape_packed(shape(out_data, kind=i8))
+    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      i = int(this%mask_col_cnt(j), i8)
+      out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
+    end do
+    !$omp end parallel do
+  end subroutine pack_into_i8
+
+  !> \brief Pack 2D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine pack_into_lgt(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    logical, intent(in) :: data(:,:)
+    logical, intent(out) :: out_data(:)
+    integer(i8) :: k, i
+    integer(i4) :: j
+    call this%check_shape(shape(data, kind=i4))
+    call this%check_shape_packed(shape(out_data, kind=i8))
+    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      i = int(this%mask_col_cnt(j), i8)
+      out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
+    end do
+    !$omp end parallel do
+  end subroutine pack_into_lgt
+
+  !> \brief Unpack 1D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine unpack_into_sp(this, data, out_data)
+    use mo_constants, only : nodata_sp
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(sp), intent(in) :: data(:)
+    real(sp), intent(out) :: out_data(:,:)
+    integer(i8) :: k, i
+    integer(i4) :: j
+    call this%check_shape(shape(out_data, kind=i4))
+    call this%check_shape_packed(shape(data, kind=i8))
+    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      i = int(this%mask_col_cnt(j), i8)
+      out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), nodata_sp)
+    end do
+    !$omp end parallel do
+  end subroutine unpack_into_sp
+
+  !> \brief Unpack 1D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine unpack_into_dp(this, data, out_data)
+    use mo_constants, only : nodata_dp
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), intent(in) :: data(:)
+    real(dp), intent(out) :: out_data(:,:)
+    integer(i8) :: k, i
+    integer(i4) :: j
+    call this%check_shape(shape(out_data, kind=i4))
+    call this%check_shape_packed(shape(data, kind=i8))
+    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      i = int(this%mask_col_cnt(j), i8)
+      out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), nodata_dp)
+    end do
+    !$omp end parallel do
+  end subroutine unpack_into_dp
+
+  !> \brief Unpack 1D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine unpack_into_i4(this, data, out_data)
+    use mo_constants, only : nodata_i4
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i4), intent(in) :: data(:)
+    integer(i4), intent(out) :: out_data(:,:)
+    integer(i8) :: k, i
+    integer(i4) :: j
+    call this%check_shape(shape(out_data, kind=i4))
+    call this%check_shape_packed(shape(data, kind=i8))
+    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      i = int(this%mask_col_cnt(j), i8)
+      out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), nodata_i4)
+    end do
+    !$omp end parallel do
+  end subroutine unpack_into_i4
+
+  !> \brief Unpack 1D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine unpack_into_i8(this, data, out_data)
+    use mo_constants, only : nodata_i8
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i8), intent(in) :: data(:)
+    integer(i8), intent(out) :: out_data(:,:)
+    integer(i8) :: k, i
+    integer(i4) :: j
+    call this%check_shape(shape(out_data, kind=i4))
+    call this%check_shape_packed(shape(data, kind=i8))
+    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      i = int(this%mask_col_cnt(j), i8)
+      out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), nodata_i8)
+    end do
+    !$omp end parallel do
+  end subroutine unpack_into_i8
+
+  !> \brief Unpack 1D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine unpack_into_lgt(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    logical, intent(in) :: data(:)
+    logical, intent(out) :: out_data(:,:)
+    integer(i8) :: k, i
+    integer(i4) :: j
+    call this%check_shape(shape(out_data, kind=i4))
+    call this%check_shape_packed(shape(data, kind=i8))
+    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      i = int(this%mask_col_cnt(j), i8)
+      out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), .false.)
+    end do
+    !$omp end parallel do
+  end subroutine unpack_into_lgt
 
   ! ------------------------------------------------------------------
 
