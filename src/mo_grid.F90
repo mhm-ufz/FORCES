@@ -59,6 +59,14 @@ module mo_grid
   integer(i4), public, parameter :: bottom_up = 1_i4 !< y-axis with increasing values.
   !!@}
 
+  !> \name Cell Area Calculation Selectors
+  !> \brief Constants to specify the method for calculating cell area of a coarsened grid.
+  !!@{
+  integer(i4), public, parameter :: area_sum = 0_i4 !< Calculate cell area as sum of the area of sub-cells.
+  integer(i4), public, parameter :: area_full = 1_i4 !< Calculate cell area as full cell.
+  integer(i4), public, parameter :: area_count = 2_i4 !< Calculate cell area by count fraction of valid sub-cells.
+  !!@}
+
   !> \class   grid_t
   !> \brief   2D grid description with data in xy order..
   !> \details This type represents uniform grids with data in xy order with strictly increasing or decreasing y-axis.
@@ -1056,8 +1064,8 @@ contains
 
     allocate(this%lat(this%nx, this%ny))
     allocate(this%lon(this%nx, this%ny))
-    do j = 1, this%ny
-      do i = 1, this%nx
+    do j = 1_i4, this%ny
+      do i = 1_i4, this%nx
         ! coord. of all corners -> of finer scale
         call id_bounds(factor, i, j, &
           this%y_direction, this%ny, &
@@ -1112,8 +1120,8 @@ contains
 
     allocate(this%lat(this%nx, this%ny))
     allocate(this%lon(this%nx, this%ny))
-    do j = 1, coarse_grid%ny
-      do i = 1, coarse_grid%nx
+    do j = 1_i4, coarse_grid%ny
+      do i = 1_i4, coarse_grid%nx
         ! calculate sub-points along vertice boundaries (top, left, right, bottom)
         ! lon
         x = coarse_grid%lon_vertices(i,j)
@@ -1149,8 +1157,8 @@ contains
         fac_i = i_end - i_start + 1_i4
         fac_j = j_end - j_start + 1_i4
 
-        do jj = 1, fac_j
-          do ii = 1, fac_i
+        do jj = 1_i4, fac_j
+          do ii = 1_i4, fac_i
             call intersection( &
               latlon_t(ii,1), latlon_t(ii,2), latlon_b(ii,1), latlon_b(ii,2), &
               latlon_l(jj,1), latlon_l(jj,2), latlon_r(jj,1), latlon_r(jj,2), &
@@ -1330,7 +1338,7 @@ contains
     any_missing = .false.
     if (.not. this%has_mask()) return
     !$omp parallel do default(shared) schedule(static) reduction(.or.: any_missing)
-    do j = 1, this%ny
+    do j = 1_i4, this%ny
       any_missing = any_missing .or. (.not. all(this%mask(:, j)))
     end do
     !$omp end parallel do
@@ -1373,8 +1381,8 @@ contains
     if ( check_mask_ .and. coarse_grid%any_missing()) then
       if (.not. this%any_missing()) call error_message("grid % check_is_covered_by: coarse grid is masked, this grid not.")
       !$omp parallel do default(shared) private(i,j,i_lb,i_ub,j_lb,j_ub) schedule(static)
-      do j = 1, coarse_grid%ny
-        do i = 1, coarse_grid%nx
+      do j = 1_i4, coarse_grid%ny
+        do i = 1_i4, coarse_grid%nx
           if ( coarse_grid%mask(i, j)) cycle
           call id_bounds(factor, i, j, &
             coarse_grid%y_direction, coarse_grid%ny, &
@@ -1650,7 +1658,8 @@ contains
     real(dp), intent(in) :: target_resolution !< desired target resolution
     logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
     logical, intent(in), optional :: estimate_area !< whether to estimate coarse cell areas respecting fine mask (default: .true.)
-    integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from fine grid, (1) from cell extent
+    !> method to estimate area: (0, default) from fine grid, (1) from cell extent, (2) from count fraction of valid fine cells
+    integer(i4), intent(in), optional :: area_method
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     type(grid_t) :: coarse_grid !< resulting low resolution grid
 
@@ -1660,13 +1669,11 @@ contains
     integer(i8) :: k
     integer(i4) :: factor, area_method_
     logical :: estimate_aux_, estimate_area_
+    real(dp) :: sub_cell_cnt
 
-    estimate_aux_ = .true.
-    if (present(estimate_aux)) estimate_aux_ = estimate_aux
-    estimate_area_ = .true.
-    if (present(estimate_area)) estimate_area_ = estimate_area
-    area_method_ = 0_i4
-    if (present(area_method)) area_method_ = area_method
+    estimate_aux_ = optval(estimate_aux, .true.)
+    estimate_area_ = optval(estimate_area, .true.)
+    area_method_ = optval(area_method, area_sum)
 
     !--------------------------------------------------------
     ! 1) Estimate each variable locally for a given domain
@@ -1700,8 +1707,8 @@ contains
     allocate(coarse_grid%mask(coarse_grid%nx, coarse_grid%ny))
 
     !$omp parallel do default(shared) private(i,j,i_lb,i_ub,j_lb,j_ub) schedule(static)
-    do j = 1, coarse_grid%ny
-      do i = 1, coarse_grid%nx
+    do j = 1_i4, coarse_grid%ny
+      do i = 1_i4, coarse_grid%nx
         call id_bounds(factor, i, j, &
           coarse_grid%y_direction, coarse_grid%ny, &
           this%y_direction, this%nx, this%ny, &
@@ -1715,14 +1722,14 @@ contains
 
     if (estimate_area_) then
       select case(area_method_)
-        case(0_i4)
+        case(area_sum)
           ! lowres additional properties
           allocate(fine_cell_area(this%nx, this%ny))
           fine_cell_area(:, :) = this%unpack(this%cell_area)
           allocate(coarse_grid%cell_area(coarse_grid%ncells))
           k = 0_i8
-          do j = 1, coarse_grid%ny
-            do i = 1, coarse_grid%nx
+          do j = 1_i4, coarse_grid%ny
+            do i = 1_i4, coarse_grid%nx
               if (.NOT. coarse_grid%mask(i, j)) cycle
               k = k + 1_i8
               call id_bounds(factor, i, j, &
@@ -1735,10 +1742,24 @@ contains
           end do
           ! free space
           deallocate(fine_cell_area)
-        case(1_i4)
+        case(area_full)
           call coarse_grid%calculate_cell_area()
+        case(area_count)
+          call coarse_grid%calculate_cell_area()
+          sub_cell_cnt = real(factor * factor, dp)
+          !$omp parallel do default(shared) private(i,j,i_lb,i_ub,j_lb,j_ub) schedule(static)
+          do k = 1_i8, coarse_grid%ncells
+            i = coarse_grid%cell_ij(k, 1)
+            j = coarse_grid%cell_ij(k, 2)
+            call id_bounds(factor, i, j, &
+              coarse_grid%y_direction, coarse_grid%ny, &
+              this%y_direction, this%nx, this%ny, &
+              i_lb, i_ub, j_lb, j_ub)
+            coarse_grid%cell_area(k) = coarse_grid%cell_area(k) * (real(count(this%mask(i_lb:i_ub, j_lb:j_ub)), dp) / sub_cell_cnt)
+          end do
+          !$omp end parallel do
         case default
-          call error_message("derive_coarse_grid: 'area_method' needs to be 0 or 1. Got: ", trim(num2str(area_method_)))
+          call error_message("derive_coarse_grid: 'area_method' needs to be 0, 1 or 2. Got: ", trim(num2str(area_method_)))
       end select
     end if
 
@@ -1792,7 +1813,7 @@ contains
     do j = 1_i4, this%ny
       ! everything would be better with 0-based ids
       jc = (j-1_i4) * factor + 1_i4
-      do i = 1, this%nx
+      do i = 1_i4, this%nx
         if (.not. this%mask(i, j)) cycle
         ic = (i-1_i4) * factor + 1_i4
         fine_grid%mask(ic : ic + factor - 1_i4, jc :  jc + factor - 1_i4) = .true.
@@ -2514,12 +2535,12 @@ contains
     ! default for nag: recl=1024(byte) which is not enough for 100s of columns
     open (newunit = fileunit, file = path, action = 'read', status = 'old', recl = 48 * file_ncols)
     ! (a) skip header
-    do i = 1, hlines
+    do i = 1_i4, hlines
       read(fileunit, *)
     end do
     ! (b) read data
-    do i = 1, file_nrows
-      read(fileunit, *) (data(j, i), j = 1, file_ncols)
+    do i = 1_i4, file_nrows
+      read(fileunit, *) (data(j, i), j = 1_i4, file_ncols)
     end do
     close(fileunit)
 
@@ -2575,12 +2596,12 @@ contains
     ! default for nag: recl=1024(byte) which is not enough for 100s of columns
     open (newunit = fileunit, file = path, action = 'read', status = 'old', recl = 48 * file_ncols)
     ! (a) skip header
-    do i = 1, header_size
+    do i = 1_i4, header_size
       read(fileunit, *)
     end do
     ! (b) read data
-    do i = 1, file_nrows
-      read(fileunit, *) (data(j, i), j = 1, file_ncols)
+    do i = 1_i4, file_nrows
+      read(fileunit, *) (data(j, i), j = 1_i4, file_ncols)
     end do
     close(fileunit)
 
@@ -2734,22 +2755,22 @@ contains
     if (present(data)) then
       if (is_bottom_up) then
         if (is_xy_) then
-          do i = nrows, 1, -1
-            write(io, '(*(F0.10,1X))') (data(j,i), j=1,ncols)
+          do i = nrows, 1_i4, -1_i4
+            write(io, '(*(F0.10,1X))') (data(j,i), j=1_i4,ncols)
           end do
         else
-          do i = nrows, 1, -1
-            write(io, '(*(F0.10,1X))') (data(i,j), j=1,ncols)
+          do i = nrows, 1_i4, -1_i4
+            write(io, '(*(F0.10,1X))') (data(i,j), j=1_i4,ncols)
           end do
         end if
       else
         if (is_xy_) then
-          do i = 1, nrows
-            write(io, '(*(F0.10,1X))') (data(j,i), j=1,ncols)
+          do i = 1_i4, nrows
+            write(io, '(*(F0.10,1X))') (data(j,i), j=1_i4,ncols)
           end do
         else
-          do i = 1, nrows
-            write(io, '(*(F0.10,1X))') (data(i,j), j=1,ncols)
+          do i = 1_i4, nrows
+            write(io, '(*(F0.10,1X))') (data(i,j), j=1_i4,ncols)
           end do
         end if
       end if
@@ -2821,22 +2842,22 @@ contains
     if (present(data)) then
       if (is_bottom_up) then
         if (is_xy_) then
-          do i = nrows, 1, -1
-            write(io, '(*(I0,1X))') (data(j,i), j=1,ncols)
+          do i = nrows, 1_i4, -1_i4
+            write(io, '(*(I0,1X))') (data(j,i), j=1_i4,ncols)
           end do
         else
-          do i = nrows, 1, -1
-            write(io, '(*(I0,1X))') (data(i,j), j=1,ncols)
+          do i = nrows, 1_i4, -1_i4
+            write(io, '(*(I0,1X))') (data(i,j), j=1_i4,ncols)
           end do
         end if
       else
         if (is_xy_) then
-          do i = 1, nrows
-            write(io, '(*(I0,1X))') (data(j,i), j=1,ncols)
+          do i = 1_i4, nrows
+            write(io, '(*(I0,1X))') (data(j,i), j=1_i4,ncols)
           end do
         else
-          do i = 1, nrows
-            write(io, '(*(I0,1X))') (data(i,j), j=1,ncols)
+          do i = 1_i4, nrows
+            write(io, '(*(I0,1X))') (data(i,j), j=1_i4,ncols)
           end do
         end if
       end if
