@@ -59,15 +59,6 @@ module mo_grid
   integer(i4), public, parameter :: bottom_up = 1_i4 !< y-axis with increasing values.
   !!@}
 
-  !> \name Lower-Left Corner Alignment Selectors
-  !> \brief Constants to the alignment of the lower-left corner of grids.
-  !!@{
-  integer(i4), public, parameter :: lower_left = 0_i4 !< align in lower left corner
-  integer(i4), public, parameter :: lower_right = 1_i4 !< align in lower right corner
-  integer(i4), public, parameter :: upper_left = 2_i4 !< align in upper left corner
-  integer(i4), public, parameter :: upper_right = 3_i4 !< align in upper right corner
-  !!@}
-
   !> \class   grid_t
   !> \brief   2D grid description with data in xy order..
   !> \details This type represents uniform grids with data in xy order with strictly increasing or decreasing y-axis.
@@ -2047,7 +2038,7 @@ contains
   !> \authors Matthias Zink & Rohini Kumar
   !> \date Feb 2013
   subroutine calculate_coarse_extent(nx_in,  ny_in,  xllcorner_in,  yllcorner_in,  cellsize_in,  target_resolution, &
-                                     nx_out, ny_out, xllcorner_out, yllcorner_out, cellsize_out, tol, aligning)
+                                     nx_out, ny_out, xllcorner_out, yllcorner_out, cellsize_out, tol)
 
     implicit none
 
@@ -2063,13 +2054,9 @@ contains
     real(dp), intent(out) :: yllcorner_out !< yllcorner at an output level
     real(dp), intent(out) :: cellsize_out !< cell size at an output level
     real(dp), intent(in), optional :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    integer(i4), intent(in), optional :: aligning !< aligning selector (corner: ll -> 0 (default), lr -> 1, tl -> 2, tr -> 3)
 
     real(dp) :: cellFactor, rounded
-    integer(i4) :: factor, align_
-
-    align_ = lower_left
-    if ( present(aligning) ) align_ = aligning
+    integer(i4) :: factor
 
     call check_factor(cellsize_in, target_resolution, cellFactor, rounded, factor, tol)
 
@@ -2081,19 +2068,9 @@ contains
     if ( ny_out * factor < ny_in ) ny_out = ny_out + 1_i4
     if ( nx_out * factor < nx_in ) nx_out = nx_out + 1_i4
 
-    ! align grids based on the selected aligning corner
-    ! keep yll if aligning in (lower)-left or (lower)-right
-    if (align_ == lower_left .or. align_ == lower_right) then
-      yllcorner_out = yllcorner_in
-    else
-      yllcorner_out = yllcorner_in + real(ny_in, dp) * target_resolution / rounded - real(ny_out, dp) * cellsize_out
-    endif
-    ! keep xll if aligning in lower-(left) or top-(left)
-    if (align_ == lower_left .or. align_ == upper_left) then
-      xllcorner_out = xllcorner_in
-    else
-      xllcorner_out = xllcorner_in + real(nx_in, dp) * target_resolution / rounded - real(nx_out, dp) * cellsize_out
-    endif
+    ! TODO: implement proper handling of non-origin-aligned grids with offsets - for now, just keep the same lower left corner
+    yllcorner_out = yllcorner_in
+    xllcorner_out = xllcorner_in
 
   end subroutine calculate_coarse_extent
 
