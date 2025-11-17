@@ -1343,9 +1343,14 @@ contains
     integer(i4) :: j
     any_missing = .false.
     if (.not. this%has_mask()) return
-    !$omp parallel do default(shared) schedule(static) reduction(.or.: any_missing)
+    !$omp parallel do default(shared) schedule(static)
     do j = 1_i4, this%ny
-      any_missing = any_missing .or. (.not. all(this%mask(:, j)))
+      !$omp flush(any_missing)
+      if (any_missing) cycle ! no work for rest of the loop (exit not safe with omp)
+      if (.not. all(this%mask(:, j))) then
+        !$omp atomic write
+        any_missing = .true.
+      end if
     end do
     !$omp end parallel do
   end function any_missing
