@@ -40,6 +40,7 @@ module mo_grid
   public :: is_lon_coord
   public :: is_lat_coord
   public :: check_uniform_axis
+  public :: mask_from_var
 #endif
 
   private
@@ -92,8 +93,8 @@ module mo_grid
     real(dp), dimension(:, :), allocatable :: lon_vertices     !< longitude coordinates or the grid nodes, size (nx+1,ny+1)
     integer(i4), dimension(:, :), allocatable :: cell_ij       !< matrix IDs (i,j) per cell in mask, size (ncells, 2)
     logical, dimension(:, :), allocatable :: mask              !< the mask for valid cells in the original grid, size (nx,ny)
-    integer(i8), dimension(:), allocatable :: mask_col_cnt     !< number of valid cells per column in mask, size (nx)
-    integer(i8), dimension(:), allocatable :: mask_cum_col_cnt !< cumulative number of valid cells prior to mask column, size (nx)
+    integer(i8), dimension(:), allocatable :: mask_col_cnt     !< number of valid cells per column in mask, size (ny)
+    integer(i8), dimension(:), allocatable :: mask_cum_col_cnt !< cumulative number of valid cells prior to mask column, size (ny)
   contains
     procedure, public :: init => grid_init
     procedure, public :: from_ascii_file
@@ -140,14 +141,22 @@ module mo_grid
     generic, public :: read_data => read_data_dp, read_data_i4
     procedure, private :: check_shape => grid_check_shape
     procedure, private :: check_shape_packed => grid_check_shape_packed
-    procedure, private :: pack_data_sp, pack_data_dp, pack_data_i4, pack_data_i8, pack_data_lgt
-    generic, public :: pack => pack_data_sp, pack_data_dp, pack_data_i4, pack_data_i8, pack_data_lgt
-    procedure, private :: unpack_data_sp, unpack_data_dp, unpack_data_i4, unpack_data_i8, unpack_data_lgt
-    generic, public :: unpack => unpack_data_sp, unpack_data_dp, unpack_data_i4, unpack_data_i8, unpack_data_lgt
-    procedure, private :: pack_into_sp, pack_into_dp, pack_into_i4, pack_into_i8, pack_into_lgt
-    generic, public :: pack_into => pack_into_sp, pack_into_dp, pack_into_i4, pack_into_i8, pack_into_lgt
-    procedure, private :: unpack_into_sp, unpack_into_dp, unpack_into_i4, unpack_into_i8, unpack_into_lgt
-    generic, public :: unpack_into => unpack_into_sp, unpack_into_dp, unpack_into_i4, unpack_into_i8, unpack_into_lgt
+    procedure, private :: pack_data_sp, pack_data_dp, &
+                          pack_data_i1, pack_data_i2, pack_data_i4, pack_data_i8, pack_data_lgt
+    procedure, private :: unpack_data_sp, unpack_data_dp, &
+                          unpack_data_i1, unpack_data_i2, unpack_data_i4, unpack_data_i8, unpack_data_lgt
+    procedure, private :: pack_into_sp, pack_into_dp, &
+                          pack_into_i1, pack_into_i2, pack_into_i4, pack_into_i8, pack_into_lgt
+    procedure, private :: unpack_into_sp, unpack_into_dp, &
+                          unpack_into_i1, unpack_into_i2, unpack_into_i4, unpack_into_i8, unpack_into_lgt
+    generic, public :: pack =>        pack_data_sp, pack_data_dp, &
+                                      pack_data_i1, pack_data_i2, pack_data_i4, pack_data_i8, pack_data_lgt
+    generic, public :: unpack =>      unpack_data_sp, unpack_data_dp, &
+                                      unpack_data_i1, unpack_data_i2, unpack_data_i4, unpack_data_i8, unpack_data_lgt
+    generic, public :: pack_into =>   pack_into_sp, pack_into_dp, &
+                                      pack_into_i1, pack_into_i2, pack_into_i4, pack_into_i8, pack_into_lgt
+    generic, public :: unpack_into => unpack_into_sp, unpack_into_dp, &
+                                      unpack_into_i1, unpack_into_i2, unpack_into_i4, unpack_into_i8, unpack_into_lgt
   end type grid_t
 
   !> \brief Reads spatial data files of ASCII format.
@@ -200,18 +209,13 @@ contains
 
     this%nx = nx
     this%ny = ny
-    this%xllcorner = 0.0_dp
-    if ( present(xllcorner) ) this%xllcorner = xllcorner
-    this%yllcorner = 0.0_dp
-    if ( present(yllcorner) ) this%yllcorner = yllcorner
-    this%cellsize = 1.0_dp
-    if ( present(cellsize) ) this%cellsize = cellsize
+    this%xllcorner = optval(xllcorner, 0.0_dp)
+    this%yllcorner = optval(yllcorner, 0.0_dp)
+    this%cellsize = optval(cellsize, 1.0_dp)
     ! check if coordsys is supported
-    this%coordsys = cartesian
-    if ( present(coordsys) ) then
-      if (coordsys /= cartesian .and. coordsys /= spherical) &
-        call error_message("grid % init: unknown coordsys value: ", num2str(coordsys))
-      this%coordsys = coordsys
+    this%coordsys = optval(coordsys, cartesian)
+    if (.not.any(this%coordsys == [cartesian, spherical])) then
+      call error_message("grid % init: unknown coordsys value: ", num2str(this%coordsys))
     end if
     ! check if y-direction is supported
     this%y_direction = top_down
@@ -255,10 +259,8 @@ contains
     logical :: read_mask_
     integer(i4) :: y_dir
 
-    read_mask_ = .true.
-    if (present(read_mask)) read_mask_ = read_mask
-    y_dir = keep_y
-    if (present(y_direction)) y_dir = y_direction
+    read_mask_ = optval(read_mask, .true.)
+    y_dir = optval(y_direction, keep_y)
     if (y_dir == keep_y) y_dir = top_down
     if (.not.any(y_dir==[bottom_up, top_down])) &
       call error_message("grid % from_ascii_file: y-direction not valid: ", trim(num2str(y_dir)))
@@ -294,8 +296,7 @@ contains
     logical :: write_mask_
     integer(i4), allocatable, dimension(:,:) :: dummy
 
-    write_mask_ = .true.
-    if ( present(write_mask) ) write_mask_ = write_mask
+    write_mask_ = optval(write_mask, .true.)
 
     if (write_mask_) then
       allocate(dummy(this%nx, this%ny), source=nodata_i4)
@@ -403,15 +404,11 @@ contains
     character(:), allocatable :: lat_name, lon_name
     logical :: y_inc, read_mask_, read_aux_, x_sph, y_sph, x_cart, y_cart, flip_y, found_lat, found_lon
 
-    this%y_direction = keep_y
-    if (present(y_direction)) this%y_direction = y_direction
+    this%y_direction = optval(y_direction, keep_y)
 
-    tol_ = 1.e-7_dp
-    read_mask_ = .true.
-    read_aux_ = .true.
-    if ( present(tol) ) tol_ = tol
-    if ( present(read_mask) ) read_mask_ = read_mask
-    if ( present(read_aux) ) read_aux_ = read_aux
+    tol_ = optval(tol, 1.0e-7_dp)
+    read_mask_ = optval(read_mask, .true.)
+    read_aux_ = optval(read_aux, .true.)
 
     ncvar = nc%getVariable(var)
     rnk = ncvar%getRank()
@@ -664,9 +661,7 @@ contains
     type(NcDataset) :: nc
     character(1) :: fmode
     fmode = "w"
-    if ( present(append) ) then
-      if (append) fmode = "a"
-    end if
+    if ( optval(append, .false.) ) fmode = "a"
     nc = NcDataset(path, fmode)
     call this%to_nc_dataset(nc, x_name, y_name, aux_lon_name, aux_lat_name, double_precision, mask, area)
     call nc%close()
@@ -704,18 +699,14 @@ contains
     if ( double_precision_ ) dtype = "f64"
 
     if (this%coordsys==cartesian) then
-      xname = "x"
-      yname = "y"
+      xname = optval(x_name, "x")
+      yname = optval(y_name, "y")
     else
-      xname = "lon"
-      yname = "lat"
+      xname = optval(x_name, "lon")
+      yname = optval(y_name, "lat")
     end if
-    lonname = "lon"
-    latname = "lat"
-    if (present(x_name)) xname = x_name
-    if (present(y_name)) yname = y_name
-    if (present(aux_lon_name)) lonname = aux_lon_name
-    if (present(aux_lat_name)) latname = aux_lat_name
+    lonname = optval(aux_lon_name, "lon")
+    latname = optval(aux_lat_name, "lat")
 
     x_dim = nc%setDimension(xname, this%nx)
     y_dim = nc%setDimension(yname, this%ny)
@@ -958,8 +949,8 @@ contains
     real(dp), allocatable, dimension(:) :: y_axis
 
     integer(i4) :: i, y_dir
-    y_dir = keep_y
-    if (present(y_direction)) y_dir = y_direction
+
+    y_dir = optval(y_direction, keep_y)
     if (y_dir == keep_y) y_dir = this%y_direction
 
     select case (y_dir)
@@ -999,8 +990,8 @@ contains
     real(dp), allocatable, dimension(:) :: y_vertices
 
     integer(i4) :: i, y_dir
-    y_dir = keep_y
-    if (present(y_direction)) y_dir = y_direction
+
+    y_dir = optval(y_direction, keep_y)
     if (y_dir == keep_y) y_dir = this%y_direction
 
     select case (y_dir)
@@ -1371,8 +1362,7 @@ contains
     integer(i4) :: factor, i, j, i_lb, i_ub, j_lb, j_ub
     logical :: check_mask_
 
-    check_mask_ = .true.
-    if ( present(check_mask) ) check_mask_ = check_mask
+    check_mask_ = optval(check_mask, .true.)
 
     if (this%coordsys /= coarse_grid%coordsys) &
       call error_message("grid % check_is_covered_by: grids don't use the same coordinate system.")
@@ -1438,8 +1428,7 @@ contains
     integer(i8) :: k
     logical :: check_mask_
 
-    check_mask_ = .true.
-    if ( present(check_mask) ) check_mask_ = check_mask
+    check_mask_ = optval(check_mask, .true.)
 
     if (this%coordsys /= fine_grid%coordsys) then
       call error_message("grid % check_is_filled_by: grids don't use the same coordinate system.")
@@ -1545,8 +1534,8 @@ contains
     end if
 
     ! allocate arrays for mask column counts and cumulative counts
-    allocate(this%mask_col_cnt(this%ny))
-    allocate(this%mask_cum_col_cnt(this%ny))
+    if (.not. allocated(this%mask_col_cnt)) allocate(this%mask_col_cnt(this%ny))
+    if (.not. allocated(this%mask_cum_col_cnt)) allocate(this%mask_cum_col_cnt(this%ny))
 
     !$omp parallel do default(shared) schedule(static)
     do j = 1_i4, this%ny
@@ -1560,6 +1549,7 @@ contains
     end do
     this%ncells = this%mask_cum_col_cnt(this%ny) + this%mask_col_cnt(this%ny)
 
+    if (allocated(this%cell_ij)) deallocate(this%cell_ij)
     allocate(this%cell_ij(this%ncells, 2))
 
     !$omp parallel do default(shared) private(k,i,j) schedule(static)
@@ -1607,7 +1597,8 @@ contains
     integer(i8) :: k
     real(dp), allocatable :: cell_area_lat(:)
 
-    if (.not. allocated(this%cell_area)) allocate(this%cell_area(this%ncells))
+    if (allocated(this%cell_area)) deallocate(this%cell_area)
+    allocate(this%cell_area(this%ncells))
 
     ! regular X-Y coordinate system
     if(this%coordsys .eq. cartesian) then
@@ -1799,12 +1790,9 @@ contains
     integer(i4) :: factor, area_method_
     logical :: estimate_aux_, estimate_area_
 
-    estimate_aux_ = .true.
-    if (present(estimate_aux)) estimate_aux_ = estimate_aux
-    estimate_area_ = .true.
-    if (present(estimate_area)) estimate_area_ = estimate_area
-    area_method_ = 0_i4
-    if (present(area_method)) area_method_ = area_method
+    estimate_aux_ = optval(estimate_aux, .true.)
+    estimate_area_ = optval(estimate_area, .true.)
+    area_method_ = optval(area_method, area_sum)
 
     call check_factor(target_resolution, this%cellsize, factor=factor, tol=tol)
 
@@ -1941,6 +1929,34 @@ contains
   end function pack_data_dp
 
   !> \brief Pack 2D data with grid mask
+  !> \return `integer(i1) :: out_data(:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function pack_data_i1(this, data) result(out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i1), intent(in) :: data(:,:)
+    integer(i1), allocatable :: out_data(:)
+    call this%check_shape(shape(data, kind=i4))
+    allocate(out_data(this%ncells))
+    out_data(:) = pack(data, this%mask)
+  end function pack_data_i1
+
+  !> \brief Pack 2D data with grid mask
+  !> \return `integer(i2) :: out_data(:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function pack_data_i2(this, data) result(out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i2), intent(in) :: data(:,:)
+    integer(i2), allocatable :: out_data(:)
+    call this%check_shape(shape(data, kind=i4))
+    allocate(out_data(this%ncells))
+    out_data(:) = pack(data, this%mask)
+  end function pack_data_i2
+
+  !> \brief Pack 2D data with grid mask
   !> \return `integer(i4) :: out_data(:)`
   !> \authors Sebastian Müller
   !> \date    Mar 2025
@@ -2011,6 +2027,36 @@ contains
     allocate(out_data(this%nx, this%ny))
     out_data(:,:) = unpack(data, this%mask, nodata_dp)
   end function unpack_data_dp
+
+  !> \brief Unpack 1D data with grid mask
+  !> \return `integer(i1) :: out_data(:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function unpack_data_i1(this, data) result(out_data)
+    use mo_constants, only : nodata_i1
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i1), intent(in) :: data(:)
+    integer(i1), allocatable :: out_data(:,:)
+    call this%check_shape_packed(shape(data, kind=i8))
+    allocate(out_data(this%nx, this%ny))
+    out_data(:,:) = unpack(data, this%mask, nodata_i1)
+  end function unpack_data_i1
+
+  !> \brief Unpack 1D data with grid mask
+  !> \return `integer(i2) :: out_data(:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function unpack_data_i2(this, data) result(out_data)
+    use mo_constants, only : nodata_i2
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i2), intent(in) :: data(:)
+    integer(i2), allocatable :: out_data(:,:)
+    call this%check_shape_packed(shape(data, kind=i8))
+    allocate(out_data(this%nx, this%ny))
+    out_data(:,:) = unpack(data, this%mask, nodata_i2)
+  end function unpack_data_i2
 
   !> \brief Unpack 1D data with grid mask
   !> \return `integer(i4) :: out_data(:,:)`
@@ -2097,6 +2143,48 @@ contains
     end do
     !$omp end parallel do
   end subroutine pack_into_dp
+
+  !> \brief Pack 2D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine pack_into_i1(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i1), intent(in) :: data(:,:)
+    integer(i1), intent(out) :: out_data(:)
+    integer(i8) :: k, i
+    integer(i4) :: j
+    call this%check_shape(shape(data, kind=i4))
+    call this%check_shape_packed(shape(out_data, kind=i8))
+    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    do j = 1_i4, this%ny
+      i = this%mask_col_cnt(j)
+      k = this%mask_cum_col_cnt(j)
+      out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
+    end do
+    !$omp end parallel do
+  end subroutine pack_into_i1
+
+  !> \brief Pack 2D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine pack_into_i2(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i2), intent(in) :: data(:,:)
+    integer(i2), intent(out) :: out_data(:)
+    integer(i8) :: k, i
+    integer(i4) :: j
+    call this%check_shape(shape(data, kind=i4))
+    call this%check_shape_packed(shape(out_data, kind=i8))
+    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    do j = 1_i4, this%ny
+      i = this%mask_col_cnt(j)
+      k = this%mask_cum_col_cnt(j)
+      out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
+    end do
+    !$omp end parallel do
+  end subroutine pack_into_i2
 
   !> \brief Pack 2D data with grid mask into preallocated array
   !> \authors Sebastian Müller
@@ -2204,6 +2292,50 @@ contains
     end do
     !$omp end parallel do
   end subroutine unpack_into_dp
+
+  !> \brief Unpack 1D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine unpack_into_i1(this, data, out_data)
+    use mo_constants, only : nodata_i1
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i1), intent(in) :: data(:)
+    integer(i1), intent(out) :: out_data(:,:)
+    integer(i8) :: k, i
+    integer(i4) :: j
+    call this%check_shape(shape(out_data, kind=i4))
+    call this%check_shape_packed(shape(data, kind=i8))
+    !$omp parallel do default(shared) private(k,i) schedule(static)
+    do j = 1_i4, this%ny
+      i = this%mask_col_cnt(j)
+      k = this%mask_cum_col_cnt(j)
+      out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), nodata_i1)
+    end do
+    !$omp end parallel do
+  end subroutine unpack_into_i1
+
+  !> \brief Unpack 1D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine unpack_into_i2(this, data, out_data)
+    use mo_constants, only : nodata_i2
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i2), intent(in) :: data(:)
+    integer(i2), intent(out) :: out_data(:,:)
+    integer(i8) :: k, i
+    integer(i4) :: j
+    call this%check_shape(shape(out_data, kind=i4))
+    call this%check_shape_packed(shape(data, kind=i8))
+    !$omp parallel do default(shared) private(k,i) schedule(static)
+    do j = 1_i4, this%ny
+      i = this%mask_col_cnt(j)
+      k = this%mask_cum_col_cnt(j)
+      out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), nodata_i2)
+    end do
+    !$omp end parallel do
+  end subroutine unpack_into_i2
 
   !> \brief Unpack 1D data with grid mask into preallocated array
   !> \authors Sebastian Müller
@@ -2353,8 +2485,7 @@ contains
     ! store var name for error messages
     name = var%getName()
 
-    tol_ = 1.e-7_dp
-    if ( present(tol) ) tol_ = tol
+    tol_ = optval(tol, 1.e-7_dp)
 
     if (size(axis) == 0_i4) &
       call error_message("check_uniform_axis: axis is empty: ", name)
@@ -2694,8 +2825,7 @@ contains
     real(dp) :: cellfactor_, rounded_, tol_
     integer(i4) :: factor_
 
-    tol_ = 1.e-7_dp
-    if ( present(tol) ) tol_ = tol
+    tol_ = optval(tol, 1.e-7_dp)
 
     cellfactor_ = coarse_cellsize / fine_cellsize
     rounded_ = anint(cellfactor_)
@@ -2943,8 +3073,7 @@ contains
     ! Set defaults
     is_bottom_up = .true.
     if (present(y_direction)) is_bottom_up = y_direction == bottom_up
-    is_xy_ = .true.
-    if (present(is_xy)) is_xy_ = is_xy
+    is_xy_ = optval(is_xy, .true.)
 
     ! Check dimensions if data is present
     if (present(data)) then
@@ -3030,8 +3159,7 @@ contains
     ! Set defaults
     is_bottom_up = .false.
     if (present(y_direction)) is_bottom_up = y_direction == bottom_up
-    is_xy_ = .true.
-    if (present(is_xy)) is_xy_ = is_xy
+    is_xy_ = optval(is_xy, .true.)
 
     ! Check dimensions if data is present
     if (present(data)) then
