@@ -98,6 +98,25 @@ module mo_dag
     procedure :: reverse => order_reverse
   end type order_t
 
+  !> \class dag_base
+  !> \brief Abstract base class shared by all DAG implementations.
+  !> \details Provides the read-only traversal API that algorithms can rely on
+  !! regardless of the underlying storage.
+  type, abstract :: dag_base
+    integer(i8) :: n = 0_i8             !< Number of nodes in the DAG
+    integer(i8), allocatable :: tags(:) !< Node tags for external reference
+  contains
+    procedure(dag_base_count_if), deferred :: n_dependencies   !< Number of upstream nodes per id
+    procedure(dag_base_count_if), deferred :: n_dependents     !< Number of downstream nodes per id
+    procedure(dag_base_neighbors_if), deferred :: dependencies !< Access upstream node ids
+    procedure(dag_base_neighbors_if), deferred :: dependents   !< Access downstream node ids
+    procedure :: traverse    => dag_base_traverse
+    procedure :: toposort    => dag_base_toposort
+    procedure :: levelsort   => dag_base_levelsort
+    procedure :: get_dependencies => dag_base_get_dependencies
+    procedure :: get_dependents   => dag_base_get_dependents
+  end type dag_base
+
   !> \class node
   !> \brief A node of a directed acyclic graph (DAG)
   type :: node
@@ -122,30 +141,44 @@ module mo_dag
   !!
   !! \par Examples
   !! - \ref 01_dag_sort.f90 : \copybrief 01_dag_sort.f90
-  type,public :: dag
-    integer(i8) :: n = 0 !< number of nodes (size of `nodes` array)
+  type,public, extends(dag_base) :: dag
     !> The nodes in the DAG. The index in this array is used by the edges of the nodes.
     type(node),dimension(:),allocatable :: nodes
-    integer(i8),dimension(:),allocatable :: tags !< node tags for external reference
     integer(i8), private, dimension(:), allocatable :: tag_to_id_map !< Maps node tag to array index
     integer(i8), private :: max_tag = 0_i8 !< Max tag value in current DAG (for bounds)
   contains
     procedure :: init                       => dag_set_nodes
     procedure :: add_edge                   => dag_add_edge
     procedure :: set_edges                  => dag_set_edges
-    procedure :: toposort                   => dag_toposort
-    procedure :: levelsort                  => dag_levelsort
     procedure :: generate_dependency_matrix => dag_generate_dependency_matrix
-    procedure :: traverse                   => dag_traverse
     procedure :: subgraph                   => dag_subgraph
-    procedure :: get_dependencies           => dag_get_dependencies
-    procedure :: get_dependents             => dag_get_dependents
     procedure :: destroy                    => dag_destroy
     procedure :: tag_to_id                  => dag_tag_to_id
-    procedure, private :: levelsort_head    => dag_levelsort_head
-    procedure, private :: levelsort_root    => dag_levelsort_root
+    procedure :: n_dependencies             => dag_n_dependencies
+    procedure :: n_dependents               => dag_n_dependents
+    procedure :: dependencies               => dag_dependencies
+    procedure :: dependents                 => dag_dependents
     procedure, private :: rebuild_tag_map   => dag_rebuild_tag_map
   end type dag
+
+  !> \brief Abstract interfaces used by \ref dag_base for adjacency access.
+  abstract interface
+    pure integer(i8) function dag_base_count_if(this, id)
+      import :: dag_base, i8
+      class(dag_base), intent(in), target :: this
+      integer(i8), intent(in) :: id
+    end function dag_base_count_if
+
+    !> \brief Return pointer to adjacency list for node `id`.
+    !! \details Callers must ensure the owning DAG instance remains a valid
+    !! pointer target for as long as they rely on the returned reference.
+    function dag_base_neighbors_if(this, id) result(neigh)
+      import :: dag_base, i8
+      class(dag_base), intent(in), target :: this
+      integer(i8), intent(in) :: id
+      integer(i8), pointer :: neigh(:)
+    end function dag_base_neighbors_if
+  end interface
 
 contains
 
@@ -234,17 +267,63 @@ contains
     end if
   end subroutine node_add_dependent
 
+  !> \brief Number of dependencies for node `id` in the dense DAG implementation.
+  pure integer(i8) function dag_n_dependencies(this, id)
+    class(dag), intent(in), target :: this
+    integer(i8), intent(in) :: id
+    dag_n_dependencies = this%nodes(id)%nedges()
+  end function dag_n_dependencies
+
+  !> \brief Number of dependents for node `id` in the dense DAG implementation.
+  pure integer(i8) function dag_n_dependents(this, id)
+    class(dag), intent(in), target :: this
+    integer(i8), intent(in) :: id
+    dag_n_dependents = this%nodes(id)%ndependents()
+  end function dag_n_dependents
+
+  !> \brief Pointer to the dependency list of node `id`.
+  !! \details The caller must ensure the DAG instance remains a valid target for
+  !! the full duration of the pointer usage (e.g. do not let the graph go out of
+  !! scope or deallocate it) so the association stays valid after this function
+  !! returns.
+  function dag_dependencies(this, id) result(edges)
+    class(dag), intent(in), target :: this
+    integer(i8), intent(in) :: id
+    integer(i8), pointer :: edges(:)
+    if (allocated(this%nodes(id)%edges)) then
+      edges => this%nodes(id)%edges
+    else
+      nullify(edges)
+    end if
+  end function dag_dependencies
+
+  !> \brief Pointer to the dependents list of node `id`.
+  !! \details The caller must ensure the DAG instance remains a valid target for
+  !! the duration of the pointer usage to keep the association valid.
+  function dag_dependents(this, id) result(deps)
+    class(dag), intent(in), target :: this
+    integer(i8), intent(in) :: id
+    integer(i8), pointer :: deps(:)
+    if (allocated(this%nodes(id)%dependents)) then
+      deps => this%nodes(id)%dependents
+    else
+      nullify(deps)
+    end if
+  end function dag_dependents
+
   !> \brief Traverse graph from given starting node.
-  subroutine dag_traverse(this, handler, ids, down)
-    class(dag), intent(in) :: this
+  subroutine dag_base_traverse(this, handler, ids, down)
+    class(dag_base), intent(in), target :: this
     class(traversal_handler), intent(inout) :: handler !< traversal handler to use
     integer(i8), dimension(:), intent(in), optional :: ids !< ids to traverse from (by default all)
     logical, intent(in), optional :: down !< traverse downstream if .true. (.false. by default to traverse upstream)
 
-    integer(i8) :: top, dep, action, i, j
+    integer(i8) :: top, dep, action, i, j, nneigh
     integer(i8), allocatable :: stack(:)
+    integer(i8), pointer :: neigh(:)
     logical :: down_
 
+    if (this%n == 0_i8) return
     down_ = optval(down, .false.)
     allocate(stack(this%n))
     if (present(ids)) then
@@ -266,21 +345,29 @@ contains
       select case (action)
         case (dfs_continue)  ! 0
           if (down_) then
-            do i = this%nodes(j)%ndependents(), 1_i8, -1_i8
-              dep = this%nodes(j)%dependents(i)
-              if (.not. handler%visited(dep)) then
-                top = top + 1_i8
-                stack(top) = dep
-              end if
-            end do
+            nneigh = this%n_dependents(j)
+            if (nneigh > 0_i8) then
+              neigh => this%dependents(j)
+              do i = nneigh, 1_i8, -1_i8
+                dep = neigh(i)
+                if (.not. handler%visited(dep)) then
+                  top = top + 1_i8
+                  stack(top) = dep
+                end if
+              end do
+            end if
           else
-            do i = this%nodes(j)%nedges(), 1_i8, -1_i8
-              dep = this%nodes(j)%edges(i)
-              if (.not. handler%visited(dep)) then
-                top = top + 1_i8
-                stack(top) = dep
-              end if
-            end do
+            nneigh = this%n_dependencies(j)
+            if (nneigh > 0_i8) then
+              neigh => this%dependencies(j)
+              do i = nneigh, 1_i8, -1_i8
+                dep = neigh(i)
+                if (.not. handler%visited(dep)) then
+                  top = top + 1_i8
+                  stack(top) = dep
+                end if
+              end do
+            end if
           end if
         case (dfs_skip_children) ! 1
           cycle
@@ -290,8 +377,8 @@ contains
     end do
 
     deallocate(stack)
-  end subroutine dag_traverse
-
+  end subroutine dag_base_traverse
+  
   !> \brief Construct subgraph containing given nodes and their dependencies.
   !> \details This will renumber the node ids but will conserve their tags.
   function dag_subgraph(this, ids, down) result(subgraph)
@@ -328,40 +415,56 @@ contains
   end function dag_subgraph
 
   !> \brief Generate list of all dependencies and their sub-dependencies for a given node.
-  function dag_get_dependencies(this, id) result(deps)
-    class(dag), intent(in) :: this
+  function dag_base_get_dependencies(this, id) result(deps)
+    class(dag_base), intent(in), target :: this
     integer(i8), intent(in) :: id !< node id
     integer(i8), allocatable :: deps(:)
     type(traversal_visit) :: handler
-    integer(i8) :: i
-    if (this%nodes(id)%nedges() == 0_i8) then
+    integer(i8), pointer :: deps_ptr(:)
+    integer(i8) :: i, ndeps
+    ndeps = this%n_dependencies(id)
+    if (ndeps == 0_i8) then
       allocate(deps(0))
       return
     end if
     allocate(handler%visited(this%n), source=.false.)
-    call this%traverse(handler, this%nodes(id)%edges)
+    deps_ptr => this%dependencies(id)
+    if (.not.associated(deps_ptr)) then
+      allocate(deps(0))
+      deallocate(handler%visited)
+      return
+    end if
+    call this%traverse(handler, deps_ptr)
     allocate(deps(count(handler%visited)))
     deps = pack([(i, i=1_i8, this%n)], handler%visited)
     deallocate(handler%visited)
-  end function dag_get_dependencies
+  end function dag_base_get_dependencies
 
   !> \brief Generate list of all dependents and their sub-dependents for a given node.
-  function dag_get_dependents(this, id) result(deps)
-    class(dag), intent(in) :: this
+  function dag_base_get_dependents(this, id) result(deps)
+    class(dag_base), intent(in), target :: this
     integer(i8), intent(in) :: id !< node id
     integer(i8), allocatable :: deps(:)
     type(traversal_visit) :: handler
-    integer(i8) :: i
-    if (this%nodes(id)%ndependents() == 0_i8) then
+    integer(i8), pointer :: deps_ptr(:)
+    integer(i8) :: i, ndeps
+    ndeps = this%n_dependents(id)
+    if (ndeps == 0_i8) then
       allocate(deps(0))
       return
     end if
     allocate(handler%visited(this%n), source=.false.)
-    call this%traverse(handler, this%nodes(id)%dependents, down=.true.)
+    deps_ptr => this%dependents(id)
+    if (.not.associated(deps_ptr)) then
+      allocate(deps(0))
+      deallocate(handler%visited)
+      return
+    end if
+    call this%traverse(handler, deps_ptr, down=.true.)
     allocate(deps(count(handler%visited)))
     deps = pack([(i, i=1_i8, this%n)], handler%visited)
     deallocate(handler%visited)
-  end function dag_get_dependents
+  end function dag_base_get_dependents
 
   !> \brief Rebuild the map from node tags to array indices.
   subroutine dag_rebuild_tag_map(this)
@@ -450,13 +553,15 @@ contains
   end subroutine dag_set_edges
 
   !> \brief Main toposort routine
-  subroutine dag_toposort(this, order, istat)
-    class(dag),intent(inout) :: this
+  subroutine dag_base_toposort(this, order, istat)
+    class(dag_base),intent(in), target :: this
     integer(i8),dimension(:),allocatable,intent(out) :: order !< the toposort order
     !> Status flag: 0 (if no errors), -1 (if circular dependency, in this case, `order` will not be allocated)
     integer(i8),intent(out) :: istat
     integer(i8) :: i,iorder
     logical, allocatable, dimension(:) :: checking, visited
+    integer(i8), pointer :: deps(:)
+    integer(i8) :: ndeps
 
     if (this%n==0_i8) return
 
@@ -490,22 +595,28 @@ contains
       end if
       if ( visited(j)) return ! already touched
       checking(j) = .true.
-      do k=1_i8,this%nodes(j)%nedges()
-        call dfs(this%nodes(j)%edges(k))
-        if (istat==-1_i8) return
-      end do
+      ndeps = this%n_dependencies(j)
+      if (ndeps > 0_i8) then
+        deps => this%dependencies(j)
+        if (associated(deps)) then
+          do k=1_i8, ndeps
+            call dfs(deps(k))
+            if (istat==-1_i8) return
+          end do
+        end if
+      end if
       checking(j) = .false.
       visited(j) = .true.
       iorder = iorder + 1_i8
       order(iorder) = j
     end subroutine dfs
 
-  end subroutine dag_toposort
+  end subroutine dag_base_toposort
 
   !> \brief Sorting DAG by levels for parallelization based on Kahn's algorithm
-  subroutine dag_levelsort(this, order, istat, root, reverse)
+  subroutine dag_base_levelsort(this, order, istat, root, reverse)
     implicit none
-    class(dag), intent(in) :: this
+    class(dag_base), intent(in), target :: this
     type(order_t), intent(out) :: order       !< level based order
     integer(i8), intent(out) :: istat         !< status code (0 - no error, -1 - cycle found)
     logical, intent(in), optional :: root     !< levels as distance from graph roots (default: .false.)
@@ -514,16 +625,16 @@ contains
 
     root_ = optval(root, .false.)
     if (root_) then
-      call this%levelsort_root(order, istat, reverse)
+      call dag_base_levelsort_root(this, order, istat, reverse)
     else
-      call this%levelsort_head(order, istat, reverse)
+      call dag_base_levelsort_head(this, order, istat, reverse)
     end if
-  end subroutine dag_levelsort
+  end subroutine dag_base_levelsort
 
   !> \brief Sorting DAG by levels for parallelization based on Kahn's algorithm
-  subroutine dag_levelsort_head(this, order, istat, reverse)
+  subroutine dag_base_levelsort_head(this, order, istat, reverse)
     implicit none
-    class(dag), intent(in) :: this
+    class(dag_base), intent(in), target :: this
     type(order_t), intent(out) :: order       !< level based order
     integer(i8), intent(out) :: istat         !< status code (0 - no error, -1 - cycle found)
     logical, intent(in), optional :: reverse  !< reverse order (default: .false.)
@@ -531,6 +642,8 @@ contains
     integer(i8) :: i, j, k, m, n, count, level, added_this_level
     integer(i8), allocatable :: level_start(:), level_end(:), id(:), visit_level(:)
     logical :: ready, rev
+    integer(i8), pointer :: neigh(:), deps(:)
+    integer(i8) :: nneigh, ndeps
 
     rev = optval(reverse, .false.)
     n = this%n ! in the worst case of a linear DAG, we get as many levels as nodes
@@ -543,7 +656,7 @@ contains
     count = 0_i8
     level = 1_i8
     do i = 1_i8, n
-      if (this%nodes(i)%nedges() > 0_i8) cycle
+      if (this%n_dependencies(i) > 0_i8) cycle
       count = count + 1_i8
       id(count) = i
       visit_level(i) = level
@@ -559,24 +672,31 @@ contains
 
       ! scan all dependents of previous level
       do i = level_start(level-1_i8), level_end(level-1_i8)
-        if (.not.allocated(this%nodes(id(i))%dependents)) cycle
-        do j = 1_i8, size(this%nodes(id(i))%dependents)
-          k = this%nodes(id(i))%dependents(j)
+        nneigh = this%n_dependents(id(i))
+        if (nneigh == 0_i8) cycle
+        neigh => this%dependents(id(i))
+        if (.not.associated(neigh)) cycle
+        do j = 1_i8, nneigh
+          k = neigh(j)
           if (visit_level(k)>0_i8) cycle ! dependent already treated by earlier node in this level
           ready = .true.
-          do m = 1_i8, this%nodes(k)%nedges() ! non empty since it is a dependent
-            if ( visit_level(this%nodes(k)%edges(m)) == 0_i8 &
-            .or. visit_level(this%nodes(k)%edges(m)) == level ) then
-              ready = .false. ! some dependency not yet ready (0 - not ready, level - not added in previous levels)
-              exit
-            end if
-          end do
-          if (ready) then
-            count = count + 1_i8
-            id(count) = k
-            visit_level(k) = level
-            added_this_level = added_this_level + 1_i8
+          ndeps = this%n_dependencies(k)
+          if (ndeps > 0_i8) then
+            deps => this%dependencies(k)
+            if (.not.associated(deps)) cycle
+            do m = 1_i8, ndeps ! non empty since it is a dependent
+              if ( visit_level(deps(m)) == 0_i8 &
+              .or. visit_level(deps(m)) == level ) then
+                ready = .false. ! some dependency not yet ready (0 - not ready, level - not added in previous levels)
+                exit
+              end if
+            end do
           end if
+          if (.not.ready) cycle
+          count = count + 1_i8
+          id(count) = k
+          visit_level(k) = level
+          added_this_level = added_this_level + 1_i8
         end do
       end do
 
@@ -598,12 +718,12 @@ contains
     order%n_levels = level
     if (rev) call order%reverse()
     deallocate(visit_level, level_start, level_end)
-  end subroutine dag_levelsort_head
+  end subroutine dag_base_levelsort_head
 
   !> \brief Sorting DAG by levels for parallelization based on Kahn's algorithm starting at roots.
-  subroutine dag_levelsort_root(this, order, istat, reverse)
+  subroutine dag_base_levelsort_root(this, order, istat, reverse)
     implicit none
-    class(dag), intent(in) :: this
+    class(dag_base), intent(in), target :: this
     type(order_t), intent(out) :: order       !< level based order
     integer(i8), intent(out) :: istat         !< status code (0 - no error, -1 - cycle found)
     logical, intent(in), optional :: reverse  !< reverse order (default: .false.)
@@ -611,6 +731,8 @@ contains
     integer(i8) :: i, j, k, m, n, count, level, added_this_level
     integer(i8), allocatable :: level_start(:), level_end(:), id(:), visit_level(:)
     logical :: ready, rev
+    integer(i8), pointer :: neigh(:), deps(:)
+    integer(i8) :: nneigh, ndeps
 
     rev = optval(reverse, .false.)
     n = this%n ! in the worst case of a linear DAG, we get as many levels as nodes
@@ -623,7 +745,7 @@ contains
     count = 0_i8
     level = 1_i8
     do i = 1_i8, n
-      if (this%nodes(i)%ndependents() > 0_i8) cycle
+      if (this%n_dependents(i) > 0_i8) cycle
       count = count + 1_i8
       id(count) = i
       visit_level(i) = level
@@ -639,24 +761,31 @@ contains
 
       ! scan all edges of previous level
       do i = level_start(level-1_i8), level_end(level-1_i8)
-        if (.not.allocated(this%nodes(id(i))%edges)) cycle
-        do j = 1_i8, size(this%nodes(id(i))%edges)
-          k = this%nodes(id(i))%edges(j)
+        nneigh = this%n_dependencies(id(i))
+        if (nneigh == 0_i8) cycle
+        neigh => this%dependencies(id(i))
+        if (.not.associated(neigh)) cycle
+        do j = 1_i8, nneigh
+          k = neigh(j)
           if (visit_level(k)>0_i8) cycle ! dependency already treated by earlier node in this level
           ready = .true.
-          do m = 1_i8, this%nodes(k)%ndependents() ! non empty since it is a dependency
-            if ( visit_level(this%nodes(k)%dependents(m)) == 0_i8 &
-            .or. visit_level(this%nodes(k)%dependents(m)) == level ) then
-              ready = .false. ! some dependents not yet ready (0 - not ready, level - not added in previous levels)
-              exit
-            end if
-          end do
-          if (ready) then
-            count = count + 1_i8
-            id(count) = k
-            visit_level(k) = level
-            added_this_level = added_this_level + 1_i8
+          ndeps = this%n_dependents(k)
+          if (ndeps > 0_i8) then
+            deps => this%dependents(k)
+            if (.not.associated(deps)) cycle
+            do m = 1_i8, ndeps ! non empty since it is a dependency
+              if ( visit_level(deps(m)) == 0_i8 &
+              .or. visit_level(deps(m)) == level ) then
+                ready = .false. ! some dependents not yet ready (0 - not ready, level - not added in previous levels)
+                exit
+              end if
+            end do
           end if
+          if (.not.ready) cycle
+          count = count + 1_i8
+          id(count) = k
+          visit_level(k) = level
+          added_this_level = added_this_level + 1_i8
         end do
       end do
 
@@ -678,7 +807,7 @@ contains
     order%n_levels = level
     if (.not.rev) call order%reverse()
     deallocate(visit_level, level_start, level_end)
-  end subroutine dag_levelsort_root
+  end subroutine dag_base_levelsort_root
 
   !> \brief Generate the dependency matrix for the DAG.
   !> \details This is an \(n \times n \) matrix with elements \(A_{ij}\),
