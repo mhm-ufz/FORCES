@@ -1,6 +1,6 @@
 module test_mo_dag
   use funit
-    use mo_dag, only: dag, order_t
+    use mo_dag, only: dag, branching, order_t
     use mo_kind, only: i8
 
   implicit none
@@ -15,6 +15,7 @@ module test_mo_dag
   public :: test_dag_subgraph
   public :: test_dag_tag_to_id
   public :: test_dag_levelsort_with_root
+  public :: test_branching_basic
 
 contains
 
@@ -207,6 +208,38 @@ contains
     id = network%tag_to_id(99_i8)
     @assertEqual(id, -1_i8, message='dag: check tag_to_id for non-existent tag')
   end subroutine test_dag_tag_to_id
+
+  @test
+  subroutine test_branching_basic()
+    implicit none
+    type(branching) :: river
+    integer(i8), parameter :: down(5) = [2_i8, 3_i8, 0_i8, 2_i8, 4_i8]
+    integer(i8), allocatable :: order(:), deps(:)
+    integer(i8) :: istat
+    logical, allocatable :: mat(:,:)
+
+    call river%init(5_i8, down)
+
+    call river%toposort(order, istat)
+    @assertEqual(istat, 0_i8, message='branching: toposort istat')
+    @assertEqual(order, int([1, 5, 4, 2, 3], i8), message='branching: toposort order')
+
+    @assertEqual(river%n_dependencies(2_i8), 2_i8, message='branching: n_dependencies for node 2')
+    @assertEqual(river%n_dependents(2_i8), 1_i8, message='branching: n_dependents for node 2')
+
+    deps = river%all_dependencies(3_i8)
+    @assertEqual(deps, int([1, 2, 4, 5], i8), message='branching: all dependencies for node 3')
+
+    deps = river%all_dependents(1_i8)
+    @assertEqual(deps, int([2, 3], i8), message='branching: all dependents for node 1')
+
+    call river%dependency_matrix(mat)
+    @assertTrue(mat(2,1), message='branching: dependency matrix (2 depends on 1)')
+    @assertTrue(mat(3,2), message='branching: dependency matrix (3 depends on 2)')
+    @assertFalse(mat(1,2), message='branching: dependency matrix (1 depends on 2)')
+
+    call river%destroy()
+  end subroutine test_branching_basic
 
   @test
   subroutine test_dag_levelsort_with_root()

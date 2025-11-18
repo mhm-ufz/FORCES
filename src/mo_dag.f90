@@ -183,6 +183,25 @@ module mo_dag
     final :: dag_final
   end type dag
 
+  !> \class branching
+  !> \brief DAG specialization optimized for river-like branching structures.
+  !! \details Stores a single downstream connection per node and compressed
+  !! upstream adjacency using CSR-like arrays.
+  type, public, extends(dag_base) :: branching
+    integer(i8), allocatable :: down(:)            !< Direct downstream neighbor (0 if sink)
+    integer(i8), allocatable :: up(:)              !< Concatenated upstream neighbors for all nodes
+    integer(i8), allocatable :: n_up(:)            !< Number of upstream neighbors per node
+    integer(i8), allocatable :: off_up(:)          !< Offsets into up(:) for each node
+  contains
+    procedure :: init            => branching_init
+    procedure :: destroy         => branching_destroy
+    procedure :: n_dependencies  => branching_n_dependencies
+    procedure :: n_dependents    => branching_n_dependents
+    procedure :: dependencies    => branching_dependencies
+    procedure :: dependents      => branching_dependents
+    final     :: branching_final
+  end type branching
+
 contains
 
   !> \brief Reverse order.
@@ -832,6 +851,126 @@ contains
       call this%nodes(this%nodes(id)%edges(i))%add_dependent(id)
     end do
   end subroutine dag_set_edges
+
+  !> \brief Initialize branching DAG from downstream linkage.
+  subroutine branching_init(this, n, down, tags)
+    use mo_message, only: error_message
+    class(branching), intent(inout) :: this
+    integer(i8), intent(in) :: n
+    integer(i8), intent(in) :: down(:)
+    integer(i8), intent(in), optional :: tags(:)
+    integer(i8) :: i, total_up, sink, idx
+    integer(i8), allocatable :: cursor(:)
+
+    if (n < 1_i8) call error_message('branching_init: n must be >= 1')
+    if (size(down, kind=i8) /= n) call error_message('branching_init: down size mismatch')
+    if (present(tags)) then
+      if (size(tags, kind=i8) /= n) call error_message('branching_init: tags size mismatch')
+    end if
+
+    call this%destroy()
+    this%n = n
+
+    allocate(this%down(n))
+    this%down = down
+
+    allocate(this%n_up(n), source=0_i8)
+    do i = 1_i8, n
+      sink = this%down(i)
+      if (sink == 0_i8) cycle
+      if (sink < 1_i8 .or. sink > n) call error_message('branching_init: downstream id out of range')
+      this%n_up(sink) = this%n_up(sink) + 1_i8
+    end do
+
+    allocate(this%off_up(n))
+    total_up = 1_i8
+    do i = 1_i8, n
+      this%off_up(i) = total_up
+      total_up = total_up + this%n_up(i)
+    end do
+    total_up = total_up - 1_i8
+
+    allocate(this%up(total_up))
+    if (total_up > 0_i8) then
+      allocate(cursor(n), source=0_i8)
+      do i = 1_i8, n
+        sink = this%down(i)
+        if (sink <= 0_i8) cycle
+        idx = this%off_up(sink) + cursor(sink)
+        this%up(idx) = i
+        cursor(sink) = cursor(sink) + 1_i8
+      end do
+      deallocate(cursor)
+    end if
+
+    if (present(tags)) then
+      allocate(this%tags(n))
+      this%tags = tags
+    else
+      allocate(this%tags(n))
+      do i = 1_i8, n
+        this%tags(i) = i
+      end do
+    end if
+  end subroutine branching_init
+
+  !> \brief Destroy branching DAG resources.
+  subroutine branching_destroy(this)
+    class(branching), intent(inout) :: this
+    if (allocated(this%down)) deallocate(this%down)
+    if (allocated(this%up)) deallocate(this%up)
+    if (allocated(this%n_up)) deallocate(this%n_up)
+    if (allocated(this%off_up)) deallocate(this%off_up)
+    call dag_base_destroy(this)
+  end subroutine branching_destroy
+
+  !> \brief Number of upstream neighbors for node `id`.
+  pure integer(i8) function branching_n_dependencies(this, id)
+    class(branching), intent(in), target :: this
+    integer(i8), intent(in) :: id
+    branching_n_dependencies = this%n_up(id)
+  end function branching_n_dependencies
+
+  !> \brief Number of downstream neighbors for node `id` (0 or 1).
+  pure integer(i8) function branching_n_dependents(this, id)
+    class(branching), intent(in), target :: this
+    integer(i8), intent(in) :: id
+    if (this%down(id) > 0_i8) then
+      branching_n_dependents = 1_i8
+    else
+      branching_n_dependents = 0_i8
+    end if
+  end function branching_n_dependents
+
+  !> \brief Pointer to upstream neighbors for node `id`.
+  function branching_dependencies(this, id) result(deps)
+    class(branching), intent(in), target :: this
+    integer(i8), intent(in) :: id
+    integer(i8), pointer :: deps(:)
+    if (this%n_up(id) > 0_i8) then
+      deps => this%up(this%off_up(id):this%off_up(id)+this%n_up(id)-1_i8)
+    else
+      deps => empty_int_vec
+    end if
+  end function branching_dependencies
+
+  !> \brief Pointer to downstream neighbor (if any) for node `id`.
+  function branching_dependents(this, id) result(deps)
+    class(branching), intent(in), target :: this
+    integer(i8), intent(in) :: id
+    integer(i8), pointer :: deps(:)
+    if (this%down(id) > 0_i8) then
+      deps => this%down(id:id)
+    else
+      deps => empty_int_vec
+    end if
+  end function branching_dependents
+
+  !> \brief Ensure branching DAG resources are freed when going out of scope.
+  subroutine branching_final(this)
+    type(branching) :: this
+    call this%destroy()
+  end subroutine branching_final
 
   !> \brief Sorts an edge array `ivec` in increasing order by node number.
   !> \details Uses a basic recursive quicksort (with insertion sort for partitions with \(\le\) 20 elements).
