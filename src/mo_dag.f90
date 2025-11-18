@@ -49,6 +49,7 @@ module mo_dag
   integer(i8), parameter :: dfs_continue      = 0_i8  !< Continue traversal to children
   integer(i8), parameter :: dfs_skip_children = 1_i8  !< Skip children of this node
   integer(i8), parameter :: dfs_stop_all      = 2_i8  !< Stop traversal entirely
+  integer(i8), target :: empty_int_vec(0) = [ integer(i8) :: ] !< Shared zero-length target for empty adjacency lists
 
   !> \class traversal_handler
   !> \brief Abstract base type for DFS traversal handlers.
@@ -113,8 +114,8 @@ module mo_dag
     procedure :: traverse    => dag_base_traverse
     procedure :: toposort    => dag_base_toposort
     procedure :: levelsort   => dag_base_levelsort
-    procedure :: get_dependencies => dag_base_get_dependencies
-    procedure :: get_dependents   => dag_base_get_dependents
+    procedure :: all_dependencies => dag_base_all_dependencies
+    procedure :: all_dependents   => dag_base_all_dependents
   end type dag_base
 
   !> \brief Abstract interfaces used by \ref dag_base for adjacency access.
@@ -280,56 +281,44 @@ contains
   end subroutine dag_base_traverse
 
   !> \brief Generate list of all dependencies and their sub-dependencies for a given node.
-  function dag_base_get_dependencies(this, id) result(deps)
+  function dag_base_all_dependencies(this, id) result(deps)
     class(dag_base), intent(in), target :: this
     integer(i8), intent(in) :: id !< node id
     integer(i8), allocatable :: deps(:)
     type(traversal_visit) :: handler
     integer(i8), pointer :: deps_ptr(:)
-    integer(i8) :: i, ndeps
-    ndeps = this%n_dependencies(id)
-    if (ndeps == 0_i8) then
+    integer(i8) :: i
+    if (this%n_dependencies(id) == 0_i8) then
       allocate(deps(0))
       return
     end if
     allocate(handler%visited(this%n), source=.false.)
     deps_ptr => this%dependencies(id)
-    if (.not.associated(deps_ptr)) then
-      allocate(deps(0))
-      deallocate(handler%visited)
-      return
-    end if
     call this%traverse(handler, deps_ptr)
     allocate(deps(count(handler%visited)))
     deps = pack([(i, i=1_i8, this%n)], handler%visited)
     deallocate(handler%visited)
-  end function dag_base_get_dependencies
+  end function dag_base_all_dependencies
 
   !> \brief Generate list of all dependents and their sub-dependents for a given node.
-  function dag_base_get_dependents(this, id) result(deps)
+  function dag_base_all_dependents(this, id) result(deps)
     class(dag_base), intent(in), target :: this
     integer(i8), intent(in) :: id !< node id
     integer(i8), allocatable :: deps(:)
     type(traversal_visit) :: handler
     integer(i8), pointer :: deps_ptr(:)
-    integer(i8) :: i, ndeps
-    ndeps = this%n_dependents(id)
-    if (ndeps == 0_i8) then
+    integer(i8) :: i
+    if (this%n_dependents(id) == 0_i8) then
       allocate(deps(0))
       return
     end if
     allocate(handler%visited(this%n), source=.false.)
     deps_ptr => this%dependents(id)
-    if (.not.associated(deps_ptr)) then
-      allocate(deps(0))
-      deallocate(handler%visited)
-      return
-    end if
     call this%traverse(handler, deps_ptr, down=.true.)
     allocate(deps(count(handler%visited)))
     deps = pack([(i, i=1_i8, this%n)], handler%visited)
     deallocate(handler%visited)
-  end function dag_base_get_dependents
+  end function dag_base_all_dependents
 
   !> \brief Main toposort routine
   subroutine dag_base_toposort(this, order, istat)
@@ -341,8 +330,6 @@ contains
     logical, allocatable, dimension(:) :: checking, visited
     integer(i8), pointer :: deps(:)
     integer(i8) :: ndeps
-
-    if (this%n==0_i8) return
 
     allocate(checking(this%n), source=.false.)
     allocate(visited(this%n), source=.false.)
@@ -670,7 +657,7 @@ contains
     if (allocated(this%nodes(id)%edges)) then
       edges => this%nodes(id)%edges
     else
-      nullify(edges)
+      edges => empty_int_vec
     end if
   end function dag_dependencies
 
@@ -684,7 +671,7 @@ contains
     if (allocated(this%nodes(id)%dependents)) then
       deps => this%nodes(id)%dependents
     else
-      nullify(deps)
+      deps => empty_int_vec
     end if
   end function dag_dependents
 

@@ -100,20 +100,20 @@ contains
     call network%set_edges(4_i8, [5_i8])     ! 4 depends on 5
     call network%set_edges(5_i8, [2_i8])     ! 5 depends on 2
 
-    ! Test get_dependencies for node 2 (should return 1)
-    deps = network%get_dependencies(2_i8)
+    ! Test all_dependencies for node 2 (should return 1)
+    deps = network%all_dependencies(2_i8)
     @assertEqual(size(deps), 1_i8, message='dag: check number of dependencies for node 2')
     @assertEqual(deps(1), 1_i8, message='dag: check dependency for node 2')
 
-    ! Test get_dependencies for node 3 (should return 1 and 5)
-    deps = network%get_dependencies(3_i8)
+    ! Test all_dependencies for node 3 (should return 1 and 5)
+    deps = network%all_dependencies(3_i8)
     @assertEqual(size(deps), 3_i8, message='dag: check number of dependencies for node 3')
     @assertEqual(deps(1), 1_i8, message='dag: check first dependency for node 3')
     @assertEqual(deps(2), 2_i8, message='dag: check second dependency for node 3')
     @assertEqual(deps(3), 5_i8, message='dag: check third dependency for node 3')
 
-    ! Test get_dependencies for node 1 (should return 0)
-    deps = network%get_dependencies(1_i8)
+    ! Test all_dependencies for node 1 (should return 0)
+    deps = network%all_dependencies(1_i8)
     @assertEqual(size(deps), 0_i8, message='dag: check number of dependencies for node 1')
   end subroutine test_dag_dependencies
 
@@ -131,22 +131,22 @@ contains
     call network%set_edges(4_i8, [5_i8])     ! 4 depends on 5
     call network%set_edges(5_i8, [2_i8])     ! 5 depends on 2
 
-    ! Test get_dependents for node 1 (should return 2 and 3)
-    deps = network%get_dependents(1_i8)
+    ! Test all_dependents for node 1 (should return 2 and 3)
+    deps = network%all_dependents(1_i8)
     @assertEqual(size(deps), 4_i8, message='dag: check number of dependents for node 1')
     @assertEqual(deps(1), 2_i8, message='dag: check first dependent for node 1')
     @assertEqual(deps(2), 3_i8, message='dag: check second dependent for node 1')
     @assertEqual(deps(3), 4_i8, message='dag: check third dependent for node 1')
     @assertEqual(deps(4), 5_i8, message='dag: check fourth dependent for node 1')
 
-    ! Test get_dependents for node 5 (should return 3 and 4)
-    deps = network%get_dependents(5_i8)
+    ! Test all_dependents for node 5 (should return 3 and 4)
+    deps = network%all_dependents(5_i8)
     @assertEqual(size(deps), 2_i8, message='dag: check number of dependents for node 5')
     @assertEqual(deps(1), 3_i8, message='dag: check first dependent for node 5')
     @assertEqual(deps(2), 4_i8, message='dag: check second dependent for node 5')
 
-    ! Test get_dependents for node 2 (should return 5)
-    deps = network%get_dependents(2_i8)
+    ! Test all_dependents for node 2 (should return 5)
+    deps = network%all_dependents(2_i8)
     @assertEqual(size(deps), 3_i8, message='dag: check number of dependents for node 2')
     @assertEqual(deps(1), 3_i8, message='dag: check first dependent for node 2')
     @assertEqual(deps(2), 4_i8, message='dag: check second dependent for node 2')
