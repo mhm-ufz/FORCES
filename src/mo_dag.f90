@@ -117,6 +117,25 @@ module mo_dag
     procedure :: get_dependents   => dag_base_get_dependents
   end type dag_base
 
+  !> \brief Abstract interfaces used by \ref dag_base for adjacency access.
+  abstract interface
+    pure integer(i8) function dag_base_count_if(this, id)
+      import :: dag_base, i8
+      class(dag_base), intent(in), target :: this
+      integer(i8), intent(in) :: id
+    end function dag_base_count_if
+
+    !> \brief Return pointer to adjacency list for node `id`.
+    !! \details Callers must ensure the owning DAG instance remains a valid
+    !! pointer target for as long as they rely on the returned reference.
+    function dag_base_neighbors_if(this, id) result(neigh)
+      import :: dag_base, i8
+      class(dag_base), intent(in), target :: this
+      integer(i8), intent(in) :: id
+      integer(i8), pointer :: neigh(:)
+    end function dag_base_neighbors_if
+  end interface
+
   !> \class node
   !> \brief A node of a directed acyclic graph (DAG)
   type :: node
@@ -161,25 +180,6 @@ module mo_dag
     procedure, private :: rebuild_tag_map   => dag_rebuild_tag_map
   end type dag
 
-  !> \brief Abstract interfaces used by \ref dag_base for adjacency access.
-  abstract interface
-    pure integer(i8) function dag_base_count_if(this, id)
-      import :: dag_base, i8
-      class(dag_base), intent(in), target :: this
-      integer(i8), intent(in) :: id
-    end function dag_base_count_if
-
-    !> \brief Return pointer to adjacency list for node `id`.
-    !! \details Callers must ensure the owning DAG instance remains a valid
-    !! pointer target for as long as they rely on the returned reference.
-    function dag_base_neighbors_if(this, id) result(neigh)
-      import :: dag_base, i8
-      class(dag_base), intent(in), target :: this
-      integer(i8), intent(in) :: id
-      integer(i8), pointer :: neigh(:)
-    end function dag_base_neighbors_if
-  end interface
-
 contains
 
   !> \brief Reverse order.
@@ -210,106 +210,6 @@ contains
     integer(i8) :: action
     action = dfs_continue
   end function
-
-  !> \brief number of edges for this node
-  pure integer(i8) function node_nedges(this)
-    class(node),intent(in) :: this
-    if (allocated(this%edges)) then
-      node_nedges = size(this%edges)
-    else
-      node_nedges = 0_i8
-    end if
-  end function node_nedges
-
-  !> \brief number of dependents for this node
-  pure integer(i8) function node_ndependents(this)
-    class(node),intent(in) :: this
-    if (allocated(this%dependents)) then
-      node_ndependents = size(this%dependents)
-    else
-      node_ndependents = 0_i8
-    end if
-  end function node_ndependents
-
-  !> \brief Specify the edge indices for this node
-  subroutine node_set_edge_vector(this,edges)
-    class(node),intent(inout) :: this
-    integer(i8),dimension(:),intent(in) :: edges
-    this%edges = edges
-    call sort_ascending(this%edges)
-  end subroutine node_set_edge_vector
-
-  !> \brief Add an edge index for this node
-  subroutine node_add_edge(this,e)
-    class(node),intent(inout) :: this
-    integer(i8),intent(in) :: e
-    if (allocated(this%edges)) then
-      if (.not. any(e==this%edges)) then ! don't add if already there
-        this%edges = [this%edges, e]
-        call sort_ascending(this%edges)
-      end if
-    else
-      this%edges = [e]
-    end if
-  end subroutine node_add_edge
-
-  !> \brief Add a dependent index for this node
-  subroutine node_add_dependent(this,d)
-    class(node),intent(inout) :: this
-    integer(i8),intent(in) :: d
-    if (allocated(this%dependents)) then
-      if (.not. any(d==this%dependents)) then ! don't add if already there
-        this%dependents = [this%dependents, d]
-        call sort_ascending(this%dependents)
-      end if
-    else
-      this%dependents = [d]
-    end if
-  end subroutine node_add_dependent
-
-  !> \brief Number of dependencies for node `id` in the dense DAG implementation.
-  pure integer(i8) function dag_n_dependencies(this, id)
-    class(dag), intent(in), target :: this
-    integer(i8), intent(in) :: id
-    dag_n_dependencies = this%nodes(id)%nedges()
-  end function dag_n_dependencies
-
-  !> \brief Number of dependents for node `id` in the dense DAG implementation.
-  pure integer(i8) function dag_n_dependents(this, id)
-    class(dag), intent(in), target :: this
-    integer(i8), intent(in) :: id
-    dag_n_dependents = this%nodes(id)%ndependents()
-  end function dag_n_dependents
-
-  !> \brief Pointer to the dependency list of node `id`.
-  !! \details The caller must ensure the DAG instance remains a valid target for
-  !! the full duration of the pointer usage (e.g. do not let the graph go out of
-  !! scope or deallocate it) so the association stays valid after this function
-  !! returns.
-  function dag_dependencies(this, id) result(edges)
-    class(dag), intent(in), target :: this
-    integer(i8), intent(in) :: id
-    integer(i8), pointer :: edges(:)
-    if (allocated(this%nodes(id)%edges)) then
-      edges => this%nodes(id)%edges
-    else
-      nullify(edges)
-    end if
-  end function dag_dependencies
-
-  !> \brief Pointer to the dependents list of node `id`.
-  !! \details The caller must ensure the DAG instance remains a valid target for
-  !! the duration of the pointer usage to keep the association valid.
-  function dag_dependents(this, id) result(deps)
-    class(dag), intent(in), target :: this
-    integer(i8), intent(in) :: id
-    integer(i8), pointer :: deps(:)
-    if (allocated(this%nodes(id)%dependents)) then
-      deps => this%nodes(id)%dependents
-    else
-      nullify(deps)
-    end if
-  end function dag_dependents
 
   !> \brief Traverse graph from given starting node.
   subroutine dag_base_traverse(this, handler, ids, down)
@@ -378,41 +278,6 @@ contains
 
     deallocate(stack)
   end subroutine dag_base_traverse
-  
-  !> \brief Construct subgraph containing given nodes and their dependencies.
-  !> \details This will renumber the node ids but will conserve their tags.
-  function dag_subgraph(this, ids, down) result(subgraph)
-    class(dag), intent(in) :: this
-    integer(i8), dimension(:), intent(in) :: ids !< ids to traverse from (by default all)
-    logical, intent(in), optional :: down !< generate downstream graph if .true. (.false. by default to generate upstream graph)
-    type(traversal_visit) :: handler
-    type(dag) :: subgraph !< dag containing the subgraph containing given nodes and their dependencies
-    integer(i8), allocatable :: idmap(:), subtags(:)
-    integer(i8) :: i, j, nsub
-    logical :: down_
-
-    down_ = optval(down, .false.)
-    allocate(handler%visited(this%n), source=.false.)
-    call this%traverse(handler, ids, down)
-
-    nsub = count(handler%visited)
-    subtags = pack(this%tags, handler%visited)
-    idmap = unpack([(i, i=1_i8, nsub)], handler%visited, 0_i8)
-
-    call subgraph%init(nsub, subtags)
-    do i = 1_i8, this%n
-      if (.not.handler%visited(i)) cycle
-      if (down_) then
-        do j = 1_i8, this%nodes(i)%ndependents()
-          call subgraph%add_edge(idmap(this%nodes(i)%dependents(j)), idmap(i))
-        end do
-      else
-        call subgraph%set_edges(idmap(i), [(idmap(this%nodes(i)%edges(j)), j=1_i8,this%nodes(i)%nedges())])
-      end if
-    end do
-
-    deallocate(handler%visited, idmap, subtags)
-  end function dag_subgraph
 
   !> \brief Generate list of all dependencies and their sub-dependencies for a given node.
   function dag_base_get_dependencies(this, id) result(deps)
@@ -465,92 +330,6 @@ contains
     deps = pack([(i, i=1_i8, this%n)], handler%visited)
     deallocate(handler%visited)
   end function dag_base_get_dependents
-
-  !> \brief Rebuild the map from node tags to array indices.
-  subroutine dag_rebuild_tag_map(this)
-    class(dag), intent(inout) :: this
-    integer(i8) :: i
-    if (allocated(this%tag_to_id_map)) deallocate(this%tag_to_id_map)
-    if (.not.allocated(this%nodes)) return
-    this%max_tag = maxval(this%tags)
-    allocate(this%tag_to_id_map(this%max_tag), source=-1_i8) ! Initialize with invalid index
-    do i = 1_i8, this%n
-      this%tag_to_id_map(this%tags(i)) = i
-    end do
-  end subroutine dag_rebuild_tag_map
-
-  !> \brief Get the current array index for a given node tag.
-  !> \details Returns -1 if the tag does not exist or is out of bounds.
-  pure elemental function dag_tag_to_id(this, tag) result(id)
-    class(dag), intent(in) :: this
-    integer(i8), intent(in) :: tag
-    integer(i8) :: id
-    if (.not.allocated(this%tag_to_id_map)) then
-      id = -1_i8
-    else if (tag < 1_i8 .or. tag > size(this%tag_to_id_map)) then
-      id = -1_i8
-    else
-      id = this%tag_to_id_map(tag)
-    end if
-  end function dag_tag_to_id
-
-  !> \brief Destroy the `dag`.
-  subroutine dag_destroy(this)
-    class(dag),intent(inout) :: this
-    this%n = 0_i8
-    if (allocated(this%nodes)) deallocate(this%nodes)
-  end subroutine dag_destroy
-
-  !> \brief Set the number of nodes in the dag.
-  subroutine dag_set_nodes(this, n, tags)
-    use mo_message, only: error_message
-    class(dag), intent(inout) :: this
-    integer(i8), intent(in)   :: n !< number of nodes
-    integer(i8), dimension(n), intent(in), optional :: tags !< tags of the nodes (will be their index by default)
-    integer(i8) :: i !! counter
-    if (n<1_i8) call error_message('error: n must be >= 1')
-    if (allocated(this%nodes)) deallocate(this%nodes)
-    this%n = n
-    allocate(this%nodes(n))
-    if (present(tags)) then
-      this%tags = tags
-      call this%rebuild_tag_map()
-    else
-      this%max_tag = n
-      if (allocated(this%tag_to_id_map)) deallocate(this%tag_to_id_map)
-      allocate(this%tag_to_id_map(n))
-      if (allocated(this%tags)) deallocate(this%tags)
-      allocate(this%tags(n))
-      !$omp parallel do default(shared) schedule(static)
-      do i = 1_i8, n
-        ! default node tags from array IDs
-        this%tags(i) = i
-        this%tag_to_id_map(i) = i
-      end do
-      !$omp end parallel do
-    end if
-  end subroutine dag_set_nodes
-
-  !> \brief Add an edge to a dag.
-  subroutine dag_add_edge(this,id,target_id)
-    class(dag),intent(inout) :: this
-    integer(i8),intent(in)   :: id !< node id
-    integer(i8),intent(in)   :: target_id !< the node to connect to `id`
-    call this%nodes(id)%set_edges(target_id)
-    call this%nodes(target_id)%add_dependent(id)
-  end subroutine dag_add_edge
-
-  !> \brief Set the edges for a node in a dag
-  subroutine dag_set_edges(this,id,edges)
-    class(dag),intent(inout)            :: this
-    integer(i8),intent(in)              :: id !< node id
-    integer(i8),dimension(:),intent(in) :: edges
-    integer(i8) :: i
-    call this%nodes(id)%set_edges(edges)
-    do i = 1_i8, this%nodes(id)%nedges()
-      call this%nodes(this%nodes(id)%edges(i))%add_dependent(id)
-    end do
-  end subroutine dag_set_edges
 
   !> \brief Main toposort routine
   subroutine dag_base_toposort(this, order, istat)
@@ -808,6 +587,227 @@ contains
     if (.not.rev) call order%reverse()
     deallocate(visit_level, level_start, level_end)
   end subroutine dag_base_levelsort_root
+
+  !> \brief number of edges for this node
+  pure integer(i8) function node_nedges(this)
+    class(node),intent(in) :: this
+    if (allocated(this%edges)) then
+      node_nedges = size(this%edges)
+    else
+      node_nedges = 0_i8
+    end if
+  end function node_nedges
+
+  !> \brief number of dependents for this node
+  pure integer(i8) function node_ndependents(this)
+    class(node),intent(in) :: this
+    if (allocated(this%dependents)) then
+      node_ndependents = size(this%dependents)
+    else
+      node_ndependents = 0_i8
+    end if
+  end function node_ndependents
+
+  !> \brief Specify the edge indices for this node
+  subroutine node_set_edge_vector(this,edges)
+    class(node),intent(inout) :: this
+    integer(i8),dimension(:),intent(in) :: edges
+    this%edges = edges
+    call sort_ascending(this%edges)
+  end subroutine node_set_edge_vector
+
+  !> \brief Add an edge index for this node
+  subroutine node_add_edge(this,e)
+    class(node),intent(inout) :: this
+    integer(i8),intent(in) :: e
+    if (allocated(this%edges)) then
+      if (.not. any(e==this%edges)) then ! don't add if already there
+        this%edges = [this%edges, e]
+        call sort_ascending(this%edges)
+      end if
+    else
+      this%edges = [e]
+    end if
+  end subroutine node_add_edge
+
+  !> \brief Add a dependent index for this node
+  subroutine node_add_dependent(this,d)
+    class(node),intent(inout) :: this
+    integer(i8),intent(in) :: d
+    if (allocated(this%dependents)) then
+      if (.not. any(d==this%dependents)) then ! don't add if already there
+        this%dependents = [this%dependents, d]
+        call sort_ascending(this%dependents)
+      end if
+    else
+      this%dependents = [d]
+    end if
+  end subroutine node_add_dependent
+
+  !> \brief Number of dependencies for node `id` in the dense DAG implementation.
+  pure integer(i8) function dag_n_dependencies(this, id)
+    class(dag), intent(in), target :: this
+    integer(i8), intent(in) :: id
+    dag_n_dependencies = this%nodes(id)%nedges()
+  end function dag_n_dependencies
+
+  !> \brief Number of dependents for node `id` in the dense DAG implementation.
+  pure integer(i8) function dag_n_dependents(this, id)
+    class(dag), intent(in), target :: this
+    integer(i8), intent(in) :: id
+    dag_n_dependents = this%nodes(id)%ndependents()
+  end function dag_n_dependents
+
+  !> \brief Pointer to the dependency list of node `id`.
+  !! \details The caller must ensure the DAG instance remains a valid target for
+  !! the full duration of the pointer usage (e.g. do not let the graph go out of
+  !! scope or deallocate it) so the association stays valid after this function
+  !! returns.
+  function dag_dependencies(this, id) result(edges)
+    class(dag), intent(in), target :: this
+    integer(i8), intent(in) :: id
+    integer(i8), pointer :: edges(:)
+    if (allocated(this%nodes(id)%edges)) then
+      edges => this%nodes(id)%edges
+    else
+      nullify(edges)
+    end if
+  end function dag_dependencies
+
+  !> \brief Pointer to the dependents list of node `id`.
+  !! \details The caller must ensure the DAG instance remains a valid target for
+  !! the duration of the pointer usage to keep the association valid.
+  function dag_dependents(this, id) result(deps)
+    class(dag), intent(in), target :: this
+    integer(i8), intent(in) :: id
+    integer(i8), pointer :: deps(:)
+    if (allocated(this%nodes(id)%dependents)) then
+      deps => this%nodes(id)%dependents
+    else
+      nullify(deps)
+    end if
+  end function dag_dependents
+
+  !> \brief Construct subgraph containing given nodes and their dependencies.
+  !> \details This will renumber the node ids but will conserve their tags.
+  function dag_subgraph(this, ids, down) result(subgraph)
+    class(dag), intent(in) :: this
+    integer(i8), dimension(:), intent(in) :: ids !< ids to traverse from (by default all)
+    logical, intent(in), optional :: down !< generate downstream graph if .true. (.false. by default to generate upstream graph)
+    type(traversal_visit) :: handler
+    type(dag) :: subgraph !< dag containing the subgraph containing given nodes and their dependencies
+    integer(i8), allocatable :: idmap(:), subtags(:)
+    integer(i8) :: i, j, nsub
+    logical :: down_
+
+    down_ = optval(down, .false.)
+    allocate(handler%visited(this%n), source=.false.)
+    call this%traverse(handler, ids, down)
+
+    nsub = count(handler%visited)
+    subtags = pack(this%tags, handler%visited)
+    idmap = unpack([(i, i=1_i8, nsub)], handler%visited, 0_i8)
+
+    call subgraph%init(nsub, subtags)
+    do i = 1_i8, this%n
+      if (.not.handler%visited(i)) cycle
+      if (down_) then
+        do j = 1_i8, this%nodes(i)%ndependents()
+          call subgraph%add_edge(idmap(this%nodes(i)%dependents(j)), idmap(i))
+        end do
+      else
+        call subgraph%set_edges(idmap(i), [(idmap(this%nodes(i)%edges(j)), j=1_i8,this%nodes(i)%nedges())])
+      end if
+    end do
+
+    deallocate(handler%visited, idmap, subtags)
+  end function dag_subgraph
+
+  !> \brief Rebuild the map from node tags to array indices.
+  subroutine dag_rebuild_tag_map(this)
+    class(dag), intent(inout) :: this
+    integer(i8) :: i
+    if (allocated(this%tag_to_id_map)) deallocate(this%tag_to_id_map)
+    if (.not.allocated(this%nodes)) return
+    this%max_tag = maxval(this%tags)
+    allocate(this%tag_to_id_map(this%max_tag), source=-1_i8) ! Initialize with invalid index
+    do i = 1_i8, this%n
+      this%tag_to_id_map(this%tags(i)) = i
+    end do
+  end subroutine dag_rebuild_tag_map
+
+  !> \brief Get the current array index for a given node tag.
+  !> \details Returns -1 if the tag does not exist or is out of bounds.
+  pure elemental function dag_tag_to_id(this, tag) result(id)
+    class(dag), intent(in) :: this
+    integer(i8), intent(in) :: tag
+    integer(i8) :: id
+    if (.not.allocated(this%tag_to_id_map)) then
+      id = -1_i8
+    else if (tag < 1_i8 .or. tag > size(this%tag_to_id_map)) then
+      id = -1_i8
+    else
+      id = this%tag_to_id_map(tag)
+    end if
+  end function dag_tag_to_id
+
+  !> \brief Destroy the `dag`.
+  subroutine dag_destroy(this)
+    class(dag),intent(inout) :: this
+    this%n = 0_i8
+    if (allocated(this%nodes)) deallocate(this%nodes)
+  end subroutine dag_destroy
+
+  !> \brief Set the number of nodes in the dag.
+  subroutine dag_set_nodes(this, n, tags)
+    use mo_message, only: error_message
+    class(dag), intent(inout) :: this
+    integer(i8), intent(in)   :: n !< number of nodes
+    integer(i8), dimension(n), intent(in), optional :: tags !< tags of the nodes (will be their index by default)
+    integer(i8) :: i !! counter
+    if (n<1_i8) call error_message('error: n must be >= 1')
+    if (allocated(this%nodes)) deallocate(this%nodes)
+    this%n = n
+    allocate(this%nodes(n))
+    if (present(tags)) then
+      this%tags = tags
+      call this%rebuild_tag_map()
+    else
+      this%max_tag = n
+      if (allocated(this%tag_to_id_map)) deallocate(this%tag_to_id_map)
+      allocate(this%tag_to_id_map(n))
+      if (allocated(this%tags)) deallocate(this%tags)
+      allocate(this%tags(n))
+      !$omp parallel do default(shared) schedule(static)
+      do i = 1_i8, n
+        ! default node tags from array IDs
+        this%tags(i) = i
+        this%tag_to_id_map(i) = i
+      end do
+      !$omp end parallel do
+    end if
+  end subroutine dag_set_nodes
+
+  !> \brief Add an edge to a dag.
+  subroutine dag_add_edge(this,id,target_id)
+    class(dag),intent(inout) :: this
+    integer(i8),intent(in)   :: id !< node id
+    integer(i8),intent(in)   :: target_id !< the node to connect to `id`
+    call this%nodes(id)%set_edges(target_id)
+    call this%nodes(target_id)%add_dependent(id)
+  end subroutine dag_add_edge
+
+  !> \brief Set the edges for a node in a dag
+  subroutine dag_set_edges(this,id,edges)
+    class(dag),intent(inout)            :: this
+    integer(i8),intent(in)              :: id !< node id
+    integer(i8),dimension(:),intent(in) :: edges
+    integer(i8) :: i
+    call this%nodes(id)%set_edges(edges)
+    do i = 1_i8, this%nodes(id)%nedges()
+      call this%nodes(this%nodes(id)%edges(i))%add_dependent(id)
+    end do
+  end subroutine dag_set_edges
 
   !> \brief Generate the dependency matrix for the DAG.
   !> \details This is an \(n \times n \) matrix with elements \(A_{ij}\),
