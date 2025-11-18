@@ -117,6 +117,7 @@ module mo_dag
     procedure :: all_dependencies  => dag_base_all_dependencies
     procedure :: all_dependents    => dag_base_all_dependents
     procedure :: dependency_matrix => dag_base_dependency_matrix
+    procedure :: destroy           => dag_base_destroy
   end type dag_base
 
   !> \brief Abstract interfaces used by \ref dag_base for adjacency access.
@@ -179,6 +180,7 @@ module mo_dag
     procedure :: dependencies               => dag_dependencies
     procedure :: dependents                 => dag_dependents
     procedure, private :: rebuild_tag_map   => dag_rebuild_tag_map
+    final :: dag_final
   end type dag
 
 contains
@@ -319,6 +321,13 @@ contains
     deps = pack([(i, i=1_i8, this%n)], handler%visited)
     deallocate(handler%visited)
   end function dag_base_all_dependents
+
+  !> \brief Default destroy implementation shared by all DAGs.
+  subroutine dag_base_destroy(this)
+    class(dag_base), intent(inout) :: this
+    this%n = 0_i8
+    if (allocated(this%tags)) deallocate(this%tags)
+  end subroutine dag_base_destroy
 
   !> \brief Generate the dependency matrix for the DAG.
   !> \details This is an \(n \times n \) logical matrix with elements \(A_{ij}\)
@@ -761,9 +770,17 @@ contains
   !> \brief Destroy the `dag`.
   subroutine dag_destroy(this)
     class(dag),intent(inout) :: this
-    this%n = 0_i8
     if (allocated(this%nodes)) deallocate(this%nodes)
+    if (allocated(this%tag_to_id_map)) deallocate(this%tag_to_id_map)
+    this%max_tag = 0_i8
+    call dag_base_destroy(this)
   end subroutine dag_destroy
+
+  !> \brief Fortran FINAL procedure to ensure cleanup when `dag` goes out of scope.
+  subroutine dag_final(this)
+    type(dag) :: this
+    call this%destroy()
+  end subroutine dag_final
 
   !> \brief Set the number of nodes in the dag.
   subroutine dag_set_nodes(this, n, tags)
