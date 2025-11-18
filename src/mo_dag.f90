@@ -111,11 +111,12 @@ module mo_dag
     procedure(dag_base_count_if), deferred :: n_dependents     !< Number of downstream nodes per id
     procedure(dag_base_neighbors_if), deferred :: dependencies !< Access upstream node ids
     procedure(dag_base_neighbors_if), deferred :: dependents   !< Access downstream node ids
-    procedure :: traverse    => dag_base_traverse
-    procedure :: toposort    => dag_base_toposort
-    procedure :: levelsort   => dag_base_levelsort
-    procedure :: all_dependencies => dag_base_all_dependencies
-    procedure :: all_dependents   => dag_base_all_dependents
+    procedure :: traverse          => dag_base_traverse
+    procedure :: toposort          => dag_base_toposort
+    procedure :: levelsort         => dag_base_levelsort
+    procedure :: all_dependencies  => dag_base_all_dependencies
+    procedure :: all_dependents    => dag_base_all_dependents
+    procedure :: dependency_matrix => dag_base_dependency_matrix
   end type dag_base
 
   !> \brief Abstract interfaces used by \ref dag_base for adjacency access.
@@ -170,7 +171,6 @@ module mo_dag
     procedure :: init                       => dag_set_nodes
     procedure :: add_edge                   => dag_add_edge
     procedure :: set_edges                  => dag_set_edges
-    procedure :: generate_dependency_matrix => dag_generate_dependency_matrix
     procedure :: subgraph                   => dag_subgraph
     procedure :: destroy                    => dag_destroy
     procedure :: tag_to_id                  => dag_tag_to_id
@@ -319,6 +319,26 @@ contains
     deps = pack([(i, i=1_i8, this%n)], handler%visited)
     deallocate(handler%visited)
   end function dag_base_all_dependents
+
+  !> \brief Generate the dependency matrix for the DAG.
+  !> \details This is an \(n \times n \) logical matrix with elements \(A_{ij}\)
+  !! such that \(A_{ij}\) is true when node \(i\) depends on node \(j\).
+  subroutine dag_base_dependency_matrix(this, mat)
+    class(dag_base), intent(in), target :: this
+    logical, dimension(:,:), allocatable, intent(out) :: mat !< dependency matrix
+    integer(i8) :: i, j, ndeps
+    integer(i8), pointer :: deps(:)
+
+    allocate(mat(this%n, this%n), source=.false.)
+    do i = 1_i8, this%n
+      ndeps = this%n_dependencies(i)
+      if (ndeps == 0_i8) cycle
+      deps => this%dependencies(i)
+      do j = 1_i8, ndeps
+        mat(i, deps(j)) = .true.
+      end do
+    end do
+  end subroutine dag_base_dependency_matrix
 
   !> \brief Main toposort routine
   subroutine dag_base_toposort(this, order, istat)
@@ -795,24 +815,6 @@ contains
       call this%nodes(this%nodes(id)%edges(i))%add_dependent(id)
     end do
   end subroutine dag_set_edges
-
-  !> \brief Generate the dependency matrix for the DAG.
-  !> \details This is an \(n \times n \) matrix with elements \(A_{ij}\),
-  !! such that \(A_{ij}\) is true if node \(i\) depends on node \(j\).
-  subroutine dag_generate_dependency_matrix(this,mat)
-    class(dag),intent(in) :: this
-    logical,dimension(:,:),intent(out),allocatable :: mat !< dependency matrix
-    integer(i8) :: i ! node counter
-    integer(i8) :: j ! edge counter
-    if (this%n < 1_i8) return
-    allocate(mat(this%n,this%n))
-    mat = .false.
-    do i=1_i8,this%n
-      do j = 1_i8, this%nodes(i)%nedges()
-        mat(i,this%nodes(i)%edges(j)) = .true.
-      end do
-    end do
-  end subroutine dag_generate_dependency_matrix
 
   !> \brief Sorts an edge array `ivec` in increasing order by node number.
   !> \details Uses a basic recursive quicksort (with insertion sort for partitions with \(\le\) 20 elements).
