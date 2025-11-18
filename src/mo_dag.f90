@@ -869,12 +869,11 @@ contains
     end if
 
     call this%destroy()
+
     this%n = n
-
-    allocate(this%down(n))
-    this%down = down
-
+    allocate(this%down, source=down)
     allocate(this%n_up(n), source=0_i8)
+
     do i = 1_i8, n
       sink = this%down(i)
       if (sink == 0_i8) cycle
@@ -908,9 +907,11 @@ contains
       this%tags = tags
     else
       allocate(this%tags(n))
+      !$omp parallel do default(shared) schedule(static)
       do i = 1_i8, n
         this%tags(i) = i
       end do
+      !$omp end parallel do
     end if
   end subroutine branching_init
 
