@@ -34,11 +34,11 @@ contains
     !
     ! order: 1 2 5 3 4 6
     call network%init(6_i8)
-    call network%set_edges(2_i8,[1_i8])     ! 2 depends on 1
-    call network%set_edges(3_i8,[5_i8,1_i8])   ! 3 depends on 5 and 1
-    call network%set_edges(4_i8,[5_i8])     ! 4 depends on 5
-    call network%set_edges(5_i8,[2_i8])     ! 5 depends on 2
-    call network%set_edges(6_i8,[2_i8,4_i8])   ! 6 depends on 2 and 4
+    call network%set_sources(2_i8,[1_i8])     ! 2 depends on 1
+    call network%set_sources(3_i8,[5_i8,1_i8])   ! 3 depends on 5 and 1
+    call network%set_sources(4_i8,[5_i8])     ! 4 depends on 5
+    call network%set_sources(5_i8,[2_i8])     ! 5 depends on 2
+    call network%set_sources(6_i8,[2_i8,4_i8])   ! 6 depends on 2 and 4
 
     ! toposort
     call network%toposort(order,istat)
@@ -78,9 +78,9 @@ contains
 
     ! Test cycle detection
     call network%init(3_i8)
-    call network%set_edges(1_i8, [2_i8])     ! 1 -> 2
-    call network%set_edges(2_i8, [3_i8])     ! 2 -> 3
-    call network%set_edges(3_i8, [1_i8])     ! 3 -> 1  (cycle!)
+    call network%set_sources(1_i8, [2_i8])     ! 1 -> 2
+    call network%set_sources(2_i8, [3_i8])     ! 2 -> 3
+    call network%set_sources(3_i8, [1_i8])     ! 3 -> 1  (cycle!)
 
     call network%toposort(order,istat)
     @assertEqual(istat, -1_i8, message='dag: check toposort istat for cycle')
@@ -96,25 +96,25 @@ contains
 
     ! Test dependency graph
     call network%init(5_i8)
-    call network%set_edges(2_i8, [1_i8])     ! 2 depends on 1
-    call network%set_edges(3_i8, [5_i8,1_i8]) ! 3 depends on 5 and 1
-    call network%set_edges(4_i8, [5_i8])     ! 4 depends on 5
-    call network%set_edges(5_i8, [2_i8])     ! 5 depends on 2
+    call network%set_sources(2_i8, [1_i8])     ! 2 depends on 1
+    call network%set_sources(3_i8, [5_i8,1_i8]) ! 3 depends on 5 and 1
+    call network%set_sources(4_i8, [5_i8])     ! 4 depends on 5
+    call network%set_sources(5_i8, [2_i8])     ! 5 depends on 2
 
-    ! Test all_dependencies for node 2 (should return 1)
-    deps = network%all_dependencies(2_i8)
+    ! Test dependencies for node 2 (should return 1)
+    call network%dependencies(2_i8, deps)
     @assertEqual(size(deps), 1_i8, message='dag: check number of dependencies for node 2')
     @assertEqual(deps(1), 1_i8, message='dag: check dependency for node 2')
 
-    ! Test all_dependencies for node 3 (should return 1 and 5)
-    deps = network%all_dependencies(3_i8)
+    ! Test dependencies for node 3 (should return 1 and 5)
+    call network%dependencies(3_i8, deps)
     @assertEqual(size(deps), 3_i8, message='dag: check number of dependencies for node 3')
     @assertEqual(deps(1), 1_i8, message='dag: check first dependency for node 3')
     @assertEqual(deps(2), 2_i8, message='dag: check second dependency for node 3')
     @assertEqual(deps(3), 5_i8, message='dag: check third dependency for node 3')
 
-    ! Test all_dependencies for node 1 (should return 0)
-    deps = network%all_dependencies(1_i8)
+    ! Test dependencies for node 1 (should return 0)
+    call network%dependencies(1_i8, deps)
     @assertEqual(size(deps), 0_i8, message='dag: check number of dependencies for node 1')
   end subroutine test_dag_dependencies
 
@@ -127,27 +127,27 @@ contains
 
     ! Test dependency graph
     call network%init(5_i8)
-    call network%set_edges(2_i8, [1_i8])     ! 2 depends on 1
-    call network%set_edges(3_i8, [5_i8,1_i8]) ! 3 depends on 5 and 1
-    call network%set_edges(4_i8, [5_i8])     ! 4 depends on 5
-    call network%set_edges(5_i8, [2_i8])     ! 5 depends on 2
+    call network%set_sources(2_i8, [1_i8])     ! 2 depends on 1
+    call network%set_sources(3_i8, [5_i8,1_i8]) ! 3 depends on 5 and 1
+    call network%set_sources(4_i8, [5_i8])     ! 4 depends on 5
+    call network%set_sources(5_i8, [2_i8])     ! 5 depends on 2
 
-    ! Test all_dependents for node 1 (should return 2 and 3)
-    deps = network%all_dependents(1_i8)
+    ! Test dependents for node 1 (should return 2 and 3)
+    call network%dependents(1_i8, deps)
     @assertEqual(size(deps), 4_i8, message='dag: check number of dependents for node 1')
     @assertEqual(deps(1), 2_i8, message='dag: check first dependent for node 1')
     @assertEqual(deps(2), 3_i8, message='dag: check second dependent for node 1')
     @assertEqual(deps(3), 4_i8, message='dag: check third dependent for node 1')
     @assertEqual(deps(4), 5_i8, message='dag: check fourth dependent for node 1')
 
-    ! Test all_dependents for node 5 (should return 3 and 4)
-    deps = network%all_dependents(5_i8)
+    ! Test dependents for node 5 (should return 3 and 4)
+    call network%dependents(5_i8, deps)
     @assertEqual(size(deps), 2_i8, message='dag: check number of dependents for node 5')
     @assertEqual(deps(1), 3_i8, message='dag: check first dependent for node 5')
     @assertEqual(deps(2), 4_i8, message='dag: check second dependent for node 5')
 
-    ! Test all_dependents for node 2 (should return 5)
-    deps = network%all_dependents(2_i8)
+    ! Test dependents for node 2 (should return 5)
+    call network%dependents(2_i8, deps)
     @assertEqual(size(deps), 3_i8, message='dag: check number of dependents for node 2')
     @assertEqual(deps(1), 3_i8, message='dag: check first dependent for node 2')
     @assertEqual(deps(2), 4_i8, message='dag: check second dependent for node 2')
@@ -163,11 +163,11 @@ contains
 
     ! Test subgraph generation
     call network%init(6_i8)
-    call network%set_edges(2_i8, [1_i8])     ! 2 depends on 1
-    call network%set_edges(3_i8, [5_i8,1_i8]) ! 3 depends on 5 and 1
-    call network%set_edges(4_i8, [5_i8])     ! 4 depends on 5
-    call network%set_edges(5_i8, [2_i8])     ! 5 depends on 2
-    call network%set_edges(6_i8, [2_i8,4_i8]) ! 6 depends on 2 and 4
+    call network%set_sources(2_i8, [1_i8])     ! 2 depends on 1
+    call network%set_sources(3_i8, [5_i8,1_i8]) ! 3 depends on 5 and 1
+    call network%set_sources(4_i8, [5_i8])     ! 4 depends on 5
+    call network%set_sources(5_i8, [2_i8])     ! 5 depends on 2
+    call network%set_sources(6_i8, [2_i8,4_i8]) ! 6 depends on 2 and 4
 
     ! Generate subgraph containing nodes starting at node 3
     subgraph = network%subgraph([3_i8])
@@ -224,19 +224,19 @@ contains
     @assertEqual(istat, 0_i8, message='branching: toposort istat')
     @assertEqual(order, int([1, 5, 4, 2, 3], i8), message='branching: toposort order')
 
-    @assertEqual(river%n_dependencies(2_i8), 2_i8, message='branching: n_dependencies for node 2')
-    @assertEqual(river%n_dependents(2_i8), 1_i8, message='branching: n_dependents for node 2')
+    @assertEqual(river%n_sources(2_i8), 2_i8, message='branching: n_sources for node 2')
+    @assertEqual(river%n_targets(2_i8), 1_i8, message='branching: n_targets for node 2')
 
-    deps = river%all_dependencies(3_i8)
+    call river%dependencies(3_i8, deps)
     @assertEqual(deps, int([1, 2, 4, 5], i8), message='branching: all dependencies for node 3')
 
-    deps = river%all_dependents(1_i8)
+    call river%dependents(1_i8, deps)
     @assertEqual(deps, int([2, 3], i8), message='branching: all dependents for node 1')
 
-    call river%dependency_matrix(mat)
-    @assertTrue(mat(2,1), message='branching: dependency matrix (2 depends on 1)')
-    @assertTrue(mat(3,2), message='branching: dependency matrix (3 depends on 2)')
-    @assertFalse(mat(1,2), message='branching: dependency matrix (1 depends on 2)')
+    call river%adjacency_matrix(mat)
+    @assertTrue(mat(2,1), message='branching: adjacency matrix (2 depends on 1)')
+    @assertTrue(mat(3,2), message='branching: adjacency matrix (3 depends on 2)')
+    @assertFalse(mat(1,2), message='branching: adjacency matrix (1 depends on 2)')
 
     call river%destroy()
   end subroutine test_branching_basic
@@ -250,11 +250,11 @@ contains
 
     ! Test levelsort with root option (reverse)
     call network%init(6_i8)
-    call network%set_edges(2_i8, [1_i8])     ! 2 depends on 1
-    call network%set_edges(3_i8, [5_i8,1_i8])   ! 3 depends on 5 and 1
-    call network%set_edges(4_i8, [5_i8])     ! 4 depends on 5
-    call network%set_edges(5_i8, [2_i8])     ! 5 depends on 2
-    call network%set_edges(6_i8, [2_i8,4_i8])   ! 6 depends on 2 and 4
+    call network%set_sources(2_i8, [1_i8])     ! 2 depends on 1
+    call network%set_sources(3_i8, [5_i8,1_i8])   ! 3 depends on 5 and 1
+    call network%set_sources(4_i8, [5_i8])     ! 4 depends on 5
+    call network%set_sources(5_i8, [2_i8])     ! 5 depends on 2
+    call network%set_sources(6_i8, [2_i8,4_i8])   ! 6 depends on 2 and 4
 
     ! level sort with root option
     call network%levelsort(ord, istat, root=.true.)

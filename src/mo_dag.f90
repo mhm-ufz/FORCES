@@ -107,16 +107,18 @@ module mo_dag
     integer(i8) :: n = 0_i8             !< Number of nodes in the DAG
     integer(i8), allocatable :: tags(:) !< Node tags for external reference
   contains
-    procedure(dag_base_count_if), deferred :: n_dependencies   !< Number of upstream nodes per id
-    procedure(dag_base_count_if), deferred :: n_dependents     !< Number of downstream nodes per id
-    procedure(dag_base_neighbors_if), deferred :: dependencies !< Access upstream node ids
-    procedure(dag_base_neighbors_if), deferred :: dependents   !< Access downstream node ids
+    procedure(dag_base_count_if), deferred :: n_sources   !< Number of upstream nodes per id
+    procedure(dag_base_count_if), deferred :: n_targets   !< Number of downstream nodes per id
+    procedure(dag_base_view_if),  deferred :: src_view    !< Pointer view of upstream node ids
+    procedure(dag_base_view_if),  deferred :: tgt_view    !< Pointer view of downstream node ids
     procedure :: traverse          => dag_base_traverse
     procedure :: toposort          => dag_base_toposort
     procedure :: levelsort         => dag_base_levelsort
-    procedure :: all_dependencies  => dag_base_all_dependencies
-    procedure :: all_dependents    => dag_base_all_dependents
-    procedure :: dependency_matrix => dag_base_dependency_matrix
+    procedure :: adjacency_matrix  => dag_base_adjacency_matrix
+    procedure :: sources           => dag_base_sources
+    procedure :: targets           => dag_base_targets
+    procedure :: dependencies      => dag_base_dependencies
+    procedure :: dependents        => dag_base_dependents
     procedure :: destroy           => dag_base_destroy
   end type dag_base
 
@@ -128,15 +130,15 @@ module mo_dag
       integer(i8), intent(in) :: id
     end function dag_base_count_if
 
-    !> \brief Return pointer to adjacency list for node `id`.
-    !! \details Callers must ensure the owning DAG instance remains a valid
-    !! pointer target for as long as they rely on the returned reference.
-    function dag_base_neighbors_if(this, id) result(neigh)
+    !> \brief Provide pointer view to adjacency list for node `id`.
+    !! \details Callers must ensure the owning object remains a valid target
+    !! for as long as they rely on the returned pointer view.
+    subroutine dag_base_view_if(this, id, view)
       import :: dag_base, i8
       class(dag_base), intent(in), target :: this
       integer(i8), intent(in) :: id
-      integer(i8), pointer :: neigh(:)
-    end function dag_base_neighbors_if
+      integer(i8), pointer :: view(:)
+    end subroutine dag_base_view_if
   end interface
 
   !> \class node
@@ -145,16 +147,16 @@ module mo_dag
     !> The nodes that this node depends on (directed edges of the graph).
     !! The indices are the respective node index in the nodes list in the dag
     !! and do not necessarily match the dag%tags (e.g. when nodes are removed, their tags stay untouched)
-    integer(i8),dimension(:),allocatable :: edges
-    !> nodes that contain an edge to this node
-    integer(i8),dimension(:),allocatable :: dependents
+    integer(i8),dimension(:),allocatable :: sources
+    !> nodes that depend on this node
+    integer(i8),dimension(:),allocatable :: targets
   contains
-    procedure :: nedges => node_nedges
-    procedure :: ndependents => node_ndependents
-    generic, private :: set_edges => set_edge_vector, add_edge
-    procedure, private :: set_edge_vector => node_set_edge_vector
-    procedure, private :: add_edge => node_add_edge
-    procedure, private :: add_dependent => node_add_dependent
+    procedure :: n_sources => node_n_sources
+    procedure :: n_targets => node_n_targets
+    generic, private :: set_sources => set_source_vector, add_source
+    procedure, private :: set_source_vector => node_set_source_vector
+    procedure, private :: add_source => node_add_source
+    procedure, private :: add_target => node_add_target
   end type node
 
   !> \class dag
@@ -164,21 +166,21 @@ module mo_dag
   !! \par Examples
   !! - \ref 01_dag_sort.f90 : \copybrief 01_dag_sort.f90
   type,public, extends(dag_base) :: dag
-    !> The nodes in the DAG. The index in this array is used by the edges of the nodes.
+    !> The nodes in the DAG. The index in this array is used by the sources of the nodes.
     type(node),dimension(:),allocatable :: nodes
     integer(i8), private, dimension(:), allocatable :: tag_to_id_map !< Maps node tag to array index
     integer(i8), private :: max_tag = 0_i8 !< Max tag value in current DAG (for bounds)
   contains
     procedure :: init                       => dag_set_nodes
-    procedure :: add_edge                   => dag_add_edge
-    procedure :: set_edges                  => dag_set_edges
+    procedure :: add_source                 => dag_add_source
+    procedure :: set_sources                => dag_set_sources
     procedure :: subgraph                   => dag_subgraph
     procedure :: destroy                    => dag_destroy
     procedure :: tag_to_id                  => dag_tag_to_id
-    procedure :: n_dependencies             => dag_n_dependencies
-    procedure :: n_dependents               => dag_n_dependents
-    procedure :: dependencies               => dag_dependencies
-    procedure :: dependents                 => dag_dependents
+    procedure :: n_sources                  => dag_n_sources
+    procedure :: n_targets                  => dag_n_targets
+    procedure :: src_view                   => dag_src_view
+    procedure :: tgt_view                   => dag_tgt_view
     procedure, private :: rebuild_tag_map   => dag_rebuild_tag_map
     final :: dag_final
   end type dag
@@ -195,10 +197,10 @@ module mo_dag
   contains
     procedure :: init            => branching_init
     procedure :: destroy         => branching_destroy
-    procedure :: n_dependencies  => branching_n_dependencies
-    procedure :: n_dependents    => branching_n_dependents
-    procedure :: dependencies    => branching_dependencies
-    procedure :: dependents      => branching_dependents
+    procedure :: n_sources       => branching_n_sources
+    procedure :: n_targets       => branching_n_targets
+    procedure :: src_view        => branching_src_view
+    procedure :: tgt_view        => branching_tgt_view
     final     :: branching_final
   end type branching
 
@@ -267,9 +269,9 @@ contains
       select case (action)
         case (dfs_continue)  ! 0
           if (down_) then
-            nneigh = this%n_dependents(j)
+            nneigh = this%n_targets(j)
             if (nneigh > 0_i8) then
-              neigh => this%dependents(j)
+              call this%tgt_view(j, neigh)
               do i = nneigh, 1_i8, -1_i8
                 dep = neigh(i)
                 if (.not. handler%visited(dep)) then
@@ -279,9 +281,9 @@ contains
               end do
             end if
           else
-            nneigh = this%n_dependencies(j)
+            nneigh = this%n_sources(j)
             if (nneigh > 0_i8) then
-              neigh => this%dependencies(j)
+              call this%src_view(j, neigh)
               do i = nneigh, 1_i8, -1_i8
                 dep = neigh(i)
                 if (.not. handler%visited(dep)) then
@@ -302,44 +304,78 @@ contains
   end subroutine dag_base_traverse
 
   !> \brief Generate list of all dependencies and their sub-dependencies for a given node.
-  function dag_base_all_dependencies(this, id) result(deps)
+  subroutine dag_base_dependencies(this, id, deps)
     class(dag_base), intent(in), target :: this
-    integer(i8), intent(in) :: id !< node id
-    integer(i8), allocatable :: deps(:)
+    integer(i8), intent(in) :: id
+    integer(i8), allocatable, intent(out) :: deps(:)
     type(traversal_visit) :: handler
-    integer(i8), pointer :: deps_ptr(:)
+    integer(i8), pointer :: src(:)
     integer(i8) :: i
-    if (this%n_dependencies(id) == 0_i8) then
-      allocate(deps(0))
-      return
-    end if
-    allocate(handler%visited(this%n), source=.false.)
-    deps_ptr => this%dependencies(id)
-    call this%traverse(handler, deps_ptr)
-    allocate(deps(count(handler%visited)))
-    deps = pack([(i, i=1_i8, this%n)], handler%visited)
-    deallocate(handler%visited)
-  end function dag_base_all_dependencies
 
-  !> \brief Generate list of all dependents and their sub-dependents for a given node.
-  function dag_base_all_dependents(this, id) result(deps)
-    class(dag_base), intent(in), target :: this
-    integer(i8), intent(in) :: id !< node id
-    integer(i8), allocatable :: deps(:)
-    type(traversal_visit) :: handler
-    integer(i8), pointer :: deps_ptr(:)
-    integer(i8) :: i
-    if (this%n_dependents(id) == 0_i8) then
+    if (this%n_sources(id) == 0_i8) then
       allocate(deps(0))
       return
     end if
+
     allocate(handler%visited(this%n), source=.false.)
-    deps_ptr => this%dependents(id)
-    call this%traverse(handler, deps_ptr, down=.true.)
+    call this%src_view(id, src)
+    call this%traverse(handler, src)
     allocate(deps(count(handler%visited)))
     deps = pack([(i, i=1_i8, this%n)], handler%visited)
     deallocate(handler%visited)
-  end function dag_base_all_dependents
+  end subroutine dag_base_dependencies
+
+  !> \brief Generate list of all targets and their sub-targets for a given node.
+  subroutine dag_base_dependents(this, id, deps)
+    class(dag_base), intent(in), target :: this
+    integer(i8), intent(in) :: id
+    integer(i8), allocatable, intent(out) :: deps(:)
+    type(traversal_visit) :: handler
+    integer(i8), pointer :: tgt(:)
+    integer(i8) :: i
+
+    if (this%n_targets(id) == 0_i8) then
+      allocate(deps(0))
+      return
+    end if
+
+    allocate(handler%visited(this%n), source=.false.)
+    call this%tgt_view(id, tgt)
+    call this%traverse(handler, tgt, down=.true.)
+    allocate(deps(count(handler%visited)))
+    deps = pack([(i, i=1_i8, this%n)], handler%visited)
+    deallocate(handler%visited)
+  end subroutine dag_base_dependents
+
+  !> \brief Copy direct sources of node `id` into an allocatable array.
+  subroutine dag_base_sources(this, id, vals)
+    class(dag_base), intent(in), target :: this
+    integer(i8), intent(in) :: id
+    integer(i8), allocatable, intent(out) :: vals(:)
+    integer(i8), pointer :: view(:)
+    integer(i8) :: n
+
+    n = this%n_sources(id)
+    allocate(vals(n))
+    if (n == 0_i8) return
+    call this%src_view(id, view)
+    vals = view
+  end subroutine dag_base_sources
+
+  !> \brief Copy direct targets of node `id` into an allocatable array.
+  subroutine dag_base_targets(this, id, vals)
+    class(dag_base), intent(in), target :: this
+    integer(i8), intent(in) :: id
+    integer(i8), allocatable, intent(out) :: vals(:)
+    integer(i8), pointer :: view(:)
+    integer(i8) :: n
+
+    n = this%n_targets(id)
+    allocate(vals(n))
+    if (n == 0_i8) return
+    call this%tgt_view(id, view)
+    vals = view
+  end subroutine dag_base_targets
 
   !> \brief Default destroy implementation shared by all DAGs.
   subroutine dag_base_destroy(this)
@@ -348,25 +384,25 @@ contains
     if (allocated(this%tags)) deallocate(this%tags)
   end subroutine dag_base_destroy
 
-  !> \brief Generate the dependency matrix for the DAG.
+  !> \brief Generate the adjacency matrix for the DAG.
   !> \details This is an \(n \times n \) logical matrix with elements \(A_{ij}\)
   !! such that \(A_{ij}\) is true when node \(i\) depends on node \(j\).
-  subroutine dag_base_dependency_matrix(this, mat)
+  subroutine dag_base_adjacency_matrix(this, mat)
     class(dag_base), intent(in), target :: this
-    logical, dimension(:,:), allocatable, intent(out) :: mat !< dependency matrix
+    logical, dimension(:,:), allocatable, intent(out) :: mat !< adjacency matrix
     integer(i8) :: i, j, ndeps
     integer(i8), pointer :: deps(:)
 
     allocate(mat(this%n, this%n), source=.false.)
     do i = 1_i8, this%n
-      ndeps = this%n_dependencies(i)
+      ndeps = this%n_sources(i)
       if (ndeps == 0_i8) cycle
-      deps => this%dependencies(i)
+      call this%src_view(i, deps)
       do j = 1_i8, ndeps
         mat(i, deps(j)) = .true.
       end do
     end do
-  end subroutine dag_base_dependency_matrix
+  end subroutine dag_base_adjacency_matrix
 
   !> \brief Main toposort routine
   subroutine dag_base_toposort(this, order, istat)
@@ -409,15 +445,13 @@ contains
       end if
       if ( visited(j)) return ! already touched
       checking(j) = .true.
-      ndeps = this%n_dependencies(j)
+      ndeps = this%n_sources(j)
       if (ndeps > 0_i8) then
-        deps => this%dependencies(j)
-        if (associated(deps)) then
-          do k=1_i8, ndeps
-            call dfs(deps(k))
-            if (istat==-1_i8) return
-          end do
-        end if
+        call this%src_view(j, deps)
+        do k=1_i8, ndeps
+          call dfs(deps(k))
+          if (istat==-1_i8) return
+        end do
       end if
       checking(j) = .false.
       visited(j) = .true.
@@ -470,7 +504,7 @@ contains
     count = 0_i8
     level = 1_i8
     do i = 1_i8, n
-      if (this%n_dependencies(i) > 0_i8) cycle
+      if (this%n_sources(i) > 0_i8) cycle
       count = count + 1_i8
       id(count) = i
       visit_level(i) = level
@@ -484,20 +518,18 @@ contains
       level = level + 1_i8
       level_start(level) = count + 1_i8
 
-      ! scan all dependents of previous level
+      ! scan all targets of previous level
       do i = level_start(level-1_i8), level_end(level-1_i8)
-        nneigh = this%n_dependents(id(i))
+        nneigh = this%n_targets(id(i))
         if (nneigh == 0_i8) cycle
-        neigh => this%dependents(id(i))
-        if (.not.associated(neigh)) cycle
+        call this%tgt_view(id(i), neigh)
         do j = 1_i8, nneigh
           k = neigh(j)
           if (visit_level(k)>0_i8) cycle ! dependent already treated by earlier node in this level
           ready = .true.
-          ndeps = this%n_dependencies(k)
+          ndeps = this%n_sources(k)
           if (ndeps > 0_i8) then
-            deps => this%dependencies(k)
-            if (.not.associated(deps)) cycle
+            call this%src_view(k, deps)
             do m = 1_i8, ndeps ! non empty since it is a dependent
               if ( visit_level(deps(m)) == 0_i8 &
               .or. visit_level(deps(m)) == level ) then
@@ -559,7 +591,7 @@ contains
     count = 0_i8
     level = 1_i8
     do i = 1_i8, n
-      if (this%n_dependents(i) > 0_i8) cycle
+      if (this%n_targets(i) > 0_i8) cycle
       count = count + 1_i8
       id(count) = i
       visit_level(i) = level
@@ -573,24 +605,22 @@ contains
       level = level + 1_i8
       level_start(level) = count + 1_i8
 
-      ! scan all edges of previous level
+      ! scan all sources of previous level
       do i = level_start(level-1_i8), level_end(level-1_i8)
-        nneigh = this%n_dependencies(id(i))
+        nneigh = this%n_sources(id(i))
         if (nneigh == 0_i8) cycle
-        neigh => this%dependencies(id(i))
-        if (.not.associated(neigh)) cycle
+        call this%src_view(id(i), neigh)
         do j = 1_i8, nneigh
           k = neigh(j)
           if (visit_level(k)>0_i8) cycle ! dependency already treated by earlier node in this level
           ready = .true.
-          ndeps = this%n_dependents(k)
+          ndeps = this%n_targets(k)
           if (ndeps > 0_i8) then
-            deps => this%dependents(k)
-            if (.not.associated(deps)) cycle
+            call this%tgt_view(k, deps)
             do m = 1_i8, ndeps ! non empty since it is a dependency
               if ( visit_level(deps(m)) == 0_i8 &
               .or. visit_level(deps(m)) == level ) then
-                ready = .false. ! some dependents not yet ready (0 - not ready, level - not added in previous levels)
+                ready = .false. ! some targets not yet ready (0 - not ready, level - not added in previous levels)
                 exit
               end if
             end do
@@ -623,105 +653,99 @@ contains
     deallocate(visit_level, level_start, level_end)
   end subroutine dag_base_levelsort_root
 
-  !> \brief number of edges for this node
-  pure integer(i8) function node_nedges(this)
+  !> \brief number of sources for this node
+  pure integer(i8) function node_n_sources(this)
     class(node),intent(in) :: this
-    if (allocated(this%edges)) then
-      node_nedges = size(this%edges)
+    if (allocated(this%sources)) then
+      node_n_sources = size(this%sources)
     else
-      node_nedges = 0_i8
+      node_n_sources = 0_i8
     end if
-  end function node_nedges
+  end function node_n_sources
 
-  !> \brief number of dependents for this node
-  pure integer(i8) function node_ndependents(this)
+  !> \brief number of targets for this node
+  pure integer(i8) function node_n_targets(this)
     class(node),intent(in) :: this
-    if (allocated(this%dependents)) then
-      node_ndependents = size(this%dependents)
+    if (allocated(this%targets)) then
+      node_n_targets = size(this%targets)
     else
-      node_ndependents = 0_i8
+      node_n_targets = 0_i8
     end if
-  end function node_ndependents
+  end function node_n_targets
 
-  !> \brief Specify the edge indices for this node
-  subroutine node_set_edge_vector(this,edges)
+  !> \brief Specify the source indices for this node
+  subroutine node_set_source_vector(this,sources)
     class(node),intent(inout) :: this
-    integer(i8),dimension(:),intent(in) :: edges
-    this%edges = edges
-    call sort_ascending(this%edges)
-  end subroutine node_set_edge_vector
+    integer(i8),dimension(:),intent(in) :: sources
+    this%sources = sources
+    call sort_ascending(this%sources)
+  end subroutine node_set_source_vector
 
-  !> \brief Add an edge index for this node
-  subroutine node_add_edge(this,e)
+  !> \brief Add a source index for this node
+  subroutine node_add_source(this,e)
     class(node),intent(inout) :: this
     integer(i8),intent(in) :: e
-    if (allocated(this%edges)) then
-      if (.not. any(e==this%edges)) then ! don't add if already there
-        this%edges = [this%edges, e]
-        call sort_ascending(this%edges)
+    if (allocated(this%sources)) then
+      if (.not. any(e==this%sources)) then ! don't add if already there
+        this%sources = [this%sources, e]
+        call sort_ascending(this%sources)
       end if
     else
-      this%edges = [e]
+      this%sources = [e]
     end if
-  end subroutine node_add_edge
+  end subroutine node_add_source
 
-  !> \brief Add a dependent index for this node
-  subroutine node_add_dependent(this,d)
+  !> \brief Add a target index for this node
+  subroutine node_add_target(this,d)
     class(node),intent(inout) :: this
     integer(i8),intent(in) :: d
-    if (allocated(this%dependents)) then
-      if (.not. any(d==this%dependents)) then ! don't add if already there
-        this%dependents = [this%dependents, d]
-        call sort_ascending(this%dependents)
+    if (allocated(this%targets)) then
+      if (.not. any(d==this%targets)) then ! don't add if already there
+        this%targets = [this%targets, d]
+        call sort_ascending(this%targets)
       end if
     else
-      this%dependents = [d]
+      this%targets = [d]
     end if
-  end subroutine node_add_dependent
+  end subroutine node_add_target
 
   !> \brief Number of dependencies for node `id` in the dense DAG implementation.
-  pure integer(i8) function dag_n_dependencies(this, id)
+  pure integer(i8) function dag_n_sources(this, id)
     class(dag), intent(in), target :: this
     integer(i8), intent(in) :: id
-    dag_n_dependencies = this%nodes(id)%nedges()
-  end function dag_n_dependencies
+    dag_n_sources = this%nodes(id)%n_sources()
+  end function dag_n_sources
 
-  !> \brief Number of dependents for node `id` in the dense DAG implementation.
-  pure integer(i8) function dag_n_dependents(this, id)
+  !> \brief Number of targets for node `id` in the dense DAG implementation.
+  pure integer(i8) function dag_n_targets(this, id)
     class(dag), intent(in), target :: this
     integer(i8), intent(in) :: id
-    dag_n_dependents = this%nodes(id)%ndependents()
-  end function dag_n_dependents
+    dag_n_targets = this%nodes(id)%n_targets()
+  end function dag_n_targets
 
-  !> \brief Pointer to the dependency list of node `id`.
-  !! \details The caller must ensure the DAG instance remains a valid target for
-  !! the full duration of the pointer usage (e.g. do not let the graph go out of
-  !! scope or deallocate it) so the association stays valid after this function
-  !! returns.
-  function dag_dependencies(this, id) result(edges)
+  !> \brief Pointer view to the source list of node `id`.
+  subroutine dag_src_view(this, id, view)
     class(dag), intent(in), target :: this
     integer(i8), intent(in) :: id
-    integer(i8), pointer :: edges(:)
-    if (allocated(this%nodes(id)%edges)) then
-      edges => this%nodes(id)%edges
+    integer(i8), pointer :: view(:)
+    if (allocated(this%nodes(id)%sources)) then
+      view => this%nodes(id)%sources
     else
-      edges => empty_int_vec
+      view => empty_int_vec
     end if
-  end function dag_dependencies
+  end subroutine dag_src_view
 
-  !> \brief Pointer to the dependents list of node `id`.
-  !! \details The caller must ensure the DAG instance remains a valid target for
-  !! the duration of the pointer usage to keep the association valid.
-  function dag_dependents(this, id) result(deps)
+  !> \brief Pointer view to the target list of node `id`.
+  subroutine dag_tgt_view(this, id, view)
     class(dag), intent(in), target :: this
     integer(i8), intent(in) :: id
-    integer(i8), pointer :: deps(:)
-    if (allocated(this%nodes(id)%dependents)) then
-      deps => this%nodes(id)%dependents
+    integer(i8), pointer :: view(:)
+    if (allocated(this%nodes(id)%targets)) then
+      view => this%nodes(id)%targets
     else
-      deps => empty_int_vec
+      view => empty_int_vec
     end if
-  end function dag_dependents
+  end subroutine dag_tgt_view
 
   !> \brief Construct subgraph containing given nodes and their dependencies.
   !> \details This will renumber the node ids but will conserve their tags.
@@ -747,11 +771,11 @@ contains
     do i = 1_i8, this%n
       if (.not.handler%visited(i)) cycle
       if (down_) then
-        do j = 1_i8, this%nodes(i)%ndependents()
-          call subgraph%add_edge(idmap(this%nodes(i)%dependents(j)), idmap(i))
+        do j = 1_i8, this%nodes(i)%n_targets()
+          call subgraph%add_source(idmap(this%nodes(i)%targets(j)), idmap(i))
         end do
       else
-        call subgraph%set_edges(idmap(i), [(idmap(this%nodes(i)%edges(j)), j=1_i8,this%nodes(i)%nedges())])
+        call subgraph%set_sources(idmap(i), [(idmap(this%nodes(i)%sources(j)), j=1_i8,this%nodes(i)%n_sources())])
       end if
     end do
 
@@ -831,26 +855,26 @@ contains
     end if
   end subroutine dag_set_nodes
 
-  !> \brief Add an edge to a dag.
-  subroutine dag_add_edge(this,id,target_id)
+  !> \brief Add a source dependency to a dag.
+  subroutine dag_add_source(this,id,target_id)
     class(dag),intent(inout) :: this
     integer(i8),intent(in)   :: id !< node id
     integer(i8),intent(in)   :: target_id !< the node to connect to `id`
-    call this%nodes(id)%set_edges(target_id)
-    call this%nodes(target_id)%add_dependent(id)
-  end subroutine dag_add_edge
+    call this%nodes(id)%set_sources(target_id)
+    call this%nodes(target_id)%add_target(id)
+  end subroutine dag_add_source
 
-  !> \brief Set the edges for a node in a dag
-  subroutine dag_set_edges(this,id,edges)
+  !> \brief Set the sources for a node in a dag
+  subroutine dag_set_sources(this,id,sources)
     class(dag),intent(inout)            :: this
     integer(i8),intent(in)              :: id !< node id
-    integer(i8),dimension(:),intent(in) :: edges
+    integer(i8),dimension(:),intent(in) :: sources
     integer(i8) :: i
-    call this%nodes(id)%set_edges(edges)
-    do i = 1_i8, this%nodes(id)%nedges()
-      call this%nodes(this%nodes(id)%edges(i))%add_dependent(id)
+    call this%nodes(id)%set_sources(sources)
+    do i = 1_i8, this%nodes(id)%n_sources()
+      call this%nodes(this%nodes(id)%sources(i))%add_target(id)
     end do
-  end subroutine dag_set_edges
+  end subroutine dag_set_sources
 
   !> \brief Initialize branching DAG from downstream linkage.
   subroutine branching_init(this, n, down, tags)
@@ -889,12 +913,12 @@ contains
     end do
     total_up = total_up - 1_i8
 
-    allocate(this%up(total_up))
+    allocate(this%up(total_up)) ! size: nodes - sinks
     if (total_up > 0_i8) then
       allocate(cursor(n), source=0_i8)
       do i = 1_i8, n
         sink = this%down(i)
-        if (sink <= 0_i8) cycle
+        if (sink == 0_i8) cycle
         idx = this%off_up(sink) + cursor(sink)
         this%up(idx) = i
         cursor(sink) = cursor(sink) + 1_i8
@@ -903,8 +927,7 @@ contains
     end if
 
     if (present(tags)) then
-      allocate(this%tags(n))
-      this%tags = tags
+      allocate(this%tags, source=tags)
     else
       allocate(this%tags(n))
       !$omp parallel do default(shared) schedule(static)
@@ -926,46 +949,46 @@ contains
   end subroutine branching_destroy
 
   !> \brief Number of upstream neighbors for node `id`.
-  pure integer(i8) function branching_n_dependencies(this, id)
+  pure integer(i8) function branching_n_sources(this, id)
     class(branching), intent(in), target :: this
     integer(i8), intent(in) :: id
-    branching_n_dependencies = this%n_up(id)
-  end function branching_n_dependencies
+    branching_n_sources = this%n_up(id)
+  end function branching_n_sources
 
   !> \brief Number of downstream neighbors for node `id` (0 or 1).
-  pure integer(i8) function branching_n_dependents(this, id)
+  pure integer(i8) function branching_n_targets(this, id)
     class(branching), intent(in), target :: this
     integer(i8), intent(in) :: id
     if (this%down(id) > 0_i8) then
-      branching_n_dependents = 1_i8
+      branching_n_targets = 1_i8
     else
-      branching_n_dependents = 0_i8
+      branching_n_targets = 0_i8
     end if
-  end function branching_n_dependents
+  end function branching_n_targets
 
-  !> \brief Pointer to upstream neighbors for node `id`.
-  function branching_dependencies(this, id) result(deps)
+  !> \brief Pointer view to upstream neighbors for node `id`.
+  subroutine branching_src_view(this, id, view)
     class(branching), intent(in), target :: this
     integer(i8), intent(in) :: id
-    integer(i8), pointer :: deps(:)
+    integer(i8), pointer :: view(:)
     if (this%n_up(id) > 0_i8) then
-      deps => this%up(this%off_up(id):this%off_up(id)+this%n_up(id)-1_i8)
+      view => this%up(this%off_up(id):this%off_up(id)+this%n_up(id)-1_i8)
     else
-      deps => empty_int_vec
+      view => empty_int_vec
     end if
-  end function branching_dependencies
+  end subroutine branching_src_view
 
-  !> \brief Pointer to downstream neighbor (if any) for node `id`.
-  function branching_dependents(this, id) result(deps)
+  !> \brief Pointer view to downstream neighbor for node `id`.
+  subroutine branching_tgt_view(this, id, view)
     class(branching), intent(in), target :: this
     integer(i8), intent(in) :: id
-    integer(i8), pointer :: deps(:)
+    integer(i8), pointer :: view(:)
     if (this%down(id) > 0_i8) then
-      deps => this%down(id:id)
+      view => this%down(id:id)
     else
-      deps => empty_int_vec
+      view => empty_int_vec
     end if
-  end function branching_dependents
+  end subroutine branching_tgt_view
 
   !> \brief Ensure branching DAG resources are freed when going out of scope.
   subroutine branching_final(this)
@@ -973,8 +996,8 @@ contains
     call this%destroy()
   end subroutine branching_final
 
-  !> \brief Sorts an edge array `ivec` in increasing order by node number.
-  !> \details Uses a basic recursive quicksort (with insertion sort for partitions with \(\le\) 20 elements).
+  !> \brief Sorts an array `ivec` in increasing order.
+  !> \details Uses a basic recursive quicksort (with insertion sort for partitions with <= 20 elements).
   subroutine sort_ascending(ivec)
     integer(i8),dimension(:),intent(inout) :: ivec
     integer(i8),parameter :: max_size_for_insertion_sort = 20_i8 !! max size for using insertion sort.

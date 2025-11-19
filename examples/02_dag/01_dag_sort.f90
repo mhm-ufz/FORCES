@@ -24,11 +24,11 @@ program dag_sort
   !    V    V    |
   !    3 <- 5 -> 4
   call network%init(6_i8)
-  call network%set_edges(2_i8,[1_i8])      ! 2 depends on 1
-  call network%set_edges(3_i8,[5_i8,1_i8]) ! 3 depends on 5 and 1
-  call network%set_edges(4_i8,[5_i8])      ! 4 depends on 5
-  call network%set_edges(5_i8,[2_i8])      ! 5 depends on 2
-  call network%set_edges(6_i8,[2_i8,4_i8]) ! 6 depends on 2 and 4
+  call network%set_sources(2_i8,[1_i8])      ! 2 depends on 1
+  call network%set_sources(3_i8,[5_i8,1_i8]) ! 3 depends on 5 and 1
+  call network%set_sources(4_i8,[5_i8])      ! 4 depends on 5
+  call network%set_sources(5_i8,[2_i8])      ! 5 depends on 2
+  call network%set_sources(6_i8,[2_i8,4_i8]) ! 6 depends on 2 and 4
 
   ! toposort
   call network%toposort(order,istat)
