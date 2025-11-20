@@ -104,7 +104,7 @@ module mo_dag
   !> \details Provides the read-only traversal API that algorithms can rely on
   !! regardless of the underlying storage.
   type, abstract :: dag_base
-    integer(i8) :: n = 0_i8             !< Number of nodes in the DAG
+    integer(i8) :: n_nodes = 0_i8       !< Number of nodes in the DAG
     integer(i8), allocatable :: tags(:) !< Node tags for external reference
   contains
     procedure(dag_base_count_if), deferred :: n_sources   !< Number of upstream nodes per id
@@ -191,6 +191,7 @@ module mo_dag
   !! upstream adjacency using CSR-like arrays.
   type, public, extends(dag_base) :: branching
     integer(i8), allocatable :: down(:)            !< Direct downstream neighbor (0 if sink)
+    integer(i8), allocatable :: sinks(:)           !< Indices of sink nodes (nodes with no downstream neighbor)
     integer(i8), allocatable :: up(:)              !< Concatenated upstream neighbors for all nodes
     integer(i8), allocatable :: n_up(:)            !< Number of upstream neighbors per node
     integer(i8), allocatable :: off_up(:)          !< Offsets into up(:) for each node
@@ -242,20 +243,28 @@ contains
     integer(i8), dimension(:), intent(in), optional :: ids !< ids to traverse from (by default all)
     logical, intent(in), optional :: down !< traverse downstream if .true. (.false. by default to traverse upstream)
 
-    integer(i8) :: top, dep, action, i, j, nneigh
+    integer(i8) :: top, dep, action, i, j
     integer(i8), allocatable :: stack(:)
     integer(i8), pointer :: neigh(:)
     logical :: down_
 
-    if (this%n == 0_i8) return
+    if (this%n_nodes == 0_i8) return
     down_ = optval(down, .false.)
-    allocate(stack(this%n))
+    allocate(stack(this%n_nodes))
     if (present(ids)) then
-      top = size(ids)
-      stack(1_i8:top) = [(ids(i), i=top,1_i8,-1_i8)]
+      top = size(ids, kind=i8)
+      !$omp parallel do default(shared) schedule(static)
+      do i = 1_i8, top
+        stack(i) = ids(i)
+      end do
+      !$omp end parallel do
     else
-      top = this%n
-      stack(1_i8:top) = [(i, i=top,1_i8,-1_i8)]
+      top = this%n_nodes
+      !$omp parallel do default(shared) schedule(static)
+      do i = 1_i8, top
+        stack(i) = i
+      end do
+      !$omp end parallel do
     end if
 
     do while (top > 0_i8)
@@ -269,30 +278,16 @@ contains
       select case (action)
         case (dfs_continue)  ! 0
           if (down_) then
-            nneigh = this%n_targets(j)
-            if (nneigh > 0_i8) then
-              call this%tgt_view(j, neigh)
-              do i = nneigh, 1_i8, -1_i8
-                dep = neigh(i)
-                if (.not. handler%visited(dep)) then
-                  top = top + 1_i8
-                  stack(top) = dep
-                end if
-              end do
-            end if
+            call this%tgt_view(j, neigh)
           else
-            nneigh = this%n_sources(j)
-            if (nneigh > 0_i8) then
-              call this%src_view(j, neigh)
-              do i = nneigh, 1_i8, -1_i8
-                dep = neigh(i)
-                if (.not. handler%visited(dep)) then
-                  top = top + 1_i8
-                  stack(top) = dep
-                end if
-              end do
-            end if
+            call this%src_view(j, neigh)
           end if
+          do i = size(neigh, kind=i8), 1_i8, -1_i8
+            dep = neigh(i)
+            if (handler%visited(dep)) cycle
+            top = top + 1_i8
+            stack(top) = dep
+          end do
         case (dfs_skip_children) ! 1
           cycle
         case default ! dfs_stop_all (all other)
@@ -317,11 +312,11 @@ contains
       return
     end if
 
-    allocate(handler%visited(this%n), source=.false.)
+    allocate(handler%visited(this%n_nodes), source=.false.)
     call this%src_view(id, src)
     call this%traverse(handler, src)
     allocate(deps(count(handler%visited)))
-    deps = pack([(i, i=1_i8, this%n)], handler%visited)
+    deps = pack([(i, i=1_i8, this%n_nodes)], handler%visited)
     deallocate(handler%visited)
   end subroutine dag_base_dependencies
 
@@ -339,11 +334,11 @@ contains
       return
     end if
 
-    allocate(handler%visited(this%n), source=.false.)
+    allocate(handler%visited(this%n_nodes), source=.false.)
     call this%tgt_view(id, tgt)
     call this%traverse(handler, tgt, down=.true.)
     allocate(deps(count(handler%visited)))
-    deps = pack([(i, i=1_i8, this%n)], handler%visited)
+    deps = pack([(i, i=1_i8, this%n_nodes)], handler%visited)
     deallocate(handler%visited)
   end subroutine dag_base_dependents
 
@@ -380,7 +375,7 @@ contains
   !> \brief Default destroy implementation shared by all DAGs.
   subroutine dag_base_destroy(this)
     class(dag_base), intent(inout) :: this
-    this%n = 0_i8
+    this%n_nodes = 0_i8
     if (allocated(this%tags)) deallocate(this%tags)
   end subroutine dag_base_destroy
 
@@ -393,8 +388,8 @@ contains
     integer(i8) :: i, j, ndeps
     integer(i8), pointer :: deps(:)
 
-    allocate(mat(this%n, this%n), source=.false.)
-    do i = 1_i8, this%n
+    allocate(mat(this%n_nodes, this%n_nodes), source=.false.)
+    do i = 1_i8, this%n_nodes
       ndeps = this%n_sources(i)
       if (ndeps == 0_i8) cycle
       call this%src_view(i, deps)
@@ -415,13 +410,13 @@ contains
     integer(i8), pointer :: deps(:)
     integer(i8) :: ndeps
 
-    allocate(checking(this%n), source=.false.)
-    allocate(visited(this%n), source=.false.)
+    allocate(checking(this%n_nodes), source=.false.)
+    allocate(visited(this%n_nodes), source=.false.)
 
-    allocate(order(this%n))
+    allocate(order(this%n_nodes))
     iorder = 0_i8  ! index in order array
     istat = 0_i8   ! no errors so far
-    do i=1_i8,this%n
+    do i=1_i8,this%n_nodes
       if (.not. visited(i)) call dfs(i)
       if (istat==-1_i8) exit
     end do
@@ -494,7 +489,7 @@ contains
     integer(i8) :: nneigh, ndeps
 
     rev = optval(reverse, .false.)
-    n = this%n ! in the worst case of a linear DAG, we get as many levels as nodes
+    n = this%n_nodes ! in the worst case of a linear DAG, we get as many levels as nodes
     allocate(visit_level(n), source=0_i8)
     allocate(level_start(n))
     allocate(level_end(n))
@@ -581,7 +576,7 @@ contains
     integer(i8) :: nneigh, ndeps
 
     rev = optval(reverse, .false.)
-    n = this%n ! in the worst case of a linear DAG, we get as many levels as nodes
+    n = this%n_nodes ! in the worst case of a linear DAG, we get as many levels as nodes
     allocate(visit_level(n), source=0_i8)
     allocate(level_start(n))
     allocate(level_end(n))
@@ -657,7 +652,7 @@ contains
   pure integer(i8) function node_n_sources(this)
     class(node),intent(in) :: this
     if (allocated(this%sources)) then
-      node_n_sources = size(this%sources)
+      node_n_sources = size(this%sources, kind=i8)
     else
       node_n_sources = 0_i8
     end if
@@ -667,7 +662,7 @@ contains
   pure integer(i8) function node_n_targets(this)
     class(node),intent(in) :: this
     if (allocated(this%targets)) then
-      node_n_targets = size(this%targets)
+      node_n_targets = size(this%targets, kind=i8)
     else
       node_n_targets = 0_i8
     end if
@@ -760,7 +755,7 @@ contains
     logical :: down_
 
     down_ = optval(down, .false.)
-    allocate(handler%visited(this%n), source=.false.)
+    allocate(handler%visited(this%n_nodes), source=.false.)
     call this%traverse(handler, ids, down)
 
     nsub = count(handler%visited)
@@ -768,7 +763,7 @@ contains
     idmap = unpack([(i, i=1_i8, nsub)], handler%visited, 0_i8)
 
     call subgraph%init(nsub, subtags)
-    do i = 1_i8, this%n
+    do i = 1_i8, this%n_nodes
       if (.not.handler%visited(i)) cycle
       if (down_) then
         do j = 1_i8, this%nodes(i)%n_targets()
@@ -790,7 +785,7 @@ contains
     if (.not.allocated(this%nodes)) return
     this%max_tag = maxval(this%tags)
     allocate(this%tag_to_id_map(this%max_tag), source=-1_i8) ! Initialize with invalid index
-    do i = 1_i8, this%n
+    do i = 1_i8, this%n_nodes
       this%tag_to_id_map(this%tags(i)) = i
     end do
   end subroutine dag_rebuild_tag_map
@@ -803,7 +798,7 @@ contains
     integer(i8) :: id
     if (.not.allocated(this%tag_to_id_map)) then
       id = -1_i8
-    else if (tag < 1_i8 .or. tag > size(this%tag_to_id_map)) then
+    else if (tag < 1_i8 .or. tag > size(this%tag_to_id_map, kind=i8)) then
       id = -1_i8
     else
       id = this%tag_to_id_map(tag)
@@ -834,7 +829,7 @@ contains
     integer(i8) :: i !! counter
     if (n<1_i8) call error_message('error: n must be >= 1')
     if (allocated(this%nodes)) deallocate(this%nodes)
-    this%n = n
+    this%n_nodes = n
     allocate(this%nodes(n))
     if (present(tags)) then
       this%tags = tags
@@ -877,33 +872,34 @@ contains
   end subroutine dag_set_sources
 
   !> \brief Initialize branching DAG from downstream linkage.
-  subroutine branching_init(this, n, down, tags)
+  subroutine branching_init(this, down, tags)
     use mo_message, only: error_message
     class(branching), intent(inout) :: this
-    integer(i8), intent(in) :: n
-    integer(i8), intent(in) :: down(:)
-    integer(i8), intent(in), optional :: tags(:)
+    integer(i8), intent(in) :: down(:) !< downstream linkage (0 for sinks)
+    integer(i8), intent(in), optional :: tags(:) !< node tags (by default their index)
     integer(i8) :: i, total_up, sink, idx
-    integer(i8), allocatable :: cursor(:)
-
-    if (n < 1_i8) call error_message('branching_init: n must be >= 1')
-    if (size(down, kind=i8) /= n) call error_message('branching_init: down size mismatch')
-    if (present(tags)) then
-      if (size(tags, kind=i8) /= n) call error_message('branching_init: tags size mismatch')
-    end if
-
+    integer(i8), allocatable :: cursor(:), sinks(:)
+    integer(i8) :: n, n_sinks
     call this%destroy()
 
-    this%n = n
+    n = size(down, kind=i8)
+    this%n_nodes = n
     allocate(this%down, source=down)
     allocate(this%n_up(n), source=0_i8)
 
+    n_sinks = 0_i8
+    allocate(sinks(n))
     do i = 1_i8, n
       sink = this%down(i)
-      if (sink == 0_i8) cycle
-      if (sink < 1_i8 .or. sink > n) call error_message('branching_init: downstream id out of range')
-      this%n_up(sink) = this%n_up(sink) + 1_i8
+      if (sink == 0_i8) then
+        n_sinks = n_sinks + 1_i8
+        sinks(n_sinks) = i
+      else
+        this%n_up(sink) = this%n_up(sink) + 1_i8
+      end if
     end do
+    allocate(this%sinks(n_sinks), source=sinks(1_i8:n_sinks))
+    deallocate(sinks)
 
     allocate(this%off_up(n))
     total_up = 1_i8
@@ -927,6 +923,7 @@ contains
     end if
 
     if (present(tags)) then
+      if (size(tags, kind=i8) /= n) call error_message('branching_init: tags size mismatch')
       allocate(this%tags, source=tags)
     else
       allocate(this%tags(n))

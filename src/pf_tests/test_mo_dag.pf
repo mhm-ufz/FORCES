@@ -218,7 +218,9 @@ contains
     integer(i8) :: istat
     logical, allocatable :: mat(:,:)
 
-    call river%init(5_i8, down)
+    call river%init(down)
+    @assertEqual(size(river%sinks), 1_i8, message='branching: check single sink')
+    @assertEqual(river%sinks(1), 3_i8, message='branching: check single sink index')
 
     call river%toposort(order, istat)
     @assertEqual(istat, 0_i8, message='branching: toposort istat')

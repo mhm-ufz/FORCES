@@ -18,7 +18,7 @@ program dag_branching
   integer(i8) :: istat
   integer(i8), parameter :: down(5) = [2_i8, 3_i8, 0_i8, 2_i8, 4_i8]
 
-  call river%init(5_i8, down)
+  call river%init(down)
 
   call river%toposort(order, istat)
   print *, 'Branching DAG toposort order: ', order
