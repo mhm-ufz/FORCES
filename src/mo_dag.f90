@@ -408,7 +408,6 @@ contains
     integer(i8) :: i,iorder
     logical, allocatable, dimension(:) :: checking, visited
     integer(i8), pointer :: deps(:)
-    integer(i8) :: ndeps
 
     allocate(checking(this%n_nodes), source=.false.)
     allocate(visited(this%n_nodes), source=.false.)
@@ -421,10 +420,7 @@ contains
       if (istat==-1_i8) exit
     end do
 
-    if (istat==-1_i8) then
-      deallocate(order)
-    end if
-
+    if (istat==-1_i8) deallocate(order)
     deallocate(checking, visited)
 
   contains
@@ -440,14 +436,11 @@ contains
       end if
       if ( visited(j)) return ! already touched
       checking(j) = .true.
-      ndeps = this%n_sources(j)
-      if (ndeps > 0_i8) then
-        call this%src_view(j, deps)
-        do k=1_i8, ndeps
-          call dfs(deps(k))
-          if (istat==-1_i8) return
-        end do
-      end if
+      call this%src_view(j, deps)
+      do k=1_i8, size(deps, kind=i8)
+        call dfs(deps(k))
+        if (istat==-1_i8) return
+      end do
       checking(j) = .false.
       visited(j) = .true.
       iorder = iorder + 1_i8
@@ -484,9 +477,8 @@ contains
 
     integer(i8) :: i, j, k, m, n, count, level, added_this_level
     integer(i8), allocatable :: level_start(:), level_end(:), id(:), visit_level(:)
-    logical :: ready, rev
+    logical :: rev
     integer(i8), pointer :: neigh(:), deps(:)
-    integer(i8) :: nneigh, ndeps
 
     rev = optval(reverse, .false.)
     n = this%n_nodes ! in the worst case of a linear DAG, we get as many levels as nodes
@@ -515,30 +507,20 @@ contains
 
       ! scan all targets of previous level
       do i = level_start(level-1_i8), level_end(level-1_i8)
-        nneigh = this%n_targets(id(i))
-        if (nneigh == 0_i8) cycle
         call this%tgt_view(id(i), neigh)
-        do j = 1_i8, nneigh
+        tgt_loop: do j = 1_i8, size(neigh, kind=i8)
           k = neigh(j)
           if (visit_level(k)>0_i8) cycle ! dependent already treated by earlier node in this level
-          ready = .true.
-          ndeps = this%n_sources(k)
-          if (ndeps > 0_i8) then
-            call this%src_view(k, deps)
-            do m = 1_i8, ndeps ! non empty since it is a dependent
-              if ( visit_level(deps(m)) == 0_i8 &
-              .or. visit_level(deps(m)) == level ) then
-                ready = .false. ! some dependency not yet ready (0 - not ready, level - not added in previous levels)
-                exit
-              end if
-            end do
-          end if
-          if (.not.ready) cycle
+          call this%src_view(k, deps)
+          do m = 1_i8, size(deps, kind=i8) ! non empty since it is a dependent
+            ! some dependency not yet ready (0 - not ready, level - not added in previous levels)
+            if ( visit_level(deps(m)) == 0_i8 .or. visit_level(deps(m)) == level ) cycle tgt_loop
+          end do
           count = count + 1_i8
           id(count) = k
           visit_level(k) = level
           added_this_level = added_this_level + 1_i8
-        end do
+        end do tgt_loop
       end do
 
       if (added_this_level == 0_i8) exit ! cycle detected
@@ -571,9 +553,8 @@ contains
 
     integer(i8) :: i, j, k, m, n, count, level, added_this_level
     integer(i8), allocatable :: level_start(:), level_end(:), id(:), visit_level(:)
-    logical :: ready, rev
+    logical :: rev
     integer(i8), pointer :: neigh(:), deps(:)
-    integer(i8) :: nneigh, ndeps
 
     rev = optval(reverse, .false.)
     n = this%n_nodes ! in the worst case of a linear DAG, we get as many levels as nodes
@@ -602,30 +583,20 @@ contains
 
       ! scan all sources of previous level
       do i = level_start(level-1_i8), level_end(level-1_i8)
-        nneigh = this%n_sources(id(i))
-        if (nneigh == 0_i8) cycle
         call this%src_view(id(i), neigh)
-        do j = 1_i8, nneigh
+        src_loop: do j = 1_i8, size(neigh, kind=i8)
           k = neigh(j)
           if (visit_level(k)>0_i8) cycle ! dependency already treated by earlier node in this level
-          ready = .true.
-          ndeps = this%n_targets(k)
-          if (ndeps > 0_i8) then
-            call this%tgt_view(k, deps)
-            do m = 1_i8, ndeps ! non empty since it is a dependency
-              if ( visit_level(deps(m)) == 0_i8 &
-              .or. visit_level(deps(m)) == level ) then
-                ready = .false. ! some targets not yet ready (0 - not ready, level - not added in previous levels)
-                exit
-              end if
-            end do
-          end if
-          if (.not.ready) cycle
+          call this%tgt_view(k, deps)
+          do m = 1_i8, size(deps, kind=i8) ! non empty since it is a dependency
+            ! some targets not yet ready (0 - not ready, level - not added in previous levels)
+            if ( visit_level(deps(m)) == 0_i8 .or. visit_level(deps(m)) == level ) cycle src_loop
+          end do
           count = count + 1_i8
           id(count) = k
           visit_level(k) = level
           added_this_level = added_this_level + 1_i8
-        end do
+        end do src_loop
       end do
 
       if (added_this_level == 0_i8) exit ! cycle detected
