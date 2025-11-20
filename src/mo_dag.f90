@@ -144,7 +144,7 @@ module mo_dag
   !> \class node
   !> \brief A node of a directed acyclic graph (DAG)
   type :: node
-    !> The nodes that this node depends on (directed edges of the graph).
+    !> The upstream nodes that this node depends on (directed sources of the graph).
     !! The indices are the respective node index in the nodes list in the dag
     !! and do not necessarily match the dag%tags (e.g. when nodes are removed, their tags stay untouched)
     integer(i8),dimension(:),allocatable :: sources
@@ -191,7 +191,7 @@ module mo_dag
   !! upstream adjacency using CSR-like arrays.
   type, public, extends(dag_base) :: branching
     integer(i8), allocatable :: down(:)            !< Direct downstream neighbor (0 if sink)
-    integer(i8), allocatable :: sinks(:)           !< Indices of sink nodes (nodes with no downstream neighbor)
+    integer(i8), allocatable :: sinks(:)           !< Indices of sink nodes (no downstream neighbor)
     integer(i8), allocatable :: up(:)              !< Concatenated upstream neighbors for all nodes
     integer(i8), allocatable :: n_up(:)            !< Number of upstream neighbors per node
     integer(i8), allocatable :: off_up(:)          !< Offsets into up(:) for each node
@@ -202,6 +202,7 @@ module mo_dag
     procedure :: n_targets       => branching_n_targets
     procedure :: src_view        => branching_src_view
     procedure :: tgt_view        => branching_tgt_view
+    procedure :: levelsort       => branching_levelsort
     final     :: branching_final
   end type branching
 
@@ -211,20 +212,33 @@ contains
   subroutine order_reverse(this)
     use mo_utils, only: flip
     class(order_t), intent(inout) :: this
-    integer(i8), allocatable :: tmp(:)
-    integer(i8) :: n
-    call flip(this%id, idim=1_i4)
-    call flip(this%level_size, idim=1_i4)
-    call flip(this%level_start, idim=1_i4)
-    call flip(this%level_end, idim=1_i4)
-    ! numbering needs to match reversed id array
-    call move_alloc(this%level_start, tmp)
-    call move_alloc(this%level_end, this%level_start)
-    call move_alloc(tmp, this%level_end)
-    ! call swap(this%level_start, this%level_end)
+    ! integer(i8), allocatable :: tmp(:)
+    integer(i8) :: n, tmp1, tmp2, i
+
     n = size(this%id)
-    this%level_start = n + 1_i8 - this%level_start
-    this%level_end = n + 1_i8 - this%level_end
+
+    !$omp parallel do default(shared) private(tmp1) schedule(static)
+    do i=1_i8, n/2_i8
+      tmp1 = this%id(i)
+      this%id(i) = this%id(n - i + 1_i8)
+      this%id(n - i + 1_i8) = tmp1
+    end do
+    !$omp end parallel do
+
+    !$omp parallel do default(shared) private(tmp1,tmp2) schedule(static)
+    do i=1_i8, this%n_levels/2_i8
+      tmp1 = this%level_size(i)
+      this%level_size(i) = this%level_size(this%n_levels - i + 1_i8)
+      this%level_size(this%n_levels - i + 1_i8) = tmp1
+      ! flipping level start/end, swapping them and subtract it from n+1
+      tmp1 = this%level_start(i)
+      tmp2 = this%level_end(i)
+      this%level_start(i) = n + 1_i8 - this%level_end(this%n_levels - i + 1_i8)
+      this%level_end(i) = n + 1_i8 - this%level_start(this%n_levels - i + 1_i8)
+      this%level_start(this%n_levels - i + 1_i8) = n + 1_i8 - tmp2
+      this%level_end(this%n_levels - i + 1_i8) = n + 1_i8 - tmp1
+    end do
+    !$omp end parallel do
   end subroutine
 
   !> \brief Simple visit function to visit all dependencies.
@@ -855,8 +869,14 @@ contains
 
     n = size(down, kind=i8)
     this%n_nodes = n
-    allocate(this%down, source=down)
-    allocate(this%n_up(n), source=0_i8)
+    allocate(this%down(n))
+    allocate(this%n_up(n))
+    !$omp parallel do default(shared) schedule(static)
+    do i = 1_i8, n
+      this%down(i) = down(i)
+      this%n_up(i) = 0_i8
+    end do
+    !$omp end parallel do
 
     n_sinks = 0_i8
     allocate(sinks(n))
@@ -882,7 +902,12 @@ contains
 
     allocate(this%up(total_up)) ! size: nodes - sinks
     if (total_up > 0_i8) then
-      allocate(cursor(n), source=0_i8)
+      allocate(cursor(n))
+      !$omp parallel do default(shared) schedule(static)
+      do i = 1_i8, n
+        cursor(i) = 0_i8
+      end do
+      !$omp end parallel do
       do i = 1_i8, n
         sink = this%down(i)
         if (sink == 0_i8) cycle
@@ -895,7 +920,12 @@ contains
 
     if (present(tags)) then
       if (size(tags, kind=i8) /= n) call error_message('branching_init: tags size mismatch')
-      allocate(this%tags, source=tags)
+      allocate(this%tags(n))
+      !$omp parallel do default(shared) schedule(static)
+      do i = 1_i8, n
+        this%tags(i) = tags(i)
+      end do
+      !$omp end parallel do
     else
       allocate(this%tags(n))
       !$omp parallel do default(shared) schedule(static)
@@ -913,6 +943,7 @@ contains
     if (allocated(this%up)) deallocate(this%up)
     if (allocated(this%n_up)) deallocate(this%n_up)
     if (allocated(this%off_up)) deallocate(this%off_up)
+    if (allocated(this%sinks)) deallocate(this%sinks)
     call dag_base_destroy(this)
   end subroutine branching_destroy
 
@@ -957,6 +988,142 @@ contains
       view => empty_int_vec
     end if
   end subroutine branching_tgt_view
+
+  !> \brief Specialized levelsort for branching DAGs with optional root ordering.
+  subroutine branching_levelsort(this, order, istat, root, reverse)
+    use mo_utils, only : optval
+    class(branching), intent(in), target :: this
+    type(order_t), intent(out) :: order
+    integer(i8), intent(out) :: istat
+    logical, intent(in), optional :: root, reverse
+    logical :: root_
+
+    root_ = optval(root, .false.)
+    if (root_) then
+      call branching_levelsort_root(this, order, istat, reverse)
+    else
+      call dag_base_levelsort(this, order, istat, root, reverse)
+    end if
+  end subroutine branching_levelsort
+
+  !> \brief Parallel root-based level ordering for branching DAGs.
+  subroutine branching_levelsort_root(this, order, istat, reverse)
+    use mo_utils, only : optval
+    class(branching), intent(in), target :: this
+    type(order_t), intent(out) :: order
+    integer(i8), intent(out) :: istat
+    logical, intent(in), optional :: reverse
+
+    integer(i8), allocatable :: current(:), next(:)
+    integer(i8), allocatable :: level_start_tmp(:), level_end_tmp(:)
+    integer(i8), allocatable :: degree(:), offsets(:)
+    integer(i8), allocatable :: order_ids(:)
+    integer(i8), pointer :: src(:)
+    logical, allocatable :: sink_mask(:)
+    integer(i8) :: n, count, level_idx, size_curr
+    integer(i8) :: total_next, i
+    logical :: rev
+
+    n = this%n_nodes
+    istat = 0_i8
+    if (n == 0_i8) then
+      order%n_levels = 0_i8
+      allocate(order%id(0))
+      allocate(order%level_start(0))
+      allocate(order%level_end(0))
+      allocate(order%level_size(0))
+      return
+    end if
+
+    if (.not. allocated(this%sinks)) then
+      istat = -1_i8
+      return
+    end if
+
+    if (size(this%sinks, kind=i8) == 0_i8) then
+      istat = -1_i8
+      return
+    end if
+
+    allocate(current(size(this%sinks, kind=i8)))
+    current = this%sinks
+
+    allocate(order_ids(n))
+    allocate(level_start_tmp(n))
+    allocate(level_end_tmp(n))
+
+    count = 0_i8
+    level_idx = 0_i8
+    rev = optval(reverse, .false.)
+
+    do
+      size_curr = size(current, kind=i8)
+      if (size_curr == 0_i8) exit
+
+      level_idx = level_idx + 1_i8
+      level_start_tmp(level_idx) = count + 1_i8
+
+      !$omp parallel do default(shared)
+      do i = 1_i8, size_curr
+        order_ids(count + i) = current(i)
+      end do
+      !$omp end parallel do
+
+      count = count + size_curr
+      level_end_tmp(level_idx) = count
+
+      allocate(degree(size_curr))
+      !$omp parallel do default(shared)
+      do i = 1_i8, size_curr
+        degree(i) = this%n_sources(current(i))
+      end do
+      !$omp end parallel do
+
+      total_next = sum(degree)
+      if (total_next == 0_i8) then
+        deallocate(degree)
+        exit
+      end if
+
+      allocate(offsets(size_curr))
+      if (size_curr > 0_i8) offsets(1) = 1_i8
+      do i = 2_i8, size_curr
+        offsets(i) = offsets(i-1) + degree(i-1)
+      end do
+
+      allocate(next(total_next))
+      !$omp parallel do default(shared) private(src)
+      do i = 1_i8, size_curr
+        if (degree(i) == 0_i8) cycle
+        call this%src_view(current(i), src)
+        next(offsets(i):offsets(i)+degree(i)-1_i8) = src(1:degree(i))
+      end do
+      !$omp end parallel do
+
+      deallocate(degree, offsets)
+      deallocate(current)
+      call move_alloc(next, current)
+    end do
+
+    if (count /= n) then
+      istat = -1_i8
+      deallocate(current, order_ids, level_start_tmp, level_end_tmp)
+      return
+    end if
+
+    istat = 0_i8
+    call move_alloc(order_ids, order%id)
+    allocate(order%level_start(level_idx), source=level_start_tmp(1_i8:level_idx))
+    allocate(order%level_end(level_idx),   source=level_end_tmp(1_i8:level_idx))
+    allocate(order%level_size(level_idx))
+    order%level_size = order%level_end - order%level_start + 1_i8
+    order%n_levels = level_idx
+
+    if (.not. rev) call order%reverse()
+
+    deallocate(level_start_tmp, level_end_tmp)
+    if (allocated(current)) deallocate(current)
+  end subroutine branching_levelsort_root
 
   !> \brief Ensure branching DAG resources are freed when going out of scope.
   subroutine branching_final(this)
