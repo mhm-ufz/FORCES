@@ -2114,11 +2114,14 @@ contains
     integer(i4) :: j
     call this%check_shape(shape(data, kind=i4))
     call this%check_shape_packed(shape(out_data, kind=i8))
-    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
-      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
+      do i = 1_i4, this%nx
+        if (.not.this%mask(i,j)) cycle
+        k = k + 1_i8
+        out_data(k) = data(i,j)
+      end do
     end do
     !$omp end parallel do
   end subroutine pack_into_sp
@@ -2135,11 +2138,14 @@ contains
     integer(i4) :: j
     call this%check_shape(shape(data, kind=i4))
     call this%check_shape_packed(shape(out_data, kind=i8))
-    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
-      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
+      do i = 1_i4, this%nx
+        if (.not.this%mask(i,j)) cycle
+        k = k + 1_i8
+        out_data(k) = data(i,j)
+      end do
     end do
     !$omp end parallel do
   end subroutine pack_into_dp
@@ -2156,11 +2162,14 @@ contains
     integer(i4) :: j
     call this%check_shape(shape(data, kind=i4))
     call this%check_shape_packed(shape(out_data, kind=i8))
-    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
-      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
+      do i = 1_i4, this%nx
+        if (.not.this%mask(i,j)) cycle
+        k = k + 1_i8
+        out_data(k) = data(i,j)
+      end do
     end do
     !$omp end parallel do
   end subroutine pack_into_i1
@@ -2177,11 +2186,14 @@ contains
     integer(i4) :: j
     call this%check_shape(shape(data, kind=i4))
     call this%check_shape_packed(shape(out_data, kind=i8))
-    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
-      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
+      do i = 1_i4, this%nx
+        if (.not.this%mask(i,j)) cycle
+        k = k + 1_i8
+        out_data(k) = data(i,j)
+      end do
     end do
     !$omp end parallel do
   end subroutine pack_into_i2
@@ -2198,11 +2210,14 @@ contains
     integer(i4) :: j
     call this%check_shape(shape(data, kind=i4))
     call this%check_shape_packed(shape(out_data, kind=i8))
-    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
-      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
+      do i = 1_i4, this%nx
+        if (.not.this%mask(i,j)) cycle
+        k = k + 1_i8
+        out_data(k) = data(i,j)
+      end do
     end do
     !$omp end parallel do
   end subroutine pack_into_i4
@@ -2219,11 +2234,14 @@ contains
     integer(i4) :: j
     call this%check_shape(shape(data, kind=i4))
     call this%check_shape_packed(shape(out_data, kind=i8))
-    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
-      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
+      do i = 1_i4, this%nx
+        if (.not.this%mask(i,j)) cycle
+        k = k + 1_i8
+        out_data(k) = data(i,j)
+      end do
     end do
     !$omp end parallel do
   end subroutine pack_into_i8
@@ -2240,11 +2258,14 @@ contains
     integer(i4) :: j
     call this%check_shape(shape(data, kind=i4))
     call this%check_shape_packed(shape(out_data, kind=i8))
-    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
-      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      out_data(k+1_i8 : k+i) = pack(data(:,j), this%mask(:,j))
+      do i = 1_i4, this%nx
+        if (.not.this%mask(i,j)) cycle
+        k = k + 1_i8
+        out_data(k) = data(i,j)
+      end do
     end do
     !$omp end parallel do
   end subroutine pack_into_lgt
@@ -2264,9 +2285,15 @@ contains
     call this%check_shape_packed(shape(data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
-      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), nodata_sp)
+      do i = 1_i4, this%nx
+        if (this%mask(i,j)) then
+          k = k + 1_i8
+          out_data(i,j) = data(k)
+        else
+          out_data(i,j) = nodata_sp
+        end if
+      end do
     end do
     !$omp end parallel do
   end subroutine unpack_into_sp
@@ -2286,9 +2313,15 @@ contains
     call this%check_shape_packed(shape(data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
-      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), nodata_dp)
+      do i = 1_i4, this%nx
+        if (this%mask(i,j)) then
+          k = k + 1_i8
+          out_data(i,j) = data(k)
+        else
+          out_data(i,j) = nodata_dp
+        end if
+      end do
     end do
     !$omp end parallel do
   end subroutine unpack_into_dp
@@ -2308,9 +2341,15 @@ contains
     call this%check_shape_packed(shape(data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
-      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), nodata_i1)
+      do i = 1_i4, this%nx
+        if (this%mask(i,j)) then
+          k = k + 1_i8
+          out_data(i,j) = data(k)
+        else
+          out_data(i,j) = nodata_i1
+        end if
+      end do
     end do
     !$omp end parallel do
   end subroutine unpack_into_i1
@@ -2330,9 +2369,15 @@ contains
     call this%check_shape_packed(shape(data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
-      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), nodata_i2)
+      do i = 1_i4, this%nx
+        if (this%mask(i,j)) then
+          k = k + 1_i8
+          out_data(i,j) = data(k)
+        else
+          out_data(i,j) = nodata_i2
+        end if
+      end do
     end do
     !$omp end parallel do
   end subroutine unpack_into_i2
@@ -2352,9 +2397,15 @@ contains
     call this%check_shape_packed(shape(data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
-      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), nodata_i4)
+      do i = 1_i4, this%nx
+        if (this%mask(i,j)) then
+          k = k + 1_i8
+          out_data(i,j) = data(k)
+        else
+          out_data(i,j) = nodata_i4
+        end if
+      end do
     end do
     !$omp end parallel do
   end subroutine unpack_into_i4
@@ -2374,9 +2425,15 @@ contains
     call this%check_shape_packed(shape(data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
-      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), nodata_i8)
+      do i = 1_i4, this%nx
+        if (this%mask(i,j)) then
+          k = k + 1_i8
+          out_data(i,j) = data(k)
+        else
+          out_data(i,j) = nodata_i8
+        end if
+      end do
     end do
     !$omp end parallel do
   end subroutine unpack_into_i8
@@ -2395,9 +2452,15 @@ contains
     call this%check_shape_packed(shape(data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
-      i = this%mask_col_cnt(j)
       k = this%mask_cum_col_cnt(j)
-      out_data(:,j) = unpack(data(k+1_i8 : k+i), this%mask(:,j), .false.)
+      do i = 1_i4, this%nx
+        if (this%mask(i,j)) then
+          k = k + 1_i8
+          out_data(i,j) = data(k)
+        else
+          out_data(i,j) = .false.
+        end if
+      end do
     end do
     !$omp end parallel do
   end subroutine unpack_into_lgt
