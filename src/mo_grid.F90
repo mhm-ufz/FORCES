@@ -891,9 +891,9 @@ contains
       do i = 1_i4, this%nx
         if (this%mask(i,j)) then
           k = k + 1_i8
-          out_data(i,j) = k
+          mat(i,j) = k
         else
-          out_data(i,j) = nodata_i8
+          mat(i,j) = nodata_i8
         end if
       end do
     end do
