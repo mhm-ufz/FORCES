@@ -41,7 +41,7 @@
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_dag
-  use mo_kind, only : i8, i4
+  use mo_kind, only : i8
   use mo_utils, only: optval, swap
 
   ! Control constants for depth-first traversal behavior.
@@ -1019,7 +1019,6 @@ contains
     integer(i8), allocatable :: degree(:), offsets(:)
     integer(i8), allocatable :: order_ids(:)
     integer(i8), pointer :: src(:)
-    logical, allocatable :: sink_mask(:)
     integer(i8) :: n, count, level_idx, size_curr
     integer(i8) :: total_next, i
     logical :: rev
