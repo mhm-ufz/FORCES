@@ -215,7 +215,7 @@ contains
     ! integer(i8), allocatable :: tmp(:)
     integer(i8) :: n, tmp1, tmp2, i
 
-    n = size(this%id)
+    n = size(this%id, kind=i8)
 
     !$omp parallel do default(shared) private(tmp1) schedule(static)
     do i=1_i8, n/2_i8
