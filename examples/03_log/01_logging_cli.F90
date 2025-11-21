@@ -52,6 +52,10 @@ program logging_cli
   log_root(LOG_INFO,*) 'root info macro for MPI'
   log_plain_root(LOG_WARN,*) 'plain root warn macro without level for MPI'
 
+  ! scoped messages (enable with --log-scope)
+  scope_info('data',*) 'This is a scope info message for the "data" scope.'
+  scope_debug('grid',*) 'This is a scope debug message for the "grid" scope.'
+
   ! close log file if opened
   if (parser%option_was_read('log-path')) close(unit)
 end program logging_cli
