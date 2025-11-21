@@ -110,6 +110,7 @@ module mo_grid
     procedure, public :: extent
     procedure, public :: total_area
     procedure, public :: id_matrix
+    procedure, public :: gen_id_matrix
     procedure, public :: cell_id
     procedure, public :: closest_cell_id
     procedure, public :: x_axis
@@ -874,8 +875,30 @@ contains
     class(grid_t), intent(in) :: this
     integer(i8), dimension(this%nx, this%ny) :: id_matrix
     integer(i8) :: i
-    call this%unpack_into([(i, i=1_i8, this%ncells)], id_matrix)
+    call this%gen_id_matrix(id_matrix)
   end function id_matrix
+
+  !> \brief Generate matrix of cell IDs.
+  subroutine gen_id_matrix(this, mat)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i8), intent(out) :: mat(this%nx, this%ny)
+    integer(i8) :: k
+    integer(i4) :: i, j
+    !$omp parallel do default(shared) private(k,i) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (this%mask(i,j)) then
+          k = k + 1_i8
+          out_data(i,j) = k
+        else
+          out_data(i,j) = nodata_i8
+        end if
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine gen_id_matrix
 
   !> \brief Cell ID for given matrix indices.
   !> \return `integer(i8) :: cell_id`
@@ -2110,8 +2133,8 @@ contains
     class(grid_t), intent(in) :: this
     real(sp), intent(in) :: data(:,:)
     real(sp), intent(out) :: out_data(:)
-    integer(i8) :: k, i
-    integer(i4) :: j
+    integer(i8) :: k
+    integer(i4) :: i, j
     call this%check_shape(shape(data, kind=i4))
     call this%check_shape_packed(shape(out_data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
@@ -2134,8 +2157,8 @@ contains
     class(grid_t), intent(in) :: this
     real(dp), intent(in) :: data(:,:)
     real(dp), intent(out) :: out_data(:)
-    integer(i8) :: k, i
-    integer(i4) :: j
+    integer(i8) :: k
+    integer(i4) :: i, j
     call this%check_shape(shape(data, kind=i4))
     call this%check_shape_packed(shape(out_data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
@@ -2158,8 +2181,8 @@ contains
     class(grid_t), intent(in) :: this
     integer(i1), intent(in) :: data(:,:)
     integer(i1), intent(out) :: out_data(:)
-    integer(i8) :: k, i
-    integer(i4) :: j
+    integer(i8) :: k
+    integer(i4) :: i, j
     call this%check_shape(shape(data, kind=i4))
     call this%check_shape_packed(shape(out_data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
@@ -2182,8 +2205,8 @@ contains
     class(grid_t), intent(in) :: this
     integer(i2), intent(in) :: data(:,:)
     integer(i2), intent(out) :: out_data(:)
-    integer(i8) :: k, i
-    integer(i4) :: j
+    integer(i8) :: k
+    integer(i4) :: i, j
     call this%check_shape(shape(data, kind=i4))
     call this%check_shape_packed(shape(out_data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
@@ -2206,8 +2229,8 @@ contains
     class(grid_t), intent(in) :: this
     integer(i4), intent(in) :: data(:,:)
     integer(i4), intent(out) :: out_data(:)
-    integer(i8) :: k, i
-    integer(i4) :: j
+    integer(i8) :: k
+    integer(i4) :: i, j
     call this%check_shape(shape(data, kind=i4))
     call this%check_shape_packed(shape(out_data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
@@ -2230,8 +2253,8 @@ contains
     class(grid_t), intent(in) :: this
     integer(i8), intent(in) :: data(:,:)
     integer(i8), intent(out) :: out_data(:)
-    integer(i8) :: k, i
-    integer(i4) :: j
+    integer(i8) :: k
+    integer(i4) :: i, j
     call this%check_shape(shape(data, kind=i4))
     call this%check_shape_packed(shape(out_data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
@@ -2254,8 +2277,8 @@ contains
     class(grid_t), intent(in) :: this
     logical, intent(in) :: data(:,:)
     logical, intent(out) :: out_data(:)
-    integer(i8) :: k, i
-    integer(i4) :: j
+    integer(i8) :: k
+    integer(i4) :: i, j
     call this%check_shape(shape(data, kind=i4))
     call this%check_shape_packed(shape(out_data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
@@ -2279,8 +2302,8 @@ contains
     class(grid_t), intent(in) :: this
     real(sp), intent(in) :: data(:)
     real(sp), intent(out) :: out_data(:,:)
-    integer(i8) :: k, i
-    integer(i4) :: j
+    integer(i8) :: k
+    integer(i4) :: i, j
     call this%check_shape(shape(out_data, kind=i4))
     call this%check_shape_packed(shape(data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
@@ -2307,8 +2330,8 @@ contains
     class(grid_t), intent(in) :: this
     real(dp), intent(in) :: data(:)
     real(dp), intent(out) :: out_data(:,:)
-    integer(i8) :: k, i
-    integer(i4) :: j
+    integer(i8) :: k
+    integer(i4) :: i, j
     call this%check_shape(shape(out_data, kind=i4))
     call this%check_shape_packed(shape(data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
@@ -2335,8 +2358,8 @@ contains
     class(grid_t), intent(in) :: this
     integer(i1), intent(in) :: data(:)
     integer(i1), intent(out) :: out_data(:,:)
-    integer(i8) :: k, i
-    integer(i4) :: j
+    integer(i8) :: k
+    integer(i4) :: i, j
     call this%check_shape(shape(out_data, kind=i4))
     call this%check_shape_packed(shape(data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
@@ -2363,8 +2386,8 @@ contains
     class(grid_t), intent(in) :: this
     integer(i2), intent(in) :: data(:)
     integer(i2), intent(out) :: out_data(:,:)
-    integer(i8) :: k, i
-    integer(i4) :: j
+    integer(i8) :: k
+    integer(i4) :: i, j
     call this%check_shape(shape(out_data, kind=i4))
     call this%check_shape_packed(shape(data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
@@ -2391,8 +2414,8 @@ contains
     class(grid_t), intent(in) :: this
     integer(i4), intent(in) :: data(:)
     integer(i4), intent(out) :: out_data(:,:)
-    integer(i8) :: k, i
-    integer(i4) :: j
+    integer(i8) :: k
+    integer(i4) :: i, j
     call this%check_shape(shape(out_data, kind=i4))
     call this%check_shape_packed(shape(data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
@@ -2419,8 +2442,8 @@ contains
     class(grid_t), intent(in) :: this
     integer(i8), intent(in) :: data(:)
     integer(i8), intent(out) :: out_data(:,:)
-    integer(i8) :: k, i
-    integer(i4) :: j
+    integer(i8) :: k
+    integer(i4) :: i, j
     call this%check_shape(shape(out_data, kind=i4))
     call this%check_shape_packed(shape(data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
@@ -2446,8 +2469,8 @@ contains
     class(grid_t), intent(in) :: this
     logical, intent(in) :: data(:)
     logical, intent(out) :: out_data(:,:)
-    integer(i8) :: k, i
-    integer(i4) :: j
+    integer(i8) :: k
+    integer(i4) :: i, j
     call this%check_shape(shape(out_data, kind=i4))
     call this%check_shape_packed(shape(data, kind=i8))
     !$omp parallel do default(shared) private(k,i) schedule(static)
