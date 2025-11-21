@@ -908,10 +908,10 @@ contains
     implicit none
     class(grid_t), intent(in) :: this
     integer(i4), intent(in) :: indices(2) !< matrix indices (x_i,y_i)
-    logical, dimension(this%ncells) :: cell_loc
-    cell_loc = (this%cell_ij(:, 1) == indices(1)).and.(this%cell_ij(:, 2) == indices(2))
-    cell_id = findloc(cell_loc, .true., dim=1, kind=i8)
-    if (cell_id == 0_i8) call error_message("grid%cell_id: given indices not found.")
+    if (indices(1) < 1_i4 .or. indices(1) > this%nx .or. indices(2) < 1_i4 .or. indices(2) > this%ny) &
+      call error_message("grid%cell_id: given indices are out of bounds.")
+    if (.not.this%mask(indices(1), indices(2))) call error_message("grid%cell_id: given indices are masked.")
+    cell_id = this%mask_cum_col_cnt(indices(2)) + count(this%mask(1_i4:indices(1), indices(2)), kind=i8)
   end function cell_id
 
   !> \brief Closest cell ID for given coordinates.
