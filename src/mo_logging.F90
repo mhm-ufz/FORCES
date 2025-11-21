@@ -66,6 +66,7 @@ module mo_logging
   integer, public, parameter :: LOG_INFO  = LOG_LEVEL_INFO_DEF !< = 4, Interesting events
   integer, public, parameter :: LOG_DEBUG = LOG_LEVEL_DEBUG_DEF !< = 5, Detailed debug output, disable by compiling your program with -DDISABLE_LOG_DEBUG
   integer, public, parameter :: LOG_TRACE = LOG_LEVEL_TRACE_DEF !< = 6, Extremely detailed output, compile your program with -DENABLE_LOG_TRACE to enable
+  integer, public, parameter :: LOG_FINE = LOG_LEVEL_SUBTRACE_DEF !< = 7, More Extremely detailed output, compile your program with -DENABLE_LOG_TRACE to enable
   integer, public, parameter :: LOG_SUBTRACE = LOG_LEVEL_SUBTRACE_DEF !< = 7, More Extremely detailed output, compile your program with -DENABLE_LOG_TRACE to enable
 
   integer, public, save :: log_unit = stdout !< By default, log to stderr for level > 2 (stdout has a bug with gfortran)
@@ -259,15 +260,15 @@ contains
       case (LOG_ERROR)
         log_level_label = "[ERROR]"
       case (LOG_WARN)
-        log_level_label = "[WARN]"
+        log_level_label = "[WARN ]"
       case (LOG_INFO)
-        log_level_label = "[INFO]"
+        log_level_label = "[INFO ]"
       case (LOG_DEBUG)
         log_level_label = "[DEBUG]"
       case (LOG_TRACE)
         log_level_label = "[TRACE]"
-      case (LOG_SUBTRACE)
-        log_level_label = "[SUBTRACE]"
+      case (LOG_FINE)
+        log_level_label = "[FINE ]"
       case default
         write(log_level_label, '("[LEVEL-",i0,"]")') level
     end select

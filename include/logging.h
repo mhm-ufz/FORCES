@@ -109,6 +109,11 @@
 #define scope_subtrace(scope_name,format) scope_write(scope_name,LOG_LEVEL_SUBTRACE_DEF,format)
 #define scope_subtrace_root(scope_name,format) scope_root(scope_name,LOG_LEVEL_SUBTRACE_DEF,format)
 #define scope_subtrace_core(core,scope_name,format) scope_core(core,scope_name,LOG_LEVEL_SUBTRACE_DEF,format)
+#define log_fine(format) log_subtrace(format)
+#define log_fine_root(format) log_subtrace_root(format)
+#define scope_fine(scope_name,format) scope_subtrace(scope_name,format)
+#define scope_fine_root(scope_name,format) scope_subtrace_root(scope_name,format)
+#define scope_fine_core(core,scope_name,format) scope_subtrace_core(core,scope_name,format)
 #else
 #define log_trace(format) ! trace comment:
 #define log_trace_root(format) ! root trace comment:
@@ -120,4 +125,9 @@
 #define scope_subtrace(scope_name,format) ! scope subtrace comment:
 #define scope_subtrace_root(scope_name,format) ! scope subtrace root comment:
 #define scope_subtrace_core(core,scope_name,format) ! scope subtrace core comment:
+#define log_fine(format) ! fine comment:
+#define log_fine_root(format) ! fine root comment:
+#define scope_fine(scope_name,format) ! scope fine comment:
+#define scope_fine_root(scope_name,format) ! scope fine root comment:
+#define scope_fine_core(core,scope_name,format) ! scope fine core comment:
 #endif
