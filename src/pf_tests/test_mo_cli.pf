@@ -50,8 +50,8 @@ contains
 
     @assertFalse(parser%option_was_read("t"))
     @assertFalse(parser%option_was_read("opt"))
-    ! options with default value marked as "read"
-    @assertTrue(parser%option_was_read("blank"))
+    ! options with default value marked as "read" only when really present
+    @assertFalse(parser%option_was_read("blank"))
 
     @assertEqual(parser%get_blank_option_index(), 5)
 
