@@ -18,7 +18,8 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_grid
 
-  use mo_kind, only: i1, i2, i4, i8, dp, sp
+  use mo_kind, only: i1, i2, i4, i8, sp, dp
+  use mo_constants, only : nodata_i1, nodata_i2, nodata_i4, nodata_i8, nodata_sp, nodata_dp, RadiusEarth_dp, deg2rad_dp
   use mo_utils, only: flip, optval
   use mo_message, only : error_message, warn_message, message
   use mo_string_utils, only : num2str
@@ -288,7 +289,6 @@ contains
   !> \authors Sebastian Müller
   !> \date Mar 2024
   subroutine to_ascii_file(this, path, write_mask)
-    use mo_constants, only: nodata_i4
     implicit none
     class(grid_t), intent(inout) :: this
     character(*), intent(in) :: path !< path to the ascii grid file
@@ -676,7 +676,6 @@ contains
     use mo_netcdf, only : NcDataset, NcVariable, NcDimension
     use mo_utils, only : is_close
     use mo_string_utils, only : splitString
-    use mo_constants, only : nodata_sp, nodata_dp
     implicit none
     class(grid_t), intent(in) :: this
     type(NcDataset), intent(inout) :: nc !< NetCDF Dataset
@@ -1610,12 +1609,8 @@ contains
   !! - Sebastian Müller, Mar 2024
   !!   - moved to FORCES
   subroutine calculate_cell_area(this)
-
-    use mo_constants, only : RadiusEarth_dp, deg2rad_dp
     implicit none
-
     class(grid_t), intent(inout) :: this
-
     real(dp) :: factor, cell_size_rad
     integer(i8) :: k
     real(dp), allocatable :: cell_area_lat(:)
@@ -2026,7 +2021,6 @@ contains
   !> \authors Sebastian Müller
   !> \date    Mar 2025
   function unpack_data_sp(this, data) result(out_data)
-    use mo_constants, only : nodata_sp
     implicit none
     class(grid_t), intent(in) :: this
     real(sp), intent(in) :: data(:)
@@ -2041,7 +2035,6 @@ contains
   !> \authors Sebastian Müller
   !> \date    Mar 2025
   function unpack_data_dp(this, data) result(out_data)
-    use mo_constants, only : nodata_dp
     implicit none
     class(grid_t), intent(in) :: this
     real(dp), intent(in) :: data(:)
@@ -2056,7 +2049,6 @@ contains
   !> \authors Sebastian Müller
   !> \date    Mar 2025
   function unpack_data_i1(this, data) result(out_data)
-    use mo_constants, only : nodata_i1
     implicit none
     class(grid_t), intent(in) :: this
     integer(i1), intent(in) :: data(:)
@@ -2071,7 +2063,6 @@ contains
   !> \authors Sebastian Müller
   !> \date    Mar 2025
   function unpack_data_i2(this, data) result(out_data)
-    use mo_constants, only : nodata_i2
     implicit none
     class(grid_t), intent(in) :: this
     integer(i2), intent(in) :: data(:)
@@ -2086,7 +2077,6 @@ contains
   !> \authors Sebastian Müller
   !> \date    Mar 2025
   function unpack_data_i4(this, data) result(out_data)
-    use mo_constants, only : nodata_i4
     implicit none
     class(grid_t), intent(in) :: this
     integer(i4), intent(in) :: data(:)
@@ -2101,7 +2091,6 @@ contains
   !> \authors Sebastian Müller
   !> \date    Mar 2025
   function unpack_data_i8(this, data) result(out_data)
-    use mo_constants, only : nodata_i8
     implicit none
     class(grid_t), intent(in) :: this
     integer(i8), intent(in) :: data(:)
@@ -2297,7 +2286,6 @@ contains
   !> \authors Sebastian Müller
   !> \date    Nov 2025
   subroutine unpack_into_sp(this, data, out_data)
-    use mo_constants, only : nodata_sp
     implicit none
     class(grid_t), intent(in) :: this
     real(sp), intent(in) :: data(:)
@@ -2325,7 +2313,6 @@ contains
   !> \authors Sebastian Müller
   !> \date    Nov 2025
   subroutine unpack_into_dp(this, data, out_data)
-    use mo_constants, only : nodata_dp
     implicit none
     class(grid_t), intent(in) :: this
     real(dp), intent(in) :: data(:)
@@ -2353,7 +2340,6 @@ contains
   !> \authors Sebastian Müller
   !> \date    Nov 2025
   subroutine unpack_into_i1(this, data, out_data)
-    use mo_constants, only : nodata_i1
     implicit none
     class(grid_t), intent(in) :: this
     integer(i1), intent(in) :: data(:)
@@ -2381,7 +2367,6 @@ contains
   !> \authors Sebastian Müller
   !> \date    Nov 2025
   subroutine unpack_into_i2(this, data, out_data)
-    use mo_constants, only : nodata_i2
     implicit none
     class(grid_t), intent(in) :: this
     integer(i2), intent(in) :: data(:)
@@ -2409,7 +2394,6 @@ contains
   !> \authors Sebastian Müller
   !> \date    Nov 2025
   subroutine unpack_into_i4(this, data, out_data)
-    use mo_constants, only : nodata_i4
     implicit none
     class(grid_t), intent(in) :: this
     integer(i4), intent(in) :: data(:)
@@ -2437,7 +2421,6 @@ contains
   !> \authors Sebastian Müller
   !> \date    Nov 2025
   subroutine unpack_into_i8(this, data, out_data)
-    use mo_constants, only : nodata_i8
     implicit none
     class(grid_t), intent(in) :: this
     integer(i8), intent(in) :: data(:)
@@ -3061,7 +3044,6 @@ contains
     ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, header_size)
 
     use mo_os, only : check_path_isfile
-    use mo_constants, only : nodata_dp
     use mo_string_utils, only : tolower
     implicit none
 
@@ -3369,7 +3351,6 @@ contains
 
   !> \brief distance between two points on the sphere [m]
   pure real(dp) function dist_latlon(lat1, lon1, lat2, lon2)
-    use mo_constants, only : RadiusEarth_dp, deg2rad_dp
     real(dp), intent(in) :: lat1
     real(dp), intent(in) :: lon1
     real(dp), intent(in) :: lat2
