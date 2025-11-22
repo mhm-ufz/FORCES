@@ -41,7 +41,7 @@ program logging_cli
   log_info(*) 'information message'
   log_debug(*) 'debug message'
   log_trace(*) 'trace message for detailed debugging'
-  log_subtrace(*) 'subtrace message for very detailed debugging'
+  log_fine(*) 'subtrace message for very detailed debugging'
 
   ! special cases
   log_text(*) 'info text without level'
@@ -53,6 +53,10 @@ program logging_cli
   log_plain_root(LOG_WARN,*) 'plain root warn macro without level for MPI'
 
   ! scoped messages (enable with --log-scope)
+  ! examples:
+  !   --log-scope mod_data -> 'mod_data' scope only
+  !   --log-scope forces*  -> 'forces_data' and 'forces_grid' scopes
+  !   --log-scope \#,mod*  -> root and 'mod_data' scopes
   scope_info('mod_data',*) 'This is a scope info message for the "mod_data" scope.'
   scope_info('forces_data',*) 'This is a scope info message for the "forces_data" scope.'
   scope_debug('forces_grid',*) 'This is a scope debug message for the "forces_grid" scope.'
