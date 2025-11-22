@@ -73,11 +73,7 @@ module mo_logging
   integer, public, save :: log_unit_error = stderr !< By default, log to stderr for level <= 2
   integer, public, save :: log_level = LOG_INFO !< Note that more critical means a lower number
 
-  public :: log_set_output_date
-  public :: log_set_output_time
-  public :: log_set_output_line
   public :: log_set_config
-
   public :: logu, logp, logl
 
   private
@@ -94,23 +90,6 @@ module mo_logging
   type(scope_filter_entry), allocatable :: scope_filters(:)
 
 contains
-  !> \brief Set the default for date output
-  subroutine log_set_output_date(bool)
-    logical, intent(in) :: bool
-    output_date = bool
-  end subroutine log_set_output_date
-
-  !> \brief Set time-only date format
-  subroutine log_set_output_time(bool)
-    logical, intent(in) :: bool
-    output_time = bool
-  end subroutine log_set_output_time
-
-  !> \brief Set the default for file/line output
-  subroutine log_set_output_line(bool)
-    logical, intent(in) :: bool
-    output_line = bool
-  end subroutine log_set_output_line
 
   !> \brief Output unit to log.
   !> \return unit number.
@@ -210,7 +189,7 @@ contains
     endif
 
     ! Output level marker
-    if (output_scope .and. present(scope) .and. scope_should_log(scope)) then
+    if (present(scope)) then
       log_tmp(i) = trim(scope)
       i = i + 1
     endif
@@ -260,15 +239,15 @@ contains
       case (LOG_ERROR)
         log_level_label = "[ERROR]"
       case (LOG_WARN)
-        log_level_label = "[WARN ]"
+        log_level_label = "[WARN]"
       case (LOG_INFO)
-        log_level_label = "[INFO ]"
+        log_level_label = "[INFO]"
       case (LOG_DEBUG)
         log_level_label = "[DEBUG]"
       case (LOG_TRACE)
         log_level_label = "[TRACE]"
       case (LOG_FINE)
-        log_level_label = "[FINE ]"
+        log_level_label = "[FINE]"
       case default
         write(log_level_label, '("[LEVEL-",i0,"]")') level
     end select
@@ -321,11 +300,12 @@ contains
   end subroutine configure_scope_filter
 
   logical function scope_should_log(scope)
+    use mo_glob, only: glob_match
     character(len=*), intent(in) :: scope
     character(:), allocatable :: norm
     integer :: i
     if (.not. output_scope) then
-      scope_should_log = .true.
+      scope_should_log = .false.
       return
     end if
     if (.not. scope_filter_active .or. .not. allocated(scope_filters)) then
@@ -340,7 +320,7 @@ contains
     end if
     do i = 1, size(scope_filters)
       if (.not. allocated(scope_filters(i)%name)) cycle
-      if (scope_filters(i)%name == norm) then
+      if (glob_match(scope_filters(i)%name, norm)) then
         scope_should_log = .true.
         exit
       end if
@@ -398,7 +378,8 @@ contains
     logical, optional, intent(in) :: log_output_line !< add file/line to output
     logical, optional, intent(in) :: log_output_scope !< enable scope tags
     character(len=*), optional, intent(in) :: log_scope_filter !< csv of allowed scopes (requires log_output_scope)
-    integer :: level_shift = 0
+    integer :: level_shift
+    level_shift = 0
     if ( present(verbose) ) level_shift = level_shift + int(verbose)
     if ( present(quiet) ) level_shift = level_shift - int(quiet)
     log_level = max(0, min(NUM_LOG_LEVELS, log_level + level_shift))
@@ -410,7 +391,7 @@ contains
       if (.not. output_scope) call clear_scope_filter()
     end if
     if ( present(log_scope_filter) ) then
-      if (.not. output_scope) output_scope = .true.
+      if (.not. output_scope .and. .not. present(log_output_scope)) output_scope = .true.
       call configure_scope_filter(log_scope_filter)
     end if
   end subroutine log_set_config
