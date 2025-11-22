@@ -22,13 +22,13 @@ program logging_cli
   parser = cli_parser( &
     description='Program with cli and logger.', &
     add_help_option=.true., add_logger_options=.true.)
-  ! add log-path option
-  call parser%add_option(name='log-path', help='Log file path.', has_value=.true.)
+  ! add log-file option
+  call parser%add_option(name='log-file', help='Write to log file (optional path).', default='out.log', value_optional=.true.)
   call parser%parse()
 
-  if (parser%option_was_read('log-path')) then
-    open(newunit=unit, file=parser%option_value('log-path'), status='replace', action='write')
-    log_info(*) 'Logging to file: ', parser%option_value('log-path') ! this is still printed
+  if (parser%option_was_read('log-file')) then
+    open(newunit=unit, file=parser%option_value('log-file'), status='replace', action='write')
+    print*, 'Logging to file: ', parser%option_value('log-file')
     ! redirect log units to the opened file
     log_unit = unit
     log_unit_error = unit
@@ -53,9 +53,8 @@ program logging_cli
   log_plain_root(LOG_WARN,*) 'plain root warn macro without level for MPI'
 
   ! scoped messages (enable with --log-scope)
-  scope_info('data',*) 'This is a scope info message for the "data" scope.'
-  scope_debug('grid',*) 'This is a scope debug message for the "grid" scope.'
+  scope_info('mod_data',*) 'This is a scope info message for the "mod_data" scope.'
+  scope_info('forces_data',*) 'This is a scope info message for the "forces_data" scope.'
+  scope_debug('forces_grid',*) 'This is a scope debug message for the "forces_grid" scope.'
 
-  ! close log file if opened
-  if (parser%option_was_read('log-path')) close(unit)
 end program logging_cli
