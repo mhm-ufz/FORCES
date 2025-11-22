@@ -60,6 +60,7 @@ module mo_cli
 
   use mo_kind, only: i4
   use mo_message, only: error_message, message
+  use mo_utils, only: optval
 
   implicit none
 
@@ -126,7 +127,8 @@ contains
 
   !> \brief Create a new \ref cli_parser.
   !> \return The new \ref cli_parser.
-  type(cli_parser) function new_cli_parser(prog, description, add_help_option, add_version_option, version, add_logger_options)
+  type(cli_parser) function new_cli_parser( &
+    prog, description, add_help_option, add_version_option, version, add_logger_options, log_scope_default)
     use mo_os, only: path_split
     implicit none
     character(*), optional, intent(in) :: prog !< Program name (default will be arg(0))
@@ -135,6 +137,7 @@ contains
     logical, optional, intent(in) :: add_version_option !< whether to add a version option (--version, -V)
     character(*), optional, intent(in) :: version !< Program version
     logical, optional, intent(in) :: add_logger_options !< whether to add a logger options (--verbose, --quite, ...)
+    character(*), optional, intent(in) :: log_scope_default !< default scope list for logger option ("#" if not given)
 
     integer(i4) :: n
     character(:), allocatable :: arg, prog_
@@ -179,8 +182,8 @@ contains
       call new_cli_parser%add_option( &
         name="log-line", help="Output file and line information while logging.")
       call new_cli_parser%add_option( &
-        name="log-scope", help="Enable scope tags while logging (optional CSV list).", &
-        has_value=.true., value_name="scope_csv", value_optional=.true., default="") ! deactivates filtering by default
+        name="log-scope", help="Enable scope tags while logging (optional pattern CSV list, '#' aliases root).", &
+        has_value=.true., value_name="scopes", value_optional=.true., default=optval(log_scope_default, "#"))
     end if
   end function new_cli_parser
 
@@ -568,7 +571,7 @@ contains
           end if
           if (.not. value_provided) then
             if (self%options(id)%value_optional) then
-              self%options(id)%value = self%options(id)%default
+              self%options(id)%value = ""
             else
               call error_message("cli_parser%parse: required value missing for: ", self%options(id)%name)
             end if
@@ -617,7 +620,6 @@ contains
         log_output_date = self%option_was_read("log-date"), &
         log_output_time = self%option_was_read("log-time"), &
         log_output_line = self%option_was_read("log-line"), &
-        log_output_scope = self%option_was_read("log-scope"), &
         log_scope_filter = self%option_value("log-scope") &
       )
     end if

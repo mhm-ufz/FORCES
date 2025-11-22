@@ -21,9 +21,9 @@ program logging_cli
 
   parser = cli_parser( &
     description='Program with cli and logger.', &
-    add_help_option=.true., add_logger_options=.true.)
+    add_help_option=.true., add_logger_options=.true., log_scope_default="#")
   ! add log-file option
-  call parser%add_option(name='log-file', help='Write to log file (optional path).', default='out.log', value_optional=.true.)
+  call parser%add_option(name='log-file', help='Write to log file.', has_value=.true., required=.false.)
   call parser%parse()
 
   if (parser%option_was_read('log-file')) then

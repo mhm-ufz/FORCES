@@ -82,8 +82,6 @@ module mo_logging
   logical, save :: output_date  = .false.
   logical, save :: output_time  = .false.
   logical, save :: output_line  = .false.
-  logical, save :: output_scope = .false.
-  logical, save :: scope_filter_active = .false.
   type scope_filter_entry
     character(:), allocatable :: name
   end type scope_filter_entry
@@ -124,13 +122,8 @@ contains
       if (rank /= only_n) logp = .false.
     endif
 #endif
-    if (logp .and. present(scope)) then
-      if (.not. output_scope) then
-        logp = .false.
-      else
-        logp = scope_should_log(scope)
-      endif
-    endif
+    if (.not. logp) return
+    logp = scope_should_log(scope)
 
   end function logp
 
@@ -152,6 +145,7 @@ contains
     character(4)  :: linenum_lj ! left-justified line number
     character(len=50) :: basename ! basename stripped from filename
     logical :: skip_level ! Whether to skip level output
+    character(:), allocatable :: effective_scope
     i = 1
 
     ! If plain is set, skip level output
@@ -161,6 +155,11 @@ contains
     ! Set level to 1 if it is too low, skip if too high
     if (level < 1) level = 1
     if (level > log_level .or. level > NUM_LOG_LEVELS) return
+
+    if (present(scope)) then
+      effective_scope = scope
+      if (trim(effective_scope) == "#") effective_scope = ""
+    endif
 
     ! Initialize log_tmp
     log_tmp = ""
@@ -188,10 +187,11 @@ contains
       i = i+1
     endif
 
-    ! Output level marker
-    if (present(scope)) then
-      log_tmp(i) = trim(scope)
-      i = i + 1
+    if (allocated(effective_scope)) then
+      if (len_trim(effective_scope) > 0) then
+        log_tmp(i) = trim(effective_scope)
+        i = i + 1
+      endif
     endif
 
     if (.not. skip_level) then
@@ -253,30 +253,30 @@ contains
     end select
   end function log_level_label
 
-  subroutine append_scope_entry(raw)
+  subroutine append_scope_filter(raw)
     character(len=*), intent(in) :: raw
     character(:), allocatable :: norm
-    type(scope_filter_entry), allocatable :: tmp(:)
+    type(scope_filter_entry) :: add_filter
     integer :: n
-    norm = tolower(raw)
-    if (len(norm) == 0) return
+    norm = tolower(trim(raw))
+    if (norm == "#") norm = ""
     if (allocated(scope_filters)) then
       do n = 1, size(scope_filters)
-        if (allocated(scope_filters(n)%name) .and. scope_filters(n)%name == norm) return
+        if (allocated(scope_filters(n)%name)) then
+          if (scope_filters(n)%name == norm) return
+        end if
       end do
-      allocate(tmp(size(scope_filters) + 1))
-      tmp(1:size(scope_filters)) = scope_filters
-      tmp(size(scope_filters) + 1)%name = norm
-      call move_alloc(tmp, scope_filters)
+      add_filter%name = norm
+      scope_filters = [scope_filters, add_filter]
     else
+      if (len(norm) == 0) return
       allocate(scope_filters(1))
       scope_filters(1)%name = norm
     end if
-  end subroutine append_scope_entry
+  end subroutine append_scope_filter
 
   subroutine clear_scope_filter()
     if (allocated(scope_filters)) deallocate(scope_filters)
-    scope_filter_active = .false.
   end subroutine clear_scope_filter
 
   subroutine configure_scope_filter(list)
@@ -285,39 +285,35 @@ contains
     character(:), allocatable :: token
     call clear_scope_filter()
     lenlist = len_trim(list)
-    if (lenlist == 0) return
+    ! only root, no scopes. Catch: "", "#", ","
+    if (lenlist == 0 .or. trim(list) == "#" .or. trim(list) == ",") return
+    allocate(scope_filters(0)) ! trigger append_scope_filter with ""
     token = ""
     do i = 1, lenlist
       if (list(i:i) == ",") then
-        call append_scope_entry(token)
+        call append_scope_filter(token)
         token = ""
       else
         token = token // list(i:i)
       end if
     end do
-    call append_scope_entry(token)
-    if (allocated(scope_filters)) scope_filter_active = .true.
+    call append_scope_filter(token)
   end subroutine configure_scope_filter
 
   logical function scope_should_log(scope)
     use mo_glob, only: glob_match
-    character(len=*), intent(in) :: scope
+    character(len=*), optional, intent(in) :: scope
     character(:), allocatable :: norm
     integer :: i
-    if (.not. output_scope) then
-      scope_should_log = .false.
-      return
-    end if
-    if (.not. scope_filter_active .or. .not. allocated(scope_filters)) then
-      scope_should_log = .true.
+    norm = ""
+    if (present(scope)) norm = trim(scope)
+    if (norm == "#") norm = ""
+    norm = tolower(norm)
+    if (.not. allocated(scope_filters)) then
+      scope_should_log = (len(norm) == 0)
       return
     end if
     scope_should_log = .false.
-    norm = tolower(scope)
-    if (len(norm) == 0) then
-      scope_should_log = .true.
-      return
-    end if
     do i = 1, size(scope_filters)
       if (.not. allocated(scope_filters(i)%name)) cycle
       if (glob_match(scope_filters(i)%name, norm)) then
@@ -368,7 +364,7 @@ contains
 
   !> \brief Set logging configuration
   subroutine log_set_config( &
-    verbose, quiet, log_output_date, log_output_time, log_output_line, log_output_scope, log_scope_filter)
+    verbose, quiet, log_output_date, log_output_time, log_output_line, log_scope_filter)
     use mo_kind, only: i4
     implicit none
     integer(i4), optional, intent(in) :: verbose !< increase verbosity level
@@ -376,7 +372,6 @@ contains
     logical, optional, intent(in) :: log_output_date !< add date to output
     logical, optional, intent(in) :: log_output_time !< add time to output
     logical, optional, intent(in) :: log_output_line !< add file/line to output
-    logical, optional, intent(in) :: log_output_scope !< enable scope tags
     character(len=*), optional, intent(in) :: log_scope_filter !< csv of allowed scopes (requires log_output_scope)
     integer :: level_shift
     level_shift = 0
@@ -386,14 +381,7 @@ contains
     if ( present(log_output_date) ) output_date = log_output_date
     if ( present(log_output_time) ) output_time = log_output_time
     if ( present(log_output_line) ) output_line = log_output_line
-    if ( present(log_output_scope) ) then
-      output_scope = log_output_scope
-      if (.not. output_scope) call clear_scope_filter()
-    end if
-    if ( present(log_scope_filter) ) then
-      if (.not. output_scope .and. .not. present(log_output_scope)) output_scope = .true.
-      call configure_scope_filter(log_scope_filter)
-    end if
+    if ( present(log_scope_filter) ) call configure_scope_filter(log_scope_filter)
   end subroutine log_set_config
 
 end module mo_logging
