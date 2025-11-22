@@ -101,10 +101,23 @@ if (CMAKE_WITH_OpenMP)
 endif()
 
 # log settings
-target_compile_definitions(${LIB_NAME} PUBLIC
-  $<$<CONFIG:DEBUG>:ENABLE_LOG_TRACE>
-  $<$<CONFIG:RELEASE>:DISABLE_LOG_DEBUG>
-)
+set(LOG_TRACE "AUTO" CACHE STRING "Control log trace level (AUTO (debug - ON), ON, OFF)")
+set_property(CACHE LOG_TRACE PROPERTY STRINGS AUTO ON OFF)
+set(LOG_DEBUG "AUTO" CACHE STRING "Control log debug level (AUTO (release - OFF), ON, OFF)")
+set_property(CACHE LOG_DEBUG PROPERTY STRINGS AUTO ON OFF)
+
+if(LOG_TRACE STREQUAL "ON")
+  target_compile_definitions(${LIB_NAME} PUBLIC ENABLE_LOG_TRACE)
+elseif(LOG_TRACE STREQUAL "AUTO")
+  target_compile_definitions(${LIB_NAME} PUBLIC $<$<CONFIG:DEBUG>:ENABLE_LOG_TRACE>)
+endif()
+
+if(LOG_DEBUG STREQUAL "OFF")
+  target_compile_definitions(${LIB_NAME} PUBLIC DISABLE_LOG_DEBUG)
+elseif(LOG_DEBUG STREQUAL "AUTO")
+  target_compile_definitions(${LIB_NAME} PUBLIC $<$<CONFIG:RELEASE>:DISABLE_LOG_DEBUG>)
+endif()
+
 # set compiling flags for debug and relese version
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   # set the preprocessor
