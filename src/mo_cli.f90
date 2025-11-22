@@ -180,7 +180,7 @@ contains
         name="log-line", help="Output file and line information while logging.")
       call new_cli_parser%add_option( &
         name="log-scope", help="Enable scope tags while logging (optional CSV list).", &
-        has_value=.true., value_name="scope_csv", value_optional=.true.)
+        has_value=.true., value_name="scope_csv", value_optional=.true., default="") ! deactivates filtering by default
     end if
   end function new_cli_parser
 
@@ -568,7 +568,7 @@ contains
           end if
           if (.not. value_provided) then
             if (self%options(id)%value_optional) then
-              self%options(id)%value = ""
+              self%options(id)%value = self%options(id)%default
             else
               call error_message("cli_parser%parse: required value missing for: ", self%options(id)%name)
             end if
