@@ -857,14 +857,16 @@ contains
   end subroutine dag_set_sources
 
   !> \brief Initialize branching DAG from downstream linkage.
-  subroutine branching_init(this, down, tags)
+  subroutine branching_init(this, down, tags, sort)
     use mo_message, only: error_message
     class(branching), intent(inout) :: this
     integer(i8), intent(in) :: down(:) !< downstream linkage (0 for sinks)
     integer(i8), intent(in), optional :: tags(:) !< node tags (by default their index)
-    integer(i8) :: i, total_up, sink, idx
-    integer(i8), allocatable :: cursor(:), sinks(:)
+    logical, intent(in), optional :: sort !< sort sinks and upstream entries per node for reproducibility
+    integer(i8) :: i, total_up, sink, idx, sink_cursor, sink_idx
+    integer(i8), allocatable :: cursor(:)
     integer(i8) :: n, n_sinks
+
     call this%destroy()
 
     n = size(down, kind=i8)
@@ -879,18 +881,31 @@ contains
     !$omp end parallel do
 
     n_sinks = 0_i8
-    allocate(sinks(n))
+    !$omp parallel do default(shared) private(sink) reduction(+:n_sinks) schedule(static)
     do i = 1_i8, n
       sink = this%down(i)
       if (sink == 0_i8) then
         n_sinks = n_sinks + 1_i8
-        sinks(n_sinks) = i
       else
+        !$omp atomic update
         this%n_up(sink) = this%n_up(sink) + 1_i8
+        !$omp end atomic
       end if
     end do
-    allocate(this%sinks(n_sinks), source=sinks(1_i8:n_sinks))
-    deallocate(sinks)
+    !$omp end parallel do
+
+    allocate(this%sinks(n_sinks))
+    sink_cursor = 0_i8
+    !$omp parallel do default(shared) private(sink_idx) schedule(static)
+    do i = 1_i8, n
+      if (this%down(i) /= 0_i8) cycle
+      !$omp atomic capture
+      sink_idx = sink_cursor
+      sink_cursor = sink_cursor + 1_i8
+      !$omp end atomic
+      this%sinks(sink_idx + 1_i8) = i
+    end do
+    !$omp end parallel do
 
     allocate(this%off_up(n))
     total_up = 1_i8
@@ -908,14 +923,28 @@ contains
         cursor(i) = 0_i8
       end do
       !$omp end parallel do
+      !$omp parallel do default(shared) private(sink, idx) schedule(static)
       do i = 1_i8, n
         sink = this%down(i)
         if (sink == 0_i8) cycle
-        idx = this%off_up(sink) + cursor(sink)
-        this%up(idx) = i
+        !$omp atomic capture
+        idx = cursor(sink)
         cursor(sink) = cursor(sink) + 1_i8
+        !$omp end atomic
+        idx = this%off_up(sink) + idx
+        this%up(idx) = i
       end do
+      !$omp end parallel do
       deallocate(cursor)
+    end if
+
+    if (optval(sort, .false.)) then
+      if (n_sinks > 1_i8) call sort_ascending(this%sinks)
+      !$omp parallel do default(shared) schedule(static)
+      do i = 1_i8, n
+        if (this%n_up(i) > 1_i8) call sort_ascending(this%up(this%off_up(i):this%off_up(i)+this%n_up(i)-1_i8))
+      end do
+      !$omp end parallel do
     end if
 
     if (present(tags)) then
