@@ -77,7 +77,6 @@ module mo_cli
     logical :: blank = .false. !< whether the option is passed blank without hyphenated name (only latter one possible)
     logical :: was_read = .false. !< whether the option was read from command line
     logical :: has_value = .false. !< whether the option has a value
-    logical :: value_optional = .false. !< whether the value is optional when has_value is true
     logical :: has_default = .false. !< whether the option has a default value
     logical :: repeated = .false. !< whether the option can be read repeatedly
     integer(i4) :: read_count = 0_i4 !< number of reads (-ooo)
@@ -136,7 +135,8 @@ contains
     logical, optional, intent(in) :: add_help_option !< whether to add a help option (--help, -h)
     logical, optional, intent(in) :: add_version_option !< whether to add a version option (--version, -V)
     character(*), optional, intent(in) :: version !< Program version
-    logical, optional, intent(in) :: add_logger_options !< whether to add a logger options (--verbose, --quite, ...)
+    !> whether to add a logger options (--verbose, --quite, --log-date, --log-time, --log-line, --log-scope)
+    logical, optional, intent(in) :: add_logger_options
     character(*), optional, intent(in) :: log_scope_default !< default scope list for logger option ("#" if not given)
 
     integer(i4) :: n
@@ -183,13 +183,13 @@ contains
         name="log-line", help="Output file and line information while logging.")
       call new_cli_parser%add_option( &
         name="log-scope", help="Enable scope tags while logging (optional pattern CSV list, '#' aliases root).", &
-        has_value=.true., value_name="scopes", value_optional=.true., default=optval(log_scope_default, "#"))
+        has_value=.true., value_name="scopes", default=optval(log_scope_default, "#"))
     end if
   end function new_cli_parser
 
   !> \brief Create a new \ref option.
   !> \return The new \ref option.
-  type(option) function new_option(name, s_name, help, has_value, value_name, default, required, blank, repeated, value_optional)
+  type(option) function new_option(name, s_name, help, has_value, value_name, default, required, blank, repeated)
     implicit none
     character(*), intent(in) :: name !< long name (will be double hyphenated: --opt)
     character(1), optional, intent(in) :: s_name !< short name (will be hyphenated: -o)
@@ -200,7 +200,6 @@ contains
     logical, optional, intent(in) :: required !< whether the option is required
     logical, optional, intent(in) :: blank !< whether the option is passed blank without hyphenated name (only latter one possible)
     logical, optional, intent(in) :: repeated !< whether the option can be read repeatedly
-    logical, optional, intent(in) :: value_optional !< whether the value is optional (requires has_value=.true.)
 
     new_option%help = "No description"
     if (present(help)) new_option%help = help
@@ -222,16 +221,6 @@ contains
         call error_message("option: blank option needs a value: ", name)
     else
       new_option%has_value = new_option%blank
-    end if
-    if (present(value_optional)) then
-      if (value_optional .and. .not. new_option%blank) then
-        new_option%has_value = .true.
-        new_option%value_optional = .true.
-      elseif (value_optional .and. new_option%blank) then
-        call error_message("option: blank option cannot have optional value: ", name)
-      else
-        new_option%value_optional = .false.
-      end if
     end if
 
     new_option%value = ""
@@ -258,7 +247,7 @@ contains
   end function new_option
 
   !> \brief Add a new \ref option to the \ref cli_parser.
-  subroutine add_option(self, name, s_name, help, has_value, value_name, default, required, blank, repeated, value_optional)
+  subroutine add_option(self, name, s_name, help, has_value, value_name, default, required, blank, repeated)
     implicit none
     class(cli_parser), intent(inout) :: self
     character(*), intent(in) :: name !< long name (will be double hyphenated: --opt)
@@ -270,13 +259,12 @@ contains
     logical, optional, intent(in) :: required !< whether the option is required
     logical, optional, intent(in) :: blank !< whether the option is passed blank without hyphenated name (only latter one possible)
     logical, optional, intent(in) :: repeated !< whether the option can be read repeatedly
-    logical, optional, intent(in) :: value_optional !< whether the value is optional
 
     type(option), dimension(size(self%options)) :: tmp_options
     type(option) :: added_option
     integer(i4) :: i
 
-    added_option = option(name, s_name, help, has_value, value_name, default, required, blank, repeated, value_optional)
+    added_option = option(name, s_name, help, has_value, value_name, default, required, blank, repeated)
     if (added_option%blank .and. self%has_blank_option) then
       call error_message("cli_parser%add_option: only one blank option possible: ", name)
     else if (added_option%blank) then
@@ -561,7 +549,7 @@ contains
             call get_command_argument(i + 1, length=n)
             allocate(character(n) :: val)
             call get_command_argument(i + 1, value=val)
-            if (.not. (self%options(id)%value_optional .and. len_trim(val) > 0 .and. val(1:1) == "-")) then
+            if (.not. (len_trim(val) > 0 .and. val(1:1) == "-")) then
               self%options(id)%value = val
               value_provided = .true.
               i = i + 1
@@ -569,13 +557,7 @@ contains
               deallocate(val)
             end if
           end if
-          if (.not. value_provided) then
-            if (self%options(id)%value_optional) then
-              self%options(id)%value = ""
-            else
-              call error_message("cli_parser%parse: required value missing for: ", self%options(id)%name)
-            end if
-          end if
+          if (.not. value_provided) self%options(id)%value = ""
         end if
       end do
       i = i + 1
