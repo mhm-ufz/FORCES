@@ -22,6 +22,10 @@
 !!            - `log_subtrace(format)`: level 7
 !!          as required.
 !!
+!!          Use the `--log-scope` CLI option (via `mo_cli`) to enable optional scope tags.
+!!          Provide a comma-separated list (e.g. `--log-scope=dag,grid`) to restrict output
+!!          to specific components, or omit the list (`--log-scope`) to show every scope.
+!!
 !! \par Examples
 !! - \ref 01_logging_cli.F90 : \copybrief 01_logging_cli.F90
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
@@ -51,6 +55,7 @@ module mo_logging
   ! OTHER DEALINGS IN THE SOFTWARE.
 
   use mo_constants, only: stdout=>nout, stderr=>nerr
+  use mo_string_utils, only: tolower
 
   implicit none
   ! Log levels
@@ -61,17 +66,14 @@ module mo_logging
   integer, public, parameter :: LOG_INFO  = LOG_LEVEL_INFO_DEF !< = 4, Interesting events
   integer, public, parameter :: LOG_DEBUG = LOG_LEVEL_DEBUG_DEF !< = 5, Detailed debug output, disable by compiling your program with -DDISABLE_LOG_DEBUG
   integer, public, parameter :: LOG_TRACE = LOG_LEVEL_TRACE_DEF !< = 6, Extremely detailed output, compile your program with -DENABLE_LOG_TRACE to enable
+  integer, public, parameter :: LOG_FINE = LOG_LEVEL_SUBTRACE_DEF !< = 7, More Extremely detailed output, compile your program with -DENABLE_LOG_TRACE to enable
   integer, public, parameter :: LOG_SUBTRACE = LOG_LEVEL_SUBTRACE_DEF !< = 7, More Extremely detailed output, compile your program with -DENABLE_LOG_TRACE to enable
 
   integer, public, save :: log_unit = stdout !< By default, log to stderr for level > 2 (stdout has a bug with gfortran)
   integer, public, save :: log_unit_error = stderr !< By default, log to stderr for level <= 2
   integer, public, save :: log_level = LOG_INFO !< Note that more critical means a lower number
 
-  public :: log_set_output_date
-  public :: log_set_output_time
-  public :: log_set_output_line
   public :: log_set_config
-
   public :: logu, logp, logl
 
   private
@@ -80,25 +82,12 @@ module mo_logging
   logical, save :: output_date  = .false.
   logical, save :: output_time  = .false.
   logical, save :: output_line  = .false.
+  type scope_filter_entry
+    character(:), allocatable :: name
+  end type scope_filter_entry
+  type(scope_filter_entry), allocatable :: scope_filters(:)
 
 contains
-  !> \brief Set the default for date output
-  subroutine log_set_output_date(bool)
-    logical, intent(in) :: bool
-    output_date = bool
-  end subroutine log_set_output_date
-
-  !> \brief Set time-only date format
-  subroutine log_set_output_time(bool)
-    logical, intent(in) :: bool
-    output_time = bool
-  end subroutine log_set_output_time
-
-  !> \brief Set the default for file/line output
-  subroutine log_set_output_line(bool)
-    logical, intent(in) :: bool
-    output_line = bool
-  end subroutine log_set_output_line
 
   !> \brief Output unit to log.
   !> \return unit number.
@@ -115,12 +104,13 @@ contains
 
   !> \brief Whether to print this log message.
   !> \return true if this log message can be printed.
-  logical function logp(level, only_n)
+  logical function logp(level, only_n, scope)
 #ifdef MPI
     use mpi
 #endif
     integer, intent(in)           :: level     !< The log level of the current message
     integer, intent(in), optional :: only_n    !< Show only if the current mpi rank equals only_n
+    character(len=*), optional    :: scope     !< Optional scope identifier
 #ifdef MPI
     integer :: rank, ierr
 #endif
@@ -132,26 +122,30 @@ contains
       if (rank /= only_n) logp = .false.
     endif
 #endif
+    if (.not. logp) return
+    logp = scope_should_log(scope)
 
   end function logp
 
   !> \brief Write a log lead containing level and optional info.
   !> \details The name is shortened to allow for longer log messages without needing continuations.
   !> \return The output log leader.
-  function logl(level, file, line, plain)
+  function logl(level, file, line, plain, scope)
     implicit none
     integer                    :: level !< The log level
     character(len=*), optional :: file  !< An optional filename to add to the log lead
     integer, optional          :: line  !< With line number
     logical, optional          :: plain !< Whether to output plain log lead without severity level
+    character(len=*), optional :: scope !< Optional scope tag
     character(:), allocatable  :: logl  !< The output log lead
     ! Internal parameters
-    character(len=50), dimension(6) :: log_tmp ! The different parts of the log lead
+    character(len=50), dimension(7) :: log_tmp ! The different parts of the log lead
     character(len=300) :: log_buf
     integer       :: i, j ! The counter for the different parts
     character(4)  :: linenum_lj ! left-justified line number
     character(len=50) :: basename ! basename stripped from filename
     logical :: skip_level ! Whether to skip level output
+    character(:), allocatable :: effective_scope
     i = 1
 
     ! If plain is set, skip level output
@@ -161,6 +155,11 @@ contains
     ! Set level to 1 if it is too low, skip if too high
     if (level < 1) level = 1
     if (level > log_level .or. level > NUM_LOG_LEVELS) return
+
+    if (present(scope)) then
+      effective_scope = scope
+      if (trim(effective_scope) == "#") effective_scope = ""
+    endif
 
     ! Initialize log_tmp
     log_tmp = ""
@@ -188,7 +187,13 @@ contains
       i = i+1
     endif
 
-    ! Output level marker
+    if (allocated(effective_scope)) then
+      if (len_trim(effective_scope) > 0) then
+        log_tmp(i) = trim(effective_scope)
+        i = i + 1
+      endif
+    endif
+
     if (.not. skip_level) then
       log_tmp(i) = log_level_label(level)
       i = i + 1
@@ -241,12 +246,82 @@ contains
         log_level_label = "[DEBUG]"
       case (LOG_TRACE)
         log_level_label = "[TRACE]"
-      case (LOG_SUBTRACE)
-        log_level_label = "[SUBTRACE]"
+      case (LOG_FINE)
+        log_level_label = "[FINE]"
       case default
         write(log_level_label, '("[LEVEL-",i0,"]")') level
     end select
   end function log_level_label
+
+  subroutine append_scope_filter(raw)
+    character(len=*), intent(in) :: raw
+    character(:), allocatable :: norm
+    type(scope_filter_entry) :: add_filter
+    integer :: n
+    norm = tolower(trim(raw))
+    if (norm == "#") norm = ""
+    if (allocated(scope_filters)) then
+      do n = 1, size(scope_filters)
+        if (allocated(scope_filters(n)%name)) then
+          if (scope_filters(n)%name == norm) return
+        end if
+      end do
+      add_filter%name = norm
+      scope_filters = [scope_filters, add_filter]
+    else
+      if (len(norm) == 0) return
+      allocate(scope_filters(1))
+      scope_filters(1)%name = norm
+    end if
+  end subroutine append_scope_filter
+
+  subroutine clear_scope_filter()
+    if (allocated(scope_filters)) deallocate(scope_filters)
+  end subroutine clear_scope_filter
+
+  subroutine configure_scope_filter(list)
+    character(len=*), intent(in) :: list
+    integer :: i, lenlist
+    character(:), allocatable :: token
+    call clear_scope_filter()
+    lenlist = len_trim(list)
+    ! only root, no scopes. Catch: "", "#", ","
+    if (lenlist == 0 .or. trim(list) == "#" .or. trim(list) == ",") return
+    allocate(scope_filters(0)) ! trigger append_scope_filter with ""
+    token = ""
+    do i = 1, lenlist
+      if (list(i:i) == ",") then
+        call append_scope_filter(token)
+        token = ""
+      else
+        token = token // list(i:i)
+      end if
+    end do
+    call append_scope_filter(token)
+  end subroutine configure_scope_filter
+
+  logical function scope_should_log(scope)
+    use mo_glob, only: glob_match
+    character(len=*), optional, intent(in) :: scope
+    character(:), allocatable :: norm
+    integer :: i
+    norm = ""
+    if (present(scope)) norm = trim(scope)
+    if (norm == "#") norm = ""
+    norm = tolower(norm)
+    if (.not. allocated(scope_filters)) then
+      scope_should_log = (len(norm) == 0)
+      return
+    end if
+    scope_should_log = .false.
+    do i = 1, size(scope_filters)
+      if (.not. allocated(scope_filters(i)%name)) cycle
+      if (glob_match(scope_filters(i)%name, norm)) then
+        scope_should_log = .true.
+        exit
+      end if
+    end do
+  end function scope_should_log
 
 #ifdef MPI
   !> \brief Return the mpi id of the current process
@@ -289,7 +364,7 @@ contains
 
   !> \brief Set logging configuration
   subroutine log_set_config( &
-    verbose, quiet, log_output_date, log_output_time, log_output_line)
+    verbose, quiet, log_output_date, log_output_time, log_output_line, log_scope_filter)
     use mo_kind, only: i4
     implicit none
     integer(i4), optional, intent(in) :: verbose !< increase verbosity level
@@ -297,13 +372,16 @@ contains
     logical, optional, intent(in) :: log_output_date !< add date to output
     logical, optional, intent(in) :: log_output_time !< add time to output
     logical, optional, intent(in) :: log_output_line !< add file/line to output
-    integer :: level_shift = 0
+    character(len=*), optional, intent(in) :: log_scope_filter !< csv of allowed scopes (requires log_output_scope)
+    integer :: level_shift
+    level_shift = 0
     if ( present(verbose) ) level_shift = level_shift + int(verbose)
     if ( present(quiet) ) level_shift = level_shift - int(quiet)
     log_level = max(0, min(NUM_LOG_LEVELS, log_level + level_shift))
     if ( present(log_output_date) ) output_date = log_output_date
     if ( present(log_output_time) ) output_time = log_output_time
     if ( present(log_output_line) ) output_line = log_output_line
+    if ( present(log_scope_filter) ) call configure_scope_filter(log_scope_filter)
   end subroutine log_set_config
 
 end module mo_logging

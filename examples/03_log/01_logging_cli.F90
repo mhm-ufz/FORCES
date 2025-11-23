@@ -21,14 +21,14 @@ program logging_cli
 
   parser = cli_parser( &
     description='Program with cli and logger.', &
-    add_help_option=.true., add_logger_options=.true.)
-  ! add log-path option
-  call parser%add_option(name='log-path', help='Log file path.', has_value=.true.)
+    add_help_option=.true., add_logger_options=.true., log_scope_default="#")
+  ! add log-file option
+  call parser%add_option(name='log-file', help='Write to log file.', has_value=.true., required=.false.)
   call parser%parse()
 
-  if (parser%option_was_read('log-path')) then
-    open(newunit=unit, file=parser%option_value('log-path'), status='replace', action='write')
-    log_info(*) 'Logging to file: ', parser%option_value('log-path') ! this is still printed
+  if (parser%option_was_read('log-file')) then
+    open(newunit=unit, file=parser%option_value('log-file'), status='replace', action='write')
+    print*, 'Logging to file: ', parser%option_value('log-file')
     ! redirect log units to the opened file
     log_unit = unit
     log_unit_error = unit
@@ -41,7 +41,7 @@ program logging_cli
   log_info(*) 'information message'
   log_debug(*) 'debug message'
   log_trace(*) 'trace message for detailed debugging'
-  log_subtrace(*) 'subtrace message for very detailed debugging'
+  log_fine(*) 'subtrace message for very detailed debugging'
 
   ! special cases
   log_text(*) 'info text without level'
@@ -52,6 +52,13 @@ program logging_cli
   log_root(LOG_INFO,*) 'root info macro for MPI'
   log_plain_root(LOG_WARN,*) 'plain root warn macro without level for MPI'
 
-  ! close log file if opened
-  if (parser%option_was_read('log-path')) close(unit)
+  ! scoped messages (enable with --log-scope)
+  ! examples:
+  !   --log-scope mod_data -> 'mod_data' scope only
+  !   --log-scope forces*  -> 'forces_data' and 'forces_grid' scopes
+  !   --log-scope \#,mod*  -> root and 'mod_data' scopes
+  scope_info('mod_data',*) 'This is a scope info message for the "mod_data" scope.'
+  scope_info('forces_data',*) 'This is a scope info message for the "forces_data" scope.'
+  scope_debug('forces_grid',*) 'This is a scope debug message for the "forces_grid" scope.'
+
 end program logging_cli
