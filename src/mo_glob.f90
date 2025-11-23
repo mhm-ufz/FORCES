@@ -25,8 +25,16 @@ contains
 
     plen = len_trim(pattern)
     tlen = len_trim(text)
+
+    ! handle special cases
     if (plen == 0) then
       glob_match = (tlen == 0)
+      return
+    elseif (trim(pattern) == "*") then
+      glob_match = .true.
+      return
+    elseif (trim(pattern) == "?") then
+      glob_match = (tlen == 1)
       return
     end if
 
