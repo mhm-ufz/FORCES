@@ -237,7 +237,7 @@ contains
 
     allocate(this%id_map(this%fine_grid%ncells))
     allocate(coarse_id_matrix(this%coarse_grid%nx, this%coarse_grid%ny))
-    call this%coarse_grid%unpack_into([(k, k=1_i8, this%coarse_grid%ncells)], coarse_id_matrix)
+    call this%coarse_grid%gen_id_matrix(coarse_id_matrix)
 
     !$omp parallel do default(shared) private(ic,jc) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
