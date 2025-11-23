@@ -56,23 +56,28 @@
 #define scope_core(core,scope_name,level,format) if(logp(level,core,scope=scope_name))write(logu(level),format)logl(level,__FILE__,__LINE__,scope=scope_name),
 #define scope_plain_core(core,scope_name,level,format) if(logp(level,core,scope=scope_name))write(logu(level),format)logl(level,__FILE__,__LINE__,.true.,scope=scope_name),
 
-/* First four log levels */
+/* default root logging */
 #define log_fatal(format) log_write(LOG_LEVEL_FATAL_DEF,format)
 #define log_error(format) log_write(LOG_LEVEL_ERROR_DEF,format)
 #define log_warn(format) log_write(LOG_LEVEL_WARN_DEF,format)
 #define log_info(format) log_write(LOG_LEVEL_INFO_DEF,format)
 #define log_text(format) log_plain(LOG_LEVEL_INFO_DEF,format)
+
+/* default scoped logging */
 #define scope_fatal(scope_name,format) scope_write(scope_name,LOG_LEVEL_FATAL_DEF,format)
 #define scope_error(scope_name,format) scope_write(scope_name,LOG_LEVEL_ERROR_DEF,format)
 #define scope_warn(scope_name,format) scope_write(scope_name,LOG_LEVEL_WARN_DEF,format)
 #define scope_info(scope_name,format) scope_write(scope_name,LOG_LEVEL_INFO_DEF,format)
 #define scope_text(scope_name,format) scope_plain(scope_name,LOG_LEVEL_INFO_DEF,format)
 
+/* MPI root logging */
 #define log_fatal_root(format) log_root(LOG_LEVEL_FATAL_DEF,format)
 #define log_error_root(format) log_root(LOG_LEVEL_ERROR_DEF,format)
 #define log_warn_root(format) log_root(LOG_LEVEL_WARN_DEF,format)
 #define log_info_root(format) log_root(LOG_LEVEL_INFO_DEF,format)
 #define log_text_root(format) log_plain_root(LOG_LEVEL_INFO_DEF,format)
+
+/* MPI scoped logging */
 #define scope_fatal_root(scope_name,format) scope_root(scope_name,LOG_LEVEL_FATAL_DEF,format)
 #define scope_error_root(scope_name,format) scope_root(scope_name,LOG_LEVEL_ERROR_DEF,format)
 #define scope_warn_root(scope_name,format) scope_root(scope_name,LOG_LEVEL_WARN_DEF,format)
@@ -84,12 +89,13 @@
 #define scope_info_core(core,scope_name,format) scope_core(core,scope_name,LOG_LEVEL_INFO_DEF,format)
 #define scope_text_core(core,scope_name,format) scope_plain_core(core,scope_name,LOG_LEVEL_INFO_DEF,format)
 
+/* Disable by putting if(false) in front so optimizer removes the code (comments don't work with NAG) */
 #ifdef DISABLE_LOG_DEBUG
-#define log_debug(format) ! debug comment:
-#define log_debug_root(format) ! root debug comment:
-#define scope_debug(scope_name,format) ! scope debug comment:
-#define scope_debug_root(scope_name,format) ! scope root debug comment:
-#define scope_debug_core(core,scope_name,format) ! scope core debug comment:
+#define log_debug(format) if(.false.)write(*,*)
+#define log_debug_root(format) if(.false.)write(*,*)
+#define scope_debug(scope_name,format) if(.false.)write(*,*)
+#define scope_debug_root(scope_name,format) if(.false.)write(*,*)
+#define scope_debug_core(core,scope_name,format) if(.false.)write(*,*)
 #else
 #define log_debug(format) log_write(LOG_LEVEL_DEBUG_DEF,format)
 #define log_debug_root(format) log_root(LOG_LEVEL_DEBUG_DEF,format)
@@ -115,19 +121,19 @@
 #define scope_fine_root(scope_name,format) scope_subtrace_root(scope_name,format)
 #define scope_fine_core(core,scope_name,format) scope_subtrace_core(core,scope_name,format)
 #else
-#define log_trace(format) ! trace comment:
-#define log_trace_root(format) ! root trace comment:
-#define log_subtrace(format) ! subtrace comment:
-#define log_subtrace_root(format) ! root subtrace comment:
-#define scope_trace(scope_name,format) ! scope trace comment:
-#define scope_trace_root(scope_name,format) ! scope trace root comment:
-#define scope_trace_core(core,scope_name,format) ! scope trace core comment:
-#define scope_subtrace(scope_name,format) ! scope subtrace comment:
-#define scope_subtrace_root(scope_name,format) ! scope subtrace root comment:
-#define scope_subtrace_core(core,scope_name,format) ! scope subtrace core comment:
-#define log_fine(format) ! fine comment:
-#define log_fine_root(format) ! fine root comment:
-#define scope_fine(scope_name,format) ! scope fine comment:
-#define scope_fine_root(scope_name,format) ! scope fine root comment:
-#define scope_fine_core(core,scope_name,format) ! scope fine core comment:
+#define log_trace(format) if(.false.)write(*,*)
+#define log_trace_root(format) if(.false.)write(*,*)
+#define log_subtrace(format) if(.false.)write(*,*)
+#define log_subtrace_root(format) if(.false.)write(*,*)
+#define scope_trace(scope_name,format) if(.false.)write(*,*)
+#define scope_trace_root(scope_name,format) if(.false.)write(*,*)
+#define scope_trace_core(core,scope_name,format) if(.false.)write(*,*)
+#define scope_subtrace(scope_name,format) if(.false.)write(*,*)
+#define scope_subtrace_root(scope_name,format) if(.false.)write(*,*)
+#define scope_subtrace_core(core,scope_name,format) if(.false.)write(*,*)
+#define log_fine(format) if(.false.)write(*,*)
+#define log_fine_root(format) if(.false.)write(*,*)
+#define scope_fine(scope_name,format) if(.false.)write(*,*)
+#define scope_fine_root(scope_name,format) if(.false.)write(*,*)
+#define scope_fine_core(core,scope_name,format) if(.false.)write(*,*)
 #endif
