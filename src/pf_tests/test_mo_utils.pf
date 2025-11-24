@@ -3,7 +3,7 @@ module test_mo_utils
   use funit
   use mo_kind,  only: sp, dp, i4, i8, i1
   use mo_utils, only: eq, ge, le, ne, is_close
-  use mo_utils, only: swap, locate, cumsum, arange, linspace
+  use mo_utils, only: swap, locate, cumsum, arange, linspace, prefix_sum
   use mo_utils, only: is_finite, is_nan, is_normal, special_value, unpack_chunkwise
 
   implicit none
@@ -39,6 +39,36 @@ module test_mo_utils
   real(dp), parameter ::  tt=1.0E-5_dp
 
 contains
+
+
+  @test
+  subroutine test_prefix_sum()
+    integer(i8), parameter :: n = 6_i8
+    integer(i8) :: input(n), out(n), expected(n)
+    integer(i8) :: acc
+    integer :: i
+
+    input = [1_i8, 2_i8, 3_i8, 4_i8, 5_i8, 6_i8]
+
+    ! shift = 0, start = 0 matches cumsum
+    call prefix_sum(input, out, shift=0_i8, start=0_i8)
+    expected = cumsum(input)
+    do i = 1, n
+      @assertEqual(expected(i), out(i))
+    end do
+
+    ! shift = 1, start = 1 delays accumulation by one position
+    call prefix_sum(input, out, shift=1_i8, start=1_i8)
+    acc = 1_i8
+    expected(1) = acc
+    do i = 2, n
+      acc = acc + input(i-1)
+      expected(i) = acc
+    end do
+    do i = 1, n
+      @assertEqual(expected(i), out(i))
+    end do
+  end subroutine test_prefix_sum
 
 
   @test
