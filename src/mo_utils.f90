@@ -49,6 +49,7 @@ MODULE mo_utils
   public :: flip ! flips a dimension of an array
   public :: flipped ! creates a flipped array at a dimension of an array
   public :: unpack_chunkwise ! chunk version of the unpack operation
+  public :: prefix_sum ! prefix sum with optional shift and start
 
   !> \brief handle optional values with defaults
   interface optval
@@ -82,6 +83,11 @@ MODULE mo_utils
   !> \brief chunk version of the unpack operation
   interface unpack_chunkwise
     procedure unpack_chunkwise_i1, unpack_chunkwise_dp
+  end interface
+
+  !> \brief prefix sum helpers
+  interface prefix_sum
+    procedure prefix_sum_i8
   end interface
 
   ! ------------------------------------------------------------------
@@ -3248,6 +3254,71 @@ CONTAINS
     end do
 
   end function unpack_chunkwise_i1
+
+  !> \brief Prefix sum with optional shift and start offset.
+  !! \details Computes `out(i) = start + sum_{k=1}^{max(0,i-shift)} input(k)` for `i=1..n`.
+  !! A positive `shift` delays when elements of `input` appear in the prefix. Parallelized in blocks.
+  subroutine prefix_sum_i8(input, output, shift, start, block_size)
+    use mo_message, only: error_message
+    integer(i8), intent(in) :: input(:) !< input array
+    integer(i8), intent(out) :: output(:) !< output array
+    integer(i8), intent(in), optional :: shift !< shift of input indices
+    integer(i8), intent(in), optional :: start !< initial value for prefix sum
+    integer(i8), intent(in), optional :: block_size !< size of blocks for parallelization
+
+    integer(i8) :: n_in, n_out, s, init, bs, n_blocks
+    integer(i8) :: block_start, block_end, lower, upper
+    integer(i8) :: acc
+    integer(i8), allocatable :: block_sums(:), block_offsets(:)
+    integer(i8) :: i
+
+    s = optval(shift, 0_i8)
+    if (s < 0_i8) s = 0_i8
+    n_in = size(input, kind=i8)
+    n_out = size(output, kind=i8)
+    if (n_out == 0_i8) return
+    if (n_in + s < n_out) call error_message('prefix_sum_i8: input too small for requested shift/output length')
+
+    init = optval(start, 0_i8)
+    bs = optval(block_size, max(1_i8, min(262144_i8, n_out)))
+
+    n_blocks = (n_out + bs - 1_i8) / bs
+    allocate(block_sums(n_blocks))
+    allocate(block_offsets(n_blocks))
+
+    !$omp parallel do default(none) shared(block_sums,input,n_in,n_out,n_blocks,bs,s) private(block_start,block_end,lower,upper) schedule(static)
+    do i = 1_i8, n_blocks
+      block_start = (i - 1_i8) * bs + 1_i8
+      block_end = min(n_out, block_start + bs - 1_i8)
+      lower = max(1_i8, block_start - s)
+      upper = min(n_in, block_end - s)
+      if (lower <= upper) then
+        block_sums(i) = sum(input(lower:upper))
+      else
+        block_sums(i) = 0_i8
+      end if
+    end do
+    !$omp end parallel do
+
+    block_offsets(1_i8) = init
+    do i = 2_i8, n_blocks
+      block_offsets(i) = block_offsets(i - 1_i8) + block_sums(i - 1_i8)
+    end do
+
+    !$omp parallel do default(none) shared(output,input,block_offsets,n_in,n_out,n_blocks,bs,s) private(block_start,block_end,acc,lower) schedule(static)
+    do i = 1_i8, n_blocks
+      block_start = (i - 1_i8) * bs + 1_i8
+      block_end = min(n_out, block_start + bs - 1_i8)
+      acc = block_offsets(i)
+      do lower = block_start, block_end
+        if (lower - s >= 1_i8 .and. lower - s <= n_in) acc = acc + input(lower - s)
+        output(lower) = acc
+      end do
+    end do
+    !$omp end parallel do
+
+    deallocate(block_sums, block_offsets)
+  end subroutine prefix_sum_i8
 
   pure elemental function optval_lgt(x, default) result(y)
     logical, intent(in), optional :: x
