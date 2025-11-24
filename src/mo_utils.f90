@@ -3259,6 +3259,7 @@ CONTAINS
   !! \details Computes `out(i) = start + sum_{k=1}^{max(0,i-shift)} input(k)` for `i=1..n`.
   !! A positive `shift` delays when elements of `input` appear in the prefix. Parallelized in blocks.
   subroutine prefix_sum_i8(input, output, shift, start, block_size)
+    !$ use omp_lib,     only: omp_get_num_threads
     use mo_message, only: error_message
     integer(i8), intent(in) :: input(:) !< input array
     integer(i8), intent(out) :: output(:) !< output array
@@ -3270,7 +3271,9 @@ CONTAINS
     integer(i8) :: block_start, block_end, lower, upper
     integer(i8) :: acc
     integer(i8), allocatable :: block_sums(:), block_offsets(:)
-    integer(i8) :: i
+    integer(i8) :: i, n_threads, target_blocks
+    integer(i8), parameter :: min_block = 50000_i8    ! aim to avoid tiny chunks (≈400 KB)
+    integer(i8), parameter :: max_block = 2000000_i8  ! cap to keep blocks cache-friendly (≈16 MB)
 
     s = optval(shift, 0_i8)
     if (s < 0_i8) s = 0_i8
@@ -3280,7 +3283,15 @@ CONTAINS
     if (n_in + s < n_out) call error_message('prefix_sum_i8: input too small for requested shift/output length')
 
     init = optval(start, 0_i8)
-    bs = optval(block_size, max(1_i8, min(262144_i8, n_out)))
+    ! Heuristic: aim for a handful of blocks per thread; clamp to stay cache-friendly.
+    n_threads = 1_i8
+    !$omp parallel
+    !$ n_threads = int(omp_get_num_threads(), i8)
+    !$omp end parallel
+    target_blocks = max(1_i8, n_threads * 8_i8)
+    bs = (n_out + target_blocks - 1_i8) / target_blocks
+    bs = max(min_block, min(max_block, bs))
+    bs = optval(block_size, bs)
 
     n_blocks = (n_out + bs - 1_i8) / bs
     allocate(block_sums(n_blocks))
