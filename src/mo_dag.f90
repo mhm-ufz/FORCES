@@ -857,109 +857,115 @@ contains
   end subroutine dag_set_sources
 
   !> \brief Initialize branching DAG from downstream linkage.
-  subroutine branching_init(this, down, tags, sort)
+  subroutine branching_init(this, down, tags)
     use mo_message, only: error_message
     class(branching), intent(inout) :: this
     integer(i8), intent(in) :: down(:) !< downstream linkage (0 for sinks)
     integer(i8), intent(in), optional :: tags(:) !< node tags (by default their index)
-    logical, intent(in), optional :: sort !< sort sinks and upstream entries per node for reproducibility
     integer(i8) :: i, total_up, sink, idx, sink_cursor, sink_idx
-    integer(i8), allocatable :: cursor(:)
+    integer(i8), allocatable :: cursor(:), n_up(:), sinks(:), off_up(:), up(:)
     integer(i8) :: n, n_sinks
 
     call this%destroy()
 
     n = size(down, kind=i8)
     this%n_nodes = n
-    allocate(this%down(n))
-    allocate(this%n_up(n))
-    !$omp parallel do default(shared) schedule(static)
+    allocate(n_up(n))
+    !$omp parallel do default(none) shared(n_up) schedule(static)
     do i = 1_i8, n
-      this%down(i) = down(i)
-      this%n_up(i) = 0_i8
+      n_up(i) = 0_i8
     end do
     !$omp end parallel do
 
     n_sinks = 0_i8
-    !$omp parallel do default(shared) private(sink) reduction(+:n_sinks) schedule(static)
+    !$omp parallel do default(none) shared(down) reduction(+:n_sinks) schedule(static)
     do i = 1_i8, n
-      sink = this%down(i)
-      if (sink == 0_i8) then
-        n_sinks = n_sinks + 1_i8
-      else
-        !$omp atomic update
-        this%n_up(sink) = this%n_up(sink) + 1_i8
-        !$omp end atomic
-      end if
+      if (down(i) == 0_i8) n_sinks = n_sinks + 1_i8
     end do
     !$omp end parallel do
 
-    allocate(this%sinks(n_sinks))
-    sink_cursor = 0_i8
-    !$omp parallel do default(shared) private(sink_idx) schedule(static)
+    !$omp parallel do default(none) shared(n_up,down) private(sink) schedule(static)
     do i = 1_i8, n
-      if (this%down(i) /= 0_i8) cycle
+      sink = down(i)
+      if (sink == 0_i8) cycle
+      !$omp atomic update
+      n_up(sink) = n_up(sink) + 1_i8
+    end do
+    !$omp end parallel do
+
+    allocate(sinks(n_sinks))
+    sink_cursor = 0_i8
+    !$omp parallel do default(none) shared(sink_cursor,sinks,down) private(sink_idx) schedule(static)
+    do i = 1_i8, n
+      if (down(i) /= 0_i8) cycle
       !$omp atomic capture
       sink_idx = sink_cursor
       sink_cursor = sink_cursor + 1_i8
       !$omp end atomic
-      this%sinks(sink_idx + 1_i8) = i
+      sinks(sink_idx + 1_i8) = i
     end do
     !$omp end parallel do
 
-    allocate(this%off_up(n))
+    allocate(off_up(n))
     total_up = 1_i8
     do i = 1_i8, n
-      this%off_up(i) = total_up
-      total_up = total_up + this%n_up(i)
+      off_up(i) = total_up
+      total_up = total_up + n_up(i)
     end do
     total_up = total_up - 1_i8
 
-    allocate(this%up(total_up)) ! size: nodes - sinks
+    allocate(up(total_up)) ! size: nodes - sinks
     if (total_up > 0_i8) then
       allocate(cursor(n))
-      !$omp parallel do default(shared) schedule(static)
+      !$omp parallel do default(none) shared(cursor) schedule(static)
       do i = 1_i8, n
         cursor(i) = 0_i8
       end do
       !$omp end parallel do
-      !$omp parallel do default(shared) private(sink, idx) schedule(static)
+      !$omp parallel do default(none) shared(down,cursor,off_up,up) private(sink, idx) schedule(static)
       do i = 1_i8, n
-        sink = this%down(i)
+        sink = down(i)
         if (sink == 0_i8) cycle
         !$omp atomic capture
         idx = cursor(sink)
         cursor(sink) = cursor(sink) + 1_i8
         !$omp end atomic
-        idx = this%off_up(sink) + idx
-        this%up(idx) = i
+        idx = off_up(sink) + idx
+        up(idx) = i
       end do
       !$omp end parallel do
       deallocate(cursor)
     end if
 
-    if (optval(sort, .false.)) then
-      if (n_sinks > 1_i8) call sort_ascending(this%sinks)
-      !$omp parallel do default(shared) schedule(static)
-      do i = 1_i8, n
-        if (this%n_up(i) > 1_i8) call sort_ascending(this%up(this%off_up(i):this%off_up(i)+this%n_up(i)-1_i8))
-      end do
-      !$omp end parallel do
-    end if
+    ! sort sinks and upstream lists for consistency
+    if (n_sinks > 1_i8) call sort_ascending(sinks)
+    !$omp parallel do default(none) shared(n_up,up,off_up) schedule(static)
+    do i = 1_i8, n
+      if (n_up(i) > 1_i8) call sort_ascending(up(off_up(i):off_up(i)+n_up(i)-1_i8))
+    end do
+    !$omp end parallel do
 
+    ! it is easier for the compiler to use local variables in omp regions
+    call move_alloc(n_up, this%n_up)
+    call move_alloc(sinks, this%sinks)
+    call move_alloc(off_up, this%off_up)
+    call move_alloc(up, this%up)
+
+    allocate(this%down(n))
+    allocate(this%tags(n))
     if (present(tags)) then
       if (size(tags, kind=i8) /= n) call error_message('branching_init: tags size mismatch')
-      allocate(this%tags(n))
-      !$omp parallel do default(shared) schedule(static)
+      !$omp parallel do default(none) shared(this,tags,down) schedule(static)
       do i = 1_i8, n
         this%tags(i) = tags(i)
+        this%down(i) = down(i)
       end do
       !$omp end parallel do
     else
-      allocate(this%tags(n))
-      !$omp parallel do default(shared) schedule(static)
+      !$omp parallel do default(none) shared(this,down) schedule(static)
       do i = 1_i8, n
         this%tags(i) = i
+        this%down(i) = down(i)
       end do
       !$omp end parallel do
     end if
