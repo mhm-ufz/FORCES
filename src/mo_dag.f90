@@ -42,7 +42,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_dag
   use mo_kind, only : i8
-  use mo_utils, only: optval, swap
+  use mo_utils, only: optval, swap, prefix_sum
 
   ! Control constants for depth-first traversal behavior.
   ! These values are returned by `visit()` to control DFS branching.
@@ -870,21 +870,22 @@ contains
 
     n = size(down, kind=i8)
     this%n_nodes = n
+
     allocate(n_up(n))
-    !$omp parallel do default(none) shared(n_up) schedule(static)
+    !$omp parallel do default(none) shared(n_up,n) schedule(static)
     do i = 1_i8, n
       n_up(i) = 0_i8
     end do
     !$omp end parallel do
 
     n_sinks = 0_i8
-    !$omp parallel do default(none) shared(down) reduction(+:n_sinks) schedule(static)
+    !$omp parallel do default(none) shared(down,n) reduction(+:n_sinks) schedule(static)
     do i = 1_i8, n
       if (down(i) == 0_i8) n_sinks = n_sinks + 1_i8
     end do
     !$omp end parallel do
 
-    !$omp parallel do default(none) shared(n_up,down) private(sink) schedule(static)
+    !$omp parallel do default(none) shared(n_up,down,n) private(sink) schedule(static)
     do i = 1_i8, n
       sink = down(i)
       if (sink == 0_i8) cycle
@@ -895,7 +896,7 @@ contains
 
     allocate(sinks(n_sinks))
     sink_cursor = 0_i8
-    !$omp parallel do default(none) shared(sink_cursor,sinks,down) private(sink_idx) schedule(static)
+    !$omp parallel do default(none) shared(sink_cursor,sinks,down,n) private(sink_idx) schedule(static)
     do i = 1_i8, n
       if (down(i) /= 0_i8) cycle
       !$omp atomic capture
@@ -907,22 +908,19 @@ contains
     !$omp end parallel do
 
     allocate(off_up(n))
-    total_up = 1_i8
-    do i = 1_i8, n
-      off_up(i) = total_up
-      total_up = total_up + n_up(i)
-    end do
-    total_up = total_up - 1_i8
+    call prefix_sum(n_up, off_up, shift=1_i8, start=1_i8)
+
+    total_up = off_up(n) + n_up(n) - 1_i8
 
     allocate(up(total_up)) ! size: nodes - sinks
     if (total_up > 0_i8) then
       allocate(cursor(n))
-      !$omp parallel do default(none) shared(cursor) schedule(static)
+      !$omp parallel do default(none) shared(cursor,n) schedule(static)
       do i = 1_i8, n
         cursor(i) = 0_i8
       end do
       !$omp end parallel do
-      !$omp parallel do default(none) shared(down,cursor,off_up,up) private(sink, idx) schedule(static)
+      !$omp parallel do default(none) shared(down,cursor,off_up,up,n) private(sink, idx) schedule(static)
       do i = 1_i8, n
         sink = down(i)
         if (sink == 0_i8) cycle
@@ -939,7 +937,7 @@ contains
 
     ! sort sinks and upstream lists for consistency
     if (n_sinks > 1_i8) call sort_ascending(sinks)
-    !$omp parallel do default(none) shared(n_up,up,off_up) schedule(static)
+    !$omp parallel do default(none) shared(n_up,up,off_up,n) schedule(static)
     do i = 1_i8, n
       if (n_up(i) > 1_i8) call sort_ascending(up(off_up(i):off_up(i)+n_up(i)-1_i8))
     end do
@@ -955,14 +953,14 @@ contains
     allocate(this%tags(n))
     if (present(tags)) then
       if (size(tags, kind=i8) /= n) call error_message('branching_init: tags size mismatch')
-      !$omp parallel do default(none) shared(this,tags,down) schedule(static)
+      !$omp parallel do default(none) shared(this,tags,down,n) schedule(static)
       do i = 1_i8, n
         this%tags(i) = tags(i)
         this%down(i) = down(i)
       end do
       !$omp end parallel do
     else
-      !$omp parallel do default(none) shared(this,down) schedule(static)
+      !$omp parallel do default(none) shared(this,down,n) schedule(static)
       do i = 1_i8, n
         this%tags(i) = i
         this%down(i) = down(i)
