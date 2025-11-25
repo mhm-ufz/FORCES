@@ -239,6 +239,15 @@ contains
       this%level_end(this%n_levels - i + 1_i8) = n + 1_i8 - tmp1
     end do
     !$omp end parallel do
+
+    ! handle middle level in case of odd number of levels
+    if (mod(this%n_levels, 2_i8) == 1_i8) then
+      i = (this%n_levels + 1_i8) / 2_i8
+      tmp1 = this%level_start(i)
+      tmp2 = this%level_end(i)
+      this%level_start(i) = n + 1_i8 - tmp2
+      this%level_end(i) = n + 1_i8 - tmp1
+    end if
   end subroutine
 
   !> \brief Simple visit function to visit all dependencies.
