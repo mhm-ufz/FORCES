@@ -1051,7 +1051,7 @@ contains
   !> \brief Parallel root-based level ordering for branching DAGs.
   subroutine branching_levelsort_root(this, order, istat, reverse)
     use mo_utils, only : optval
-    class(branching), intent(in), target :: this
+    class(branching), intent(in) :: this
     type(order_t), intent(out) :: order
     integer(i8), intent(out) :: istat
     logical, intent(in), optional :: reverse
@@ -1060,7 +1060,6 @@ contains
     integer(i8), allocatable :: level_start_tmp(:), level_end_tmp(:)
     integer(i8), allocatable :: degree(:), offsets(:)
     integer(i8), allocatable :: order_ids(:)
-    integer(i8), pointer :: src(:)
     integer(i8) :: n, count, level_idx, size_curr
     integer(i8) :: total_next, i
     logical :: rev
@@ -1104,7 +1103,7 @@ contains
       level_idx = level_idx + 1_i8
       level_start_tmp(level_idx) = count + 1_i8
 
-      !$omp parallel do default(shared)
+      !$omp parallel do default(shared) schedule(static)
       do i = 1_i8, size_curr
         order_ids(count + i) = current(i)
       end do
@@ -1114,30 +1113,26 @@ contains
       level_end_tmp(level_idx) = count
 
       allocate(degree(size_curr))
-      !$omp parallel do default(shared)
+      !$omp parallel do default(shared) schedule(static)
       do i = 1_i8, size_curr
-        degree(i) = this%n_sources(current(i))
+        degree(i) = this%n_up(current(i))
       end do
       !$omp end parallel do
 
-      total_next = sum(degree)
+      allocate(offsets(size_curr))
+      call prefix_sum(degree, offsets, shift=1_i8, start=1_i8)
+      total_next = offsets(size_curr) + degree(size_curr) - 1_i8
+
       if (total_next == 0_i8) then
-        deallocate(degree)
+        deallocate(degree, offsets)
         exit
       end if
 
-      allocate(offsets(size_curr))
-      if (size_curr > 0_i8) offsets(1) = 1_i8
-      do i = 2_i8, size_curr
-        offsets(i) = offsets(i-1) + degree(i-1)
-      end do
-
       allocate(next(total_next))
-      !$omp parallel do default(shared) private(src)
+      !$omp parallel do default(shared) schedule(static)
       do i = 1_i8, size_curr
         if (degree(i) == 0_i8) cycle
-        call this%src_view(current(i), src)
-        next(offsets(i):offsets(i)+degree(i)-1_i8) = src(1:degree(i))
+        next(offsets(i):offsets(i)+degree(i)-1_i8) = this%up(this%off_up(current(i)):this%off_up(current(i))+degree(i)-1_i8)
       end do
       !$omp end parallel do
 
