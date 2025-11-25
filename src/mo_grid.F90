@@ -1657,7 +1657,7 @@ contains
     if (this%coordsys == cartesian) then
       is_periodic = .false.
     else
-      is_periodic = is_close(360.0_dp, this%nx * this%cellsize - this%xllcorner)
+      is_periodic = is_close(360.0_dp, this%nx * this%cellsize)
     endif
   end function is_periodic
 
