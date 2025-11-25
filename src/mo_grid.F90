@@ -138,7 +138,10 @@ module mo_grid
     procedure, public :: is_periodic
     procedure, public :: derive_coarse_grid
     procedure, public :: derive_fine_grid
+    procedure, public :: gen_coarse_grid
+    procedure, public :: gen_fine_grid
     procedure, public :: derive_grid
+    procedure, public :: gen_grid
     procedure, private :: read_data_dp, read_data_i4
     generic, public :: read_data => read_data_dp, read_data_i4
     procedure, private :: check_shape => grid_check_shape
@@ -1662,26 +1665,16 @@ contains
   end function is_periodic
 
   !> \brief Generate coarse grid from a fine grid by a given target resolution
-  !> \details following attributes are calculated for the coarse grid:
-  !!          -  cell id & numbering
-  !!          -  mask creation
-  !> \return `type(grid_t) :: coarse_grid`
-  !> \authors Rohini Kumar
-  !> \date    Jan 2013
-  !> \changelog
-  !! - Sebastian Müller, Mar 2024
-  !!   - moving to FORCES
-  !!   - is now a method of the grid type
-  function derive_coarse_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol) result(coarse_grid)
+  subroutine gen_coarse_grid(this, coarse_grid, target_resolution, estimate_aux, estimate_area, area_method, tol)
     implicit none
     class(grid_t), intent(inout) :: this
+    type(grid_t), intent(out) :: coarse_grid !< resulting low resolution grid
     real(dp), intent(in) :: target_resolution !< desired target resolution
     logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
     logical, intent(in), optional :: estimate_area !< whether to estimate coarse cell areas respecting fine mask (default: .true.)
     !> method to estimate area: (0, default) from fine grid, (1) from cell extent, (2) from count fraction of valid fine cells
     integer(i4), intent(in), optional :: area_method
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    type(grid_t) :: coarse_grid !< resulting low resolution grid
 
     real(dp), dimension(:, :), allocatable :: fine_cell_area
     integer(i4) :: i_ub, i_lb, j_lb, j_ub
@@ -1785,24 +1778,33 @@ contains
       call coarse_grid%upscale_aux_coords(this, tol=tol)
     end if
 
-  end function derive_coarse_grid
+  end subroutine gen_coarse_grid
 
-  !> \brief Generate fine grid from a coarse grid by a given target resolution
-  !> \details following attributes are calculated for the coarse grid:
-  !!          -  cell id & numbering
-  !!          -  mask creation
-  !> \return `type(grid_t) :: fine_grid`
-  !> \authors Sebastian Müller
-  !> \date    Mar 2025
-  function derive_fine_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol) result(fine_grid)
+  !> \brief Generate coarse grid from a fine grid by a given target resolution
+  !> \return `type(grid_t) :: coarse_grid`
+  function derive_coarse_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol) result(coarse_grid)
     implicit none
     class(grid_t), intent(inout) :: this
     real(dp), intent(in) :: target_resolution !< desired target resolution
     logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
     logical, intent(in), optional :: estimate_area !< whether to estimate coarse cell areas respecting fine mask (default: .true.)
+    !> method to estimate area: (0, default) from fine grid, (1) from cell extent, (2) from count fraction of valid fine cells
+    integer(i4), intent(in), optional :: area_method
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    type(grid_t) :: coarse_grid !< resulting low resolution grid
+    call this%gen_coarse_grid(coarse_grid, target_resolution, estimate_aux, estimate_area, area_method, tol)
+  end function derive_coarse_grid
+
+  !> \brief Generate fine grid from a coarse grid by a given target resolution
+  subroutine gen_fine_grid(this, fine_grid, target_resolution, estimate_aux, estimate_area, area_method, tol)
+    implicit none
+    class(grid_t), intent(inout) :: this
+    type(grid_t), intent(out) :: fine_grid !< resulting high resolution grid
+    real(dp), intent(in) :: target_resolution !< desired target resolution
+    logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
+    logical, intent(in), optional :: estimate_area !< whether to estimate coarse cell areas respecting fine mask (default: .true.)
     integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from fine grid, (1) from cell extent
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    type(grid_t) :: fine_grid !< resulting low resolution grid
 
     integer(i4) :: i, j, ic, jc
     integer(i4) :: factor, area_method_
@@ -1844,15 +1846,28 @@ contains
       call fine_grid%downscale_aux_coords(this, tol=tol)
     end if
 
+  end subroutine gen_fine_grid
+
+  !> \brief Generate fine grid from a coarse grid by a given target resolution
+  !> \return `type(grid_t) :: fine_grid`
+  function derive_fine_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol) result(fine_grid)
+    implicit none
+    class(grid_t), intent(inout) :: this
+    real(dp), intent(in) :: target_resolution !< desired target resolution
+    logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
+    logical, intent(in), optional :: estimate_area !< whether to estimate coarse cell areas respecting fine mask (default: .true.)
+    integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from fine grid, (1) from cell extent
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    type(grid_t) :: fine_grid !< resulting high resolution grid
+    call this%gen_fine_grid(fine_grid, target_resolution, estimate_aux, estimate_area, area_method, tol)
   end function derive_fine_grid
 
   !> \brief Generate a derived grid by a given target resolution
   !> \return `type(grid_t) :: result_grid`
-  !> \authors Sebastian Müller
-  !> \date    Mar 2025
-  function derive_grid(this, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, estimate_area, area_method, tol)
+  subroutine gen_grid(this, grid, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, estimate_area, area_method, tol)
     implicit none
     class(grid_t), intent(inout) :: this
+    type(grid_t), intent(out) :: grid !< resulting grid
     real(dp), intent(in), optional :: target_resolution !< desired target resolution
     integer(i4), intent(in), optional :: downscaling_factor !< factor for finer grid
     integer(i4), intent(in), optional :: upscaling_factor !< factor for coarser grid
@@ -1860,7 +1875,6 @@ contains
     logical, intent(in), optional :: estimate_area !< whether to estimate cell areas (default: .true.)
     integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from other grid, (1) from cell extent
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    type(grid_t) :: derive_grid !< resulting grid
     real(dp) :: resolution
     integer(i4) :: input_opt
 
@@ -1882,11 +1896,27 @@ contains
     end if
 
     if (resolution < this%cellsize) then
-      derive_grid = this%derive_fine_grid(resolution, estimate_aux, estimate_area, area_method, tol)
+      call this%gen_fine_grid(grid, resolution, estimate_aux, estimate_area, area_method, tol)
     else
-      derive_grid = this%derive_coarse_grid(resolution, estimate_aux, estimate_area, area_method, tol)
+      call this%gen_coarse_grid(grid, resolution, estimate_aux, estimate_area, area_method, tol)
     end if
 
+  end subroutine gen_grid
+
+  !> \brief Generate a derived grid by a given target resolution
+  !> \return `type(grid_t) :: result_grid`
+  function derive_grid(this, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, estimate_area, area_method, tol)
+    implicit none
+    class(grid_t), intent(inout) :: this
+    real(dp), intent(in), optional :: target_resolution !< desired target resolution
+    integer(i4), intent(in), optional :: downscaling_factor !< factor for finer grid
+    integer(i4), intent(in), optional :: upscaling_factor !< factor for coarser grid
+    logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
+    logical, intent(in), optional :: estimate_area !< whether to estimate cell areas (default: .true.)
+    integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from other grid, (1) from cell extent
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    type(grid_t) :: derive_grid !< resulting grid
+    call this%gen_grid(derive_grid, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, estimate_area, area_method, tol)
   end function derive_grid
 
   !> \brief Check 2D data shape for grid
