@@ -1062,7 +1062,6 @@ contains
     integer(i8), allocatable :: order_ids(:)
     integer(i8) :: n, count, level_idx, size_curr
     integer(i8) :: total_next, i
-    logical :: rev
 
     n = this%n_nodes
     istat = 0_i8
@@ -1086,7 +1085,11 @@ contains
     end if
 
     allocate(current(size(this%sinks, kind=i8)))
-    current = this%sinks
+    !$omp parallel do default(shared) schedule(static)
+    do i = 1_i8, size(this%sinks, kind=i8)
+      current(i) = this%sinks(i)
+    end do
+    !$omp end parallel do
 
     allocate(order_ids(n))
     allocate(level_start_tmp(n))
@@ -1094,9 +1097,8 @@ contains
 
     count = 0_i8
     level_idx = 0_i8
-    rev = optval(reverse, .false.)
 
-    do
+    level_loop: do
       size_curr = size(current, kind=i8)
       if (size_curr == 0_i8) exit
 
@@ -1136,29 +1138,34 @@ contains
       end do
       !$omp end parallel do
 
-      deallocate(degree, offsets)
-      deallocate(current)
+      deallocate(degree, offsets, current)
       call move_alloc(next, current)
-    end do
+    end do level_loop
+
+    if (allocated(current)) deallocate(current)
 
     if (count /= n) then
       istat = -1_i8
-      deallocate(current, order_ids, level_start_tmp, level_end_tmp)
+      deallocate(order_ids, level_start_tmp, level_end_tmp)
       return
     end if
 
-    istat = 0_i8
     call move_alloc(order_ids, order%id)
-    allocate(order%level_start(level_idx), source=level_start_tmp(1_i8:level_idx))
-    allocate(order%level_end(level_idx),   source=level_end_tmp(1_i8:level_idx))
-    allocate(order%level_size(level_idx))
-    order%level_size = order%level_end - order%level_start + 1_i8
     order%n_levels = level_idx
-
-    if (.not. rev) call order%reverse()
-
+    allocate(order%level_start(level_idx))
+    allocate(order%level_end(level_idx))
+    allocate(order%level_size(level_idx))
+    !$omp parallel do default(shared) schedule(static)
+    do i = 1_i8, level_idx
+      order%level_start(i) = level_start_tmp(i)
+      order%level_end(i) = level_end_tmp(i)
+      order%level_size(i) = level_end_tmp(i) - level_start_tmp(i) + 1_i8
+    end do
+    !$omp end parallel do
     deallocate(level_start_tmp, level_end_tmp)
-    if (allocated(current)) deallocate(current)
+
+    if (.not. optval(reverse, .false.)) call order%reverse()
+
   end subroutine branching_levelsort_root
 
   !> \brief Ensure branching DAG resources are freed when going out of scope.
