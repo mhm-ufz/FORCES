@@ -511,72 +511,162 @@ contains
     integer(i8), intent(out) :: istat         !< status code (0 - no error, -1 - cycle found)
     logical, intent(in), optional :: reverse  !< reverse order (default: .false.)
 
-    integer(i8) :: i, j, k, m, n, count, level, added_this_level
+    integer(i8) :: i, k, m, n, count, level, idx
+    integer(i8) :: size_curr, total_next
+    integer(i8), allocatable :: current(:), next(:), degree(:), offsets(:), added_from(:)
     integer(i8), allocatable :: level_start(:), level_end(:), id(:), visit_level(:)
-    logical :: rev
     integer(i8), pointer :: neigh(:), deps(:)
+    logical, allocatable :: addable(:)
+    logical :: skip
 
-    rev = optval(reverse, .false.)
+    istat = 0_i8
+
     n = this%n_nodes ! in the worst case of a linear DAG, we get as many levels as nodes
-    allocate(visit_level(n), source=0_i8)
-    allocate(level_start(n))
-    allocate(level_end(n))
-    allocate(id(n))
+    if (n == 0_i8) then
+      order%n_levels = 0_i8
+      allocate(order%id(0))
+      allocate(order%level_start(0))
+      allocate(order%level_end(0))
+      allocate(order%level_size(0))
+      return
+    end if
 
-    ! first scan for all dependency free nodes
-    count = 0_i8
-    level = 1_i8
+    ! first scan for all source free nodes
+    size_curr = 0_i8
+    !$omp parallel do default(shared) reduction(+:size_curr) schedule(static)
     do i = 1_i8, n
-      if (this%n_sources(i) > 0_i8) cycle
-      count = count + 1_i8
-      id(count) = i
-      visit_level(i) = level
+      if (this%n_sources(i) == 0_i8) size_curr = size_curr + 1_i8
     end do
+    !$omp end parallel do
 
-    level_start(level) = 1_i8
-    level_end(level) = count
-
-    do while (count < n)
-      added_this_level = 0_i8
-      level = level + 1_i8
-      level_start(level) = count + 1_i8
-
-      ! scan all targets of previous level
-      do i = level_start(level-1_i8), level_end(level-1_i8)
-        call this%tgt_view(id(i), neigh)
-        tgt_loop: do j = 1_i8, size(neigh, kind=i8)
-          k = neigh(j)
-          if (visit_level(k)>0_i8) cycle ! dependent already treated by earlier node in this level
-          call this%src_view(k, deps)
-          do m = 1_i8, size(deps, kind=i8) ! non empty since it is a dependent
-            ! some dependency not yet ready (0 - not ready, level - not added in previous levels)
-            if ( visit_level(deps(m)) == 0_i8 .or. visit_level(deps(m)) == level ) cycle tgt_loop
-          end do
-          count = count + 1_i8
-          id(count) = k
-          visit_level(k) = level
-          added_this_level = added_this_level + 1_i8
-        end do tgt_loop
-      end do
-
-      if (added_this_level == 0_i8) exit ! cycle detected
-      level_end(level) = count ! all added nodes from the new level
-    end do
-
-    if (count /= n) then ! cycle detected
+    if (size_curr == 0_i8) then
       istat = -1_i8
       return
     end if
 
-    istat = 0_i8
+    idx = 0_i8
+    allocate(visit_level(n))
+    allocate(addable(n)) ! addable in the current cycle
+    allocate(added_from(n)) ! which node added this node as available dependency to prevent race conditions
+    allocate(current(size_curr))
+    !$omp parallel do default(shared) private(k) schedule(static)
+    do i = 1_i8, n
+      added_from(i) = -1_i8
+      visit_level(i) = 0_i8 ! init value to mark unvisited
+      addable(i) = .false. ! init value
+      if (this%n_sources(i) > 0_i8) cycle
+      !$omp atomic capture
+      k = idx
+      idx = idx + 1_i8
+      !$omp end atomic
+      current(k + 1_i8) = i
+      addable(i) = .true.
+      visit_level(i) = 1_i8
+      added_from(i) = 0_i8 ! flag for dependency free nodes
+    end do
+    !$omp end parallel do
+
+    allocate(level_start(n))
+    allocate(level_end(n))
+    allocate(id(n))
+
+    count = 0_i8
+    level = 0_i8
+
+    level_loop: do
+      size_curr = size(current, kind=i8)
+      if (size_curr == 0_i8) exit
+
+      level = level + 1_i8
+      level_start(level) = count + 1_i8
+
+      !$omp parallel do default(shared) schedule(static)
+      do i = 1_i8, size_curr
+        id(count + i) = current(i)
+      end do
+      !$omp end parallel do
+
+      count = count + size_curr
+      level_end(level) = count
+
+      allocate(degree(size_curr))
+      !$omp parallel do default(shared) private(k,m,idx,neigh,deps,skip) schedule(static)
+      do i = 1_i8, size_curr
+        call this%tgt_view(current(i), neigh)
+        idx = 0_i8
+        neigh_loop: do k = 1_i8, size(neigh, kind=i8)
+          if (visit_level(neigh(k)) > 0_i8) cycle ! already added
+          call this%src_view(neigh(k), deps)
+          ! check addablility of neighbor (all its dependencies already visited)
+          deps_loop: do m = 1_i8, size(deps, kind=i8)
+            ! check if dependency ready
+            if ( visit_level(deps(m)) == 0_i8) cycle neigh_loop
+          end do deps_loop
+          !$omp atomic capture
+          skip = addable(neigh(k)) ! check if already added by another thread or level
+          addable(neigh(k)) = .true.
+          !$omp end atomic
+          if (skip) cycle neigh_loop ! already added
+          idx = idx + 1_i8
+          added_from(neigh(k)) = current(i)
+        end do neigh_loop
+        degree(i) = idx
+      end do
+      !$omp end parallel do
+
+      allocate(offsets(size_curr))
+      call prefix_sum(degree, offsets, shift=1_i8, start=1_i8)
+      total_next = offsets(size_curr) + degree(size_curr) - 1_i8
+
+      if (total_next == 0_i8) then
+        deallocate(degree, offsets)
+        exit
+      end if
+
+      allocate(next(total_next))
+      !$omp parallel do default(shared) private(k,idx,neigh) schedule(static)
+      do i = 1_i8, size_curr
+        if (degree(i) == 0_i8) cycle
+        call this%tgt_view(current(i), neigh)
+        idx = 0_i8
+        do k = 1_i8, size(neigh, kind=i8)
+          if (added_from(neigh(k)) /= current(i)) cycle ! not to be added by this node (prevent race conditions)
+          visit_level(neigh(k)) = level + 1_i8
+          next(offsets(i) + idx) = neigh(k)
+          idx = idx + 1_i8
+        end do
+      end do
+      !$omp end parallel do
+
+      deallocate(degree, offsets, current)
+      call move_alloc(next, current)
+    end do level_loop
+
+    if (allocated(current)) deallocate(current)
+    deallocate(visit_level, added_from, addable)
+
+    if (count /= n) then
+      istat = -1_i8
+      deallocate(id, level_start, level_end)
+      return
+    end if
+
     call move_alloc(id, order%id)
-    allocate(order%level_start(level), source=level_start(1_i8:level))
-    allocate(order%level_end(level), source=level_end(1_i8:level))
-    allocate(order%level_size(level))
-    order%level_size = order%level_end - order%level_start + 1_i8
     order%n_levels = level
-    if (rev) call order%reverse()
-    deallocate(visit_level, level_start, level_end)
+    allocate(order%level_start(level))
+    allocate(order%level_end(level))
+    allocate(order%level_size(level))
+    !$omp parallel do default(shared) schedule(static)
+    do i = 1_i8, level
+      order%level_start(i) = level_start(i)
+      order%level_end(i) = level_end(i)
+      order%level_size(i) = level_end(i) - level_start(i) + 1_i8
+    end do
+    !$omp end parallel do
+    deallocate(level_start, level_end)
+
+    if (optval(reverse, .false.)) call order%reverse()
+
   end subroutine dag_base_levelsort_head
 
   !> \brief Sorting DAG by levels for parallelization based on Kahn's algorithm starting at roots.
