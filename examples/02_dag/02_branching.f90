@@ -20,8 +20,12 @@ program dag_branching
 
   call river%init(down)
 
-  call river%levelsort(order, istat, root=.true.)
-  print *, 'Branching DAG root based level-sort order: ', order%id
+  call river%levelsort(order, istat, root=.false.)
+  call order%sort()
+  print '(a,*(1x,i2))', 'Branching DAG leaf based level-sort order: ', order%id
 
+  call river%levelsort(order, istat, root=.true.)
+  call order%sort()
+  print '(a,*(1x,i2))', 'Branching DAG root based level-sort order: ', order%id
   call river%destroy()
 end program dag_branching

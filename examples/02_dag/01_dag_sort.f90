@@ -34,15 +34,24 @@ program dag_sort
   call network%toposort(order,istat)
   print*, ""
   print*, "TOPOSORT"
-  print*, "order", order
+  print '(a,*(1x,i2))', "order", order
 
   ! levelsort
-  call network%levelsort(ord, istat)
+  call network%levelsort(ord, istat, root=.false.)
+  call ord%sort()
   print*, ""
-  print*, "LEVELSORT"
-  print*, "order      ", ord%id
-  print*, "# levels   ", ord%n_levels
-  print*, "level start", ord%level_start
-  print*, "level size ", ord%level_size ! node 3 and 4 can be computed in parallel
+  print*, "LEVELSORT leaf based"
+  print '(a,*(1x,i2))', "order      ", ord%id
+  print '(a,*(1x,i2))', "# levels   ", ord%n_levels
+  print '(a,*(1x,i2))', "level start", ord%level_start
+  print '(a,*(1x,i2))', "level size ", ord%level_size ! node 3 and 4 can be computed in parallel
 
+  call network%levelsort(ord, istat, root=.true.)
+  call ord%sort()
+  print*, ""
+  print*, "LEVELSORT root based"
+  print '(a,*(1x,i2))', "order      ", ord%id
+  print '(a,*(1x,i2))', "# levels   ", ord%n_levels
+  print '(a,*(1x,i2))', "level start", ord%level_start
+  print '(a,*(1x,i2))', "level size ", ord%level_size ! node 3 and 4 can be computed in parallel
 end program dag_sort
