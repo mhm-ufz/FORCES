@@ -97,6 +97,7 @@ module mo_dag
     integer(i8) :: n_levels                     !< Number of levels
   contains
     procedure :: reverse => order_reverse
+    procedure :: sort => order_sort
   end type order_t
 
   !> \class dag_base
@@ -207,6 +208,18 @@ module mo_dag
   end type branching
 
 contains
+
+  !> \brief Sort nodes within levels of order.
+  subroutine order_sort(this)
+    use mo_utils, only: flip
+    class(order_t), intent(inout) :: this
+    integer(i8) :: i
+    !$omp parallel do default(shared) schedule(static)
+    do i=1_i8, this%n_levels
+      call sort_ascending(this%id(this%level_start(i):this%level_end(i)))
+    end do
+    !$omp end parallel do
+  end subroutine
 
   !> \brief Reverse order.
   subroutine order_reverse(this)
