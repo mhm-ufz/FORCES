@@ -42,6 +42,7 @@ module mo_grid
   public :: is_lat_coord
   public :: check_uniform_axis
   public :: mask_from_var
+  public :: data_from_var
 #endif
 
   private
@@ -68,6 +69,23 @@ module mo_grid
   integer(i4), public, parameter :: area_full = 1_i4 !< Calculate cell area as full cell.
   integer(i4), public, parameter :: area_count = 2_i4 !< Calculate cell area by count fraction of valid sub-cells.
   !!@}
+
+  !> \class   data_t
+  !> \brief   2D Data container for different data types.
+  type, public :: data_t
+    character(:), allocatable :: dtype       !< selector for data type ('f32', 'f64', 'i8', 'i16', 'i32', 'i64')
+    real(sp), allocatable :: data_sp(:,:)    !< data in single precision
+    real(dp), allocatable :: data_dp(:,:)    !< data in double precision
+    integer(i1), allocatable :: data_i1(:,:) !< data in 1-byte integers
+    integer(i2), allocatable :: data_i2(:,:) !< data in 2-byte integers
+    integer(i4), allocatable :: data_i4(:,:) !< data in 4-byte integers
+    integer(i8), allocatable :: data_i8(:,:) !< data in 8-byte integers
+  contains
+    !> \brief Get data from data container by moving allocation.
+    procedure, public :: deallocate => data_deallocate
+    generic, public :: move => data_move_sp, data_move_dp, data_move_i1, data_move_i2, data_move_i4, data_move_i8
+    procedure, private :: data_move_sp, data_move_dp, data_move_i1, data_move_i2, data_move_i4, data_move_i8
+  end type data_t
 
   !> \class   grid_t
   !> \brief   2D grid description with data in xy order..
@@ -196,6 +214,61 @@ contains
 
   ! ------------------------------------------------------------------
 
+  !> \brief Deallocate data in data container.
+  subroutine data_deallocate(this)
+    class(data_t), intent(inout) :: this
+    if (allocated(this%data_sp)) deallocate(this%data_sp)
+    if (allocated(this%data_dp)) deallocate(this%data_dp)
+    if (allocated(this%data_i1)) deallocate(this%data_i1)
+    if (allocated(this%data_i2)) deallocate(this%data_i2)
+    if (allocated(this%data_i4)) deallocate(this%data_i4)
+    if (allocated(this%data_i8)) deallocate(this%data_i8)
+  end subroutine data_deallocate
+
+  subroutine data_move_sp(this, data)
+    class(data_t), intent(inout) :: this
+    real(sp), allocatable, dimension(:,:), intent(out) :: data
+    if (.not.allocated(this%data_sp)) call error_message("data % get: data not allocated for dtype 'f32'")
+    call move_alloc(this%data_sp, data)
+  end subroutine data_move_sp
+
+  subroutine data_move_dp(this, data)
+    class(data_t), intent(inout) :: this
+    real(dp), allocatable, dimension(:,:), intent(out) :: data
+    if (.not.allocated(this%data_dp)) call error_message("data % get: data not allocated for dtype 'f64'")
+    call move_alloc(this%data_dp, data)
+  end subroutine data_move_dp
+
+  subroutine data_move_i1(this, data)
+    class(data_t), intent(inout) :: this
+    integer(i1), allocatable, dimension(:,:), intent(out) :: data
+    if (.not.allocated(this%data_i1)) call error_message("data % get: data not allocated for dtype 'i8'")
+    call move_alloc(this%data_i1, data)
+  end subroutine data_move_i1
+
+  subroutine data_move_i2(this, data)
+    class(data_t), intent(inout) :: this
+    integer(i2), allocatable, dimension(:,:), intent(out) :: data
+    if (.not.allocated(this%data_i2)) call error_message("data % get: data not allocated for dtype 'i16'")
+    call move_alloc(this%data_i2, data)
+  end subroutine data_move_i2
+
+  subroutine data_move_i4(this, data)
+    class(data_t), intent(inout) :: this
+    integer(i4), allocatable, dimension(:,:), intent(out) :: data
+    if (.not.allocated(this%data_i4)) call error_message("data % get: data not allocated for dtype 'i32'")
+    call move_alloc(this%data_i4, data)
+  end subroutine data_move_i4
+
+  subroutine data_move_i8(this, data)
+    class(data_t), intent(inout) :: this
+    integer(i8), allocatable, dimension(:,:), intent(out) :: data
+    if (.not.allocated(this%data_i8)) call error_message("data % get: data not allocated for dtype 'i64'")
+    call move_alloc(this%data_i8, data)
+  end subroutine data_move_i8
+
+  ! ------------------------------------------------------------------
+
   !> \brief initialize grid from ascii header content
   !> \details initialize grid from standard ascii header content (nx (cols), ny (rows), cellsize, lower-left corner)
   !> \authors Sebastian Müller
@@ -211,6 +284,7 @@ contains
     integer(i4), optional, intent(in) :: coordsys !< desired coordinate system (0 (default) for cartesian, 1 for spherical)
     logical, dimension(:,:), optional, intent(in) :: mask !< desired mask for the grid (default: all .true.)
     integer(i4), optional, intent(in) :: y_direction !< y-axis direction (0 (default) for top-down, 1 for bottom-up)
+    integer(i4) :: j
 
     this%nx = nx
     this%ny = ny
@@ -237,7 +311,11 @@ contains
                            trim(adjustl(num2str(nx))), ",", &
                            trim(adjustl(num2str(ny))), ")")
       allocate(this%mask(this%nx, this%ny))
-      this%mask = mask
+      !$omp parallel do default(shared) schedule(static)
+      do j = 1_i4, this%ny
+        this%mask(:,j) = mask(:,j)
+      end do
+      !$omp end parallel do
     end if
     ! if no mask given, this will initialize the default mask
     call this%calculate_cell_ids()
@@ -248,7 +326,7 @@ contains
   !> \brief initialize grid from ascii grid file
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine from_ascii_file(this, path, coordsys, read_mask, y_direction)
+  subroutine from_ascii_file(this, path, coordsys, read_mask, y_direction, data)
     use mo_os, only: check_path_isfile
     implicit none
     class(grid_t), intent(inout) :: this
@@ -256,6 +334,7 @@ contains
     integer(i4), optional, intent(in) :: coordsys !< desired coordinate system (0 (default) for cartesian, 1 for lat-lon)
     logical, optional, intent(in) :: read_mask !< Whether to read the mask from the given file (default: .true.)
     integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) or 0 for top-down, 1 for bottom-up)
+    class(data_t), intent(inout), optional :: data !< optional data container to read the variable data into
 
     integer(i4) :: nx, ny
     real(dp) :: xll, yll, cellsize
@@ -275,14 +354,35 @@ contains
 
     if (read_mask_) then
       call read_ascii_grid_dp(path, dummy, mask, y_direction=y_dir)
-      deallocate(dummy)
-    else
-      allocate(mask(nx, ny))
-      mask(:,:) = .true.
+    else if (present(data)) then
+      call read_ascii_grid_dp(path, dummy, y_direction=y_dir)
     end if
 
-    call this%init(nx, ny, xll, yll, cellsize, coordsys, mask, y_dir)
-    deallocate(mask)
+    if (present(data)) then
+      call data%deallocate()
+      if (.not.allocated(data%dtype)) data%dtype = "f64"
+      select case (data%dtype)
+        case ("i8")
+          data%data_i1 = int(dummy, i1)
+        case ("i16")
+          data%data_i2 = int(dummy, i2)
+        case ("i32")
+          data%data_i4 = int(dummy, i4)
+        case ("i64")
+          data%data_i8 = int(dummy, i8)
+        case ("f32")
+          data%data_sp = real(dummy, sp)
+        case ("f64")
+          call move_alloc(dummy, data%data_dp)
+        case default
+          call error_message("grid%from_ascii_file: Unsupported data type: ", data%dtype)
+      end select
+    end if
+
+    if (allocated(dummy)) deallocate(dummy)
+
+    call this%init(nx, ny, xll, yll, cellsize, coordsys, mask, y_dir) ! un-allocated mask is interpreted as "not present" in init
+    if (allocated(mask)) deallocate(mask)
 
   end subroutine from_ascii_file
 
@@ -365,7 +465,7 @@ contains
   !> \details initialize grid from a netcdf file and a reference variable.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine from_nc_file(this, path, var, read_mask, read_aux, tol, y_direction)
+  subroutine from_nc_file(this, path, var, read_mask, read_aux, tol, y_direction, data)
     use mo_netcdf, only : NcDataset
     implicit none
     class(grid_t), intent(inout) :: this
@@ -375,9 +475,10 @@ contains
     logical, optional, intent(in) :: read_aux !< Whether to read auxilliar coordinates if possible (default: .true.)
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) as present, 0 for top-down, 1 for bottom-up)
+    class(data_t), intent(inout), optional :: data !< optional data container to read the variable data into
     type(NcDataset) :: nc
     nc = NcDataset(path, "r")
-    call this%from_nc_dataset(nc, var, read_mask, read_aux, tol, y_direction)
+    call this%from_nc_dataset(nc, var, read_mask, read_aux, tol, y_direction, data)
     call nc%close()
   end subroutine from_nc_file
 
@@ -385,7 +486,7 @@ contains
   !> \details initialize grid from a netcdf dataset and a reference variable.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine from_nc_dataset(this, nc, var, read_mask, read_aux, tol, y_direction)
+  subroutine from_nc_dataset(this, nc, var, read_mask, read_aux, tol, y_direction, data)
     use mo_netcdf, only : NcDataset, NcVariable, NcDimension
     use mo_utils, only : is_close
     use mo_string_utils, only : splitString
@@ -397,6 +498,7 @@ contains
     logical, optional, intent(in) :: read_aux !< Whether to read auxilliar coordinates if possible (default: .true.)
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) as present, 0 for top-down, 1 for bottom-up)
+    class(data_t), intent(inout), optional :: data !< optional data container to read the variable data into
 
     type(NcVariable) :: ncvar, xvar, yvar
     type(NcDimension), dimension(:), allocatable :: dims
@@ -466,7 +568,8 @@ contains
     this%cellsize = cs_x
 
     ! get mask from variable mask (assumed to be constant over time)
-    if (read_mask_) call mask_from_var(ncvar, this%mask, flip_y)
+    if (read_mask_) call mask_from_var(ncvar, this%mask, data, flip_y)
+    if (present(data) .and. .not.read_mask_) call data_from_var(ncvar, data, flip_y)
     call this%calculate_cell_ids()
     call this%calculate_cell_area()
 
@@ -876,7 +979,6 @@ contains
     implicit none
     class(grid_t), intent(in) :: this
     integer(i8), dimension(this%nx, this%ny) :: id_matrix
-    integer(i8) :: i
     call this%gen_id_matrix(id_matrix)
   end function id_matrix
 
@@ -1039,7 +1141,7 @@ contains
     class(grid_t), intent(in) :: this
     real(dp), allocatable, dimension(:,:) :: x_bounds
     real(dp), allocatable, dimension(:) :: x_ax
-    x_ax = this%x_vertices()
+    allocate(x_ax, source=this%x_vertices())
     allocate(x_bounds(2, this%nx))
     x_bounds(1,:) = x_ax(1:this%nx)
     x_bounds(2,:) = x_ax(2:this%nx+1)
@@ -1056,7 +1158,7 @@ contains
     real(dp), allocatable, dimension(:,:) :: y_bounds
     real(dp), allocatable, dimension(:) :: y_ax
     ! bounds follow axis direction
-    y_ax = this%y_vertices(y_direction)
+    allocate(y_ax, source=this%y_vertices(y_direction))
     allocate(y_bounds(2, this%ny))
     y_bounds(1,:) = y_ax(1:this%ny)
     y_bounds(2,:) = y_ax(2:this%ny+1)
@@ -2779,13 +2881,14 @@ contains
   !! This will check for the variable dtype first to use the best fitting kind for reading dummy data.
   !! Only supports 2D variables and requires the "_FillValue" attribute to be set.
   !> \authors Sebastian Müller
-  subroutine mask_from_var(var, mask, flip_y)
+  subroutine mask_from_var(var, mask, data, flip_y)
     use mo_netcdf, only : NcVariable
     use mo_utils, only : ne
     use ieee_arithmetic, only : ieee_is_nan
     implicit none
     type(NcVariable), intent(in) :: var !< NetCDF variable to create mask from
     logical, dimension(:, :), allocatable, intent(out) :: mask !< resulting mask
+    type(data_t), intent(inout), optional :: data !< optional data container to reuse memory
     logical, intent(in), optional :: flip_y !< whether to flip the mask in y-direction (default: .false.)
     integer(i1), dimension(:, :), allocatable :: data_i1
     integer(i1) :: fv_i1
@@ -2812,9 +2915,20 @@ contains
     ! only use first 2 dims and use first layer of potential other dims (z, time, soil-layer etc.)
     cnt(:2) = shp(:2)
     dtype = trim(var%getDtype())
+
+    if (present(data)) then
+      if (allocated(data%dtype)) then
+        dtype = trim(data%dtype)
+      else
+        data%dtype = dtype
+      end if
+      call data%deallocate()
+    end if
+
     select case (dtype)
       case ("i8")
         call var%getData(data_i1, start=start, cnt=cnt)
+        if (flip_y_) call flip(data_i1, iDim=2)
         call var%getFillValue(fv_i1)
         ! parallel mask creation
         nx = size(data_i1, 1)
@@ -2825,8 +2939,10 @@ contains
           mask(:,i) = data_i1(:,i) /= fv_i1
         end do
         !$omp end parallel do
+        if (present(data)) call move_alloc(data_i1, data%data_i1)
       case ("i16")
         call var%getData(data_i2, start=start, cnt=cnt)
+        if (flip_y_) call flip(data_i2, iDim=2)
         call var%getFillValue(fv_i2)
         ! parallel mask creation
         nx = size(data_i2, 1)
@@ -2837,8 +2953,10 @@ contains
           mask(:,i) = data_i2(:,i) /= fv_i2
         end do
         !$omp end parallel do
+        if (present(data)) call move_alloc(data_i2, data%data_i2)
       case ("i32")
         call var%getData(data_i4, start=start, cnt=cnt)
+        if (flip_y_) call flip(data_i4, iDim=2)
         call var%getFillValue(fv_i4)
         ! parallel mask creation
         nx = size(data_i4, 1)
@@ -2849,8 +2967,10 @@ contains
           mask(:,i) = data_i4(:,i) /= fv_i4
         end do
         !$omp end parallel do
+        if (present(data)) call move_alloc(data_i4, data%data_i4)
       case ("i64")
         call var%getData(data_i8, start=start, cnt=cnt)
+        if (flip_y_) call flip(data_i8, iDim=2)
         call var%getFillValue(fv_i8)
         ! parallel mask creation
         nx = size(data_i8, 1)
@@ -2861,8 +2981,10 @@ contains
           mask(:,i) = data_i8(:,i) /= fv_i8
         end do
         !$omp end parallel do
+        if (present(data)) call move_alloc(data_i8, data%data_i8)
       case ("f32")
         call var%getData(data_sp, start=start, cnt=cnt)
+        if (flip_y_) call flip(data_sp, iDim=2)
         call var%getFillValue(fv_sp)
         ! parallel mask creation
         nx = size(data_sp, 1)
@@ -2881,8 +3003,10 @@ contains
           end do
           !$omp end parallel do
         end if
+        if (present(data)) call move_alloc(data_sp, data%data_sp)
       case ("f64")
         call var%getData(data_dp, start=start, cnt=cnt)
+        if (flip_y_) call flip(data_dp, iDim=2)
         call var%getFillValue(fv_dp)
         ! parallel mask creation
         nx = size(data_dp, 1)
@@ -2901,13 +3025,59 @@ contains
           end do
           !$omp end parallel do
         end if
+        if (present(data)) call move_alloc(data_dp, data%data_dp)
       case default
         name = trim(var%getName())
         call error_message("mask_from_var: Unsupported variable type: ", name, " - dtype: ", dtype)
     end select
-    ! flip y-axis to have desired orientation
-    if (flip_y_) call flip(mask, iDim=2)
   end subroutine mask_from_var
+
+  !> \brief Read data from NetCDF variable.
+  !> \authors Sebastian Müller
+  subroutine data_from_var(var, data, flip_y)
+    use mo_netcdf, only : NcVariable
+    use mo_utils, only : ne
+    use ieee_arithmetic, only : ieee_is_nan
+    implicit none
+    type(NcVariable), intent(in) :: var !< NetCDF variable to create mask from
+    type(data_t), intent(inout) :: data !< optional data container to reuse memory
+    logical, intent(in), optional :: flip_y !< whether to flip the mask in y-direction (default: .false.)
+    integer(i4), dimension(:), allocatable :: shp, start, cnt
+    character(:), allocatable :: name
+    logical :: flip_y_
+
+    flip_y_ = optval(flip_y, default=.false.)
+    shp = var%getShape()
+    allocate(start(size(shp)), source=1_i4)
+    allocate(cnt(size(shp)), source=1_i4)
+    ! only use first 2 dims and use first layer of potential other dims (z, time, soil-layer etc.)
+    cnt(:2) = shp(:2)
+    if (.not.allocated(data%dtype)) data%dtype = trim(var%getDtype())
+    call data%deallocate()
+    select case (data%dtype)
+      case ("i8")
+        call var%getData(data%data_i1, start=start, cnt=cnt)
+        if (flip_y_) call flip(data%data_i1, iDim=2)
+      case ("i16")
+        call var%getData(data%data_i2, start=start, cnt=cnt)
+        if (flip_y_) call flip(data%data_i2, iDim=2)
+      case ("i32")
+        call var%getData(data%data_i4, start=start, cnt=cnt)
+        if (flip_y_) call flip(data%data_i4, iDim=2)
+      case ("i64")
+        call var%getData(data%data_i8, start=start, cnt=cnt)
+        if (flip_y_) call flip(data%data_i8, iDim=2)
+      case ("f32")
+        call var%getData(data%data_sp, start=start, cnt=cnt)
+        if (flip_y_) call flip(data%data_sp, iDim=2)
+      case ("f64")
+        call var%getData(data%data_dp, start=start, cnt=cnt)
+        if (flip_y_) call flip(data%data_dp, iDim=2)
+      case default
+        name = trim(var%getName())
+        call error_message("data_from_var: Unsupported variable type: ", name, " - dtype: ", data%dtype)
+    end select
+  end subroutine data_from_var
 
 #endif
 
