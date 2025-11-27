@@ -1141,7 +1141,8 @@ contains
     class(grid_t), intent(in) :: this
     real(dp), allocatable, dimension(:,:) :: x_bounds
     real(dp), allocatable, dimension(:) :: x_ax
-    allocate(x_ax, source=this%x_vertices())
+    allocate(x_ax(this%nx+1_i4))
+    x_ax = this%x_vertices()
     allocate(x_bounds(2, this%nx))
     x_bounds(1,:) = x_ax(1:this%nx)
     x_bounds(2,:) = x_ax(2:this%nx+1)
@@ -1158,7 +1159,8 @@ contains
     real(dp), allocatable, dimension(:,:) :: y_bounds
     real(dp), allocatable, dimension(:) :: y_ax
     ! bounds follow axis direction
-    allocate(y_ax, source=this%y_vertices(y_direction))
+    allocate(y_ax(this%ny+1_i4))
+    y_ax = this%y_vertices(y_direction)
     allocate(y_bounds(2, this%ny))
     y_bounds(1,:) = y_ax(1:this%ny)
     y_bounds(2,:) = y_ax(2:this%ny+1)
