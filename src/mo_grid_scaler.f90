@@ -163,11 +163,19 @@ module mo_grid_scaler
     procedure, private :: upscale_laf => scaler_upscale_laf
     procedure, private :: upscale_fraction => scaler_upscale_fraction
     procedure, private :: scaler_downscale_nearest_dp_1d, scaler_downscale_nearest_i4_1d
-    generic, public :: downscale_nearest => scaler_downscale_nearest_dp_1d, scaler_downscale_nearest_i4_1d
     procedure, private :: scaler_downscale_nearest_dp_2d, scaler_downscale_nearest_i4_2d
-    generic, public :: downscale_nearest => scaler_downscale_nearest_dp_2d, scaler_downscale_nearest_i4_2d
+    !> \brief Nearest neighbor downscaling.
+    generic, public :: downscale_nearest => scaler_downscale_nearest_dp_2d, scaler_downscale_nearest_i4_2d, &
+                                            scaler_downscale_nearest_dp_1d, scaler_downscale_nearest_i4_1d
     procedure, private :: scaler_downscale_split_1d, scaler_downscale_split_2d
+    !> \brief Inverse sum downscaling with equal summands.
     generic, public :: downscale_split => scaler_downscale_split_1d, scaler_downscale_split_2d
+    procedure, private :: scaler_maxloc_dp_1d, scaler_maxloc_dp_2d, scaler_maxloc_i4_1d, scaler_maxloc_i4_2d
+    !> \brief Find location of maximum value in coarse cell on fine grid by cell id.
+    generic, private :: maxloc => scaler_maxloc_dp_1d, scaler_maxloc_dp_2d, scaler_maxloc_i4_1d, scaler_maxloc_i4_2d
+    procedure, private :: scaler_minloc_dp_1d, scaler_minloc_dp_2d, scaler_minloc_i4_1d, scaler_minloc_i4_2d
+    !> \brief Find location of minimum value in coarse cell on fine grid by cell id.
+    generic, private :: minloc => scaler_minloc_dp_1d, scaler_minloc_dp_2d, scaler_minloc_i4_1d, scaler_minloc_i4_2d
   end type scaler_t
 
 contains
@@ -980,8 +988,8 @@ contains
 
   subroutine scaler_downscale_nearest_dp_1d(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%source_grid%ncells), intent(in) :: in_data
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
+    real(dp), dimension(this%coarse_grid%ncells), intent(in) :: in_data
+    real(dp), dimension(this%fine_grid%ncells), intent(out) :: out_data
     integer(i8) :: k
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) schedule(static)
@@ -993,8 +1001,8 @@ contains
 
   subroutine scaler_downscale_nearest_i4_1d(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%source_grid%ncells), intent(in) :: in_data
-    integer(i4), dimension(this%target_grid%ncells), intent(out) :: out_data
+    integer(i4), dimension(this%coarse_grid%ncells), intent(in) :: in_data
+    integer(i4), dimension(this%fine_grid%ncells), intent(out) :: out_data
     integer(i8) :: k
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) schedule(static)
@@ -1006,8 +1014,8 @@ contains
 
   subroutine scaler_downscale_split_1d(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%source_grid%ncells), intent(in) :: in_data
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
+    real(dp), dimension(this%coarse_grid%ncells), intent(in) :: in_data
+    real(dp), dimension(this%fine_grid%ncells), intent(out) :: out_data
     integer(i8) :: k
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) schedule(static)
@@ -1019,8 +1027,8 @@ contains
 
   subroutine scaler_downscale_nearest_dp_2d(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
+    real(dp), dimension(this%coarse_grid%nx,this%coarse_grid%ny), intent(in) :: in_data
+    real(dp), dimension(this%fine_grid%ncells), intent(out) :: out_data
     integer(i4) :: i, j
     integer(i8) :: k
     call check_downscaling(this%scaling_mode)
@@ -1035,8 +1043,8 @@ contains
 
   subroutine scaler_downscale_nearest_i4_2d(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
-    integer(i4), dimension(this%target_grid%ncells), intent(out) :: out_data
+    integer(i4), dimension(this%coarse_grid%nx,this%coarse_grid%ny), intent(in) :: in_data
+    integer(i4), dimension(this%fine_grid%ncells), intent(out) :: out_data
     integer(i4) :: i, j
     integer(i8) :: k
     call check_downscaling(this%scaling_mode)
@@ -1051,8 +1059,8 @@ contains
 
   subroutine scaler_downscale_split_2d(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
+    real(dp), dimension(this%coarse_grid%nx,this%coarse_grid%ny), intent(in) :: in_data
+    real(dp), dimension(this%fine_grid%ncells), intent(out) :: out_data
     integer(i4) :: i, j
     integer(i8) :: k
     call check_downscaling(this%scaling_mode)
@@ -1060,10 +1068,154 @@ contains
     do k = 1_i8, this%fine_grid%ncells
       i = this%coarse_grid%cell_ij(this%id_map(k), 1)
       j = this%coarse_grid%cell_ij(this%id_map(k), 2)
-      out_data(k) = in_data(i,j)  * this%coarse_weights(this%id_map(k))
+      out_data(k) = in_data(i,j) * this%coarse_weights(this%id_map(k))
     end do
     !$omp end parallel do
   end subroutine scaler_downscale_split_2d
+
+  !> \brief Find location of maximum value in coarse cell on fine grid by cell id.
+  subroutine scaler_maxloc_dp_2d(this, in_data, ids, back)
+    class(scaler_t), intent(inout) :: this
+    real(dp), dimension(this%fine_grid%nx,this%fine_grid%ny), intent(in) :: in_data !< fine grid input data
+    integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of max values
+    logical, intent(in), optional :: back !< start search from back (default: false)
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub, loc(2), ix, iy
+    integer(i8) :: k
+    integer(i8), allocatable :: cells(:,:)
+    logical :: back_
+    back_ = optval(back, default=.false.)
+    allocate(cells(this%fine_grid%nx,this%fine_grid%ny))
+    call this%fine_grid%gen_id_matrix(cells)
+    !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub,loc,ix,iy) schedule(static)
+    do k = 1_i8, this%coarse_grid%ncells
+      call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+      loc = maxloc(in_data(x_lb:x_ub,y_lb:y_ub), mask=this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub), back=back_)
+      ix = x_lb + loc(1) - 1_i4
+      iy = y_lb + loc(2) - 1_i4
+      ids(k) = cells(ix,iy)
+    end do
+    !$omp end parallel do
+    deallocate(cells)
+  end subroutine scaler_maxloc_dp_2d
+
+  !> \brief Find location of maximum value in coarse cell on fine grid by cell id.
+  subroutine scaler_maxloc_dp_1d(this, in_data, ids, back)
+    class(scaler_t), intent(inout) :: this
+    real(dp), dimension(this%fine_grid%ncells), intent(in) :: in_data !< fine grid input data
+    integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of max values
+    logical, intent(in), optional :: back !< start search from back (default: false)
+    real(dp) :: temp_in(this%fine_grid%nx,this%fine_grid%ny)
+    call this%fine_grid%unpack_into(in_data, temp_in)
+    call this%scaler_maxloc_dp_2d(temp_in, ids, back)
+  end subroutine scaler_maxloc_dp_1d
+
+  !> \brief Find location of maximum value in coarse cell on fine grid by cell id.
+  subroutine scaler_maxloc_i4_2d(this, in_data, ids, back)
+    class(scaler_t), intent(inout) :: this
+    integer(i4), dimension(this%fine_grid%nx,this%fine_grid%ny), intent(in) :: in_data !< fine grid input data
+    integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of max values
+    logical, intent(in), optional :: back !< start search from back (default: false)
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub, loc(2), ix, iy
+    integer(i8) :: k
+    integer(i8), allocatable :: cells(:,:)
+    logical :: back_
+    back_ = optval(back, default=.false.)
+    allocate(cells(this%fine_grid%nx,this%fine_grid%ny))
+    call this%fine_grid%gen_id_matrix(cells)
+    !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub,loc,ix,iy) schedule(static)
+    do k = 1_i8, this%coarse_grid%ncells
+      call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+      loc = maxloc(in_data(x_lb:x_ub,y_lb:y_ub), mask=this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub), back=back_)
+      ix = x_lb + loc(1) - 1_i4
+      iy = y_lb + loc(2) - 1_i4
+      ids(k) = cells(ix,iy)
+    end do
+    !$omp end parallel do
+    deallocate(cells)
+  end subroutine scaler_maxloc_i4_2d
+
+  !> \brief Find location of maximum value in coarse cell on fine grid by cell id.
+  subroutine scaler_maxloc_i4_1d(this, in_data, ids, back)
+    class(scaler_t), intent(inout) :: this
+    integer(i4), dimension(this%fine_grid%ncells), intent(in) :: in_data !< fine grid input data
+    integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of max values
+    logical, intent(in), optional :: back !< start search from back (default: false)
+    integer(i4) :: temp_in(this%fine_grid%nx,this%fine_grid%ny)
+    call this%fine_grid%unpack_into(in_data, temp_in)
+    call this%scaler_maxloc_i4_2d(temp_in, ids, back)
+  end subroutine scaler_maxloc_i4_1d
+
+  !> \brief Find location of minimum value in coarse cell on fine grid by cell id.
+  subroutine scaler_minloc_dp_2d(this, in_data, ids, back)
+    class(scaler_t), intent(inout) :: this
+    real(dp), dimension(this%fine_grid%nx,this%fine_grid%ny), intent(in) :: in_data !< fine grid input data
+    integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of min values
+    logical, intent(in), optional :: back !< start search from back (default: false)
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub, loc(2), ix, iy
+    integer(i8) :: k
+    integer(i8), allocatable :: cells(:,:)
+    logical :: back_
+    back_ = optval(back, default=.false.)
+    allocate(cells(this%fine_grid%nx,this%fine_grid%ny))
+    call this%fine_grid%gen_id_matrix(cells)
+    !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub,loc,ix,iy) schedule(static)
+    do k = 1_i8, this%coarse_grid%ncells
+      call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+      loc = minloc(in_data(x_lb:x_ub,y_lb:y_ub), mask=this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub), back=back_)
+      ix = x_lb + loc(1) - 1_i4
+      iy = y_lb + loc(2) - 1_i4
+      ids(k) = cells(ix,iy)
+    end do
+    !$omp end parallel do
+    deallocate(cells)
+  end subroutine scaler_minloc_dp_2d
+
+  !> \brief Find location of minimum value in coarse cell on fine grid by cell id.
+  subroutine scaler_minloc_dp_1d(this, in_data, ids, back)
+    class(scaler_t), intent(inout) :: this
+    real(dp), dimension(this%fine_grid%ncells), intent(in) :: in_data !< fine grid input data
+    integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of min values
+    logical, intent(in), optional :: back !< start search from back (default: false)
+    real(dp) :: temp_in(this%fine_grid%nx,this%fine_grid%ny)
+    call this%fine_grid%unpack_into(in_data, temp_in)
+    call this%scaler_minloc_dp_2d(temp_in, ids, back)
+  end subroutine scaler_minloc_dp_1d
+
+  !> \brief Find location of minimum value in coarse cell on fine grid by cell id.
+  subroutine scaler_minloc_i4_2d(this, in_data, ids, back)
+    class(scaler_t), intent(inout) :: this
+    integer(i4), dimension(this%fine_grid%nx,this%fine_grid%ny), intent(in) :: in_data !< fine grid input data
+    integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of min values
+    logical, intent(in), optional :: back !< start search from back (default: false)
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub, loc(2), ix, iy
+    integer(i8) :: k
+    integer(i8), allocatable :: cells(:,:)
+    logical :: back_
+    back_ = optval(back, default=.false.)
+    allocate(cells(this%fine_grid%nx,this%fine_grid%ny))
+    call this%fine_grid%gen_id_matrix(cells)
+    !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub,loc,ix,iy) schedule(static)
+    do k = 1_i8, this%coarse_grid%ncells
+      call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+      loc = minloc(in_data(x_lb:x_ub,y_lb:y_ub), mask=this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub), back=back_)
+      ix = x_lb + loc(1) - 1_i4
+      iy = y_lb + loc(2) - 1_i4
+      ids(k) = cells(ix,iy)
+    end do
+    !$omp end parallel do
+    deallocate(cells)
+  end subroutine scaler_minloc_i4_2d
+
+  !> \brief Find location of minimum value in coarse cell on fine grid by cell id.
+  subroutine scaler_minloc_i4_1d(this, in_data, ids, back)
+    class(scaler_t), intent(inout) :: this
+    integer(i4), dimension(this%fine_grid%ncells), intent(in) :: in_data !< fine grid input data
+    integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of min values
+    logical, intent(in), optional :: back !< start search from back (default: false)
+    integer(i4) :: temp_in(this%fine_grid%nx,this%fine_grid%ny)
+    call this%fine_grid%unpack_into(in_data, temp_in)
+    call this%scaler_minloc_i4_2d(temp_in, ids, back)
+  end subroutine scaler_minloc_i4_1d
 
   !> \brief Get coarse grid indices from fine grid indices.
   pure subroutine scaler_coarse_ij(this, fine_i, fine_j, coarse_i, coarse_j)
