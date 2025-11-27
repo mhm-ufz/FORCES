@@ -18,15 +18,15 @@ program regrid
   use mo_grid_io, only: var, output_dataset
   implicit none
   type(grid_t), target :: cgrid, fgrid
-  type(data_t) :: dat
+  type(data_t) :: data
   type(scaler_t) :: upscaler
   type(output_dataset) :: ds1, ds2
   real(dp), allocatable :: dem(:,:), cdem(:)
   type(var), allocatable :: vars(:)
 
   ! initialize fine grid from DEM ascii file
-  call fgrid%from_ascii_file("./src/pf_tests/files/dem.asc", data=dat)
-  call dat%move(dem) ! move allocated data to dem array
+  call fgrid%from_ascii_file("./src/pf_tests/files/dem.asc", data=data)
+  call data%move(dem) ! move allocated data to dem array
 
   ! extend vars array with variables to add
   allocate(vars(0))
