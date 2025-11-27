@@ -334,7 +334,7 @@ contains
     integer(i4), optional, intent(in) :: coordsys !< desired coordinate system (0 (default) for cartesian, 1 for lat-lon)
     logical, optional, intent(in) :: read_mask !< Whether to read the mask from the given file (default: .true.)
     integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) or 0 for top-down, 1 for bottom-up)
-    class(data_t), intent(inout), optional :: data !< optional data container to read the variable data into
+    type(data_t), intent(inout), optional :: data !< optional data container to read the variable data into
 
     integer(i4) :: nx, ny
     real(dp) :: xll, yll, cellsize
@@ -475,7 +475,7 @@ contains
     logical, optional, intent(in) :: read_aux !< Whether to read auxilliar coordinates if possible (default: .true.)
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) as present, 0 for top-down, 1 for bottom-up)
-    class(data_t), intent(inout), optional :: data !< optional data container to read the variable data into
+    type(data_t), intent(inout), optional :: data !< optional data container to read the variable data into
     type(NcDataset) :: nc
     nc = NcDataset(path, "r")
     call this%from_nc_dataset(nc, var, read_mask, read_aux, tol, y_direction, data)
@@ -498,7 +498,7 @@ contains
     logical, optional, intent(in) :: read_aux !< Whether to read auxilliar coordinates if possible (default: .true.)
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) as present, 0 for top-down, 1 for bottom-up)
-    class(data_t), intent(inout), optional :: data !< optional data container to read the variable data into
+    type(data_t), intent(inout), optional :: data !< optional data container to read the variable data into
 
     type(NcVariable) :: ncvar, xvar, yvar
     type(NcDimension), dimension(:), allocatable :: dims
