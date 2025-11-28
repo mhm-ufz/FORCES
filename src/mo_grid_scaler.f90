@@ -407,11 +407,11 @@ contains
         case (up_std)
           call this%upscale_std(in_data, out_data)
         case (up_laf)
-          call error_message("scaler: largest area fraction upscaling operator not supported for real data.")
+          call error_message("scaler: largest area fraction upscaling operator not supported for real data.") ! LCOV_EXCL_LINE
         case (up_fraction)
-          call error_message("scaler: class fraction upscaling operator not supported for real input data.")
+          call error_message("scaler: class fraction upscaling operator not supported for real input data.") ! LCOV_EXCL_LINE
         case default
-          call error_message("scaler: unknown upscaling operator: ", trim(num2str(up_operator)))
+          call error_message("scaler: unknown upscaling operator: ", trim(num2str(up_operator))) ! LCOV_EXCL_LINE
       end select
     else ! down-scaling
       select case (down_operator)
@@ -420,7 +420,7 @@ contains
         case (down_split)
           call this%downscale_split(in_data, out_data)
         case default
-          call error_message("scaler: unknown downscaling operator: ", trim(num2str(down_operator)))
+          call error_message("scaler: unknown downscaling operator: ", trim(num2str(down_operator))) ! LCOV_EXCL_LINE
       end select
     end if
 
@@ -499,13 +499,13 @@ contains
     else if (this%scaling_mode == up_scaling) then
       select case (up_operator)
         case (up_p_mean)
-          call error_message("scaler: p-mean upscaling operator not supported for integer data.")
+          call error_message("scaler: p-mean upscaling operator not supported for integer data.") ! LCOV_EXCL_LINE
         case (up_a_mean)
-          call error_message("scaler: arithmetic mean upscaling operator not supported for integer data.")
+          call error_message("scaler: arithmetic mean upscaling operator not supported for integer data.") ! LCOV_EXCL_LINE
         case (up_g_mean)
-          call error_message("scaler: geometric mean upscaling operator not supported for integer data.")
+          call error_message("scaler: geometric mean upscaling operator not supported for integer data.") ! LCOV_EXCL_LINE
         case (up_h_mean)
-          call error_message("scaler: harmonic mean upscaling operator not supported for integer data.")
+          call error_message("scaler: harmonic mean upscaling operator not supported for integer data.") ! LCOV_EXCL_LINE
         case (up_min)
           call this%upscale_min(in_data, out_data)
         case (up_max)
@@ -513,24 +513,24 @@ contains
         case (up_sum)
           call this%upscale_sum(in_data, out_data)
         case (up_var)
-          call error_message("scaler: variance upscaling operator not supported for integer data.")
+          call error_message("scaler: variance upscaling operator not supported for integer data.") ! LCOV_EXCL_LINE
         case (up_std)
-          call error_message("scaler: standard deviation upscaling not supported for integer data.")
+          call error_message("scaler: standard deviation upscaling not supported for integer data.") ! LCOV_EXCL_LINE
         case (up_laf)
           call this%upscale_laf(in_data, out_data, vmin, vmax)
         case (up_fraction)
-          call error_message("scaler: class fraction upscaling operator not supported for integer output data.")
+          call error_message("scaler: class fraction upscaling operator not supported for integer output data.") ! LCOV_EXCL_LINE
         case default
-          call error_message("scaler: unknown upscaling operator: ", trim(num2str(up_operator)))
+          call error_message("scaler: unknown upscaling operator: ", trim(num2str(up_operator))) ! LCOV_EXCL_LINE
       end select
     else ! down-scaling
       select case (down_operator)
         case (down_nearest)
           call this%downscale_nearest(in_data, out_data)
         case (down_split)
-          call error_message("scaler: equal summand downscaling operator not supported for integer output data.")
+          call error_message("scaler: equal summand downscaling operator not supported for integer output data.") ! LCOV_EXCL_LINE
         case default
-          call error_message("scaler: unknown downscaling operator: ", trim(num2str(down_operator)))
+          call error_message("scaler: unknown downscaling operator: ", trim(num2str(down_operator))) ! LCOV_EXCL_LINE
       end select
     end if
   end subroutine scaler_exe_i4_2d_1d
@@ -645,7 +645,7 @@ contains
         case (up_fraction)
           call this%upscale_fraction(in_data, out_data, class_id)
         case default
-          call error_message("scaler: unknown upscaling operator: ", trim(num2str(up_operator)))
+          call error_message("scaler: unknown upscaling operator: ", trim(num2str(up_operator))) ! LCOV_EXCL_LINE
       end select
     else ! down-scaling
       select case (down_operator)
@@ -654,7 +654,7 @@ contains
         case (down_split)
           call this%downscale_split(real(in_data, dp), out_data)
         case default
-          call error_message("scaler: unknown downscaling operator: ", trim(num2str(down_operator)))
+          call error_message("scaler: unknown downscaling operator: ", trim(num2str(down_operator))) ! LCOV_EXCL_LINE
       end select
     end if
   end subroutine scaler_exe_i4_dp_2d_1d
@@ -676,7 +676,7 @@ contains
     else if (eq(p_, -1.0_dp)) then
       call this%upscale_h_mean(in_data, out_data)
     else if (.not.ieee_is_finite(p_)) then
-      if (ieee_is_nan(p_)) call error_message("upscale_p_mean: p is not a number.")
+      if (ieee_is_nan(p_)) call error_message("upscale_p_mean: p is not a number.") ! LCOV_EXCL_LINE
       if (ieee_is_negative(p_)) then
         call this%upscale_min(in_data, out_data)
       else
@@ -937,7 +937,7 @@ contains
     else
       max_v = maxval(in_data)
     endif
-    if (min_v > max_v) call error_message("upscale_laf: vmin is bigger than vmax.")
+    if (min_v > max_v) call error_message("upscale_laf: vmin is bigger than vmax.") ! LCOV_EXCL_LINE
 
     !$omp parallel do default(shared) private(i,laf_v,cnt_v,cnt_i,x_lb,x_ub,y_lb,y_ub) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
@@ -1280,12 +1280,12 @@ contains
 
   subroutine check_upscaling(scaling_mode)
     integer(i4), intent(in) :: scaling_mode        !< up_scaling or down_scaling
-    if (scaling_mode /= up_scaling) call error_message("scaler: not setup for upscaling.")
+    if (scaling_mode /= up_scaling) call error_message("scaler: not setup for upscaling.") ! LCOV_EXCL_LINE
   end subroutine check_upscaling
 
   subroutine check_downscaling(scaling_mode)
     integer(i4), intent(in) :: scaling_mode        !< up_scaling or down_scaling
-    if (scaling_mode /= down_scaling) call error_message("scaler: not setup for downscaling.")
+    if (scaling_mode /= down_scaling) call error_message("scaler: not setup for downscaling.") ! LCOV_EXCL_LINE
   end subroutine check_downscaling
 
 end module mo_grid_scaler
