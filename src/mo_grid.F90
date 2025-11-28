@@ -1690,6 +1690,7 @@ contains
   !! - Sebastian Müller, Mar 2024
   !!   - moved to FORCES
   subroutine grid_calculate_cell_ids(this)
+    use mo_utils, only: prefix_sum
     implicit none
     class(grid_t), intent(inout) :: this
 
@@ -1716,10 +1717,7 @@ contains
     end do
     !$omp end parallel do
 
-    this%mask_cum_col_cnt(1) = 0_i8
-    do j = 1_i4, this%ny-1_i4
-      this%mask_cum_col_cnt(j+1_i4) = this%mask_cum_col_cnt(j) + this%mask_col_cnt(j)
-    end do
+    call prefix_sum(this%mask_col_cnt, this%mask_cum_col_cnt, shift=1_i8, start=0_i8)
     this%ncells = this%mask_cum_col_cnt(this%ny) + this%mask_col_cnt(this%ny)
 
     if (allocated(this%cell_ij)) deallocate(this%cell_ij)
