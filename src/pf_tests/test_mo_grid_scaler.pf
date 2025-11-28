@@ -1,7 +1,7 @@
 module test_mo_grid_scaler
   use funit
   use mo_grid, only: grid_t, cartesian, top_down, bottom_up
-  use mo_grid_scaler, only: scaler_t, up_h_mean, up_p_mean, up_min, up_max, up_sum, up_laf, up_fraction
+  use mo_grid_scaler, only: scaler_t, up_a_mean, up_h_mean, up_p_mean, up_min, up_max, up_sum, up_laf, up_fraction, down_nearest, down_split
   use mo_kind, only: i4, dp, i8
   use mo_constants, only: nodata_dp
   use mo_utils, only: flip, flipped, is_close
@@ -11,6 +11,9 @@ module test_mo_grid_scaler
   private
 
   public :: test_regrid
+  public :: test_downscale_modes
+  public :: test_no_scaling_identity
+  public :: test_stats_and_weight_count
 
 contains
 
@@ -175,5 +178,137 @@ contains
     ! call nc%close()
 
   end subroutine test_regrid
+
+  @test
+  subroutine test_downscale_modes()
+    implicit none
+    type(grid_t), target :: coarse, fine
+    type(scaler_t) :: scaler
+    real(dp), allocatable :: dp_out(:)
+    integer(i4), allocatable :: i_out(:)
+    real(dp) :: cw
+    real(dp) :: dp_in(2), dp_in_mat(2,1)
+    integer(i4) :: i_in(2)
+    integer(i4) :: xl, xu, yl, yu
+
+    call coarse%init(nx=2, ny=1, cellsize=2.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    call fine%init(nx=4, ny=1, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    call scaler%init(coarse, fine, downscaling_operator=down_split)
+
+    dp_in = [2.0_dp, 6.0_dp]
+    dp_in_mat = reshape(dp_in, [2,1])
+    i_in = [1_i4, 3_i4]
+    allocate(dp_out(fine%ncells), i_out(fine%ncells))
+
+    call scaler%downscale_nearest(dp_in, dp_out)
+    @assertEqual(dp_out, [2.0_dp, 2.0_dp, 6.0_dp, 6.0_dp], tolerance=1.0e-12_dp)
+
+    call scaler%execute(dp_in, dp_out, downscaling_operator=down_nearest)
+    @assertEqual(dp_out, [2.0_dp, 2.0_dp, 6.0_dp, 6.0_dp], tolerance=1.0e-12_dp)
+
+    call scaler%execute(dp_in, dp_out, downscaling_operator=down_split)
+    @assertEqual(dp_out(3), 6.0_dp, tolerance=1.0e-12_dp)
+
+    call scaler%downscale_nearest(dp_in_mat, dp_out)
+    @assertEqual(dp_out(2), 2.0_dp, tolerance=1.0e-12_dp)
+
+    call scaler%downscale_nearest(i_in, i_out)
+    @assertEqual(i_out, [1_i4, 1_i4, 3_i4, 3_i4])
+
+    call scaler%execute(i_in, i_out, downscaling_operator=down_nearest)
+    @assertEqual(i_out, [1_i4, 1_i4, 3_i4, 3_i4])
+
+    call scaler%coarse_bounds(coarse_i=1, coarse_j=1, x_lb=xl, x_ub=xu, y_lb=yl, y_ub=yu)
+    @assertEqual([xl, xu, yl, yu], [1_i4, 2_i4, 1_i4, 1_i4])
+
+    call scaler%downscale_split(dp_in_mat, dp_out)
+    cw = scaler%coarse_weights(1)
+    @assertEqual(dp_out(1:2), [cw*dp_in_mat(1,1), cw*dp_in_mat(1,1)], tolerance=1.0e-12_dp)
+
+    call scaler%downscale_split(dp_in, dp_out)
+    @assertEqual(dp_out(1), cw*dp_in(1), tolerance=1.0e-12_dp)
+  end subroutine test_downscale_modes
+
+  @test
+  subroutine test_no_scaling_identity()
+    implicit none
+    type(grid_t), target :: g1, g2
+    type(scaler_t) :: scaler
+    real(dp) :: data_mat(2,2)
+    real(dp), allocatable :: packed_in(:), packed_out(:), unpacked(:,:)
+
+    call g1%init(nx=2, ny=2, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    call g2%init(nx=2, ny=2, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    call scaler%init(g1, g2)
+
+    data_mat = reshape([1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp], [2,2])
+    packed_in = g1%pack(data_mat)
+    allocate(packed_out(size(packed_in)))
+    call scaler%execute(packed_in, packed_out)
+    allocate(unpacked(2,2))
+    call g2%unpack_into(packed_out, unpacked)
+
+    @assertEqual(unpacked, data_mat, tolerance=1.0e-12_dp)
+  end subroutine test_no_scaling_identity
+
+  @test
+  subroutine test_stats_and_weight_count()
+    implicit none
+    type(grid_t), target :: fine, coarse
+    type(scaler_t) :: scaler
+    real(dp) :: data(2,2)
+    integer(i4) :: idata(2,2)
+    real(dp), allocatable :: out(:), out_mat(:,:)
+    real(dp), allocatable :: out_mat2(:,:)
+    integer(i4), allocatable :: iout(:), i_mat(:,:)
+    integer(i4) :: ci, cj
+    real(dp), allocatable :: packed_dp(:)
+    integer(i4), allocatable :: packed_i(:)
+
+    call fine%init(nx=2, ny=2, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    call coarse%init(nx=1, ny=1, cellsize=2.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    call scaler%init(fine, coarse, weight_mode=1_i4) ! weight_count
+
+    data = reshape([1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp], [2,2])
+    idata = reshape([1_i4, 2_i4, 3_i4, 4_i4], [2,2])
+    allocate(out(coarse%ncells))
+
+    call scaler%execute(data, out, upscaling_operator=7_i4) ! up_var
+    @assertEqual(out(1), 230.0_dp, tolerance=1.0e-12_dp)
+
+    call scaler%execute(data, out, upscaling_operator=8_i4) ! up_std
+    @assertEqual(out(1), sqrt(230.0_dp), tolerance=1.0e-12_dp)
+
+    allocate(iout(coarse%ncells))
+    call scaler%execute(idata, iout, upscaling_operator=up_min)
+    @assertEqual(iout(1), 1_i4)
+    call scaler%execute(idata, iout, upscaling_operator=up_max)
+    @assertEqual(iout(1), 4_i4)
+    call scaler%execute(idata, iout, upscaling_operator=up_sum)
+    @assertEqual(10.0_dp, real(iout(1), dp), tolerance=1.0e-12_dp)
+
+    allocate(out_mat(coarse%nx, coarse%ny))
+    call scaler%execute(idata, out_mat, upscaling_operator=up_a_mean)
+    @assertEqual(10.0_dp, out_mat(1,1), tolerance=1.0e-12_dp)
+
+    allocate(out_mat2(coarse%nx, coarse%ny))
+    call scaler%execute(data, out_mat2) ! dp 2d -> 2d
+    @assertEqual(out_mat2(1,1), 10.0_dp, tolerance=1.0e-12_dp)
+
+    packed_dp = fine%pack(data)
+    call scaler%execute(packed_dp, out_mat2) ! dp 1d -> 2d
+    @assertEqual(out_mat2(1,1), 10.0_dp, tolerance=1.0e-12_dp)
+
+    allocate(i_mat(coarse%nx, coarse%ny))
+    packed_i = fine%pack(idata)
+    call scaler%execute(packed_i, i_mat, upscaling_operator=up_sum) ! i4 1d -> 2d
+    @assertEqual(i_mat(1,1), 10_i4)
+
+    call scaler%execute(packed_i, out_mat2, upscaling_operator=up_sum) ! i4 -> dp 2d
+    @assertEqual(out_mat2(1,1), 10.0_dp, tolerance=1.0e-12_dp)
+
+    call scaler%coarse_ij(fine_i=2_i4, fine_j=1_i4, coarse_i=ci, coarse_j=cj)
+    @assertEqual([ci, cj], [1_i4, 1_i4])
+  end subroutine test_stats_and_weight_count
 
 end module test_mo_grid_scaler
