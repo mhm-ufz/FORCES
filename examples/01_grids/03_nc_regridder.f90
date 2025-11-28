@@ -59,8 +59,7 @@ program netcdf_regridder
       operator = up_h_mean
   end select
   ! read
-  call grid_i%from_netcdf(file_i, name)
-  call ds_i%init(path=file_i, grid=grid_i, vars=[var(name=name, static=.true.)])
+  call ds_i%init(path=file_i, grid=grid_i, vars=[var(name=name, static=.true.)], grid_init_var=name)
   allocate(dat_i(grid_i%nx, grid_i%ny))
   call ds_i%read(name, dat_i)
   var_meta = ds_i%meta(name) ! copy all meta data of the variable

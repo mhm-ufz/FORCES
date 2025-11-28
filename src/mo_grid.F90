@@ -18,9 +18,10 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_grid
 
-  use mo_kind, only: i4, i8, dp, sp
-  use mo_utils, only: flip
-  use mo_message, only : error_message, warn_message
+  use mo_kind, only: i1, i2, i4, i8, sp, dp
+  use mo_constants, only : nodata_i1, nodata_i2, nodata_i4, nodata_i8, nodata_sp, nodata_dp, RadiusEarth_dp, deg2rad_dp
+  use mo_utils, only: flip, optval
+  use mo_message, only : error_message, warn_message, message
   use mo_string_utils, only : num2str
 
   implicit none
@@ -28,8 +29,10 @@ module mo_grid
   public :: write_ascii_grid
   public :: read_ascii_grid
   public :: read_ascii_header
+  public :: coarse_ij
   public :: id_bounds
   public :: dist_latlon
+  public :: check_factor
 #ifdef FORCES_WITH_NETCDF
   public :: is_x_axis
   public :: is_y_axis
@@ -38,6 +41,8 @@ module mo_grid
   public :: is_lon_coord
   public :: is_lat_coord
   public :: check_uniform_axis
+  public :: mask_from_var
+  public :: data_from_var
 #endif
 
   private
@@ -57,14 +62,30 @@ module mo_grid
   integer(i4), public, parameter :: bottom_up = 1_i4 !< y-axis with increasing values.
   !!@}
 
-  !> \name Lower-Left Corner Alignment Selectors
-  !> \brief Constants to the alignment of the lower-left corner of grids.
+  !> \name Cell Area Calculation Selectors
+  !> \brief Constants to specify the method for calculating cell area of a coarsened grid.
   !!@{
-  integer(i4), public, parameter :: lower_left = 0_i4 !< align in lower left corner
-  integer(i4), public, parameter :: lower_right = 1_i4 !< align in lower right corner
-  integer(i4), public, parameter :: upper_left = 2_i4 !< align in upper left corner
-  integer(i4), public, parameter :: upper_right = 3_i4 !< align in upper right corner
+  integer(i4), public, parameter :: area_sum = 0_i4 !< Calculate cell area as sum of the area of sub-cells.
+  integer(i4), public, parameter :: area_full = 1_i4 !< Calculate cell area as full cell.
+  integer(i4), public, parameter :: area_count = 2_i4 !< Calculate cell area by count fraction of valid sub-cells.
   !!@}
+
+  !> \class   data_t
+  !> \brief   2D Data container for different data types.
+  type, public :: data_t
+    character(:), allocatable :: dtype       !< selector for data type ('f32', 'f64', 'i8', 'i16', 'i32', 'i64')
+    real(sp), allocatable :: data_sp(:,:)    !< data in single precision
+    real(dp), allocatable :: data_dp(:,:)    !< data in double precision
+    integer(i1), allocatable :: data_i1(:,:) !< data in 1-byte integers
+    integer(i2), allocatable :: data_i2(:,:) !< data in 2-byte integers
+    integer(i4), allocatable :: data_i4(:,:) !< data in 4-byte integers
+    integer(i8), allocatable :: data_i8(:,:) !< data in 8-byte integers
+  contains
+    !> \brief Get data from data container by moving allocation.
+    procedure, public :: deallocate => data_deallocate
+    generic, public :: move => data_move_sp, data_move_dp, data_move_i1, data_move_i2, data_move_i4, data_move_i8
+    procedure, private :: data_move_sp, data_move_dp, data_move_i1, data_move_i2, data_move_i4, data_move_i8
+  end type data_t
 
   !> \class   grid_t
   !> \brief   2D grid description with data in xy order..
@@ -80,100 +101,94 @@ module mo_grid
     ! general domain information
     integer(i4) :: nx        !< size of x-axis (number of cols in ascii grid file)
     integer(i4) :: ny        !< size of y-axis (number of rows in ascii grid file)
-    integer(i8) :: ncells   !< number of cells in mask
+    integer(i8) :: ncells    !< number of cells in mask
     real(dp) :: xllcorner    !< x coordinate of the lowerleft corner
     real(dp) :: yllcorner    !< y coordinate of the lowerleft corner
     real(dp) :: cellsize     !< cellsize x = cellsize y
-    real(dp), dimension(:), allocatable :: cell_area !< area of the cell in sqare m, size (ncells)
-    logical, dimension(:, :), allocatable :: mask    !< the mask for valid cells in the original grid, size (nx, ny)
-    real(dp), dimension(:, :), allocatable :: lat    !< 2d longitude array (auxiliary coordinate for X axis), size (nx, ny)
-    real(dp), dimension(:, :), allocatable :: lon    !< 2d latitude  array (auxiliary coordinate for Y axis), size (nx, ny)
-    real(dp), dimension(:, :), allocatable :: lat_vertices  !< latitude coordinates or the grid nodes, size (nx+1, ny+1)
-    real(dp), dimension(:, :), allocatable :: lon_vertices  !< longitude coordinates or the grid nodes, size (nx+1, ny+1)
-    integer(i4), dimension(:, :), allocatable :: cell_ij    !< matrix IDs (i, j) per cell in mask, size (ncells, 2)
+    real(dp), dimension(:), allocatable :: cell_area           !< area of the cell in sqare m, size (ncells)
+    real(dp), dimension(:, :), allocatable :: lat              !< 2d longitude array (auxiliary coordinate for X axis), size (nx,ny)
+    real(dp), dimension(:, :), allocatable :: lon              !< 2d latitude  array (auxiliary coordinate for Y axis), size (nx,ny)
+    real(dp), dimension(:, :), allocatable :: lat_vertices     !< latitude coordinates or the grid nodes, size (nx+1,ny+1)
+    real(dp), dimension(:, :), allocatable :: lon_vertices     !< longitude coordinates or the grid nodes, size (nx+1,ny+1)
+    integer(i4), dimension(:, :), allocatable :: cell_ij       !< matrix IDs (i,j) per cell in mask, size (ncells, 2)
+    logical, dimension(:, :), allocatable :: mask              !< the mask for valid cells in the original grid, size (nx,ny)
+    integer(i8), dimension(:), allocatable :: mask_col_cnt     !< number of valid cells per column in mask, size (ny)
+    integer(i8), dimension(:), allocatable :: mask_cum_col_cnt !< cumulative number of valid cells prior to mask column, size (ny)
   contains
     procedure, public :: init => grid_init
-    procedure, public :: from_ascii_file
-    procedure, public :: to_ascii_file
+    procedure, public :: from_ascii_file => grid_from_ascii_file
+    procedure, public :: to_ascii_file => grid_to_ascii_file
 #ifdef FORCES_WITH_NETCDF
-    procedure, private :: from_nc_dataset, from_nc_file
+    procedure, private :: from_nc_dataset => grid_from_nc_dataset, from_nc_file => grid_from_nc_file
     generic, public :: from_netcdf => from_nc_dataset, from_nc_file
-    procedure, private :: aux_from_nc_dataset, aux_from_nc_file
+    procedure, private :: aux_from_nc_dataset => grid_aux_from_nc_dataset, aux_from_nc_file => grid_aux_from_nc_file
     generic, public :: aux_from_netcdf => aux_from_nc_dataset, aux_from_nc_file
-    procedure, private :: to_nc_dataset, to_nc_file
+    procedure, private :: to_nc_dataset => grid_to_nc_dataset, to_nc_file => grid_to_nc_file
     generic, public :: to_netcdf => to_nc_dataset, to_nc_file
 #endif
-    procedure, public :: extent
-    procedure, public :: total_area
-    procedure, public :: id_matrix
-    procedure, public :: cell_id
-    procedure, public :: closest_cell_id
-    procedure, public :: x_axis
-    procedure, public :: y_axis
-    procedure, public :: x_vertices
-    procedure, public :: y_vertices
-    procedure, public :: x_bounds
-    procedure, public :: y_bounds
-    procedure, public :: upscale_aux_coords
-    procedure, public :: downscale_aux_coords
-    procedure, public :: estimate_aux_vertices
-    procedure, public :: lat_bounds
-    procedure, public :: lon_bounds
-    procedure, public :: has_mask
-    procedure, public :: any_missing
-    procedure, public :: check_is_covered_by
-    procedure, public :: check_is_covering
-    procedure, public :: check_is_filled_by
-    procedure, public :: check_is_filling
-    procedure, public :: has_aux_coords
-    procedure, public :: has_aux_vertices
-    procedure, public :: calculate_cell_ids
-    procedure, public :: calculate_cell_area
-    procedure, public :: is_periodic
-    procedure, public :: derive_coarse_grid
-    procedure, public :: derive_fine_grid
-    procedure, public :: derive_grid
-    procedure, private :: read_data_dp, read_data_i4
+    procedure, public :: extent => grid_extent
+    procedure, public :: total_area => grid_total_area
+    procedure, public :: id_matrix => grid_id_matrix
+    procedure, public :: gen_id_matrix => grid_gen_id_matrix
+    procedure, public :: cell_id => grid_cell_id
+    procedure, public :: closest_cell_id => grid_closest_cell_id
+    procedure, public :: x_axis => grid_x_axis
+    procedure, public :: y_axis => grid_y_axis
+    procedure, public :: x_vertices => grid_x_vertices
+    procedure, public :: y_vertices => grid_y_vertices
+    procedure, public :: x_bounds => grid_x_bounds
+    procedure, public :: y_bounds => grid_y_bounds
+    procedure, public :: upscale_aux_coords => grid_upscale_aux_coords
+    procedure, public :: downscale_aux_coords => grid_downscale_aux_coords
+    procedure, public :: estimate_aux_vertices => grid_estimate_aux_vertices
+    procedure, public :: lat_bounds => grid_lat_bounds
+    procedure, public :: lon_bounds => grid_lon_bounds
+    procedure, public :: has_mask => grid_has_mask
+    procedure, public :: any_missing => grid_any_missing
+    procedure, public :: check_is_covered_by => grid_check_is_covered_by
+    procedure, public :: check_is_covering => grid_check_is_covering
+    procedure, public :: check_is_filled_by => grid_check_is_filled_by
+    procedure, public :: check_is_filling => grid_check_is_filling
+    procedure, public :: has_aux_coords => grid_has_aux_coords
+    procedure, public :: has_aux_vertices => grid_has_aux_vertices
+    procedure, public :: calculate_cell_ids => grid_calculate_cell_ids
+    procedure, public :: calculate_cell_area => grid_calculate_cell_area
+    procedure, public :: is_periodic => grid_is_periodic
+    procedure, public :: derive_coarse_grid => grid_derive_coarse_grid
+    procedure, public :: derive_fine_grid => grid_derive_fine_grid
+    procedure, public :: gen_coarse_grid => grid_gen_coarse_grid
+    procedure, public :: gen_fine_grid => grid_gen_fine_grid
+    procedure, public :: derive_grid => grid_derive_grid
+    procedure, public :: gen_grid => grid_gen_grid
+    procedure, private :: read_data_dp => grid_read_data_dp, read_data_i4 => grid_read_data_i4
     generic, public :: read_data => read_data_dp, read_data_i4
     procedure, private :: check_shape => grid_check_shape
     procedure, private :: check_shape_packed => grid_check_shape_packed
-    procedure, private :: pack_data_sp, pack_data_dp, pack_data_i4, pack_data_i8, pack_data_lgt
-    generic, public :: pack => pack_data_sp, pack_data_dp, pack_data_i4, pack_data_i8, pack_data_lgt
-    procedure, private :: unpack_data_sp, unpack_data_dp, unpack_data_i4, unpack_data_i8, unpack_data_lgt
-    generic, public :: unpack => unpack_data_sp, unpack_data_dp, unpack_data_i4, unpack_data_i8, unpack_data_lgt
+    procedure, private :: pack_data_sp => grid_pack_data_sp, pack_data_dp => grid_pack_data_dp, &
+                          pack_data_i1 => grid_pack_data_i1, pack_data_i2 => grid_pack_data_i2, &
+                          pack_data_i4 => grid_pack_data_i4, pack_data_i8 => grid_pack_data_i8, &
+                          pack_data_lgt => grid_pack_data_lgt
+    procedure, private :: unpack_data_sp => grid_unpack_data_sp, unpack_data_dp => grid_unpack_data_dp, &
+                          unpack_data_i1 => grid_unpack_data_i1, unpack_data_i2 => grid_unpack_data_i2, &
+                          unpack_data_i4 => grid_unpack_data_i4, unpack_data_i8 => grid_unpack_data_i8, &
+                          unpack_data_lgt => grid_unpack_data_lgt
+    procedure, private :: pack_into_sp => grid_pack_into_sp, pack_into_dp => grid_pack_into_dp, &
+                          pack_into_i1 => grid_pack_into_i1, pack_into_i2 => grid_pack_into_i2, &
+                          pack_into_i4 => grid_pack_into_i4, pack_into_i8 => grid_pack_into_i8, &
+                          pack_into_lgt => grid_pack_into_lgt
+    procedure, private :: unpack_into_sp => grid_unpack_into_sp, unpack_into_dp => grid_unpack_into_dp, &
+                          unpack_into_i1 => grid_unpack_into_i1, unpack_into_i2 => grid_unpack_into_i2, &
+                          unpack_into_i4 => grid_unpack_into_i4, unpack_into_i8 => grid_unpack_into_i8, &
+                          unpack_into_lgt => grid_unpack_into_lgt
+    generic, public :: pack =>        pack_data_sp, pack_data_dp, &
+                                      pack_data_i1, pack_data_i2, pack_data_i4, pack_data_i8, pack_data_lgt
+    generic, public :: unpack =>      unpack_data_sp, unpack_data_dp, &
+                                      unpack_data_i1, unpack_data_i2, unpack_data_i4, unpack_data_i8, unpack_data_lgt
+    generic, public :: pack_into =>   pack_into_sp, pack_into_dp, &
+                                      pack_into_i1, pack_into_i2, pack_into_i4, pack_into_i8, pack_into_lgt
+    generic, public :: unpack_into => unpack_into_sp, unpack_into_dp, &
+                                      unpack_into_i1, unpack_into_i2, unpack_into_i4, unpack_into_i8, unpack_into_lgt
   end type grid_t
-
-  !> \class   layered_grid_t
-  !> \brief   3D layered grid description with layer data in xy order.
-  !> \details This type represents uniform layered grids with layer data in xy order with increasing x-axis and monotonic y-axis.
-  !!          The z-axis is described by a monotonic layers array.
-  !!          NetCDF files nativly have zyx order, but since Fortran arrays are column-major order,
-  !!          the data read from .nc files is in xyz order.
-  type, public :: layered_grid_t
-    type(grid_t) :: grid !< 2D grid used for each layer
-    logical :: positive_up = .false. !< indicated "upwards" as direction of positive z values
-    real(dp), dimension(:), allocatable :: layer  !< layer given by reference point in bounds (see vertices)
-    real(dp), dimension(:), allocatable :: layer_vertices  !< layer bounds
-  contains
-    procedure, public :: init => layer_init
-#ifdef FORCES_WITH_NETCDF
-    procedure, private :: layer_from_nc_dataset, layer_from_nc_file
-    generic, public :: from_netcdf => layer_from_nc_dataset, layer_from_nc_file
-    procedure, private :: layer_to_nc_dataset, layer_to_nc_file
-    generic, public :: to_netcdf => layer_to_nc_dataset, layer_to_nc_file
-#endif
-    procedure, public :: z_bounds => layer_z_bounds
-    procedure, public :: check_is_covered_by => layer_check_is_covered_by
-    procedure, public :: check_is_covering => layer_check_is_covering
-    procedure, public :: check_is_filled_by => layer_check_is_filled_by
-    procedure, public :: check_is_filling => layer_check_is_filling
-    procedure, private :: check_shape => layer_check_shape
-    procedure, private :: check_shape_packed => layer_check_shape_packed
-    procedure, private :: layer_pack_sp, layer_pack_dp, layer_pack_i4, layer_pack_i8, layer_pack_lgt
-    generic, public :: pack => layer_pack_sp, layer_pack_dp, layer_pack_i4, layer_pack_i8, layer_pack_lgt
-    procedure, private :: layer_unpack_sp, layer_unpack_dp, layer_unpack_i4, layer_unpack_i8, layer_unpack_lgt
-    generic, public :: unpack => layer_unpack_sp, layer_unpack_dp, layer_unpack_i4, layer_unpack_i8, layer_unpack_lgt
-  end type layered_grid_t
 
   !> \brief Reads spatial data files of ASCII format.
   !> \details Reads spatial input data, e.g. dem, aspect, flow direction.
@@ -207,500 +222,58 @@ contains
 
   ! ------------------------------------------------------------------
 
-  !> \brief initialize layered grid
-  !> \details initialize grid from standard ascii header content (nx (cols), ny (rows), cellsize, lower-left corner)
-  !> \authors Sebastian Müller
-  !> \date Mar 2024
-  subroutine layer_init(this, grid, layer, layer_vertices, positive_up)
-    implicit none
-    class(layered_grid_t), intent(inout) :: this
-    type(grid_t), intent(in) :: grid !< 2D grid used for each layer
-    real(dp), dimension(:), intent(in) :: layer  !< layer given by reference point in bounds (see vertices)
-    real(dp), dimension(:), intent(in) :: layer_vertices  !< layer bounds
-    logical, optional, intent(in) :: positive_up !< indicated "upwards" as direction of positive z values (.false. by default)
-    integer(i4) :: i
-    real(dp) :: minl, maxl
-    real(dp), dimension(:), allocatable :: diffs
-    if (size(layer) == 0) call error_message("layered_grid % init: need at least one layer.")
-    if (size(layer) + 1 /= size(layer_vertices)) call error_message("layered_grid % init: size of layer and vertices not matching.")
-    do i = 1, size(layer)
-      minl = min(layer_vertices(i), layer_vertices(i+1))
-      maxl = max(layer_vertices(i), layer_vertices(i+1))
-      if (layer(i)<minl .or. layer(i)>maxl) call error_message("layered_grid % init: layers not within bounds form vertices.")
-    end do
-    diffs = layer_vertices(2:) - layer_vertices(:size(layer))
-    if (.not.(all(diffs > 0.0_dp).or.all(diffs < 0.0_dp))) call error_message("layered_grid % init: layers not monotonous.")
-    this%grid = grid
-    this%layer = layer
-    this%layer_vertices = layer_vertices
-    if (present(positive_up)) this%positive_up = positive_up
-  end subroutine layer_init
+  !> \brief Deallocate data in data container.
+  subroutine data_deallocate(this)
+    class(data_t), intent(inout) :: this
+    if (allocated(this%data_sp)) deallocate(this%data_sp)
+    if (allocated(this%data_dp)) deallocate(this%data_dp)
+    if (allocated(this%data_i1)) deallocate(this%data_i1)
+    if (allocated(this%data_i2)) deallocate(this%data_i2)
+    if (allocated(this%data_i4)) deallocate(this%data_i4)
+    if (allocated(this%data_i8)) deallocate(this%data_i8)
+  end subroutine data_deallocate
 
-#ifdef FORCES_WITH_NETCDF
+  subroutine data_move_sp(this, data)
+    class(data_t), intent(inout) :: this
+    real(sp), allocatable, dimension(:,:), intent(out) :: data
+    if (.not.allocated(this%data_sp)) call error_message("data % get: data not allocated for dtype 'f32'") ! LCOV_EXCL_LINE
+    call move_alloc(this%data_sp, data)
+  end subroutine data_move_sp
 
-  !> \brief initialize grid from a netcdf file
-  !> \details initialize grid from a netcdf file and a reference variable.
-  !> \authors Sebastian Müller
-  !> \date Mar 2024
-  subroutine layer_from_nc_file(this, path, var, read_mask, read_aux, tol, y_direction)
-    use mo_netcdf, only : NcDataset
-    implicit none
-    class(layered_grid_t), intent(inout) :: this
-    character(*), intent(in) :: path !< NetCDF file path
-    character(*), intent(in) :: var !< nc variable name to determine the grid from
-    logical, optional, intent(in) :: read_mask !< Whether to read the mask from the given variable (default: .true.)
-    logical, optional, intent(in) :: read_aux !< Whether to read auxilliar coordinates if possible (default: .true.)
-    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) as present, 0 for top-down, 1 for bottom-up)
-    type(NcDataset) :: nc
-    nc = NcDataset(path, "r")
-    call this%layer_from_nc_dataset(nc, var, read_mask, read_aux, tol, y_direction)
-    call nc%close()
-  end subroutine layer_from_nc_file
+  subroutine data_move_dp(this, data)
+    class(data_t), intent(inout) :: this
+    real(dp), allocatable, dimension(:,:), intent(out) :: data
+    if (.not.allocated(this%data_dp)) call error_message("data % get: data not allocated for dtype 'f64'") ! LCOV_EXCL_LINE
+    call move_alloc(this%data_dp, data)
+  end subroutine data_move_dp
 
-  !> \brief initialize grid from a netcdf dataset
-  !> \details initialize grid from a netcdf dataset and a reference variable.
-  !> \authors Sebastian Müller
-  !> \date Mar 2024
-  subroutine layer_from_nc_dataset(this, nc, var, read_mask, read_aux, tol, y_direction)
-    use mo_netcdf, only : NcDataset, NcVariable, NcDimension
-    use mo_utils, only : is_close
-    use mo_string_utils, only : splitString
-    implicit none
-    class(layered_grid_t), intent(inout) :: this
-    type(NcDataset), intent(in) :: nc !< NetCDF Dataset
-    character(*), intent(in) :: var !< nc variable name to determine the grid from
-    logical, optional, intent(in) :: read_mask !< Whether to read the mask from the given variable (default: .true.)
-    logical, optional, intent(in) :: read_aux !< Whether to read auxilliar coordinates if possible (default: .true.)
-    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) as present, 0 for top-down, 1 for bottom-up)
+  subroutine data_move_i1(this, data)
+    class(data_t), intent(inout) :: this
+    integer(i1), allocatable, dimension(:,:), intent(out) :: data
+    if (.not.allocated(this%data_i1)) call error_message("data % get: data not allocated for dtype 'i8'") ! LCOV_EXCL_LINE
+    call move_alloc(this%data_i1, data)
+  end subroutine data_move_i1
 
-    type(NcVariable) :: ncvar, zvar, bnds
-    type(NcDimension), dimension(:), allocatable :: dims
-    real(dp), dimension(:,:), allocatable :: bounds
-    character(len=256) :: name
-    integer(i4) :: nlayer, rnk
+  subroutine data_move_i2(this, data)
+    class(data_t), intent(inout) :: this
+    integer(i2), allocatable, dimension(:,:), intent(out) :: data
+    if (.not.allocated(this%data_i2)) call error_message("data % get: data not allocated for dtype 'i16'") ! LCOV_EXCL_LINE
+    call move_alloc(this%data_i2, data)
+  end subroutine data_move_i2
 
-    ncvar = nc%getVariable(var)
-    rnk = ncvar%getRank()
-    if (rnk < 3) call error_message("grid % from_netcdf: given variable has too few dimensions: ", trim(nc%fname), ":", var)
-    dims = ncvar%getDimensions()
-    zvar = nc%getVariable(trim(dims(3)%getName()))
+  subroutine data_move_i4(this, data)
+    class(data_t), intent(inout) :: this
+    integer(i4), allocatable, dimension(:,:), intent(out) :: data
+    if (.not.allocated(this%data_i4)) call error_message("data % get: data not allocated for dtype 'i32'") ! LCOV_EXCL_LINE
+    call move_alloc(this%data_i4, data)
+  end subroutine data_move_i4
 
-    if (.not.(is_z_axis(zvar))) &
-      call error_message("grid % from_netcdf: can't interpret z-axis: ", trim(nc%fname), ":", var)
-
-    call zvar%getData(this%layer)
-    nlayer = size(this%layer)
-    allocate(this%layer_vertices(nlayer+1))
-
-    if (zvar%hasAttribute("bounds")) then
-      call zvar%getAttribute("bounds", name)
-      bnds = nc%getVariable(trim(name))
-      call bnds%getData(bounds)
-      this%layer_vertices(:nlayer) = bounds(1,:)
-      this%layer_vertices(nlayer+1) = bounds(2,nlayer)
-      deallocate(bounds)
-    else
-      ! by default, bounds with reference point first
-      this%layer_vertices(:nlayer) = this%layer
-      if (nlayer == 1) then
-        ! default layer thickness of 1.0
-        this%layer_vertices(2) = this%layer(1) + 1.0_dp
-      else
-        ! last layer thickness from previous layer thickness
-        this%layer_vertices(nlayer + 1) = 2 * this%layer(nlayer) - this%layer(nlayer - 1)
-      end if
-    end if
-
-    ! set positive direction (down by default for horizons)
-    if (zvar%hasAttribute("positive")) then
-      call zvar%getAttribute("positive", name)
-      if (trim(name) == "up") then
-        this%positive_up = .true.
-      else
-        this%positive_up = .false.
-      end if
-    end if
-
-    ! setup horizontal grid
-    call this%grid%from_netcdf(nc, var, read_mask, read_aux, tol, y_direction)
-
-  end subroutine layer_from_nc_dataset
-
-  !> \brief write grid to a netcdf file
-  !> \details write grid to a netcdf file with possible data variable.
-  !> \authors Sebastian Müller
-  !> \date Mar 2024
-  subroutine layer_to_nc_file(this, path, x_name, y_name, z_name, aux_lon_name, aux_lat_name, double_precision, append)
-    use mo_netcdf, only : NcDataset
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    character(*), intent(in) :: path !< NetCDF file path
-    character(*), optional, intent(in) :: x_name !< name for x-axis variable and dimension
-    character(*), optional, intent(in) :: y_name !< name for y-axis variable and dimension
-    character(*), optional, intent(in) :: z_name !< name for z-axis variable and dimension
-    character(*), optional, intent(in) :: aux_lon_name !< name for auxilliar longitude coordinate variable
-    character(*), optional, intent(in) :: aux_lat_name !< name for auxilliar latitude coordinate variable
-    logical, optional, intent(in) :: double_precision !< whether to use double precision to store axis (default .true.)
-    logical, optional, intent(in) :: append !< whether netcdf file should be opened in append mode (default .false.)
-    type(NcDataset) :: nc
-    character(1) :: fmode
-    fmode = "w"
-    if ( present(append) ) then
-      if (append) fmode = "a"
-    end if
-    nc = NcDataset(path, fmode)
-    call this%layer_to_nc_dataset(nc, x_name, y_name, z_name, aux_lon_name, aux_lat_name, double_precision)
-    call nc%close()
-  end subroutine layer_to_nc_file
-
-  !> \brief initialize grid from a netcdf dataset
-  !> \details initialize grid from a netcdf dataset and a reference variable.
-  !> \authors Sebastian Müller
-  !> \date Mar 2024
-  subroutine layer_to_nc_dataset(this, nc, x_name, y_name, z_name, aux_lon_name, aux_lat_name, double_precision)
-    use mo_netcdf, only : NcDataset, NcVariable, NcDimension
-    use mo_utils, only : is_close
-    use mo_string_utils, only : splitString
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    type(NcDataset), intent(inout) :: nc !< NetCDF Dataset
-    character(*), optional, intent(in) :: x_name !< name for x-axis variable and dimension
-    character(*), optional, intent(in) :: y_name !< name for y-axis variable and dimension
-    character(*), optional, intent(in) :: z_name !< name for z-axis variable and dimension
-    character(*), optional, intent(in) :: aux_lon_name !< name for auxilliar longitude coordinate variable
-    character(*), optional, intent(in) :: aux_lat_name !< name for auxilliar latitude coordinate variable
-    logical, optional, intent(in) :: double_precision !< whether to use double precision to store axis (default .true.)
-    type(NcDimension) :: z_dim, b_dim
-    type(NcVariable) :: z_var, zb_var
-    character(:), allocatable :: zname
-    logical :: double_precision_
-    character(3) :: dtype
-
-    call this%grid%to_netcdf(nc, x_name, y_name, aux_lon_name, aux_lat_name, double_precision)
-
-    double_precision_ = .true.
-    if (present(double_precision)) double_precision_ = double_precision
-    dtype = "f32"
-    if ( double_precision_ ) dtype = "f64"
-    zname = "z"
-    if (present(z_name)) zname = z_name
-
-    z_dim = nc%setDimension(zname, size(this%layer))
-    b_dim = nc%getDimension("bnds")
-    z_var = nc%setVariable(zname, dtype, [z_dim])
-    zb_var = nc%setVariable(zname // "_bnds", dtype, [b_dim, z_dim])
-    call z_var%setAttribute("axis", "Z")
-    call z_var%setAttribute("bounds", zname // "_bnds")
-    if (this%positive_up) then
-      call z_var%setAttribute("standard_name", "height")
-      call z_var%setAttribute("positive", "up")
-    else
-      call z_var%setAttribute("standard_name", "depth")
-      call z_var%setAttribute("positive", "down")
-    end if
-    if (double_precision_) then
-      call z_var%setData(this%layer)
-      call zb_var%setData(this%z_bounds())
-    else
-      call z_var%setData(real(this%layer, sp))
-      call zb_var%setData(real(this%z_bounds(), sp))
-    end if
-  end subroutine layer_to_nc_dataset
-
-#endif
-
-  !> \brief z-bounds of the grid cell following cf-conventions (2, nz).
-  !> \return `real(dp), allocatable, dimension(:,:) :: z_bounds`
-  !> \authors Sebastian Müller
-  !> \date Mar 2024
-  function layer_z_bounds(this) result(z_bounds)
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    real(dp), allocatable, dimension(:,:) :: z_bounds
-    allocate(z_bounds(2, size(this%layer)))
-    z_bounds(1,:) = this%layer_vertices(:size(this%layer))
-    z_bounds(2,:) = this%layer_vertices(2:)
-  end function layer_z_bounds
-
-  !> \brief check if given grid is covered by coarser grid
-  !> \details check if given grid is compatible and covered by coarser grid and raise an error if this is not the case.
-  !! Layers of coarse grid need to fully cover the layers of given grid.
-  !! \note The coarse grid is allowed to have valid cells outside of the fine grids masked region.
-  !> \authors Sebastian Müller
-  !> \date Mar 2024
-  subroutine layer_check_is_covered_by(this, coarse_grid, tol, check_mask)
-    use mo_utils, only: eq
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    type(layered_grid_t), intent(in) :: coarse_grid !< coarse grid that should cover this grid
-    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    logical, optional, intent(in) :: check_mask !< whether to check if coarse mask covers fine mask
-    if (minval(this%layer_vertices) < minval(coarse_grid%layer_vertices)) &
-      call error_message("layered_grid % check_is_covered_by: coarse layers not covering.")
-    if (maxval(this%layer_vertices) > maxval(coarse_grid%layer_vertices)) &
-      call error_message("layered_grid % check_is_covered_by: coarse layers not covering.")
-    call this%grid%check_is_covered_by(coarse_grid%grid, tol, check_mask)
-  end subroutine layer_check_is_covered_by
-
-  !> \brief check if given grid is covering finer grid
-  !> \details check if given grid is compatible with and covering finer grid and raise an error if this is not the case.
-  !! Layers of coarse grid need to fully cover the layers of given grid.
-  !! \note The coarse grid is allowed to have valid cells outside of the fine grids masked region.
-  !> \authors Sebastian Müller
-  !> \date Mar 2024
-  subroutine layer_check_is_covering(this, fine_grid, tol, check_mask)
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    type(layered_grid_t), intent(in) :: fine_grid !< finer grid that should be covered by this grid
-    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    logical, optional, intent(in) :: check_mask !< whether to check if coarse mask covers fine mask
-    call fine_grid%check_is_covered_by(coarse_grid=this, tol=tol, check_mask=check_mask)
-  end subroutine layer_check_is_covering
-
-  !> \brief check if given grid is filled by fine grid
-  !> \details check if given grid is compatible and filled by finer grid and raise an error if this is not the case.
-  !! \note The fine grid is allowed to have valid cells outside of the coarse grids masked region.
-  !> \authors Sebastian Müller
-  !> \date Mar 2024
-  subroutine layer_check_is_filled_by(this, fine_grid, tol, check_mask)
-    use mo_orderpack, only: sort
-    use mo_utils, only: eq
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    type(layered_grid_t), intent(in) :: fine_grid !< fine grid that should fill this grid
-    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    logical, optional, intent(in) :: check_mask !< whether to check if fine mask fills coarse mask
-    real(dp), dimension(:), allocatable :: vertices
-    vertices = this%layer_vertices
-    call sort(vertices)
-    ! check on both ends if first and last layer are touched by fine grids layers
-    if (vertices(2) < minval(fine_grid%layer_vertices)) &
-      call error_message("layered_grid % check_is_filled_by: some coarse layers not filled.")
-    if (vertices(size(vertices)-1) > maxval(fine_grid%layer_vertices)) &
-      call error_message("layered_grid % check_is_filled_by: some coarse layers not filled.")
-    call this%grid%check_is_filled_by(fine_grid%grid, tol, check_mask)
-    deallocate(vertices)
-  end subroutine layer_check_is_filled_by
-
-  !> \brief check if given grid is filling coarser grid
-  !> \details check if given grid is compatible with and filling coarser grid and raise an error if this is not the case.
-  !! \note The fine grid is allowed to have valid cells outside of the coarse grids masked region.
-  !> \authors Sebastian Müller
-  !> \date Mar 2024
-  subroutine layer_check_is_filling(this, coarse_grid, tol, check_mask)
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    type(layered_grid_t), intent(in) :: coarse_grid !< coarser grid that should be covered by this grid
-    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    logical, optional, intent(in) :: check_mask !< whether to check if fine mask fills coarse mask
-    call coarse_grid%check_is_filled_by(fine_grid=this, tol=tol, check_mask=check_mask)
-  end subroutine layer_check_is_filling
-
-  !> \brief Check 3D data shape for layered grid
-  !> \authors Sebastian Müller
-  !> \date    Mar 2025
-  subroutine layer_check_shape(this, data_shape)
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    integer(i8), intent(in) :: data_shape(3) !< (x,y,z)
-    if (data_shape(1) /= this%grid%nx .or. data_shape(2) /= this%grid%ny .or. data_shape(3) /= size(this%layer)) then
-      call error_message( &
-        "layered data: data has wrong shape. Expected: (", &
-        num2str(this%grid%nx), ",", num2str(this%grid%ny), ",", num2str(size(this%layer)), "), got: (", &
-        num2str(data_shape(1)), ",", num2str(data_shape(2)), ",", num2str(data_shape(3)), ")")
-    end if
-  end subroutine layer_check_shape
-
-  !> \brief Check 2D packed data shape for layered grid
-  !> \authors Sebastian Müller
-  !> \date    Mar 2025
-  subroutine layer_check_shape_packed(this, data_shape)
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    integer(i8), intent(in) :: data_shape(2) !< (n,z)
-    if (data_shape(1) /= this%grid%ncells .or. data_shape(2) /= size(this%layer)) then
-      call error_message( &
-        "layered data: packed data has wrong shape. Expected: (", &
-        num2str(this%grid%ncells), ",", num2str(size(this%layer)), "), got: (", &
-        num2str(data_shape(1)), ",", num2str(data_shape(2)), ")")
-    end if
-  end subroutine layer_check_shape_packed
-
-  !> \brief Pack 3D data with grid mask
-  !> \return `real(sp) :: out_data(:,:)`
-  !> \authors Sebastian Müller
-  !> \date    Mar 2025
-  function layer_pack_sp(this, data) result(out_data)
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    real(sp), intent(in) :: data(:,:,:) !< (x,y,z)
-    real(sp), allocatable :: out_data(:,:) !< (n,z)
-    integer(i4) :: i
-    call this%check_shape(shape(data, kind=i8))
-    allocate(out_data(this%grid%ncells, size(this%layer)))
-    do i = 1, size(this%layer)
-      out_data(:,i) = pack(data(:,:,i), this%grid%mask)
-    end do
-  end function layer_pack_sp
-
-  !> \brief Pack 3D data with grid mask
-  !> \return `real(dp) :: out_data(:,:)`
-  !> \authors Sebastian Müller
-  !> \date    Mar 2025
-  function layer_pack_dp(this, data) result(out_data)
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    real(dp), intent(in) :: data(:,:,:) !< (x,y,z)
-    real(dp), allocatable :: out_data(:,:) !< (n,z)
-    integer(i4) :: i
-    call this%check_shape(shape(data, kind=i8))
-    allocate(out_data(this%grid%ncells, size(this%layer)))
-    do i = 1, size(this%layer)
-      out_data(:,i) = pack(data(:,:,i), this%grid%mask)
-    end do
-  end function layer_pack_dp
-
-  !> \brief Pack 3D data with grid mask
-  !> \return `integer(i4) :: out_data(:,:)`
-  !> \authors Sebastian Müller
-  !> \date    Mar 2025
-  function layer_pack_i4(this, data) result(out_data)
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    integer(i4), intent(in) :: data(:,:,:) !< (x,y,z)
-    integer(i4), allocatable :: out_data(:,:) !< (n,z)
-    integer(i4) :: i
-    call this%check_shape(shape(data, kind=i8))
-    allocate(out_data(this%grid%ncells, size(this%layer)))
-    do i = 1, size(this%layer)
-      out_data(:,i) = pack(data(:,:,i), this%grid%mask)
-    end do
-  end function layer_pack_i4
-
-  !> \brief Pack 3D data with grid mask
-  !> \return `integer(i8) :: out_data(:,:)`
-  !> \authors Sebastian Müller
-  !> \date    Mar 2025
-  function layer_pack_i8(this, data) result(out_data)
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    integer(i8), intent(in) :: data(:,:,:) !< (x,y,z)
-    integer(i8), allocatable :: out_data(:,:) !< (n,z)
-    integer(i4) :: i
-    call this%check_shape(shape(data, kind=i8))
-    allocate(out_data(this%grid%ncells, size(this%layer)))
-    do i = 1, size(this%layer)
-      out_data(:,i) = pack(data(:,:,i), this%grid%mask)
-    end do
-  end function layer_pack_i8
-
-  !> \brief Pack 3D data with grid mask
-  !> \return `logical :: out_data(:,:)`
-  !> \authors Sebastian Müller
-  !> \date    Mar 2025
-  function layer_pack_lgt(this, data) result(out_data)
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    logical, intent(in) :: data(:,:,:) !< (x,y,z)
-    logical, allocatable :: out_data(:,:) !< (n,z)
-    integer(i4) :: i
-    call this%check_shape(shape(data, kind=i8))
-    allocate(out_data(this%grid%ncells, size(this%layer)))
-    do i = 1, size(this%layer)
-      out_data(:,i) = pack(data(:,:,i), this%grid%mask)
-    end do
-  end function layer_pack_lgt
-
-  !> \brief Unpack 2D data with grid mask
-  !> \return `real(sp) :: out_data(:,:,:)`
-  !> \authors Sebastian Müller
-  !> \date    Mar 2025
-  function layer_unpack_sp(this, data) result(out_data)
-    use mo_constants, only : nodata_sp
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    real(sp), intent(in) :: data(:,:)
-    real(sp), allocatable :: out_data(:,:,:)
-    integer(i4) :: i
-    call this%check_shape_packed(shape(data, kind=i8))
-    allocate(out_data(this%grid%nx, this%grid%ny, size(this%layer)))
-    do i = 1, size(this%layer)
-      out_data(:,:,i) = unpack(data(:,i), this%grid%mask, nodata_sp)
-    end do
-  end function layer_unpack_sp
-
-  !> \brief Unpack 2D data with grid mask
-  !> \return `real(dp) :: out_data(:,:,:)`
-  !> \authors Sebastian Müller
-  !> \date    Mar 2025
-  function layer_unpack_dp(this, data) result(out_data)
-    use mo_constants, only : nodata_dp
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    real(dp), intent(in) :: data(:,:)
-    real(dp), allocatable :: out_data(:,:,:)
-    integer(i4) :: i
-    call this%check_shape_packed(shape(data, kind=i8))
-    allocate(out_data(this%grid%nx, this%grid%ny, size(this%layer)))
-    do i = 1, size(this%layer)
-      out_data(:,:,i) = unpack(data(:,i), this%grid%mask, nodata_dp)
-    end do
-  end function layer_unpack_dp
-
-  !> \brief Unpack 2D data with grid mask
-  !> \return `integer(i4) :: out_data(:,:,:)`
-  !> \authors Sebastian Müller
-  !> \date    Mar 2025
-  function layer_unpack_i4(this, data) result(out_data)
-    use mo_constants, only : nodata_i4
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    integer(i4), intent(in) :: data(:,:)
-    integer(i4), allocatable :: out_data(:,:,:)
-    integer(i4) :: i
-    call this%check_shape_packed(shape(data, kind=i8))
-    allocate(out_data(this%grid%nx, this%grid%ny, size(this%layer)))
-    do i = 1, size(this%layer)
-      out_data(:,:,i) = unpack(data(:,i), this%grid%mask, nodata_i4)
-    end do
-  end function layer_unpack_i4
-
-  !> \brief Unpack 2D data with grid mask
-  !> \return `integer(i8) :: out_data(:,:,:)`
-  !> \authors Sebastian Müller
-  !> \date    Mar 2025
-  function layer_unpack_i8(this, data) result(out_data)
-    use mo_constants, only : nodata_i8
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    integer(i8), intent(in) :: data(:,:)
-    integer(i8), allocatable :: out_data(:,:,:)
-    integer(i4) :: i
-    call this%check_shape_packed(shape(data, kind=i8))
-    allocate(out_data(this%grid%nx, this%grid%ny, size(this%layer)))
-    do i = 1, size(this%layer)
-      out_data(:,:,i) = unpack(data(:,i), this%grid%mask, nodata_i8)
-    end do
-  end function layer_unpack_i8
-
-  !> \brief Unpack 2D data with grid mask
-  !> \return `logical :: out_data(:,:,:)`
-  !> \authors Sebastian Müller
-  !> \date    Mar 2025
-  function layer_unpack_lgt(this, data) result(out_data)
-    implicit none
-    class(layered_grid_t), intent(in) :: this
-    logical, intent(in) :: data(:,:)
-    logical, allocatable :: out_data(:,:,:)
-    integer(i4) :: i
-    call this%check_shape_packed(shape(data, kind=i8))
-    allocate(out_data(this%grid%nx, this%grid%ny, size(this%layer)))
-    do i = 1, size(this%layer)
-      out_data(:,:,i) = unpack(data(:,i), this%grid%mask, .false.)
-    end do
-  end function layer_unpack_lgt
+  subroutine data_move_i8(this, data)
+    class(data_t), intent(inout) :: this
+    integer(i8), allocatable, dimension(:,:), intent(out) :: data
+    if (.not.allocated(this%data_i8)) call error_message("data % get: data not allocated for dtype 'i64'") ! LCOV_EXCL_LINE
+    call move_alloc(this%data_i8, data)
+  end subroutine data_move_i8
 
   ! ------------------------------------------------------------------
 
@@ -719,38 +292,44 @@ contains
     integer(i4), optional, intent(in) :: coordsys !< desired coordinate system (0 (default) for cartesian, 1 for spherical)
     logical, dimension(:,:), optional, intent(in) :: mask !< desired mask for the grid (default: all .true.)
     integer(i4), optional, intent(in) :: y_direction !< y-axis direction (0 (default) for top-down, 1 for bottom-up)
+    integer(i4) :: j
 
     this%nx = nx
     this%ny = ny
-    this%xllcorner = 0.0_dp
-    if ( present(xllcorner) ) this%xllcorner = xllcorner
-    this%yllcorner = 0.0_dp
-    if ( present(yllcorner) ) this%yllcorner = yllcorner
-    this%cellsize = 1.0_dp
-    if ( present(cellsize) ) this%cellsize = cellsize
+    this%xllcorner = optval(xllcorner, 0.0_dp)
+    this%yllcorner = optval(yllcorner, 0.0_dp)
+    this%cellsize = optval(cellsize, 1.0_dp)
     ! check if coordsys is supported
-    this%coordsys = cartesian
-    if ( present(coordsys) ) then
-      if (coordsys /= cartesian .and. coordsys /= spherical) &
-        call error_message("grid % init: unknown coordsys value: ", num2str(coordsys))
-      this%coordsys = coordsys
+    this%coordsys = optval(coordsys, cartesian)
+    ! LCOV_EXCL_START
+    if (.not.any(this%coordsys == [cartesian, spherical])) then
+      call error_message("grid % init: unknown coordsys value: ", num2str(this%coordsys))
     end if
+    ! LCOV_EXCL_STOP
     ! check if y-direction is supported
     this%y_direction = top_down
     if ( present(y_direction) ) then
+      ! LCOV_EXCL_START
       if (.not.any(y_direction==[keep_y, bottom_up, top_down])) &
         call error_message("grid % init: unknown y_direction value: ", num2str(y_direction))
+      ! LCOV_EXCL_STOP
       if (y_direction /= keep_y) this%y_direction = y_direction
     end if
     if ( present(mask) ) then
+      ! LCOV_EXCL_START
       if (size(mask, dim=1) /= nx .or. size(mask, dim=2) /= ny) &
         call error_message("grid % init: mask has wrong shape: mask(", &
                            trim(adjustl(num2str(size(mask, dim=1)))), ",", &
                            trim(adjustl(num2str(size(mask, dim=2)))), ") =/= grid(", &
                            trim(adjustl(num2str(nx))), ",", &
                            trim(adjustl(num2str(ny))), ")")
+      ! LCOV_EXCL_STOP
       allocate(this%mask(this%nx, this%ny))
-      this%mask = mask
+      !$omp parallel do default(shared) schedule(static)
+      do j = 1_i4, this%ny
+        this%mask(:,j) = mask(:,j)
+      end do
+      !$omp end parallel do
     end if
     ! if no mask given, this will initialize the default mask
     call this%calculate_cell_ids()
@@ -761,7 +340,7 @@ contains
   !> \brief initialize grid from ascii grid file
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine from_ascii_file(this, path, coordsys, read_mask, y_direction)
+  subroutine grid_from_ascii_file(this, path, coordsys, read_mask, y_direction, data)
     use mo_os, only: check_path_isfile
     implicit none
     class(grid_t), intent(inout) :: this
@@ -769,6 +348,7 @@ contains
     integer(i4), optional, intent(in) :: coordsys !< desired coordinate system (0 (default) for cartesian, 1 for lat-lon)
     logical, optional, intent(in) :: read_mask !< Whether to read the mask from the given file (default: .true.)
     integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) or 0 for top-down, 1 for bottom-up)
+    type(data_t), intent(inout), optional :: data !< optional data container to read the variable data into
 
     integer(i4) :: nx, ny
     real(dp) :: xll, yll, cellsize
@@ -777,37 +357,57 @@ contains
     logical :: read_mask_
     integer(i4) :: y_dir
 
-    read_mask_ = .true.
-    if (present(read_mask)) read_mask_ = read_mask
-    y_dir = keep_y
-    if (present(y_direction)) y_dir = y_direction
+    read_mask_ = optval(read_mask, .true.)
+    y_dir = optval(y_direction, keep_y)
     if (y_dir == keep_y) y_dir = top_down
+    ! LCOV_EXCL_START
     if (.not.any(y_dir==[bottom_up, top_down])) &
       call error_message("grid % from_ascii_file: y-direction not valid: ", trim(num2str(y_dir)))
+    ! LCOV_EXCL_STOP
 
     call check_path_isfile(path=path, raise=.true.)
     call read_ascii_header(path, nx ,ny, xll, yll, cellsize)
 
     if (read_mask_) then
       call read_ascii_grid_dp(path, dummy, mask, y_direction=y_dir)
-      deallocate(dummy)
-    else
-      allocate(mask(nx, ny))
-      mask(:,:) = .true.
+    else if (present(data)) then
+      call read_ascii_grid_dp(path, dummy, y_direction=y_dir)
     end if
 
-    call this%init(nx, ny, xll, yll, cellsize, coordsys, mask, y_dir)
-    deallocate(mask)
+    if (present(data)) then
+      call data%deallocate()
+      if (.not.allocated(data%dtype)) data%dtype = "f64"
+      select case (data%dtype)
+        case ("i8")
+          data%data_i1 = int(dummy, i1)
+        case ("i16")
+          data%data_i2 = int(dummy, i2)
+        case ("i32")
+          data%data_i4 = int(dummy, i4)
+        case ("i64")
+          data%data_i8 = int(dummy, i8)
+        case ("f32")
+          data%data_sp = real(dummy, sp)
+        case ("f64")
+          call move_alloc(dummy, data%data_dp)
+        case default
+          call error_message("grid%from_ascii_file: Unsupported data type: ", data%dtype) ! LCOV_EXCL_LINE
+      end select
+    end if
 
-  end subroutine from_ascii_file
+    if (allocated(dummy)) deallocate(dummy)
+
+    call this%init(nx, ny, xll, yll, cellsize, coordsys, mask, y_dir) ! un-allocated mask is interpreted as "not present" in init
+    if (allocated(mask)) deallocate(mask)
+
+  end subroutine grid_from_ascii_file
 
   !> \brief write grid to ascii grid file
   !> \details Writes the grid information to an ascii grid. If mask should be written, it will be stored as 1/nodata map.
   !!          If no mask should be written, only the header is stored.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine to_ascii_file(this, path, write_mask)
-    use mo_constants, only: nodata_i4
+  subroutine grid_to_ascii_file(this, path, write_mask)
     implicit none
     class(grid_t), intent(inout) :: this
     character(*), intent(in) :: path !< path to the ascii grid file
@@ -816,8 +416,7 @@ contains
     logical :: write_mask_
     integer(i4), allocatable, dimension(:,:) :: dummy
 
-    write_mask_ = .true.
-    if ( present(write_mask) ) write_mask_ = write_mask
+    write_mask_ = optval(write_mask, .true.)
 
     if (write_mask_) then
       allocate(dummy(this%nx, this%ny), source=nodata_i4)
@@ -834,12 +433,12 @@ contains
       data=dummy, &  ! unallocated dummy will result in present(data) == .false.
       y_direction=this%y_direction)
     if (allocated(dummy)) deallocate(dummy)
-  end subroutine to_ascii_file
+  end subroutine grid_to_ascii_file
 
   !> \brief Read data from ascii file conforming this grid
   !> \authors Sebastian Müller
   !> \date Mar 2025
-  subroutine read_data_dp(this, path, data)
+  subroutine grid_read_data_dp(this, path, data)
     use mo_os, only: check_path_isfile
     implicit none
     class(grid_t), intent(inout) :: this
@@ -854,12 +453,12 @@ contains
       ref_yllcorner=this%yllcorner, &
       ref_cellsize=this%cellsize, &
       y_direction=this%y_direction)
-  end subroutine read_data_dp
+  end subroutine grid_read_data_dp
 
   !> \brief Read data from ascii file conforming this grid
   !> \authors Sebastian Müller
   !> \date Mar 2025
-  subroutine read_data_i4(this, path, data)
+  subroutine grid_read_data_i4(this, path, data)
     use mo_os, only: check_path_isfile
     implicit none
     class(grid_t), intent(inout) :: this
@@ -874,7 +473,7 @@ contains
       ref_yllcorner=this%yllcorner, &
       ref_cellsize=this%cellsize, &
       y_direction=this%y_direction)
-  end subroutine read_data_i4
+  end subroutine grid_read_data_i4
 
 #ifdef FORCES_WITH_NETCDF
 
@@ -882,7 +481,7 @@ contains
   !> \details initialize grid from a netcdf file and a reference variable.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine from_nc_file(this, path, var, read_mask, read_aux, tol, y_direction)
+  subroutine grid_from_nc_file(this, path, var, read_mask, read_aux, tol, y_direction, data)
     use mo_netcdf, only : NcDataset
     implicit none
     class(grid_t), intent(inout) :: this
@@ -892,17 +491,18 @@ contains
     logical, optional, intent(in) :: read_aux !< Whether to read auxilliar coordinates if possible (default: .true.)
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) as present, 0 for top-down, 1 for bottom-up)
+    type(data_t), intent(inout), optional :: data !< optional data container to read the variable data into
     type(NcDataset) :: nc
     nc = NcDataset(path, "r")
-    call this%from_nc_dataset(nc, var, read_mask, read_aux, tol, y_direction)
+    call this%from_nc_dataset(nc, var, read_mask, read_aux, tol, y_direction, data)
     call nc%close()
-  end subroutine from_nc_file
+  end subroutine grid_from_nc_file
 
   !> \brief initialize grid from a netcdf dataset
   !> \details initialize grid from a netcdf dataset and a reference variable.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine from_nc_dataset(this, nc, var, read_mask, read_aux, tol, y_direction)
+  subroutine grid_from_nc_dataset(this, nc, var, read_mask, read_aux, tol, y_direction, data)
     use mo_netcdf, only : NcDataset, NcVariable, NcDimension
     use mo_utils, only : is_close
     use mo_string_utils, only : splitString
@@ -914,101 +514,90 @@ contains
     logical, optional, intent(in) :: read_aux !< Whether to read auxilliar coordinates if possible (default: .true.)
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) as present, 0 for top-down, 1 for bottom-up)
+    type(data_t), intent(inout), optional :: data !< optional data container to read the variable data into
 
     type(NcVariable) :: ncvar, xvar, yvar
     type(NcDimension), dimension(:), allocatable :: dims
 
-    integer(i4), dimension(:), allocatable :: shp, start, cnt
-    integer(i4) :: nx, ny, rnk, coordsys, y_dir, i
-    real(dp) :: xll, yll, cellsize, cs_x, cs_y, tol_
-    real(dp), allocatable, dimension(:,:) :: dummy
+    integer(i4) :: rnk, i
+    real(dp) :: cs_x, cs_y, tol_
     character(len=256) :: tmp_str
     character(len=256), allocatable, dimension(:) :: coords_str
     character(:), allocatable :: lat_name, lon_name
-    logical, allocatable, dimension(:,:) :: mask
     logical :: y_inc, read_mask_, read_aux_, x_sph, y_sph, x_cart, y_cart, flip_y, found_lat, found_lon
 
-    y_dir = keep_y
-    if (present(y_direction)) y_dir = y_direction
+    this%y_direction = optval(y_direction, keep_y)
 
-    tol_ = 1.e-7_dp
-    read_mask_ = .true.
-    read_aux_ = .true.
-    if ( present(tol) ) tol_ = tol
-    if ( present(read_mask) ) read_mask_ = read_mask
-    if ( present(read_aux) ) read_aux_ = read_aux
+    tol_ = optval(tol, 1.0e-7_dp)
+    read_mask_ = optval(read_mask, .true.)
+    read_aux_ = optval(read_aux, .true.)
 
     ncvar = nc%getVariable(var)
     rnk = ncvar%getRank()
-    if (rnk < 2) call error_message("grid % from_netcdf: given variable has too few dimensions: ", trim(nc%fname), ":", var)
+    if (rnk < 2) call error_message("grid % from_netcdf: given variable has too few dimensions: ", trim(nc%fname), ":", var) ! LCOV_EXCL_LINE
 
     dims = ncvar%getDimensions()
-    nx = dims(1)%getLength()
-    ny = dims(2)%getLength()
+    this%nx = dims(1)%getLength()
+    this%ny = dims(2)%getLength()
     xvar = nc%getVariable(trim(dims(1)%getName()))
     yvar = nc%getVariable(trim(dims(2)%getName()))
 
     ! check if x/y axis are x/y/lon/lat by standard_name, units, axistype or long_name
+    ! LCOV_EXCL_START
     if (is_x_axis(yvar).or.is_lon_coord(yvar).or.is_y_axis(xvar).or.is_lat_coord(xvar)) &
       call error_message("grid % from_netcdf: variable seems to have wrong axis order (not y-x): ", trim(nc%fname), ":", var)
+    ! LCOV_EXCL_STOP
 
     x_cart = is_x_axis(xvar)
     y_cart = is_y_axis(yvar)
     x_sph = is_lon_coord(xvar)
     y_sph = is_lat_coord(yvar)
 
+    ! LCOV_EXCL_START
     if (.not.(x_cart.or.x_sph)) &
       call error_message("grid % from_netcdf: can't determine coordinate system from x-axis: ", trim(nc%fname), ":", var)
     if (.not.(y_cart.or.y_sph)) &
       call error_message("grid % from_netcdf: can't determine coordinate system from y-axis: ", trim(nc%fname), ":", var)
     if (.not.(x_sph.eqv.y_sph)) &
       call error_message("grid % from_netcdf: x and y axis seem to have different coordinate systems: ", trim(nc%fname), ":", var)
+    ! LCOV_EXCL_STOP
 
-    coordsys = cartesian
-    if (x_sph) coordsys = spherical
+    this%coordsys = cartesian
+    if (x_sph) this%coordsys = spherical
 
     ! check axis uniformity and monotonicity
-    call check_uniform_axis(xvar, cellsize=cs_x, origin=xll, tol=tol)
-    call check_uniform_axis(yvar, cellsize=cs_y, origin=yll, increasing=y_inc, tol=tol)
-    if (y_dir == keep_y) then
-      y_dir = top_down
-      if (y_inc) y_dir = bottom_up
+    call check_uniform_axis(xvar, cellsize=cs_x, origin=this%xllcorner, tol=tol)
+    call check_uniform_axis(yvar, cellsize=cs_y, origin=this%yllcorner, increasing=y_inc, tol=tol)
+    if (this%y_direction == keep_y) then
+      this%y_direction = top_down
+      if (y_inc) this%y_direction = bottom_up
     end if
     ! check y_dir
-    if (.not.any(y_dir==[bottom_up, top_down])) &
-      call error_message("grid % from_netcdf: y-direction not valid: ", trim(num2str(y_dir)))
+    ! LCOV_EXCL_START
+    if (.not.any(this%y_direction==[bottom_up, top_down])) &
+      call error_message("grid % from_netcdf: y-direction not valid: ", trim(num2str(this%y_direction)))
+    ! LCOV_EXCL_STOP
 
     ! warn about flipping if present axis is not in desired direction
-    flip_y = y_inc.neqv.(y_dir==bottom_up)
+    flip_y = y_inc.neqv.(this%y_direction==bottom_up)
     if (flip_y) then
       call warn_message("grid % from_netcdf: y axis direction is oposite to desired one (inefficient flipping). ", &
                         "You could flip the file beforehand with: 'cdo invertlat <ifile> <ofile>'. ", trim(nc%fname), ":", var)
     end if
     ! check cellsize in x and y direction
+    ! LCOV_EXCL_START
     if (.not.is_close(cs_x, cs_y, rtol=0.0_dp, atol=tol_)) &
       call error_message("grid % from_netcdf: x and y axis have different cell sizes: ", trim(nc%fname), ":", var)
-    cellsize = cs_x
+    ! LCOV_EXCL_STOP
+    this%cellsize = cs_x
 
     ! get mask from variable mask (assumed to be constant over time)
-    if (read_mask_) then
-      shp = ncvar%getShape()
-      allocate(start(rnk), source=1_i4)
-      allocate(cnt(rnk), source=1_i4)
-      ! only use first 2 dims and use first layer of potential other dims (z, time, soil-layer etc.)
-      cnt(:2) = shp(:2)
-      call ncvar%getData(dummy, start=start, cnt=cnt, mask=mask)
-      ! flip mask if y-axis is decreasing in nc-file
-      if (flip_y) call flip(mask, iDim=2)
-      deallocate(dummy)
-    else
-      allocate(mask(nx, ny))
-      mask(:,:) = .true.
-    end if
+    if (read_mask_) call mask_from_var(ncvar, this%mask, data, flip_y)
+    if (present(data) .and. .not.read_mask_) call data_from_var(ncvar, data, flip_y)
+    call this%calculate_cell_ids()
+    call this%calculate_cell_area()
 
-    call this%init(nx, ny, xll, yll, cellsize, coordsys, mask, y_dir)
-    deallocate(mask)
-
-    if (read_aux_ .and. coordsys == cartesian .and. ncvar%hasAttribute("coordinates")) then
+    if (read_aux_ .and. this%coordsys == cartesian .and. ncvar%hasAttribute("coordinates")) then
       call ncvar%getAttribute("coordinates", tmp_str)
       coords_str = splitString(trim(tmp_str), " ")
       ! search for lat-lon variables in given coordinates
@@ -1029,20 +618,22 @@ contains
           end if
         end if
       end do
+      ! LCOV_EXCL_START
       if (.not.(found_lat.and.found_lon)) then
         call error_message( "grid % from_netcdf: could not find lat/lon auxilliar coordinates: ", &
                            trim(nc%fname), ":", var, " - ", trim(tmp_str))
       end if
+      ! LCOV_EXCL_STOP
       call this%aux_from_netcdf(nc, lat=trim(coords_str(size(coords_str)-1)), lon=trim(coords_str(size(coords_str))))
     end if
 
-  end subroutine from_nc_dataset
+  end subroutine grid_from_nc_dataset
 
   !> \brief read auxilliar coordinates from a netcdf file
   !> \details read auxilliar coordinates (lat, lon) from a netcdf file.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine aux_from_nc_file(this, path, lat, lon)
+  subroutine grid_aux_from_nc_file(this, path, lat, lon)
     use mo_netcdf, only : NcDataset
     implicit none
     class(grid_t), intent(inout) :: this
@@ -1053,13 +644,13 @@ contains
     nc = NcDataset(path, "r")
     call this%aux_from_nc_dataset(nc, lat, lon)
     call nc%close()
-  end subroutine aux_from_nc_file
+  end subroutine grid_aux_from_nc_file
 
   !> \brief read auxilliar coordinates from a netcdf file
   !> \details read auxilliar coordinates (lat, lon) from a netcdf file.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine aux_from_nc_dataset(this, nc, lat, lon)
+  subroutine grid_aux_from_nc_dataset(this, nc, lat, lon)
     use mo_netcdf, only : NcDataset, NcVariable
     use mo_utils, only : swap
     implicit none
@@ -1077,7 +668,7 @@ contains
     character(len=256) :: name
 
     if (this%coordsys /= cartesian) &
-      call error_message("grid % aux_from_netcdf: need projected axis to have auxilliar coordinates.")
+      call error_message("grid % aux_from_netcdf: need projected axis to have auxilliar coordinates.") ! LCOV_EXCL_LINE
 
     lon_ = lon
     lat_ = lat
@@ -1093,16 +684,16 @@ contains
     end if
 
     if (.not.is_lat_coord(latvar)) &
-      call error_message("grid % aux_from_netcdf: auxilliar latitude coordinate is not valid: ", trim(nc%fname), ":", lat_)
+      call error_message("grid % aux_from_netcdf: auxilliar latitude coordinate is not valid: ", trim(nc%fname), ":", lat_) ! LCOV_EXCL_LINE
     rnk = latvar%getRank()
     if (rnk /= 2) &
-      call error_message("grid % from_netcdf: auxilliar latitude coordinate is not 2 dimensional: ", trim(nc%fname), ":", lat_)
+      call error_message("grid % from_netcdf: auxilliar latitude coordinate is not 2 dimensional: ", trim(nc%fname), ":", lat_) ! LCOV_EXCL_LINE
 
     call latvar%getData(dummy)
     y_inc = .true.
     if (size(dummy, dim=2)>1) y_inc = dummy(1,1) < dummy(1,2)
     if (size(dummy, dim=1) /= this%nx .or. size(dummy, dim=2) /= this%ny) &
-      call error_message("grid % from_netcdf: auxilliar latitude coordinate has wrong shape: ", trim(nc%fname), ":", lat_)
+      call error_message("grid % from_netcdf: auxilliar latitude coordinate has wrong shape: ", trim(nc%fname), ":", lat_) ! LCOV_EXCL_LINE
 
     flip_y = y_inc.neqv.(this%y_direction==bottom_up)
     allocate(this%lat(this%nx, this%ny))
@@ -1112,14 +703,14 @@ contains
 
     lonvar = nc%getVariable(lon_)
     if (.not.is_lon_coord(lonvar)) &
-      call error_message("grid % aux_from_netcdf: auxilliar longitude coordinate is not valid: ", trim(nc%fname), ":", lon_)
+      call error_message("grid % aux_from_netcdf: auxilliar longitude coordinate is not valid: ", trim(nc%fname), ":", lon_) ! LCOV_EXCL_LINE
     rnk = lonvar%getRank()
     if (rnk /= 2) &
-      call error_message("grid % aux_from_netcdf: auxilliar longitude coordinate is not 2 dimensional: ", trim(nc%fname), ":", lon_)
+      call error_message("grid % aux_from_netcdf: auxilliar longitude coordinate is not 2 dimensional: ", trim(nc%fname), ":", lon_) ! LCOV_EXCL_LINE
 
     call lonvar%getData(dummy)
     if (size(dummy, dim=1) /= this%nx .or. size(dummy, dim=2) /= this%ny) &
-      call error_message("grid % from_netcdf: auxilliar longitude coordinate has wrong shape: ", trim(nc%fname), ":", lon_)
+      call error_message("grid % from_netcdf: auxilliar longitude coordinate has wrong shape: ", trim(nc%fname), ":", lon_) ! LCOV_EXCL_LINE
     allocate(this%lon(this%nx, this%ny))
     if (flip_y) call flip(dummy, iDim=2)
     this%lon = dummy
@@ -1181,13 +772,13 @@ contains
       end if
     end if
 
-  end subroutine aux_from_nc_dataset
+  end subroutine grid_aux_from_nc_dataset
 
   !> \brief write grid to a netcdf file
   !> \details write grid to a netcdf file with possible data variable.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine to_nc_file(this, path, x_name, y_name, aux_lon_name, aux_lat_name, double_precision, append)
+  subroutine grid_to_nc_file(this, path, x_name, y_name, aux_lon_name, aux_lat_name, double_precision, mask, area, append)
     use mo_netcdf, only : NcDataset
     implicit none
     class(grid_t), intent(in) :: this
@@ -1197,23 +788,23 @@ contains
     character(*), optional, intent(in) :: aux_lon_name !< name for auxilliar longitude coordinate variable
     character(*), optional, intent(in) :: aux_lat_name !< name for auxilliar latitude coordinate variable
     logical, optional, intent(in) :: double_precision !< whether to use double precision to store axis (default .true.)
+    logical, optional, intent(in) :: mask !< whether to write mask variable (default: .false.)
+    logical, optional, intent(in) :: area !< whether to write cell area variable (default: .false.)
     logical, optional, intent(in) :: append !< whether netcdf file should be opened in append mode (default .false.)
     type(NcDataset) :: nc
     character(1) :: fmode
     fmode = "w"
-    if ( present(append) ) then
-      if (append) fmode = "a"
-    end if
+    if ( optval(append, .false.) ) fmode = "a"
     nc = NcDataset(path, fmode)
-    call this%to_nc_dataset(nc, x_name, y_name, aux_lon_name, aux_lat_name, double_precision)
+    call this%to_nc_dataset(nc, x_name, y_name, aux_lon_name, aux_lat_name, double_precision, mask, area)
     call nc%close()
-  end subroutine to_nc_file
+  end subroutine grid_to_nc_file
 
   !> \brief write grid to a netcdf dataset
   !> \details write grid to a netcdf dataset with possible data variable.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine to_nc_dataset(this, nc, x_name, y_name, aux_lon_name, aux_lat_name, double_precision)
+  subroutine grid_to_nc_dataset(this, nc, x_name, y_name, aux_lon_name, aux_lat_name, double_precision, mask, area)
     use mo_netcdf, only : NcDataset, NcVariable, NcDimension
     use mo_utils, only : is_close
     use mo_string_utils, only : splitString
@@ -1225,43 +816,50 @@ contains
     character(*), optional, intent(in) :: aux_lon_name !< name for auxilliar longitude coordinate variable
     character(*), optional, intent(in) :: aux_lat_name !< name for auxilliar latitude coordinate variable
     logical, optional, intent(in) :: double_precision !< whether to use double precision to store axis (default .true.)
+    logical, optional, intent(in) :: mask !< whether to write mask variable (default: .false.)
+    logical, optional, intent(in) :: area !< whether to write cell area variable (default: .false.)
     type(NcDimension) :: x_dim, y_dim, b_dim, v_dim
-    type(NcVariable) :: x_var, y_var, xb_var, yb_var
+    type(NcVariable) :: x_var, y_var, xb_var, yb_var, var
+    integer(i1), allocatable, dimension(:,:) :: mask_data
     character(:), allocatable :: xname, yname, lonname, latname
     logical :: double_precision_
     character(3) :: dtype
 
-    double_precision_ = .true.
-    if (present(double_precision)) double_precision_ = double_precision
+    double_precision_ = optval(double_precision, .true.)
+
     dtype = "f32"
     if ( double_precision_ ) dtype = "f64"
 
     if (this%coordsys==cartesian) then
-      xname = "x"
-      yname = "y"
+      xname = optval(x_name, "x")
+      yname = optval(y_name, "y")
     else
-      xname = "lon"
-      yname = "lat"
+      xname = optval(x_name, "lon")
+      yname = optval(y_name, "lat")
     end if
-    lonname = "lon"
-    latname = "lat"
-    if (present(x_name)) xname = x_name
-    if (present(y_name)) yname = y_name
-    if (present(aux_lon_name)) lonname = aux_lon_name
-    if (present(aux_lat_name)) latname = aux_lat_name
+    lonname = optval(aux_lon_name, "lon")
+    latname = optval(aux_lat_name, "lat")
 
     x_dim = nc%setDimension(xname, this%nx)
     y_dim = nc%setDimension(yname, this%ny)
     if (nc%hasDimension("bnds")) then
       b_dim = nc%getDimension("bnds") ! check size
-      if (b_dim%getLength() /= 2_i4) call error_message("grid % to_netcdf: bnds dim already present but with length =/= 2")
+      ! LCOV_EXCL_START
+      if (b_dim%getLength() /= 2_i4) then
+        call error_message("grid % to_netcdf: bnds dim already present but with length =/= 2")
+      end if
+      ! LCOV_EXCL_STOP
     else
       b_dim = nc%setDimension("bnds", 2_i4)
     end if
     if (this%has_aux_vertices()) then
       if (nc%hasDimension("nv")) then
         v_dim = nc%getDimension("nv") ! check size
-        if (v_dim%getLength() /= 4_i4) call error_message("grid % to_netcdf: nv dim already present but with length =/= 4")
+        ! LCOV_EXCL_START
+        if (v_dim%getLength() /= 4_i4) then
+          call error_message("grid % to_netcdf: nv dim already present but with length =/= 4")
+        end if
+        ! LCOV_EXCL_STOP
       else
         v_dim = nc%setDimension("nv", 4_i4)
       end if
@@ -1336,14 +934,42 @@ contains
       end if
     end if
 
-  end subroutine to_nc_dataset
+    if (optval(mask, .false.)) then
+      allocate(mask_data(this%nx, this%ny), source=0_i1)
+      where (this%mask) mask_data = 1_i1
+      var = nc%setVariable("mask", "i8", [x_dim, y_dim])
+      call var%setFillValue(0_i1)
+      call var%setAttribute("missing_value", 0_i1)
+      call var%setAttribute("long_name", "mask")
+      call var%setAttribute("standard_name", "land_binary_mask")
+      call var%setAttribute("units", "1")
+      call var%setData(mask_data)
+      deallocate(mask_data)
+    end if
+
+    if (optval(area, .false.) .and. allocated(this%cell_area)) then
+      var = nc%setVariable("cell_area", dtype, [x_dim, y_dim])
+      if (double_precision_) then
+        call var%setFillValue(nodata_dp)
+        call var%setAttribute("missing_value", nodata_dp)
+      else
+        call var%setFillValue(nodata_sp)
+        call var%setAttribute("missing_value", nodata_sp)
+      end if
+      call var%setAttribute("long_name", "cell area")
+      call var%setAttribute("standard_name", "cell_area")
+      call var%setAttribute("units", "m2") ! TODO: should be configurable
+      call var%setData(this%unpack(this%cell_area))
+    end if
+
+  end subroutine grid_to_nc_dataset
 
 #endif
 
   !> \brief get grid extent
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine extent(this, x_min, x_max, y_min, y_max, x_size, y_size)
+  subroutine grid_extent(this, x_min, x_max, y_min, y_max, x_size, y_size)
     implicit none
     class(grid_t), intent(in) :: this
     real(dp), optional, intent(out) :: x_min !< left bound (x)
@@ -1360,13 +986,13 @@ contains
     if ( present(x_size) ) x_size = this%nx * this%cellsize
     if ( present(y_size) ) y_size = this%ny * this%cellsize
 
-  end subroutine extent
+  end subroutine grid_extent
 
   !> \brief Total domain area. NaN if cell_area not allocated.
   !> \return `real(dp) :: total_area`
   !> \authors Sebastian Müller
   !> \date Apr 2025
-  real(dp) function total_area(this)
+  real(dp) function grid_total_area(this) result(total_area)
     use mo_sentinel, only : set_sentinel
     implicit none
     class(grid_t), intent(in) :: this
@@ -1377,39 +1003,60 @@ contains
       call set_sentinel(total_area)
     end if
 
-  end function total_area
+  end function grid_total_area
 
   !> \brief Matrix of cell IDs.
   !> \return `integer(i8) :: id_matrix(nx,ny)`
   !> \authors Sebastian Müller
   !> \date Jun 2025
-  function id_matrix(this)
+  function grid_id_matrix(this) result(id_matrix)
     implicit none
     class(grid_t), intent(in) :: this
     integer(i8), dimension(this%nx, this%ny) :: id_matrix
-    integer(i8) :: i
-    id_matrix = this%unpack([(i, i=1_i8, this%ncells)])
-  end function id_matrix
+    call this%gen_id_matrix(id_matrix)
+  end function grid_id_matrix
+
+  !> \brief Generate matrix of cell IDs.
+  subroutine grid_gen_id_matrix(this, mat)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i8), intent(out) :: mat(this%nx, this%ny)
+    integer(i8) :: k
+    integer(i4) :: i, j
+    !$omp parallel do default(shared) private(k,i) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (this%mask(i,j)) then
+          k = k + 1_i8
+          mat(i,j) = k
+        else
+          mat(i,j) = nodata_i8
+        end if
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine grid_gen_id_matrix
 
   !> \brief Cell ID for given matrix indices.
   !> \return `integer(i8) :: cell_id`
   !> \authors Sebastian Müller
   !> \date Jun 2025
-  integer(i8) function cell_id(this, indices)
+  integer(i8) function grid_cell_id(this, indices) result(cell_id)
     implicit none
     class(grid_t), intent(in) :: this
     integer(i4), intent(in) :: indices(2) !< matrix indices (x_i,y_i)
-    logical, dimension(this%ncells) :: cell_loc
-    cell_loc = (this%cell_ij(:, 1) == indices(1)).and.(this%cell_ij(:, 2) == indices(2))
-    cell_id = findloc(cell_loc, .true., dim=1, kind=i8)
-    if (cell_id == 0_i8) call error_message("grid%cell_id: given indices not found.")
-  end function cell_id
+    if (indices(1) < 1_i4 .or. indices(1) > this%nx .or. indices(2) < 1_i4 .or. indices(2) > this%ny) &
+      call error_message("grid%cell_id: given indices are out of bounds.") ! LCOV_EXCL_LINE
+    if (.not.this%mask(indices(1), indices(2))) call error_message("grid%cell_id: given indices are masked.") ! LCOV_EXCL_LINE
+    cell_id = this%mask_cum_col_cnt(indices(2)) + count(this%mask(1_i4:indices(1), indices(2)), kind=i8)
+  end function grid_cell_id
 
   !> \brief Closest cell ID for given coordinates.
   !> \return `integer(i8) :: closest_cell_id`
   !> \authors Sebastian Müller
   !> \date Jun 2025
-  integer(i8) function closest_cell_id(this, coords, use_aux)
+  integer(i8) function grid_closest_cell_id(this, coords, use_aux) result(closest_cell_id)
     implicit none
     class(grid_t), intent(in) :: this
     real(dp), intent(in) :: coords(2) !< coordiantes (x,y) or (lon,lat)
@@ -1417,9 +1064,9 @@ contains
     real(dp), allocatable :: xax(:), yax(:)
     real(dp) :: c(this%ncells, 2), dist(this%ncells)
     integer(i8) :: i
-    logical :: aux = .false.
-    if (present(use_aux)) aux = use_aux
-    if (aux .and. .not.this%has_aux_coords()) call error_message("grid%closest_cell_id: no auxilliar coordniates defined.")
+    logical :: aux
+    aux = optval(use_aux, .false.)
+    if (aux .and. .not.this%has_aux_coords()) call error_message("grid%closest_cell_id: no auxilliar coordniates defined.") ! LCOV_EXCL_LINE
     if (aux) then
       c(:,1) = [(this%lon(this%cell_ij(i,1),this%cell_ij(i,2)), i=1_i8,this%ncells)]
       c(:,2) = [(this%lat(this%cell_ij(i,1),this%cell_ij(i,2)), i=1_i8,this%ncells)]
@@ -1435,13 +1082,13 @@ contains
       dist = [(sqrt((c(i,1)-coords(1))**2 + (c(i,2)-coords(2))**2), i=1_i8,this%ncells)]
     end if
     closest_cell_id = minloc(dist, dim=1)
-  end function closest_cell_id
+  end function grid_closest_cell_id
 
   !> \brief x-axis of the grid cell centers
   !> \return `real(dp), allocatable, dimension(:) :: x_axis`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  function x_axis(this)
+  function grid_x_axis(this) result(x_axis)
     implicit none
     class(grid_t), intent(in) :: this
     real(dp), allocatable, dimension(:) :: x_axis
@@ -1450,21 +1097,21 @@ contains
 
     x_axis = [ ((i-0.5_dp) * this%cellsize + this%xllcorner, i=1_i4, this%nx) ]
 
-  end function x_axis
+  end function grid_x_axis
 
   !> \brief y-axis of the grid cell centers
   !> \return `real(dp), allocatable, dimension(:) :: y_axis`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  function y_axis(this, y_direction)
+  function grid_y_axis(this, y_direction) result(y_axis)
     implicit none
     class(grid_t), intent(in) :: this
     integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) for current, 0 for top-down, 1 for bottom-up)
     real(dp), allocatable, dimension(:) :: y_axis
 
     integer(i4) :: i, y_dir
-    y_dir = keep_y
-    if (present(y_direction)) y_dir = y_direction
+
+    y_dir = optval(y_direction, keep_y)
     if (y_dir == keep_y) y_dir = this%y_direction
 
     select case (y_dir)
@@ -1473,16 +1120,16 @@ contains
       case (1)
         y_axis = [ ((i-0.5_dp) * this%cellsize + this%yllcorner, i=1_i4, this%ny) ]
       case default
-        call error_message("grid % y_axis: y-direction not valid: ", trim(num2str(y_dir)))
+        call error_message("grid % y_axis: y-direction not valid: ", trim(num2str(y_dir))) ! LCOV_EXCL_LINE
     end select
 
-  end function y_axis
+  end function grid_y_axis
 
   !> \brief x-vertices of the grid cell edges
   !> \return `real(dp), allocatable, dimension(:) :: x_vertices`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  function x_vertices(this)
+  function grid_x_vertices(this) result(x_vertices)
     implicit none
     class(grid_t), intent(in) :: this
     real(dp), allocatable, dimension(:) :: x_vertices
@@ -1491,21 +1138,21 @@ contains
 
     x_vertices = [ (i * this%cellsize + this%xllcorner, i=0_i4, this%nx) ]
 
-  end function x_vertices
+  end function grid_x_vertices
 
   !> \brief y-vertices of the grid cell edges
   !> \return `real(dp), allocatable, dimension(:) :: y_vertices`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  function y_vertices(this, y_direction)
+  function grid_y_vertices(this, y_direction) result(y_vertices)
     implicit none
     class(grid_t), intent(in) :: this
     integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) for current, 0 for top-down, 1 for bottom-up)
     real(dp), allocatable, dimension(:) :: y_vertices
 
     integer(i4) :: i, y_dir
-    y_dir = keep_y
-    if (present(y_direction)) y_dir = y_direction
+
+    y_dir = optval(y_direction, keep_y)
     if (y_dir == keep_y) y_dir = this%y_direction
 
     select case (y_dir)
@@ -1514,47 +1161,49 @@ contains
       case (1)
         y_vertices = [ (i * this%cellsize + this%yllcorner, i=0_i4, this%ny) ]
       case default
-        call error_message("grid % y_vertices: y-direction not valid: ", trim(num2str(y_dir)))
+        call error_message("grid % y_vertices: y-direction not valid: ", trim(num2str(y_dir))) ! LCOV_EXCL_LINE
     end select
 
-  end function y_vertices
+  end function grid_y_vertices
 
   !> \brief x-bounds of the grid cell following cf-conventions (2, nx).
   !> \return `real(dp), allocatable, dimension(:,:) :: x_bounds`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  function x_bounds(this)
+  function grid_x_bounds(this) result(x_bounds)
     implicit none
     class(grid_t), intent(in) :: this
     real(dp), allocatable, dimension(:,:) :: x_bounds
     real(dp), allocatable, dimension(:) :: x_ax
+    allocate(x_ax(this%nx+1_i4))
     x_ax = this%x_vertices()
     allocate(x_bounds(2, this%nx))
     x_bounds(1,:) = x_ax(1:this%nx)
     x_bounds(2,:) = x_ax(2:this%nx+1)
-  end function x_bounds
+  end function grid_x_bounds
 
   !> \brief y-bounds of the grid cells following cf-conventions (2, ny).
   !> \return `real(dp), allocatable, dimension(:,:) :: y_bounds`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  function y_bounds(this, y_direction)
+  function grid_y_bounds(this, y_direction) result(y_bounds)
     implicit none
     class(grid_t), intent(in) :: this
     integer(i4), intent(in), optional :: y_direction !< y-axis direction (-1 (default) for current, 0 for top-down, 1 for bottom-up)
     real(dp), allocatable, dimension(:,:) :: y_bounds
     real(dp), allocatable, dimension(:) :: y_ax
     ! bounds follow axis direction
+    allocate(y_ax(this%ny+1_i4))
     y_ax = this%y_vertices(y_direction)
     allocate(y_bounds(2, this%ny))
     y_bounds(1,:) = y_ax(1:this%ny)
     y_bounds(2,:) = y_ax(2:this%ny+1)
-  end function y_bounds
+  end function grid_y_bounds
 
   !> \brief estimate auxilliar coordinates (lat, lon) from finer grid
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine upscale_aux_coords(this, fine_grid, tol)
+  subroutine grid_upscale_aux_coords(this, fine_grid, tol)
     implicit none
     class(grid_t), intent(inout) :: this
     type(grid_t), intent(in) :: fine_grid !< finer grid to estimate the auxilliar coordinates from
@@ -1565,18 +1214,18 @@ contains
     call check_factor(fine_grid%cellsize, this%cellsize, factor=factor, tol=tol)
 
     if (this % coordsys /= cartesian) &
-      call error_message("grid % upscale_aux_coords: grids already use spherical coordinate system for axis.")
+      call error_message("grid % upscale_aux_coords: grids already use spherical coordinate system for axis.") ! LCOV_EXCL_LINE
 
     if (.not. fine_grid%has_aux_coords()) &
-      call error_message("grid % upscale_aux_coords: fine grid has no auxilliar coordinates defined.")
+      call error_message("grid % upscale_aux_coords: fine grid has no auxilliar coordinates defined.") ! LCOV_EXCL_LINE
 
     if (this%has_aux_coords()) &
-      call error_message("grid % upscale_aux_coords: grid already has auxilliar coordinates defined.")
+      call error_message("grid % upscale_aux_coords: grid already has auxilliar coordinates defined.") ! LCOV_EXCL_LINE
 
     allocate(this%lat(this%nx, this%ny))
     allocate(this%lon(this%nx, this%ny))
-    do j = 1, this%ny
-      do i = 1, this%nx
+    do j = 1_i4, this%ny
+      do i = 1_i4, this%nx
         ! coord. of all corners -> of finer scale
         call id_bounds(factor, i, j, &
           this%y_direction, this%ny, &
@@ -1589,12 +1238,12 @@ contains
       end do
     end do
 
-  end subroutine upscale_aux_coords
+  end subroutine grid_upscale_aux_coords
 
   !> \brief estimate auxilliar coordinates (lat, lon) from coarser grid
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine downscale_aux_coords(this, coarse_grid, tol)
+  subroutine grid_downscale_aux_coords(this, coarse_grid, tol)
     implicit none
     class(grid_t), intent(inout) :: this
     type(grid_t), intent(inout) :: coarse_grid !< finer grid to estimate the auxilliar coordinates from
@@ -1608,13 +1257,13 @@ contains
     call check_factor(this%cellsize, coarse_grid%cellsize, rounded=fac, factor=factor, tol=tol)
 
     if (this % coordsys /= cartesian) &
-      call error_message("grid % downscale_aux_coords: grids already use spherical coordinate system for axis.")
+      call error_message("grid % downscale_aux_coords: grids already use spherical coordinate system for axis.") ! LCOV_EXCL_LINE
 
     if (.not. coarse_grid%has_aux_coords()) &
-      call error_message("grid % downscale_aux_coords: fine grid has no auxilliar coordinates defined.")
+      call error_message("grid % downscale_aux_coords: fine grid has no auxilliar coordinates defined.") ! LCOV_EXCL_LINE
 
     if (this%has_aux_coords()) &
-      call error_message("grid % downscale_aux_coords: grid already has auxilliar coordinates defined.")
+      call error_message("grid % downscale_aux_coords: grid already has auxilliar coordinates defined.") ! LCOV_EXCL_LINE
 
     if (coarse_grid%has_aux_vertices()) then
       reset_aux_vertices = .false.
@@ -1631,8 +1280,8 @@ contains
 
     allocate(this%lat(this%nx, this%ny))
     allocate(this%lon(this%nx, this%ny))
-    do j = 1, coarse_grid%ny
-      do i = 1, coarse_grid%nx
+    do j = 1_i4, coarse_grid%ny
+      do i = 1_i4, coarse_grid%nx
         ! calculate sub-points along vertice boundaries (top, left, right, bottom)
         ! lon
         x = coarse_grid%lon_vertices(i,j)
@@ -1668,8 +1317,8 @@ contains
         fac_i = i_end - i_start + 1_i4
         fac_j = j_end - j_start + 1_i4
 
-        do jj = 1, fac_j
-          do ii = 1, fac_i
+        do jj = 1_i4, fac_j
+          do ii = 1_i4, fac_i
             call intersection( &
               latlon_t(ii,1), latlon_t(ii,2), latlon_b(ii,1), latlon_b(ii,2), &
               latlon_l(jj,1), latlon_l(jj,2), latlon_r(jj,1), latlon_r(jj,2), &
@@ -1685,7 +1334,7 @@ contains
       deallocate(coarse_grid%lon_vertices)
     end if
 
-  end subroutine downscale_aux_coords
+  end subroutine grid_downscale_aux_coords
 
   subroutine intersection(p1x, p1y, p2x, p2y, q1x, q1y, q2x, q2y, x, y)
     use mo_utils, only : is_close
@@ -1709,19 +1358,19 @@ contains
   !> \brief estimate vertices of auxilliar coordinate cells
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine estimate_aux_vertices(this)
+  subroutine grid_estimate_aux_vertices(this)
     implicit none
     class(grid_t), intent(inout) :: this
     integer(i4) :: i, j
 
     if (.not. this%has_aux_coords()) &
-      call error_message("grid % estimate_aux_vertices: grid has no auxilliar coordinates defined.")
+      call error_message("grid % estimate_aux_vertices: grid has no auxilliar coordinates defined.") ! LCOV_EXCL_LINE
 
     if (this%has_aux_vertices()) &
-      call error_message("grid % estimate_aux_vertices: grid already has auxilliar vertices defined.")
+      call error_message("grid % estimate_aux_vertices: grid already has auxilliar vertices defined.") ! LCOV_EXCL_LINE
 
     if (this%nx == 1_i4 .or. this%ny == 1_i4) &
-      call error_message("grid % estimate_aux_vertices: grid needs at least 2 cells in both directions.")
+      call error_message("grid % estimate_aux_vertices: grid needs at least 2 cells in both directions.") ! LCOV_EXCL_LINE
 
     allocate(this%lat_vertices(this%nx+1_i4, this%ny+1_i4))
     allocate(this%lon_vertices(this%nx+1_i4, this%ny+1_i4))
@@ -1762,18 +1411,18 @@ contains
     this%lat_vertices(this%nx+1, this%ny+1) = this%lat_vertices(this%nx, this%ny+1) ! from left neighbor
     this%lon_vertices(this%nx+1, this%ny+1) = this%lon_vertices(this%nx+1, this%ny) ! from lower neighbor
 
-  end subroutine estimate_aux_vertices
+  end subroutine grid_estimate_aux_vertices
 
   !> \brief lat-bounds of the grid cell following cf-conventions (4, nx, ny).
   !> \return `real(dp), allocatable, dimension(:,:,:) :: lat_bounds`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  function lat_bounds(this)
+  function grid_lat_bounds(this) result(lat_bounds)
     implicit none
     class(grid_t), intent(in) :: this
     real(dp), allocatable, dimension(:,:,:) :: lat_bounds
     if (.not.this%has_aux_vertices()) &
-      call error_message("grid % lat_bounds: grid has no auxilliar vertices defined.")
+      call error_message("grid % lat_bounds: grid has no auxilliar vertices defined.") ! LCOV_EXCL_LINE
     allocate(lat_bounds(4, this%nx, this%ny))
     if (this%y_direction == bottom_up) then
       ! lower-left corner of the cells
@@ -1794,18 +1443,18 @@ contains
       ! upper-left corner of the cells
       lat_bounds(4,:,:) = this%lat_vertices(1:this%nx, 1:this%ny)
     end if
-  end function lat_bounds
+  end function grid_lat_bounds
 
   !> \brief lon-bounds of the grid cell following cf-conventions (4, nx, ny).
   !> \return `real(dp), allocatable, dimension(:,:,:) :: lon_bounds`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  function lon_bounds(this)
+  function grid_lon_bounds(this) result(lon_bounds)
     implicit none
     class(grid_t), intent(in) :: this
     real(dp), allocatable, dimension(:,:,:) :: lon_bounds
     if (.not.this%has_aux_vertices()) &
-      call error_message("grid % lon_bounds: grid has no auxilliar vertices defined.")
+      call error_message("grid % lon_bounds: grid has no auxilliar vertices defined.") ! LCOV_EXCL_LINE
     allocate(lon_bounds(4, this%nx, this%ny))
     if (this%y_direction == bottom_up) then
       ! lower-left corner of the cells
@@ -1826,38 +1475,46 @@ contains
       ! upper-left corner of the cells
       lon_bounds(4,:,:) = this%lon_vertices(1:this%nx, 1:this%ny)
     end if
-  end function lon_bounds
+  end function grid_lon_bounds
 
   !> \brief check if given grid has an allocated mask
   !> \return `logical :: has_mask`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  logical function has_mask(this)
+  logical function grid_has_mask(this) result(has_mask)
     implicit none
     class(grid_t), intent(in) :: this
     has_mask = allocated(this%mask)
-  end function has_mask
+  end function grid_has_mask
 
   !> \brief check if given grid has any missing cells (mask allocated and any value .false.)
   !> \return `logical :: any_missing`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  logical function any_missing(this)
+  logical function grid_any_missing(this) result(any_missing)
     implicit none
     class(grid_t), intent(in) :: this
-    if (.not. this%has_mask()) then
-      any_missing = .false.
-    else
-      any_missing = .not. all(this%mask)
-    end if
-  end function any_missing
+    integer(i4) :: j
+    any_missing = .false.
+    if (.not. this%has_mask()) return
+    !$omp parallel do default(shared) schedule(static)
+    do j = 1_i4, this%ny
+      !$omp flush(any_missing)
+      if (any_missing) cycle ! no work for rest of the loop (exit not safe with omp)
+      if (.not. all(this%mask(:, j))) then
+        !$omp atomic write
+        any_missing = .true.
+      end if
+    end do
+    !$omp end parallel do
+  end function grid_any_missing
 
   !> \brief check if given grid is covered by coarser grid
   !> \details check if given grid is compatible and covered by coarser grid and raise an error if this is not the case.
   !! \note The coarse grid is allowed to have valid cells outside of the fine grids masked region.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine check_is_covered_by(this, coarse_grid, tol, check_mask)
+  subroutine grid_check_is_covered_by(this, coarse_grid, tol, check_mask)
     use mo_utils, only: eq
     implicit none
     class(grid_t), intent(in) :: this
@@ -1868,15 +1525,17 @@ contains
     integer(i4) :: factor, i, j, i_lb, i_ub, j_lb, j_ub
     logical :: check_mask_
 
-    check_mask_ = .true.
-    if ( present(check_mask) ) check_mask_ = check_mask
+    check_mask_ = optval(check_mask, .true.)
 
+    ! LCOV_EXCL_START
     if (this%coordsys /= coarse_grid%coordsys) &
       call error_message("grid % check_is_covered_by: grids don't use the same coordinate system.")
+    ! LCOV_EXCL_STOP
 
     call check_factor(this%cellsize, coarse_grid%cellsize, factor=factor, tol=tol)
 
     ! check ll corner
+    ! LCOV_EXCL_START
     if ( .not. (eq(this%xllcorner, coarse_grid%xllcorner) .and. eq(this%yllcorner, coarse_grid%yllcorner)) ) then
       call error_message("grid % check_is_covered_by: coarse grid lower-left corner is not matching.")
     end if
@@ -1885,11 +1544,14 @@ contains
                (coarse_grid%ny - 1) * factor <= this%ny .and. this%ny <= coarse_grid%ny * factor)) then
       call error_message("grid % check_is_covered_by: coarse grid extent is not matching.")
     end if
+    ! LCOV_EXCL_STOP
 
+    ! LCOV_EXCL_START
     if ( check_mask_ .and. coarse_grid%any_missing()) then
-      if (.not. this%any_missing()) call error_message("grid % check_is_covered_by: coarse grid is masked, this grid not.")
-      do j = 1, coarse_grid%ny
-        do i = 1, coarse_grid%nx
+      if (.not. this%any_missing()) call error_message("grid % check_is_covered_by: coarse grid is masked, this grid not.") ! LCOV_EXCL_LINE
+      !$omp parallel do default(shared) private(i,j,i_lb,i_ub,j_lb,j_ub) schedule(static)
+      do j = 1_i4, coarse_grid%ny
+        do i = 1_i4, coarse_grid%nx
           if ( coarse_grid%mask(i, j)) cycle
           call id_bounds(factor, i, j, &
             coarse_grid%y_direction, coarse_grid%ny, &
@@ -1899,29 +1561,31 @@ contains
             call error_message("grid % check_is_covered_by: fine cells outside of coarse mask.")
         end do
       end do
+      !$omp end parallel do
     end if
-  end subroutine check_is_covered_by
+    ! LCOV_EXCL_STOP
+  end subroutine grid_check_is_covered_by
 
   !> \brief check if given grid is covering finer grid
   !> \details check if given grid is compatible with and covering finer grid and raise an error if this is not the case.
   !! \note The coarse grid is allowed to have valid cells outside of the fine grids masked region.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine check_is_covering(this, fine_grid, tol, check_mask)
+  subroutine grid_check_is_covering(this, fine_grid, tol, check_mask)
     implicit none
     class(grid_t), intent(in) :: this
     type(grid_t), intent(in) :: fine_grid !< finer grid that should be covered by this grid
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     logical, optional, intent(in) :: check_mask !< whether to check if coarse mask covers fine mask
     call fine_grid%check_is_covered_by(coarse_grid=this, tol=tol, check_mask=check_mask)
-  end subroutine check_is_covering
+  end subroutine grid_check_is_covering
 
   !> \brief check if given grid is filled by fine grid
   !> \details check if given grid is compatible and filled by finer grid and raise an error if this is not the case.
   !! \note The fine grid is allowed to have valid cells outside of the coarse grids masked region.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine check_is_filled_by(this, fine_grid, tol, check_mask)
+  subroutine grid_check_is_filled_by(this, fine_grid, tol, check_mask)
     use mo_utils, only: eq
     implicit none
     class(grid_t), intent(in) :: this
@@ -1929,12 +1593,13 @@ contains
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     logical, optional, intent(in) :: check_mask !< whether to check if fine mask fills coarse mask
 
-    integer(i4) :: factor, i, j, i_lb, i_ub, j_lb, j_ub
+    integer(i4) :: factor, i_lb, i_ub, j_lb, j_ub
+    integer(i8) :: k
     logical :: check_mask_
 
-    check_mask_ = .true.
-    if ( present(check_mask) ) check_mask_ = check_mask
+    check_mask_ = optval(check_mask, .true.)
 
+    ! LCOV_EXCL_START
     if (this%coordsys /= fine_grid%coordsys) then
       call error_message("grid % check_is_filled_by: grids don't use the same coordinate system.")
     end if
@@ -1950,56 +1615,58 @@ contains
                (this%ny - 1) * factor <= fine_grid%ny .and. fine_grid%ny <= this%ny * factor)) then
       call error_message("grid % check_is_filled_by: fine grid extent is not matching.")
     end if
+    ! LCOV_EXCL_STOP
 
+    ! LCOV_EXCL_START
     if ( check_mask_ .and. fine_grid%any_missing()) then
-      do j = 1, this%ny
-        do i = 1, this%nx
-          if ( .not.this%mask(i, j)) cycle
-          call id_bounds(factor, i, j, &
-            this%y_direction, this%ny, &
-            fine_grid%y_direction, fine_grid%nx, fine_grid%ny, &
-            i_lb, i_ub, j_lb, j_ub)
-          if (.not.any(fine_grid%mask(i_lb:i_ub, j_lb:j_ub))) then
-            call error_message("grid % check_is_filled_by: coarse cells without any filling fine cells found.")
-          end if
-        end do
+      !$omp parallel do default(shared) private(i_lb,i_ub,j_lb,j_ub) schedule(static)
+      do k = 1_i8, this%ncells
+        call id_bounds(factor, this%cell_ij(k,1), this%cell_ij(k,2), &
+          this%y_direction, this%ny, &
+          fine_grid%y_direction, fine_grid%nx, fine_grid%ny, &
+          i_lb, i_ub, j_lb, j_ub)
+        if (.not.any(fine_grid%mask(i_lb:i_ub, j_lb:j_ub))) then
+          call error_message("grid % check_is_filled_by: coarse cells without any filling fine cells found.")
+        end if
       end do
+      !$omp end parallel do
     end if
-  end subroutine check_is_filled_by
+    ! LCOV_EXCL_STOP
+  end subroutine grid_check_is_filled_by
 
   !> \brief check if given grid is filling coarser grid
   !> \details check if given grid is compatible with and filling coarser grid and raise an error if this is not the case.
   !! \note The fine grid is allowed to have valid cells outside of the coarse grids masked region.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine check_is_filling(this, coarse_grid, tol, check_mask)
+  subroutine grid_check_is_filling(this, coarse_grid, tol, check_mask)
     implicit none
     class(grid_t), intent(in) :: this
     type(grid_t), intent(in) :: coarse_grid !< coarser grid that should be covered by this grid
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     logical, optional, intent(in) :: check_mask !< whether to check if fine mask fills coarse mask
     call coarse_grid%check_is_filled_by(fine_grid=this, tol=tol, check_mask=check_mask)
-  end subroutine check_is_filling
+  end subroutine grid_check_is_filling
 
   !> \brief check if given grid has auxilliar coordinates allocated.
   !> \return `logical :: has_aux_coords`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  logical function has_aux_coords(this)
+  logical function grid_has_aux_coords(this) result(has_aux_coords)
     implicit none
     class(grid_t), intent(in) :: this
     has_aux_coords = allocated(this%lat) .and. allocated(this%lon)
-  end function has_aux_coords
+  end function grid_has_aux_coords
 
   !> \brief check if given grid has auxilliar vertices allocated.
   !> \return `logical :: has_aux_vertices`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  logical function has_aux_vertices(this)
+  logical function grid_has_aux_vertices(this) result(has_aux_vertices)
     implicit none
     class(grid_t), intent(in) :: this
     has_aux_vertices = allocated(this%lat_vertices) .and. allocated(this%lon_vertices)
-  end function has_aux_vertices
+  end function grid_has_aux_vertices
 
   ! ------------------------------------------------------------------
 
@@ -2022,9 +1689,8 @@ contains
   !!   - refactoring and reformatting
   !! - Sebastian Müller, Mar 2024
   !!   - moved to FORCES
-  subroutine calculate_cell_ids(this)
+  subroutine grid_calculate_cell_ids(this)
     implicit none
-
     class(grid_t), intent(inout) :: this
 
     integer(i4) :: i, j
@@ -2033,22 +1699,45 @@ contains
     ! if mask not allocated create one with only .true. values
     if (.not. allocated(this%mask)) then
       allocate(this%mask(this%nx, this%ny))
-      this%mask = .true.
+      !$omp parallel do default(shared) schedule(static)
+      do j = 1_i4, this%ny
+        this%mask(:,j) = .true.
+      end do
+      !$omp end parallel do
     end if
 
-    this%ncells = count(this%mask)
+    ! allocate arrays for mask column counts and cumulative counts
+    if (.not. allocated(this%mask_col_cnt)) allocate(this%mask_col_cnt(this%ny))
+    if (.not. allocated(this%mask_cum_col_cnt)) allocate(this%mask_cum_col_cnt(this%ny))
+
+    !$omp parallel do default(shared) schedule(static)
+    do j = 1_i4, this%ny
+      this%mask_col_cnt(j) = count(this%mask(:,j), kind=i8)
+    end do
+    !$omp end parallel do
+
+    this%mask_cum_col_cnt(1) = 0_i8
+    do j = 1_i4, this%ny-1_i4
+      this%mask_cum_col_cnt(j+1_i4) = this%mask_cum_col_cnt(j) + this%mask_col_cnt(j)
+    end do
+    this%ncells = this%mask_cum_col_cnt(this%ny) + this%mask_col_cnt(this%ny)
+
+    if (allocated(this%cell_ij)) deallocate(this%cell_ij)
     allocate(this%cell_ij(this%ncells, 2))
 
-    k = 0_i8
-    do j = 1, this%ny
-      do i = 1, this%nx
-        if (.NOT. this%mask(i, j)) cycle
+    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (.not.this%mask(i, j)) cycle
         k = k + 1_i8
         this%cell_ij(k, 1) = i
         this%cell_ij(k, 2) = j
       end do
     end do
-  end subroutine calculate_cell_ids
+    !$omp end parallel do
+
+  end subroutine grid_calculate_cell_ids
 
   ! ------------------------------------------------------------------
 
@@ -2070,18 +1759,15 @@ contains
   !!   - refactoring and reformatting
   !! - Sebastian Müller, Mar 2024
   !!   - moved to FORCES
-  subroutine calculate_cell_area(this)
-
-    use mo_constants, only : RadiusEarth_dp, deg2rad_dp
+  subroutine grid_calculate_cell_area(this)
     implicit none
-
     class(grid_t), intent(inout) :: this
+    real(dp) :: factor, cell_size_rad
+    integer(i8) :: k
+    real(dp), allocatable :: cell_area_lat(:)
 
-    real(dp), dimension(:, :), allocatable :: cell_area
-    real(dp) :: factor, cell_size_rad, cell_center_lat_rad
-    integer(i4) :: j
-
-    if (.not. allocated(this%cell_area)) allocate(this%cell_area(this%ncells))
+    if (allocated(this%cell_area)) deallocate(this%cell_area)
+    allocate(this%cell_area(this%ncells))
 
     ! regular X-Y coordinate system
     if(this%coordsys .eq. cartesian) then
@@ -2089,7 +1775,6 @@ contains
 
     ! regular lat-lon coordinate system
     else if(this%coordsys .eq. spherical) then
-      allocate(cell_area(this%nx, this%ny))
 
       ! A = R ** 2 * dx * (sin(lat1) - sin(lon2))
       !   = R ** 2 * dx * cos([lat1 + lat2] / 2) * sin(dy / 2) * 2
@@ -2098,59 +1783,46 @@ contains
 
       cell_size_rad = this%cellsize * deg2rad_dp
       factor = (RadiusEarth_dp * cell_size_rad) * (RadiusEarth_dp * sin(cell_size_rad / 2.0_dp) * 2.0_dp)
+      allocate(cell_area_lat(this%ny), source=cos(this%y_axis() * deg2rad_dp) * factor)
 
-      do j = 1, this%ny
-        ! get latitude of cell-center in radians (y-axis is increasing!)
-        cell_center_lat_rad = (this%yllcorner + (real(j, dp) - 0.5_dp) * this%cellsize) * deg2rad_dp
-        ! AREA [m2]
-        cell_area(:, j) = cos(cell_center_lat_rad) * factor
+      !$omp parallel do default(shared) schedule(static)
+      do k = 1_i8, this%ncells
+        this%cell_area(k) = cell_area_lat(this%cell_ij(k, 2))
       end do
-      if (this%y_direction == top_down) call flip(cell_area, idim=2)
-      this%cell_area(:) = pack(cell_area(:, :), this%mask)
+      !$omp end parallel do
 
-      ! free space
-      deallocate(cell_area)
     else
-      call error_message("estimate_cell_area: unknown coordsys value: ", num2str(this%coordsys))
+      call error_message("estimate_cell_area: unknown coordsys value: ", num2str(this%coordsys)) ! LCOV_EXCL_LINE
     end if
 
-  end subroutine calculate_cell_area
+  end subroutine grid_calculate_cell_area
 
   !> \brief check if given grid is a global lat-lon grid with periodic lon axis
   !> \return `logical :: is_periodic`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  logical function is_periodic(this)
+  logical function grid_is_periodic(this) result(is_periodic)
     use mo_utils, only : is_close
     implicit none
     class(grid_t), intent(in) :: this
     if (this%coordsys == cartesian) then
       is_periodic = .false.
     else
-      is_periodic = is_close(360.0_dp, this%nx * this%cellsize - this%xllcorner)
+      is_periodic = is_close(360.0_dp, this%nx * this%cellsize)
     endif
-  end function is_periodic
+  end function grid_is_periodic
 
   !> \brief Generate coarse grid from a fine grid by a given target resolution
-  !> \details following attributes are calculated for the coarse grid:
-  !!          -  cell id & numbering
-  !!          -  mask creation
-  !> \return `type(grid_t) :: coarse_grid`
-  !> \authors Rohini Kumar
-  !> \date    Jan 2013
-  !> \changelog
-  !! - Sebastian Müller, Mar 2024
-  !!   - moving to FORCES
-  !!   - is now a method of the grid type
-  function derive_coarse_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol) result(coarse_grid)
+  subroutine grid_gen_coarse_grid(this, coarse_grid, target_resolution, estimate_aux, estimate_area, area_method, tol)
     implicit none
     class(grid_t), intent(inout) :: this
+    type(grid_t), intent(out) :: coarse_grid !< resulting low resolution grid
     real(dp), intent(in) :: target_resolution !< desired target resolution
     logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
     logical, intent(in), optional :: estimate_area !< whether to estimate coarse cell areas respecting fine mask (default: .true.)
-    integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from fine grid, (1) from cell extent
+    !> method to estimate area: (0, default) from fine grid, (1) from cell extent, (2) from count fraction of valid fine cells
+    integer(i4), intent(in), optional :: area_method
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    type(grid_t) :: coarse_grid !< resulting low resolution grid
 
     real(dp), dimension(:, :), allocatable :: fine_cell_area
     integer(i4) :: i_ub, i_lb, j_lb, j_ub
@@ -2158,13 +1830,11 @@ contains
     integer(i8) :: k
     integer(i4) :: factor, area_method_
     logical :: estimate_aux_, estimate_area_
+    real(dp) :: sub_cell_cnt
 
-    estimate_aux_ = .true.
-    if (present(estimate_aux)) estimate_aux_ = estimate_aux
-    estimate_area_ = .true.
-    if (present(estimate_area)) estimate_area_ = estimate_area
-    area_method_ = 0_i4
-    if (present(area_method)) area_method_ = area_method
+    estimate_aux_ = optval(estimate_aux, .true.)
+    estimate_area_ = optval(estimate_area, .true.)
+    area_method_ = optval(area_method, area_sum)
 
     !--------------------------------------------------------
     ! 1) Estimate each variable locally for a given domain
@@ -2192,12 +1862,14 @@ contains
     factor = nint(coarse_grid%cellsize / this%cellsize, i4)
 
     if (this%is_periodic().and.(.not.coarse_grid%is_periodic())) &
-      call error_message("derive_coarse_grid: target resolution is not suitable for a periodic grid.")
+      call error_message("derive_coarse_grid: target resolution is not suitable for a periodic grid.") ! LCOV_EXCL_LINE
 
     ! create mask at coarse grid
-    allocate(coarse_grid%mask(coarse_grid%nx, coarse_grid%ny), source=.false.)
-    do j = 1, coarse_grid%ny
-      do i = 1, coarse_grid%nx
+    allocate(coarse_grid%mask(coarse_grid%nx, coarse_grid%ny))
+
+    !$omp parallel do default(shared) private(i,j,i_lb,i_ub,j_lb,j_ub) schedule(static)
+    do j = 1_i4, coarse_grid%ny
+      do i = 1_i4, coarse_grid%nx
         call id_bounds(factor, i, j, &
           coarse_grid%y_direction, coarse_grid%ny, &
           this%y_direction, this%nx, this%ny, &
@@ -2205,35 +1877,47 @@ contains
         coarse_grid%mask(i, j) = any(this%mask(i_lb : i_ub, j_lb : j_ub))
       end do
     end do
+    !$omp end parallel do
 
     call coarse_grid%calculate_cell_ids()
 
     if (estimate_area_) then
       select case(area_method_)
-        case(0_i4)
+        case(area_sum)
           ! lowres additional properties
           allocate(fine_cell_area(this%nx, this%ny))
-          fine_cell_area(:, :) = this%unpack(this%cell_area)
+          call this%unpack_into(this%cell_area, fine_cell_area)
           allocate(coarse_grid%cell_area(coarse_grid%ncells))
-          k = 0_i8
-          do j = 1, coarse_grid%ny
-            do i = 1, coarse_grid%nx
-              if (.NOT. coarse_grid%mask(i, j)) cycle
-              k = k + 1_i8
-              call id_bounds(factor, i, j, &
-                coarse_grid%y_direction, coarse_grid%ny, &
-                this%y_direction, this%nx, this%ny, &
-                i_lb, i_ub, j_lb, j_ub)
-              ! effective area [km2] & total no. of fine grid cells within a given coarse grid cell
-              coarse_grid%cell_area(k) = sum(fine_cell_area(i_lb : i_ub, j_lb : j_ub), this%mask(i_lb : i_ub, j_lb : j_ub))
-            end do
+          !$omp parallel do default(shared) private(i,j,i_lb,i_ub,j_lb,j_ub) schedule(static)
+          do k = 1_i8, coarse_grid%ncells
+            i = coarse_grid%cell_ij(k, 1)
+            j = coarse_grid%cell_ij(k, 2)
+            call id_bounds(factor, i, j, &
+              coarse_grid%y_direction, coarse_grid%ny, this%y_direction, this%nx, this%ny, &
+              i_lb, i_ub, j_lb, j_ub)
+            coarse_grid%cell_area(k) = sum(fine_cell_area(i_lb : i_ub, j_lb : j_ub), this%mask(i_lb : i_ub, j_lb : j_ub))
           end do
+          !$omp end parallel do
           ! free space
           deallocate(fine_cell_area)
-        case(1_i4)
+        case(area_full)
           call coarse_grid%calculate_cell_area()
+        case(area_count)
+          call coarse_grid%calculate_cell_area()
+          sub_cell_cnt = real(factor * factor, dp)
+          !$omp parallel do default(shared) private(i,j,i_lb,i_ub,j_lb,j_ub) schedule(static)
+          do k = 1_i8, coarse_grid%ncells
+            i = coarse_grid%cell_ij(k, 1)
+            j = coarse_grid%cell_ij(k, 2)
+            call id_bounds(factor, i, j, &
+              coarse_grid%y_direction, coarse_grid%ny, &
+              this%y_direction, this%nx, this%ny, &
+              i_lb, i_ub, j_lb, j_ub)
+            coarse_grid%cell_area(k) = coarse_grid%cell_area(k) * (real(count(this%mask(i_lb:i_ub, j_lb:j_ub)), dp) / sub_cell_cnt)
+          end do
+          !$omp end parallel do
         case default
-          call error_message("derive_coarse_grid: 'area_method' needs to be 0 or 1. Got: ", trim(num2str(area_method_)))
+          call error_message("derive_coarse_grid: 'area_method' needs to be 0, 1 or 2. Got: ", trim(num2str(area_method_))) ! LCOV_EXCL_LINE
       end select
     end if
 
@@ -2242,35 +1926,41 @@ contains
       call coarse_grid%upscale_aux_coords(this, tol=tol)
     end if
 
-  end function derive_coarse_grid
+  end subroutine grid_gen_coarse_grid
 
-  !> \brief Generate fine grid from a coarse grid by a given target resolution
-  !> \details following attributes are calculated for the coarse grid:
-  !!          -  cell id & numbering
-  !!          -  mask creation
-  !> \return `type(grid_t) :: fine_grid`
-  !> \authors Sebastian Müller
-  !> \date    Mar 2025
-  function derive_fine_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol) result(fine_grid)
+  !> \brief Generate coarse grid from a fine grid by a given target resolution
+  !> \return `type(grid_t) :: coarse_grid`
+  function grid_derive_coarse_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol) result(coarse_grid)
     implicit none
     class(grid_t), intent(inout) :: this
     real(dp), intent(in) :: target_resolution !< desired target resolution
     logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
     logical, intent(in), optional :: estimate_area !< whether to estimate coarse cell areas respecting fine mask (default: .true.)
+    !> method to estimate area: (0, default) from fine grid, (1) from cell extent, (2) from count fraction of valid fine cells
+    integer(i4), intent(in), optional :: area_method
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    type(grid_t) :: coarse_grid !< resulting low resolution grid
+    call this%gen_coarse_grid(coarse_grid, target_resolution, estimate_aux, estimate_area, area_method, tol)
+  end function grid_derive_coarse_grid
+
+  !> \brief Generate fine grid from a coarse grid by a given target resolution
+  subroutine grid_gen_fine_grid(this, fine_grid, target_resolution, estimate_aux, estimate_area, area_method, tol)
+    implicit none
+    class(grid_t), intent(inout) :: this
+    type(grid_t), intent(out) :: fine_grid !< resulting high resolution grid
+    real(dp), intent(in) :: target_resolution !< desired target resolution
+    logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
+    logical, intent(in), optional :: estimate_area !< whether to estimate coarse cell areas respecting fine mask (default: .true.)
     integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from fine grid, (1) from cell extent
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    type(grid_t) :: fine_grid !< resulting low resolution grid
 
     integer(i4) :: i, j, ic, jc
     integer(i4) :: factor, area_method_
     logical :: estimate_aux_, estimate_area_
 
-    estimate_aux_ = .true.
-    if (present(estimate_aux)) estimate_aux_ = estimate_aux
-    estimate_area_ = .true.
-    if (present(estimate_area)) estimate_area_ = estimate_area
-    area_method_ = 0_i4
-    if (present(area_method)) area_method_ = area_method
+    estimate_aux_ = optval(estimate_aux, .true.)
+    estimate_area_ = optval(estimate_area, .true.)
+    area_method_ = optval(area_method, area_sum)
 
     call check_factor(target_resolution, this%cellsize, factor=factor, tol=tol)
 
@@ -2287,7 +1977,7 @@ contains
     do j = 1_i4, this%ny
       ! everything would be better with 0-based ids
       jc = (j-1_i4) * factor + 1_i4
-      do i = 1, this%nx
+      do i = 1_i4, this%nx
         if (.not. this%mask(i, j)) cycle
         ic = (i-1_i4) * factor + 1_i4
         fine_grid%mask(ic : ic + factor - 1_i4, jc :  jc + factor - 1_i4) = .true.
@@ -2304,15 +1994,28 @@ contains
       call fine_grid%downscale_aux_coords(this, tol=tol)
     end if
 
-  end function derive_fine_grid
+  end subroutine grid_gen_fine_grid
+
+  !> \brief Generate fine grid from a coarse grid by a given target resolution
+  !> \return `type(grid_t) :: fine_grid`
+  function grid_derive_fine_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol) result(fine_grid)
+    implicit none
+    class(grid_t), intent(inout) :: this
+    real(dp), intent(in) :: target_resolution !< desired target resolution
+    logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
+    logical, intent(in), optional :: estimate_area !< whether to estimate coarse cell areas respecting fine mask (default: .true.)
+    integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from fine grid, (1) from cell extent
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    type(grid_t) :: fine_grid !< resulting high resolution grid
+    call this%gen_fine_grid(fine_grid, target_resolution, estimate_aux, estimate_area, area_method, tol)
+  end function grid_derive_fine_grid
 
   !> \brief Generate a derived grid by a given target resolution
   !> \return `type(grid_t) :: result_grid`
-  !> \authors Sebastian Müller
-  !> \date    Mar 2025
-  function derive_grid(this, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, estimate_area, area_method, tol)
+  subroutine grid_gen_grid(this, grid, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, estimate_area, area_method, tol)
     implicit none
     class(grid_t), intent(inout) :: this
+    type(grid_t), intent(out) :: grid !< resulting grid
     real(dp), intent(in), optional :: target_resolution !< desired target resolution
     integer(i4), intent(in), optional :: downscaling_factor !< factor for finer grid
     integer(i4), intent(in), optional :: upscaling_factor !< factor for coarser grid
@@ -2320,7 +2023,6 @@ contains
     logical, intent(in), optional :: estimate_area !< whether to estimate cell areas (default: .true.)
     integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from other grid, (1) from cell extent
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    type(grid_t) :: derive_grid !< resulting grid
     real(dp) :: resolution
     integer(i4) :: input_opt
 
@@ -2337,17 +2039,35 @@ contains
       input_opt = input_opt + 1
       resolution = this%cellsize * real(upscaling_factor, dp)
     end if
+    ! LCOV_EXCL_START
     if (input_opt /= 1) then
       call error_message("derive_grid: only one of 'target_resolution', 'factor_up' or 'factor_down' can be given.")
     end if
+    ! LCOV_EXCL_STOP
 
     if (resolution < this%cellsize) then
-      derive_grid = this%derive_fine_grid(resolution, estimate_aux, estimate_area, area_method, tol)
+      call this%gen_fine_grid(grid, resolution, estimate_aux, estimate_area, area_method, tol)
     else
-      derive_grid = this%derive_coarse_grid(resolution, estimate_aux, estimate_area, area_method, tol)
+      call this%gen_coarse_grid(grid, resolution, estimate_aux, estimate_area, area_method, tol)
     end if
 
-  end function derive_grid
+  end subroutine grid_gen_grid
+
+  !> \brief Generate a derived grid by a given target resolution
+  !> \return `type(grid_t) :: result_grid`
+  function grid_derive_grid(this, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, estimate_area, area_method, tol) result(derive_grid)
+    implicit none
+    class(grid_t), intent(inout) :: this
+    real(dp), intent(in), optional :: target_resolution !< desired target resolution
+    integer(i4), intent(in), optional :: downscaling_factor !< factor for finer grid
+    integer(i4), intent(in), optional :: upscaling_factor !< factor for coarser grid
+    logical, intent(in), optional :: estimate_aux !< whether to estimate lat-lon coordinates of coarse grid (default: .true.)
+    logical, intent(in), optional :: estimate_area !< whether to estimate cell areas (default: .true.)
+    integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from other grid, (1) from cell extent
+    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    type(grid_t) :: derive_grid !< resulting grid
+    call this%gen_grid(derive_grid, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, estimate_area, area_method, tol)
+  end function grid_derive_grid
 
   !> \brief Check 2D data shape for grid
   !> \authors Sebastian Müller
@@ -2355,13 +2075,15 @@ contains
   subroutine grid_check_shape(this, data_shape)
     implicit none
     class(grid_t), intent(in) :: this
-    integer(i8), intent(in) :: data_shape(2) !< (x,y)
+    integer(i4), intent(in) :: data_shape(2) !< (x,y)
+    ! LCOV_EXCL_START
     if (data_shape(1) /= this%nx .or. data_shape(2) /= this%ny) then
       call error_message( &
         "grid data: data has wrong shape. Expected: (", &
         num2str(this%nx), ",", num2str(this%ny), "), got: (", &
         num2str(data_shape(1)), ",", num2str(data_shape(2)), ")")
     end if
+    ! LCOV_EXCL_STOP
   end subroutine grid_check_shape
 
   !> \brief Check 1D packed data shape for grid
@@ -2371,89 +2093,118 @@ contains
     implicit none
     class(grid_t), intent(in) :: this
     integer(i8), intent(in) :: data_shape(1) !< (n)
+    ! LCOV_EXCL_START
     if (data_shape(1) /= this%ncells) then
       call error_message( &
         "grid data: packed data has wrong shape. Expected: (", &
         num2str(this%ncells), "), got: (", num2str(data_shape(1)), ")")
     end if
+    ! LCOV_EXCL_STOP
   end subroutine grid_check_shape_packed
 
   !> \brief Pack 2D data with grid mask
   !> \return `real(sp) :: out_data(:)`
   !> \authors Sebastian Müller
   !> \date    Mar 2025
-  function pack_data_sp(this, data) result(out_data)
+  function grid_pack_data_sp(this, data) result(out_data)
     implicit none
     class(grid_t), intent(in) :: this
     real(sp), intent(in) :: data(:,:)
     real(sp), allocatable :: out_data(:)
-    call this%check_shape(shape(data, kind=i8))
+    call this%check_shape(shape(data, kind=i4))
     allocate(out_data(this%ncells))
     out_data(:) = pack(data, this%mask)
-  end function pack_data_sp
+  end function grid_pack_data_sp
 
   !> \brief Pack 2D data with grid mask
   !> \return `real(dp) :: out_data(:)`
   !> \authors Sebastian Müller
   !> \date    Mar 2025
-  function pack_data_dp(this, data) result(out_data)
+  function grid_pack_data_dp(this, data) result(out_data)
     implicit none
     class(grid_t), intent(in) :: this
     real(dp), intent(in) :: data(:,:)
     real(dp), allocatable :: out_data(:)
-    call this%check_shape(shape(data, kind=i8))
+    call this%check_shape(shape(data, kind=i4))
     allocate(out_data(this%ncells))
     out_data(:) = pack(data, this%mask)
-  end function pack_data_dp
+  end function grid_pack_data_dp
+
+  !> \brief Pack 2D data with grid mask
+  !> \return `integer(i1) :: out_data(:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function grid_pack_data_i1(this, data) result(out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i1), intent(in) :: data(:,:)
+    integer(i1), allocatable :: out_data(:)
+    call this%check_shape(shape(data, kind=i4))
+    allocate(out_data(this%ncells))
+    out_data(:) = pack(data, this%mask)
+  end function grid_pack_data_i1
+
+  !> \brief Pack 2D data with grid mask
+  !> \return `integer(i2) :: out_data(:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function grid_pack_data_i2(this, data) result(out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i2), intent(in) :: data(:,:)
+    integer(i2), allocatable :: out_data(:)
+    call this%check_shape(shape(data, kind=i4))
+    allocate(out_data(this%ncells))
+    out_data(:) = pack(data, this%mask)
+  end function grid_pack_data_i2
 
   !> \brief Pack 2D data with grid mask
   !> \return `integer(i4) :: out_data(:)`
   !> \authors Sebastian Müller
   !> \date    Mar 2025
-  function pack_data_i4(this, data) result(out_data)
+  function grid_pack_data_i4(this, data) result(out_data)
     implicit none
     class(grid_t), intent(in) :: this
     integer(i4), intent(in) :: data(:,:)
     integer(i4), allocatable :: out_data(:)
-    call this%check_shape(shape(data, kind=i8))
+    call this%check_shape(shape(data, kind=i4))
     allocate(out_data(this%ncells))
     out_data(:) = pack(data, this%mask)
-  end function pack_data_i4
+  end function grid_pack_data_i4
 
   !> \brief Pack 2D data with grid mask
   !> \return `integer(i8) :: out_data(:)`
   !> \authors Sebastian Müller
   !> \date    Mar 2025
-  function pack_data_i8(this, data) result(out_data)
+  function grid_pack_data_i8(this, data) result(out_data)
     implicit none
     class(grid_t), intent(in) :: this
     integer(i8), intent(in) :: data(:,:)
     integer(i8), allocatable :: out_data(:)
-    call this%check_shape(shape(data, kind=i8))
+    call this%check_shape(shape(data, kind=i4))
     allocate(out_data(this%ncells))
     out_data(:) = pack(data, this%mask)
-  end function pack_data_i8
+  end function grid_pack_data_i8
 
   !> \brief Pack 2D data with grid mask
   !> \return `logical :: out_data(:)`
   !> \authors Sebastian Müller
   !> \date    Mar 2025
-  function pack_data_lgt(this, data) result(out_data)
+  function grid_pack_data_lgt(this, data) result(out_data)
     implicit none
     class(grid_t), intent(in) :: this
     logical, intent(in) :: data(:,:)
     logical, allocatable :: out_data(:)
-    call this%check_shape(shape(data, kind=i8))
+    call this%check_shape(shape(data, kind=i4))
     allocate(out_data(this%ncells))
     out_data(:) = pack(data, this%mask)
-  end function pack_data_lgt
+  end function grid_pack_data_lgt
 
   !> \brief Unpack 1D data with grid mask
   !> \return `real(sp) :: out_data(:,:)`
   !> \authors Sebastian Müller
   !> \date    Mar 2025
-  function unpack_data_sp(this, data) result(out_data)
-    use mo_constants, only : nodata_sp
+  function grid_unpack_data_sp(this, data) result(out_data)
     implicit none
     class(grid_t), intent(in) :: this
     real(sp), intent(in) :: data(:)
@@ -2461,14 +2212,13 @@ contains
     call this%check_shape_packed(shape(data, kind=i8))
     allocate(out_data(this%nx, this%ny))
     out_data(:,:) = unpack(data, this%mask, nodata_sp)
-  end function unpack_data_sp
+  end function grid_unpack_data_sp
 
   !> \brief Unpack 1D data with grid mask
   !> \return `real(dp) :: out_data(:,:)`
   !> \authors Sebastian Müller
   !> \date    Mar 2025
-  function unpack_data_dp(this, data) result(out_data)
-    use mo_constants, only : nodata_dp
+  function grid_unpack_data_dp(this, data) result(out_data)
     implicit none
     class(grid_t), intent(in) :: this
     real(dp), intent(in) :: data(:)
@@ -2476,14 +2226,41 @@ contains
     call this%check_shape_packed(shape(data, kind=i8))
     allocate(out_data(this%nx, this%ny))
     out_data(:,:) = unpack(data, this%mask, nodata_dp)
-  end function unpack_data_dp
+  end function grid_unpack_data_dp
+
+  !> \brief Unpack 1D data with grid mask
+  !> \return `integer(i1) :: out_data(:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function grid_unpack_data_i1(this, data) result(out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i1), intent(in) :: data(:)
+    integer(i1), allocatable :: out_data(:,:)
+    call this%check_shape_packed(shape(data, kind=i8))
+    allocate(out_data(this%nx, this%ny))
+    out_data(:,:) = unpack(data, this%mask, nodata_i1)
+  end function grid_unpack_data_i1
+
+  !> \brief Unpack 1D data with grid mask
+  !> \return `integer(i2) :: out_data(:,:)`
+  !> \authors Sebastian Müller
+  !> \date    Mar 2025
+  function grid_unpack_data_i2(this, data) result(out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i2), intent(in) :: data(:)
+    integer(i2), allocatable :: out_data(:,:)
+    call this%check_shape_packed(shape(data, kind=i8))
+    allocate(out_data(this%nx, this%ny))
+    out_data(:,:) = unpack(data, this%mask, nodata_i2)
+  end function grid_unpack_data_i2
 
   !> \brief Unpack 1D data with grid mask
   !> \return `integer(i4) :: out_data(:,:)`
   !> \authors Sebastian Müller
   !> \date    Mar 2025
-  function unpack_data_i4(this, data) result(out_data)
-    use mo_constants, only : nodata_i4
+  function grid_unpack_data_i4(this, data) result(out_data)
     implicit none
     class(grid_t), intent(in) :: this
     integer(i4), intent(in) :: data(:)
@@ -2491,14 +2268,13 @@ contains
     call this%check_shape_packed(shape(data, kind=i8))
     allocate(out_data(this%nx, this%ny))
     out_data(:,:) = unpack(data, this%mask, nodata_i4)
-  end function unpack_data_i4
+  end function grid_unpack_data_i4
 
   !> \brief Unpack 1D data with grid mask
   !> \return `integer(i8) :: out_data(:,:)`
   !> \authors Sebastian Müller
   !> \date    Mar 2025
-  function unpack_data_i8(this, data) result(out_data)
-    use mo_constants, only : nodata_i8
+  function grid_unpack_data_i8(this, data) result(out_data)
     implicit none
     class(grid_t), intent(in) :: this
     integer(i8), intent(in) :: data(:)
@@ -2506,13 +2282,13 @@ contains
     call this%check_shape_packed(shape(data, kind=i8))
     allocate(out_data(this%nx, this%ny))
     out_data(:,:) = unpack(data, this%mask, nodata_i8)
-  end function unpack_data_i8
+  end function grid_unpack_data_i8
 
   !> \brief Unpack 1D data with grid mask
   !> \return `logical :: out_data(:,:)`
   !> \authors Sebastian Müller
   !> \date    Mar 2025
-  function unpack_data_lgt(this, data) result(out_data)
+  function grid_unpack_data_lgt(this, data) result(out_data)
     implicit none
     class(grid_t), intent(in) :: this
     logical, intent(in) :: data(:)
@@ -2520,7 +2296,364 @@ contains
     call this%check_shape_packed(shape(data, kind=i8))
     allocate(out_data(this%nx, this%ny))
     out_data(:,:) = unpack(data, this%mask, .false.)
-  end function unpack_data_lgt
+  end function grid_unpack_data_lgt
+
+  !> \brief Pack 2D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine grid_pack_into_sp(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(sp), intent(in) :: data(:,:)
+    real(sp), intent(out) :: out_data(:)
+    integer(i8) :: k
+    integer(i4) :: i, j
+    call this%check_shape(shape(data, kind=i4))
+    call this%check_shape_packed(shape(out_data, kind=i8))
+    !$omp parallel do default(shared) private(k,i) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (.not.this%mask(i,j)) cycle
+        k = k + 1_i8
+        out_data(k) = data(i,j)
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine grid_pack_into_sp
+
+  !> \brief Pack 2D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine grid_pack_into_dp(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), intent(in) :: data(:,:)
+    real(dp), intent(out) :: out_data(:)
+    integer(i8) :: k
+    integer(i4) :: i, j
+    call this%check_shape(shape(data, kind=i4))
+    call this%check_shape_packed(shape(out_data, kind=i8))
+    !$omp parallel do default(shared) private(k,i) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (.not.this%mask(i,j)) cycle
+        k = k + 1_i8
+        out_data(k) = data(i,j)
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine grid_pack_into_dp
+
+  !> \brief Pack 2D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine grid_pack_into_i1(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i1), intent(in) :: data(:,:)
+    integer(i1), intent(out) :: out_data(:)
+    integer(i8) :: k
+    integer(i4) :: i, j
+    call this%check_shape(shape(data, kind=i4))
+    call this%check_shape_packed(shape(out_data, kind=i8))
+    !$omp parallel do default(shared) private(k,i) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (.not.this%mask(i,j)) cycle
+        k = k + 1_i8
+        out_data(k) = data(i,j)
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine grid_pack_into_i1
+
+  !> \brief Pack 2D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine grid_pack_into_i2(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i2), intent(in) :: data(:,:)
+    integer(i2), intent(out) :: out_data(:)
+    integer(i8) :: k
+    integer(i4) :: i, j
+    call this%check_shape(shape(data, kind=i4))
+    call this%check_shape_packed(shape(out_data, kind=i8))
+    !$omp parallel do default(shared) private(k,i) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (.not.this%mask(i,j)) cycle
+        k = k + 1_i8
+        out_data(k) = data(i,j)
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine grid_pack_into_i2
+
+  !> \brief Pack 2D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine grid_pack_into_i4(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i4), intent(in) :: data(:,:)
+    integer(i4), intent(out) :: out_data(:)
+    integer(i8) :: k
+    integer(i4) :: i, j
+    call this%check_shape(shape(data, kind=i4))
+    call this%check_shape_packed(shape(out_data, kind=i8))
+    !$omp parallel do default(shared) private(k,i) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (.not.this%mask(i,j)) cycle
+        k = k + 1_i8
+        out_data(k) = data(i,j)
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine grid_pack_into_i4
+
+  !> \brief Pack 2D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine grid_pack_into_i8(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i8), intent(in) :: data(:,:)
+    integer(i8), intent(out) :: out_data(:)
+    integer(i8) :: k
+    integer(i4) :: i, j
+    call this%check_shape(shape(data, kind=i4))
+    call this%check_shape_packed(shape(out_data, kind=i8))
+    !$omp parallel do default(shared) private(k,i) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (.not.this%mask(i,j)) cycle
+        k = k + 1_i8
+        out_data(k) = data(i,j)
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine grid_pack_into_i8
+
+  !> \brief Pack 2D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine grid_pack_into_lgt(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    logical, intent(in) :: data(:,:)
+    logical, intent(out) :: out_data(:)
+    integer(i8) :: k
+    integer(i4) :: i, j
+    call this%check_shape(shape(data, kind=i4))
+    call this%check_shape_packed(shape(out_data, kind=i8))
+    !$omp parallel do default(shared) private(k,i) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (.not.this%mask(i,j)) cycle
+        k = k + 1_i8
+        out_data(k) = data(i,j)
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine grid_pack_into_lgt
+
+  !> \brief Unpack 1D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine grid_unpack_into_sp(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(sp), intent(in) :: data(:)
+    real(sp), intent(out) :: out_data(:,:)
+    integer(i8) :: k
+    integer(i4) :: i, j
+    call this%check_shape(shape(out_data, kind=i4))
+    call this%check_shape_packed(shape(data, kind=i8))
+    !$omp parallel do default(shared) private(k,i) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (this%mask(i,j)) then
+          k = k + 1_i8
+          out_data(i,j) = data(k)
+        else
+          out_data(i,j) = nodata_sp
+        end if
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine grid_unpack_into_sp
+
+  !> \brief Unpack 1D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine grid_unpack_into_dp(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), intent(in) :: data(:)
+    real(dp), intent(out) :: out_data(:,:)
+    integer(i8) :: k
+    integer(i4) :: i, j
+    call this%check_shape(shape(out_data, kind=i4))
+    call this%check_shape_packed(shape(data, kind=i8))
+    !$omp parallel do default(shared) private(k,i) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (this%mask(i,j)) then
+          k = k + 1_i8
+          out_data(i,j) = data(k)
+        else
+          out_data(i,j) = nodata_dp
+        end if
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine grid_unpack_into_dp
+
+  !> \brief Unpack 1D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine grid_unpack_into_i1(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i1), intent(in) :: data(:)
+    integer(i1), intent(out) :: out_data(:,:)
+    integer(i8) :: k
+    integer(i4) :: i, j
+    call this%check_shape(shape(out_data, kind=i4))
+    call this%check_shape_packed(shape(data, kind=i8))
+    !$omp parallel do default(shared) private(k,i) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (this%mask(i,j)) then
+          k = k + 1_i8
+          out_data(i,j) = data(k)
+        else
+          out_data(i,j) = nodata_i1
+        end if
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine grid_unpack_into_i1
+
+  !> \brief Unpack 1D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine grid_unpack_into_i2(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i2), intent(in) :: data(:)
+    integer(i2), intent(out) :: out_data(:,:)
+    integer(i8) :: k
+    integer(i4) :: i, j
+    call this%check_shape(shape(out_data, kind=i4))
+    call this%check_shape_packed(shape(data, kind=i8))
+    !$omp parallel do default(shared) private(k,i) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (this%mask(i,j)) then
+          k = k + 1_i8
+          out_data(i,j) = data(k)
+        else
+          out_data(i,j) = nodata_i2
+        end if
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine grid_unpack_into_i2
+
+  !> \brief Unpack 1D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine grid_unpack_into_i4(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i4), intent(in) :: data(:)
+    integer(i4), intent(out) :: out_data(:,:)
+    integer(i8) :: k
+    integer(i4) :: i, j
+    call this%check_shape(shape(out_data, kind=i4))
+    call this%check_shape_packed(shape(data, kind=i8))
+    !$omp parallel do default(shared) private(k,i) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (this%mask(i,j)) then
+          k = k + 1_i8
+          out_data(i,j) = data(k)
+        else
+          out_data(i,j) = nodata_i4
+        end if
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine grid_unpack_into_i4
+
+  !> \brief Unpack 1D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine grid_unpack_into_i8(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i8), intent(in) :: data(:)
+    integer(i8), intent(out) :: out_data(:,:)
+    integer(i8) :: k
+    integer(i4) :: i, j
+    call this%check_shape(shape(out_data, kind=i4))
+    call this%check_shape_packed(shape(data, kind=i8))
+    !$omp parallel do default(shared) private(k,i) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (this%mask(i,j)) then
+          k = k + 1_i8
+          out_data(i,j) = data(k)
+        else
+          out_data(i,j) = nodata_i8
+        end if
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine grid_unpack_into_i8
+
+  !> \brief Unpack 1D data with grid mask into preallocated array
+  !> \authors Sebastian Müller
+  !> \date    Nov 2025
+  subroutine grid_unpack_into_lgt(this, data, out_data)
+    implicit none
+    class(grid_t), intent(in) :: this
+    logical, intent(in) :: data(:)
+    logical, intent(out) :: out_data(:,:)
+    integer(i8) :: k
+    integer(i4) :: i, j
+    call this%check_shape(shape(out_data, kind=i4))
+    call this%check_shape_packed(shape(data, kind=i8))
+    !$omp parallel do default(shared) private(k,i) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (this%mask(i,j)) then
+          k = k + 1_i8
+          out_data(i,j) = data(k)
+        else
+          out_data(i,j) = .false.
+        end if
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine grid_unpack_into_lgt
 
   ! ------------------------------------------------------------------
 
@@ -2533,7 +2666,7 @@ contains
   !> \authors Matthias Zink & Rohini Kumar
   !> \date Feb 2013
   subroutine calculate_coarse_extent(nx_in,  ny_in,  xllcorner_in,  yllcorner_in,  cellsize_in,  target_resolution, &
-                                     nx_out, ny_out, xllcorner_out, yllcorner_out, cellsize_out, tol, aligning)
+                                     nx_out, ny_out, xllcorner_out, yllcorner_out, cellsize_out, tol)
 
     implicit none
 
@@ -2549,13 +2682,9 @@ contains
     real(dp), intent(out) :: yllcorner_out !< yllcorner at an output level
     real(dp), intent(out) :: cellsize_out !< cell size at an output level
     real(dp), intent(in), optional :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    integer(i4), intent(in), optional :: aligning !< aligning selector (corner: ll -> 0 (default), lr -> 1, tl -> 2, tr -> 3)
 
     real(dp) :: cellFactor, rounded
-    integer(i4) :: factor, align_
-
-    align_ = lower_left
-    if ( present(aligning) ) align_ = aligning
+    integer(i4) :: factor
 
     call check_factor(cellsize_in, target_resolution, cellFactor, rounded, factor, tol)
 
@@ -2567,19 +2696,9 @@ contains
     if ( ny_out * factor < ny_in ) ny_out = ny_out + 1_i4
     if ( nx_out * factor < nx_in ) nx_out = nx_out + 1_i4
 
-    ! align grids based on the selected aligning corner
-    ! keep yll if aligning in (lower)-left or (lower)-right
-    if (align_ == lower_left .or. align_ == lower_right) then
-      yllcorner_out = yllcorner_in
-    else
-      yllcorner_out = yllcorner_in + real(ny_in, dp) * target_resolution / rounded - real(ny_out, dp) * cellsize_out
-    endif
-    ! keep xll if aligning in lower-(left) or top-(left)
-    if (align_ == lower_left .or. align_ == upper_left) then
-      xllcorner_out = xllcorner_in
-    else
-      xllcorner_out = xllcorner_in + real(nx_in, dp) * target_resolution / rounded - real(nx_out, dp) * cellsize_out
-    endif
+    ! TODO: implement proper handling of non-origin-aligned grids with offsets - for now, just keep the same lower left corner
+    yllcorner_out = yllcorner_in
+    xllcorner_out = xllcorner_in
 
   end subroutine calculate_coarse_extent
 
@@ -2619,19 +2738,24 @@ contains
     ! store var name for error messages
     name = var%getName()
 
-    tol_ = 1.e-7_dp
-    if ( present(tol) ) tol_ = tol
+    tol_ = optval(tol, 1.e-7_dp)
 
+    ! LCOV_EXCL_START
     if (size(axis) == 0_i4) &
       call error_message("check_uniform_axis: axis is empty: ", name)
+    ! LCOV_EXCL_STOP
 
     if (size(axis) > 1_i4) then
       diff = (axis(size(axis)) - axis(1)) / real(size(axis) - 1_i4, dp)
+      ! LCOV_EXCL_START
       if (.not.all(is_close(axis(2:size(axis))-axis(1:size(axis)-1), diff, rtol=0.0_dp, atol=tol_))) &
         call error_message("check_uniform_axis: given axis is not uniform: ", name)
+      ! LCOV_EXCL_STOP
     else
+      ! LCOV_EXCL_START
       if (.not. has_bnds) &
         call error_message("check_uniform_axis: can't check axis of size 1 when no bounds are given: ", name)
+      ! LCOV_EXCL_STOP
       diff = bounds(2,1) - bounds(1,1)
     end if
 
@@ -2647,10 +2771,12 @@ contains
           i_ub = 1
         end if
       end if
+      ! LCOV_EXCL_START
       if (.not.all(is_close(bounds(i_ub,:)-bounds(i_lb,:), diff, rtol=0.0_dp, atol=tol_))) &
         call error_message("check_uniform_axis: given bounds are not uniform: ", name)
       if (.not.all(is_close(axis(:)-bounds(i_lb,:), 0.5_dp*diff, rtol=0.0_dp, atol=tol_))) &
         call error_message("check_uniform_axis: given bounds are not centered around axis points: ", name)
+      ! LCOV_EXCL_STOP
     end if
 
     if ( present(cellsize) ) cellsize = abs(diff)
@@ -2810,6 +2936,209 @@ contains
     end if
   end function is_lat_coord
 
+  !> \brief create mask from NetCDF variable.
+  !> \details Create a logical mask from a NetCDF variable where non-missing values are `true` and missing values are `false`.
+  !! This will check for the variable dtype first to use the best fitting kind for reading dummy data.
+  !! Only supports 2D variables and requires the "_FillValue" attribute to be set.
+  !> \authors Sebastian Müller
+  subroutine mask_from_var(var, mask, data, flip_y)
+    use mo_netcdf, only : NcVariable
+    use mo_utils, only : ne
+    use ieee_arithmetic, only : ieee_is_nan
+    implicit none
+    type(NcVariable), intent(in) :: var !< NetCDF variable to create mask from
+    logical, dimension(:, :), allocatable, intent(out) :: mask !< resulting mask
+    type(data_t), intent(inout), optional :: data !< optional data container to reuse memory
+    logical, intent(in), optional :: flip_y !< whether to flip the mask in y-direction (default: .false.)
+    integer(i1), dimension(:, :), allocatable :: data_i1
+    integer(i1) :: fv_i1
+    integer(i2), dimension(:, :), allocatable :: data_i2
+    integer(i2) :: fv_i2
+    integer(i4), dimension(:, :), allocatable :: data_i4
+    integer(i4) :: fv_i4
+    integer(i8), dimension(:, :), allocatable :: data_i8
+    integer(i8) :: fv_i8
+    real(sp), dimension(:, :), allocatable :: data_sp
+    real(sp) :: fv_sp
+    real(dp), dimension(:, :), allocatable :: data_dp
+    real(dp) :: fv_dp
+    integer(i4), dimension(:), allocatable :: shp, start, cnt
+    character(:), allocatable :: dtype, name
+    integer(i4) :: i, nx, ny
+    logical :: flip_y_
+
+    flip_y_ = optval(flip_y, default=.false.)
+
+    shp = var%getShape()
+    allocate(start(size(shp)), source=1_i4)
+    allocate(cnt(size(shp)), source=1_i4)
+    ! only use first 2 dims and use first layer of potential other dims (z, time, soil-layer etc.)
+    cnt(:2) = shp(:2)
+    dtype = trim(var%getDtype())
+
+    if (present(data)) then
+      if (allocated(data%dtype)) then
+        dtype = trim(data%dtype)
+      else
+        data%dtype = dtype
+      end if
+      call data%deallocate()
+    end if
+
+    select case (dtype)
+      case ("i8")
+        call var%getData(data_i1, start=start, cnt=cnt)
+        if (flip_y_) call flip(data_i1, iDim=2)
+        call var%getFillValue(fv_i1)
+        ! parallel mask creation
+        nx = size(data_i1, 1)
+        ny = size(data_i1, 2)
+        allocate(mask(nx, ny))
+        !$omp parallel do default(shared) schedule(static)
+        do i = 1_i4, ny
+          mask(:,i) = data_i1(:,i) /= fv_i1
+        end do
+        !$omp end parallel do
+        if (present(data)) call move_alloc(data_i1, data%data_i1)
+      case ("i16")
+        call var%getData(data_i2, start=start, cnt=cnt)
+        if (flip_y_) call flip(data_i2, iDim=2)
+        call var%getFillValue(fv_i2)
+        ! parallel mask creation
+        nx = size(data_i2, 1)
+        ny = size(data_i2, 2)
+        allocate(mask(nx, ny))
+        !$omp parallel do default(shared) schedule(static)
+        do i = 1_i4, ny
+          mask(:,i) = data_i2(:,i) /= fv_i2
+        end do
+        !$omp end parallel do
+        if (present(data)) call move_alloc(data_i2, data%data_i2)
+      case ("i32")
+        call var%getData(data_i4, start=start, cnt=cnt)
+        if (flip_y_) call flip(data_i4, iDim=2)
+        call var%getFillValue(fv_i4)
+        ! parallel mask creation
+        nx = size(data_i4, 1)
+        ny = size(data_i4, 2)
+        allocate(mask(nx, ny))
+        !$omp parallel do default(shared) schedule(static)
+        do i = 1_i4, ny
+          mask(:,i) = data_i4(:,i) /= fv_i4
+        end do
+        !$omp end parallel do
+        if (present(data)) call move_alloc(data_i4, data%data_i4)
+      case ("i64")
+        call var%getData(data_i8, start=start, cnt=cnt)
+        if (flip_y_) call flip(data_i8, iDim=2)
+        call var%getFillValue(fv_i8)
+        ! parallel mask creation
+        nx = size(data_i8, 1)
+        ny = size(data_i8, 2)
+        allocate(mask(nx, ny))
+        !$omp parallel do default(shared) schedule(static)
+        do i = 1_i4, ny
+          mask(:,i) = data_i8(:,i) /= fv_i8
+        end do
+        !$omp end parallel do
+        if (present(data)) call move_alloc(data_i8, data%data_i8)
+      case ("f32")
+        call var%getData(data_sp, start=start, cnt=cnt)
+        if (flip_y_) call flip(data_sp, iDim=2)
+        call var%getFillValue(fv_sp)
+        ! parallel mask creation
+        nx = size(data_sp, 1)
+        ny = size(data_sp, 2)
+        allocate(mask(nx, ny))
+        if (ieee_is_nan(fv_sp)) then
+          !$omp parallel do default(shared) schedule(static)
+          do i = 1_i4, ny
+            mask(:,i) = .not.ieee_is_nan(data_sp(:,i))
+          end do
+          !$omp end parallel do
+        else
+          !$omp parallel do default(shared) schedule(static)
+          do i = 1_i4, ny
+            mask(:,i) = ne(data_sp(:,i), fv_sp)
+          end do
+          !$omp end parallel do
+        end if
+        if (present(data)) call move_alloc(data_sp, data%data_sp)
+      case ("f64")
+        call var%getData(data_dp, start=start, cnt=cnt)
+        if (flip_y_) call flip(data_dp, iDim=2)
+        call var%getFillValue(fv_dp)
+        ! parallel mask creation
+        nx = size(data_dp, 1)
+        ny = size(data_dp, 2)
+        allocate(mask(nx, ny))
+        if (ieee_is_nan(fv_dp)) then
+          !$omp parallel do default(shared) schedule(static)
+          do i = 1_i4, ny
+            mask(:,i) = .not.ieee_is_nan(data_dp(:,i))
+          end do
+          !$omp end parallel do
+        else
+          !$omp parallel do default(shared) schedule(static)
+          do i = 1_i4, ny
+            mask(:,i) = ne(data_dp(:,i), fv_dp)
+          end do
+          !$omp end parallel do
+        end if
+        if (present(data)) call move_alloc(data_dp, data%data_dp)
+      case default
+        name = trim(var%getName())
+        call error_message("mask_from_var: Unsupported variable type: ", name, " - dtype: ", dtype) ! LCOV_EXCL_LINE
+    end select
+  end subroutine mask_from_var
+
+  !> \brief Read data from NetCDF variable.
+  !> \authors Sebastian Müller
+  subroutine data_from_var(var, data, flip_y)
+    use mo_netcdf, only : NcVariable
+    use mo_utils, only : ne
+    use ieee_arithmetic, only : ieee_is_nan
+    implicit none
+    type(NcVariable), intent(in) :: var !< NetCDF variable to create mask from
+    type(data_t), intent(inout) :: data !< optional data container to reuse memory
+    logical, intent(in), optional :: flip_y !< whether to flip the mask in y-direction (default: .false.)
+    integer(i4), dimension(:), allocatable :: shp, start, cnt
+    character(:), allocatable :: name
+    logical :: flip_y_
+
+    flip_y_ = optval(flip_y, default=.false.)
+    shp = var%getShape()
+    allocate(start(size(shp)), source=1_i4)
+    allocate(cnt(size(shp)), source=1_i4)
+    ! only use first 2 dims and use first layer of potential other dims (z, time, soil-layer etc.)
+    cnt(:2) = shp(:2)
+    if (.not.allocated(data%dtype)) data%dtype = trim(var%getDtype())
+    call data%deallocate()
+    select case (data%dtype)
+      case ("i8")
+        call var%getData(data%data_i1, start=start, cnt=cnt)
+        if (flip_y_) call flip(data%data_i1, iDim=2)
+      case ("i16")
+        call var%getData(data%data_i2, start=start, cnt=cnt)
+        if (flip_y_) call flip(data%data_i2, iDim=2)
+      case ("i32")
+        call var%getData(data%data_i4, start=start, cnt=cnt)
+        if (flip_y_) call flip(data%data_i4, iDim=2)
+      case ("i64")
+        call var%getData(data%data_i8, start=start, cnt=cnt)
+        if (flip_y_) call flip(data%data_i8, iDim=2)
+      case ("f32")
+        call var%getData(data%data_sp, start=start, cnt=cnt)
+        if (flip_y_) call flip(data%data_sp, iDim=2)
+      case ("f64")
+        call var%getData(data%data_dp, start=start, cnt=cnt)
+        if (flip_y_) call flip(data%data_dp, iDim=2)
+      case default
+        name = trim(var%getName())
+        call error_message("data_from_var: Unsupported variable type: ", name, " - dtype: ", data%dtype) ! LCOV_EXCL_LINE
+    end select
+  end subroutine data_from_var
+
 #endif
 
   !> \brief calculate and check cell-size factor for validity.
@@ -2825,20 +3154,21 @@ contains
     real(dp) :: cellfactor_, rounded_, tol_
     integer(i4) :: factor_
 
-    tol_ = 1.e-7_dp
-    if ( present(tol) ) tol_ = tol
+    tol_ = optval(tol, 1.e-7_dp)
 
     cellfactor_ = coarse_cellsize / fine_cellsize
     rounded_ = anint(cellfactor_)
     factor_ = nint(cellfactor_)
 
+    ! LCOV_EXCL_START
     if (abs(rounded_ - cellfactor_) > tol_) then
       call error_message( &
         'check_factor: Two resolutions size do not confirm (need to have an integer ratio): ', &
         trim(adjustl(num2str(nint(coarse_cellsize)))), &
         trim(adjustl(num2str(nint(fine_cellsize)))))
     end if
-    if (factor_ < 1_i4) call error_message("check_factor: cell factor needs to be >= 1 to setup an upscaler.")
+    ! LCOV_EXCL_STOP
+    if (factor_ < 1_i4) call error_message("check_factor: cell factor needs to be >= 1 to setup an upscaler.") ! LCOV_EXCL_LINE
     if ( present(cellfactor) ) cellfactor = cellfactor_
     if ( present(rounded) ) rounded = rounded_
     if ( present(factor) ) factor = factor_
@@ -2888,12 +3218,12 @@ contains
     ! default for nag: recl=1024(byte) which is not enough for 100s of columns
     open (newunit = fileunit, file = path, action = 'read', status = 'old', recl = 48 * file_ncols)
     ! (a) skip header
-    do i = 1, hlines
+    do i = 1_i4, hlines
       read(fileunit, *)
     end do
     ! (b) read data
-    do i = 1, file_nrows
-      read(fileunit, *) (data(j, i), j = 1, file_ncols)
+    do i = 1_i4, file_nrows
+      read(fileunit, *) (data(j, i), j = 1_i4, file_ncols)
     end do
     close(fileunit)
 
@@ -2949,12 +3279,12 @@ contains
     ! default for nag: recl=1024(byte) which is not enough for 100s of columns
     open (newunit = fileunit, file = path, action = 'read', status = 'old', recl = 48 * file_ncols)
     ! (a) skip header
-    do i = 1, header_size
+    do i = 1_i4, header_size
       read(fileunit, *)
     end do
     ! (b) read data
-    do i = 1, file_nrows
-      read(fileunit, *) (data(j, i), j = 1, file_ncols)
+    do i = 1_i4, file_nrows
+      read(fileunit, *) (data(j, i), j = 1_i4, file_ncols)
     end do
     close(fileunit)
 
@@ -2976,7 +3306,6 @@ contains
     ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, header_size)
 
     use mo_os, only : check_path_isfile
-    use mo_constants, only : nodata_dp
     use mo_string_utils, only : tolower
     implicit none
 
@@ -3024,6 +3353,7 @@ contains
     close(fileunit)
 
     ! compare headers always with reference header (intent in)
+    ! LCOV_EXCL_START
     if (present(ref_ncols)) then
       if ((ncols .ne. ref_ncols)) &
         call error_message('read_ascii: header not matching with reference header: ncols')
@@ -3044,6 +3374,7 @@ contains
       if ((abs(cellsize - ref_cellsize)   .gt. tiny(1.0_dp))) &
         call error_message('read_ascii: header not matching with reference header: cellsize')
     end if
+    ! LCOV_EXCL_STOP
 
   end subroutine read_ascii_header
 
@@ -3074,10 +3405,10 @@ contains
     ! Set defaults
     is_bottom_up = .true.
     if (present(y_direction)) is_bottom_up = y_direction == bottom_up
-    is_xy_ = .true.
-    if (present(is_xy)) is_xy_ = is_xy
+    is_xy_ = optval(is_xy, .true.)
 
     ! Check dimensions if data is present
+    ! LCOV_EXCL_START
     if (present(data)) then
       if (is_xy_) then
         if (size(data,1) /= ncols .or. size(data,2) /= nrows) then
@@ -3089,12 +3420,15 @@ contains
         end if
       end if
     end if
+    ! LCOV_EXCL_STOP
 
     ! Open file for writing
     open(newunit=io, file=path, status='replace', action='write', form='formatted', iostat=ierr)
+    ! LCOV_EXCL_START
     if (ierr /= 0) then
       call error_message('Error opening file: ', path)
     end if
+    ! LCOV_EXCL_STOP
 
     ! Write header with double precision
     write(io,'(A,I0)') 'ncols         ', ncols
@@ -3108,22 +3442,22 @@ contains
     if (present(data)) then
       if (is_bottom_up) then
         if (is_xy_) then
-          do i = nrows, 1, -1
-            write(io, '(*(F0.10,1X))') (data(j,i), j=1,ncols)
+          do i = nrows, 1_i4, -1_i4
+            write(io, '(*(F0.10,1X))') (data(j,i), j=1_i4,ncols)
           end do
         else
-          do i = nrows, 1, -1
-            write(io, '(*(F0.10,1X))') (data(i,j), j=1,ncols)
+          do i = nrows, 1_i4, -1_i4
+            write(io, '(*(F0.10,1X))') (data(i,j), j=1_i4,ncols)
           end do
         end if
       else
         if (is_xy_) then
-          do i = 1, nrows
-            write(io, '(*(F0.10,1X))') (data(j,i), j=1,ncols)
+          do i = 1_i4, nrows
+            write(io, '(*(F0.10,1X))') (data(j,i), j=1_i4,ncols)
           end do
         else
-          do i = 1, nrows
-            write(io, '(*(F0.10,1X))') (data(i,j), j=1,ncols)
+          do i = 1_i4, nrows
+            write(io, '(*(F0.10,1X))') (data(i,j), j=1_i4,ncols)
           end do
         end if
       end if
@@ -3161,10 +3495,10 @@ contains
     ! Set defaults
     is_bottom_up = .false.
     if (present(y_direction)) is_bottom_up = y_direction == bottom_up
-    is_xy_ = .true.
-    if (present(is_xy)) is_xy_ = is_xy
+    is_xy_ = optval(is_xy, .true.)
 
     ! Check dimensions if data is present
+    ! LCOV_EXCL_START
     if (present(data)) then
       if (is_xy_) then
         if (size(data,1) /= ncols .or. size(data,2) /= nrows) then
@@ -3176,12 +3510,15 @@ contains
         end if
       end if
     end if
+    ! LCOV_EXCL_STOP
 
     ! Open file for writing
     open(newunit=io, file=path, status='replace', action='write', form='formatted', iostat=ierr)
+    ! LCOV_EXCL_START
     if (ierr /= 0) then
       call error_message('Error opening file: ', path)
     end if
+    ! LCOV_EXCL_STOP
 
     ! Write header
     write(io,'(A,I0)') 'ncols         ', ncols
@@ -3195,22 +3532,22 @@ contains
     if (present(data)) then
       if (is_bottom_up) then
         if (is_xy_) then
-          do i = nrows, 1, -1
-            write(io, '(*(I0,1X))') (data(j,i), j=1,ncols)
+          do i = nrows, 1_i4, -1_i4
+            write(io, '(*(I0,1X))') (data(j,i), j=1_i4,ncols)
           end do
         else
-          do i = nrows, 1, -1
-            write(io, '(*(I0,1X))') (data(i,j), j=1,ncols)
+          do i = nrows, 1_i4, -1_i4
+            write(io, '(*(I0,1X))') (data(i,j), j=1_i4,ncols)
           end do
         end if
       else
         if (is_xy_) then
-          do i = 1, nrows
-            write(io, '(*(I0,1X))') (data(j,i), j=1,ncols)
+          do i = 1_i4, nrows
+            write(io, '(*(I0,1X))') (data(j,i), j=1_i4,ncols)
           end do
         else
-          do i = 1, nrows
-            write(io, '(*(I0,1X))') (data(i,j), j=1,ncols)
+          do i = 1_i4, nrows
+            write(io, '(*(I0,1X))') (data(i,j), j=1_i4,ncols)
           end do
         end if
       end if
@@ -3221,11 +3558,33 @@ contains
 
   end subroutine write_ascii_grid_i4
 
+  !> \brief Derive coarse cell indices covering a fine grid cell.
+  !> \details Calculates the coarse grid indices for a given fine grid cell assuming matching lower-left corner.
+  !> \authors Sebastian Müller
+  !> \date Oct 2025
+  pure subroutine coarse_ij(factor, fine_i, fine_j, fine_y_dir, fine_ny, coarse_y_dir, coarse_ny, coarse_i, coarse_j)
+    integer(i4), intent(in) :: factor
+    integer(i4), intent(in) :: fine_i !< i index on fine grid (x-axis)
+    integer(i4), intent(in) :: fine_j !< j index on fine grid (y-axis)
+    integer(i4), intent(in) :: fine_y_dir !< y-axis direction on fine grid (0 - top-down, 1 - bottom-up)
+    integer(i4), intent(in) :: fine_ny !< maximum for j index on fine grid (y-axis)
+    integer(i4), intent(in) :: coarse_y_dir !< y-axis direction on coarse grid (0 - top-down, 1 - bottom-up)
+    integer(i4), intent(in) :: coarse_ny !< maximum for j index on coarse grid (y-axis)
+    integer(i4), intent(out) :: coarse_i !< resulting i index on coarse grid (x-axis)
+    integer(i4), intent(out) :: coarse_j !< resulting j index on coarse grid (y-axis)
+    integer(i4) :: j
+    j = fine_j
+    if (fine_y_dir == top_down) j = fine_ny - j + 1_i4
+    coarse_j = (j - 1_i4) / factor + 1_i4
+    coarse_i = (fine_i - 1_i4) / factor + 1_i4
+    if (coarse_y_dir == top_down) coarse_j = coarse_ny - coarse_j + 1_i4
+  end subroutine coarse_ij
+
   !> \brief Derive spatial index bounds.
   !> \details Derive spatial index bounds for fine grid cells covered by a coarse grid cell assuming matching lower-left corner.
   !> \authors Sebastian Müller
   !> \date Apr 2025
-  subroutine id_bounds(factor, coarse_i, coarse_j, coarse_y_dir, coarse_ny, fine_y_dir, fine_nx, fine_ny, i_lb, i_ub, j_lb, j_ub)
+  pure subroutine id_bounds(factor, coarse_i, coarse_j, coarse_y_dir, coarse_ny, fine_y_dir, fine_nx, fine_ny, i_lb, i_ub, j_lb, j_ub)
     integer(i4), intent(in) :: factor
     integer(i4), intent(in) :: coarse_i !< i index on coarse grid (x-axis)
     integer(i4), intent(in) :: coarse_j !< j index on coarse grid (y-axis)
@@ -3264,7 +3623,6 @@ contains
 
   !> \brief distance between two points on the sphere [m]
   pure real(dp) function dist_latlon(lat1, lon1, lat2, lon2)
-    use mo_constants, only : RadiusEarth_dp, deg2rad_dp
     real(dp), intent(in) :: lat1
     real(dp), intent(in) :: lon1
     real(dp), intent(in) :: lat2

@@ -1,16 +1,27 @@
 module test_mo_grid
   use funit
-  use mo_grid, only: grid_t, layered_grid_t, cartesian, top_down, bottom_up
-  use mo_kind, only: i4, i8, dp
+  use mo_grid, only: grid_t, data_t, cartesian, spherical, top_down, bottom_up, area_full, area_count, dist_latlon, is_z_axis, write_ascii_grid, read_ascii_grid, data_from_var
+  use mo_kind, only: i1, i2, i4, i8, sp, dp
   use mo_netcdf, only: NcDataset, NcVariable, NcDimension
-  use mo_constants, only: nodata_dp
+  use mo_constants, only: nodata_dp, nodata_sp, nodata_i1, nodata_i2, nodata_i4, nodata_i8, RadiusEarth_dp, deg2rad_dp
   use mo_utils, only: flip, flipped
   implicit none
 
   private
 
   public :: test_grid
-  public :: test_layer
+  public :: test_axes_and_extent
+  public :: test_mask_ids_and_pack
+  public :: test_area_and_periodicity
+  public :: test_closest_cell_and_distance
+  public :: test_aux_vertices_and_bounds
+  public :: test_data_container_move_and_deallocate
+  public :: test_gen_grid_variants
+  public :: test_pack_unpack_variants
+  public :: test_upscale_and_file_io
+  public :: test_periodic_and_cover_checks
+  public :: test_ascii_roundtrip
+  public :: test_netcdf_helpers
 
 contains
 
@@ -102,55 +113,434 @@ contains
   end subroutine test_grid
 
   @test
-  subroutine test_layer()
-
+  subroutine test_axes_and_extent()
     implicit none
-    type(layered_grid_t) :: layers, layers2
-    type(grid_t) :: hgrid
-    type(NcDataset) :: nc
-    type(NcDimension) :: x_dim, y_dim, z_dim
-    type(NcVariable) :: var
-    real(dp) :: t=1.0E-5_dp
+    type(grid_t) :: grid
+    real(dp) :: x_min, x_max, y_min, y_max, x_size, y_size
+    real(dp), allocatable :: ax(:), ay(:), xv(:), yv(:), xb(:,:), yb(:,:)
+
+    call grid%init(nx=3, ny=2, xllcorner=10.0_dp, yllcorner=20.0_dp, cellsize=2.0_dp, coordsys=cartesian, y_direction=top_down)
+
+    ax = grid%x_axis()
+    ay = grid%y_axis()
+    xv = grid%x_vertices()
+    yv = grid%y_vertices()
+    xb = grid%x_bounds()
+    yb = grid%y_bounds()
+    call grid%extent(x_min, x_max, y_min, y_max, x_size, y_size)
+
+    @assertEqual(ax, [11.0_dp, 13.0_dp, 15.0_dp], tolerance=1.0e-4_dp, message='x_axis centers')
+    @assertEqual(ay, [23.0_dp, 21.0_dp], tolerance=1.0e-4_dp, message='y_axis respects top_down')
+    @assertEqual(xv, [10.0_dp, 12.0_dp, 14.0_dp, 16.0_dp], tolerance=1.0e-4_dp, message='x_vertices')
+    @assertEqual(yv, [24.0_dp, 22.0_dp, 20.0_dp], tolerance=1.0e-4_dp, message='y_vertices follow direction')
+    @assertEqual(xb(1,:), [10.0_dp, 12.0_dp, 14.0_dp], tolerance=1.0e-4_dp, message='x_bounds lower edges')
+    @assertEqual(xb(2,:), [12.0_dp, 14.0_dp, 16.0_dp], tolerance=1.0e-4_dp, message='x_bounds upper edges')
+    @assertEqual(yb(1,:), [24.0_dp, 22.0_dp], tolerance=1.0e-4_dp, message='y_bounds lower edges (top_down)')
+    @assertEqual(yb(2,:), [22.0_dp, 20.0_dp], tolerance=1.0e-4_dp, message='y_bounds upper edges (top_down)')
+    @assertEqual([x_min, x_max, y_min, y_max, x_size, y_size], [10.0_dp, 16.0_dp, 20.0_dp, 24.0_dp, 6.0_dp, 4.0_dp], tolerance=1.0e-4_dp, message='extent values')
+    @assertFalse(grid%any_missing(), message='default mask has no missing cells')
+  end subroutine test_axes_and_extent
+
+  @test
+  subroutine test_mask_ids_and_pack()
+    implicit none
+    type(grid_t) :: grid
+    logical :: mask(3, 2)
+    integer(i4), allocatable :: mat(:, :), unpacked(:, :)
+    integer(i4), allocatable :: packed(:)
+    integer(i8), allocatable :: ids(:, :)
+
+    mask = reshape([.true., .false., .true., .true., .true., .false.], [3, 2])
+    call grid%init(nx=3, ny=2, cellsize=1.0_dp, mask=mask, y_direction=bottom_up)
+
+    @assertTrue(grid%has_mask(), message='mask is allocated')
+    @assertTrue(grid%any_missing(), message='missing cells tracked in mask')
+    ids = grid%id_matrix()
+    @assertEqual(ids, reshape([1_i8, nodata_i8, 2_i8, 3_i8, 4_i8, nodata_i8], [3, 2]), message='id matrix respects mask')
+
+    @assertEqual(grid%cell_id([1_i4, 2_i4]), 3_i8)
+    @assertEqual(grid%cell_id([3_i4, 1_i4]), 2_i8)
+
+    allocate(mat(3, 2))
+    mat = reshape([1_i4, 2_i4, 3_i4, 4_i4, 5_i4, 6_i4], [3, 2])
+    packed = grid%pack(mat)
+    @assertEqual(packed, [1_i4, 3_i4, 4_i4, 5_i4], message='packed values follow mask order')
+    unpacked = grid%unpack(packed)
+    @assertEqual(unpacked, reshape([1_i4, nodata_i4, 3_i4, 4_i4, 5_i4, nodata_i4], [3, 2]), message='unpack inserts nodata for masked cells')
+  end subroutine test_mask_ids_and_pack
+
+  @test
+  subroutine test_area_and_periodicity()
+    implicit none
+    type(grid_t) :: cart, sph, periodic
+    real(dp) :: cs_rad, factor
+    real(dp) :: expected_row(2)
     integer(i8) :: i
-    real(dp), allocatable :: dummyv1(:,:), dummy1(:,:,:)
-    logical, allocatable :: mask1(:,:)
 
-    call hgrid%init( &
-      nx=2, ny=3, xllcorner=3973369.0_dp, yllcorner=2735847.0_dp, cellsize=72000.0_dp, coordsys=cartesian, &
-      mask=reshape([.true., .true., .true., .true., .true., .false.], [2, 3]), y_direction=bottom_up)
+    call cart%init(nx=2, ny=2, cellsize=10.0_dp, coordsys=cartesian)
+    @assertEqual(cart%cell_area, [(100.0_dp, i=1_i8, cart%ncells)], tolerance=1.0e-4_dp, message='cartesian cell area constant')
+    @assertEqual(cart%total_area(), 400.0_dp, tolerance=1.0e-4_dp, message='cartesian total area')
 
-    allocate(hgrid%lon(hgrid%nx, hgrid%ny))
-    allocate(hgrid%lat(hgrid%nx, hgrid%ny))
-    hgrid%lon(:,:) = reshape([ 5.8252_dp,  6.7885_dp,  5.7714_dp,  6.7470_dp,  5.7157_dp,  6.7042_dp], [2, 3])
-    hgrid%lat(:,:) = reshape([47.9806_dp, 48.0130_dp, 48.6272_dp, 48.6600_dp, 49.2736_dp, 49.3069_dp], [2, 3])
+    call sph%init(nx=2, ny=2, cellsize=1.0_dp, coordsys=spherical, y_direction=top_down)
+    cs_rad = sph%cellsize * deg2rad_dp
+    factor = (RadiusEarth_dp * cs_rad) * (RadiusEarth_dp * sin(cs_rad / 2.0_dp) * 2.0_dp)
+    expected_row(1) = cos(1.5_dp * deg2rad_dp) * factor
+    expected_row(2) = cos(0.5_dp * deg2rad_dp) * factor
+    @assertEqual(sph%cell_area, [expected_row(1), expected_row(1), expected_row(2), expected_row(2)], tolerance=1.0e-4_dp, message='spherical cell areas vary with latitude')
 
-    call layers%init(hgrid, [0.0_dp, 1.0_dp], [0.0_dp, 1.0_dp, 2.0_dp])
+    call periodic%init(nx=360, ny=1, cellsize=1.0_dp, coordsys=spherical)
+    @assertTrue(periodic%is_periodic(), message='360 deg spherical grid detected as periodic')
+    @assertFalse(cart%is_periodic(), message='cartesian grid not periodic')
+  end subroutine test_area_and_periodicity
 
-    nc = NcDataset("layers.nc", "w")
-    call layers%to_netcdf(nc)
-    x_dim = nc%getDimension("x")
-    y_dim = nc%getDimension("y")
-    z_dim = nc%getDimension("z")
-    var = nc%setVariable("test", "f64", [x_dim, y_dim, z_dim])
-    call var%setFillValue(nodata_dp)
-    call var%setAttribute("missing_value", nodata_dp)
-    call var%setAttribute("coordinates", "lat lon")
-    dummyv1 = reshape( &
-      [(real(i, dp), i=1_i8, layers%grid%ncells * size(layers%layer, kind=i8))], &
-      [layers%grid%ncells , size(layers%layer, kind=i8)])
-    dummy1 = layers%unpack(dummyv1)
-    call var%setData(dummy1)
+  @test
+  subroutine test_closest_cell_and_distance()
+    implicit none
+    type(grid_t) :: grid
+    real(dp) :: coords(2)
+    integer(i8) :: cid
+    real(dp) :: d
+
+    call grid%init(nx=2, ny=2, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=2.0_dp, coordsys=cartesian, y_direction=bottom_up)
+
+    coords = [1.0_dp, 1.0_dp] ! center of cell (1,1)
+    cid = grid%closest_cell_id(coords)
+    @assertEqual(cid, 1_i8, message='closest cell at center of first cell')
+
+    coords = [3.1_dp, 0.1_dp] ! closer to (2,1)
+    cid = grid%closest_cell_id(coords)
+    @assertEqual(cid, 2_i8, message='closest cell near (2,1)')
+
+    ! trigger spherical distance helper
+    d = dist_latlon(0.0_dp, 0.0_dp, 0.0_dp, 1.0_dp)
+    @assertGreaterThan(d, 0.0_dp)
+  end subroutine test_closest_cell_and_distance
+
+  @test
+  subroutine test_aux_vertices_and_bounds()
+    implicit none
+    type(grid_t) :: grid
+    real(dp), allocatable :: latb(:,:,:), lonb(:,:,:)
+
+    call grid%init(nx=2, ny=2, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    allocate(grid%lat(2,2))
+    allocate(grid%lon(2,2))
+    grid%lat = reshape([0.0_dp, 0.0_dp, 1.0_dp, 1.0_dp], [2,2])
+    grid%lon = reshape([0.0_dp, 1.0_dp, 0.0_dp, 1.0_dp], [2,2])
+
+    call grid%estimate_aux_vertices()
+    @assertTrue(grid%has_aux_vertices(), message='aux vertices estimated')
+
+    latb = grid%lat_bounds()
+    lonb = grid%lon_bounds()
+    @assertEqual(latb(1,1,1), -0.5_dp, tolerance=1.0e-4_dp)
+    @assertEqual(latb(3,2,2), 1.5_dp, tolerance=1.0e-4_dp)
+    @assertEqual(lonb(2,1,1), 0.5_dp, tolerance=1.0e-4_dp)
+    @assertEqual(lonb(4,1,2), -0.5_dp, tolerance=1.0e-4_dp)
+  end subroutine test_aux_vertices_and_bounds
+
+  @test
+  subroutine test_data_container_move_and_deallocate()
+    implicit none
+    type(data_t) :: data
+    integer(i4), allocatable :: di4(:,:)
+    real(dp), allocatable :: ddp(:,:)
+    integer(i1), allocatable :: di1(:,:)
+    integer(i2), allocatable :: di2(:,:)
+    integer(i8), allocatable :: di8(:,:)
+    real(sp), allocatable :: dsp(:,:)
+
+    data%dtype = "i32"
+    allocate(data%data_i4(1,1), source=42_i4)
+    call data%move(di4)
+    @assertEqual(di4(1,1), 42_i4)
+    call data%deallocate()
+
+    data%dtype = "f64"
+    allocate(data%data_dp(1,1), source=2.5_dp)
+    call data%move(ddp)
+    @assertEqual(ddp(1,1), 2.5_dp, tolerance=1.0e-4_dp)
+    call data%deallocate()
+
+    data%dtype = "i8"
+    allocate(data%data_i1(1,1), source=7_i1)
+    call data%move(di1)
+    @assertEqual(di1(1,1), 7_i1)
+
+    data%dtype = "i16"
+    allocate(data%data_i2(1,1), source=8_i2)
+    call data%move(di2)
+    @assertEqual(di2(1,1), 8_i2)
+
+    data%dtype = "i64"
+    allocate(data%data_i8(1,1), source=9_i8)
+    call data%move(di8)
+    @assertEqual(di8(1,1), 9_i8)
+
+    data%dtype = "f32"
+    allocate(data%data_sp(1,1), source=1.5_sp)
+    call data%move(dsp)
+    @assertEqual(dsp(1,1), 1.5_sp, tolerance=1.0e-6_sp)
+    call data%deallocate()
+  end subroutine test_data_container_move_and_deallocate
+
+  @test
+  subroutine test_gen_grid_variants()
+    implicit none
+    type(grid_t) :: base, coarse, fine
+
+    call base%init(nx=4, ny=4, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    call base%gen_grid(coarse, upscaling_factor=2, estimate_area=.true., area_method=area_full)
+    @assertEqual(coarse%nx, 2)
+    @assertEqual(coarse%ny, 2)
+    @assertEqual(coarse%cellsize, 2.0_dp, tolerance=1.0e-4_dp)
+
+    call base%gen_grid(fine, downscaling_factor=2, estimate_area=.true., area_method=area_count)
+    @assertEqual(fine%nx, 8)
+    @assertEqual(fine%ny, 8)
+    @assertEqual(fine%cellsize, 0.5_dp, tolerance=1.0e-4_dp)
+  end subroutine test_gen_grid_variants
+
+  @test
+  subroutine test_pack_unpack_variants()
+    implicit none
+    type(grid_t) :: grid
+    logical :: mask(3,2)
+    real(sp) :: rsp(3,2)
+    real(dp) :: rdp(3,2)
+    integer(i1) :: di1(3,2)
+    integer(i2) :: di2(3,2)
+    integer(i4) :: di4(3,2)
+    integer(i8) :: di8(3,2)
+    logical :: dlgt(3,2)
+    real(sp), allocatable :: pack_sp(:)
+    real(dp), allocatable :: pack_dp(:)
+    integer(i1), allocatable :: pack_i1(:)
+    integer(i2), allocatable :: pack_i2(:)
+    integer(i4), allocatable :: pack_i4(:)
+    integer(i8), allocatable :: pack_i8(:)
+    logical, allocatable :: pack_lgt(:)
+    real(sp), allocatable :: out_sp(:)
+    real(dp), allocatable :: out_dp(:)
+    integer(i1), allocatable :: out_i1(:)
+    integer(i2), allocatable :: out_i2(:)
+    integer(i4), allocatable :: out_i4(:)
+    integer(i8), allocatable :: out_i8(:)
+    logical, allocatable :: out_lgt(:)
+    real(sp), allocatable :: up_sp(:,:)
+    real(dp), allocatable :: up_dp(:,:)
+    integer(i1), allocatable :: up_i1(:,:)
+    integer(i2), allocatable :: up_i2(:,:)
+    integer(i4), allocatable :: up_i4(:,:)
+    integer(i8), allocatable :: up_i8(:,:)
+    logical, allocatable :: up_lgt(:,:)
+    integer(i4) :: nc
+
+    mask = reshape([.true., .false., .true., .true., .true., .false.], [3, 2])
+    call grid%init(nx=3, ny=2, cellsize=1.0_dp, coordsys=cartesian, mask=mask, y_direction=bottom_up)
+    nc = grid%ncells
+
+    rsp = reshape([1.0_sp, 2.0_sp, 3.0_sp, 4.0_sp, 5.0_sp, 6.0_sp], [3,2])
+    rdp = reshape([1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp, 5.0_dp, 6.0_dp], [3,2])
+    di1 = int(rsp, i1)
+    di2 = int(rsp, i2)
+    di4 = int(rsp, i4)
+    di8 = int(rsp, i8)
+    dlgt = reshape([.true., .false., .false., .true., .false., .true.], [3,2])
+
+    pack_sp = grid%pack(rsp)
+    pack_dp = grid%pack(rdp)
+    pack_i1 = grid%pack(di1)
+    pack_i2 = grid%pack(di2)
+    pack_i4 = grid%pack(di4)
+    pack_i8 = grid%pack(di8)
+    pack_lgt = grid%pack(dlgt)
+    @assertEqual(pack_sp, [1.0_sp, 3.0_sp, 4.0_sp, 5.0_sp], tolerance=1.0e-6_sp)
+    @assertEqual(pack_i4, [1_i4, 3_i4, 4_i4, 5_i4])
+    @assertEqual(pack_lgt, [.true., .false., .true., .false.])
+
+    allocate(out_sp(nc), out_dp(nc), out_i1(nc), out_i2(nc), out_i4(nc), out_i8(nc), out_lgt(nc))
+    call grid%pack_into(rsp, out_sp)
+    call grid%pack_into(rdp, out_dp)
+    call grid%pack_into(di1, out_i1)
+    call grid%pack_into(di2, out_i2)
+    call grid%pack_into(di4, out_i4)
+    call grid%pack_into(di8, out_i8)
+    call grid%pack_into(dlgt, out_lgt)
+    @assertEqual(out_sp, pack_sp, tolerance=1.0e-6_sp)
+    @assertEqual(out_i8, [1_i8, 3_i8, 4_i8, 5_i8])
+
+    allocate(up_sp(3,2), up_dp(3,2), up_i1(3,2), up_i2(3,2), up_i4(3,2), up_i8(3,2), up_lgt(3,2))
+    up_sp = grid%unpack(pack_sp)
+    up_dp = grid%unpack(pack_dp)
+    up_i1 = grid%unpack(pack_i1)
+    up_i2 = grid%unpack(pack_i2)
+    up_i4 = grid%unpack(pack_i4)
+    up_i8 = grid%unpack(pack_i8)
+    up_lgt = grid%unpack(pack_lgt)
+    @assertEqual(up_sp(2,1), nodata_sp)
+    @assertEqual(up_i1(3,2), nodata_i1)
+    @assertEqual(up_i2(3,2), nodata_i2)
+    @assertEqual(up_i4(2,1), nodata_i4)
+    @assertEqual(up_i8(2,1), nodata_i8)
+    @assertEqual(up_lgt(2,1), .false.)
+
+    up_sp = 0.0_sp; up_dp = 0.0_dp
+    up_i1 = 0_i1; up_i2 = 0_i2; up_i4 = 0_i4; up_i8 = 0_i8; up_lgt = .false.
+    call grid%unpack_into(pack_sp, up_sp)
+    call grid%unpack_into(pack_dp, up_dp)
+    call grid%unpack_into(pack_i1, up_i1)
+    call grid%unpack_into(pack_i2, up_i2)
+    call grid%unpack_into(pack_i4, up_i4)
+    call grid%unpack_into(pack_i8, up_i8)
+    call grid%unpack_into(pack_lgt, up_lgt)
+    @assertEqual(up_dp(1,1), 1.0_dp, tolerance=1.0e-4_dp)
+    @assertEqual(up_sp(1,2), 4.0_sp, tolerance=1.0e-6_sp)
+    @assertEqual(up_i4(1,1), 1_i4)
+    @assertEqual(up_i4(3,1), 3_i4)
+    @assertEqual(up_lgt(3,2), .false.)
+  end subroutine test_pack_unpack_variants
+
+  @test
+  subroutine test_upscale_and_file_io()
+    implicit none
+    type(grid_t) :: fine, coarse
+    type(NcDataset) :: nc
+    type(NcVariable) :: var
+    integer(i1), allocatable :: mask_out(:,:)
+    real(dp), allocatable :: area_out(:,:)
+    integer(i4) :: i, j
+    character(len=*), parameter :: nc_path = "tmp_grid_out.nc"
+    character(len=*), parameter :: ascii_path = "tmp_dp.asc"
+    real(dp), dimension(2,2) :: data_dp
+    type(NcDimension) :: z_dim
+    type(NcVariable) :: z_var
+
+    call fine%init(nx=4, ny=4, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    allocate(fine%lat(4,4), fine%lon(4,4))
+    do j = 1, 4
+      do i = 1, 4
+        fine%lat(i,j) = real(j-1, dp)
+        fine%lon(i,j) = real(i-1, dp)
+      end do
+    end do
+
+    call coarse%init(nx=2, ny=2, cellsize=2.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    call coarse%upscale_aux_coords(fine)
+    @assertTrue(coarse%has_aux_coords(), message='coarse gained aux coords')
+
+    call coarse%to_netcdf(nc_path, mask=.true., area=.true.)
+    nc = NcDataset(nc_path, "r")
+    var = nc%getVariable("mask")
+    call var%getData(mask_out)
+    @assertEqual(shape(mask_out, kind=i4), [2,2])
+    var = nc%getVariable("cell_area")
+    call var%getData(area_out)
+    @assertEqual(area_out(1,1), coarse%cell_area(1), tolerance=1.0e-4_dp)
+
     call nc%close()
 
-    call layers2%from_netcdf("layers.nc", var="test")
-    @assertEqual(layers%grid%nx, layers2%grid%nx)
-    @assertEqual(layers%grid%ny, layers2%grid%ny)
-    @assertEqual(layers%grid%xllcorner, layers2%grid%xllcorner, tolerance=t, message='ascii xllcorner compare')
-    @assertEqual(layers%grid%yllcorner, layers2%grid%yllcorner, tolerance=t, message='ascii yllcorner compare')
+    nc = NcDataset("tmp_z.nc", "w")
+    z_dim = nc%setDimension("z", 1_i4)
+    z_var = nc%setVariable("z", "f64", [z_dim])
+    call z_var%setAttribute("axis", "Z")
+    @assertTrue(is_z_axis(z_var))
+    call nc%close()
 
-    @assertEqual(layers%layer, layers2%layer, tolerance=t, message='layer compare')
-    @assertEqual(layers%layer_vertices, layers2%layer_vertices, tolerance=t, message='layer_vertices compare')
+    data_dp = reshape([1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp], [2,2])
+    call write_ascii_grid(path=ascii_path, ncols=2, nrows=2, xllcorner=0.0_dp, yllcorner=0.0_dp, &
+      cellsize=1.0_dp, nodata=nodata_dp, data=transpose(data_dp), y_direction=bottom_up, is_xy=.false.)
+  end subroutine test_upscale_and_file_io
 
-  end subroutine test_layer
+  @test
+  subroutine test_periodic_and_cover_checks()
+    implicit none
+    type(grid_t) :: cart, sph, coarse, fine
+
+    call cart%init(nx=10, ny=1, cellsize=1.0_dp, coordsys=cartesian)
+    call sph%init(nx=360, ny=1, cellsize=1.0_dp, coordsys=spherical)
+    @assertFalse(cart%is_periodic())
+    @assertTrue(sph%is_periodic())
+
+    call coarse%init(nx=2, ny=2, cellsize=2.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    call fine%init(nx=4, ny=4, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    call coarse%check_is_covering(fine)
+    call fine%check_is_filling(coarse)
+
+    coarse = fine%derive_coarse_grid(target_resolution=2.0_dp)
+    fine = coarse%derive_fine_grid(target_resolution=1.0_dp)
+    @assertEqual(coarse%cellsize, 2.0_dp, tolerance=1.0e-4_dp)
+    @assertEqual(fine%cellsize, 1.0_dp, tolerance=1.0e-4_dp)
+  end subroutine test_periodic_and_cover_checks
+
+  @test
+  subroutine test_ascii_roundtrip()
+    implicit none
+    type(grid_t) :: grid
+    real(dp) :: d_in(2,2), d_ref(2,2)
+    real(dp), allocatable :: d_out_dp(:,:)
+    integer(i4) :: i_in(2,2)
+    integer(i4), allocatable :: i_out(:,:)
+    character(len=*), parameter :: path_dp = "tmp_ascii_dp.asc", path_i4 = "tmp_ascii_i4.asc"
+
+    call grid%init(nx=2, ny=2, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    d_in = reshape([1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp], [2,2])
+    i_in = reshape([5_i4, 6_i4, 7_i4, 8_i4], [2,2])
+
+    call write_ascii_grid(path_dp, ncols=2, nrows=2, xllcorner=0.0_dp, yllcorner=0.0_dp, &
+      cellsize=1.0_dp, nodata=nodata_dp, data=d_in, y_direction=bottom_up)
+    call read_ascii_grid(path_dp, d_out_dp, y_direction=bottom_up)
+    d_ref = reshape([1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp], [2,2])
+    @assertEqual(d_out_dp, d_ref, tolerance=1.0e-4_dp)
+
+    call write_ascii_grid(path_i4, ncols=2, nrows=2, xllcorner=0.0_dp, yllcorner=0.0_dp, &
+      cellsize=1.0_dp, nodata=nodata_i4, data=i_in, y_direction=bottom_up)
+    call read_ascii_grid(path_i4, i_out, y_direction=bottom_up)
+    @assertEqual(i_out, i_in)
+  end subroutine test_ascii_roundtrip
+
+  @test
+  subroutine test_netcdf_helpers()
+    implicit none
+    type(grid_t) :: grid
+    type(NcDataset) :: nc
+    type(NcVariable) :: var
+    type(NcDimension) :: x_dim, y_dim
+    type(data_t) :: data
+    real(dp), allocatable :: lon(:,:), lat(:,:), vals(:,:)
+    character(len=*), parameter :: path = "tmp_aux.nc"
+
+    call grid%init(nx=2, ny=2, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up)
+
+    nc = NcDataset(path, "w")
+    x_dim = nc%setDimension("x", 2_i4)
+    y_dim = nc%setDimension("y", 2_i4)
+    lon = reshape([0.0_dp, 1.0_dp, 0.0_dp, 1.0_dp], [2,2])
+    lat = reshape([0.0_dp, 0.0_dp, 1.0_dp, 1.0_dp], [2,2])
+    vals = reshape([1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp], [2,2])
+    var = nc%setVariable("lon", "f64", [x_dim, y_dim])
+    call var%setAttribute("standard_name", "longitude")
+    call var%setAttribute("units", "degrees_east")
+    call var%setData(lon)
+    var = nc%setVariable("lat", "f64", [x_dim, y_dim])
+    call var%setAttribute("standard_name", "latitude")
+    call var%setAttribute("units", "degrees_north")
+    call var%setData(lat)
+    var = nc%setVariable("aux", "f64", [x_dim, y_dim])
+    call var%setFillValue(-9999.0_dp)
+    call var%setData(vals)
+    call nc%close()
+
+    call grid%aux_from_netcdf(path, lat="lat", lon="lon")
+    @assertTrue(grid%has_aux_coords())
+    @assertEqual(grid%lat(2,2), 1.0_dp, tolerance=1.0e-4_dp)
+
+    data%dtype = "f64"
+    nc = NcDataset(path, "r")
+    var = nc%getVariable("aux")
+    call data_from_var(var, data, flip_y=.false.)
+    @assertEqual(data%data_dp(1,1), 1.0_dp, tolerance=1.0e-4_dp)
+    call nc%close()
+  end subroutine test_netcdf_helpers
 
 end module test_mo_grid

@@ -103,11 +103,10 @@ module mo_dag
   type :: node
     !> The nodes that this node depends on (directed edges of the graph).
     !! The indices are the respective node index in the nodes list in the dag
-    !! and do not necessarily match the node%tag (e.g. when nodes are removed, their tags stay untouched)
+    !! and do not necessarily match the dag%tags (e.g. when nodes are removed, their tags stay untouched)
     integer(i8),dimension(:),allocatable :: edges
     !> nodes that contain an edge to this node
     integer(i8),dimension(:),allocatable :: dependents
-    integer(i8) :: tag = 0_i8 !< node tag for external reference (will stay the same even when the DAG is modified)
   contains
     procedure :: nedges => node_nedges
     procedure :: ndependents => node_ndependents
@@ -127,6 +126,7 @@ module mo_dag
     integer(i8) :: n = 0 !< number of nodes (size of `nodes` array)
     !> The nodes in the DAG. The index in this array is used by the edges of the nodes.
     type(node),dimension(:),allocatable :: nodes
+    integer(i8),dimension(:),allocatable :: tags !< node tags for external reference
     integer(i8), private, dimension(:), allocatable :: tag_to_id_map !< Maps node tag to array index
     integer(i8), private :: max_tag = 0_i8 !< Max tag value in current DAG (for bounds)
   contains
@@ -262,7 +262,7 @@ contains
       if (handler%visited(j)) cycle
       handler%visited(j) = .true.
 
-      action = handler%visit(j, this%nodes(j)%tag)
+      action = handler%visit(j, this%tags(j))
       select case (action)
         case (dfs_continue)  ! 0
           if (down_) then
@@ -309,7 +309,7 @@ contains
     call this%traverse(handler, ids, down)
 
     nsub = count(handler%visited)
-    subtags = pack(this%nodes%tag, handler%visited)
+    subtags = pack(this%tags, handler%visited)
     idmap = unpack([(i, i=1_i8, nsub)], handler%visited, 0_i8)
 
     call subgraph%init(nsub, subtags)
@@ -369,10 +369,10 @@ contains
     integer(i8) :: i
     if (allocated(this%tag_to_id_map)) deallocate(this%tag_to_id_map)
     if (.not.allocated(this%nodes)) return
-    this%max_tag = maxval(this%nodes(:)%tag)
+    this%max_tag = maxval(this%tags)
     allocate(this%tag_to_id_map(this%max_tag), source=-1_i8) ! Initialize with invalid index
     do i = 1_i8, this%n
-      this%tag_to_id_map(this%nodes(i)%tag) = i
+      this%tag_to_id_map(this%tags(i)) = i
     end do
   end subroutine dag_rebuild_tag_map
 
@@ -410,11 +410,22 @@ contains
     this%n = n
     allocate(this%nodes(n))
     if (present(tags)) then
-      this%nodes%tag = tags
+      this%tags = tags
+      call this%rebuild_tag_map()
     else
-      this%nodes%tag = [(i,i=1_i8,n)] ! default node tags from array IDs (accessing tag array as structure component)
+      this%max_tag = n
+      if (allocated(this%tag_to_id_map)) deallocate(this%tag_to_id_map)
+      allocate(this%tag_to_id_map(n))
+      if (allocated(this%tags)) deallocate(this%tags)
+      allocate(this%tags(n))
+      !$omp parallel do default(shared) schedule(static)
+      do i = 1_i8, n
+        ! default node tags from array IDs
+        this%tags(i) = i
+        this%tag_to_id_map(i) = i
+      end do
+      !$omp end parallel do
     end if
-    call this%rebuild_tag_map()
   end subroutine dag_set_nodes
 
   !> \brief Add an edge to a dag.
