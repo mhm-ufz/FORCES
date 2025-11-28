@@ -95,6 +95,7 @@ module mo_dag
     integer(i8), allocatable :: level_end(:)    !< End indices in id(:) for respective level
     integer(i8), allocatable :: level_size(:)   !< Size of respective level
     integer(i8) :: n_levels                     !< Number of levels
+    logical :: to_root                          !< Order from leaves to roots if .true., roots to leaves if .false.
   contains
     procedure :: reverse => order_reverse
     procedure :: sort => order_sort
@@ -211,7 +212,6 @@ contains
 
   !> \brief Sort nodes within levels of order.
   subroutine order_sort(this)
-    use mo_utils, only: flip
     class(order_t), intent(inout) :: this
     integer(i8) :: i
     !$omp parallel do default(shared) schedule(static)
@@ -223,12 +223,13 @@ contains
 
   !> \brief Reverse order.
   subroutine order_reverse(this)
-    use mo_utils, only: flip
     class(order_t), intent(inout) :: this
     ! integer(i8), allocatable :: tmp(:)
     integer(i8) :: n, tmp1, tmp2, i
 
     n = size(this%id, kind=i8)
+
+    this%to_root = .not.this%to_root
 
     !$omp parallel do default(shared) private(tmp1) schedule(static)
     do i=1_i8, n/2_i8
@@ -499,12 +500,12 @@ contains
     if (root_) then
       call dag_base_levelsort_root(this, order, istat, reverse)
     else
-      call dag_base_levelsort_head(this, order, istat, reverse)
+      call dag_base_levelsort_leaf(this, order, istat, reverse)
     end if
   end subroutine dag_base_levelsort
 
   !> \brief Sorting DAG by levels for parallelization based on Kahn's algorithm
-  subroutine dag_base_levelsort_head(this, order, istat, reverse)
+  subroutine dag_base_levelsort_leaf(this, order, istat, reverse)
     implicit none
     class(dag_base), intent(in), target :: this
     type(order_t), intent(out) :: order       !< level based order
@@ -665,9 +666,10 @@ contains
     !$omp end parallel do
     deallocate(level_start, level_end)
 
+    order%to_root = .true.
     if (optval(reverse, .false.)) call order%reverse()
 
-  end subroutine dag_base_levelsort_head
+  end subroutine dag_base_levelsort_leaf
 
   !> \brief Sorting DAG by levels for parallelization based on Kahn's algorithm starting at roots.
   subroutine dag_base_levelsort_root(this, order, istat, reverse)
@@ -831,6 +833,7 @@ contains
     !$omp end parallel do
     deallocate(level_start, level_end)
 
+    order%to_root = .false.
     if (.not.optval(reverse, .false.)) call order%reverse()
 
   end subroutine dag_base_levelsort_root
@@ -1357,6 +1360,7 @@ contains
     !$omp end parallel do
     deallocate(level_start_tmp, level_end_tmp)
 
+    order%to_root = .false.
     if (.not. optval(reverse, .false.)) call order%reverse()
 
   end subroutine branching_levelsort_root
