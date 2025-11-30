@@ -193,7 +193,7 @@ contains
     logical, intent(in), optional :: cache_bounds !< flag to cache coarse cell bounds (default: .true.)
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparison (default: 1.e-7)
 
-    integer(i4) :: i_ub, i_lb, j_lb, j_ub, ic, jc, i, j
+    integer(i4) :: i_ub, i_lb, j_lb, j_ub, ic, jc
     integer(i8) :: k
     integer(i8), dimension(:, :), allocatable :: coarse_id_matrix
     real(dp), dimension(:), allocatable :: weights
