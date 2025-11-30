@@ -113,6 +113,10 @@ module mo_dag
     procedure(dag_base_count_if), deferred :: n_targets   !< Number of downstream nodes per id
     procedure(dag_base_view_if),  deferred :: src_view    !< Pointer view of upstream node ids
     procedure(dag_base_view_if),  deferred :: tgt_view    !< Pointer view of downstream node ids
+    procedure :: n_roots           => dag_base_n_roots
+    procedure :: n_leaves          => dag_base_n_leaves
+    procedure :: roots             => dag_base_roots
+    procedure :: leaves            => dag_base_leaves
     procedure :: traverse          => dag_base_traverse
     procedure :: toposort          => dag_base_toposort
     procedure :: levelsort         => dag_base_levelsort
@@ -200,6 +204,8 @@ module mo_dag
   contains
     procedure :: init            => branching_init
     procedure :: destroy         => branching_destroy
+    procedure :: n_roots         => branching_n_roots
+    procedure :: roots           => branching_roots
     procedure :: n_sources       => branching_n_sources
     procedure :: n_targets       => branching_n_targets
     procedure :: src_view        => branching_src_view
@@ -281,7 +287,7 @@ contains
     logical, intent(in), optional :: down !< traverse downstream if .true. (.false. by default to traverse upstream)
 
     integer(i8) :: top, dep, action, i, j
-    integer(i8), allocatable :: stack(:)
+    integer(i8), allocatable :: stack(:), start(:)
     integer(i8), pointer :: neigh(:)
     logical :: down_
 
@@ -296,12 +302,18 @@ contains
       end do
       !$omp end parallel do
     else
-      top = this%n_nodes
+      if (down_) then
+        call this%leaves(start)
+      else
+        call this%roots(start)
+      end if
+      top = size(start, kind=i8)
       !$omp parallel do default(shared) schedule(static)
       do i = 1_i8, top
-        stack(i) = i
+        stack(i) = start(i)
       end do
       !$omp end parallel do
+      deallocate(start)
     end if
 
     do while (top > 0_i8)
@@ -408,6 +420,70 @@ contains
     call this%tgt_view(id, view)
     vals = view
   end subroutine dag_base_targets
+
+  !> \brief Count number of root nodes (nodes with no targets).
+  function dag_base_n_roots(this) result(n)
+    class(dag_base), intent(in), target :: this
+    integer(i8) :: n
+    integer(i8) :: i
+    n = 0_i8
+    !$omp parallel do default(shared) reduction(+:n) schedule(static)
+    do i = 1_i8, this%n_nodes
+      if (this%n_targets(i) == 0_i8) n = n + 1_i8
+    end do
+    !$omp end parallel do
+  end function dag_base_n_roots
+
+  !> \brief Count number of leaf nodes (nodes with no sources).
+  function dag_base_n_leaves(this) result(n)
+    class(dag_base), intent(in), target :: this
+    integer(i8) :: n
+    integer(i8) :: i
+    n = 0_i8
+    !$omp parallel do default(shared) reduction(+:n) schedule(static)
+    do i = 1_i8, this%n_nodes
+      if (this%n_sources(i) == 0_i8) n = n + 1_i8
+    end do
+    !$omp end parallel do
+  end function dag_base_n_leaves
+
+  !> \brief Get all root node ids (nodes with no targets).
+  subroutine dag_base_roots(this, roots)
+    class(dag_base), intent(in), target :: this
+    integer(i8), allocatable, intent(out) :: roots(:)
+    integer(i8) :: i, count, idx
+    allocate(roots(this%n_roots()))
+    count = 0_i8
+    !$omp parallel do default(shared) private(idx) schedule(static)
+    do i = 1_i8, this%n_nodes
+      if (this%n_targets(i) > 0_i8) cycle
+      !$omp atomic capture
+      idx = count + 1_i8
+      count = idx
+      !$omp end atomic
+      roots(idx) = i
+    end do
+    !$omp end parallel do
+  end subroutine dag_base_roots
+
+  !> \brief Get all leaf node ids (nodes with no sources).
+  subroutine dag_base_leaves(this, leaves)
+    class(dag_base), intent(in), target :: this
+    integer(i8), allocatable, intent(out) :: leaves(:)
+    integer(i8) :: i, count, idx
+    allocate(leaves(this%n_leaves()))
+    count = 0_i8
+    !$omp parallel do default(shared) private(idx) schedule(static)
+    do i = 1_i8, this%n_nodes
+      if (this%n_sources(i) > 0_i8) cycle
+      !$omp atomic capture
+      idx = count + 1_i8
+      count = idx
+      !$omp end atomic
+      leaves(idx) = i
+    end do
+    !$omp end parallel do
+  end subroutine dag_base_leaves
 
   !> \brief Default destroy implementation shared by all DAGs.
   subroutine dag_base_destroy(this)
@@ -529,6 +605,7 @@ contains
       allocate(order%level_start(0))
       allocate(order%level_end(0))
       allocate(order%level_size(0))
+      order%to_root = .not. optval(reverse, .false.)
       return
     end if
 
@@ -696,6 +773,7 @@ contains
       allocate(order%level_start(0))
       allocate(order%level_end(0))
       allocate(order%level_size(0))
+      order%to_root = .not. optval(reverse, .false.)
       return
     end if
 
@@ -1226,6 +1304,57 @@ contains
       view => empty_int_vec
     end if
   end subroutine branching_tgt_view
+
+  !> \brief Number of root nodes (sinks) in the branching DAG.
+  function branching_n_roots(this) result(n)
+    class(branching), intent(in), target :: this
+    integer(i8) :: n
+    n = size(this%sinks, kind=i8)
+  end function branching_n_roots
+
+  !> \brief Number of leaf nodes (source free) in the branching DAG.
+  function branching_n_leaves(this) result(n)
+    class(branching), intent(in), target :: this
+    integer(i8) :: n
+    integer(i8) :: i
+    n = 0_i8
+    !$omp parallel do default(shared) reduction(+:n) schedule(static)
+    do i = 1_i8, this%n_nodes
+      if (this%n_up(i) == 0_i8) n = n + 1_i8
+    end do
+    !$omp end parallel do
+  end function branching_n_leaves
+
+  !> \brief Get the root nodes (sinks) of the branching DAG.
+  subroutine branching_roots(this, roots)
+    class(branching), intent(in), target :: this
+    integer(i8), allocatable, intent(out) :: roots(:)
+    integer(i8) :: i
+    allocate(roots(size(this%sinks, kind=i8)))
+    !$omp parallel do default(shared) schedule(static)
+    do i = 1_i8, size(this%sinks, kind=i8)
+      roots(i) = this%sinks(i)
+    end do
+    !$omp end parallel do
+  end subroutine branching_roots
+
+  subroutine branching_leaves(this, leaves)
+    class(branching), intent(in), target :: this
+    integer(i8), allocatable, intent(out) :: leaves(:)
+    integer(i8) :: i, count, idx
+    allocate(leaves(this%n_leaves()))
+    count = 0_i8
+    !$omp parallel do default(shared) private(idx) schedule(static)
+    do i = 1_i8, this%n_nodes
+      if (this%n_up(i) > 0_i8) cycle
+      !$omp atomic capture
+      idx = count + 1_i8
+      count = idx
+      !$omp end atomic
+      leaves(idx) = i
+    end do
+    !$omp end parallel do
+  end subroutine branching_leaves
 
   !> \brief Specialized levelsort for branching DAGs with optional root ordering.
   subroutine branching_levelsort(this, order, istat, root, reverse)
