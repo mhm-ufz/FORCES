@@ -205,7 +205,9 @@ module mo_dag
     procedure :: init            => branching_init
     procedure :: destroy         => branching_destroy
     procedure :: n_roots         => branching_n_roots
+    procedure :: n_leaves        => branching_n_leaves
     procedure :: roots           => branching_roots
+    procedure :: leaves          => branching_leaves
     procedure :: n_sources       => branching_n_sources
     procedure :: n_targets       => branching_n_targets
     procedure :: src_view        => branching_src_view
