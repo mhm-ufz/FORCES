@@ -4,6 +4,51 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
+## v0.8 - 2025-11
+- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.7.1...v0.8.0) for details.
+
+### Enhancements and Changes
+- `mo_dag` ([100](https://git.ufz.de/chs/forces/-/merge_requests/100))
+  - Refactored the DAG module around a new abstract dag_base and added a branching specialization for river-style graphs, aligning terminology on sources/targets, adding traversal handlers, adjacency accessors, and cleanup (destroy) utilities in src/mo_dag.f90.
+  - Improved ordering helpers with an explicit order_t%to_root flag, a new order%sort, and a fixed order%reverse for odd level counts; root/leaf level sorts now parallelize with OpenMP and prefix sums for faster scheduling.
+  - Added an OpenMP-enabled prefix_sum helper for i8 with shift/start heuristics plus example examples/04_utils/01_prefix_sum.f90 and coverage in src/pf_tests/test_mo_utils.pf; DAG code now uses it for offset building.
+  - Updated DAG examples (including new examples/02_dag/02_branching.f90) and expanded src/pf_tests/test_mo_dag.pf to cover branching, traversal, and order direction.
+- `mo_grid_io` ([96](https://git.ufz.de/chs/forces/-/merge_requests/96))
+  - rewrote mo_grid_io in FYPP so all kind/rank combinations are emitted from a single template, which also let us extend the codebase to layered variables without duplicating logic
+  - layered support now includes metadata propagation, z-axis creation, per-layer buffers, and dedicated read/write paths in both output and input datasets
+  - introduced id-based update/read APIs with cached var_index helpers, reused in the existing name-based entry points
+  - normal reads now call the new non-allocating `readInto` from `mo_netcdf`
+  - layered writes stream each slice with explicit start/cnt
+  - input_time_index uses a bounds-checked binary search
+- `mo_grid` and `mo_grid_scaler`: OpenMP optimizations ([97](https://git.ufz.de/chs/forces/-/merge_requests/97))
+  - Reworked src/mo_grid.F90 for performance and API cleanup: removed the unused layered_grid_t (breaking), introduced a data_t container plus mask_from_var/data_from_var helpers to read data without extra copies, added gen_grid/check_factor/coarse_ij utilities, optional mask/area NetCDF outputs, new area-count upscaling mode, OpenMP pack/unpack implementations for all integer kinds, faster mask/cell-id bookkeeping, and periodic/grid-generation fixes.
+  - Upgraded src/mo_grid_scaler.f90 for OpenMP-aware grid mapping: validated scaling factors, added cacheable coarse bounds/indices APIs, new weight modes (area vs. count) and coarse_weights, a no-scaling fast path for equal resolutions, generalized downscale_nearest/split over packed/unpacked inputs, and added minloc/maxloc helpers; init now accepts optional weight_mode/cache_bounds (API change).
+  - Updated examples and pfunit suites (examples/01_grids/01_regridding.f90, src/pf_tests/test_mo_grid.pf, src/pf_tests/test_mo_grid_scaler.pf) to cover new data container flows, pack/unpack variants, weight-count paths, extra downscaling modes, and tightened tolerances.
+- `mo_logging` ([99](https://git.ufz.de/chs/forces/-/merge_requests/99), [101](https://git.ufz.de/chs/forces/-/merge_requests/101))
+  - Simplified `mo_logging`:
+    - Strip color/terminal detection from `mo_logging`, remove hostname/formatting helpers, and rewrite `logl` to always emit level tags (new `log_text` macro disables them case-by-case) with allocatable strings and Windows-aware `strip_path`.
+    - introduced scope tags (`log_scope_filter`, `scope_*` macros)
+    - added CSV filtering for tags (with simple globbing support)
+    - scope names print before [LEVEL]
+    - Propagate `-ffree-line-length-none` as a PUBLIC flag for gfortran targets via `src/CMakeLists.txt` so long log strings compile cleanly.
+    - update `mo_cli` options/APIs to match new logging features
+    - remove `mo_logging` dependencies from `mo_message`, and drop unused formatting arguments.
+  - Expanded `logging.h`:
+    - Update macros (`log_write`, `log_plain`, etc.) plus CLI options/APIs to match, remove `mo_logging` dependencies from `mo_message`, and drop unused formatting arguments.
+    - `scope_*` macros
+    - fine-level aliases for subtrace (`log_fine` family)
+    - disabled debug and trace logging now produce write lines starting with "if(.false.)" to let the compiler optimizer remove them (NAG and maybe other pre-processors don't support comment writing with macros)
+  - updated logging example (`examples/03_log/01_logging_cli.F90`) with scope logging examples
+- `mo_cli` ([101](https://git.ufz.de/chs/forces/-/merge_requests/101))
+  - add `--log-scope` to logger options and add a default scope argument
+  - `--` separator handling
+  - allow empty argument in options
+- `mo_os` ([95](https://git.ufz.de/chs/forces/-/merge_requests/95))
+  - add `path_cwd`
+  - also replace single '\' in path_to_posix
+- `mo_glob` ([102](https://git.ufz.de/chs/forces/-/merge_requests/102))
+  - Minimal globbing implementation supporting wildcards `"?"` and "`*`"
+
 ## v0.7.1 - 2025-09
 - See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.7.0...v0.7.1) for details.
 

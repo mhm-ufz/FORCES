@@ -202,6 +202,8 @@ module mo_netcdf
     generic, public :: setData => setData_${rank}$d_${kind}$ !< set data
     procedure, private :: getData_${rank}$d_${kind}$
     generic, public :: getData => getData_${rank}$d_${kind}$ !< get data
+    procedure, private :: readInto_${rank}$d_${kind}$
+    generic, public :: readInto => readInto_${rank}$d_${kind}$ !< read into existing buffer
   #:endfor
     procedure, private :: getCFAttributes_${kind}$
     generic, public :: getCFAttributes => getCFAttributes_${kind}$ !< get CF attributes
@@ -1091,6 +1093,80 @@ $: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+
 
 #:enddef getData_template
 
+#:def readInto_template(kind, type, rank)
+  subroutine readInto_${rank}$d_${kind}$(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    ${type}$, intent(out) :: data${ranksuffix(rank)}$
+    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask${ranksuffix(rank)}$
+
+    integer(i4) :: flagMissing
+    ${type}$ :: fillValue, minValue, maxValue
+#: if rank > 0
+    integer(i4), allocatable :: slcshape(:), expected_shape(:)
+    integer(i4) :: datashape(${rank}$)
+    integer(i4) :: maskshape(${rank}$)
+
+    datashape = shape(data)
+    slcshape = self%getSlicingShape(start, cnt, stride)
+    expected_shape = getReadShape(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+#: else
+    ${type}$ :: tmp(1)
+
+    call check (nf90_get_var(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+#: endif
+    if (present(mask)) then
+#: if rank > 0
+      maskshape = shape(mask)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+#: endif
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+#: if kind in INT_KINDS
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+#: else
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+#: endif
+      end select
+    end if
+
+  end subroutine readInto_${rank}$d_${kind}$
+
+#:enddef readInto_template
+
 #:def setData_template(kind, type, rank)
   #! the cnt, stride and map args are valid only for 1d varities, they were originally also not appearing in dummy args
   subroutine setData_${rank}$d_${kind}$(self, values, start, cnt, stride, map)
@@ -1111,6 +1187,7 @@ $: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+
 #:for kind, type in REAL_KINDS_TYPES + INT_KINDS_TYPES
   #:for rank in RANKS
     $:getData_template(kind, type, rank)
+    $:readInto_template(kind, type, rank)
     $:setData_template(kind, type, rank)
   #:endfor
   $:getFillValue_template(kind, type)

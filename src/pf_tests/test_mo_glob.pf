@@ -1,0 +1,28 @@
+module test_mo_glob
+  use funit
+  use mo_glob, only: glob_match
+
+  implicit none
+
+  private
+
+  public :: test_glob
+
+contains
+
+  @test
+  subroutine test_glob()
+    implicit none
+    @assertTrue(glob_match('dag', 'dag'))
+    @assertFalse(glob_match('dag', 'dagger'))
+    @assertTrue(glob_match('dag*', 'dagger'))
+    @assertTrue(glob_match('*dag', 'rockdag'))
+    @assertTrue(glob_match('*dag*', 'rockdagger'))
+    @assertTrue(glob_match('d?g', 'dig'))
+    @assertTrue(glob_match('*d?g*', 'rockdigger'))
+    @assertFalse(glob_match('d?g', 'ding'))
+    @assertTrue(glob_match('d*?g', 'doing'))
+    @assertFalse(glob_match('d*?g', 'dg'))
+  end subroutine test_glob
+
+end module test_mo_glob

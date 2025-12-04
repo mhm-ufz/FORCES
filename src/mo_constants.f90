@@ -11,7 +11,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_constants
 
-  use mo_kind, only : sp, dp, i2, i4, i8
+  use mo_kind, only : sp, dp, i1, i2, i4, i8
   use, intrinsic :: iso_fortran_env, only : input_unit, output_unit, error_unit
 
   implicit none
@@ -145,6 +145,7 @@ module mo_constants
   ! computational, these values need to be the same!!!
   real(sp), public, parameter :: nodata_sp = -9999.0_sp  !< [-]     global no data value
   real(dp), public, parameter :: nodata_dp = -9999.0_dp  !< [-]     global no data value
+  integer(i1), public, parameter :: nodata_i1 = -127_i1  !< [-]     global no data value
   integer(i2), public, parameter :: nodata_i2 = -9999_i2 !< [-]     global no data value
   integer(i4), public, parameter :: nodata_i4 = -9999_i4 !< [-]     global no data value
   integer(i8), public, parameter :: nodata_i8 = -9999_i8 !< [-]     global no data value

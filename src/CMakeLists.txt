@@ -12,7 +12,7 @@ if(NOT FYPP)
 else()
   message(STATUS "Preprocessor fypp found!")
   # Create a list of the files to be preprocessed
-  set(fppFiles mo_netcdf.fypp mo_poly.fypp mo_sentinel.fypp)
+  set(fppFiles mo_netcdf.fypp mo_poly.fypp mo_sentinel.fypp mo_grid_io.fypp)
   # Custom preprocessor flags
   if(DEFINED CMAKE_MAXIMUM_RANK)
     set(fyppFlags "-DMAXRANK=${CMAKE_MAXIMUM_RANK}")
@@ -27,6 +27,7 @@ else()
   list(FILTER sources EXCLUDE REGEX ".*mo_netcdf.f90$")
   list(FILTER sources EXCLUDE REGEX ".*mo_poly.f90$")
   list(FILTER sources EXCLUDE REGEX ".*mo_sentinel.f90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_grid_io.f90$")
 endif()
 
 # option for optimization routines
@@ -54,6 +55,7 @@ if (FORCES_WITH_NETCDF)
 else()
   message(STATUS "FORCES: no NetCDF support wanted")
   list(FILTER fyppOutFiles EXCLUDE REGEX ".*mo_netcdf.f90$")
+  list(FILTER fyppOutFiles EXCLUDE REGEX ".*mo_grid_io.f90$")
   list(FILTER sources EXCLUDE REGEX ".*mo_netcdf.f90$")
   list(FILTER sources EXCLUDE REGEX ".*mo_ncwrite.f90$")
   list(FILTER sources EXCLUDE REGEX ".*mo_ncread.f90$")
@@ -99,17 +101,32 @@ if (CMAKE_WITH_OpenMP)
 endif()
 
 # log settings
-target_compile_definitions(${LIB_NAME} PUBLIC
-  $<$<CONFIG:DEBUG>:ENABLE_LOG_TRACE>
-  $<$<CONFIG:RELEASE>:DISABLE_LOG_DEBUG>
-)
+set(LOG_TRACE "AUTO" CACHE STRING "Control log trace level (AUTO (debug - ON), ON, OFF)")
+set_property(CACHE LOG_TRACE PROPERTY STRINGS AUTO ON OFF)
+set(LOG_DEBUG "AUTO" CACHE STRING "Control log debug level (AUTO (release - OFF), ON, OFF)")
+set_property(CACHE LOG_DEBUG PROPERTY STRINGS AUTO ON OFF)
+
+if(LOG_TRACE STREQUAL "ON")
+  target_compile_definitions(${LIB_NAME} PUBLIC ENABLE_LOG_TRACE)
+elseif(LOG_TRACE STREQUAL "AUTO")
+  target_compile_definitions(${LIB_NAME} PUBLIC $<$<CONFIG:DEBUG>:ENABLE_LOG_TRACE>)
+endif()
+
+if(LOG_DEBUG STREQUAL "OFF")
+  target_compile_definitions(${LIB_NAME} PUBLIC DISABLE_LOG_DEBUG)
+elseif(LOG_DEBUG STREQUAL "AUTO")
+  target_compile_definitions(${LIB_NAME} PUBLIC $<$<CONFIG:RELEASE>:DISABLE_LOG_DEBUG>)
+endif()
+
 # set compiling flags for debug and relese version
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   # set the preprocessor
   target_compile_definitions(${LIB_NAME} PRIVATE "GFORTRAN")
   # free line length to enable logging (only needed for gfortran)
-  target_compile_options(${LIB_NAME} PRIVATE
+  target_compile_options(${LIB_NAME} PUBLIC
     -ffree-line-length-none
+  )
+  target_compile_options(${LIB_NAME} PRIVATE
     $<$<CONFIG:DEBUG>:-Og -g -Wall -Wextra -Wimplicit-interface -Wsurprising
       -fimplicit-none -fbacktrace -fcheck=all
       -ffpe-trap=zero,overflow,underflow -finit-real=snan -pedantic-errors>
