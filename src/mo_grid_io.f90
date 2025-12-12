@@ -31,7 +31,7 @@ module mo_grid_io
   use mo_netcdf, only : NcDataset, NcDimension, NcVariable
   use mo_datetime, only : datetime, timedelta, delta_from_string, decode_cf_time_units, one_day, one_hour
   use mo_message, only : error_message, warn_message
-  use mo_utils, only: is_close, flip
+  use mo_utils, only: is_close, flip, optval
   implicit none
 
   public :: var, output_dataset, input_dataset, time_units_delta, time_index, var_index, time_values
@@ -321,10 +321,10 @@ contains
     integer(i4), intent(in), optional :: timestep !< time step (-3, -2, -1, 0, 1 (default), >1)
     integer(i4), intent(in), optional :: timestamp !< time stamp reference (0: begin, 1: center, 2: end of time span (default))
     character(:), allocatable :: res
-    integer(i4) :: step = hourly
-    integer(i4) :: stamp = end_timestamp
-    if (present(timestep)) step = timestep
-    if (present(timestamp)) stamp = timestamp
+    integer(i4) :: step
+    integer(i4) :: stamp
+    step = optval(timestep, hourly)
+    stamp = optval(timestamp, end_timestamp)
     res = "hours" ! default
     if (stamp == center_timestamp) then
       if (step > no_time .and. mod(step, 2) == 1) res = "minutes"
@@ -362,7 +362,7 @@ contains
   !> \brief determine time-stepping time-dimension depending on given datetimes.
   subroutine time_stepping(t_var, timestamp, start_time, delta, timestep, t_values, t_bounds)
     type(NcVariable), intent(in) :: t_var !< time variable
-    integer(i4), intent(in) :: timestamp !< timestamp location selector
+    integer(i4), optional, intent(in) :: timestamp !< timestamp location selector
     type(datetime), intent(out) :: start_time !< starting time in units
     type(timedelta), intent(out) :: delta !< time delta in units
     integer(i4), intent(out) ::  timestep !< time step indicator
@@ -371,12 +371,16 @@ contains
     integer(i4), allocatable, dimension(:) :: tmp_arr, t_diffs
     type(timedelta) :: loc_delta ! local time delta in units
     type(datetime) :: loc_date
+    integer(i4) :: timestamp_
     integer(i4) :: dt, i
     real(dp) :: dt_dp
     logical :: is_monthly, is_yearly
     character(len=256) :: tmp_str
     type(NcVariable) :: tb_var
     integer(i4), allocatable, dimension(:,:) :: t_bnds
+
+    ! set timestamp
+    timestamp_ = optval(timestamp, end_timestamp)
 
     call t_var%getAttribute("units", tmp_str)
     call decode_cf_time_units(trim(tmp_str), delta, start_time)
@@ -386,9 +390,9 @@ contains
       tb_var = t_var%parent%getVariable(trim(tmp_str))
       call tb_var%getData(t_bnds)
       t_values = t_bnds(2, :) ! upper bound as reference value
-    else if (timestamp == end_timestamp) then
+    else if (timestamp_ == end_timestamp) then
       call t_var%getData(t_values)
-    else if (timestamp == start_timestamp) then
+    else if (timestamp_ == start_timestamp) then
       call t_var%getData(tmp_arr)
       if (size(tmp_arr) == 1_i4) then
         ! assume same step as with initial value
@@ -488,9 +492,10 @@ contains
     logical, intent(in), optional :: raise !< switch to raise error if time not found
     logical, intent(out), optional :: found !< time was found
     integer(i4) :: i
-    logical :: found_ = .false.
-    logical :: raise_ = .true.
-    if (present(raise)) raise_ = raise
+    logical :: found_
+    logical :: raise_
+    raise_ = optval(raise, .true.)
+    found_ = .false.
     do i = 1_i4, size(times)
       if (current_time == times(i)) then
         found_ = .true.
@@ -1616,13 +1621,10 @@ contains
     self%counter = 0_i4
     self%nlayers = 0_i4
 
-    self%deflate_level = 6_i4
-    if (present(deflate_level)) self%deflate_level = deflate_level
-    self%timestamp = end_timestamp
-    if (present(timestamp)) self%timestamp = timestamp
+    self%deflate_level = optval(deflate_level, 6_i4)
+    self%timestamp = optval(timestamp, end_timestamp)
+    self%positive_up = optval(positive_up, .false.)
 
-    self%positive_up = .false.
-    if (present(positive_up)) self%positive_up = positive_up
     if (allocated(self%layer)) deallocate(self%layer)
     if (allocated(self%layer_vertices)) deallocate(self%layer_vertices)
     self%has_layer = .false.
@@ -1638,11 +1640,10 @@ contains
       call error_message("output: layer information incomplete without layer array")
     end if
 
-    double_precision_ = .true.
-    if (present(grid_double_precision)) double_precision_ = grid_double_precision
+    double_precision_ = optval(grid_double_precision, .true.)
 
     ! write grid specification to file
-    call self%grid%to_netcdf(self%nc, double_precision=grid_double_precision)
+    call self%grid%to_netcdf(self%nc, double_precision=double_precision_)
 
     if (self%has_layer) call self%define_z_axis(double_precision_)
 
@@ -1659,8 +1660,7 @@ contains
 
     if (.not.self%static) then
       if (.not.present(start_time)) call error_message("output: if dataset is not static, a start_time is needed")
-      units_dt = "hours"
-      if (present(delta)) units_dt = trim(delta)
+      units_dt = trim(optval(delta, "hours"))
       self%previous_time = start_time
       self%start_time = start_time
       self%delta = delta_from_string(units_dt)
@@ -2061,7 +2061,7 @@ contains
 
   !> \brief Initialize input_dataset
   !> \details Create and initialize the input file handler.
-  subroutine input_init(self, path, vars, grid, timestamp, grid_init_var)
+  subroutine input_init(self, path, vars, grid, timestamp, grid_init_var, tol)
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: path !< path to the file
@@ -2070,6 +2070,7 @@ contains
     integer(i4), intent(in), optional :: timestamp !< time stamp location in time span (0: begin, 1: center, 2: end (default))
     !> nc variable name to determine the grid from (by default, grid is assumed to be already initialized)
     character(*), intent(in), optional :: grid_init_var
+    real(dp), optional, intent(in) :: tol !< tolerance for checking uniform axis
     type(NcDimension), allocatable :: dims(:)
     type(NcVariable) :: t_var
     integer(i4) :: i
@@ -2079,7 +2080,7 @@ contains
     self%nc = NcDataset(self%path, "r")
     self%grid => grid
     self%nlayers = 0_i4
-    if (present(grid_init_var)) call self%grid%from_netcdf(self%nc, grid_init_var)
+    if (present(grid_init_var)) call self%grid%from_netcdf(self%nc, grid_init_var, tol=tol)
     self%nvars = size(vars)
     if (self%nvars == 0_i4) call error_message("input_dataset: no variables selected")
 
@@ -2107,7 +2108,7 @@ contains
     if (allocated(dims)) deallocate(dims)
     dims = self%vars(1)%nc%getDimensions()
     if (self%nc%hasVariable(trim(dims(2)%getName()))) then
-      call check_uniform_axis(self%nc%getVariable(trim(dims(2)%getName())), increasing=y_inc)
+      call check_uniform_axis(self%nc%getVariable(trim(dims(2)%getName())), increasing=y_inc, tol=tol)
       self%flip_y = y_inc.neqv.(self%grid%y_direction==bottom_up)
     else
       self%flip_y = .false.
