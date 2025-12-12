@@ -813,7 +813,7 @@ contains
   !> \brief determine time-stepping time-dimension depending on given datetimes.
   subroutine time_stepping(t_var, timestamp, start_time, delta, timestep, t_values, t_bounds)
     type(NcVariable), intent(in) :: t_var !< time variable
-    integer(i4), intent(in) :: timestamp !< timestamp location selector
+    integer(i4), optional, intent(in) :: timestamp !< timestamp location selector
     type(datetime), intent(out) :: start_time !< starting time in units
     type(timedelta), intent(out) :: delta !< time delta in units
     integer(i4), intent(out) ::  timestep !< time step indicator
@@ -822,12 +822,17 @@ contains
     integer(i4), allocatable, dimension(:) :: tmp_arr, t_diffs
     type(timedelta) :: loc_delta ! local time delta in units
     type(datetime) :: loc_date
+    integer(i4) :: timestamp_
     integer(i4) :: dt, i
     real(dp) :: dt_dp
     logical :: is_monthly, is_yearly
     character(len=256) :: tmp_str
     type(NcVariable) :: tb_var
     integer(i4), allocatable, dimension(:,:) :: t_bnds
+
+    ! set timestamp
+    timestamp_ = end_timestamp
+    if (present(timestamp)) timestamp_ = timestamp
 
     call t_var%getAttribute("units", tmp_str)
     call decode_cf_time_units(trim(tmp_str), delta, start_time)
@@ -837,9 +842,9 @@ contains
       tb_var = t_var%parent%getVariable(trim(tmp_str))
       call tb_var%getData(t_bnds)
       t_values = t_bnds(2, :) ! upper bound as reference value
-    else if (timestamp == end_timestamp) then
+    else if (timestamp_ == end_timestamp) then
       call t_var%getData(t_values)
-    else if (timestamp == start_timestamp) then
+    else if (timestamp_ == start_timestamp) then
       call t_var%getData(tmp_arr)
       if (size(tmp_arr) == 1_i4) then
         ! assume same step as with initial value
