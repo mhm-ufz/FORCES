@@ -31,7 +31,7 @@ module mo_grid_io
   use mo_netcdf, only : NcDataset, NcDimension, NcVariable
   use mo_datetime, only : datetime, timedelta, delta_from_string, decode_cf_time_units, one_day, one_hour
   use mo_message, only : error_message, warn_message
-  use mo_utils, only: is_close, flip
+  use mo_utils, only: is_close, flip, optval
   implicit none
 
   public :: var, output_dataset, input_dataset, time_units_delta, time_index, var_index, time_values
@@ -321,10 +321,10 @@ contains
     integer(i4), intent(in), optional :: timestep !< time step (-3, -2, -1, 0, 1 (default), >1)
     integer(i4), intent(in), optional :: timestamp !< time stamp reference (0: begin, 1: center, 2: end of time span (default))
     character(:), allocatable :: res
-    integer(i4) :: step = hourly
-    integer(i4) :: stamp = end_timestamp
-    if (present(timestep)) step = timestep
-    if (present(timestamp)) stamp = timestamp
+    integer(i4) :: step
+    integer(i4) :: stamp
+    step = optval(timestep, hourly)
+    stamp = optval(timestamp, end_timestamp)
     res = "hours" ! default
     if (stamp == center_timestamp) then
       if (step > no_time .and. mod(step, 2) == 1) res = "minutes"
@@ -380,8 +380,7 @@ contains
     integer(i4), allocatable, dimension(:,:) :: t_bnds
 
     ! set timestamp
-    timestamp_ = end_timestamp
-    if (present(timestamp)) timestamp_ = timestamp
+    timestamp_ = optval(timestamp, end_timestamp)
 
     call t_var%getAttribute("units", tmp_str)
     call decode_cf_time_units(trim(tmp_str), delta, start_time)
@@ -493,9 +492,10 @@ contains
     logical, intent(in), optional :: raise !< switch to raise error if time not found
     logical, intent(out), optional :: found !< time was found
     integer(i4) :: i
-    logical :: found_ = .false.
-    logical :: raise_ = .true.
-    if (present(raise)) raise_ = raise
+    logical :: found_
+    logical :: raise_
+    raise_ = optval(raise, .true.)
+    found_ = .false.
     do i = 1_i4, size(times)
       if (current_time == times(i)) then
         found_ = .true.
@@ -1621,13 +1621,10 @@ contains
     self%counter = 0_i4
     self%nlayers = 0_i4
 
-    self%deflate_level = 6_i4
-    if (present(deflate_level)) self%deflate_level = deflate_level
-    self%timestamp = end_timestamp
-    if (present(timestamp)) self%timestamp = timestamp
+    self%deflate_level = optval(deflate_level, 6_i4)
+    self%timestamp = optval(timestamp, end_timestamp)
+    self%positive_up = optval(positive_up, .false.)
 
-    self%positive_up = .false.
-    if (present(positive_up)) self%positive_up = positive_up
     if (allocated(self%layer)) deallocate(self%layer)
     if (allocated(self%layer_vertices)) deallocate(self%layer_vertices)
     self%has_layer = .false.
@@ -1643,11 +1640,10 @@ contains
       call error_message("output: layer information incomplete without layer array")
     end if
 
-    double_precision_ = .true.
-    if (present(grid_double_precision)) double_precision_ = grid_double_precision
+    double_precision_ = optval(grid_double_precision, .true.)
 
     ! write grid specification to file
-    call self%grid%to_netcdf(self%nc, double_precision=grid_double_precision)
+    call self%grid%to_netcdf(self%nc, double_precision=double_precision_)
 
     if (self%has_layer) call self%define_z_axis(double_precision_)
 
@@ -1664,8 +1660,7 @@ contains
 
     if (.not.self%static) then
       if (.not.present(start_time)) call error_message("output: if dataset is not static, a start_time is needed")
-      units_dt = "hours"
-      if (present(delta)) units_dt = trim(delta)
+      units_dt = trim(optval(delta, "hours"))
       self%previous_time = start_time
       self%start_time = start_time
       self%delta = delta_from_string(units_dt)
