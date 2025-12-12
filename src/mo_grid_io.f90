@@ -2066,7 +2066,7 @@ contains
 
   !> \brief Initialize input_dataset
   !> \details Create and initialize the input file handler.
-  subroutine input_init(self, path, vars, grid, timestamp, grid_init_var)
+  subroutine input_init(self, path, vars, grid, timestamp, grid_init_var, tol)
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: path !< path to the file
@@ -2075,6 +2075,7 @@ contains
     integer(i4), intent(in), optional :: timestamp !< time stamp location in time span (0: begin, 1: center, 2: end (default))
     !> nc variable name to determine the grid from (by default, grid is assumed to be already initialized)
     character(*), intent(in), optional :: grid_init_var
+    real(dp), optional, intent(in) :: tol !< tolerance for checking uniform axis
     type(NcDimension), allocatable :: dims(:)
     type(NcVariable) :: t_var
     integer(i4) :: i
@@ -2084,7 +2085,7 @@ contains
     self%nc = NcDataset(self%path, "r")
     self%grid => grid
     self%nlayers = 0_i4
-    if (present(grid_init_var)) call self%grid%from_netcdf(self%nc, grid_init_var)
+    if (present(grid_init_var)) call self%grid%from_netcdf(self%nc, grid_init_var, tol=tol)
     self%nvars = size(vars)
     if (self%nvars == 0_i4) call error_message("input_dataset: no variables selected")
 
@@ -2112,7 +2113,7 @@ contains
     if (allocated(dims)) deallocate(dims)
     dims = self%vars(1)%nc%getDimensions()
     if (self%nc%hasVariable(trim(dims(2)%getName()))) then
-      call check_uniform_axis(self%nc%getVariable(trim(dims(2)%getName())), increasing=y_inc)
+      call check_uniform_axis(self%nc%getVariable(trim(dims(2)%getName())), increasing=y_inc, tol=tol)
       self%flip_y = y_inc.neqv.(self%grid%y_direction==bottom_up)
     else
       self%flip_y = .false.
