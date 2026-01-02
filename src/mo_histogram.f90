@@ -132,14 +132,23 @@ FUNCTION histogram_dp(data, num_bins, min_edge, max_edge)
 
     ! Compute histogram
     DO i = 1, SIZE(data)
-        IF (data(i) < min_edge .OR. data(i) > max_edge) CYCLE  ! Ignore out-of-range values
 
-        bin_index = INT((data(i) - min_edge) / bin_width) + 1
+        if (data(i) < min_edge) then
+           ! out-of-range to the left 
+           bin_index = 1
+        else if (data(i) > max_edge) then
+           ! out-of-range to the right 
+            bin_index = num_bins
+        else
+           ! within range
+            bin_index = INT((data(i) - min_edge) / bin_width) + 1
+        end if
 
         ! Ensure the last bin includes the maximum value
         IF (bin_index > num_bins) bin_index = num_bins
 
         histogram_dp(bin_index) = histogram_dp(bin_index) + 1
+        
     END DO
 
 END FUNCTION histogram_dp
