@@ -28,6 +28,7 @@ MODULE mo_errormeasures
   PUBLIC :: RMSE                         ! Root mean squared error
   PUBLIC :: WNSE                         ! weighted NSE
   PUBLIC :: SPAEF                        ! Spatial Efficiency metric
+  PUBLIC :: CA                           ! Classification Accuracy metric
 
   ! ------------------------------------------------------------------
 
@@ -524,9 +525,6 @@ MODULE mo_errormeasures
 
   ! ------------------------------------------------------------------
 
-  !      NAME
-  !          SPAEF
-
   !>        \brief Spatial Efficiency measure.
 
   !>        \details The Spatial efficiency \f$ SPAEF \f$ is
@@ -581,15 +579,52 @@ MODULE mo_errormeasures
   !         Multiple-component evaluation of spatial patterns for optimization of hydrological models. 
   !         Geoscientific Model Development, 11(5), 1873–1886. https://doi.org/10.5194/gmd-11-1873-2018
 
-
-
-  !     HISTORY
-  !>        \author Pallav Shrestha
+  !>        \authors Pallav Shrestha
   !>        \date December 2024
 
   INTERFACE SPAEF
     MODULE PROCEDURE SPAEF_dp_1d !, SPAEF_sp_1d
   END INTERFACE SPAEF
+
+  ! ------------------------------------------------------------------
+
+  !>        \brief Classification Accuracy
+
+  !>        \details Classification Accuracy
+  !>
+
+  !     INTENT(IN)
+  !>        real(sp/dp), dimension(:)     :: x, y    2D-array with input numbers
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !>        logical     :: mask(:)     2D-array of logical values with size(x/y).
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>       \return  ms &mdash; Classification Accuracy (value between 0.0 and 1.0)
+
+  !     RESTRICTIONS
+  !>       \note Input values must be floating points. \n
+
+
+  !     HISTORY
+  !>        \author Pallav Shrestha, Ehsan Modiri
+  !>        \date July 2025
+
+  INTERFACE CA
+    MODULE PROCEDURE CA_dp_2d
+  END INTERFACE CA
 
   ! ------------------------------------------------------------------
 
@@ -3461,7 +3496,7 @@ CONTAINS
     alpha = correlation(x, y, mask = maske) * real(n, dp) / real(n - 1, dp)
 
     ! == Calculate beta
-    ! Mean
+    ! Coefficient of variation
     cv_Obs = stddev(x, mask = maske)/average(x, mask = maske)
     cv_Sim = stddev(y, mask = maske)/average(y, mask = maske)
     ! Beta
@@ -3475,7 +3510,7 @@ CONTAINS
     x_histogram = histogram(x_ss, nbins, -zscore_limit, zscore_limit)
     y_histogram = histogram(y_ss, nbins, -zscore_limit, zscore_limit)
     ! Histogram intersection (fraction)
-    gamma = SUM(MIN(x_histogram, y_histogram))/SUM(x_histogram)
+    gamma = real(SUM(MIN(x_histogram, y_histogram)),dp)/real(SUM(x_histogram),dp)
 
     ! == Calculate SPAEF
     SPAEF_dp_1d = 1.0 - SQRT(&
@@ -3486,5 +3521,44 @@ CONTAINS
 
   END FUNCTION SPAEF_dp_1d
 
+  ! ------------------------------------------------------------------
+
+  FUNCTION CA_dp_2d(x, y, mask)
+
+    IMPLICIT NONE
+
+    REAL(dp), DIMENSION(:, :), INTENT(IN) :: x, y
+    LOGICAL, DIMENSION(:, :), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp) :: CA_dp_2d
+
+    ! local variables
+    INTEGER(i4) :: n
+    INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
+    LOGICAL, DIMENSION(size(x, dim=1), size(x, dim=2)) :: maske
+
+
+    if (present(mask)) then
+      shapemask = shape(mask)
+    else
+      shapemask = shape(x)
+    end if
+    if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
+            stop 'CA_dp_2d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+      maske = mask
+      n = count(maske)
+    else
+      maske = .true.
+      n = size(x)
+    end if
+    if (n .LE. 1_i4) stop 'CA_dp_2d: sample size must be at least 2'
+
+
+    ! == Calculate CA
+    CA_dp_2d = real(count( maske .and. (x == y) ), dp) / real(n, dp)
+
+
+  END FUNCTION CA_dp_2d
 
 END MODULE mo_errormeasures
