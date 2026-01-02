@@ -27,6 +27,7 @@ MODULE mo_errormeasures
   PUBLIC :: SAE                          ! Sum of absolute errors
   PUBLIC :: RMSE                         ! Root mean squared error
   PUBLIC :: WNSE                         ! weighted NSE
+  PUBLIC :: SPAEF                        ! Spatial Efficiency metric
 
   ! ------------------------------------------------------------------
 
@@ -520,6 +521,75 @@ MODULE mo_errormeasures
   INTERFACE wNSE
      MODULE PROCEDURE wNSE_sp_1d, wNSE_dp_1d, wNSE_dp_2d, wNSE_sp_2d, wNSE_sp_3d, wNSE_dp_3d
   END INTERFACE wNSE
+
+  ! ------------------------------------------------------------------
+
+  !      NAME
+  !          SPAEF
+
+  !>        \brief Spatial Efficiency measure.
+
+  !>        \details The Spatial efficiency \f$ SPAEF \f$ is
+  !>                     \f[ SPAEF = 1 - \sqrt{( (1-\alpha)^2 + (1-\beta)^2 + (1-\gamma)^2 )} \f]
+  !>                 where \n
+  !>                     \f$ \alpha \f$ = Pearson product-moment correlation coefficient \n
+  !>                     \f$ \beta  \f$ = ratio of simulated coefficient of variation to observed coefficient of variation \n
+  !>                     \f$ \gamma \f$ = intersection of simulated and observed histograms \n
+  !>                 This three measures are calculated between two arrays (1d, 2d, or 3d).
+  !>                 Usually, one is an observation and the second is a modelled variable.\n
+  !>
+  !>                 The higher the SPAEF the better the observation and simulation are matching.
+  !>                 The upper limit of SPAEF is 1.\n
+  !>
+  !>                 Therefore, if you apply a minimization algorithm to calibrate regarding
+  !>                 SPAEF you have to use the objective function
+  !>                     \f[ obj\_value = 1.0 - SPAEF \f]
+  !>                 which has then the optimum at 0.0.
+  !>                 (Like for the NSE where you always optimize 1-NSE.)\n
+  !>
+
+  !     INTENT(IN)
+  !>        real(sp/dp), dimension(:)     :: x, y    1D-array with input numbers
+
+  !     INTENT(INOUT)
+  !         None
+
+  !     INTENT(OUT)
+  !         None
+
+  !     INTENT(IN), OPTIONAL
+  !>        logical     :: mask(:)     1D-array of logical values with size(x/y).
+
+  !     INTENT(INOUT), OPTIONAL
+  !         None
+
+  !     INTENT(OUT), OPTIONAL
+  !         None
+
+  !     RETURN
+  !>       \return  spaef &mdash; Spatial Efficiency (value less equal 1.0)
+
+  !     RESTRICTIONS
+  !>       \note Input values must be floating points. \n
+
+  !     EXAMPLE
+  !         para = (/ 1., 2, 3., -999., 5., 6. /)
+  !         spaef = spaef(x,y,mask=mask)
+
+  !    LITERATURE
+  !         Koch, J., Demirel, M. C., & Stisen, S. (2018). The SPAtial EFficiency metric (SPAEF): 
+  !         Multiple-component evaluation of spatial patterns for optimization of hydrological models. 
+  !         Geoscientific Model Development, 11(5), 1873–1886. https://doi.org/10.5194/gmd-11-1873-2018
+
+
+
+  !     HISTORY
+  !>        \author Pallav Shrestha
+  !>        \date December 2024
+
+  INTERFACE SPAEF
+    MODULE PROCEDURE SPAEF_dp_1d !, SPAEF_sp_1d
+  END INTERFACE SPAEF
 
   ! ------------------------------------------------------------------
 
@@ -3339,5 +3409,82 @@ CONTAINS
     wNSE_dp_3d = 1.0_dp - sum(x * (y-x)*(y-x), mask=maske) / sum(x * (x-xmean)*(x-xmean), mask=maske)
     !
   END FUNCTION wNSE_dp_3d
+
+  ! ------------------------------------------------------------------
+
+  FUNCTION SPAEF_dp_1d(x, y, mask)
+
+    USE mo_moment, ONLY : average, stddev, correlation
+    USE mo_standard_score, ONLY : standard_score
+    USE mo_histogram, ONLY : histogram
+
+    IMPLICIT NONE
+
+    REAL(dp), DIMENSION(:), INTENT(IN) :: x, y
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp) :: SPAEF_dp_1d
+
+    ! local variables
+    REAL(dp) :: zscore_limit = 6._dp
+    INTEGER(i4) :: nbins = 100_i4
+    INTEGER(i4) :: n
+    INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
+    LOGICAL, DIMENSION(size(x)) :: maske
+
+    REAL(dp)  :: cv_Obs, cv_Sim! Coef. of variation of x and y
+    REAL(dp),    DIMENSION(:), ALLOCATABLE :: x_ss, y_ss               ! z-scores of x and y
+    INTEGER(i4), DIMENSION(:), ALLOCATABLE :: x_histogram, y_histogram ! histograms of x and y
+    
+    REAL(dp) :: alpha         ! Pearson Corr. of x and y
+    REAL(dp) :: beta          ! Ratio of coef. of variation of x and y
+    REAL(dp) :: gamma         ! Histogram match of x and y
+
+    if (present(mask)) then
+      shapemask = shape(mask)
+    else
+      shapemask = shape(x)
+    end if
+    if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
+            stop 'SPAEF_dp_1d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+      maske = mask
+      n = count(maske)
+    else
+      maske = .true.
+      n = size(x)
+    end if
+    if (n .LE. 1_i4) stop 'SPAEF_dp_1d: sample size must be at least 2'
+
+    ! == Calculate alpha
+    ! Pearson product-moment correlation coefficient is with (N-1) not N
+    alpha = correlation(x, y, mask = maske) * real(n, dp) / real(n - 1, dp)
+
+    ! == Calculate beta
+    ! Mean
+    cv_Obs = stddev(x, mask = maske)/average(x, mask = maske)
+    cv_Sim = stddev(y, mask = maske)/average(y, mask = maske)
+    ! Beta
+    beta = cv_Sim / cv_Obs
+    
+    ! == Calculate gamma
+    ! z-score 
+    x_ss = standard_score(x, mask = maske)
+    y_ss = standard_score(y, mask = maske)
+    ! Histogram
+    x_histogram = histogram(x_ss, nbins, -zscore_limit, zscore_limit)
+    y_histogram = histogram(y_ss, nbins, -zscore_limit, zscore_limit)
+    ! Histogram intersection (fraction)
+    gamma = SUM(MIN(x_histogram, y_histogram))/SUM(x_histogram)
+
+    ! == Calculate SPAEF
+    SPAEF_dp_1d = 1.0 - SQRT(&
+            (1.0_dp - alpha)**2 + &
+            (1.0_dp - beta )**2 + &
+            (1.0_dp - gamma)**2 &
+            )
+
+  END FUNCTION SPAEF_dp_1d
+
 
 END MODULE mo_errormeasures
