@@ -5744,6 +5744,13 @@ CONTAINS
     end do
 
     do iDomain = 1 , nDomains
+      if (sim_data(iDomain)%has('swe')) then
+        call sim_data(iDomain)%allocate(name="swe", data_shape=(/1, 1/))
+        call sim_data(iDomain)%set_pointer(name="swe", ptr=dummyDataPtr_2d)
+      end if
+    end do
+
+    do iDomain = 1 , nDomains
       if (sim_data(iDomain)%has('runoff')) then
         call sim_data(iDomain)%allocate(name="runoff", data_shape=(/1, 1/))
         call sim_data(iDomain)%set_pointer(name="runoff", ptr=dummyDataPtr_2d)
