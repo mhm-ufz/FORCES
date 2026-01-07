@@ -296,4 +296,34 @@ contains
 
   end subroutine test_error_lnnse
 
+  ! Test SPAEF (order: dp, 1D)
+  @test
+  subroutine test_error_spaef()
+  
+    ! With mask
+    @assertEqual(KGE(vec1, vec2, mask=maskvec), 0.1653_dp, tolerance = t_dp)
+
+    ! Without mask
+    @assertEqual(KGE(vec1, vec2), -0.1105_dp, tolerance = t_dp)
+    
+  end subroutine test_error_spaef
+
+  ! Test CA (order: dp, 2D)
+  @test
+  subroutine test_error_ca()
+  
+    ! With mask
+    ! converting values to 0 and 1 for classification accuracy use case
+    @assertEqual(CA(merge(1.0_dp, 0.0_dp, mod(int(arr1(:,:,1)), 2) == 1), &
+                    merge(1.0_dp, 0.0_dp, mod(int(arr1(:,:,4)), 2) == 1), &
+                    mask = mask(:,:,1) ), 0.4799_dp, tolerance = t_dp)
+
+    ! Without mask
+    ! converting values to 0 and 1 for classification accuracy use case
+    @assertEqual(CA(merge(1.0_dp, 0.0_dp, mod(int(arr1(:,:,1)), 2) == 1), &
+                    merge(1.0_dp, 0.0_dp, mod(int(arr1(:,:,4)), 2) == 1)),&
+                    0.4629_dp, tolerance = t_dp)
+    
+  end subroutine test_error_ca
+
 end module test_mo_errormeasures
