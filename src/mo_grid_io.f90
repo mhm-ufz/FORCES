@@ -360,18 +360,19 @@ contains
   end subroutine time_values
 
   !> \brief determine time-stepping time-dimension depending on given datetimes.
-  subroutine time_stepping(t_var, timestamp, start_time, delta, timestep, t_values, t_bounds)
+  subroutine time_stepping(t_var, start_time, delta, timestep, t_values, t_bounds, timestamp)
     type(NcVariable), intent(in) :: t_var !< time variable
-    integer(i4), optional, intent(in) :: timestamp !< timestamp location selector
     type(datetime), intent(out) :: start_time !< starting time in units
     type(timedelta), intent(out) :: delta !< time delta in units
     integer(i4), intent(out) ::  timestep !< time step indicator
     integer(i4), allocatable, dimension(:), intent(out) :: t_values !< time axis values for end of time spans
     integer(i4), allocatable, dimension(:), intent(out) :: t_bounds !< time axis bound values
+    !> timestamp location selector in case time axis has no bounds - 0: start, 1: center, 2: end (default)
+    integer(i4), optional, intent(in) :: timestamp
     integer(i4), allocatable, dimension(:) :: tmp_arr, t_diffs
     type(timedelta) :: loc_delta ! local time delta in units
     type(datetime) :: loc_date
-    integer(i4) :: timestamp_
+    integer(i4) :: stamp
     integer(i4) :: dt, i
     real(dp) :: dt_dp
     logical :: is_monthly, is_yearly
@@ -380,7 +381,7 @@ contains
     integer(i4), allocatable, dimension(:,:) :: t_bnds
 
     ! set timestamp
-    timestamp_ = optval(timestamp, end_timestamp)
+    stamp = optval(timestamp, end_timestamp)
 
     call t_var%getAttribute("units", tmp_str)
     call decode_cf_time_units(trim(tmp_str), delta, start_time)
@@ -390,9 +391,9 @@ contains
       tb_var = t_var%parent%getVariable(trim(tmp_str))
       call tb_var%getData(t_bnds)
       t_values = t_bnds(2, :) ! upper bound as reference value
-    else if (timestamp_ == end_timestamp) then
+    else if (stamp == end_timestamp) then
       call t_var%getData(t_values)
-    else if (timestamp_ == start_timestamp) then
+    else if (stamp == start_timestamp) then
       call t_var%getData(tmp_arr)
       if (size(tmp_arr) == 1_i4) then
         ! assume same step as with initial value
@@ -2067,7 +2068,8 @@ contains
     character(*), intent(in) :: path !< path to the file
     type(grid_t), intent(in), pointer :: grid !< grid definition to check against
     type(var), dimension(:), intent(in) :: vars !< variables of the output file
-    integer(i4), intent(in), optional :: timestamp !< time stamp location in time span (0: begin, 1: center, 2: end (default))
+    !> timestamp location selector in case time axis has no bounds - 0: start, 1: center, 2: end (default)
+    integer(i4), intent(in), optional :: timestamp
     !> nc variable name to determine the grid from (by default, grid is assumed to be already initialized)
     character(*), intent(in), optional :: grid_init_var
     real(dp), optional, intent(in) :: tol !< tolerance for checking uniform axis
@@ -2099,7 +2101,7 @@ contains
         self%static = .false.
         dims = self%vars(i)%nc%getDimensions()
         t_var = self%nc%getVariable(trim(dims(size(dims))%getName()))
-        call time_stepping(t_var, timestamp, self%start_time, self%delta, self%timestep, self%t_values, self%t_bounds)
+        call time_stepping(t_var, self%start_time, self%delta, self%timestep, self%t_values, self%t_bounds, timestamp)
         self%times = [(self%start_time + self%t_values(i) * self%delta, i=1_i4,size(self%t_values))]
         self%delta_sec = self%delta%total_seconds()
         self%start_ord_sec = int(self%start_time%date_to_ordinal(), i8) * 86400_i8 + int(self%start_time%day_second(), i8)
