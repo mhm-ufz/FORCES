@@ -145,7 +145,8 @@ module mo_grid_io
     logical :: static                             !< only static variables (without time dimension)
     integer(i4) :: counter = 0_i4                 !< count written time steps
     type(datetime) :: previous_time               !< previous time steps for bounds
-    type(datetime) :: start_time                  !< start time for time units
+    type(datetime) :: start_time                  !< start time for writeout time frame
+    type(datetime) :: ref_time                    !< reference time for time units
     type(timedelta) :: delta                      !< time step in time units definition
     integer(i4) :: timestamp = end_timestamp      !< time stamp reference (0: begin, 1: center, 2: end of time interval)
     integer(i4) :: deflate_level = 6_i4           !< deflate level for compression
@@ -188,10 +189,11 @@ module mo_grid_io
     integer(i4) :: nvars                          !< number of variables
     logical :: static                             !< only static variables (without time dimension)
     logical :: flip_y                             !< whether to flip arrays along y-direction
-    type(datetime) :: start_time                  !< start time for time units
+    type(datetime) :: start_time                  !< start time of time frame in the file
+    type(datetime) :: ref_time                    !< reference time for time units
     type(timedelta) :: delta                      !< time step in time units definition
     integer(i8) :: delta_sec                      !< time step in time units definition in seconds
-    integer(i8) :: start_ord_sec                  !< ordinal seconds of start time
+    integer(i8) :: ref_ord_sec                    !< ordinal seconds of reference time
     integer(i4) :: timestep                       !< timestep in the file
     integer(i4), allocatable :: t_values(:)       !< time axis values for ends of time spans
     integer(i4), allocatable :: t_bounds(:)       !< time axis bound values
@@ -335,8 +337,8 @@ contains
   end function time_units_delta
 
   !> \brief generate values for the time-dimension depending on given datetimes.
-  subroutine time_values(start_time, previous_time, current_time, delta, timestamp, t_start, t_end, t_stamp)
-    type(datetime), intent(in) :: start_time !< starting time in units
+  subroutine time_values(ref_time, previous_time, current_time, delta, timestamp, t_start, t_end, t_stamp)
+    type(datetime), intent(in) :: ref_time !< reference time in units
     type(datetime), intent(in) :: previous_time !< previous write-out time
     type(datetime), intent(in) :: current_time !< current write-out time
     type(timedelta), intent(in) :: delta !< time delta in units
@@ -344,8 +346,8 @@ contains
     integer(i4), intent(out) ::  t_start !< value for lower bound in time bounds
     integer(i4), intent(out) ::  t_end !< value for upper bound in time bounds
     integer(i4), intent(out) ::  t_stamp !< value for timestamp
-    t_start = nint((previous_time - start_time) / delta, kind=i4)
-    t_end = nint((current_time - start_time) / delta, kind=i4)
+    t_start = nint((previous_time - ref_time) / delta, kind=i4)
+    t_end = nint((current_time - ref_time) / delta, kind=i4)
     ! maybe check if values are actually close the nearest integer (nint)
     select case( timestamp )
       case(start_timestamp)
@@ -360,9 +362,9 @@ contains
   end subroutine time_values
 
   !> \brief determine time-stepping time-dimension depending on given datetimes.
-  subroutine time_stepping(t_var, start_time, delta, timestep, t_values, t_bounds, timestamp)
+  subroutine time_stepping(t_var, ref_time, delta, timestep, t_values, t_bounds, timestamp)
     type(NcVariable), intent(in) :: t_var !< time variable
-    type(datetime), intent(out) :: start_time !< starting time in units
+    type(datetime), intent(out) :: ref_time !< reference time in units
     type(timedelta), intent(out) :: delta !< time delta in units
     integer(i4), intent(out) ::  timestep !< time step indicator
     integer(i4), allocatable, dimension(:), intent(out) :: t_values !< time axis values for end of time spans
@@ -384,7 +386,7 @@ contains
     stamp = optval(timestamp, end_timestamp)
 
     call t_var%getAttribute("units", tmp_str)
-    call decode_cf_time_units(trim(tmp_str), delta, start_time)
+    call decode_cf_time_units(trim(tmp_str), delta, ref_time)
     ! check bounds
     if (t_var%hasAttribute("bounds")) then
       call t_var%getAttribute("bounds", tmp_str)
@@ -444,7 +446,7 @@ contains
         is_yearly = .true.
         is_monthly = .true.
         do i = 1_i4, size(t_values)
-          loc_date = start_time + t_values(i) * delta
+          loc_date = ref_time + t_values(i) * delta
           is_monthly = is_monthly .and. loc_date%is_new_month()
           is_yearly = is_yearly .and. loc_date%is_new_year()
         end do
@@ -465,21 +467,21 @@ contains
       t_bounds(1) = t_bnds(1,1)
     else
       ! guess lower bound
-      loc_date = start_time + t_values(1) * delta
+      loc_date = ref_time + t_values(1) * delta
       select case(timestep)
         case(varying)
           t_bounds(1) = t_values(1) - 1_i4 ! one delta step before
         case(yearly)
-          loc_delta = loc_date%previous_new_year() - start_time
+          loc_delta = loc_date%previous_new_year() - ref_time
           t_bounds(1) = int(loc_delta%total_seconds() / delta%total_seconds(), i4)
         case(monthly)
-          loc_delta = loc_date%previous_new_month() - start_time
+          loc_delta = loc_date%previous_new_month() - ref_time
           t_bounds(1) = int(loc_delta%total_seconds() / delta%total_seconds(), i4)
         case(daily)
-          loc_delta = loc_date%previous_new_day() - start_time
+          loc_delta = loc_date%previous_new_day() - ref_time
           t_bounds(1) = int(loc_delta%total_seconds() / delta%total_seconds(), i4)
         case default ! hour based delta
-          loc_delta = loc_date - timestep * one_hour() - start_time
+          loc_delta = loc_date - timestep * one_hour() - ref_time
           t_bounds(1) = int(loc_delta%total_seconds() / delta%total_seconds(), i4)
       end select
     end if
@@ -1594,13 +1596,14 @@ contains
   !> \authors Robert Schweppe
   !> \authors Sebastian Müller
   !> \date Apr 2013
-  subroutine output_init(self, path, grid, vars, start_time, delta, timestamp, deflate_level, grid_double_precision, layer, layer_vertices, positive_up)
+  subroutine output_init(self, path, grid, vars, start_time, ref_time, delta, timestamp, deflate_level, grid_double_precision, layer, layer_vertices, positive_up)
     implicit none
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: path !< path to the file
     type(grid_t), pointer, intent(in) :: grid !< grid definition for this output file
     type(var), dimension(:), intent(in) :: vars !< variables of the output file
-    type(datetime), intent(in), optional :: start_time !< reference time
+    type(datetime), intent(in), optional :: start_time !< start time of written data (only needed for temporal data)
+    type(datetime), intent(in), optional :: ref_time !< reference time (by default the start_time)
     character(*), intent(in), optional :: delta !< time units delta ("minutes", "hours" (default), "days")
     integer(i4), intent(in), optional :: timestamp !< time stamp location in time span (0: begin, 1: center, 2: end (default))
     integer(i4), intent(in), optional :: deflate_level !< deflate level for compression
@@ -1664,8 +1667,10 @@ contains
       units_dt = trim(optval(delta, "hours"))
       self%previous_time = start_time
       self%start_time = start_time
+      self%ref_time = start_time
+      if (present(ref_time)) self%ref_time = ref_time
       self%delta = delta_from_string(units_dt)
-      units = units_dt // " since " // start_time%str()
+      units = units_dt // " since " // self%ref_time%str()
       t_dim = self%nc%setDimension("time", 0)
       b_dim = self%nc%getDimension("bnds") ! added with grid
       t_var = self%nc%setVariable("time", "i32", [t_dim])
@@ -2003,7 +2008,7 @@ contains
     ! add to time variable
     if (.not.self%static) then
       if (.not.present(current_time)) call error_message("output: no time was given: ", self%path)
-      call time_values(self%start_time, self%previous_time, current_time, self%delta, self%timestamp, &
+      call time_values(self%ref_time, self%previous_time, current_time, self%delta, self%timestamp, &
                        t_start, t_end, t_stamp) ! intent(out)
       t_var = self%nc%getVariable("time")
       call t_var%setData(t_stamp, [self%counter])
@@ -2101,10 +2106,11 @@ contains
         self%static = .false.
         dims = self%vars(i)%nc%getDimensions()
         t_var = self%nc%getVariable(trim(dims(size(dims))%getName()))
-        call time_stepping(t_var, self%start_time, self%delta, self%timestep, self%t_values, self%t_bounds, timestamp)
-        self%times = [(self%start_time + self%t_values(i) * self%delta, i=1_i4,size(self%t_values))]
+        call time_stepping(t_var, self%ref_time, self%delta, self%timestep, self%t_values, self%t_bounds, timestamp)
+        self%start_time = self%ref_time + self%t_bounds(1) * self%delta
+        self%times = [(self%ref_time + self%t_values(i) * self%delta, i=1_i4,size(self%t_values))]
         self%delta_sec = self%delta%total_seconds()
-        self%start_ord_sec = int(self%start_time%date_to_ordinal(), i8) * 86400_i8 + int(self%start_time%day_second(), i8)
+        self%ref_ord_sec = int(self%ref_time%date_to_ordinal(), i8) * 86400_i8 + int(self%ref_time%day_second(), i8)
       end if
     end do
     if (allocated(dims)) deallocate(dims)
@@ -4191,7 +4197,7 @@ contains
     integer(i4) :: t_val, left, right
     if (.not.allocated(self%times)) call error_message("input%time_index: file is static and has no time dimension")
     ! seconds since start date
-    current_delta_sec = int(current_time%date_to_ordinal(), i8) * 86400_i8 + int(current_time%day_second(), i8) - self%start_ord_sec
+    current_delta_sec = int(current_time%date_to_ordinal(), i8) * 86400_i8 + int(current_time%day_second(), i8) - self%ref_ord_sec
     ! calculate time value for current time for time units in file
     t_val = int(current_delta_sec / self%delta_sec, i4) ! division with remainder
     if (mod(current_delta_sec, self%delta_sec) > 0_i8) t_val = t_val + 1_i4 ! next step if remaining sub-step time
