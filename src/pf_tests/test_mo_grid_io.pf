@@ -15,7 +15,7 @@ contains
     use mo_grid_io, only: var, output_dataset, center_timestamp, time_units_delta, daily, input_dataset
     use mo_datetime, only: datetime, timedelta
     implicit none
-    type(datetime) :: start_time, end_time, current_time
+    type(datetime) :: start_time, end_time, current_time, ref_time
     type(timedelta) :: model_step
     type(grid_t), target :: grid, grd2
     type(output_dataset) :: out_ds
@@ -35,6 +35,7 @@ contains
     ! model time config
     start_time = datetime("2025-01-01")
     end_time = datetime("2025-01-15")
+    ref_time = datetime("1970-01-01")
     model_step = timedelta(hours=1_i4)
 
     ! output time config
@@ -49,7 +50,14 @@ contains
     allocate(vars(0))
     vars = [vars, var(name="dem", units="m", static=.true., dtype="f32", kind="dp")]
     vars = [vars, var(name="height", units="m", avg=.true., static=.false.)]
-    call out_ds%init(path="height.nc", grid=grid, vars=vars, start_time=start_time, delta=delta, timestamp=center_timestamp)
+    call out_ds%init( &
+      & path="height.nc", &
+      & grid=grid, &
+      & vars=vars, &
+      & start_time=start_time, &
+      & ref_time=ref_time, &
+      & delta=delta, &
+      & timestamp=center_timestamp)
     call out_ds%update("dem", height)
     call out_ds%write_static()
 
