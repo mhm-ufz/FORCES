@@ -460,8 +460,8 @@ contains
     do i = 1_i8, this%n_nodes
       if (this%n_targets(i) > 0_i8) cycle
       !$omp atomic capture
-      idx = count + 1_i8
-      count = idx
+      count = count + 1_i8
+      idx = count
       !$omp end atomic
       roots(idx) = i
     end do
@@ -479,8 +479,8 @@ contains
     do i = 1_i8, this%n_nodes
       if (this%n_sources(i) > 0_i8) cycle
       !$omp atomic capture
-      idx = count + 1_i8
-      count = idx
+      count = count + 1_i8
+      idx = count
       !$omp end atomic
       leaves(idx) = i
     end do
@@ -1350,8 +1350,8 @@ contains
     do i = 1_i8, this%n_nodes
       if (this%n_up(i) > 0_i8) cycle
       !$omp atomic capture
-      idx = count + 1_i8
-      count = idx
+      count = count + 1_i8
+      idx = count
       !$omp end atomic
       leaves(idx) = i
     end do
