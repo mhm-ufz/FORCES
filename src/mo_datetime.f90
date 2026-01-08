@@ -1339,8 +1339,8 @@ contains
     if (this%year < that%year) days_that = days_that + day_year_diff
     if (this%year > that%year) days_this = days_this + day_year_diff
     ! substract the differences of both dates to <min_year-1>-12-31
-    tmp_this = timedelta(days=days_this, seconds=this%second, minutes=this%minute, hours=this%hour)
-    tmp_that = timedelta(days=days_that, seconds=that%second, minutes=that%minute, hours=that%hour)
+    tmp_this = td_init(days=days_this, seconds=this%second, minutes=this%minute, hours=this%hour)
+    tmp_that = td_init(days=days_that, seconds=that%second, minutes=that%minute, hours=that%hour)
     dt_sub_dt = tmp_this - tmp_that
   end function dt_sub_dt
 
@@ -1970,7 +1970,7 @@ contains
     implicit none
     class(puretime), intent(in) :: this, that
     ! use datetime routine
-    t_sub_t = timedelta(seconds=this%day_second() - that%day_second())
+    t_sub_t = td_init(seconds=this%day_second() - that%day_second())
   end function t_sub_t
 
   ! TIMEDELTA
@@ -2024,7 +2024,7 @@ contains
       days = this%days
       seconds = this%seconds
     end if
-    td_abs = timedelta(days=days, seconds=seconds)
+    td_abs = td_init(days=days, seconds=seconds)
   end function td_abs
 
   !> \brief timedelta in seconds (may need i8)
@@ -2038,7 +2038,7 @@ contains
     integer(i8), intent(in) :: total_seconds
     integer(i8) :: daysec
     daysec = int(DAY_SECONDS, i8)
-    from_total_seconds = timedelta(days=int(total_seconds / daysec, i4), seconds=int(mod(total_seconds, daysec), i4))
+    from_total_seconds = td_init(days=int(total_seconds / daysec, i4), seconds=int(mod(total_seconds, daysec), i4))
   end function from_total_seconds
 
   !> \brief copy a timedelta
@@ -2096,21 +2096,21 @@ contains
   pure type(timedelta) function td_add(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
-    td_add = timedelta(days=this%days+that%days, seconds=this%seconds+that%seconds)
+    td_add = td_init(days=this%days+that%days, seconds=this%seconds+that%seconds)
   end function td_add
 
   !> \brief (+) adding two timedeltas
   pure type(timedelta) function td_sub(this, that)
     implicit none
     class(timedelta), intent(in) :: this, that
-    td_sub = timedelta(days=this%days-that%days, seconds=this%seconds-that%seconds)
+    td_sub = td_init(days=this%days-that%days, seconds=this%seconds-that%seconds)
   end function td_sub
 
   !> \brief (-) negative timedelta
   pure type(timedelta) function td_neg(this)
     implicit none
     class(timedelta), intent(in) :: this
-    td_neg = timedelta(days=-this%days, seconds=-this%seconds)
+    td_neg = td_init(days=-this%days, seconds=-this%seconds)
   end function td_neg
 
   !> \brief (+) positive timedelta
@@ -2125,7 +2125,7 @@ contains
     implicit none
     class(timedelta), intent(in) :: this
     integer(i4), intent(in) :: that
-    td_mul1 = timedelta(days=this%days*that, seconds=this%seconds*that)
+    td_mul1 = td_init(days=this%days*that, seconds=this%seconds*that)
   end function td_mul1
 
   !> \brief (*) multiply a timedelta with an integer

@@ -1515,7 +1515,7 @@ contains
   !> \authors Sebastian Müller
   !> \date Mar 2024
   subroutine grid_check_is_covered_by(this, coarse_grid, tol, check_mask)
-    use mo_utils, only: eq
+    use mo_utils, only: is_close
     implicit none
     class(grid_t), intent(in) :: this
     type(grid_t), intent(in) :: coarse_grid !< coarse grid that should cover this grid
@@ -1524,19 +1524,23 @@ contains
 
     integer(i4) :: factor, i, j, i_lb, i_ub, j_lb, j_ub
     logical :: check_mask_
+    real(dp) :: tol_
 
     check_mask_ = optval(check_mask, .true.)
 
     ! LCOV_EXCL_START
-    if (this%coordsys /= coarse_grid%coordsys) &
+    if (this%coordsys /= coarse_grid%coordsys) then
       call error_message("grid % check_is_covered_by: grids don't use the same coordinate system.")
+    end if
     ! LCOV_EXCL_STOP
 
     call check_factor(this%cellsize, coarse_grid%cellsize, factor=factor, tol=tol)
 
-    ! check ll corner
     ! LCOV_EXCL_START
-    if ( .not. (eq(this%xllcorner, coarse_grid%xllcorner) .and. eq(this%yllcorner, coarse_grid%yllcorner)) ) then
+    ! check ll corner (absolute and relative tolerance set to "tol")
+    tol_ = optval(tol, 1.e-7_dp)
+    if ( .not. ( is_close(this%xllcorner, coarse_grid%xllcorner, tol_, tol_) &
+         .and.   is_close(this%yllcorner, coarse_grid%yllcorner, tol_, tol_) ) ) then
       call error_message("grid % check_is_covered_by: coarse grid lower-left corner is not matching.")
     end if
     ! check extent
@@ -1586,7 +1590,7 @@ contains
   !> \authors Sebastian Müller
   !> \date Mar 2024
   subroutine grid_check_is_filled_by(this, fine_grid, tol, check_mask)
-    use mo_utils, only: eq
+    use mo_utils, only: is_close
     implicit none
     class(grid_t), intent(in) :: this
     type(grid_t), intent(in) :: fine_grid !< fine grid that should fill this grid
@@ -1596,6 +1600,7 @@ contains
     integer(i4) :: factor, i_lb, i_ub, j_lb, j_ub
     integer(i8) :: k
     logical :: check_mask_
+    real(dp) :: tol_
 
     check_mask_ = optval(check_mask, .true.)
 
@@ -1603,11 +1608,15 @@ contains
     if (this%coordsys /= fine_grid%coordsys) then
       call error_message("grid % check_is_filled_by: grids don't use the same coordinate system.")
     end if
+    ! LCOV_EXCL_STOP
 
     call check_factor(fine_grid%cellsize, this%cellsize, factor=factor, tol=tol)
 
-    ! check ll corner
-    if ( .not. (eq(this%xllcorner, fine_grid%xllcorner) .and. eq(this%yllcorner, fine_grid%yllcorner)) ) then
+    ! LCOV_EXCL_START
+    ! check ll corner (absolute and relative tolerance set to "tol")
+    tol_ = optval(tol, 1.e-7_dp)
+    if ( .not. ( is_close(this%xllcorner, fine_grid%xllcorner, tol_, tol_) &
+         .and.   is_close(this%yllcorner, fine_grid%yllcorner, tol_, tol_) ) ) then
       call error_message("grid % check_is_filled_by: fine grid lower-left corner is not matching.")
     end if
     ! check extent
