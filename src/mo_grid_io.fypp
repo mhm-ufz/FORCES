@@ -1819,8 +1819,11 @@ contains
     ! locate the value in the time values of the file
     left = 1_i4
     right = size(self%t_values)
-    if ((t_val < self%t_bounds(left)) .or. (t_val > self%t_bounds(right+1_i4))) then
-      call error_message("input%time_index: read time not covered by file.")
+    if (t_val == self%t_bounds(left)) then
+      input_time_index = 0_i4 ! treat start time as special case
+      return
+    else if ((t_val < self%t_bounds(left)) .or. (t_val > self%t_bounds(right+1_i4))) then
+      call error_message("input%time_index: read time (", current_time%str(), ") not covered by file: ", self%path)
     end if
     ! binary search for the correct time index
     do while (left <= right)
