@@ -1,10 +1,10 @@
 module test_mo_histogram
-  
+
   use funit
   use mo_kind         , only: i4, dp
   use mo_message, only: error_message
   use mo_histogram, only: histogram
-  
+
   implicit none
 
   real(dp)                    :: t_dp
@@ -39,13 +39,13 @@ contains
   ! Test Bias (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_histogram()
-
+    integer(i4), dimension(10) :: histogram_should
     ! With mask
 
     ! Without mask
     histogram_should = (/ 3_i4, 8_i4,11_i4, 5_i4, 8_i4,11_i4, 8_i4, 0_i4, 0_i4, 0_i4 /)
-    @assertEqual(histogram(vec1, num_bins = 10_i4, min_edge = 0.0_dp, max_edge = 15.0_dp), histogram_should, tolerance = t_dp)
-    
+    @assertEqual(histogram(vec1, num_bins = 10_i4, min_edge = 0.0_dp, max_edge = 15.0_dp), histogram_should)
+
   end subroutine test_histogram
 
 
