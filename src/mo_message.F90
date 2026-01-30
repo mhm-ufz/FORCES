@@ -7,7 +7,9 @@
 !> \date Jul 2011, Dec 2019
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+#include "logging.h"
 MODULE mo_message
+  use mo_logging
   USE mo_constants, ONLY : nout, nerr
 
   IMPLICIT NONE
@@ -21,6 +23,7 @@ MODULE mo_message
   logical, public, save :: show_msg = .true.  !< global control switch to show normal messages
   logical, public, save :: show_warn = .true. !< global control switch to show warning messages
   logical, public, save :: show_err = .true.  !< global control switch to show error messages
+  logical, public, save :: use_log = .false.  !< use logging module to print message
 
   integer, public, save :: unit_msg = nout    !< global standard output unit (stdout by default)
   integer, public, save :: unit_warn = nerr   !< global standard warning unit (stderr by default)
@@ -116,6 +119,11 @@ CONTAINS
 
     outString = process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16)
 
+    if (use_log) then
+      log_info(*) trim(outString)
+      return
+    end if
+
     write(uni_, '(a)', advance = advance_) trim(outString)
 
   END SUBROUTINE message
@@ -154,6 +162,12 @@ CONTAINS
     if ( present(show) ) show_ = show
     if ( present(uni) ) uni_ = uni
     if ( present(raise) ) raise_ = raise
+
+    if (use_log) then
+      log_fatal(*) trim(process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16))
+      if ( raise_ ) error stop 1
+      return
+    end if
 
     call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, uni_, advance, show_)
     if ( raise_ ) stop 1
@@ -194,6 +208,12 @@ CONTAINS
     if ( present(show) ) show_ = show
     if ( present(uni) ) uni_ = uni
     if ( present(raise) ) raise_ = raise
+
+    if (use_log) then
+      log_warn(*) trim(process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16))
+      if ( raise_ ) stop 1
+      return
+    end if
 
     call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, uni_, advance, show_)
     if ( raise_ ) stop 1
