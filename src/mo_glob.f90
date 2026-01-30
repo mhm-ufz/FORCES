@@ -38,6 +38,17 @@ contains
       return
     end if
 
+    if (tlen == 0) then
+      glob_match = .true.
+      do p = 1, plen
+        if (pattern(p:p) /= wildcard_any) then
+          glob_match = .false.
+          return
+        end if
+      end do
+      return
+    end if
+
     p = 1
     t = 1
     star = 0
