@@ -404,7 +404,7 @@ contains
   @test
   subroutine test_upscale_and_file_io()
     implicit none
-    type(grid_t) :: fine, coarse
+    type(grid_t) :: fine, coarse, restart_grid
     type(NcDataset) :: nc
     type(NcVariable) :: var
     integer(i1), allocatable :: mask_out(:,:)
@@ -429,12 +429,39 @@ contains
     call coarse%upscale_aux_coords(fine)
     @assertTrue(coarse%has_aux_coords(), message='coarse gained aux coords')
 
-    call coarse%to_netcdf(nc_path, mask=.true., area=.true.)
+    call coarse%to_restart(nc_path, mask=.true., area=.true.)
+    call restart_grid%from_restart(nc_path)
+    @assertTrue(all(restart_grid%mask .eqv. coarse%mask), message='restart grid mask matches original')
+    @assertEqual(restart_grid%cell_area, coarse%cell_area, tolerance=1.0e-4_dp, message='restart grid area matches original')
+    @assertEqual(restart_grid%nx, coarse%nx, message='restart grid nx matches original')
+    @assertEqual(restart_grid%ny, coarse%ny, message='restart grid ny matches original')
+    !ncells
+    @assertEqual(restart_grid%ncells, coarse%ncells, message='restart grid ncells matches original')
+    !xll
+    @assertEqual(restart_grid%xllcorner, coarse%xllcorner, tolerance=1.0e-4_dp, message='restart grid xllcorner matches original')
+    !yll
+    @assertEqual(restart_grid%yllcorner, coarse%yllcorner, tolerance=1.0e-4_dp, message='restart grid yllcorner matches original')
+    !cellsize
+    @assertEqual(restart_grid%cellsize, coarse%cellsize, tolerance=1.0e-4_dp, message='restart grid cellsize matches original')
+    !mask_cum_col_cnt
+    @assertEqual(restart_grid%mask_cum_col_cnt, coarse%mask_cum_col_cnt, message='restart grid mask_cum_col_cnt matches original')
+    !mask_col_cnt
+    @assertEqual(restart_grid%mask_col_cnt, coarse%mask_col_cnt, message='restart grid mask_col_cnt matches original')
+    !coordsys
+    @assertEqual(restart_grid%coordsys, coarse%coordsys, message='restart grid coordsys matches original')
+    !y_direction
+    @assertEqual(restart_grid%y_direction, coarse%y_direction, message='restart grid y_direction matches original')
+    !cell_ij
+    @assertEqual(restart_grid%cell_ij, coarse%cell_ij, message='restart grid cell_ij matches original')
+    !lonlat
+    @assertEqual(restart_grid%lon, coarse%lon, tolerance=1.0e-4_dp, message='restart grid lon matches original')
+    @assertEqual(restart_grid%lat, coarse%lat, tolerance=1.0e-4_dp, message='restart grid lat matches original')
+
     nc = NcDataset(nc_path, "r")
     var = nc%getVariable("mask")
     call var%getData(mask_out)
     @assertEqual(shape(mask_out, kind=i4), [2,2])
-    var = nc%getVariable("cell_area")
+    var = nc%getVariable("area")
     call var%getData(area_out)
     @assertEqual(area_out(1,1), coarse%cell_area(1), tolerance=1.0e-4_dp)
 
