@@ -81,8 +81,8 @@ module mo_grid
     integer(i4), allocatable :: data_i4(:,:) !< data in 4-byte integers
     integer(i8), allocatable :: data_i8(:,:) !< data in 8-byte integers
   contains
-    !> \brief Get data from data container by moving allocation.
     procedure, public :: deallocate => data_deallocate
+    !> \brief Get data from data container by moving allocation.
     generic, public :: move => data_move_sp, data_move_dp, data_move_i1, data_move_i2, data_move_i4, data_move_i8
     procedure, private :: data_move_sp, data_move_dp, data_move_i1, data_move_i2, data_move_i4, data_move_i8
   end type data_t
@@ -125,6 +125,10 @@ module mo_grid
     generic, public :: aux_from_netcdf => aux_from_nc_dataset, aux_from_nc_file
     procedure, private :: to_nc_dataset => grid_to_nc_dataset, to_nc_file => grid_to_nc_file
     generic, public :: to_netcdf => to_nc_dataset, to_nc_file
+    procedure, private :: to_restart_dataset => grid_to_restart_dataset, to_restart_file => grid_to_restart_file
+    generic, public :: to_restart => to_restart_dataset, to_restart_file
+    procedure, private :: from_restart_dataset => grid_from_restart_dataset, from_restart_file => grid_from_restart_file
+    generic, public :: from_restart => from_restart_dataset, from_restart_file
 #endif
     procedure, public :: extent => grid_extent
     procedure, public :: total_area => grid_total_area
@@ -774,20 +778,20 @@ contains
 
   end subroutine grid_aux_from_nc_dataset
 
-  !> \brief write grid to a netcdf file
-  !> \details write grid to a netcdf file with possible data variable.
+  !> \brief write grid to a restart file
+  !> \details write grid to a restart file with additional grid information (cell ids).
+  !! - mask_col_cnt
+  !! - mask_cum_col_cnt (faster access to cell ids)
+  !! - mask (optional, but also included in area, default: not included)
+  !! - area (optional, default: included)
   !> \authors Sebastian Müller
-  !> \date Mar 2024
-  subroutine grid_to_nc_file(this, path, x_name, y_name, aux_lon_name, aux_lat_name, double_precision, mask, area, append)
+  !> \date Feb 2026
+  subroutine grid_to_restart_file(this, path, prefix, mask, area, append)
     use mo_netcdf, only : NcDataset
     implicit none
     class(grid_t), intent(in) :: this
     character(*), intent(in) :: path !< NetCDF file path
-    character(*), optional, intent(in) :: x_name !< name for x-axis variable and dimension
-    character(*), optional, intent(in) :: y_name !< name for y-axis variable and dimension
-    character(*), optional, intent(in) :: aux_lon_name !< name for auxilliar longitude coordinate variable
-    character(*), optional, intent(in) :: aux_lat_name !< name for auxilliar latitude coordinate variable
-    logical, optional, intent(in) :: double_precision !< whether to use double precision to store axis (default .true.)
+    character(*), optional, intent(in) :: prefix !< prefix for variable and dimension names (default: "")
     logical, optional, intent(in) :: mask !< whether to write mask variable (default: .false.)
     logical, optional, intent(in) :: area !< whether to write cell area variable (default: .false.)
     logical, optional, intent(in) :: append !< whether netcdf file should be opened in append mode (default .false.)
@@ -796,7 +800,238 @@ contains
     fmode = "w"
     if ( optval(append, .false.) ) fmode = "a"
     nc = NcDataset(path, fmode)
-    call this%to_nc_dataset(nc, x_name, y_name, aux_lon_name, aux_lat_name, double_precision, mask, area)
+    call this%to_restart_dataset(nc, prefix, mask, area)
+    call nc%close()
+  end subroutine grid_to_restart_file
+
+  !> \brief write grid to a restart dataset
+  !> \details write grid to a restart dataset with additional grid information (cell ids):
+  !! - mask_col_cnt
+  !! - mask_cum_col_cnt (faster access to cell ids)
+  !! - mask (optional, but also included in area, default: not included)
+  !! - area (optional, default: included)
+  !> \authors Sebastian Müller
+  !> \date Feb 2026
+  subroutine grid_to_restart_dataset(this, nc, prefix, mask, area)
+    use mo_netcdf, only : NcDataset, NcVariable, NcDimension
+    implicit none
+    class(grid_t), intent(in) :: this
+    type(NcDataset), intent(inout) :: nc !< NetCDF Dataset
+    character(*), optional, intent(in) :: prefix !< prefix for variable and dimension names (default: "")
+    logical, optional, intent(in) :: mask !< whether to write mask variable (default: .false., but included in area)
+    logical, optional, intent(in) :: area !< whether to write cell area variable (default: .true.)
+    character(:), allocatable :: x_name, y_name, lon_name, lat_name, pre
+    integer(i1), allocatable, dimension(:,:) :: mask_data
+    real(dp), allocatable, dimension(:,:) :: area_data
+    integer(i4) :: i, j
+    type(NcDimension) :: x_dim, y_dim
+    type(NcVariable) :: var
+
+    pre = optval(prefix, "")
+    if (this%coordsys==cartesian) then
+      x_name = pre//"x"
+      y_name = pre//"y"
+    else
+      x_name = pre//"lon"
+      y_name = pre//"lat"
+    end if
+    lon_name = pre//"lon"
+    lat_name = pre//"lat"
+
+    call this%to_nc_dataset(nc, x_name=x_name, y_name=y_name, aux_lon_name=lon_name, aux_lat_name=lat_name)
+
+    x_dim = nc%getDimension(x_name)
+    y_dim = nc%getDimension(y_name)
+
+    var = nc%setVariable(pre//"mask_col_cnt", "i64", [y_dim])
+    call var%setAttribute("long_name", "number of valid cells in each column")
+    call var%setAttribute("units", "1")
+    call var%setData(this%mask_col_cnt)
+
+    var = nc%setVariable(pre//"mask_cum_col_cnt", "i64", [y_dim])
+    call var%setAttribute("long_name", "cumulative number of valid cells prior to column")
+    call var%setAttribute("units", "1")
+    call var%setData(this%mask_cum_col_cnt)
+
+    if (optval(mask, .false.)) then
+      allocate(mask_data(this%nx, this%ny))
+      !$omp parallel do private(i,j) schedule(static)
+      do j = 1_i4, this%ny
+        do i = 1_i4, this%nx
+          if (this%mask(i,j)) then
+            mask_data(i,j) = 1_i1
+          else
+            mask_data(i,j) = 0_i1
+          end if
+        end do
+      end do
+      !$omp end parallel do
+      var = nc%setVariable(pre//"mask", "i8", [x_dim, y_dim])
+      call var%setAttribute("long_name", "mask")
+      call var%setAttribute("standard_name", "land_binary_mask")
+      call var%setAttribute("units", "1")
+      if (this%has_aux_coords()) call var%setAttribute("coordinates", lon_name//" "//lat_name)
+      call var%setFillValue(0_i1)
+      call var%setAttribute("missing_value", 0_i1)
+      call var%setData(mask_data)
+      deallocate(mask_data)
+    end if
+
+    if (optval(area, .true.) .and. allocated(this%cell_area)) then
+      allocate(area_data(this%nx, this%ny))
+      call this%unpack_into(this%cell_area, area_data)
+      var = nc%setVariable(pre//"area", "f64", [x_dim, y_dim])
+      call var%setAttribute("long_name", "cell area")
+      call var%setAttribute("standard_name", "cell_area")
+      call var%setAttribute("units", "m2") ! TODO: should be configurable
+      if (this%has_aux_coords()) call var%setAttribute("coordinates", lon_name//" "//lat_name)
+      call var%setFillValue(nodata_dp)
+      call var%setAttribute("missing_value", nodata_dp)
+      call var%setData(area_data)
+      deallocate(area_data)
+    end if
+
+  end subroutine grid_to_restart_dataset
+
+  !> \brief initialize grid from a restart file
+  !> \details initialize grid from a restart file with additional grid information (cell ids).
+  !> \authors Sebastian Müller
+  !> \date Feb 2026
+  subroutine grid_from_restart_file(this, path, prefix)
+    use mo_netcdf, only : NcDataset
+    implicit none
+    class(grid_t), intent(inout) :: this
+    character(*), intent(in) :: path !< NetCDF file path
+    character(*), optional, intent(in) :: prefix !< prefix for variable and dimension names (default: "")
+    type(NcDataset) :: nc
+    nc = NcDataset(path, "r")
+    call this%from_restart_dataset(nc, prefix)
+    call nc%close()
+  end subroutine grid_from_restart_file
+
+  !> \brief initialize grid from a restart dataset
+  !> \details initialize grid from a restart dataset with additional grid information (cell ids).
+  !> \authors Sebastian Müller
+  !> \date Feb 2026
+  subroutine grid_from_restart_dataset(this, nc, prefix)
+    use mo_netcdf, only : NcDataset, NcVariable, NcDimension
+    implicit none
+    class(grid_t), intent(inout) :: this
+    type(NcDataset), intent(in) :: nc !< NetCDF Dataset
+    character(*), optional, intent(in) :: prefix !< prefix for variable and dimension names (default: "")
+    character(:), allocatable :: x_name, y_name, lon_name, lat_name, pre
+    logical :: y_inc
+    type(NcVariable) :: xvar, yvar, var
+    type(NcDimension) :: xdim, ydim
+    integer(i4) :: i, j
+    integer(i8) :: k
+    type(data_t) :: data
+
+    pre = optval(prefix, "")
+    x_name = pre//"x"
+    y_name = pre//"y"
+    lon_name = pre//"lon"
+    lat_name = pre//"lat"
+
+    if (nc%hasDimension(x_name) .and. nc%hasDimension(y_name)) then
+      xdim = nc%getDimension(x_name)
+      ydim = nc%getDimension(y_name)
+      xvar = nc%getVariable(x_name)
+      yvar = nc%getVariable(y_name)
+      this%coordsys = cartesian
+    else if (nc%hasDimension(lon_name) .and. nc%hasDimension(lat_name)) then
+      xdim = nc%getDimension(lon_name)
+      ydim = nc%getDimension(lat_name)
+      xvar = nc%getVariable(lon_name)
+      yvar = nc%getVariable(lat_name)
+      this%coordsys = spherical
+    else
+      call error_message("grid % from_restart_dataset: dimensions not found: ", trim(nc%fname), ":", x_name, ", ", y_name)
+    end if
+    this%nx = xdim%getLength()
+    this%ny = ydim%getLength()
+    call check_uniform_axis(xvar, cellsize=this%cellsize, origin=this%xllcorner)
+    call check_uniform_axis(yvar, origin=this%yllcorner, increasing=y_inc)
+
+    this%y_direction = top_down
+    if (y_inc) this%y_direction = bottom_up
+
+    var = nc%getVariable(pre//"mask_col_cnt")
+    call var%getData(this%mask_col_cnt)
+
+    var = nc%getVariable(pre//"mask_cum_col_cnt")
+    call var%getData(this%mask_cum_col_cnt)
+
+    this%ncells = this%mask_cum_col_cnt(this%ny) + this%mask_col_cnt(this%ny)
+
+    data%dtype = "f64"
+    if (nc%hasVariable(pre//"area")) then
+      call mask_from_var(nc%getVariable(pre//"area"), this%mask, data)
+    else if (nc%hasVariable(pre//"mask")) then
+      call mask_from_var(nc%getVariable(pre//"mask"), this%mask)
+    else
+      if (allocated(this%mask)) deallocate(this%mask)
+      allocate(this%mask(this%nx, this%ny))
+      !$omp parallel do default(shared) schedule(static)
+      do j = 1_i4, this%ny
+        this%mask(:,j) = .true.
+      end do
+      !$omp end parallel do
+    end if
+
+    ! calculate cell ids from mask and cumulative column counts
+    if (allocated(this%cell_ij)) deallocate(this%cell_ij)
+    allocate(this%cell_ij(this%ncells, 2))
+    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    do j = 1_i4, this%ny
+      k = this%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (.not.this%mask(i, j)) cycle
+        k = k + 1_i8
+        this%cell_ij(k, 1) = i
+        this%cell_ij(k, 2) = j
+      end do
+    end do
+    !$omp end parallel do
+
+    ! set area after cell ids to ensure correct packing if area variable is present
+    if (nc%hasVariable(pre//"area")) then
+      if (allocated(this%cell_area)) deallocate(this%cell_area)
+      allocate(this%cell_area(this%ncells))
+      call this%pack_into(data%data_dp, this%cell_area)
+      call data%deallocate()
+    else
+      call this%calculate_cell_area()
+    end if
+
+    ! read aux coordinates if present
+    if (this%coordsys == cartesian .and. nc%hasVariable(lon_name) .and. nc%hasVariable(lat_name)) then
+      call this%aux_from_netcdf(nc, lat=lat_name, lon=lon_name)
+    end if
+
+  end subroutine grid_from_restart_dataset
+
+  !> \brief write grid to a netcdf file
+  !> \details write grid to a netcdf file with possible data variable.
+  !> \authors Sebastian Müller
+  !> \date Mar 2024
+  subroutine grid_to_nc_file(this, path, x_name, y_name, aux_lon_name, aux_lat_name, double_precision, append)
+    use mo_netcdf, only : NcDataset
+    implicit none
+    class(grid_t), intent(in) :: this
+    character(*), intent(in) :: path !< NetCDF file path
+    character(*), optional, intent(in) :: x_name !< name for x-axis variable and dimension (default: "x" (cartesian), "lon" (spherical))
+    character(*), optional, intent(in) :: y_name !< name for y-axis variable and dimension (default: "y" (cartesian), "lat" (spherical))
+    character(*), optional, intent(in) :: aux_lon_name !< name for auxilliar longitude coordinate variable (default: "lon")
+    character(*), optional, intent(in) :: aux_lat_name !< name for auxilliar latitude coordinate variable (default: "lat")
+    logical, optional, intent(in) :: double_precision !< whether to use double precision to store axis (default .true.)
+    logical, optional, intent(in) :: append !< whether netcdf file should be opened in append mode (default .false.)
+    type(NcDataset) :: nc
+    character(1) :: fmode
+    fmode = "w"
+    if ( optval(append, .false.) ) fmode = "a"
+    nc = NcDataset(path, fmode)
+    call this%to_nc_dataset(nc, x_name, y_name, aux_lon_name, aux_lat_name, double_precision)
     call nc%close()
   end subroutine grid_to_nc_file
 
@@ -804,23 +1039,20 @@ contains
   !> \details write grid to a netcdf dataset with possible data variable.
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  subroutine grid_to_nc_dataset(this, nc, x_name, y_name, aux_lon_name, aux_lat_name, double_precision, mask, area)
+  subroutine grid_to_nc_dataset(this, nc, x_name, y_name, aux_lon_name, aux_lat_name, double_precision)
     use mo_netcdf, only : NcDataset, NcVariable, NcDimension
     use mo_utils, only : is_close
     use mo_string_utils, only : splitString
     implicit none
     class(grid_t), intent(in) :: this
     type(NcDataset), intent(inout) :: nc !< NetCDF Dataset
-    character(*), optional, intent(in) :: x_name !< name for x-axis variable and dimension
-    character(*), optional, intent(in) :: y_name !< name for y-axis variable and dimension
-    character(*), optional, intent(in) :: aux_lon_name !< name for auxilliar longitude coordinate variable
-    character(*), optional, intent(in) :: aux_lat_name !< name for auxilliar latitude coordinate variable
+    character(*), optional, intent(in) :: x_name !< name for x-axis variable and dimension (default: "x" or "lon")
+    character(*), optional, intent(in) :: y_name !< name for y-axis variable and dimension (default: "y" or "lat")
+    character(*), optional, intent(in) :: aux_lon_name !< name for auxilliar longitude coordinate variable (default: "lon")
+    character(*), optional, intent(in) :: aux_lat_name !< name for auxilliar latitude coordinate variable (default: "lat")
     logical, optional, intent(in) :: double_precision !< whether to use double precision to store axis (default .true.)
-    logical, optional, intent(in) :: mask !< whether to write mask variable (default: .false.)
-    logical, optional, intent(in) :: area !< whether to write cell area variable (default: .false.)
     type(NcDimension) :: x_dim, y_dim, b_dim, v_dim
-    type(NcVariable) :: x_var, y_var, xb_var, yb_var, var
-    integer(i1), allocatable, dimension(:,:) :: mask_data
+    type(NcVariable) :: x_var, y_var, xb_var, yb_var
     character(:), allocatable :: xname, yname, lonname, latname
     logical :: double_precision_
     character(3) :: dtype
@@ -932,34 +1164,6 @@ contains
           call yb_var%setData(real(this%lat_bounds(), sp))
         end if
       end if
-    end if
-
-    if (optval(mask, .false.)) then
-      allocate(mask_data(this%nx, this%ny), source=0_i1)
-      where (this%mask) mask_data = 1_i1
-      var = nc%setVariable("mask", "i8", [x_dim, y_dim])
-      call var%setFillValue(0_i1)
-      call var%setAttribute("missing_value", 0_i1)
-      call var%setAttribute("long_name", "mask")
-      call var%setAttribute("standard_name", "land_binary_mask")
-      call var%setAttribute("units", "1")
-      call var%setData(mask_data)
-      deallocate(mask_data)
-    end if
-
-    if (optval(area, .false.) .and. allocated(this%cell_area)) then
-      var = nc%setVariable("cell_area", dtype, [x_dim, y_dim])
-      if (double_precision_) then
-        call var%setFillValue(nodata_dp)
-        call var%setAttribute("missing_value", nodata_dp)
-      else
-        call var%setFillValue(nodata_sp)
-        call var%setAttribute("missing_value", nodata_sp)
-      end if
-      call var%setAttribute("long_name", "cell area")
-      call var%setAttribute("standard_name", "cell_area")
-      call var%setAttribute("units", "m2") ! TODO: should be configurable
-      call var%setData(this%unpack(this%cell_area))
     end if
 
   end subroutine grid_to_nc_dataset
