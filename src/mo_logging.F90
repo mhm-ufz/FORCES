@@ -75,6 +75,7 @@ module mo_logging
 
   public :: log_set_config
   public :: logu, logp, logl
+  public :: log_redirect_to_file
 
   private
 
@@ -383,5 +384,45 @@ contains
     if ( present(log_output_line) ) output_line = log_output_line
     if ( present(log_scope_filter) ) call configure_scope_filter(log_scope_filter)
   end subroutine log_set_config
+
+  !> \brief Create a log file and redirect all logging output to that file
+  !> \param log_file_path Path to the log file to create
+  !> \param append If true, append to existing file; if false, overwrite
+  subroutine log_redirect_to_file(log_file_path, append)
+    character(len=*), intent(in) :: log_file_path !< Path to the log file
+    logical, intent(in), optional :: append !< Whether to append to existing file
+    logical :: append_flag
+    integer :: ios
+
+    ! Set default append behavior
+    append_flag = .false.
+    if (present(append)) append_flag = append
+
+    ! Close existing log units if they're open
+    if (log_unit /= stdout) then
+      close(log_unit)
+    endif
+    if (log_unit_error /= stderr) then
+      close(log_unit_error)
+    endif
+
+    ! Open new log file
+    if (append_flag) then
+      open(newunit=log_unit, file=log_file_path, status='old', position='append', action='write', iostat=ios)
+    else
+      open(newunit=log_unit, file=log_file_path, status='replace', action='write', iostat=ios)
+    endif
+
+    ! Use the same unit for both normal and error logging
+    log_unit_error = log_unit
+
+    if (ios /= 0) then
+      ! If opening the file fails, revert to stdout/stderr
+      log_unit = stdout
+      log_unit_error = stderr
+      write(stderr, '(a)') 'WARNING: Failed to open log file "' // trim(log_file_path) // '", reverting to stdout/stderr'
+    endif
+
+  end subroutine log_redirect_to_file
 
 end module mo_logging
