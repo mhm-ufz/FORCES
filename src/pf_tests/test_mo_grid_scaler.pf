@@ -3,7 +3,6 @@ module test_mo_grid_scaler
   use mo_grid, only: grid_t, cartesian, top_down, bottom_up
   use mo_grid_scaler, only: scaler_t, up_a_mean, up_h_mean, up_p_mean, up_min, up_max, up_sum, up_laf, up_fraction, up_median, down_nearest, down_split
   use mo_kind, only: i4, dp, i8
-  use mo_constants, only: nodata_dp
   use mo_utils, only: flip, flipped, is_close
   ! use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   implicit none
@@ -14,7 +13,7 @@ module test_mo_grid_scaler
   public :: test_downscale_modes
   public :: test_no_scaling_identity
   public :: test_stats_and_weight_count
-  public :: test_median_masked_empty
+  public :: test_median_masked
 
 contains
 
@@ -319,7 +318,7 @@ contains
   end subroutine test_stats_and_weight_count
 
   @test
-  subroutine test_median_masked_empty()
+  subroutine test_median_masked()
     implicit none
     type(grid_t), target :: fine, coarse
     type(scaler_t) :: scaler
@@ -328,10 +327,10 @@ contains
     integer(i4) :: idata(4,2)
     real(dp), allocatable :: out(:)
 
-    mask = reshape([ &
-      .false., .false., .true., .true., &
-      .false., .false., .false., .false. &
-    ], [4,2])
+    mask = .false.
+    mask(2,1) = .true.
+    mask(3,1) = .true.
+    mask(4,1) = .true.
 
     call fine%init(nx=4, ny=2, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=mask)
     call coarse%init(nx=2, ny=1, cellsize=2.0_dp, coordsys=cartesian, y_direction=bottom_up)
@@ -345,12 +344,12 @@ contains
     allocate(out(coarse%ncells))
 
     call scaler%execute(data, out, upscaling_operator=up_median)
-    @assertEqual(out(1), nodata_dp)
+    @assertEqual(out(1), 20.0_dp, tolerance=1.0e-12_dp)
     @assertEqual(out(2), 3.5_dp, tolerance=1.0e-12_dp)
 
     call scaler%execute(idata, out, upscaling_operator=up_median)
-    @assertEqual(out(1), nodata_dp)
+    @assertEqual(out(1), 20.0_dp, tolerance=1.0e-12_dp)
     @assertEqual(out(2), 3.5_dp, tolerance=1.0e-12_dp)
-  end subroutine test_median_masked_empty
+  end subroutine test_median_masked
 
 end module test_mo_grid_scaler

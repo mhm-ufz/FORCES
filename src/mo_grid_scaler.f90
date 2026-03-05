@@ -20,7 +20,7 @@ module mo_grid_scaler
   use mo_utils, only: is_close, eq, flipped, optval
   use mo_string_utils, only: num2str
   use mo_message, only: error_message
-  use mo_constants, only: nodata_i4, nodata_dp
+  use mo_constants, only: nodata_i4
   use mo_orderpack, only: omedian
 
   implicit none
@@ -937,13 +937,9 @@ contains
     !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
       call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
-      if (this%n_subcells(k) == 0_i4) then
-        out_data(k) = nodata_dp
-      else
-        out_data(k) = omedian( &
-            pack(in_data(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)) &
-          )
-      end if
+      out_data(k) = omedian( &
+          pack(in_data(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)) &
+        )
     end do
     !$omp end parallel do
   end subroutine scaler_upscale_median
