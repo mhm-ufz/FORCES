@@ -1,7 +1,7 @@
 module test_mo_grid_scaler
   use funit
   use mo_grid, only: grid_t, cartesian, top_down, bottom_up
-  use mo_grid_scaler, only: scaler_t, up_a_mean, up_h_mean, up_p_mean, up_min, up_max, up_sum, up_laf, up_fraction, down_nearest, down_split
+  use mo_grid_scaler, only: scaler_t, up_a_mean, up_h_mean, up_p_mean, up_min, up_max, up_sum, up_laf, up_fraction, up_median, down_nearest, down_split
   use mo_kind, only: i4, dp, i8
   use mo_constants, only: nodata_dp
   use mo_utils, only: flip, flipped, is_close
@@ -14,6 +14,7 @@ module test_mo_grid_scaler
   public :: test_downscale_modes
   public :: test_no_scaling_identity
   public :: test_stats_and_weight_count
+  public :: test_median_masked_empty
 
 contains
 
@@ -279,6 +280,9 @@ contains
     call scaler%execute(data, out, upscaling_operator=8_i4) ! up_std
     @assertEqual(out(1), sqrt(230.0_dp), tolerance=1.0e-12_dp)
 
+    call scaler%execute(data, out, upscaling_operator=up_median)
+    @assertEqual(out(1), 2.5_dp, tolerance=1.0e-12_dp)
+
     allocate(iout(coarse%ncells))
     call scaler%execute(idata, iout, upscaling_operator=up_min)
     @assertEqual(iout(1), 1_i4)
@@ -307,8 +311,46 @@ contains
     call scaler%execute(packed_i, out_mat2, upscaling_operator=up_sum) ! i4 -> dp 2d
     @assertEqual(out_mat2(1,1), 10.0_dp, tolerance=1.0e-12_dp)
 
+    call scaler%execute(packed_i, out_mat2, upscaling_operator=up_median) ! i4 -> dp 2d
+    @assertEqual(out_mat2(1,1), 2.5_dp, tolerance=1.0e-12_dp)
+
     call scaler%coarse_ij(fine_i=2_i4, fine_j=1_i4, coarse_i=ci, coarse_j=cj)
     @assertEqual([ci, cj], [1_i4, 1_i4])
   end subroutine test_stats_and_weight_count
+
+  @test
+  subroutine test_median_masked_empty()
+    implicit none
+    type(grid_t), target :: fine, coarse
+    type(scaler_t) :: scaler
+    logical :: mask(4,2)
+    real(dp) :: data(4,2)
+    integer(i4) :: idata(4,2)
+    real(dp), allocatable :: out(:)
+
+    mask = reshape([ &
+      .false., .false., .true., .true., &
+      .false., .false., .false., .false. &
+    ], [4,2])
+
+    call fine%init(nx=4, ny=2, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=mask)
+    call coarse%init(nx=2, ny=1, cellsize=2.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    call scaler%init(fine, coarse)
+
+    data = reshape([ &
+      10.0_dp, 20.0_dp, 3.0_dp, 4.0_dp, &
+      30.0_dp, 40.0_dp, 100.0_dp, 200.0_dp &
+    ], [4,2])
+    idata = nint(data, i4)
+    allocate(out(coarse%ncells))
+
+    call scaler%execute(data, out, upscaling_operator=up_median)
+    @assertEqual(out(1), nodata_dp)
+    @assertEqual(out(2), 3.5_dp, tolerance=1.0e-12_dp)
+
+    call scaler%execute(idata, out, upscaling_operator=up_median)
+    @assertEqual(out(1), nodata_dp)
+    @assertEqual(out(2), 3.5_dp, tolerance=1.0e-12_dp)
+  end subroutine test_median_masked_empty
 
 end module test_mo_grid_scaler

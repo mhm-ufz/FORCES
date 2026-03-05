@@ -21,6 +21,7 @@ module mo_grid_scaler
   use mo_string_utils, only: num2str
   use mo_message, only: error_message
   use mo_constants, only: nodata_i4, nodata_dp
+  use mo_orderpack, only: omedian
 
   implicit none
 
@@ -47,6 +48,7 @@ module mo_grid_scaler
   integer(i4), public, parameter :: up_std = 8_i4 !< standard deviation upscaling operator
   integer(i4), public, parameter :: up_laf = 9_i4 !< largest area fraction upscaling operator
   integer(i4), public, parameter :: up_fraction = 10_i4 !< area fraction of given class upscaling operator
+  integer(i4), public, parameter :: up_median = 11_i4 !< median upscaling operator
   !!@}
   !> \name Downscaling Operators
   !> \brief Constants to specify the downscaling operator in the \ref scaler_t::execute method of the \ref scaler_t.
@@ -77,6 +79,7 @@ module mo_grid_scaler
   !! - \ref up_std (8): standard deviation upscaling operator
   !! - \ref up_laf (9): largest area fraction upscaling operator
   !! - \ref up_fraction (10): area fraction of given class upscaling operator
+  !! - \ref up_median (11): median upscaling operator
   !!
   !! Downscaling operator (`downscaling_operator`) can be the following:
   !! - \ref down_nearest (0): nearest neighbor downscaling operator
@@ -140,6 +143,7 @@ module mo_grid_scaler
     !! - \ref up_std (8): standard deviation upscaling operator
     !! - \ref up_laf (9): largest area fraction upscaling operator
     !! - \ref up_fraction (10): area fraction of given class upscaling operator
+    !! - \ref up_median (11): median upscaling operator
     !!
     !! Downscaling operator (`downscaling_operator`) can be the following:
     !! - \ref down_nearest (0): nearest neighbor downscaling operator
@@ -160,6 +164,7 @@ module mo_grid_scaler
     generic, private :: upscale_sum => scaler_upscale_sum_dp, scaler_upscale_sum_i4
     procedure, private :: upscale_var => scaler_upscale_var
     procedure, private :: upscale_std => scaler_upscale_std
+    procedure, private :: upscale_median => scaler_upscale_median
     procedure, private :: upscale_laf => scaler_upscale_laf
     procedure, private :: upscale_fraction => scaler_upscale_fraction
     procedure, private :: scaler_downscale_nearest_dp_1d, scaler_downscale_nearest_i4_1d
@@ -406,6 +411,8 @@ contains
           call this%upscale_var(in_data, out_data)
         case (up_std)
           call this%upscale_std(in_data, out_data)
+        case (up_median)
+          call this%upscale_median(in_data, out_data)
         case (up_laf)
           call error_message("scaler: largest area fraction upscaling operator not supported for real data.") ! LCOV_EXCL_LINE
         case (up_fraction)
@@ -516,6 +523,8 @@ contains
           call error_message("scaler: variance upscaling operator not supported for integer data.") ! LCOV_EXCL_LINE
         case (up_std)
           call error_message("scaler: standard deviation upscaling not supported for integer data.") ! LCOV_EXCL_LINE
+        case (up_median)
+          call error_message("scaler: median upscaling operator not supported for integer output data.") ! LCOV_EXCL_LINE
         case (up_laf)
           call this%upscale_laf(in_data, out_data, vmin, vmax)
         case (up_fraction)
@@ -637,6 +646,8 @@ contains
           call this%upscale_var(real(in_data, dp), out_data)
         case (up_std)
           call this%upscale_std(real(in_data, dp), out_data)
+        case (up_median)
+          call this%upscale_median(real(in_data, dp), out_data)
         case (up_laf)
           allocate(temp(this%coarse_grid%ncells))
           call this%upscale_laf(in_data, temp, vmin, vmax)
@@ -915,6 +926,27 @@ contains
     call this%upscale_var(in_data, out_data)
     out_data = sqrt(out_data)
   end subroutine scaler_upscale_std
+
+  subroutine scaler_upscale_median(this, in_data, out_data)
+    class(scaler_t), intent(inout) :: this
+    real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
+    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
+    integer(i8) :: k
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub
+    call check_upscaling(this%scaling_mode)
+    !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
+    do k = 1_i8, this%coarse_grid%ncells
+      call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
+      if (this%n_subcells(k) == 0_i4) then
+        out_data(k) = nodata_dp
+      else
+        out_data(k) = omedian( &
+            pack(in_data(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)) &
+          )
+      end if
+    end do
+    !$omp end parallel do
+  end subroutine scaler_upscale_median
 
   subroutine scaler_upscale_laf(this, in_data, out_data, vmin, vmax)
     class(scaler_t), intent(inout) :: this
