@@ -68,6 +68,7 @@ module mo_grid_io
     logical :: static = .false.                !< static variable (without time dimension)
     logical :: avg = .false.                   !< average data (only for writing)
     logical :: layered = .false.               !< variable is layered
+    logical :: allow_static = .false.          !< accept a static variable on input when static=.false.
   contains
     procedure, public :: meta => var_meta
   end type var
@@ -524,6 +525,7 @@ contains
     if (allocated(this%dtype)) var_meta%dtype = this%dtype
     if (allocated(this%kind)) var_meta%kind = this%kind
     var_meta%static = this%static
+    var_meta%allow_static = this%allow_static
     var_meta%avg = this%avg
     var_meta%layered = this%layered
   end function var_meta
@@ -1018,6 +1020,7 @@ contains
     type(NcDimension), dimension(:), allocatable :: dims
     type(NcVariable) :: coord_var
     integer(i4) :: nx, ny, rnk, expected_rank
+    logical :: detected_static
     character(len=256) :: tmp_str
     self%name = meta%name
     self%nc = nc%getVariable(self%name)
@@ -1032,7 +1035,7 @@ contains
     if (nx /= grid%nx .or. ny /= grid%ny) call error_message("input_variable: variable not matching grid: ", self%name)
 
     self%layered = meta%layered
-    self%static = meta%static
+    self%allow_static = .false.
     self%nlayers = 0_i4
     expected_rank = 2_i4
 
@@ -1046,6 +1049,20 @@ contains
       if (.not.is_z_axis(coord_var)) call error_message("input_variable: z axis not identified: ", self%name)
       self%nlayers = dims(3)%getLength()
       if (self%nlayers <= 0_i4) call error_message("input_variable: z dimension without layers: ", self%name)
+    end if
+
+    if (rnk == expected_rank) then
+      detected_static = .true.
+    else if (rnk == expected_rank + 1_i4) then
+      detected_static = .false.
+    else
+      call error_message("input_variable: rank mismatch: ", self%name)
+    end if
+    self%static = detected_static
+    if (meta%static) then
+      if (.not.detected_static) call error_message("input_variable: static variable expected: ", self%name)
+    else if (.not.meta%allow_static) then
+      if (detected_static) call error_message("input_variable: temporal variable expected: ", self%name)
     end if
 
     if (.not.self%static) then
