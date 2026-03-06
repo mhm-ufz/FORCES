@@ -673,6 +673,8 @@ module mo_grid_io
     type(timedelta) :: delta                      !< time step in time units definition
     integer(i4) :: timestamp = end_timestamp      !< time stamp reference (0: begin, 1: center, 2: end of time interval)
     integer(i4) :: deflate_level = 6_i4           !< deflate level for compression
+    integer(i4) :: cache_size = 0_i4              !< optional netcdf variable cache size in MB (0: netcdf default)
+    logical :: static_contiguous = .false.        !< write static variables as contiguous (only when cache_size is set)
     logical :: has_layer = .false.                !< dataset includes vertical layers
     integer(i4) :: nlayers = 0_i4                 !< number of layers in dataset
     logical :: positive_up = .false.              !< indicates upwards as positive direction for layers
@@ -997,7 +999,7 @@ contains
   end function var_index
 
   !> \brief initialize output_variable
-  subroutine out_var_init(self, meta, nc, grid, dims, deflate_level)
+  subroutine out_var_init(self, meta, nc, grid, dims, deflate_level, cache_size, static_contiguous)
     implicit none
     class(output_variable), intent(inout) :: self
     type(var), intent(in) :: meta !< variable definition
@@ -1005,9 +1007,15 @@ contains
     type(grid_t), pointer, intent(in) :: grid !< grid definition
     type(NcDimension), dimension(:), intent(in) :: dims !< dimensions in the file
     integer(i4), intent(in) :: deflate_level !< deflate level for compression
+    integer(i4), intent(in), optional :: cache_size !< optional netcdf variable cache size in MB
+    logical, intent(in), optional :: static_contiguous !< write static variables as contiguous
     type(NcDimension), allocatable :: var_dims(:)
     logical :: has_layer_var, has_time
-    integer(i4) :: idx, npoints
+    integer(i4), allocatable :: chunksizes(:)
+    integer(i4) :: idx, nbytes, y_chunk, z_chunk, t_chunk
+    integer(i8), parameter :: max_chunk_bytes = 4294967296_i8
+    integer(i8) :: cache_bytes, target_chunk_bytes, denom, chunk_bytes
+    logical :: use_cache, use_static_contiguous
 
     self%name = meta%name
     self%static = meta%static
@@ -1016,6 +1024,9 @@ contains
     self%nlayers = 0_i4
     self%dtype = "f64" ! default to double
     if (allocated(meta%dtype)) self%dtype = trim(meta%dtype)
+    if (.not.associated(grid)) call error_message("output_variable: grid pointer not associated: ", self%name)
+    self%grid => grid
+    if (.not.associated(self%grid)) call error_message("output_variable: failed to associate grid pointer: ", self%name)
 
     has_layer_var = self%layered
     has_time = .not.self%static
@@ -1042,7 +1053,65 @@ contains
     if (has_time) then
       var_dims(idx) = dims(size(dims))
     end if
-    self%nc = nc%setVariable(self%name, self%dtype, var_dims, deflate_level=deflate_level, shuffle=.true.)
+    use_cache = present(cache_size)
+    use_static_contiguous = optval(static_contiguous, .false.)
+    if (use_cache) then
+      if (cache_size <= 0_i4) call error_message("output_variable: cache_size must be >0 MB: ", self%name)
+      cache_bytes = int(cache_size, i8) * 1024_i8 * 1024_i8
+      target_chunk_bytes = max(1_i8, cache_bytes / 2_i8) ! aim to fit at least 2 chunks
+      if (self%static .and. use_static_contiguous) then
+        self%nc = nc%setVariable(self%name, self%dtype, var_dims, contiguous=.true.)
+      else
+        select case(self%dtype)
+          case("i8")
+            nbytes = 1_i4
+          case("i16")
+            nbytes = 2_i4
+          case("i32", "f32")
+            nbytes = 4_i4
+          case("i64", "f64")
+            nbytes = 8_i4
+          case default
+            call error_message("output_variable: unsupported dtype for chunking: ", self%name, ": ", self%dtype)
+        end select
+        z_chunk = 1_i4
+        t_chunk = 1_i4
+        denom = int(grid%nx, i8) * int(z_chunk, i8) * int(nbytes, i8)
+        if (denom <= 0_i8) call error_message("output_variable: invalid chunk denominator: ", self%name)
+        y_chunk = int(target_chunk_bytes / denom, i4)
+        y_chunk = max(1_i4, min(grid%ny, y_chunk))
+        select case(self%rank)
+          case(2_i4)
+            allocate(chunksizes(2))
+            chunksizes = [grid%nx, y_chunk]
+            chunk_bytes = int(grid%nx, i8) * int(y_chunk, i8) * int(nbytes, i8)
+          case(3_i4)
+            allocate(chunksizes(3))
+            if (self%layered) then
+              chunksizes = [grid%nx, y_chunk, z_chunk]
+              chunk_bytes = int(grid%nx, i8) * int(y_chunk, i8) * int(z_chunk, i8) * int(nbytes, i8)
+            else
+              chunksizes = [grid%nx, y_chunk, t_chunk]
+              chunk_bytes = int(grid%nx, i8) * int(y_chunk, i8) * int(t_chunk, i8) * int(nbytes, i8)
+            end if
+          case(4_i4)
+            allocate(chunksizes(4))
+            chunksizes = [grid%nx, y_chunk, z_chunk, t_chunk]
+            chunk_bytes = int(grid%nx, i8) * int(y_chunk, i8) * int(z_chunk, i8) * int(t_chunk, i8) * int(nbytes, i8)
+          case default
+            call error_message("output_variable: unsupported variable rank for chunking: ", self%name)
+        end select
+        if (chunk_bytes >= max_chunk_bytes) &
+          call error_message("output_variable: chunk size exceeds 4GiB limit (reduce cache_size or spatial extent) for variable: ", self%name)
+        if (2_i8 * chunk_bytes > cache_bytes) &
+          call error_message("output_variable: cache_size too small for two chunks (increase cache_size or use smaller data type/resolution) for variable: ", self%name)
+        self%nc = nc%setVariable(self%name, self%dtype, var_dims, chunksizes=chunksizes, cache_size=cache_size, &
+                                 cache_preemption=100_i4, deflate_level=deflate_level, shuffle=.true.)
+        if (allocated(chunksizes)) deallocate(chunksizes)
+      end if
+    else
+      self%nc = nc%setVariable(self%name, self%dtype, var_dims, deflate_level=deflate_level, shuffle=.true.)
+    end if
 
     if (allocated(meta%long_name)) self%long_name = meta%long_name
     if (allocated(meta%standard_name)) self%standard_name = meta%standard_name
@@ -1052,7 +1121,6 @@ contains
     if (allocated(self%standard_name)) call self%nc%setAttribute("standard_name", self%standard_name)
     if (allocated(self%units)) call self%nc%setAttribute("units", self%units)
 
-    self%grid => grid
     if (self%grid%has_aux_coords()) call self%nc%setAttribute("coordinates", "lat lon")
 
     ! default array kind follows the NetCDF dtype unless overridden by metadata
@@ -1389,7 +1457,8 @@ contains
   !> \authors Robert Schweppe
   !> \authors Sebastian Müller
   !> \date Apr 2013
-  subroutine output_init(self, path, grid, vars, start_time, ref_time, delta, timestamp, deflate_level, grid_double_precision, layer, layer_vertices, positive_up)
+  subroutine output_init(self, path, grid, vars, start_time, ref_time, delta, timestamp, deflate_level, grid_double_precision, &
+                         layer, layer_vertices, positive_up, cache_size, static_contiguous)
     implicit none
     class(output_dataset), intent(inout) :: self
     character(*), intent(in) :: path !< path to the file
@@ -1404,6 +1473,8 @@ contains
     real(dp), intent(in), optional, dimension(:) :: layer !< layer depths/heights
     real(dp), intent(in), optional, dimension(:) :: layer_vertices !< bounds for layers
     logical, intent(in), optional :: positive_up !< sign convention for vertical axis (default .false., i.e. depth)
+    integer(i4), intent(in), optional :: cache_size !< optional netcdf variable cache size in MB
+    logical, intent(in), optional :: static_contiguous !< write static variables as contiguous (only with cache_size)
 
     character(:), allocatable :: units, units_dt
     type(NcDimension) :: t_dim, b_dim, x_dim, y_dim, z_dim
@@ -1421,6 +1492,12 @@ contains
     self%deflate_level = optval(deflate_level, 6_i4)
     self%timestamp = optval(timestamp, end_timestamp)
     self%positive_up = optval(positive_up, .false.)
+    self%cache_size = 0_i4
+    if (present(cache_size)) then
+      if (cache_size <= 0_i4) call error_message("output_init: cache_size must be > 0 (MB)")
+      self%cache_size = cache_size
+    end if
+    self%static_contiguous = optval(static_contiguous, .false.)
 
     if (allocated(self%layer)) deallocate(self%layer)
     if (allocated(self%layer_vertices)) deallocate(self%layer_vertices)
@@ -1503,7 +1580,8 @@ contains
     do i = 1_i4, self%nvars
       if (vars(i)%layered .and. .not.self%has_layer) &
         call error_message("output_init: variable requires layer dimension but none defined: ", vars(i)%name)
-      call self%vars(i)%init(vars(i), self%nc, self%grid, dims, self%deflate_level)
+      call self%vars(i)%init(vars(i), self%nc, self%grid, dims, self%deflate_level, &
+                             cache_size=cache_size, static_contiguous=static_contiguous)
     end do
     deallocate(dims)
   end subroutine output_init

@@ -4,17 +4,38 @@ module test_mo_grid_io
 
   private
 
-  public :: test_output
+  public :: test_output, test_output_cache, test_output_cache_static_contiguous
 
 contains
 
   @test
   subroutine test_output()
+    call run_output_case("height.nc")
+  end subroutine test_output
+
+  @test
+  subroutine test_output_cache()
+    use mo_kind, only: i4
+    implicit none
+    call run_output_case("height_cache.nc", cache_size=16_i4)
+  end subroutine test_output_cache
+
+  @test
+  subroutine test_output_cache_static_contiguous()
+    use mo_kind, only: i4
+    implicit none
+    call run_output_case("height_cache_static.nc", cache_size=16_i4, static_contiguous=.true.)
+  end subroutine test_output_cache_static_contiguous
+
+  subroutine run_output_case(outfile, cache_size, static_contiguous)
     use mo_kind, only: dp, i4, sp, i8
     use mo_grid, only: grid_t
     use mo_grid_io, only: var, output_dataset, center_timestamp, time_units_delta, daily, input_dataset
     use mo_datetime, only: datetime, timedelta
     implicit none
+    character(*), intent(in) :: outfile
+    integer(i4), intent(in), optional :: cache_size
+    logical, intent(in), optional :: static_contiguous
     type(datetime) :: start_time, end_time, current_time, ref_time
     type(timedelta) :: model_step
     type(grid_t), target :: grid, grd2
@@ -54,20 +75,46 @@ contains
     allocate(in_vars(0))
     in_vars = [in_vars, var(name="dem", units="m", static=.false., allow_static=.true., dtype="f32", kind="dp")]
     in_vars = [in_vars, var(name="height", units="m", static=.false., allow_static=.true.)]
-    call out_ds%init( &
-      & path="height.nc", &
-      & grid=grid, &
-      & vars=vars, &
-      & start_time=start_time, &
-      & ref_time=ref_time, &
-      & delta=delta, &
-      & timestamp=center_timestamp)
+    if (present(cache_size)) then
+      if (present(static_contiguous)) then
+        call out_ds%init( &
+          & path=outfile, &
+          & grid=grid, &
+          & vars=vars, &
+          & start_time=start_time, &
+          & ref_time=ref_time, &
+          & delta=delta, &
+          & timestamp=center_timestamp, &
+          & cache_size=cache_size, &
+          & static_contiguous=static_contiguous)
+      else
+        call out_ds%init( &
+          & path=outfile, &
+          & grid=grid, &
+          & vars=vars, &
+          & start_time=start_time, &
+          & ref_time=ref_time, &
+          & delta=delta, &
+          & timestamp=center_timestamp, &
+          & cache_size=cache_size)
+      end if
+    else
+      call out_ds%init( &
+        & path=outfile, &
+        & grid=grid, &
+        & vars=vars, &
+        & start_time=start_time, &
+        & ref_time=ref_time, &
+        & delta=delta, &
+        & timestamp=center_timestamp)
+    end if
     out_dem_meta = out_ds%meta("dem")
     out_height_meta = out_ds%meta("height")
     @assertTrue(out_dem_meta%static, message='output meta keeps static flag')
     @assertFalse(out_dem_meta%allow_static, message='output should ignore allow_static')
     @assertFalse(out_height_meta%static, message='output meta keeps temporal flag')
     @assertFalse(out_height_meta%allow_static, message='output should ignore allow_static')
+
     call out_ds%update("dem", height)
     call out_ds%write_static()
 
@@ -86,14 +133,14 @@ contains
 
     heights = heights / 24.0_dp
 
-    call grd2%from_netcdf("height.nc", "height")
+    call grd2%from_netcdf(outfile, "height")
     @assertEqual(grid%ncells, grd2%ncells, message='ncells compare')
     @assertEqual(grid%nx, grd2%nx, message='nx compare')
     @assertEqual(grid%ny, grd2%ny, message='ny compare')
     @assertEqual(grid%xllcorner, grd2%xllcorner, tolerance=t, message='xllcorner compare')
     @assertEqual(grid%yllcorner, grd2%yllcorner, tolerance=t, message='yllcorner compare')
 
-    call in_ds%init("height.nc", grid=grd2, vars=in_vars)
+    call in_ds%init(outfile, grid=grd2, vars=in_vars)
     in_dem_meta = in_ds%meta("dem")
     in_height_meta = in_ds%meta("height")
     @assertTrue(in_dem_meta%static, message='input auto-detect static variable')
@@ -101,6 +148,7 @@ contains
     @assertFalse(in_dem_meta%allow_static, message='input meta should not expose allow_static as file metadata')
     @assertFalse(in_height_meta%allow_static, message='input meta should not expose allow_static as file metadata')
     @assertFalse(in_ds%static, message='input dataset should detect time dimension')
+
     allocate(dem_read(grid%nx, grid%ny))
     allocate(dem_sp(grid%nx, grid%ny))
     allocate(dem_i4(grid%nx, grid%ny))
@@ -126,6 +174,6 @@ contains
     @assertTrue(times(1)==datetime("2025-01-11"), message='checking start time frame')
     @assertTrue(times(size(Times))==datetime("2025-01-15"), message='checking end time frame')
     @assertFalse(in_ds%flip_y, "not flipping input since grid is equal")
-  end subroutine test_output
+  end subroutine run_output_case
 
 end module test_mo_grid_io
