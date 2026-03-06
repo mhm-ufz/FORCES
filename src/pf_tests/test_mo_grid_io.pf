@@ -26,7 +26,8 @@ contains
     integer(i4), allocatable :: dem_i4(:,:)
     integer(i8), allocatable :: dem_i8(:,:)
 
-    type(var), allocatable :: vars(:)
+    type(var), allocatable :: vars(:), in_vars(:)
+    type(var) :: out_dem_meta, out_height_meta, in_dem_meta, in_height_meta
     real(dp) :: factor
     integer(i4) :: write_step
     character(:), allocatable :: delta
@@ -48,8 +49,11 @@ contains
     height = grid%pack(dem)
 
     allocate(vars(0))
-    vars = [vars, var(name="dem", units="m", static=.true., dtype="f32", kind="dp")]
-    vars = [vars, var(name="height", units="m", avg=.true., static=.false.)]
+    vars = [vars, var(name="dem", units="m", static=.true., allow_static=.true., dtype="f32", kind="dp")]
+    vars = [vars, var(name="height", units="m", avg=.true., static=.false., allow_static=.true.)]
+    allocate(in_vars(0))
+    in_vars = [in_vars, var(name="dem", units="m", static=.false., allow_static=.true., dtype="f32", kind="dp")]
+    in_vars = [in_vars, var(name="height", units="m", static=.false., allow_static=.true.)]
     call out_ds%init( &
       & path="height.nc", &
       & grid=grid, &
@@ -58,6 +62,12 @@ contains
       & ref_time=ref_time, &
       & delta=delta, &
       & timestamp=center_timestamp)
+    out_dem_meta = out_ds%meta("dem")
+    out_height_meta = out_ds%meta("height")
+    @assertTrue(out_dem_meta%static, message='output meta keeps static flag')
+    @assertFalse(out_dem_meta%allow_static, message='output should ignore allow_static')
+    @assertFalse(out_height_meta%static, message='output meta keeps temporal flag')
+    @assertFalse(out_height_meta%allow_static, message='output should ignore allow_static')
     call out_ds%update("dem", height)
     call out_ds%write_static()
 
@@ -83,7 +93,14 @@ contains
     @assertEqual(grid%xllcorner, grd2%xllcorner, tolerance=t, message='xllcorner compare')
     @assertEqual(grid%yllcorner, grd2%yllcorner, tolerance=t, message='yllcorner compare')
 
-    call in_ds%init("height.nc", grid=grd2, vars=vars)
+    call in_ds%init("height.nc", grid=grd2, vars=in_vars)
+    in_dem_meta = in_ds%meta("dem")
+    in_height_meta = in_ds%meta("height")
+    @assertTrue(in_dem_meta%static, message='input auto-detect static variable')
+    @assertFalse(in_height_meta%static, message='input auto-detect temporal variable')
+    @assertFalse(in_dem_meta%allow_static, message='input meta should not expose allow_static as file metadata')
+    @assertFalse(in_height_meta%allow_static, message='input meta should not expose allow_static as file metadata')
+    @assertFalse(in_ds%static, message='input dataset should detect time dimension')
     allocate(dem_read(grid%nx, grid%ny))
     allocate(dem_sp(grid%nx, grid%ny))
     allocate(dem_i4(grid%nx, grid%ny))
