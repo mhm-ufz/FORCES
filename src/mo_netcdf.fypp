@@ -29,18 +29,55 @@ module mo_netcdf
   use mo_utils, only: ne
   use ieee_arithmetic, only : ieee_is_nan
 
-  use netcdf, only : &
-          nf90_open, nf90_close, nf90_strerror, nf90_def_dim, nf90_def_var, &
-          nf90_put_var, nf90_get_var, nf90_put_att, nf90_get_att, nf90_inq_attname, &
-          nf90_inquire, nf90_inq_dimid, nf90_inquire_dimension, &
-          nf90_inq_varid, nf90_inq_varids, nf90_inquire_variable, nf90_inquire_attribute, &
-          nf90_inq_ncid, nf90_inq_grp_parent, nf90_inq_grpname, nf90_def_grp, &
-          nf90_rename_dim, nf90_rename_var, nf90_rename_att, nf90_sync, &
-          NF90_OPEN, NF90_NETCDF4, NF90_CREATE, NF90_WRITE, NF90_NOWRITE, &
-          NF90_BYTE, NF90_SHORT, NF90_INT, NF90_INT64, NF90_FLOAT, NF90_DOUBLE, NF90_CHAR, &
-          NF90_FILL_BYTE, NF90_FILL_SHORT, NF90_FILL_INT, NF90_FILL_FLOAT, NF90_FILL_DOUBLE, &
-          NF90_NOERR, NF90_UNLIMITED, NF90_GLOBAL, NF90_SHARE, NF90_HDF5, &
-          NF90_64BIT_OFFSET, NF90_CLASSIC_MODEL
+  use mo_netcdf_wrapper, only : &
+    nf90_open              => ncw_open,              &
+    nf90_create            => ncw_create,            &
+    nf90_close             => ncw_close,             &
+    nf90_strerror          => ncw_strerror,          &
+    nf90_def_dim           => ncw_def_dim,           &
+    nf90_def_var           => ncw_def_var,           &
+    nf90_put_var           => ncw_put_var,           &
+    nf90_get_var           => ncw_get_var,           &
+    nf90_put_att           => ncw_put_att,           &
+    nf90_get_att           => ncw_get_att,           &
+    nf90_inq_attname       => ncw_inq_attname,       &
+    nf90_inquire           => ncw_inquire,           &
+    nf90_inq_dimid         => ncw_inq_dimid,         &
+    nf90_inquire_dimension => ncw_inquire_dimension, &
+    nf90_inq_varid         => ncw_inq_varid,         &
+    nf90_inq_varids        => ncw_inq_varids,        &
+    nf90_inquire_variable  => ncw_inquire_variable,  &
+    nf90_inquire_attribute => ncw_inquire_attribute, &
+    nf90_inq_ncid          => ncw_inq_ncid,          &
+    nf90_inq_grp_parent    => ncw_inq_grp_parent,    &
+    nf90_inq_grpname       => ncw_inq_grpname,       &
+    nf90_def_grp           => ncw_def_grp,           &
+    nf90_rename_dim        => ncw_rename_dim,        &
+    nf90_rename_var        => ncw_rename_var,        &
+    nf90_rename_att        => ncw_rename_att,        &
+    nf90_sync              => ncw_sync,              &
+    NF90_NETCDF4           => NCW_NETCDF4,           &
+    NF90_WRITE             => NCW_WRITE,             &
+    NF90_NOWRITE           => NCW_NOWRITE,           &
+    NF90_BYTE              => NCW_BYTE,              &
+    NF90_SHORT             => NCW_SHORT,             &
+    NF90_INT               => NCW_INT,               &
+    NF90_INT64             => NCW_INT64,             &
+    NF90_FLOAT             => NCW_FLOAT,             &
+    NF90_DOUBLE            => NCW_DOUBLE,            &
+    NF90_CHAR              => NCW_CHAR,              &
+    NF90_FILL_BYTE         => NCW_FILL_BYTE,         &
+    NF90_FILL_SHORT        => NCW_FILL_SHORT,        &
+    NF90_FILL_INT          => NCW_FILL_INT,          &
+    NF90_FILL_FLOAT        => NCW_FILL_FLOAT,        &
+    NF90_FILL_DOUBLE       => NCW_FILL_DOUBLE,       &
+    NF90_NOERR             => NCW_NOERR,             &
+    NF90_UNLIMITED         => NCW_UNLIMITED,         &
+    NF90_GLOBAL            => NCW_GLOBAL,            &
+    NF90_SHARE             => NCW_SHARE,             &
+    NF90_HDF5              => NCW_HDF5,              &
+    NF90_64BIT_OFFSET      => NCW_64BIT_OFFSET,      &
+    NF90_CLASSIC_MODEL     => NCW_CLASSIC_MODEL
 
   implicit none
 

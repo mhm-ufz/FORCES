@@ -13,15 +13,18 @@ module mo_ncwrite
   use mo_string_utils, only : nonull
   use mo_utils, only : ne
 
-  ! functions and constants of netcdf4 library
-  use netcdf, only : nf90_create, nf90_def_dim, NF90_UNLIMITED, nf90_def_var, &
-          NF90_CHAR, nf90_put_att, NF90_INT, NF90_INT, NF90_GLOBAL, &
-          nf90_enddef, nf90_put_var, NF90_FLOAT, NF90_DOUBLE, NF90_BYTE, &
-          NF90_close, nf90_noerr, nf90_strerror, NF90_CLOBBER, &
-          NF90_MAX_NAME, NF90_WRITE, nf90_inq_varid, nf90_inquire_variable, &
-          nf90_inquire_dimension, nf90_open, NF90_64BIT_OFFSET, NF90_NETCDF4, &
-          nf90_inq_varid, nf90_inq_dimid, nf90_inquire, nf90_get_var, nf90_fill_float, &
-          nf90_fill_double, nf90_fill_int
+  use mo_netcdf_wrapper, only : &
+          nf90_create => ncw_create, nf90_def_dim => ncw_def_dim, NF90_UNLIMITED => NCW_UNLIMITED, &
+          nf90_def_var => ncw_def_var, NF90_CHAR => NCW_CHAR, nf90_put_att => ncw_put_att, &
+          NF90_INT => NCW_INT, NF90_GLOBAL => NCW_GLOBAL, nf90_enddef => ncw_enddef, &
+          nf90_put_var => ncw_put_var, NF90_FLOAT => NCW_FLOAT, NF90_DOUBLE => NCW_DOUBLE, &
+          NF90_BYTE => NCW_BYTE, nf90_close => ncw_close, nf90_noerr => NCW_NOERR, &
+          nf90_strerror => ncw_strerror, NF90_CLOBBER => NCW_CLOBBER, NF90_MAX_NAME => NCW_MAX_NAME, &
+          NF90_WRITE => NCW_WRITE, nf90_inq_varid => ncw_inq_varid, &
+          nf90_inquire_variable => ncw_inquire_variable, nf90_inquire_dimension => ncw_inquire_dimension, &
+          nf90_open => ncw_open, NF90_64BIT_OFFSET => NCW_64BIT_OFFSET, NF90_NETCDF4 => NCW_NETCDF4, &
+          nf90_inq_dimid => ncw_inq_dimid, nf90_inquire => ncw_inquire, nf90_get_var => ncw_get_var, &
+          nf90_fill_float => NCW_FILL_FLOAT, nf90_fill_double => NCW_FILL_DOUBLE, nf90_fill_int => NCW_FILL_INT
 
   ! public routines -------------------------------------------------------------------
   public :: close_netcdf         ! save and close the netcdf file

@@ -12,7 +12,7 @@ if(NOT FYPP)
 else()
   message(STATUS "Preprocessor fypp found!")
   # Create a list of the files to be preprocessed
-  set(fppFiles mo_netcdf.fypp mo_poly.fypp mo_sentinel.fypp mo_grid_io.fypp)
+  set(fppFiles mo_netcdf_wrapper.fypp mo_netcdf.fypp mo_poly.fypp mo_sentinel.fypp mo_grid_io.fypp)
   # Custom preprocessor flags
   if(DEFINED CMAKE_MAXIMUM_RANK)
     set(fyppFlags "-DMAXRANK=${CMAKE_MAXIMUM_RANK}")
@@ -24,6 +24,7 @@ else()
   endif()
   # Pre-process: .fpp -> .f90 via Fypp
   fypp_f90("${fyppFlags}" "${fppFiles}" fyppOutFiles)
+  list(FILTER sources EXCLUDE REGEX ".*mo_netcdf_wrapper.f90$")
   list(FILTER sources EXCLUDE REGEX ".*mo_netcdf.f90$")
   list(FILTER sources EXCLUDE REGEX ".*mo_poly.f90$")
   list(FILTER sources EXCLUDE REGEX ".*mo_sentinel.f90$")
@@ -54,8 +55,10 @@ if (FORCES_WITH_NETCDF)
   message(STATUS "FORCES: use NetCDF")
 else()
   message(STATUS "FORCES: no NetCDF support wanted")
+  list(FILTER fyppOutFiles EXCLUDE REGEX ".*mo_netcdf_wrapper.f90$")
   list(FILTER fyppOutFiles EXCLUDE REGEX ".*mo_netcdf.f90$")
   list(FILTER fyppOutFiles EXCLUDE REGEX ".*mo_grid_io.f90$")
+  list(FILTER sources EXCLUDE REGEX ".*mo_netcdf_wrapper.f90$")
   list(FILTER sources EXCLUDE REGEX ".*mo_netcdf.f90$")
   list(FILTER sources EXCLUDE REGEX ".*mo_ncwrite.f90$")
   list(FILTER sources EXCLUDE REGEX ".*mo_ncread.f90$")
@@ -76,15 +79,23 @@ else()
 endif()
 
 if (FORCES_WITH_NETCDF)
-  include(${FORCES_CMAKE_MODULE_PATH}/FindPackageWrapper.cmake)
-  find_package_wrapper(${FORCES_CMAKE_MODULE_PATH} NetCDF COMPONENTS Fortran QUIET)
-  # Sometimes NetCDF_INCLUDE_DIRS can't be found but NetCDF_Fortran is still usable
-  if(NOT NetCDF_Fortran_FOUND)
-    message(FATAL_ERROR "FORCES: NetCDF-Fortran not usable")
+  set(_forces_netcdf_target "")
+  find_package(netCDF CONFIG QUIET)
+  if(TARGET netCDF::netcdf)
+    set(_forces_netcdf_target netCDF::netcdf)
+    message(STATUS "FORCES: NetCDF-C usable via config target netCDF::netcdf")
   else()
-    message(STATUS "FORCES: NetCDF-Fortran usable: ${NetCDF_Fortran_LIBRARY}")
+    include(${FORCES_CMAKE_MODULE_PATH}/FindPackageWrapper.cmake)
+    find_package_wrapper(${FORCES_CMAKE_MODULE_PATH} NetCDF QUIET)
+    if(NOT NetCDF_C_FOUND)
+      message(FATAL_ERROR "FORCES: NetCDF-C not usable")
+    else()
+      set(_forces_netcdf_target NetCDF::NetCDF_C)
+      message(STATUS "FORCES: NetCDF-C usable: ${NetCDF_C_LIBRARY}")
+    endif()
   endif()
-  target_link_libraries(${LIB_NAME} PUBLIC NetCDF::NetCDF_Fortran)
+  target_sources(${LIB_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/netcdf_wrapper_c.c)
+  target_link_libraries(${LIB_NAME} PUBLIC ${_forces_netcdf_target})
   target_compile_definitions(${LIB_NAME} PRIVATE FORCES_WITH_NETCDF)
 endif()
 
@@ -124,48 +135,48 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   target_compile_definitions(${LIB_NAME} PRIVATE "GFORTRAN")
   # free line length to enable logging (only needed for gfortran)
   target_compile_options(${LIB_NAME} PUBLIC
-    -ffree-line-length-none
+    "$<$<COMPILE_LANGUAGE:Fortran>:-ffree-line-length-none>"
   )
   target_compile_options(${LIB_NAME} PRIVATE
-    $<$<CONFIG:DEBUG>:-Og -g -Wall -Wextra -Wimplicit-interface -Wsurprising
-      -fimplicit-none -fbacktrace -fcheck=all
-      -ffpe-trap=zero,overflow,underflow -finit-real=snan -pedantic-errors>
-    $<$<CONFIG:RELEASE>:-O3>
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-Og;-g;-Wall;-Wextra;-Wimplicit-interface;-Wsurprising;-fimplicit-none;-fbacktrace;-fcheck=all;-ffpe-trap=zero,overflow,underflow;-finit-real=snan;-pedantic-errors>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3>"
   )
   # https://www.scivision.dev/gfortran-15-external-argument-mismatch
   # AND: passed procedures with pointer attribute should be called with positional arguments
   if(CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER_EQUAL "15.0" AND
      CMAKE_Fortran_COMPILER_VERSION VERSION_LESS          "15.2")
-    target_compile_options(${LIB_NAME} PRIVATE $<$<CONFIG:DEBUG>:-Wno-external-argument-mismatch>)
+    target_compile_options(${LIB_NAME} PRIVATE
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-Wno-external-argument-mismatch>"
+    )
   endif()
 endif()
 # ifort (Classic)
 if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   target_compile_definitions(${LIB_NAME} PRIVATE "INTEL")
   target_compile_options(${LIB_NAME} PRIVATE
-    -nofixed "SHELL:-assume byterecl" -standard-realloc-lhs
-    $<$<CONFIG:DEBUG>:-g -fp-model=source "SHELL:-warn all" "SHELL:-check all" "SHELL:-check noarg_temp_created" -debug -traceback -fp-stack-check -O0>
-    $<$<CONFIG:RELEASE>:-O3 -qoverride-limits -fp-model=precise -fprotect-parens>
+    "$<$<COMPILE_LANGUAGE:Fortran>:-nofixed;SHELL:-assume byterecl;-standard-realloc-lhs>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-g;-fp-model=source;SHELL:-warn all;SHELL:-check all;SHELL:-check noarg_temp_created;-debug;-traceback;-fp-stack-check;-O0>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3;-qoverride-limits;-fp-model=precise;-fprotect-parens>"
   )
 endif()
 # ifx (IntelLLVM)
 if(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
   target_compile_definitions(${LIB_NAME} PRIVATE "INTEL")
   target_compile_options(${LIB_NAME} PRIVATE
-    -nofixed "SHELL:-assume byterecl" -standard-realloc-lhs
-    $<$<CONFIG:DEBUG>:-g -fp-model=source "SHELL:-warn all" "SHELL:-check all" "SHELL:-check noarg_temp_created" "SHELL:-check nouninit" -traceback -O0>
-    $<$<CONFIG:RELEASE>:-O3 -qoverride-limits -fp-model=precise -fprotect-parens>
+    "$<$<COMPILE_LANGUAGE:Fortran>:-nofixed;SHELL:-assume byterecl;-standard-realloc-lhs>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-g;-fp-model=source;SHELL:-warn all;SHELL:-check all;SHELL:-check noarg_temp_created;SHELL:-check nouninit;-traceback;-O0>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3;-qoverride-limits;-fp-model=precise;-fprotect-parens>"
   )
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
   target_compile_definitions(${LIB_NAME} PRIVATE "NAG")
   target_compile_options(${LIB_NAME} PRIVATE
-    -fpp -colour -unsharedf95 -ideclient
+    "$<$<COMPILE_LANGUAGE:Fortran>:-fpp;-colour;-unsharedf95;-ideclient>"
     # "-C=all" is not set, only "-C -C=alias -C=dangling" and "-ieee=full" instead of "-ieee=stop" because
     # this effectively omits the -C=intovf flag which checks for integer overflow
     # we need to exclude that as the random number generator relies on that technique
     # -ieee=full is needed for mo_utils (is_nan, is_finite etc. fails with -ieee=stop)
-    $<$<CONFIG:DEBUG>:-gline -g -nan -O0 -C -C=alias -C=dangling -strict95 -ieee=full>
-    $<$<CONFIG:RELEASE>:-O4 -ieee=full>
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-gline;-g;-nan;-O0;-C;-C=alias;-C=dangling;-strict95;-ieee=full>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O4;-ieee=full>"
   )
 endif()
