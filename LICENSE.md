@@ -195,3 +195,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   - sources: https://github.com/mcuntz/jams_fortran
   - authors: Matthias Cuntz, Juliane Mai, Stephan Thober
   - license: MIT License
+
+Note: FORCES includes an independent NetCDF wrapper built on `netcdf-c`. It preserves parts of the familiar
+`nf90`-style behavior associated with Unidata's `netcdf-fortran`, but does not bundle, link against, or depend on
+`netcdf-fortran`.
