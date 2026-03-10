@@ -25,7 +25,7 @@ contains
   @test
   subroutine test_wrapper_inquire_and_path()
     integer(i4) :: status, ncid, format_num, pathlen
-    character(512) :: full_path, expected_path
+    character(512) :: full_path
     character(8) :: short_path
 
     status = ncw_create(fname_netcdf4, ior(NCW_CLOBBER, NCW_NETCDF4), ncid)
@@ -43,16 +43,15 @@ contains
     pathlen = len(full_path, kind = i4)
     status = ncw_inq_path(ncid, pathlen, full_path)
     @assertEqual(NCW_NOERR, status)
-    inquire(file = fname_netcdf4, name = expected_path)
-    @assertEqual(len_trim(expected_path), pathlen)
-    @assertEqual(expected_path(1:pathlen), full_path(1:pathlen))
+    @assertEqual(len_trim(fname_netcdf4), pathlen)
+    @assertEqual(fname_netcdf4(1:pathlen), full_path(1:pathlen))
 
     short_path = ""
     pathlen = len(short_path, kind = i4)
     status = ncw_inq_path(ncid, pathlen, short_path)
     @assertEqual(NCW_NOERR, status)
-    @assertEqual(min(len_trim(expected_path), len(short_path, kind = i4)), pathlen)
-    @assertEqual(expected_path(1:pathlen), short_path(1:pathlen))
+    @assertEqual(min(len_trim(fname_netcdf4), len(short_path, kind = i4)), pathlen)
+    @assertEqual(fname_netcdf4(1:pathlen), short_path(1:pathlen))
 
     status = ncw_close(ncid)
     @assertEqual(NCW_NOERR, status)
