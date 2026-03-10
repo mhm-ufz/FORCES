@@ -42,12 +42,19 @@ module mo_netcdf_wrapper
   integer(i4), parameter, public :: NCW_GLOBAL = -1_i4
   integer(i4), parameter, public :: NCW_MAX_NAME = 256_i4
   integer(i4), parameter, public :: NCW_MAX_VAR_DIMS = 1024_i4
+  integer(i4), parameter, public :: NCW_FILL = 0_i4
   integer(i4), parameter, public :: NCW_ENDIAN_NATIVE = 0_i4
   integer(i4), parameter, public :: NCW_ENDIAN_LITTLE = 1_i4
   integer(i4), parameter, public :: NCW_ENDIAN_BIG = 2_i4
   integer(i4), parameter, public :: NCW_CHUNKED = 0_i4
+  integer(i4), parameter, public :: NCW_NOTCONTIGUOUS = 0_i4
   integer(i4), parameter, public :: NCW_CONTIGUOUS = 1_i4
   integer(i4), parameter, public :: NCW_NOFILL = int(z'0100', i4)
+  integer(i4), parameter, public :: NCW_FORMAT_CLASSIC = 1_i4
+  integer(i4), parameter, public :: NCW_FORMAT_64BIT_OFFSET = 2_i4
+  integer(i4), parameter, public :: NCW_FORMAT_NETCDF4 = 3_i4
+  integer(i4), parameter, public :: NCW_FORMAT_NETCDF4_CLASSIC = 4_i4
+  integer(i4), parameter, public :: NCW_FORMAT_CDF5 = 5_i4
 
   integer(i1), parameter, public :: NCW_FILL_BYTE = -127_i1
   integer(i2), parameter, public :: NCW_FILL_SHORT = -32767_i2
@@ -55,12 +62,14 @@ module mo_netcdf_wrapper
   real(sp), parameter, public :: NCW_FILL_FLOAT = 9.9692099683868690e+36_sp
   real(dp), parameter, public :: NCW_FILL_DOUBLE = 9.9692099683868690e+36_dp
 
-  public :: ncw_close, ncw_create, ncw_def_dim, ncw_def_dim64, ncw_def_grp, ncw_def_var, ncw_enddef
-  public :: ncw_get_att, ncw_get_var, ncw_get_var64, ncw_inq_attname, ncw_inq_dimid, ncw_inq_grp_parent
-  public :: ncw_inq_grpname, ncw_inq_ncid, ncw_inq_varid, ncw_inq_varids, ncw_inquire, ncw_inquire_attribute
-  public :: ncw_inquire_attribute64, ncw_inquire_dimension, ncw_inquire_dimension64, ncw_inquire_variable
-  public :: ncw_open, ncw_put_att, ncw_put_var, ncw_put_var64, ncw_rename_att, ncw_rename_dim
-  public :: ncw_rename_var, ncw_set_fill, ncw_strerror, ncw_sync
+  public :: ncw_abort, ncw_close, ncw_copy_att, ncw_create, ncw_def_dim, ncw_def_dim64, ncw_def_grp, ncw_def_var
+  public :: ncw_def_var_fill, ncw_del_att, ncw_enddef, ncw_get_att, ncw_get_var, ncw_get_var64, ncw_inq_attname
+  public :: ncw_inq_dimid, ncw_inq_format, ncw_inq_grp_parent, ncw_inq_grpname, ncw_inq_ncid, ncw_inq_path
+  public :: ncw_inq_var_chunking, ncw_inq_var_deflate, ncw_inq_var_endian, ncw_inq_var_fletcher32, ncw_inq_var_fill
+  public :: ncw_inq_varid, ncw_inq_varids, ncw_inquire, ncw_inquire_attribute, ncw_inquire_attribute64
+  public :: ncw_inquire_dimension, ncw_inquire_dimension64, ncw_inquire_variable, ncw_open, ncw_put_att, ncw_put_var
+  public :: ncw_put_var64, ncw_redef, ncw_rename_att, ncw_rename_dim, ncw_rename_grp, ncw_rename_var, ncw_set_fill
+  public :: ncw_strerror, ncw_sync
 
   interface
     subroutine forces_nc_strerror_copy(status, buffer, buffer_len) bind(C, name="forces_nc_strerror_copy")
@@ -105,10 +114,20 @@ module mo_netcdf_wrapper
       integer(c_int), value :: ncid
     end function c_nc_sync
 
+    integer(c_int) function c_nc_redef(ncid) bind(C, name="nc_redef")
+      import :: c_int
+      integer(c_int), value :: ncid
+    end function c_nc_redef
+
     integer(c_int) function c_nc_enddef(ncid) bind(C, name="nc_enddef")
       import :: c_int
       integer(c_int), value :: ncid
     end function c_nc_enddef
+
+    integer(c_int) function c_nc_abort(ncid) bind(C, name="nc_abort")
+      import :: c_int
+      integer(c_int), value :: ncid
+    end function c_nc_abort
 
     integer(c_int) function c_nc_set_fill(ncid, fillmode, old_modep) bind(C, name="nc_set_fill")
       import :: c_int, c_ptr
@@ -132,6 +151,18 @@ module mo_netcdf_wrapper
       integer(c_int), value :: ncid
       type(c_ptr), value :: ndimsp, nvarsp, nattsp, unlimdimidp
     end function c_nc_inq
+
+    integer(c_int) function c_nc_inq_path(ncid, pathlenp, path) bind(C, name="nc_inq_path")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid
+      type(c_ptr), value :: pathlenp, path
+    end function c_nc_inq_path
+
+    integer(c_int) function c_nc_inq_format(ncid, formatp) bind(C, name="nc_inq_format")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid
+      type(c_ptr), value :: formatp
+    end function c_nc_inq_format
 
     integer(c_int) function c_nc_def_dim(ncid, name, len, idp) bind(C, name="nc_def_dim")
       import :: c_int, c_ptr, c_size_t
@@ -182,6 +213,12 @@ module mo_netcdf_wrapper
       type(c_ptr), value :: name
     end function c_nc_inq_grpname
 
+    integer(c_int) function c_nc_rename_grp(grpid, name) bind(C, name="nc_rename_grp")
+      import :: c_int, c_ptr
+      integer(c_int), value :: grpid
+      type(c_ptr), value :: name
+    end function c_nc_rename_grp
+
     integer(c_int) function c_nc_inq_varids(ncid, nvarsp, varidsp) bind(C, name="nc_inq_varids")
       import :: c_int, c_ptr
       integer(c_int), value :: ncid
@@ -214,6 +251,42 @@ module mo_netcdf_wrapper
       import :: c_int
       integer(c_int), value :: ncid, varid, endianness
     end function c_nc_def_var_endian
+
+    integer(c_int) function c_nc_inq_var_chunking(ncid, varid, storagep, chunksizesp) bind(C, name="nc_inq_var_chunking")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid, varid
+      type(c_ptr), value :: storagep, chunksizesp
+    end function c_nc_inq_var_chunking
+
+    integer(c_int) function c_nc_inq_var_deflate(ncid, varid, shufflep, deflatep, deflate_levelp) bind(C, name="nc_inq_var_deflate")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid, varid
+      type(c_ptr), value :: shufflep, deflatep, deflate_levelp
+    end function c_nc_inq_var_deflate
+
+    integer(c_int) function c_nc_inq_var_fletcher32(ncid, varid, fletcher32p) bind(C, name="nc_inq_var_fletcher32")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid, varid
+      type(c_ptr), value :: fletcher32p
+    end function c_nc_inq_var_fletcher32
+
+    integer(c_int) function c_nc_def_var_fill(ncid, varid, no_fill, fill_valuep) bind(C, name="nc_def_var_fill")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid, varid, no_fill
+      type(c_ptr), value :: fill_valuep
+    end function c_nc_def_var_fill
+
+    integer(c_int) function c_nc_inq_var_fill(ncid, varid, no_fillp, fill_valuep) bind(C, name="nc_inq_var_fill")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid, varid
+      type(c_ptr), value :: no_fillp, fill_valuep
+    end function c_nc_inq_var_fill
+
+    integer(c_int) function c_nc_inq_var_endian(ncid, varid, endianp) bind(C, name="nc_inq_var_endian")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid, varid
+      type(c_ptr), value :: endianp
+    end function c_nc_inq_var_endian
 
     integer(c_int) function c_nc_get_var_chunk_cache(ncid, varid, sizep, nelemsp, preemptionp) bind(C, name="nc_get_var_chunk_cache")
       import :: c_int, c_ptr
@@ -269,6 +342,18 @@ module mo_netcdf_wrapper
       integer(c_int), value :: ncid, varid
       type(c_ptr), value :: name, newname
     end function c_nc_rename_att
+
+    integer(c_int) function c_nc_copy_att(ncid_in, varid_in, name, ncid_out, varid_out) bind(C, name="nc_copy_att")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid_in, varid_in, ncid_out, varid_out
+      type(c_ptr), value :: name
+    end function c_nc_copy_att
+
+    integer(c_int) function c_nc_del_att(ncid, varid, name) bind(C, name="nc_del_att")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid, varid
+      type(c_ptr), value :: name
+    end function c_nc_del_att
 
     integer(c_int) function c_nc_put_att_text(ncid, varid, name, len, op) bind(C, name="nc_put_att_text")
       import :: c_int, c_ptr, c_size_t
@@ -864,6 +949,24 @@ module mo_netcdf_wrapper
     module procedure ncw_def_var_nd
   end interface ncw_def_var
 
+  interface ncw_def_var_fill
+    module procedure ncw_def_var_fill_sp
+    module procedure ncw_def_var_fill_dp
+    module procedure ncw_def_var_fill_i1
+    module procedure ncw_def_var_fill_i2
+    module procedure ncw_def_var_fill_i4
+    module procedure ncw_def_var_fill_i8
+  end interface ncw_def_var_fill
+
+  interface ncw_inq_var_fill
+    module procedure ncw_inq_var_fill_sp
+    module procedure ncw_inq_var_fill_dp
+    module procedure ncw_inq_var_fill_i1
+    module procedure ncw_inq_var_fill_i2
+    module procedure ncw_inq_var_fill_i4
+    module procedure ncw_inq_var_fill_i8
+  end interface ncw_inq_var_fill
+
 contains
 
   function ncw_strerror(status) result(msg)
@@ -992,11 +1095,23 @@ contains
     ncw_sync = int(c_nc_sync(int(ncid, c_int)), i4)
   end function ncw_sync
 
+  function ncw_redef(ncid)
+    integer(i4), intent(in) :: ncid
+    integer(i4) :: ncw_redef
+    ncw_redef = int(c_nc_redef(int(ncid, c_int)), i4)
+  end function ncw_redef
+
   function ncw_enddef(ncid)
     integer(i4), intent(in) :: ncid
     integer(i4) :: ncw_enddef
     ncw_enddef = int(c_nc_enddef(int(ncid, c_int)), i4)
   end function ncw_enddef
+
+  function ncw_abort(ncid)
+    integer(i4), intent(in) :: ncid
+    integer(i4) :: ncw_abort
+    ncw_abort = int(c_nc_abort(int(ncid, c_int)), i4)
+  end function ncw_abort
 
   function ncw_set_fill(ncid, fillmode, old_mode)
     integer(i4), intent(in) :: ncid, fillmode
@@ -1012,12 +1127,46 @@ contains
     end if
   end function ncw_set_fill
 
-  function ncw_inquire(ncid, ndimensions, nvariables, nattributes, unlimitedDimId)
+  function ncw_inq_path(ncid, pathlen, path)
     integer(i4), intent(in) :: ncid
-    integer(i4), intent(out), optional :: ndimensions, nvariables, nattributes, unlimitedDimId
+    integer(i4), intent(inout) :: pathlen
+    character(len = *), intent(inout) :: path
+    integer(i4) :: ncw_inq_path
+
+    integer(c_size_t), target :: c_pathlen
+    character(kind = c_char, len = 1), allocatable, target :: cpath(:)
+    integer(i4) :: alloc_len
+
+    ncw_inq_path = int(c_nc_inq_path(int(ncid, c_int), c_loc(c_pathlen), c_null_ptr), i4)
+    if (ncw_inq_path /= NCW_NOERR) return
+
+    alloc_len = int(c_pathlen, i4) + 1_i4
+    allocate(cpath(max(1_i4, alloc_len)))
+    cpath = c_null_char
+    ncw_inq_path = int(c_nc_inq_path(int(ncid, c_int), c_loc(c_pathlen), c_loc(cpath(1))), i4)
+    if (ncw_inq_path /= NCW_NOERR) return
+
+    pathlen = int(min(c_pathlen, int(len(path), c_size_t)), i4)
+    call c_chars_to_fortran(cpath, path)
+  end function ncw_inq_path
+
+  function ncw_inq_format(ncid, format_type)
+    integer(i4), intent(in) :: ncid
+    integer(i4), intent(out) :: format_type
+    integer(i4) :: ncw_inq_format
+
+    integer(c_int), target :: c_format
+
+    ncw_inq_format = int(c_nc_inq_format(int(ncid, c_int), c_loc(c_format)), i4)
+    if (ncw_inq_format == NCW_NOERR) format_type = int(c_format, i4)
+  end function ncw_inq_format
+
+  function ncw_inquire(ncid, ndimensions, nvariables, nattributes, unlimitedDimId, formatNum)
+    integer(i4), intent(in) :: ncid
+    integer(i4), intent(out), optional :: ndimensions, nvariables, nattributes, unlimitedDimId, formatNum
     integer(i4) :: ncw_inquire
 
-    integer(c_int), target :: c_ndims, c_nvars, c_natts, c_unlim
+    integer(c_int), target :: c_ndims, c_nvars, c_natts, c_unlim, c_format
 
     ncw_inquire = int(c_nc_inq(int(ncid, c_int), maybe_i4_ptr(ndimensions, c_ndims), maybe_i4_ptr(nvariables, c_nvars), &
             maybe_i4_ptr(nattributes, c_natts), maybe_i4_ptr(unlimitedDimId, c_unlim)), i4)
@@ -1028,6 +1177,10 @@ contains
     if (present(nvariables)) nvariables = int(c_nvars, i4)
     if (present(nattributes)) nattributes = int(c_natts, i4)
     if (present(unlimitedDimId)) unlimitedDimId = int(c_unlim, i4)
+    if (present(formatNum)) then
+      ncw_inquire = int(c_nc_inq_format(int(ncid, c_int), c_loc(c_format)), i4)
+      if (ncw_inquire == NCW_NOERR) formatNum = int(c_format, i4)
+    end if
   end function ncw_inquire
 
   function ncw_def_dim(ncid, name, len, dimid)
@@ -1182,6 +1335,17 @@ contains
     if (ncw_inq_grpname == NCW_NOERR) call c_chars_to_fortran(cname, name)
   end function ncw_inq_grpname
 
+  function ncw_rename_grp(grpid, name)
+    integer(i4), intent(in) :: grpid
+    character(len = *), intent(in) :: name
+    integer(i4) :: ncw_rename_grp
+
+    character(kind = c_char, len = 1), allocatable, target :: cname(:)
+
+    cname = to_c_string(name)
+    ncw_rename_grp = int(c_nc_rename_grp(int(grpid, c_int), c_loc(cname(1))), i4)
+  end function ncw_rename_grp
+
   function ncw_inq_varids(ncid, nvars, varids)
     integer(i4), intent(in) :: ncid
     integer(i4), intent(out) :: nvars
@@ -1255,41 +1419,148 @@ contains
     end if
   end function ncw_def_var_nd
 
-  function ncw_inquire_variable(ncid, varid, name, xtype, ndims, dimids, natts)
+  function ncw_inquire_variable(ncid, varid, name, xtype, ndims, dimids, natts, contiguous, chunksizes, deflate_level, shuffle, &
+          fletcher32, endianness, cache_size, cache_nelems, cache_preemption)
     integer(i4), intent(in) :: ncid, varid
     character(len = *), intent(out), optional :: name
     integer(i4), intent(out), optional :: xtype, ndims, natts
-    integer(i4), intent(out), optional :: dimids(:)
+    integer(i4), intent(out), optional :: dimids(:), chunksizes(:), deflate_level, endianness, cache_size, cache_nelems, cache_preemption
+    logical, intent(out), optional :: contiguous, shuffle, fletcher32
     integer(i4) :: ncw_inquire_variable
 
     character(kind = c_char, len = 1), target :: cname(NCW_MAX_NAME + 1_i4)
-    integer(c_int), target :: c_xtype, c_ndims, c_natts
+    integer(c_int), target :: c_xtype, c_ndims, c_natts, c_storage, c_shuffle, c_deflate, c_deflate_level, c_fletcher32, c_endianness
     integer(c_int), target :: c_dimids(NCW_MAX_VAR_DIMS)
-    type(c_ptr) :: dimids_ptr, name_ptr, ndims_ptr
-    integer(i4) :: i, n
+    integer(c_size_t), target :: c_chunks(NCW_MAX_VAR_DIMS), c_cache_size, c_cache_nelems
+    real(c_float), target :: c_cache_preemption
+    type(c_ptr) :: dimids_ptr, name_ptr
+    integer(i4) :: i, n, ndims_i4
 
     cname = c_null_char
+    c_chunks = 0_c_size_t
     dimids_ptr = c_null_ptr
     name_ptr = c_null_ptr
-    ndims_ptr = c_null_ptr
     if (present(name)) name_ptr = c_loc(cname(1))
     if (present(dimids)) dimids_ptr = c_loc(c_dimids(1))
-    if (present(ndims) .or. present(dimids)) ndims_ptr = c_loc(c_ndims)
     ncw_inquire_variable = int(c_nc_inq_var(int(ncid, c_int), int(varid, c_int), name_ptr, &
-            maybe_i4_ptr(xtype, c_xtype), ndims_ptr, dimids_ptr, maybe_i4_ptr(natts, c_natts)), i4)
+            maybe_i4_ptr(xtype, c_xtype), c_loc(c_ndims), dimids_ptr, maybe_i4_ptr(natts, c_natts)), i4)
     if (ncw_inquire_variable /= NCW_NOERR) return
 
+    ndims_i4 = int(c_ndims, i4)
     if (present(name)) call c_chars_to_fortran(cname, name)
     if (present(xtype)) xtype = int(c_xtype, i4)
-    if (present(ndims)) ndims = int(c_ndims, i4)
+    if (present(ndims)) ndims = ndims_i4
     if (present(natts)) natts = int(c_natts, i4)
     if (present(dimids)) then
-      n = min(size(dimids), int(c_ndims, i4))
+      n = min(size(dimids), ndims_i4)
       do i = 1, n
-        dimids(i) = int(c_dimids(int(c_ndims, i4) - i + 1), i4)
+        dimids(i) = int(c_dimids(ndims_i4 - i + 1), i4)
       end do
     end if
+    if (present(chunksizes) .or. present(contiguous)) then
+      ncw_inquire_variable = int(c_nc_inq_var_chunking(int(ncid, c_int), int(varid, c_int), c_loc(c_storage), c_loc(c_chunks(1))), i4)
+      if (ncw_inquire_variable /= NCW_NOERR) return
+      if (present(contiguous)) contiguous = int(c_storage, i4) /= NCW_NOTCONTIGUOUS
+      if (present(chunksizes)) then
+        chunksizes = 0_i4
+        n = min(size(chunksizes), ndims_i4)
+        do i = 1, n
+          chunksizes(i) = int(min(c_chunks(ndims_i4 - i + 1), int(huge(0_i4), c_size_t)), i4)
+        end do
+      end if
+    end if
+    if (present(deflate_level) .or. present(shuffle)) then
+      ncw_inquire_variable = int(c_nc_inq_var_deflate(int(ncid, c_int), int(varid, c_int), c_loc(c_shuffle), c_loc(c_deflate), &
+              c_loc(c_deflate_level)), i4)
+      if (ncw_inquire_variable /= NCW_NOERR) return
+      if (present(deflate_level)) deflate_level = int(c_deflate_level, i4)
+      if (present(shuffle)) shuffle = c_shuffle /= 0_c_int
+    end if
+    if (present(fletcher32)) then
+      ncw_inquire_variable = int(c_nc_inq_var_fletcher32(int(ncid, c_int), int(varid, c_int), c_loc(c_fletcher32)), i4)
+      if (ncw_inquire_variable /= NCW_NOERR) return
+      fletcher32 = c_fletcher32 /= 0_c_int
+    end if
+    if (present(endianness)) then
+      ncw_inquire_variable = int(c_nc_inq_var_endian(int(ncid, c_int), int(varid, c_int), c_loc(c_endianness)), i4)
+      if (ncw_inquire_variable /= NCW_NOERR) return
+      endianness = int(c_endianness, i4)
+    end if
+    if (present(cache_size) .or. present(cache_nelems) .or. present(cache_preemption)) then
+      ncw_inquire_variable = int(c_nc_get_var_chunk_cache(int(ncid, c_int), int(varid, c_int), c_loc(c_cache_size), c_loc(c_cache_nelems), &
+              c_loc(c_cache_preemption)), i4)
+      if (ncw_inquire_variable /= NCW_NOERR) return
+      if (present(cache_size)) cache_size = int(min(c_cache_size, int(huge(0_i4), c_size_t)), i4)
+      if (present(cache_nelems)) cache_nelems = int(min(c_cache_nelems, int(huge(0_i4), c_size_t)), i4)
+      if (present(cache_preemption)) cache_preemption = int(nint(100.0_c_float * c_cache_preemption), i4)
+    end if
   end function ncw_inquire_variable
+
+  function ncw_inq_var_chunking(ncid, varid, storage, chunksizes)
+    integer(i4), intent(in) :: ncid, varid
+    integer(i4), intent(out) :: storage
+    integer(i4), intent(out) :: chunksizes(:)
+    integer(i4) :: ncw_inq_var_chunking
+
+    integer(c_int), target :: c_ndims, c_storage
+    integer(c_size_t), target :: c_chunks(NCW_MAX_VAR_DIMS)
+    integer(i4) :: i, n, ndims_i4
+
+    c_chunks = 0_c_size_t
+    chunksizes = 0_i4
+    storage = NCW_NOTCONTIGUOUS
+    ncw_inq_var_chunking = int(c_nc_inq_var(int(ncid, c_int), int(varid, c_int), c_null_ptr, c_null_ptr, c_loc(c_ndims), c_null_ptr, &
+            c_null_ptr), i4)
+    if (ncw_inq_var_chunking /= NCW_NOERR) return
+
+    ncw_inq_var_chunking = int(c_nc_inq_var_chunking(int(ncid, c_int), int(varid, c_int), c_loc(c_storage), c_loc(c_chunks(1))), i4)
+    if (ncw_inq_var_chunking /= NCW_NOERR) return
+
+    storage = int(c_storage, i4)
+    ndims_i4 = int(c_ndims, i4)
+    n = min(size(chunksizes), ndims_i4)
+    do i = 1, n
+      chunksizes(i) = int(min(c_chunks(ndims_i4 - i + 1), int(huge(0_i4), c_size_t)), i4)
+    end do
+  end function ncw_inq_var_chunking
+
+  function ncw_inq_var_deflate(ncid, varid, shuffle, deflate, deflate_level)
+    integer(i4), intent(in) :: ncid, varid
+    integer(i4), intent(out) :: shuffle, deflate, deflate_level
+    integer(i4) :: ncw_inq_var_deflate
+
+    integer(c_int), target :: c_shuffle, c_deflate, c_deflate_level
+
+    ncw_inq_var_deflate = int(c_nc_inq_var_deflate(int(ncid, c_int), int(varid, c_int), c_loc(c_shuffle), c_loc(c_deflate), &
+            c_loc(c_deflate_level)), i4)
+    if (ncw_inq_var_deflate /= NCW_NOERR) return
+
+    shuffle = int(c_shuffle, i4)
+    deflate = int(c_deflate, i4)
+    deflate_level = int(c_deflate_level, i4)
+  end function ncw_inq_var_deflate
+
+  function ncw_inq_var_fletcher32(ncid, varid, fletcher32)
+    integer(i4), intent(in) :: ncid, varid
+    integer(i4), intent(out) :: fletcher32
+    integer(i4) :: ncw_inq_var_fletcher32
+
+    integer(c_int), target :: c_fletcher32
+
+    ncw_inq_var_fletcher32 = int(c_nc_inq_var_fletcher32(int(ncid, c_int), int(varid, c_int), c_loc(c_fletcher32)), i4)
+    if (ncw_inq_var_fletcher32 == NCW_NOERR) fletcher32 = int(c_fletcher32, i4)
+  end function ncw_inq_var_fletcher32
+
+  function ncw_inq_var_endian(ncid, varid, endianness)
+    integer(i4), intent(in) :: ncid, varid
+    integer(i4), intent(out) :: endianness
+    integer(i4) :: ncw_inq_var_endian
+
+    integer(c_int), target :: c_endianness
+
+    ncw_inq_var_endian = int(c_nc_inq_var_endian(int(ncid, c_int), int(varid, c_int), c_loc(c_endianness)), i4)
+    if (ncw_inq_var_endian == NCW_NOERR) endianness = int(c_endianness, i4)
+  end function ncw_inq_var_endian
 
   function ncw_inq_varid(ncid, name, varid)
     integer(i4), intent(in) :: ncid
@@ -1388,6 +1659,144 @@ contains
     cnew = to_c_string(newname)
     ncw_rename_att = int(c_nc_rename_att(int(ncid, c_int), int(varid, c_int), c_loc(cname(1)), c_loc(cnew(1))), i4)
   end function ncw_rename_att
+
+  function ncw_copy_att(ncid_in, varid_in, name, ncid_out, varid_out)
+    integer(i4), intent(in) :: ncid_in, varid_in, ncid_out, varid_out
+    character(len = *), intent(in) :: name
+    integer(i4) :: ncw_copy_att
+
+    character(kind = c_char, len = 1), allocatable, target :: cname(:)
+
+    cname = to_c_string(name)
+    ncw_copy_att = int(c_nc_copy_att(int(ncid_in, c_int), int(varid_in, c_int), c_loc(cname(1)), int(ncid_out, c_int), &
+            int(varid_out, c_int)), i4)
+  end function ncw_copy_att
+
+  function ncw_del_att(ncid, varid, name)
+    integer(i4), intent(in) :: ncid, varid
+    character(len = *), intent(in) :: name
+    integer(i4) :: ncw_del_att
+
+    character(kind = c_char, len = 1), allocatable, target :: cname(:)
+
+    cname = to_c_string(name)
+    ncw_del_att = int(c_nc_del_att(int(ncid, c_int), int(varid, c_int), c_loc(cname(1))), i4)
+  end function ncw_del_att
+
+  function ncw_def_var_fill_sp(ncid, varid, no_fill, fill)
+    integer(i4), intent(in) :: ncid, varid, no_fill
+    real(sp), intent(in), target :: fill
+    integer(i4) :: ncw_def_var_fill_sp
+
+    ncw_def_var_fill_sp = int(c_nc_def_var_fill(int(ncid, c_int), int(varid, c_int), int(no_fill, c_int), c_loc(fill)), i4)
+  end function ncw_def_var_fill_sp
+
+  function ncw_inq_var_fill_sp(ncid, varid, no_fill, fill)
+    integer(i4), intent(in) :: ncid, varid
+    integer(i4), intent(out) :: no_fill
+    real(sp), intent(out), target :: fill
+    integer(i4) :: ncw_inq_var_fill_sp
+
+    integer(c_int), target :: c_no_fill
+
+    ncw_inq_var_fill_sp = int(c_nc_inq_var_fill(int(ncid, c_int), int(varid, c_int), c_loc(c_no_fill), c_loc(fill)), i4)
+    if (ncw_inq_var_fill_sp == NCW_NOERR) no_fill = int(c_no_fill, i4)
+  end function ncw_inq_var_fill_sp
+  function ncw_def_var_fill_dp(ncid, varid, no_fill, fill)
+    integer(i4), intent(in) :: ncid, varid, no_fill
+    real(dp), intent(in), target :: fill
+    integer(i4) :: ncw_def_var_fill_dp
+
+    ncw_def_var_fill_dp = int(c_nc_def_var_fill(int(ncid, c_int), int(varid, c_int), int(no_fill, c_int), c_loc(fill)), i4)
+  end function ncw_def_var_fill_dp
+
+  function ncw_inq_var_fill_dp(ncid, varid, no_fill, fill)
+    integer(i4), intent(in) :: ncid, varid
+    integer(i4), intent(out) :: no_fill
+    real(dp), intent(out), target :: fill
+    integer(i4) :: ncw_inq_var_fill_dp
+
+    integer(c_int), target :: c_no_fill
+
+    ncw_inq_var_fill_dp = int(c_nc_inq_var_fill(int(ncid, c_int), int(varid, c_int), c_loc(c_no_fill), c_loc(fill)), i4)
+    if (ncw_inq_var_fill_dp == NCW_NOERR) no_fill = int(c_no_fill, i4)
+  end function ncw_inq_var_fill_dp
+  function ncw_def_var_fill_i1(ncid, varid, no_fill, fill)
+    integer(i4), intent(in) :: ncid, varid, no_fill
+    integer(i1), intent(in), target :: fill
+    integer(i4) :: ncw_def_var_fill_i1
+
+    ncw_def_var_fill_i1 = int(c_nc_def_var_fill(int(ncid, c_int), int(varid, c_int), int(no_fill, c_int), c_loc(fill)), i4)
+  end function ncw_def_var_fill_i1
+
+  function ncw_inq_var_fill_i1(ncid, varid, no_fill, fill)
+    integer(i4), intent(in) :: ncid, varid
+    integer(i4), intent(out) :: no_fill
+    integer(i1), intent(out), target :: fill
+    integer(i4) :: ncw_inq_var_fill_i1
+
+    integer(c_int), target :: c_no_fill
+
+    ncw_inq_var_fill_i1 = int(c_nc_inq_var_fill(int(ncid, c_int), int(varid, c_int), c_loc(c_no_fill), c_loc(fill)), i4)
+    if (ncw_inq_var_fill_i1 == NCW_NOERR) no_fill = int(c_no_fill, i4)
+  end function ncw_inq_var_fill_i1
+  function ncw_def_var_fill_i2(ncid, varid, no_fill, fill)
+    integer(i4), intent(in) :: ncid, varid, no_fill
+    integer(i2), intent(in), target :: fill
+    integer(i4) :: ncw_def_var_fill_i2
+
+    ncw_def_var_fill_i2 = int(c_nc_def_var_fill(int(ncid, c_int), int(varid, c_int), int(no_fill, c_int), c_loc(fill)), i4)
+  end function ncw_def_var_fill_i2
+
+  function ncw_inq_var_fill_i2(ncid, varid, no_fill, fill)
+    integer(i4), intent(in) :: ncid, varid
+    integer(i4), intent(out) :: no_fill
+    integer(i2), intent(out), target :: fill
+    integer(i4) :: ncw_inq_var_fill_i2
+
+    integer(c_int), target :: c_no_fill
+
+    ncw_inq_var_fill_i2 = int(c_nc_inq_var_fill(int(ncid, c_int), int(varid, c_int), c_loc(c_no_fill), c_loc(fill)), i4)
+    if (ncw_inq_var_fill_i2 == NCW_NOERR) no_fill = int(c_no_fill, i4)
+  end function ncw_inq_var_fill_i2
+  function ncw_def_var_fill_i4(ncid, varid, no_fill, fill)
+    integer(i4), intent(in) :: ncid, varid, no_fill
+    integer(i4), intent(in), target :: fill
+    integer(i4) :: ncw_def_var_fill_i4
+
+    ncw_def_var_fill_i4 = int(c_nc_def_var_fill(int(ncid, c_int), int(varid, c_int), int(no_fill, c_int), c_loc(fill)), i4)
+  end function ncw_def_var_fill_i4
+
+  function ncw_inq_var_fill_i4(ncid, varid, no_fill, fill)
+    integer(i4), intent(in) :: ncid, varid
+    integer(i4), intent(out) :: no_fill
+    integer(i4), intent(out), target :: fill
+    integer(i4) :: ncw_inq_var_fill_i4
+
+    integer(c_int), target :: c_no_fill
+
+    ncw_inq_var_fill_i4 = int(c_nc_inq_var_fill(int(ncid, c_int), int(varid, c_int), c_loc(c_no_fill), c_loc(fill)), i4)
+    if (ncw_inq_var_fill_i4 == NCW_NOERR) no_fill = int(c_no_fill, i4)
+  end function ncw_inq_var_fill_i4
+  function ncw_def_var_fill_i8(ncid, varid, no_fill, fill)
+    integer(i4), intent(in) :: ncid, varid, no_fill
+    integer(i8), intent(in), target :: fill
+    integer(i4) :: ncw_def_var_fill_i8
+
+    ncw_def_var_fill_i8 = int(c_nc_def_var_fill(int(ncid, c_int), int(varid, c_int), int(no_fill, c_int), c_loc(fill)), i4)
+  end function ncw_def_var_fill_i8
+
+  function ncw_inq_var_fill_i8(ncid, varid, no_fill, fill)
+    integer(i4), intent(in) :: ncid, varid
+    integer(i4), intent(out) :: no_fill
+    integer(i8), intent(out), target :: fill
+    integer(i4) :: ncw_inq_var_fill_i8
+
+    integer(c_int), target :: c_no_fill
+
+    ncw_inq_var_fill_i8 = int(c_nc_inq_var_fill(int(ncid, c_int), int(varid, c_int), c_loc(c_no_fill), c_loc(fill)), i4)
+    if (ncw_inq_var_fill_i8 == NCW_NOERR) no_fill = int(c_no_fill, i4)
+  end function ncw_inq_var_fill_i8
 
   function ncw_put_att_0d_sp(ncid, varid, name, values)
     integer(i4), intent(in) :: ncid, varid

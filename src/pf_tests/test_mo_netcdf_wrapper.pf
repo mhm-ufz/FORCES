@@ -1,0 +1,234 @@
+module test_mo_netcdf_wrapper
+
+  use funit
+  use mo_kind, only : i4, dp
+  use mo_netcdf_wrapper, only : &
+          NCW_CHUNKED, NCW_CLOBBER, NCW_DOUBLE, NCW_ENDIAN_LITTLE, NCW_FILL, NCW_FORMAT_64BIT_OFFSET, &
+          NCW_FORMAT_CLASSIC, NCW_FORMAT_NETCDF4, NCW_GLOBAL, NCW_INT, NCW_NETCDF4, NCW_NOERR, NCW_NOWRITE, &
+          NCW_64BIT_OFFSET, NCW_WRITE, ncw_abort, ncw_close, ncw_copy_att, ncw_create, ncw_def_dim, ncw_def_grp, &
+          ncw_def_var, ncw_def_var_fill, ncw_del_att, ncw_enddef, ncw_get_att, ncw_inq_dimid, ncw_inq_format, &
+          ncw_inq_ncid, ncw_inq_path, ncw_inq_var_chunking, ncw_inq_var_deflate, ncw_inq_var_endian, &
+          ncw_inq_var_fletcher32, ncw_inq_var_fill, ncw_inquire, ncw_inquire_attribute, ncw_inquire_variable, &
+          ncw_open, ncw_put_att, ncw_redef, ncw_rename_grp
+
+  implicit none
+
+  character(*), parameter :: fname_netcdf4 = "netcdf_wrapper_format_netcdf4.nc"
+  character(*), parameter :: fname_classic = "netcdf_wrapper_format_classic.nc"
+  character(*), parameter :: fname_64bit = "netcdf_wrapper_format_64bit.nc"
+  character(*), parameter :: fname_redef = "netcdf_wrapper_redef_abort.nc"
+  character(*), parameter :: fname_attrs = "netcdf_wrapper_attrs_groups.nc"
+  character(*), parameter :: fname_props = "netcdf_wrapper_var_props.nc"
+
+contains
+
+  @test
+  subroutine test_wrapper_inquire_and_path()
+    integer(i4) :: status, ncid, format_num, pathlen
+    character(512) :: full_path, expected_path
+    character(8) :: short_path
+
+    status = ncw_create(fname_netcdf4, ior(NCW_CLOBBER, NCW_NETCDF4), ncid)
+    @assertEqual(NCW_NOERR, status)
+
+    status = ncw_inq_format(ncid, format_num)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(NCW_FORMAT_NETCDF4, format_num)
+
+    status = ncw_inquire(ncid, formatNum = format_num)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(NCW_FORMAT_NETCDF4, format_num)
+
+    full_path = ""
+    pathlen = len(full_path, kind = i4)
+    status = ncw_inq_path(ncid, pathlen, full_path)
+    @assertEqual(NCW_NOERR, status)
+    inquire(file = fname_netcdf4, name = expected_path)
+    @assertEqual(len_trim(expected_path), pathlen)
+    @assertEqual(expected_path(1:pathlen), full_path(1:pathlen))
+
+    short_path = ""
+    pathlen = len(short_path, kind = i4)
+    status = ncw_inq_path(ncid, pathlen, short_path)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(min(len_trim(expected_path), len(short_path, kind = i4)), pathlen)
+    @assertEqual(expected_path(1:pathlen), short_path(1:pathlen))
+
+    status = ncw_close(ncid)
+    @assertEqual(NCW_NOERR, status)
+
+    status = ncw_create(fname_classic, NCW_CLOBBER, ncid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_inquire(ncid, formatNum = format_num)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(NCW_FORMAT_CLASSIC, format_num)
+    status = ncw_close(ncid)
+    @assertEqual(NCW_NOERR, status)
+
+    status = ncw_create(fname_64bit, ior(NCW_CLOBBER, NCW_64BIT_OFFSET), ncid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_inq_format(ncid, format_num)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(NCW_FORMAT_64BIT_OFFSET, format_num)
+    status = ncw_close(ncid)
+    @assertEqual(NCW_NOERR, status)
+  end subroutine test_wrapper_inquire_and_path
+
+  @test
+  subroutine test_wrapper_redef_enddef_and_abort()
+    integer(i4) :: status, ncid, dimid
+
+    status = ncw_create(fname_redef, NCW_CLOBBER, ncid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_dim(ncid, "x", 4_i4, dimid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_enddef(ncid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_close(ncid)
+    @assertEqual(NCW_NOERR, status)
+
+    status = ncw_open(fname_redef, NCW_WRITE, ncid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_redef(ncid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_dim(ncid, "y", 7_i4, dimid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_enddef(ncid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_close(ncid)
+    @assertEqual(NCW_NOERR, status)
+
+    status = ncw_open(fname_redef, NCW_WRITE, ncid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_redef(ncid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_dim(ncid, "z", 9_i4, dimid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_abort(ncid)
+    @assertEqual(NCW_NOERR, status)
+
+    status = ncw_open(fname_redef, NCW_NOWRITE, ncid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_inq_dimid(ncid, "y", dimid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_inq_dimid(ncid, "z", dimid)
+    @assertTrue(status /= NCW_NOERR)
+    status = ncw_close(ncid)
+    @assertEqual(NCW_NOERR, status)
+  end subroutine test_wrapper_redef_enddef_and_abort
+
+  @test
+  subroutine test_wrapper_attribute_and_group_management()
+    integer(i4) :: status, ncid, dimid, src_varid, dst_varid, grp_old, grp_new
+    integer(i4) :: deleted_len
+    character(32) :: copied_value
+
+    status = ncw_create(fname_attrs, ior(NCW_CLOBBER, NCW_NETCDF4), ncid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_dim(ncid, "x", 3_i4, dimid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_var(ncid, "source", NCW_INT, dimid, src_varid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_var(ncid, "target", NCW_INT, dimid, dst_varid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_put_att(ncid, NCW_GLOBAL, "title", "forces-wrapper")
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_put_att(ncid, src_varid, "to_delete", 7_i4)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_grp(ncid, "group_old", grp_old)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_rename_grp(grp_old, "group_new")
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_copy_att(ncid, NCW_GLOBAL, "title", ncid, dst_varid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_del_att(ncid, src_varid, "to_delete")
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_enddef(ncid)
+    @assertEqual(NCW_NOERR, status)
+
+    copied_value = ""
+    status = ncw_get_att(ncid, dst_varid, "title", copied_value)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual("forces-wrapper", trim(copied_value))
+
+    status = ncw_inquire_attribute(ncid, src_varid, "to_delete", len = deleted_len)
+    @assertTrue(status /= NCW_NOERR)
+
+    status = ncw_inq_ncid(ncid, "group_old", grp_new)
+    @assertTrue(status /= NCW_NOERR)
+    status = ncw_inq_ncid(ncid, "group_new", grp_new)
+    @assertEqual(NCW_NOERR, status)
+
+    status = ncw_close(ncid)
+    @assertEqual(NCW_NOERR, status)
+  end subroutine test_wrapper_attribute_and_group_management
+
+  @test
+  subroutine test_wrapper_variable_property_inquiry()
+    integer(i4) :: status, ncid, dimids(2), dimid_x, dimid_y, varid
+    integer(i4) :: storage, chunksizes(2), shuffle_i, deflate_i, deflate_level
+    integer(i4) :: fletcher_i, endianness, no_fill
+    integer(i4) :: inq_chunks(2), inq_level, inq_endian, inq_cache_size, inq_cache_nelems, inq_cache_preemption, ndims
+    logical :: contiguous, shuffle, fletcher32
+    real(dp) :: fill_value, fill_in
+
+    fill_in = -1234.5_dp
+    status = ncw_create(fname_props, ior(NCW_CLOBBER, NCW_NETCDF4), ncid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_dim(ncid, "x", 10_i4, dimid_x)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_dim(ncid, "y", 6_i4, dimid_y)
+    @assertEqual(NCW_NOERR, status)
+    dimids = [dimid_x, dimid_y]
+    status = ncw_def_var(ncid, "data", NCW_DOUBLE, dimids, varid, chunksizes = [4_i4, 2_i4], deflate_level = 3_i4, shuffle = .true., &
+            fletcher32 = .true., endianness = NCW_ENDIAN_LITTLE, cache_size = 8192_i4, cache_nelems = 64_i4, cache_preemption = 60_i4)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_var_fill(ncid, varid, NCW_FILL, fill_in)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_enddef(ncid)
+    @assertEqual(NCW_NOERR, status)
+
+    status = ncw_inq_var_chunking(ncid, varid, storage, chunksizes)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(NCW_CHUNKED, storage)
+    @assertEqual([4_i4, 2_i4], chunksizes)
+
+    status = ncw_inq_var_deflate(ncid, varid, shuffle_i, deflate_i, deflate_level)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(1_i4, shuffle_i)
+    @assertEqual(1_i4, deflate_i)
+    @assertEqual(3_i4, deflate_level)
+
+    status = ncw_inq_var_fletcher32(ncid, varid, fletcher_i)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(1_i4, fletcher_i)
+
+    status = ncw_inq_var_endian(ncid, varid, endianness)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(NCW_ENDIAN_LITTLE, endianness)
+
+    status = ncw_inq_var_fill(ncid, varid, no_fill, fill_value)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(NCW_FILL, no_fill)
+    @assertEqual(fill_in, fill_value)
+
+    status = ncw_inquire_variable(ncid, varid, ndims = ndims, contiguous = contiguous, chunksizes = inq_chunks, deflate_level = inq_level, &
+            shuffle = shuffle, fletcher32 = fletcher32, endianness = inq_endian, cache_size = inq_cache_size, &
+            cache_nelems = inq_cache_nelems, cache_preemption = inq_cache_preemption)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(2_i4, ndims)
+    @assertFalse(contiguous)
+    @assertEqual([4_i4, 2_i4], inq_chunks)
+    @assertEqual(3_i4, inq_level)
+    @assertTrue(shuffle)
+    @assertTrue(fletcher32)
+    @assertEqual(NCW_ENDIAN_LITTLE, inq_endian)
+    @assertEqual(8192_i4, inq_cache_size)
+    @assertEqual(64_i4, inq_cache_nelems)
+    @assertEqual(60_i4, inq_cache_preemption)
+
+    status = ncw_close(ncid)
+    @assertEqual(NCW_NOERR, status)
+  end subroutine test_wrapper_variable_property_inquiry
+
+end module test_mo_netcdf_wrapper
