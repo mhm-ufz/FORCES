@@ -136,6 +136,7 @@ module mo_grid
     procedure, public :: gen_id_matrix => grid_gen_id_matrix
     procedure, public :: cell_id => grid_cell_id
     procedure, public :: closest_cell_id => grid_closest_cell_id
+    procedure, public :: closest_cell_id_by_axes => grid_closest_cell_id_by_axes
     procedure, public :: x_axis => grid_x_axis
     procedure, public :: y_axis => grid_y_axis
     procedure, public :: x_vertices => grid_x_vertices
@@ -1287,6 +1288,34 @@ contains
     end if
     closest_cell_id = minloc(dist, dim=1)
   end function grid_closest_cell_id
+
+  !> \brief Closest cell ID for given coordinates from axis.
+  !> \return `integer(i8) :: closest_cell_id(:)`
+  !> \authors Sebastian Müller
+  !> \date Feb 2026
+  function grid_closest_cell_id_by_axes(this, coords) result(closest_cell_id)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), intent(in) :: coords(:,:) !< coordiantes (x,y) or (lon,lat) per gauge (shape: ngauges, 2)
+    real(dp) :: xax(this%nx), yax(this%ny)
+    integer(i8) :: i, nx, ny, cell_mat(this%nx, this%ny)
+    integer(i8) :: closest_cell_id(size(coords,1))
+    real(dp) :: dx(this%nx), dy(this%ny)
+    call this%gen_id_matrix(cell_mat)
+    xax = this%x_axis()
+    yax = this%y_axis()
+
+    !$omp parallel do default(shared) private(i,dx,dy,nx,ny) schedule(static)
+    do i = 1_i4, size(coords,1)
+      dx = abs(xax - coords(i,1))
+      dy = abs(yax - coords(i,2))
+      nx = minloc(dx, dim=1)
+      ny = minloc(dy, dim=1)
+      ! if the closest cell is masked, a nodata value is returned
+      closest_cell_id(i) = cell_mat(nx, ny)
+    end do
+    !$omp end parallel do
+  end function grid_closest_cell_id_by_axes
 
   !> \brief x-axis of the grid cell centers
   !> \return `real(dp), allocatable, dimension(:) :: x_axis`
