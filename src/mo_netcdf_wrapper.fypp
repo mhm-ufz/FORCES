@@ -633,10 +633,15 @@ contains
 
     character(kind = c_char, len = 1), target :: cname(NCW_MAX_NAME + 1_i4)
     integer(c_size_t), target :: c_len
+    type(c_ptr) :: cname_ptr, len_ptr
 
     cname = c_null_char
+    cname_ptr = c_null_ptr
+    len_ptr = c_null_ptr
+    if (present(name)) cname_ptr = c_loc(cname(1))
+    if (present(len)) len_ptr = c_loc(c_len)
     ncw_inquire_dimension64 = int(c_nc_inq_dim(int(ncid, c_int), int(dimid, c_int), &
-            merge(c_loc(cname(1)), c_null_ptr, present(name)), merge(c_loc(c_len), c_null_ptr, present(len))), i4)
+            cname_ptr, len_ptr), i4)
     if (ncw_inquire_dimension64 /= NCW_NOERR) return
 
     if (present(name)) call c_chars_to_fortran(cname, name)
@@ -802,15 +807,17 @@ contains
     character(kind = c_char, len = 1), target :: cname(NCW_MAX_NAME + 1_i4)
     integer(c_int), target :: c_xtype, c_ndims, c_natts
     integer(c_int), target :: c_dimids(NCW_MAX_VAR_DIMS)
-    type(c_ptr) :: dimids_ptr, ndims_ptr
+    type(c_ptr) :: dimids_ptr, name_ptr, ndims_ptr
     integer(i4) :: i, n
 
     cname = c_null_char
     dimids_ptr = c_null_ptr
+    name_ptr = c_null_ptr
     ndims_ptr = c_null_ptr
+    if (present(name)) name_ptr = c_loc(cname(1))
     if (present(dimids)) dimids_ptr = c_loc(c_dimids(1))
     if (present(ndims) .or. present(dimids)) ndims_ptr = c_loc(c_ndims)
-    ncw_inquire_variable = int(c_nc_inq_var(int(ncid, c_int), int(varid, c_int), merge(c_loc(cname(1)), c_null_ptr, present(name)), &
+    ncw_inquire_variable = int(c_nc_inq_var(int(ncid, c_int), int(varid, c_int), name_ptr, &
             maybe_i4_ptr(xtype, c_xtype), ndims_ptr, dimids_ptr, maybe_i4_ptr(natts, c_natts)), i4)
     if (ncw_inquire_variable /= NCW_NOERR) return
 
@@ -882,10 +889,13 @@ contains
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
     integer(c_int), target :: c_xtype, c_attnum
     integer(c_size_t), target :: c_len
+    type(c_ptr) :: len_ptr
 
     cname = to_c_string(name)
+    len_ptr = c_null_ptr
+    if (present(len)) len_ptr = c_loc(c_len)
     ncw_inquire_attribute64 = int(c_nc_inq_att(int(ncid, c_int), int(varid, c_int), c_loc(cname(1)), &
-            maybe_i4_ptr(xtype, c_xtype), merge(c_loc(c_len), c_null_ptr, present(len))), i4)
+            maybe_i4_ptr(xtype, c_xtype), len_ptr), i4)
     if (ncw_inquire_attribute64 /= NCW_NOERR) return
 
     if (present(xtype)) xtype = int(c_xtype, i4)
@@ -1116,6 +1126,7 @@ contains
     real(c_float) :: cache_preemption_out
     integer(i4) :: i
     logical :: want_contiguous, want_shuffle
+    type(c_ptr) :: dimids_ptr
 
     if (present(contiguous)) then
       if (contiguous .and. has_chunksizes) then
@@ -1138,8 +1149,10 @@ contains
       if (has_chunksizes) c_chunks(i) = int(chunksizes(size(dimids) - i + 1), c_size_t)
     end do
 
+    dimids_ptr = c_null_ptr
+    if (size(dimids) > 0) dimids_ptr = c_loc(c_dimids(1))
     ncw_def_var_impl = int(c_nc_def_var(int(ncid, c_int), c_loc(cname(1)), int(xtype, c_int), int(size(dimids), c_int), &
-            merge(c_loc(c_dimids(1)), c_null_ptr, size(dimids) > 0), c_loc(c_varid)), i4)
+            dimids_ptr, c_loc(c_varid)), i4)
     if (ncw_def_var_impl /= NCW_NOERR) return
     varid = int(c_varid, i4)
 
