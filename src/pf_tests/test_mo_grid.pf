@@ -14,6 +14,7 @@ module test_mo_grid
   public :: test_mask_ids_and_pack
   public :: test_area_and_periodicity
   public :: test_closest_cell_and_distance
+  public :: test_closest_cell_by_axes
   public :: test_aux_vertices_and_bounds
   public :: test_data_container_move_and_deallocate
   public :: test_gen_grid_variants
@@ -215,6 +216,26 @@ contains
     d = dist_latlon(0.0_dp, 0.0_dp, 0.0_dp, 1.0_dp)
     @assertGreaterThan(d, 0.0_dp)
   end subroutine test_closest_cell_and_distance
+
+  @test
+  subroutine test_closest_cell_by_axes()
+    implicit none
+    type(grid_t) :: grid
+    logical :: mask(3,2)
+    real(dp) :: coords(3,2)
+    integer(i8) :: cids(3)
+
+    mask = reshape([.true., .false., .true., .true., .true., .true.], [3,2])
+    call grid%init(nx=3, ny=2, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=2.0_dp, &
+      coordsys=cartesian, mask=mask, y_direction=top_down)
+
+    coords(1,:) = [1.2_dp, 2.9_dp]
+    coords(2,:) = [3.1_dp, 2.8_dp]
+    coords(3,:) = [5.1_dp, 1.2_dp]
+    cids = grid%closest_cell_id_by_axes(coords)
+
+    @assertEqual(cids, [1_i8, nodata_i8, 5_i8], message='axis-based lookup returns cell ids and nodata for masked cells')
+  end subroutine test_closest_cell_by_axes
 
   @test
   subroutine test_aux_vertices_and_bounds()
