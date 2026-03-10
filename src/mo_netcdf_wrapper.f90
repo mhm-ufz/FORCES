@@ -8056,8 +8056,49 @@ contains
     integer(c_size_t), intent(out) :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), intent(out) :: stride_c(:), map_c(:)
     logical, intent(out) :: use_slice, use_stride, use_map
-    call ncw_prepare_slicing_i8(shape_f, int_opt_i8(start), int_opt_i8(cnt), int_opt_i8(stride), int_opt_i8(map), start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+
+    integer(i4) :: i, j, rank, value_rank
+
+    rank = size(start_c)
+    value_rank = size(shape_f)
+    start_c = 0_c_size_t
+    count_c = 1_c_size_t
+    stride_c = 1_c_ptrdiff_t
+    map_c = 1_c_ptrdiff_t
+
+    do i = 1, value_rank
+      j = rank - i + 1
+      count_c(j) = int(shape_f(i), c_size_t)
+    end do
+
+    if (present(start)) then
+      do i = 1, min(size(start), rank)
+        j = rank - i + 1
+        start_c(j) = int(start(i) - 1_i4, c_size_t)
+      end do
+    end if
+    if (present(cnt)) then
+      do i = 1, min(size(cnt), rank)
+        j = rank - i + 1
+        count_c(j) = int(cnt(i), c_size_t)
+      end do
+    end if
+    if (present(stride)) then
+      do i = 1, min(size(stride), rank)
+        j = rank - i + 1
+        stride_c(j) = int(stride(i), c_ptrdiff_t)
+      end do
+    end if
+    if (present(map)) then
+      do i = 1, min(size(map), rank)
+        j = rank - i + 1
+        map_c(j) = int(map(i), c_ptrdiff_t)
+      end do
+    end if
+
+    use_stride = present(stride)
+    use_map = present(map)
+    use_slice = present(start) .or. present(cnt) .or. use_stride .or. use_map
   end subroutine ncw_prepare_slicing_i4
 
   subroutine ncw_prepare_slicing_i8(shape_f, start, cnt, stride, map, start_c, count_c, stride_c, map_c, use_slice, use_stride, use_map)
@@ -8134,15 +8175,6 @@ contains
     if (present(stride)) rank_out = max(rank_out, size(stride))
     if (present(map)) rank_out = max(rank_out, size(map))
   end function ncw_slice_rank_i8
-
-  function int_opt_i8(values) result(out)
-    integer(i4), intent(in), optional :: values(:)
-    integer(i8), allocatable :: out(:)
-    if (present(values)) then
-      allocate(out(size(values)))
-      out = int(values, i8)
-    end if
-  end function int_opt_i8
 
   function maybe_i4_ptr(arg, carg) result(ptr)
     integer(i4), intent(out), optional :: arg
