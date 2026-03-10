@@ -11,11 +11,13 @@ module mo_NcRead
 
   use mo_kind, only : i4, i8, sp, dp
 
-  ! functions and constants of netcdf4 library
-  use netcdf, only : nf90_open, nf90_get_var, nf90_close, NF90_MAX_NAME, &
-          nf90_get_att, nf90_inq_varid, nf90_inquire_variable, &
-          nf90_inquire_dimension, NF90_NOWRITE, &
-          nf90_noerr, nf90_strerror, nf90_inquire_attribute
+  use mo_netcdf_wrapper, only : &
+          nf90_open => ncw_open, nf90_get_var => ncw_get_var, nf90_close => ncw_close, &
+          NF90_MAX_NAME => NCW_MAX_NAME, nf90_get_att => ncw_get_att, &
+          nf90_inq_varid => ncw_inq_varid, nf90_inquire_variable => ncw_inquire_variable, &
+          nf90_inquire_dimension => ncw_inquire_dimension, NF90_NOWRITE => NCW_NOWRITE, &
+          nf90_noerr => NCW_NOERR, nf90_strerror => ncw_strerror, &
+          nf90_inquire_attribute => ncw_inquire_attribute
 
   implicit none
 

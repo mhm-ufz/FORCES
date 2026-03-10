@@ -9,7 +9,7 @@ This file is part of the UFZ CHS Fortran library for Computational Environmental
 
 ## COPYRIGHT HOLDERS
 
- Copyright(c) 2005-2025, the CHS Developers, Sabine Attinger: All rights reserved.
+ Copyright(c) 2005-2026, the CHS Developers, Sabine Attinger: All rights reserved.
 
 The code is a property of:
 
@@ -195,3 +195,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   - sources: https://github.com/mcuntz/jams_fortran
   - authors: Matthias Cuntz, Juliane Mai, Stephan Thober
   - license: MIT License
+
+Note: FORCES includes an independent NetCDF wrapper built on `netcdf-c`. It preserves parts of the familiar
+`nf90`-style behavior associated with Unidata's `netcdf-fortran`, but does not bundle, link against, or depend on
+`netcdf-fortran`.

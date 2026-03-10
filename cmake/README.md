@@ -88,9 +88,9 @@ target_link_libraries(<target> PUBLIC NetCDF::NetCDF_Fortran)
 
 To specify a particular NetCDF library, use
 
-    cmake -DNetCDF_ROOT=/path/to/netcdff -B build
+    cmake -DNetCDF_ROOT=/path/to/netcdf -B build
 
-or set environment variable `NetCDF_ROOT=/path/to/netcdff`.
+or set environment variable `NetCDF_ROOT=/path/to/netcdf`.
 
 ### `FindYAC.cmake`
 
@@ -175,4 +175,4 @@ You should replace `main` with a specific tag (like `v1.8`) to use a released ve
 
 MIT License (MIT)
 
-Copyright (c) 2020 - 2024 CHS Developers
+Copyright (c) 2020 - 2026 CHS Developers

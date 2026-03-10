@@ -79,12 +79,11 @@ For a more complex project, prepared for unit-tests, documentation and modules, 
 * Fortran compiler: We support [gfortran](https://gcc.gnu.org/fortran/), [nagfor](https://www.nag.com/content/nag-fortran-compiler) and [ifort](https://www.intel.com/content/www/us/en/developer/tools/oneapi/overview.html)
 * Build system: We support [make](https://www.gnu.org/software/make/) and [ninja](https://ninja-build.org/)
 * [cmake](https://cmake.org/): Software for build automation
-* [NetCDF-Fortran](https://github.com/Unidata/netcdf-fortran): NetCDF I/O for Fortran
+* [NetCDF-C](https://github.com/Unidata/netcdf-c): NetCDF I/O library
 * (optional) [fypp](https://github.com/aradi/fypp): Fortran pre-processor written in Python
 
 It is recommended to have a clean installation at a custom location
-for a C compiler, a Fortran compiler, the NetCDF C library and the
-NetCDF Fortran library with consistent compilers.
+for a C compiler, a Fortran compiler and the NetCDF C library with consistent compilers.
 
 We recommend to use a [conda](https://docs.conda.io/en/latest/) environment by using [Miniconda](https://docs.conda.io/en/latest/miniconda.html) to get all dependencies easily:
 ```bash
@@ -92,11 +91,11 @@ conda create -y --prefix ./forces_env
 conda activate ./forces_env
 conda config --add channels conda-forge
 conda config --set channel_priority strict
-conda install -y cmake make fortran-compiler netcdf-fortran fypp
+conda install -y cmake make fortran-compiler libnetcdf fypp
 ```
 With this you could now proceed with the example given above.
 
 
 ## License
 
-LGPLv3 (c) 2005-2025 CHS-Developers
+LGPLv3 (c) 2005-6 CHS-Developers
