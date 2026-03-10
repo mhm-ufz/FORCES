@@ -35,15 +35,19 @@ module mo_netcdf
     nf90_close             => ncw_close,             &
     nf90_strerror          => ncw_strerror,          &
     nf90_def_dim           => ncw_def_dim,           &
+    nf90_def_dim64         => ncw_def_dim64,         &
     nf90_def_var           => ncw_def_var,           &
     nf90_put_var           => ncw_put_var,           &
+    nf90_put_var64         => ncw_put_var64,         &
     nf90_get_var           => ncw_get_var,           &
+    nf90_get_var64         => ncw_get_var64,         &
     nf90_put_att           => ncw_put_att,           &
     nf90_get_att           => ncw_get_att,           &
     nf90_inq_attname       => ncw_inq_attname,       &
     nf90_inquire           => ncw_inquire,           &
     nf90_inq_dimid         => ncw_inq_dimid,         &
     nf90_inquire_dimension => ncw_inquire_dimension, &
+    nf90_inquire_dimension64 => ncw_inquire_dimension64, &
     nf90_inq_varid         => ncw_inq_varid,         &
     nf90_inq_varids        => ncw_inq_varids,        &
     nf90_inquire_variable  => ncw_inquire_variable,  &
@@ -166,6 +170,7 @@ module mo_netcdf
     ! setter
     procedure, public  :: setGroup !< set group
     procedure, public  :: setDimension !< set dimension
+    procedure, public  :: setDimension64 !< set dimension with 64-bit size
     procedure, public  :: setCoordinate !< set coordinate
     procedure, private :: set_scrip_dimension
     procedure, private :: set_1d_coordinate_variable
@@ -214,6 +219,7 @@ module mo_netcdf
     procedure, public :: getParent => getDimensionParent !< get parent
     procedure, public :: getName => getDimensionName !< get name
     procedure, public :: getLength => getDimensionLength !< get length
+    procedure, public :: getLength64 => getDimensionLength64 !< get 64-bit length
     procedure, public :: isUnlimited => isUnlimitedDimension !< is unlimited
   end type NcDimension
 
@@ -232,6 +238,7 @@ module mo_netcdf
     procedure, public :: getParent => getVariableParent !< get parent
     procedure, public :: getName => getVariableName !< get name
     procedure, private :: getSlicingShape
+    procedure, private :: getSlicingShape64
 
 #:for kind, type in REAL_KINDS_TYPES + INT_KINDS_TYPES
   #:for rank in RANKS
@@ -241,6 +248,12 @@ module mo_netcdf
     generic, public :: getData => getData_${rank}$d_${kind}$ !< get data
     procedure, private :: readInto_${rank}$d_${kind}$
     generic, public :: readInto => readInto_${rank}$d_${kind}$ !< read into existing buffer
+    procedure, private :: setData64_${rank}$d_${kind}$
+    generic, public :: setData64 => setData64_${rank}$d_${kind}$ !< set data with 64-bit slices
+    procedure, private :: getData64_${rank}$d_${kind}$
+    generic, public :: getData64 => getData64_${rank}$d_${kind}$ !< get data with 64-bit slices
+    procedure, private :: readInto64_${rank}$d_${kind}$
+    generic, public :: readInto64 => readInto64_${rank}$d_${kind}$ !< read into existing buffer with 64-bit slices
   #:endfor
     procedure, private :: getCFAttributes_${kind}$
     generic, public :: getCFAttributes => getCFAttributes_${kind}$ !< get CF attributes
@@ -257,6 +270,7 @@ module mo_netcdf
     procedure, public :: getRank => getVariableRank !< get rank
 
     procedure, public :: getShape => getVariableShape !< get shape
+    procedure, public :: getShape64 => getVariableShape64 !< get 64-bit shape
 
     procedure, public :: getDtype => getVariableDtype !< get data type
 
@@ -443,6 +457,14 @@ contains
             "Failed to inquire dimension: " // self%getName())
   end function getDimensionLength
 
+  function getDimensionLength64(self)
+    class(NcDimension), intent(in) :: self
+    integer(i8) :: getDimensionLength64
+
+    call check(nf90_inquire_dimension64(self%parent%id, self%id, len = getDimensionLength64), &
+            "Failed to inquire dimension: " // self%getName())
+  end function getDimensionLength64
+
   function isDatasetUnlimited(self)
     class(NcGroup), intent(in) :: self
     logical :: isDatasetUnlimited
@@ -616,6 +638,29 @@ contains
     ncDim = NcDimension(id, self)
 
   end function setDimension
+
+  function setDimension64(self, name, length) result(ncDim)
+    class(NcGroup), intent(in) :: self
+    character(*)  , intent(in) :: name
+    integer(i8), intent(in), optional :: length
+
+    type(NcDimension) :: ncDim
+    integer(i8) :: dimLength
+    integer(i4) :: id
+
+    dimLength = int(NF90_UNLIMITED, i8)
+    if (present(length)) then
+      if (length > 0_i8) then
+        dimLength = length
+      end if
+    end if
+
+    call check(nf90_def_dim64(self%id, name, dimLength, id), &
+         "Failed to create dimension: " // name)
+
+    ncDim = NcDimension(id, self)
+
+  end function setDimension64
 
   function setCoordinate(self, name, length, bounds, reference, attribute_names, attribute_values, &
                         centersDim1, centersDim2, cornersDim1, cornersDim2, subDimSizes, units) result(ncDim)
@@ -847,6 +892,21 @@ contains
       getVariableShape(ii) = dims(ii)%getLength()
     end do
   end function getVariableShape
+
+  function getVariableShape64(self)
+    class(NcVariable), intent(in) :: self
+    integer(i8), allocatable :: getVariableShape64(:)
+    type(NcDimension), allocatable :: dims(:)
+    integer(i4) :: ii, ndims
+
+    ndims = self%getNoDimensions()
+    allocate(getVariableShape64(ndims), dims(ndims))
+
+    dims = self%getDimensions()
+    do ii = 1, size(dims)
+      getVariableShape64(ii) = dims(ii)%getLength64()
+    end do
+  end function getVariableShape64
 
   function getVariableRank(self)
     class(NcVariable), intent(in) :: self
@@ -1221,11 +1281,164 @@ $: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+
 
 #:enddef setData_template
 
+#:def getData64_template(kind, type, rank)
+  subroutine getData64_${rank}$d_${kind}$(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    ${type}$, intent(out), allocatable :: data${ranksuffix(rank)}$
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask${ranksuffix(rank)}$
+
+    integer(i4) :: flagMissing
+    ${type}$ :: fillValue, minValue, maxValue
+#: if rank > 0
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, ${rank}$)
+$: '      allocate(data(' + ('datashape({}), '*rank).format(*list(range(1, rank+1)))[:-2] + '))'
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+#: else
+    ${type}$ :: tmp(1)
+
+    call check (nf90_get_var64(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+#: endif
+    if (present(mask)) then
+#: if rank > 0
+$: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+1)))[:-2] + '))'
+#: endif
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+#: if kind in INT_KINDS
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+#: else
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+#: endif
+      end select
+    end if
+
+  end subroutine getData64_${rank}$d_${kind}$
+
+#:enddef getData64_template
+
+#:def readInto64_template(kind, type, rank)
+  subroutine readInto64_${rank}$d_${kind}$(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    ${type}$, intent(out) :: data${ranksuffix(rank)}$
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask${ranksuffix(rank)}$
+
+    integer(i4) :: flagMissing
+    ${type}$ :: fillValue, minValue, maxValue
+#: if rank > 0
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(${rank}$)
+    integer(i8) :: maskshape(${rank}$)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+#: else
+    ${type}$ :: tmp(1)
+
+    call check (nf90_get_var64(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+#: endif
+    if (present(mask)) then
+#: if rank > 0
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+#: endif
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+#: if kind in INT_KINDS
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+#: else
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+#: endif
+      end select
+    end if
+
+  end subroutine readInto64_${rank}$d_${kind}$
+
+#:enddef readInto64_template
+
+#:def setData64_template(kind, type, rank)
+  #! the cnt, stride and map args are valid only for 1d varities, they were originally also not appearing in dummy args
+  subroutine setData64_${rank}$d_${kind}$(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    ${type}$, intent(in) :: values${ranksuffix(rank)}$
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+#: if rank > 0
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+#: else
+    call check(nf90_put_var64(self%parent%id, self%id, values, start), &
+#: endif
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_${rank}$d_${kind}$
+
+#:enddef setData64_template
+
 #:for kind, type in REAL_KINDS_TYPES + INT_KINDS_TYPES
   #:for rank in RANKS
     $:getData_template(kind, type, rank)
     $:readInto_template(kind, type, rank)
     $:setData_template(kind, type, rank)
+    $:getData64_template(kind, type, rank)
+    $:readInto64_template(kind, type, rank)
+    $:setData64_template(kind, type, rank)
   #:endfor
   $:getFillValue_template(kind, type)
   $:getCFAttributes_template(kind, type)
@@ -1253,6 +1466,26 @@ $: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+
 
   end function getSlicingShape
 
+  function getSlicingShape64(self, instart, incnt, instride) result(out)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(in), optional :: instart(:), incnt(:), instride(:)
+    integer(i8), allocatable :: out(:)
+
+    out = self%getShape64()
+
+    if (present(incnt)) then
+      out(:size(incnt)) = incnt
+    else
+      if (present(instart)) then
+        out(:size(instart)) = out(:size(instart)) - (instart - 1_i8)
+      end if
+      if (present(instride)) then
+        out(:size(instride)) = out(:size(instride)) / instride
+      end if
+    end if
+
+  end function getSlicingShape64
+
   function getReadShape(slcshape, outrank) result(out)
     integer(i4), intent(in) :: slcshape(:)
     integer(i4), intent(in) :: outrank
@@ -1277,6 +1510,29 @@ $: '      allocate(mask(' + ('datashape({}), '*rank).format(*list(range(1, rank+
       stop 1
     end if
   end function getReadShape
+
+  function getReadShape64(slcshape, outrank) result(out)
+    integer(i8), intent(in) :: slcshape(:)
+    integer(i4), intent(in) :: outrank
+    integer(i4) :: naxis
+    integer(i8), allocatable :: out(:)
+
+    naxis = count(slcshape > 1_i8)
+
+    if (all(slcshape == 1_i8)) then
+      ! return 1-element array
+      allocate(out(size(slcshape)))
+      out(:) = 1_i8
+    else if (size(slcshape) == outrank) then
+      ! sizes fit
+      out = slcshape
+    else if (naxis == outrank) then
+      out = pack(slcshape, slcshape > 1_i8)
+    else
+      write(*, *) "Given indices do not match output variable rank!"
+      stop 1
+    end if
+  end function getReadShape64
 
   function getDtypeFromString(dtype)
     integer(i4) :: getDtypeFromString
