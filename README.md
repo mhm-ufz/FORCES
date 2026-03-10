@@ -83,8 +83,7 @@ For a more complex project, prepared for unit-tests, documentation and modules, 
 * (optional) [fypp](https://github.com/aradi/fypp): Fortran pre-processor written in Python
 
 It is recommended to have a clean installation at a custom location
-for a C compiler, a Fortran compiler, the NetCDF C library and the
-FORCES dependencies with consistent compilers.
+for a C compiler, a Fortran compiler and the NetCDF C library with consistent compilers.
 
 We recommend to use a [conda](https://docs.conda.io/en/latest/) environment by using [Miniconda](https://docs.conda.io/en/latest/miniconda.html) to get all dependencies easily:
 ```bash
@@ -99,4 +98,4 @@ With this you could now proceed with the example given above.
 
 ## License
 
-LGPLv3 (c) 2005-2025 CHS-Developers
+LGPLv3 (c) 2005-6 CHS-Developers
