@@ -3,14 +3,14 @@
 # safely find netcdf c/fortran
 # To specify a particular NetCDF library, use
 #
-#     cmake -DNetCDF_ROOT=/path/to/netcdff -B build
+#     cmake -DNetCDF_ROOT=/path/to/netcdf -B build
 #
-# or set environment variable NetCDF_ROOT=/path/to/netcdff
+# or set environment variable NetCDF_ROOT=/path/to/netcdf
 #
 # MIT License
 # -----------
 #[[
-  Copyright (c) 2020 - 2022 CHS Developers
+  Copyright (c) 2020 - 2026 CHS Developers
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -95,19 +95,124 @@ function(search_netcdf_fortran)
 
 endfunction(search_netcdf_fortran)
 
+# resolve a usable filesystem path from an imported library target
+function(resolve_imported_target_location imported_target out_var)
+
+  set(_location "")
+  set(_config_candidates)
+
+  if(CMAKE_BUILD_TYPE)
+    string(TOUPPER "${CMAKE_BUILD_TYPE}" _build_type)
+    list(APPEND _config_candidates "${_build_type}")
+  endif()
+
+  get_target_property(_imported_configs "${imported_target}" IMPORTED_CONFIGURATIONS)
+  if(_imported_configs AND NOT _imported_configs STREQUAL "_imported_configs-NOTFOUND")
+    list(APPEND _config_candidates ${_imported_configs})
+  endif()
+  list(REMOVE_DUPLICATES _config_candidates)
+
+  foreach(_config IN LISTS _config_candidates)
+    get_target_property(_location "${imported_target}" "IMPORTED_LOCATION_${_config}")
+    if(_location AND NOT _location STREQUAL "_location-NOTFOUND" AND EXISTS "${_location}")
+      set(${out_var} "${_location}" PARENT_SCOPE)
+      return()
+    endif()
+  endforeach()
+
+  get_target_property(_location "${imported_target}" IMPORTED_LOCATION)
+  if(_location AND NOT _location STREQUAL "_location-NOTFOUND" AND EXISTS "${_location}")
+    set(${out_var} "${_location}" PARENT_SCOPE)
+    return()
+  endif()
+
+  set(${out_var} "" PARENT_SCOPE)
+
+endfunction(resolve_imported_target_location)
+
 # search for PkgConfig
 find_package(PkgConfig QUIET)
 
+# keep the documented root hint working for the inner netCDF config-package lookup
+if(DEFINED NetCDF_ROOT AND NOT DEFINED netCDF_ROOT)
+  set(netCDF_ROOT "${NetCDF_ROOT}")
+endif()
+if(DEFINED ENV{NetCDF_ROOT} AND NOT DEFINED ENV{netCDF_ROOT})
+  set(ENV{netCDF_ROOT} "$ENV{NetCDF_ROOT}")
+endif()
+
 # try CMake built-in finder for NetCDF-c.
+set(_NetCDF_C_CONFIG_TARGET "")
+
 find_package(netCDF CONFIG QUIET)
 if(netCDF_FOUND)
-  set(NetCDF_C_FOUND "${netCDF_FOUND}")
-  set(NetCDF_C_INCLUDE_DIR "${netCDF_INCLUDE_DIR}")
-  set(NetCDF_C_LIBRARY "${netCDF_LIBRARIES}")
   set(NetCDF_VERSION "${NetCDFVersion}")
-else()
-  search_netcdf_c()
+
+  if(TARGET netCDF::netcdf)
+    set(_NetCDF_C_CONFIG_TARGET netCDF::netcdf)
+
+    get_target_property(NetCDF_C_INCLUDE_DIRS "${_NetCDF_C_CONFIG_TARGET}" INTERFACE_INCLUDE_DIRECTORIES)
+    if(NetCDF_C_INCLUDE_DIRS STREQUAL "NetCDF_C_INCLUDE_DIRS-NOTFOUND")
+      set(NetCDF_C_INCLUDE_DIRS "")
+    endif()
+    if(NOT NetCDF_C_INCLUDE_DIRS AND netCDF_INCLUDE_DIR)
+      set(NetCDF_C_INCLUDE_DIRS "${netCDF_INCLUDE_DIR}")
+    endif()
+    if(NetCDF_C_INCLUDE_DIRS)
+      list(REMOVE_DUPLICATES NetCDF_C_INCLUDE_DIRS)
+    endif()
+
+    if(netCDF_INCLUDE_DIR)
+      set(NetCDF_C_INCLUDE_DIR "${netCDF_INCLUDE_DIR}")
+    elseif(NetCDF_C_INCLUDE_DIRS)
+      list(GET NetCDF_C_INCLUDE_DIRS 0 NetCDF_C_INCLUDE_DIR)
+    endif()
+
+    resolve_imported_target_location("${_NetCDF_C_CONFIG_TARGET}" NetCDF_C_LIBRARY)
+    if(NOT NetCDF_C_LIBRARY)
+      search_netcdf_c()
+      if(NetCDF_C_INCLUDE_DIRS)
+        if(netCDF_INCLUDE_DIR)
+          set(NetCDF_C_INCLUDE_DIR "${netCDF_INCLUDE_DIR}")
+        elseif(NOT NetCDF_C_INCLUDE_DIR)
+          list(GET NetCDF_C_INCLUDE_DIRS 0 NetCDF_C_INCLUDE_DIR)
+        endif()
+      else()
+        set(NetCDF_C_INCLUDE_DIRS "${NetCDF_C_INCLUDE_DIR}")
+      endif()
+    endif()
+
+    if(NetCDF_C_LIBRARY)
+      set(NetCDF_C_FOUND true)
+      set(NetCDF_C_LIBRARIES "${NetCDF_C_LIBRARY}")
+    else()
+      unset(NetCDF_C_FOUND)
+      unset(NetCDF_C_INCLUDE_DIR)
+      unset(NetCDF_C_INCLUDE_DIRS)
+      unset(NetCDF_C_LIBRARY)
+      unset(NetCDF_C_LIBRARIES)
+    endif()
+  elseif(netCDF_LIBRARIES)
+    set(_NetCDF_C_CONFIG_LIBRARIES "${netCDF_LIBRARIES}")
+    list(GET _NetCDF_C_CONFIG_LIBRARIES 0 _NetCDF_C_CONFIG_LIBRARY)
+    if(IS_ABSOLUTE "${_NetCDF_C_CONFIG_LIBRARY}" AND EXISTS "${_NetCDF_C_CONFIG_LIBRARY}")
+      set(NetCDF_C_FOUND true)
+      set(NetCDF_C_INCLUDE_DIR "${netCDF_INCLUDE_DIR}")
+      set(NetCDF_C_INCLUDE_DIRS "${netCDF_INCLUDE_DIR}")
+      set(NetCDF_C_LIBRARY "${_NetCDF_C_CONFIG_LIBRARY}")
+      set(NetCDF_C_LIBRARIES "${_NetCDF_C_CONFIG_LIBRARIES}")
+    endif()
+  endif()
 endif()
+
+if(NOT NetCDF_C_LIBRARY)
+  search_netcdf_c()
+  if(NetCDF_C_LIBRARY)
+    set(NetCDF_C_LIBRARIES "${NetCDF_C_LIBRARY}")
+    set(NetCDF_C_INCLUDE_DIRS "${NetCDF_C_INCLUDE_DIR}")
+  endif()
+endif()
+
 set(_nc_req_vars ${NetCDF_C_LIBRARY})
 
 # search for netcdf-fortran if wanted
@@ -133,22 +238,36 @@ find_package_handle_standard_args(NetCDF
 
 # define imported targets
 if(NetCDF_FOUND)
-  set(NetCDF_C_INCLUDE_DIRS ${NetCDF_C_INCLUDE_DIR})
-  set(NetCDF_C_LIBRARIES ${NetCDF_C_LIBRARY})
-  add_library(NetCDF::NetCDF_C UNKNOWN IMPORTED)
-  set_target_properties(NetCDF::NetCDF_C PROPERTIES
-    IMPORTED_LOCATION "${NetCDF_C_LIBRARY}"
-    INTERFACE_LINK_LIBRARIES "${NetCDF_C_LIBRARY}"
-    INTERFACE_INCLUDE_DIRECTORIES "${NetCDF_C_INCLUDE_DIR}"
-  )
+  if(NOT TARGET NetCDF::NetCDF_C)
+    if(_NetCDF_C_CONFIG_TARGET)
+      add_library(NetCDF::NetCDF_C INTERFACE IMPORTED)
+      set_property(TARGET NetCDF::NetCDF_C PROPERTY
+        INTERFACE_LINK_LIBRARIES "${_NetCDF_C_CONFIG_TARGET}"
+      )
+      if(NetCDF_C_INCLUDE_DIRS)
+        set_property(TARGET NetCDF::NetCDF_C PROPERTY
+          INTERFACE_INCLUDE_DIRECTORIES "${NetCDF_C_INCLUDE_DIRS}"
+        )
+      endif()
+    else()
+      add_library(NetCDF::NetCDF_C UNKNOWN IMPORTED)
+      set_target_properties(NetCDF::NetCDF_C PROPERTIES
+        IMPORTED_LOCATION "${NetCDF_C_LIBRARY}"
+        INTERFACE_LINK_LIBRARIES "${NetCDF_C_LIBRARY}"
+        INTERFACE_INCLUDE_DIRECTORIES "${NetCDF_C_INCLUDE_DIR}"
+      )
+    endif()
+  endif()
   if(NetCDF_Fortran_FOUND)
     set(NetCDF_Fortran_INCLUDE_DIRS ${NetCDF_Fortran_INCLUDE_DIR})
     set(NetCDF_Fortran_LIBRARIES ${NetCDF_Fortran_LIBRARY})
-    add_library(NetCDF::NetCDF_Fortran UNKNOWN IMPORTED)
-    set_target_properties(NetCDF::NetCDF_Fortran PROPERTIES
-      IMPORTED_LOCATION "${NetCDF_Fortran_LIBRARY}"
-      INTERFACE_LINK_LIBRARIES "${NetCDF_Fortran_LIBRARY}"
-      INTERFACE_INCLUDE_DIRECTORIES "${NetCDF_Fortran_INCLUDE_DIR}"
-    )
+    if(NOT TARGET NetCDF::NetCDF_Fortran)
+      add_library(NetCDF::NetCDF_Fortran UNKNOWN IMPORTED)
+      set_target_properties(NetCDF::NetCDF_Fortran PROPERTIES
+        IMPORTED_LOCATION "${NetCDF_Fortran_LIBRARY}"
+        INTERFACE_LINK_LIBRARIES "${NetCDF_Fortran_LIBRARY}"
+        INTERFACE_INCLUDE_DIRECTORIES "${NetCDF_Fortran_INCLUDE_DIR}"
+      )
+    endif()
   endif()
 endif()
