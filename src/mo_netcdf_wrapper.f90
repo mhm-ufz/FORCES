@@ -38,6 +38,10 @@ module mo_netcdf_wrapper
   integer(i4), parameter, public :: NCW_INT64 = 10_i4
 
   integer(i4), parameter, public :: NCW_NOERR = 0_i4
+  integer(i4), parameter, public :: NCW_EINVAL = -36_i4
+  integer(i4), parameter, public :: NCW_EEDGE = -57_i4
+  integer(i4), parameter, public :: NCW_ESTRIDE = -58_i4
+  integer(i4), parameter, public :: NCW_ERANGE = -60_i4
   integer(i4), parameter, public :: NCW_UNLIMITED = 0_i4
   integer(i4), parameter, public :: NCW_GLOBAL = -1_i4
   integer(i4), parameter, public :: NCW_MAX_NAME = 256_i4
@@ -1229,7 +1233,7 @@ contains
     if (present(len)) then
       if (len64 > huge(len)) then
         len = huge(len)
-        ncw_inquire_dimension = -36_i4
+        ncw_inquire_dimension = NCW_EINVAL
       else
         len = int(len64, i4)
       end if
@@ -1601,7 +1605,7 @@ contains
     if (present(len)) then
       if (len64 > huge(len)) then
         len = huge(len)
-        ncw_inquire_attribute = -36_i4
+        ncw_inquire_attribute = NCW_EINVAL
       else
         len = int(len64, i4)
       end if
@@ -2176,7 +2180,7 @@ contains
   end function ncw_get_var64_0d_sp
   function ncw_put_var_1d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:)
+    real(sp), intent(in), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_1d_sp
 
@@ -2185,7 +2189,7 @@ contains
 
   function ncw_put_var64_1d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:)
+    real(sp), intent(in), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_1d_sp
 
@@ -2194,7 +2198,7 @@ contains
 
   function ncw_get_var_1d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:)
+    real(sp), intent(out), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_1d_sp
 
@@ -2203,7 +2207,7 @@ contains
 
   function ncw_get_var64_1d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:)
+    real(sp), intent(out), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_1d_sp
 
@@ -2211,7 +2215,7 @@ contains
   end function ncw_get_var64_1d_sp
   function ncw_put_var_2d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_2d_sp
 
@@ -2220,7 +2224,7 @@ contains
 
   function ncw_put_var64_2d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_2d_sp
 
@@ -2229,7 +2233,7 @@ contains
 
   function ncw_get_var_2d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_2d_sp
 
@@ -2238,7 +2242,7 @@ contains
 
   function ncw_get_var64_2d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_2d_sp
 
@@ -2246,7 +2250,7 @@ contains
   end function ncw_get_var64_2d_sp
   function ncw_put_var_3d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_3d_sp
 
@@ -2255,7 +2259,7 @@ contains
 
   function ncw_put_var64_3d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_3d_sp
 
@@ -2264,7 +2268,7 @@ contains
 
   function ncw_get_var_3d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_3d_sp
 
@@ -2273,7 +2277,7 @@ contains
 
   function ncw_get_var64_3d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_3d_sp
 
@@ -2281,7 +2285,7 @@ contains
   end function ncw_get_var64_3d_sp
   function ncw_put_var_4d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:,:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_4d_sp
 
@@ -2290,7 +2294,7 @@ contains
 
   function ncw_put_var64_4d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:,:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_4d_sp
 
@@ -2299,7 +2303,7 @@ contains
 
   function ncw_get_var_4d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:,:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_4d_sp
 
@@ -2308,7 +2312,7 @@ contains
 
   function ncw_get_var64_4d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:,:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_4d_sp
 
@@ -2316,7 +2320,7 @@ contains
   end function ncw_get_var64_4d_sp
   function ncw_put_var_5d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:,:,:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_5d_sp
 
@@ -2325,7 +2329,7 @@ contains
 
   function ncw_put_var64_5d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:,:,:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_5d_sp
 
@@ -2334,7 +2338,7 @@ contains
 
   function ncw_get_var_5d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:,:,:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_5d_sp
 
@@ -2343,7 +2347,7 @@ contains
 
   function ncw_get_var64_5d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:,:,:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_5d_sp
 
@@ -2351,7 +2355,7 @@ contains
   end function ncw_get_var64_5d_sp
   function ncw_put_var_6d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:,:,:,:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_6d_sp
 
@@ -2360,7 +2364,7 @@ contains
 
   function ncw_put_var64_6d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:,:,:,:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_6d_sp
 
@@ -2369,7 +2373,7 @@ contains
 
   function ncw_get_var_6d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:,:,:,:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_6d_sp
 
@@ -2378,7 +2382,7 @@ contains
 
   function ncw_get_var64_6d_sp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:,:,:,:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_6d_sp
 
@@ -2421,7 +2425,7 @@ contains
   end function ncw_get_var64_0d_dp
   function ncw_put_var_1d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:)
+    real(dp), intent(in), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_1d_dp
 
@@ -2430,7 +2434,7 @@ contains
 
   function ncw_put_var64_1d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:)
+    real(dp), intent(in), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_1d_dp
 
@@ -2439,7 +2443,7 @@ contains
 
   function ncw_get_var_1d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:)
+    real(dp), intent(out), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_1d_dp
 
@@ -2448,7 +2452,7 @@ contains
 
   function ncw_get_var64_1d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:)
+    real(dp), intent(out), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_1d_dp
 
@@ -2456,7 +2460,7 @@ contains
   end function ncw_get_var64_1d_dp
   function ncw_put_var_2d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_2d_dp
 
@@ -2465,7 +2469,7 @@ contains
 
   function ncw_put_var64_2d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_2d_dp
 
@@ -2474,7 +2478,7 @@ contains
 
   function ncw_get_var_2d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_2d_dp
 
@@ -2483,7 +2487,7 @@ contains
 
   function ncw_get_var64_2d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_2d_dp
 
@@ -2491,7 +2495,7 @@ contains
   end function ncw_get_var64_2d_dp
   function ncw_put_var_3d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_3d_dp
 
@@ -2500,7 +2504,7 @@ contains
 
   function ncw_put_var64_3d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_3d_dp
 
@@ -2509,7 +2513,7 @@ contains
 
   function ncw_get_var_3d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_3d_dp
 
@@ -2518,7 +2522,7 @@ contains
 
   function ncw_get_var64_3d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_3d_dp
 
@@ -2526,7 +2530,7 @@ contains
   end function ncw_get_var64_3d_dp
   function ncw_put_var_4d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:,:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_4d_dp
 
@@ -2535,7 +2539,7 @@ contains
 
   function ncw_put_var64_4d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:,:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_4d_dp
 
@@ -2544,7 +2548,7 @@ contains
 
   function ncw_get_var_4d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:,:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_4d_dp
 
@@ -2553,7 +2557,7 @@ contains
 
   function ncw_get_var64_4d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:,:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_4d_dp
 
@@ -2561,7 +2565,7 @@ contains
   end function ncw_get_var64_4d_dp
   function ncw_put_var_5d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:,:,:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_5d_dp
 
@@ -2570,7 +2574,7 @@ contains
 
   function ncw_put_var64_5d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:,:,:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_5d_dp
 
@@ -2579,7 +2583,7 @@ contains
 
   function ncw_get_var_5d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:,:,:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_5d_dp
 
@@ -2588,7 +2592,7 @@ contains
 
   function ncw_get_var64_5d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:,:,:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_5d_dp
 
@@ -2596,7 +2600,7 @@ contains
   end function ncw_get_var64_5d_dp
   function ncw_put_var_6d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:,:,:,:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_6d_dp
 
@@ -2605,7 +2609,7 @@ contains
 
   function ncw_put_var64_6d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:,:,:,:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_6d_dp
 
@@ -2614,7 +2618,7 @@ contains
 
   function ncw_get_var_6d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:,:,:,:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_6d_dp
 
@@ -2623,7 +2627,7 @@ contains
 
   function ncw_get_var64_6d_dp(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:,:,:,:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_6d_dp
 
@@ -2666,7 +2670,7 @@ contains
   end function ncw_get_var64_0d_i1
   function ncw_put_var_1d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:)
+    integer(i1), intent(in), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_1d_i1
 
@@ -2675,7 +2679,7 @@ contains
 
   function ncw_put_var64_1d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:)
+    integer(i1), intent(in), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_1d_i1
 
@@ -2684,7 +2688,7 @@ contains
 
   function ncw_get_var_1d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:)
+    integer(i1), intent(out), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_1d_i1
 
@@ -2693,7 +2697,7 @@ contains
 
   function ncw_get_var64_1d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:)
+    integer(i1), intent(out), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_1d_i1
 
@@ -2701,7 +2705,7 @@ contains
   end function ncw_get_var64_1d_i1
   function ncw_put_var_2d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_2d_i1
 
@@ -2710,7 +2714,7 @@ contains
 
   function ncw_put_var64_2d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_2d_i1
 
@@ -2719,7 +2723,7 @@ contains
 
   function ncw_get_var_2d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_2d_i1
 
@@ -2728,7 +2732,7 @@ contains
 
   function ncw_get_var64_2d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_2d_i1
 
@@ -2736,7 +2740,7 @@ contains
   end function ncw_get_var64_2d_i1
   function ncw_put_var_3d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_3d_i1
 
@@ -2745,7 +2749,7 @@ contains
 
   function ncw_put_var64_3d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_3d_i1
 
@@ -2754,7 +2758,7 @@ contains
 
   function ncw_get_var_3d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_3d_i1
 
@@ -2763,7 +2767,7 @@ contains
 
   function ncw_get_var64_3d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_3d_i1
 
@@ -2771,7 +2775,7 @@ contains
   end function ncw_get_var64_3d_i1
   function ncw_put_var_4d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:,:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_4d_i1
 
@@ -2780,7 +2784,7 @@ contains
 
   function ncw_put_var64_4d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:,:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_4d_i1
 
@@ -2789,7 +2793,7 @@ contains
 
   function ncw_get_var_4d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:,:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_4d_i1
 
@@ -2798,7 +2802,7 @@ contains
 
   function ncw_get_var64_4d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:,:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_4d_i1
 
@@ -2806,7 +2810,7 @@ contains
   end function ncw_get_var64_4d_i1
   function ncw_put_var_5d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:,:,:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_5d_i1
 
@@ -2815,7 +2819,7 @@ contains
 
   function ncw_put_var64_5d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:,:,:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_5d_i1
 
@@ -2824,7 +2828,7 @@ contains
 
   function ncw_get_var_5d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:,:,:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_5d_i1
 
@@ -2833,7 +2837,7 @@ contains
 
   function ncw_get_var64_5d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:,:,:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_5d_i1
 
@@ -2841,7 +2845,7 @@ contains
   end function ncw_get_var64_5d_i1
   function ncw_put_var_6d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:,:,:,:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_6d_i1
 
@@ -2850,7 +2854,7 @@ contains
 
   function ncw_put_var64_6d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:,:,:,:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_6d_i1
 
@@ -2859,7 +2863,7 @@ contains
 
   function ncw_get_var_6d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:,:,:,:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_6d_i1
 
@@ -2868,7 +2872,7 @@ contains
 
   function ncw_get_var64_6d_i1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:,:,:,:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_6d_i1
 
@@ -2911,7 +2915,7 @@ contains
   end function ncw_get_var64_0d_i2
   function ncw_put_var_1d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:)
+    integer(i2), intent(in), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_1d_i2
 
@@ -2920,7 +2924,7 @@ contains
 
   function ncw_put_var64_1d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:)
+    integer(i2), intent(in), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_1d_i2
 
@@ -2929,7 +2933,7 @@ contains
 
   function ncw_get_var_1d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:)
+    integer(i2), intent(out), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_1d_i2
 
@@ -2938,7 +2942,7 @@ contains
 
   function ncw_get_var64_1d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:)
+    integer(i2), intent(out), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_1d_i2
 
@@ -2946,7 +2950,7 @@ contains
   end function ncw_get_var64_1d_i2
   function ncw_put_var_2d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_2d_i2
 
@@ -2955,7 +2959,7 @@ contains
 
   function ncw_put_var64_2d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_2d_i2
 
@@ -2964,7 +2968,7 @@ contains
 
   function ncw_get_var_2d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_2d_i2
 
@@ -2973,7 +2977,7 @@ contains
 
   function ncw_get_var64_2d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_2d_i2
 
@@ -2981,7 +2985,7 @@ contains
   end function ncw_get_var64_2d_i2
   function ncw_put_var_3d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_3d_i2
 
@@ -2990,7 +2994,7 @@ contains
 
   function ncw_put_var64_3d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_3d_i2
 
@@ -2999,7 +3003,7 @@ contains
 
   function ncw_get_var_3d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_3d_i2
 
@@ -3008,7 +3012,7 @@ contains
 
   function ncw_get_var64_3d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_3d_i2
 
@@ -3016,7 +3020,7 @@ contains
   end function ncw_get_var64_3d_i2
   function ncw_put_var_4d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:,:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_4d_i2
 
@@ -3025,7 +3029,7 @@ contains
 
   function ncw_put_var64_4d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:,:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_4d_i2
 
@@ -3034,7 +3038,7 @@ contains
 
   function ncw_get_var_4d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:,:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_4d_i2
 
@@ -3043,7 +3047,7 @@ contains
 
   function ncw_get_var64_4d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:,:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_4d_i2
 
@@ -3051,7 +3055,7 @@ contains
   end function ncw_get_var64_4d_i2
   function ncw_put_var_5d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:,:,:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_5d_i2
 
@@ -3060,7 +3064,7 @@ contains
 
   function ncw_put_var64_5d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:,:,:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_5d_i2
 
@@ -3069,7 +3073,7 @@ contains
 
   function ncw_get_var_5d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:,:,:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_5d_i2
 
@@ -3078,7 +3082,7 @@ contains
 
   function ncw_get_var64_5d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:,:,:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_5d_i2
 
@@ -3086,7 +3090,7 @@ contains
   end function ncw_get_var64_5d_i2
   function ncw_put_var_6d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:,:,:,:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_6d_i2
 
@@ -3095,7 +3099,7 @@ contains
 
   function ncw_put_var64_6d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:,:,:,:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_6d_i2
 
@@ -3104,7 +3108,7 @@ contains
 
   function ncw_get_var_6d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:,:,:,:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_6d_i2
 
@@ -3113,7 +3117,7 @@ contains
 
   function ncw_get_var64_6d_i2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:,:,:,:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_6d_i2
 
@@ -3156,7 +3160,7 @@ contains
   end function ncw_get_var64_0d_i4
   function ncw_put_var_1d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:)
+    integer(i4), intent(in), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_1d_i4
 
@@ -3165,7 +3169,7 @@ contains
 
   function ncw_put_var64_1d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:)
+    integer(i4), intent(in), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_1d_i4
 
@@ -3174,7 +3178,7 @@ contains
 
   function ncw_get_var_1d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:)
+    integer(i4), intent(out), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_1d_i4
 
@@ -3183,7 +3187,7 @@ contains
 
   function ncw_get_var64_1d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:)
+    integer(i4), intent(out), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_1d_i4
 
@@ -3191,7 +3195,7 @@ contains
   end function ncw_get_var64_1d_i4
   function ncw_put_var_2d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_2d_i4
 
@@ -3200,7 +3204,7 @@ contains
 
   function ncw_put_var64_2d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_2d_i4
 
@@ -3209,7 +3213,7 @@ contains
 
   function ncw_get_var_2d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_2d_i4
 
@@ -3218,7 +3222,7 @@ contains
 
   function ncw_get_var64_2d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_2d_i4
 
@@ -3226,7 +3230,7 @@ contains
   end function ncw_get_var64_2d_i4
   function ncw_put_var_3d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_3d_i4
 
@@ -3235,7 +3239,7 @@ contains
 
   function ncw_put_var64_3d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_3d_i4
 
@@ -3244,7 +3248,7 @@ contains
 
   function ncw_get_var_3d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_3d_i4
 
@@ -3253,7 +3257,7 @@ contains
 
   function ncw_get_var64_3d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_3d_i4
 
@@ -3261,7 +3265,7 @@ contains
   end function ncw_get_var64_3d_i4
   function ncw_put_var_4d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:,:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_4d_i4
 
@@ -3270,7 +3274,7 @@ contains
 
   function ncw_put_var64_4d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:,:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_4d_i4
 
@@ -3279,7 +3283,7 @@ contains
 
   function ncw_get_var_4d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:,:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_4d_i4
 
@@ -3288,7 +3292,7 @@ contains
 
   function ncw_get_var64_4d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:,:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_4d_i4
 
@@ -3296,7 +3300,7 @@ contains
   end function ncw_get_var64_4d_i4
   function ncw_put_var_5d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:,:,:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_5d_i4
 
@@ -3305,7 +3309,7 @@ contains
 
   function ncw_put_var64_5d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:,:,:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_5d_i4
 
@@ -3314,7 +3318,7 @@ contains
 
   function ncw_get_var_5d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:,:,:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_5d_i4
 
@@ -3323,7 +3327,7 @@ contains
 
   function ncw_get_var64_5d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:,:,:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_5d_i4
 
@@ -3331,7 +3335,7 @@ contains
   end function ncw_get_var64_5d_i4
   function ncw_put_var_6d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:,:,:,:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_6d_i4
 
@@ -3340,7 +3344,7 @@ contains
 
   function ncw_put_var64_6d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:,:,:,:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_6d_i4
 
@@ -3349,7 +3353,7 @@ contains
 
   function ncw_get_var_6d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:,:,:,:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_6d_i4
 
@@ -3358,7 +3362,7 @@ contains
 
   function ncw_get_var64_6d_i4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:,:,:,:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_6d_i4
 
@@ -3401,7 +3405,7 @@ contains
   end function ncw_get_var64_0d_i8
   function ncw_put_var_1d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:)
+    integer(i8), intent(in), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_1d_i8
 
@@ -3410,7 +3414,7 @@ contains
 
   function ncw_put_var64_1d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:)
+    integer(i8), intent(in), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_1d_i8
 
@@ -3419,7 +3423,7 @@ contains
 
   function ncw_get_var_1d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:)
+    integer(i8), intent(out), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_1d_i8
 
@@ -3428,7 +3432,7 @@ contains
 
   function ncw_get_var64_1d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:)
+    integer(i8), intent(out), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_1d_i8
 
@@ -3436,7 +3440,7 @@ contains
   end function ncw_get_var64_1d_i8
   function ncw_put_var_2d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_2d_i8
 
@@ -3445,7 +3449,7 @@ contains
 
   function ncw_put_var64_2d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_2d_i8
 
@@ -3454,7 +3458,7 @@ contains
 
   function ncw_get_var_2d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_2d_i8
 
@@ -3463,7 +3467,7 @@ contains
 
   function ncw_get_var64_2d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_2d_i8
 
@@ -3471,7 +3475,7 @@ contains
   end function ncw_get_var64_2d_i8
   function ncw_put_var_3d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_3d_i8
 
@@ -3480,7 +3484,7 @@ contains
 
   function ncw_put_var64_3d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_3d_i8
 
@@ -3489,7 +3493,7 @@ contains
 
   function ncw_get_var_3d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_3d_i8
 
@@ -3498,7 +3502,7 @@ contains
 
   function ncw_get_var64_3d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_3d_i8
 
@@ -3506,7 +3510,7 @@ contains
   end function ncw_get_var64_3d_i8
   function ncw_put_var_4d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:,:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_4d_i8
 
@@ -3515,7 +3519,7 @@ contains
 
   function ncw_put_var64_4d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:,:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_4d_i8
 
@@ -3524,7 +3528,7 @@ contains
 
   function ncw_get_var_4d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:,:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_4d_i8
 
@@ -3533,7 +3537,7 @@ contains
 
   function ncw_get_var64_4d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:,:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_4d_i8
 
@@ -3541,7 +3545,7 @@ contains
   end function ncw_get_var64_4d_i8
   function ncw_put_var_5d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:,:,:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_5d_i8
 
@@ -3550,7 +3554,7 @@ contains
 
   function ncw_put_var64_5d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:,:,:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_5d_i8
 
@@ -3559,7 +3563,7 @@ contains
 
   function ncw_get_var_5d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:,:,:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_5d_i8
 
@@ -3568,7 +3572,7 @@ contains
 
   function ncw_get_var64_5d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:,:,:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_5d_i8
 
@@ -3576,7 +3580,7 @@ contains
   end function ncw_get_var64_5d_i8
   function ncw_put_var_6d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:,:,:,:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var_6d_i8
 
@@ -3585,7 +3589,7 @@ contains
 
   function ncw_put_var64_6d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:,:,:,:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_var64_6d_i8
 
@@ -3594,7 +3598,7 @@ contains
 
   function ncw_get_var_6d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:,:,:,:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var_6d_i8
 
@@ -3603,7 +3607,7 @@ contains
 
   function ncw_get_var64_6d_i8(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:,:,:,:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_var64_6d_i8
 
@@ -3615,7 +3619,7 @@ contains
     real(sp), intent(in), target :: values
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_sp_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -3623,7 +3627,11 @@ contains
     slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_sp_0 = int(c_nc_put_var_float(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -3643,7 +3651,7 @@ contains
     real(sp), intent(out), target :: values
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_sp_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -3651,7 +3659,11 @@ contains
     slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_sp_0 = int(c_nc_get_var_float(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -3667,10 +3679,10 @@ contains
   end function ncw_get_data_i4_sp_0
   function ncw_put_data_i4_sp_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:)
+    real(sp), intent(in), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_sp_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -3678,7 +3690,11 @@ contains
     slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_sp_1 = int(c_nc_put_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -3696,10 +3712,10 @@ contains
 
   function ncw_get_data_i4_sp_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:)
+    real(sp), intent(out), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_sp_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -3707,7 +3723,11 @@ contains
     slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_sp_1 = int(c_nc_get_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -3724,10 +3744,10 @@ contains
   end function ncw_get_data_i4_sp_1
   function ncw_put_data_i4_sp_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_sp_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -3735,7 +3755,11 @@ contains
     slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_sp_2 = int(c_nc_put_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -3753,10 +3777,10 @@ contains
 
   function ncw_get_data_i4_sp_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_sp_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -3764,7 +3788,11 @@ contains
     slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_sp_2 = int(c_nc_get_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -3781,10 +3809,10 @@ contains
   end function ncw_get_data_i4_sp_2
   function ncw_put_data_i4_sp_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_sp_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -3792,7 +3820,11 @@ contains
     slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_sp_3 = int(c_nc_put_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -3810,10 +3842,10 @@ contains
 
   function ncw_get_data_i4_sp_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_sp_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -3821,7 +3853,11 @@ contains
     slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_sp_3 = int(c_nc_get_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -3838,10 +3874,10 @@ contains
   end function ncw_get_data_i4_sp_3
   function ncw_put_data_i4_sp_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:,:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_sp_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -3849,7 +3885,11 @@ contains
     slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_sp_4 = int(c_nc_put_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -3867,10 +3907,10 @@ contains
 
   function ncw_get_data_i4_sp_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:,:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_sp_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -3878,7 +3918,11 @@ contains
     slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_sp_4 = int(c_nc_get_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -3895,10 +3939,10 @@ contains
   end function ncw_get_data_i4_sp_4
   function ncw_put_data_i4_sp_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:,:,:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_sp_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -3906,7 +3950,11 @@ contains
     slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_sp_5 = int(c_nc_put_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -3924,10 +3972,10 @@ contains
 
   function ncw_get_data_i4_sp_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:,:,:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_sp_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -3935,7 +3983,11 @@ contains
     slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_sp_5 = int(c_nc_get_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -3952,10 +4004,10 @@ contains
   end function ncw_get_data_i4_sp_5
   function ncw_put_data_i4_sp_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:,:,:,:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_sp_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -3963,7 +4015,11 @@ contains
     slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_sp_6 = int(c_nc_put_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -3981,10 +4037,10 @@ contains
 
   function ncw_get_data_i4_sp_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:,:,:,:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_sp_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -3992,7 +4048,11 @@ contains
     slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_sp_6 = int(c_nc_get_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4012,7 +4072,7 @@ contains
     real(dp), intent(in), target :: values
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_dp_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4020,7 +4080,11 @@ contains
     slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_dp_0 = int(c_nc_put_var_double(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -4040,7 +4104,7 @@ contains
     real(dp), intent(out), target :: values
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_dp_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4048,7 +4112,11 @@ contains
     slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_dp_0 = int(c_nc_get_var_double(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -4064,10 +4132,10 @@ contains
   end function ncw_get_data_i4_dp_0
   function ncw_put_data_i4_dp_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:)
+    real(dp), intent(in), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_dp_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4075,7 +4143,11 @@ contains
     slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_dp_1 = int(c_nc_put_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4093,10 +4165,10 @@ contains
 
   function ncw_get_data_i4_dp_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:)
+    real(dp), intent(out), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_dp_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4104,7 +4176,11 @@ contains
     slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_dp_1 = int(c_nc_get_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4121,10 +4197,10 @@ contains
   end function ncw_get_data_i4_dp_1
   function ncw_put_data_i4_dp_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_dp_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4132,7 +4208,11 @@ contains
     slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_dp_2 = int(c_nc_put_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4150,10 +4230,10 @@ contains
 
   function ncw_get_data_i4_dp_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_dp_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4161,7 +4241,11 @@ contains
     slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_dp_2 = int(c_nc_get_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4178,10 +4262,10 @@ contains
   end function ncw_get_data_i4_dp_2
   function ncw_put_data_i4_dp_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_dp_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4189,7 +4273,11 @@ contains
     slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_dp_3 = int(c_nc_put_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4207,10 +4295,10 @@ contains
 
   function ncw_get_data_i4_dp_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_dp_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4218,7 +4306,11 @@ contains
     slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_dp_3 = int(c_nc_get_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4235,10 +4327,10 @@ contains
   end function ncw_get_data_i4_dp_3
   function ncw_put_data_i4_dp_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:,:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_dp_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4246,7 +4338,11 @@ contains
     slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_dp_4 = int(c_nc_put_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4264,10 +4360,10 @@ contains
 
   function ncw_get_data_i4_dp_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:,:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_dp_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4275,7 +4371,11 @@ contains
     slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_dp_4 = int(c_nc_get_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4292,10 +4392,10 @@ contains
   end function ncw_get_data_i4_dp_4
   function ncw_put_data_i4_dp_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:,:,:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_dp_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4303,7 +4403,11 @@ contains
     slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_dp_5 = int(c_nc_put_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4321,10 +4425,10 @@ contains
 
   function ncw_get_data_i4_dp_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:,:,:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_dp_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4332,7 +4436,11 @@ contains
     slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_dp_5 = int(c_nc_get_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4349,10 +4457,10 @@ contains
   end function ncw_get_data_i4_dp_5
   function ncw_put_data_i4_dp_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:,:,:,:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_dp_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4360,7 +4468,11 @@ contains
     slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_dp_6 = int(c_nc_put_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4378,10 +4490,10 @@ contains
 
   function ncw_get_data_i4_dp_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:,:,:,:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_dp_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4389,7 +4501,11 @@ contains
     slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_dp_6 = int(c_nc_get_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4409,7 +4525,7 @@ contains
     integer(i1), intent(in), target :: values
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i1_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4417,7 +4533,11 @@ contains
     slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i1_0 = int(c_nc_put_var_schar(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -4437,7 +4557,7 @@ contains
     integer(i1), intent(out), target :: values
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i1_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4445,7 +4565,11 @@ contains
     slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i1_0 = int(c_nc_get_var_schar(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -4461,10 +4585,10 @@ contains
   end function ncw_get_data_i4_i1_0
   function ncw_put_data_i4_i1_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:)
+    integer(i1), intent(in), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i1_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4472,7 +4596,11 @@ contains
     slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i1_1 = int(c_nc_put_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4490,10 +4618,10 @@ contains
 
   function ncw_get_data_i4_i1_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:)
+    integer(i1), intent(out), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i1_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4501,7 +4629,11 @@ contains
     slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i1_1 = int(c_nc_get_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4518,10 +4650,10 @@ contains
   end function ncw_get_data_i4_i1_1
   function ncw_put_data_i4_i1_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i1_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4529,7 +4661,11 @@ contains
     slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i1_2 = int(c_nc_put_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4547,10 +4683,10 @@ contains
 
   function ncw_get_data_i4_i1_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i1_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4558,7 +4694,11 @@ contains
     slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i1_2 = int(c_nc_get_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4575,10 +4715,10 @@ contains
   end function ncw_get_data_i4_i1_2
   function ncw_put_data_i4_i1_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i1_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4586,7 +4726,11 @@ contains
     slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i1_3 = int(c_nc_put_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4604,10 +4748,10 @@ contains
 
   function ncw_get_data_i4_i1_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i1_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4615,7 +4759,11 @@ contains
     slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i1_3 = int(c_nc_get_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4632,10 +4780,10 @@ contains
   end function ncw_get_data_i4_i1_3
   function ncw_put_data_i4_i1_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:,:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i1_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4643,7 +4791,11 @@ contains
     slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i1_4 = int(c_nc_put_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4661,10 +4813,10 @@ contains
 
   function ncw_get_data_i4_i1_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:,:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i1_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4672,7 +4824,11 @@ contains
     slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i1_4 = int(c_nc_get_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4689,10 +4845,10 @@ contains
   end function ncw_get_data_i4_i1_4
   function ncw_put_data_i4_i1_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:,:,:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i1_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4700,7 +4856,11 @@ contains
     slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i1_5 = int(c_nc_put_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4718,10 +4878,10 @@ contains
 
   function ncw_get_data_i4_i1_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:,:,:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i1_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4729,7 +4889,11 @@ contains
     slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i1_5 = int(c_nc_get_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4746,10 +4910,10 @@ contains
   end function ncw_get_data_i4_i1_5
   function ncw_put_data_i4_i1_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:,:,:,:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i1_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4757,7 +4921,11 @@ contains
     slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i1_6 = int(c_nc_put_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4775,10 +4943,10 @@ contains
 
   function ncw_get_data_i4_i1_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:,:,:,:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i1_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4786,7 +4954,11 @@ contains
     slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i1_6 = int(c_nc_get_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4806,7 +4978,7 @@ contains
     integer(i2), intent(in), target :: values
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i2_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4814,7 +4986,11 @@ contains
     slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i2_0 = int(c_nc_put_var_short(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -4834,7 +5010,7 @@ contains
     integer(i2), intent(out), target :: values
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i2_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4842,7 +5018,11 @@ contains
     slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i2_0 = int(c_nc_get_var_short(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -4858,10 +5038,10 @@ contains
   end function ncw_get_data_i4_i2_0
   function ncw_put_data_i4_i2_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:)
+    integer(i2), intent(in), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i2_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4869,7 +5049,11 @@ contains
     slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i2_1 = int(c_nc_put_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4887,10 +5071,10 @@ contains
 
   function ncw_get_data_i4_i2_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:)
+    integer(i2), intent(out), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i2_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4898,7 +5082,11 @@ contains
     slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i2_1 = int(c_nc_get_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4915,10 +5103,10 @@ contains
   end function ncw_get_data_i4_i2_1
   function ncw_put_data_i4_i2_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i2_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4926,7 +5114,11 @@ contains
     slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i2_2 = int(c_nc_put_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4944,10 +5136,10 @@ contains
 
   function ncw_get_data_i4_i2_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i2_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4955,7 +5147,11 @@ contains
     slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i2_2 = int(c_nc_get_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -4972,10 +5168,10 @@ contains
   end function ncw_get_data_i4_i2_2
   function ncw_put_data_i4_i2_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i2_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -4983,7 +5179,11 @@ contains
     slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i2_3 = int(c_nc_put_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5001,10 +5201,10 @@ contains
 
   function ncw_get_data_i4_i2_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i2_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5012,7 +5212,11 @@ contains
     slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i2_3 = int(c_nc_get_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5029,10 +5233,10 @@ contains
   end function ncw_get_data_i4_i2_3
   function ncw_put_data_i4_i2_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:,:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i2_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5040,7 +5244,11 @@ contains
     slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i2_4 = int(c_nc_put_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5058,10 +5266,10 @@ contains
 
   function ncw_get_data_i4_i2_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:,:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i2_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5069,7 +5277,11 @@ contains
     slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i2_4 = int(c_nc_get_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5086,10 +5298,10 @@ contains
   end function ncw_get_data_i4_i2_4
   function ncw_put_data_i4_i2_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:,:,:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i2_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5097,7 +5309,11 @@ contains
     slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i2_5 = int(c_nc_put_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5115,10 +5331,10 @@ contains
 
   function ncw_get_data_i4_i2_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:,:,:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i2_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5126,7 +5342,11 @@ contains
     slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i2_5 = int(c_nc_get_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5143,10 +5363,10 @@ contains
   end function ncw_get_data_i4_i2_5
   function ncw_put_data_i4_i2_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:,:,:,:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i2_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5154,7 +5374,11 @@ contains
     slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i2_6 = int(c_nc_put_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5172,10 +5396,10 @@ contains
 
   function ncw_get_data_i4_i2_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:,:,:,:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i2_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5183,7 +5407,11 @@ contains
     slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i2_6 = int(c_nc_get_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5203,7 +5431,7 @@ contains
     integer(i4), intent(in), target :: values
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i4_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5211,7 +5439,11 @@ contains
     slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i4_0 = int(c_nc_put_var_int(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -5231,7 +5463,7 @@ contains
     integer(i4), intent(out), target :: values
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i4_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5239,7 +5471,11 @@ contains
     slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i4_0 = int(c_nc_get_var_int(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -5255,10 +5491,10 @@ contains
   end function ncw_get_data_i4_i4_0
   function ncw_put_data_i4_i4_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:)
+    integer(i4), intent(in), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i4_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5266,7 +5502,11 @@ contains
     slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i4_1 = int(c_nc_put_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5284,10 +5524,10 @@ contains
 
   function ncw_get_data_i4_i4_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:)
+    integer(i4), intent(out), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i4_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5295,7 +5535,11 @@ contains
     slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i4_1 = int(c_nc_get_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5312,10 +5556,10 @@ contains
   end function ncw_get_data_i4_i4_1
   function ncw_put_data_i4_i4_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i4_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5323,7 +5567,11 @@ contains
     slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i4_2 = int(c_nc_put_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5341,10 +5589,10 @@ contains
 
   function ncw_get_data_i4_i4_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i4_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5352,7 +5600,11 @@ contains
     slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i4_2 = int(c_nc_get_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5369,10 +5621,10 @@ contains
   end function ncw_get_data_i4_i4_2
   function ncw_put_data_i4_i4_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i4_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5380,7 +5632,11 @@ contains
     slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i4_3 = int(c_nc_put_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5398,10 +5654,10 @@ contains
 
   function ncw_get_data_i4_i4_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i4_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5409,7 +5665,11 @@ contains
     slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i4_3 = int(c_nc_get_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5426,10 +5686,10 @@ contains
   end function ncw_get_data_i4_i4_3
   function ncw_put_data_i4_i4_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:,:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i4_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5437,7 +5697,11 @@ contains
     slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i4_4 = int(c_nc_put_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5455,10 +5719,10 @@ contains
 
   function ncw_get_data_i4_i4_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:,:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i4_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5466,7 +5730,11 @@ contains
     slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i4_4 = int(c_nc_get_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5483,10 +5751,10 @@ contains
   end function ncw_get_data_i4_i4_4
   function ncw_put_data_i4_i4_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:,:,:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i4_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5494,7 +5762,11 @@ contains
     slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i4_5 = int(c_nc_put_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5512,10 +5784,10 @@ contains
 
   function ncw_get_data_i4_i4_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:,:,:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i4_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5523,7 +5795,11 @@ contains
     slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i4_5 = int(c_nc_get_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5540,10 +5816,10 @@ contains
   end function ncw_get_data_i4_i4_5
   function ncw_put_data_i4_i4_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:,:,:,:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i4_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5551,7 +5827,11 @@ contains
     slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i4_6 = int(c_nc_put_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5569,10 +5849,10 @@ contains
 
   function ncw_get_data_i4_i4_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:,:,:,:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i4_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5580,7 +5860,11 @@ contains
     slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i4_6 = int(c_nc_get_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5600,7 +5884,7 @@ contains
     integer(i8), intent(in), target :: values
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i8_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5608,7 +5892,11 @@ contains
     slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i8_0 = int(c_nc_put_var_longlong(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -5628,7 +5916,7 @@ contains
     integer(i8), intent(out), target :: values
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i8_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5636,7 +5924,11 @@ contains
     slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i8_0 = int(c_nc_get_var_longlong(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -5652,10 +5944,10 @@ contains
   end function ncw_get_data_i4_i8_0
   function ncw_put_data_i4_i8_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:)
+    integer(i8), intent(in), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i8_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5663,7 +5955,11 @@ contains
     slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i8_1 = int(c_nc_put_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5681,10 +5977,10 @@ contains
 
   function ncw_get_data_i4_i8_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:)
+    integer(i8), intent(out), target, contiguous :: values(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i8_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5692,7 +5988,11 @@ contains
     slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i8_1 = int(c_nc_get_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5709,10 +6009,10 @@ contains
   end function ncw_get_data_i4_i8_1
   function ncw_put_data_i4_i8_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i8_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5720,7 +6020,11 @@ contains
     slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i8_2 = int(c_nc_put_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5738,10 +6042,10 @@ contains
 
   function ncw_get_data_i4_i8_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i8_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5749,7 +6053,11 @@ contains
     slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i8_2 = int(c_nc_get_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5766,10 +6074,10 @@ contains
   end function ncw_get_data_i4_i8_2
   function ncw_put_data_i4_i8_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i8_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5777,7 +6085,11 @@ contains
     slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i8_3 = int(c_nc_put_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5795,10 +6107,10 @@ contains
 
   function ncw_get_data_i4_i8_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i8_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5806,7 +6118,11 @@ contains
     slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i8_3 = int(c_nc_get_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5823,10 +6139,10 @@ contains
   end function ncw_get_data_i4_i8_3
   function ncw_put_data_i4_i8_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:,:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i8_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5834,7 +6150,11 @@ contains
     slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i8_4 = int(c_nc_put_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5852,10 +6172,10 @@ contains
 
   function ncw_get_data_i4_i8_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:,:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i8_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5863,7 +6183,11 @@ contains
     slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i8_4 = int(c_nc_get_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5880,10 +6204,10 @@ contains
   end function ncw_get_data_i4_i8_4
   function ncw_put_data_i4_i8_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:,:,:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i8_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5891,7 +6215,11 @@ contains
     slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i8_5 = int(c_nc_put_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5909,10 +6237,10 @@ contains
 
   function ncw_get_data_i4_i8_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:,:,:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i8_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5920,7 +6248,11 @@ contains
     slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i8_5 = int(c_nc_get_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5937,10 +6269,10 @@ contains
   end function ncw_get_data_i4_i8_5
   function ncw_put_data_i4_i8_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:,:,:,:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i4_i8_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5948,7 +6280,11 @@ contains
     slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i4_i8_6 = int(c_nc_put_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5966,10 +6302,10 @@ contains
 
   function ncw_get_data_i4_i8_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:,:,:,:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i4_i8_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -5977,7 +6313,11 @@ contains
     slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i4_i8_6 = int(c_nc_get_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -5997,7 +6337,7 @@ contains
     real(sp), intent(in), target :: values
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_sp_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6005,7 +6345,11 @@ contains
     slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_sp_0 = int(c_nc_put_var_float(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -6025,7 +6369,7 @@ contains
     real(sp), intent(out), target :: values
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_sp_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6033,7 +6377,11 @@ contains
     slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_sp_0 = int(c_nc_get_var_float(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -6049,10 +6397,10 @@ contains
   end function ncw_get_data_i8_sp_0
   function ncw_put_data_i8_sp_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:)
+    real(sp), intent(in), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_sp_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6060,7 +6408,11 @@ contains
     slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_sp_1 = int(c_nc_put_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6078,10 +6430,10 @@ contains
 
   function ncw_get_data_i8_sp_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:)
+    real(sp), intent(out), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_sp_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6089,7 +6441,11 @@ contains
     slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_sp_1 = int(c_nc_get_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6106,10 +6462,10 @@ contains
   end function ncw_get_data_i8_sp_1
   function ncw_put_data_i8_sp_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_sp_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6117,7 +6473,11 @@ contains
     slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_sp_2 = int(c_nc_put_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6135,10 +6495,10 @@ contains
 
   function ncw_get_data_i8_sp_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_sp_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6146,7 +6506,11 @@ contains
     slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_sp_2 = int(c_nc_get_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6163,10 +6527,10 @@ contains
   end function ncw_get_data_i8_sp_2
   function ncw_put_data_i8_sp_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_sp_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6174,7 +6538,11 @@ contains
     slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_sp_3 = int(c_nc_put_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6192,10 +6560,10 @@ contains
 
   function ncw_get_data_i8_sp_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_sp_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6203,7 +6571,11 @@ contains
     slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_sp_3 = int(c_nc_get_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6220,10 +6592,10 @@ contains
   end function ncw_get_data_i8_sp_3
   function ncw_put_data_i8_sp_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:,:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_sp_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6231,7 +6603,11 @@ contains
     slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_sp_4 = int(c_nc_put_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6249,10 +6625,10 @@ contains
 
   function ncw_get_data_i8_sp_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:,:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_sp_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6260,7 +6636,11 @@ contains
     slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_sp_4 = int(c_nc_get_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6277,10 +6657,10 @@ contains
   end function ncw_get_data_i8_sp_4
   function ncw_put_data_i8_sp_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:,:,:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_sp_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6288,7 +6668,11 @@ contains
     slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_sp_5 = int(c_nc_put_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6306,10 +6690,10 @@ contains
 
   function ncw_get_data_i8_sp_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:,:,:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_sp_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6317,7 +6701,11 @@ contains
     slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_sp_5 = int(c_nc_get_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6334,10 +6722,10 @@ contains
   end function ncw_get_data_i8_sp_5
   function ncw_put_data_i8_sp_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values(:,:,:,:,:,:)
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_sp_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6345,7 +6733,11 @@ contains
     slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_sp_6 = int(c_nc_put_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6363,10 +6755,10 @@ contains
 
   function ncw_get_data_i8_sp_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values(:,:,:,:,:,:)
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_sp_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6374,7 +6766,11 @@ contains
     slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_sp_6 = int(c_nc_get_vara_float(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6394,7 +6790,7 @@ contains
     real(dp), intent(in), target :: values
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_dp_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6402,7 +6798,11 @@ contains
     slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_dp_0 = int(c_nc_put_var_double(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -6422,7 +6822,7 @@ contains
     real(dp), intent(out), target :: values
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_dp_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6430,7 +6830,11 @@ contains
     slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_dp_0 = int(c_nc_get_var_double(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -6446,10 +6850,10 @@ contains
   end function ncw_get_data_i8_dp_0
   function ncw_put_data_i8_dp_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:)
+    real(dp), intent(in), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_dp_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6457,7 +6861,11 @@ contains
     slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_dp_1 = int(c_nc_put_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6475,10 +6883,10 @@ contains
 
   function ncw_get_data_i8_dp_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:)
+    real(dp), intent(out), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_dp_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6486,7 +6894,11 @@ contains
     slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_dp_1 = int(c_nc_get_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6503,10 +6915,10 @@ contains
   end function ncw_get_data_i8_dp_1
   function ncw_put_data_i8_dp_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_dp_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6514,7 +6926,11 @@ contains
     slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_dp_2 = int(c_nc_put_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6532,10 +6948,10 @@ contains
 
   function ncw_get_data_i8_dp_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_dp_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6543,7 +6959,11 @@ contains
     slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_dp_2 = int(c_nc_get_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6560,10 +6980,10 @@ contains
   end function ncw_get_data_i8_dp_2
   function ncw_put_data_i8_dp_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_dp_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6571,7 +6991,11 @@ contains
     slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_dp_3 = int(c_nc_put_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6589,10 +7013,10 @@ contains
 
   function ncw_get_data_i8_dp_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_dp_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6600,7 +7024,11 @@ contains
     slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_dp_3 = int(c_nc_get_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6617,10 +7045,10 @@ contains
   end function ncw_get_data_i8_dp_3
   function ncw_put_data_i8_dp_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:,:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_dp_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6628,7 +7056,11 @@ contains
     slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_dp_4 = int(c_nc_put_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6646,10 +7078,10 @@ contains
 
   function ncw_get_data_i8_dp_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:,:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_dp_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6657,7 +7089,11 @@ contains
     slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_dp_4 = int(c_nc_get_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6674,10 +7110,10 @@ contains
   end function ncw_get_data_i8_dp_4
   function ncw_put_data_i8_dp_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:,:,:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_dp_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6685,7 +7121,11 @@ contains
     slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_dp_5 = int(c_nc_put_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6703,10 +7143,10 @@ contains
 
   function ncw_get_data_i8_dp_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:,:,:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_dp_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6714,7 +7154,11 @@ contains
     slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_dp_5 = int(c_nc_get_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6731,10 +7175,10 @@ contains
   end function ncw_get_data_i8_dp_5
   function ncw_put_data_i8_dp_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values(:,:,:,:,:,:)
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_dp_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6742,7 +7186,11 @@ contains
     slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_dp_6 = int(c_nc_put_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6760,10 +7208,10 @@ contains
 
   function ncw_get_data_i8_dp_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values(:,:,:,:,:,:)
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_dp_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6771,7 +7219,11 @@ contains
     slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_dp_6 = int(c_nc_get_vara_double(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6791,7 +7243,7 @@ contains
     integer(i1), intent(in), target :: values
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i1_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6799,7 +7251,11 @@ contains
     slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i1_0 = int(c_nc_put_var_schar(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -6819,7 +7275,7 @@ contains
     integer(i1), intent(out), target :: values
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i1_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6827,7 +7283,11 @@ contains
     slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i1_0 = int(c_nc_get_var_schar(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -6843,10 +7303,10 @@ contains
   end function ncw_get_data_i8_i1_0
   function ncw_put_data_i8_i1_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:)
+    integer(i1), intent(in), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i1_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6854,7 +7314,11 @@ contains
     slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i1_1 = int(c_nc_put_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6872,10 +7336,10 @@ contains
 
   function ncw_get_data_i8_i1_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:)
+    integer(i1), intent(out), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i1_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6883,7 +7347,11 @@ contains
     slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i1_1 = int(c_nc_get_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6900,10 +7368,10 @@ contains
   end function ncw_get_data_i8_i1_1
   function ncw_put_data_i8_i1_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i1_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6911,7 +7379,11 @@ contains
     slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i1_2 = int(c_nc_put_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6929,10 +7401,10 @@ contains
 
   function ncw_get_data_i8_i1_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i1_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6940,7 +7412,11 @@ contains
     slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i1_2 = int(c_nc_get_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6957,10 +7433,10 @@ contains
   end function ncw_get_data_i8_i1_2
   function ncw_put_data_i8_i1_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i1_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6968,7 +7444,11 @@ contains
     slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i1_3 = int(c_nc_put_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -6986,10 +7466,10 @@ contains
 
   function ncw_get_data_i8_i1_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i1_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -6997,7 +7477,11 @@ contains
     slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i1_3 = int(c_nc_get_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7014,10 +7498,10 @@ contains
   end function ncw_get_data_i8_i1_3
   function ncw_put_data_i8_i1_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:,:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i1_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7025,7 +7509,11 @@ contains
     slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i1_4 = int(c_nc_put_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7043,10 +7531,10 @@ contains
 
   function ncw_get_data_i8_i1_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:,:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i1_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7054,7 +7542,11 @@ contains
     slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i1_4 = int(c_nc_get_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7071,10 +7563,10 @@ contains
   end function ncw_get_data_i8_i1_4
   function ncw_put_data_i8_i1_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:,:,:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i1_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7082,7 +7574,11 @@ contains
     slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i1_5 = int(c_nc_put_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7100,10 +7596,10 @@ contains
 
   function ncw_get_data_i8_i1_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:,:,:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i1_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7111,7 +7607,11 @@ contains
     slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i1_5 = int(c_nc_get_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7128,10 +7628,10 @@ contains
   end function ncw_get_data_i8_i1_5
   function ncw_put_data_i8_i1_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values(:,:,:,:,:,:)
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i1_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7139,7 +7639,11 @@ contains
     slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i1_6 = int(c_nc_put_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7157,10 +7661,10 @@ contains
 
   function ncw_get_data_i8_i1_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values(:,:,:,:,:,:)
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i1_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7168,7 +7672,11 @@ contains
     slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i1_6 = int(c_nc_get_vara_schar(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7188,7 +7696,7 @@ contains
     integer(i2), intent(in), target :: values
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i2_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7196,7 +7704,11 @@ contains
     slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i2_0 = int(c_nc_put_var_short(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -7216,7 +7728,7 @@ contains
     integer(i2), intent(out), target :: values
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i2_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7224,7 +7736,11 @@ contains
     slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i2_0 = int(c_nc_get_var_short(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -7240,10 +7756,10 @@ contains
   end function ncw_get_data_i8_i2_0
   function ncw_put_data_i8_i2_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:)
+    integer(i2), intent(in), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i2_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7251,7 +7767,11 @@ contains
     slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i2_1 = int(c_nc_put_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7269,10 +7789,10 @@ contains
 
   function ncw_get_data_i8_i2_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:)
+    integer(i2), intent(out), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i2_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7280,7 +7800,11 @@ contains
     slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i2_1 = int(c_nc_get_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7297,10 +7821,10 @@ contains
   end function ncw_get_data_i8_i2_1
   function ncw_put_data_i8_i2_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i2_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7308,7 +7832,11 @@ contains
     slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i2_2 = int(c_nc_put_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7326,10 +7854,10 @@ contains
 
   function ncw_get_data_i8_i2_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i2_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7337,7 +7865,11 @@ contains
     slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i2_2 = int(c_nc_get_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7354,10 +7886,10 @@ contains
   end function ncw_get_data_i8_i2_2
   function ncw_put_data_i8_i2_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i2_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7365,7 +7897,11 @@ contains
     slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i2_3 = int(c_nc_put_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7383,10 +7919,10 @@ contains
 
   function ncw_get_data_i8_i2_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i2_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7394,7 +7930,11 @@ contains
     slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i2_3 = int(c_nc_get_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7411,10 +7951,10 @@ contains
   end function ncw_get_data_i8_i2_3
   function ncw_put_data_i8_i2_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:,:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i2_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7422,7 +7962,11 @@ contains
     slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i2_4 = int(c_nc_put_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7440,10 +7984,10 @@ contains
 
   function ncw_get_data_i8_i2_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:,:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i2_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7451,7 +7995,11 @@ contains
     slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i2_4 = int(c_nc_get_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7468,10 +8016,10 @@ contains
   end function ncw_get_data_i8_i2_4
   function ncw_put_data_i8_i2_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:,:,:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i2_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7479,7 +8027,11 @@ contains
     slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i2_5 = int(c_nc_put_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7497,10 +8049,10 @@ contains
 
   function ncw_get_data_i8_i2_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:,:,:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i2_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7508,7 +8060,11 @@ contains
     slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i2_5 = int(c_nc_get_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7525,10 +8081,10 @@ contains
   end function ncw_get_data_i8_i2_5
   function ncw_put_data_i8_i2_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values(:,:,:,:,:,:)
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i2_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7536,7 +8092,11 @@ contains
     slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i2_6 = int(c_nc_put_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7554,10 +8114,10 @@ contains
 
   function ncw_get_data_i8_i2_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values(:,:,:,:,:,:)
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i2_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7565,7 +8125,11 @@ contains
     slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i2_6 = int(c_nc_get_vara_short(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7585,7 +8149,7 @@ contains
     integer(i4), intent(in), target :: values
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i4_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7593,7 +8157,11 @@ contains
     slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i4_0 = int(c_nc_put_var_int(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -7613,7 +8181,7 @@ contains
     integer(i4), intent(out), target :: values
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i4_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7621,7 +8189,11 @@ contains
     slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i4_0 = int(c_nc_get_var_int(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -7637,10 +8209,10 @@ contains
   end function ncw_get_data_i8_i4_0
   function ncw_put_data_i8_i4_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:)
+    integer(i4), intent(in), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i4_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7648,7 +8220,11 @@ contains
     slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i4_1 = int(c_nc_put_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7666,10 +8242,10 @@ contains
 
   function ncw_get_data_i8_i4_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:)
+    integer(i4), intent(out), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i4_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7677,7 +8253,11 @@ contains
     slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i4_1 = int(c_nc_get_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7694,10 +8274,10 @@ contains
   end function ncw_get_data_i8_i4_1
   function ncw_put_data_i8_i4_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i4_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7705,7 +8285,11 @@ contains
     slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i4_2 = int(c_nc_put_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7723,10 +8307,10 @@ contains
 
   function ncw_get_data_i8_i4_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i4_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7734,7 +8318,11 @@ contains
     slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i4_2 = int(c_nc_get_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7751,10 +8339,10 @@ contains
   end function ncw_get_data_i8_i4_2
   function ncw_put_data_i8_i4_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i4_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7762,7 +8350,11 @@ contains
     slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i4_3 = int(c_nc_put_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7780,10 +8372,10 @@ contains
 
   function ncw_get_data_i8_i4_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i4_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7791,7 +8383,11 @@ contains
     slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i4_3 = int(c_nc_get_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7808,10 +8404,10 @@ contains
   end function ncw_get_data_i8_i4_3
   function ncw_put_data_i8_i4_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:,:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i4_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7819,7 +8415,11 @@ contains
     slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i4_4 = int(c_nc_put_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7837,10 +8437,10 @@ contains
 
   function ncw_get_data_i8_i4_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:,:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i4_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7848,7 +8448,11 @@ contains
     slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i4_4 = int(c_nc_get_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7865,10 +8469,10 @@ contains
   end function ncw_get_data_i8_i4_4
   function ncw_put_data_i8_i4_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:,:,:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i4_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7876,7 +8480,11 @@ contains
     slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i4_5 = int(c_nc_put_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7894,10 +8502,10 @@ contains
 
   function ncw_get_data_i8_i4_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:,:,:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i4_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7905,7 +8513,11 @@ contains
     slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i4_5 = int(c_nc_get_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7922,10 +8534,10 @@ contains
   end function ncw_get_data_i8_i4_5
   function ncw_put_data_i8_i4_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values(:,:,:,:,:,:)
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i4_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7933,7 +8545,11 @@ contains
     slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i4_6 = int(c_nc_put_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7951,10 +8567,10 @@ contains
 
   function ncw_get_data_i8_i4_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values(:,:,:,:,:,:)
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i4_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7962,7 +8578,11 @@ contains
     slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i4_6 = int(c_nc_get_vara_int(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -7982,7 +8602,7 @@ contains
     integer(i8), intent(in), target :: values
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i8_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -7990,7 +8610,11 @@ contains
     slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i8_0 = int(c_nc_put_var_longlong(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -8010,7 +8634,7 @@ contains
     integer(i8), intent(out), target :: values
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i8_0
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -8018,7 +8642,11 @@ contains
     slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_0 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i8_0 = int(c_nc_get_var_longlong(int(ncid, c_int), int(varid, c_int), c_loc(values)), i4)
     else if (use_map) then
@@ -8034,10 +8662,10 @@ contains
   end function ncw_get_data_i8_i8_0
   function ncw_put_data_i8_i8_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:)
+    integer(i8), intent(in), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i8_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -8045,7 +8673,11 @@ contains
     slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i8_1 = int(c_nc_put_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -8063,10 +8695,10 @@ contains
 
   function ncw_get_data_i8_i8_1(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:)
+    integer(i8), intent(out), target, contiguous :: values(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i8_1
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -8074,7 +8706,11 @@ contains
     slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_1 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i8_1 = int(c_nc_get_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -8091,10 +8727,10 @@ contains
   end function ncw_get_data_i8_i8_1
   function ncw_put_data_i8_i8_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i8_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -8102,7 +8738,11 @@ contains
     slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i8_2 = int(c_nc_put_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -8120,10 +8760,10 @@ contains
 
   function ncw_get_data_i8_i8_2(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i8_2
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -8131,7 +8771,11 @@ contains
     slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_2 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i8_2 = int(c_nc_get_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -8148,10 +8792,10 @@ contains
   end function ncw_get_data_i8_i8_2
   function ncw_put_data_i8_i8_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i8_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -8159,7 +8803,11 @@ contains
     slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i8_3 = int(c_nc_put_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -8177,10 +8825,10 @@ contains
 
   function ncw_get_data_i8_i8_3(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i8_3
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -8188,7 +8836,11 @@ contains
     slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_3 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i8_3 = int(c_nc_get_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -8205,10 +8857,10 @@ contains
   end function ncw_get_data_i8_i8_3
   function ncw_put_data_i8_i8_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:,:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i8_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -8216,7 +8868,11 @@ contains
     slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i8_4 = int(c_nc_put_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -8234,10 +8890,10 @@ contains
 
   function ncw_get_data_i8_i8_4(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:,:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i8_4
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -8245,7 +8901,11 @@ contains
     slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_4 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i8_4 = int(c_nc_get_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -8262,10 +8922,10 @@ contains
   end function ncw_get_data_i8_i8_4
   function ncw_put_data_i8_i8_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:,:,:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i8_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -8273,7 +8933,11 @@ contains
     slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i8_5 = int(c_nc_put_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -8291,10 +8955,10 @@ contains
 
   function ncw_get_data_i8_i8_5(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:,:,:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i8_5
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -8302,7 +8966,11 @@ contains
     slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_5 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i8_5 = int(c_nc_get_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -8319,10 +8987,10 @@ contains
   end function ncw_get_data_i8_i8_5
   function ncw_put_data_i8_i8_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values(:,:,:,:,:,:)
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_put_data_i8_i8_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -8330,7 +8998,11 @@ contains
     slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_put_data_i8_i8_6 = int(c_nc_put_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -8348,10 +9020,10 @@ contains
 
   function ncw_get_data_i8_i8_6(ncid, varid, values, start, cnt, stride, map)
     integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values(:,:,:,:,:,:)
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:,:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(i4) :: ncw_get_data_i8_i8_6
-    integer(i4) :: slice_rank
+    integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
@@ -8359,7 +9031,11 @@ contains
     slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
-            use_slice, use_stride, use_map)
+            use_slice, use_stride, use_map, status)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_6 = status
+      return
+    end if
     if (.not. use_slice) then
       ncw_get_data_i8_i8_6 = int(c_nc_get_vara_longlong(int(ncid, c_int), int(varid, c_int), c_loc(start_c(1)), &
               c_loc(count_c(1)), c_loc(values)), i4)
@@ -8399,16 +9075,16 @@ contains
 
     if (present(contiguous)) then
       if (contiguous .and. has_chunksizes) then
-        ncw_def_var_impl = -36_i4
+        ncw_def_var_impl = NCW_EINVAL
         return
       end if
       if ((.not. contiguous) .and. (.not. has_chunksizes)) then
-        ncw_def_var_impl = -36_i4
+        ncw_def_var_impl = NCW_EINVAL
         return
       end if
     end if
     if (has_chunksizes .and. size(chunksizes) /= size(dimids)) then
-      ncw_def_var_impl = -36_i4
+      ncw_def_var_impl = NCW_EINVAL
       return
     end if
 
@@ -8472,49 +9148,100 @@ contains
     end if
   end function ncw_def_var_impl
 
-  subroutine ncw_prepare_slicing_i4(shape_f, start, cnt, stride, map, start_c, count_c, stride_c, map_c, use_slice, use_stride, use_map)
+  subroutine ncw_prepare_slicing_i4(shape_f, start, cnt, stride, map, start_c, count_c, stride_c, map_c, use_slice, use_stride, use_map, &
+          status)
     integer(i8), intent(in) :: shape_f(:)
     integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(c_size_t), intent(out) :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), intent(out) :: stride_c(:), map_c(:)
     logical, intent(out) :: use_slice, use_stride, use_map
+    integer(i4), intent(out) :: status
 
-    integer(i4) :: i, j, rank, value_rank
+    integer(i4) :: i, j, rank_c, value_rank
+    integer(i8) :: value_i8
 
-    rank = size(start_c)
+    rank_c = size(start_c)
     value_rank = size(shape_f)
+    status = NCW_NOERR
     start_c = 0_c_size_t
     count_c = 1_c_size_t
     stride_c = 1_c_ptrdiff_t
     map_c = 1_c_ptrdiff_t
 
     do i = 1, value_rank
-      j = rank - i + 1
+      if (.not. ncw_fits_c_size_t(shape_f(i))) then
+        status = NCW_ERANGE
+        return
+      end if
+      j = rank_c - i + 1
       count_c(j) = int(shape_f(i), c_size_t)
     end do
 
     if (present(start)) then
-      do i = 1, min(size(start), rank)
-        j = rank - i + 1
-        start_c(j) = int(start(i) - 1_i4, c_size_t)
+      do i = 1, size(start)
+        if (start(i) < 1_i4) then
+          status = NCW_EINVAL
+          return
+        end if
+        value_i8 = int(start(i) - 1_i4, i8)
+        if (.not. ncw_fits_c_size_t(value_i8)) then
+          status = NCW_ERANGE
+          return
+        end if
+        j = rank_c - i + 1
+        start_c(j) = int(value_i8, c_size_t)
       end do
     end if
     if (present(cnt)) then
-      do i = 1, min(size(cnt), rank)
-        j = rank - i + 1
-        count_c(j) = int(cnt(i), c_size_t)
+      do i = 1, size(cnt)
+        if (cnt(i) < 0_i4) then
+          status = NCW_EINVAL
+          return
+        end if
+        value_i8 = int(cnt(i), i8)
+        if (.not. ncw_fits_c_size_t(value_i8)) then
+          status = NCW_ERANGE
+          return
+        end if
+        if (.not. present(map)) then
+          if (i <= value_rank) then
+            if (value_i8 > shape_f(i)) then
+              status = NCW_EEDGE
+              return
+            end if
+          else if (value_i8 > 1_i8) then
+            status = NCW_EEDGE
+            return
+          end if
+        end if
+        j = rank_c - i + 1
+        count_c(j) = int(value_i8, c_size_t)
       end do
     end if
     if (present(stride)) then
-      do i = 1, min(size(stride), rank)
-        j = rank - i + 1
-        stride_c(j) = int(stride(i), c_ptrdiff_t)
+      do i = 1, size(stride)
+        if (stride(i) <= 0_i4) then
+          status = NCW_ESTRIDE
+          return
+        end if
+        value_i8 = int(stride(i), i8)
+        if (.not. ncw_fits_c_ptrdiff_t(value_i8)) then
+          status = NCW_ERANGE
+          return
+        end if
+        j = rank_c - i + 1
+        stride_c(j) = int(value_i8, c_ptrdiff_t)
       end do
     end if
     if (present(map)) then
-      do i = 1, min(size(map), rank)
-        j = rank - i + 1
-        map_c(j) = int(map(i), c_ptrdiff_t)
+      do i = 1, size(map)
+        value_i8 = int(map(i), i8)
+        if (.not. ncw_fits_c_ptrdiff_t(value_i8)) then
+          status = NCW_ERANGE
+          return
+        end if
+        j = rank_c - i + 1
+        map_c(j) = int(value_i8, c_ptrdiff_t)
       end do
     end if
 
@@ -8523,49 +9250,100 @@ contains
     use_slice = present(start) .or. present(cnt) .or. use_stride .or. use_map
   end subroutine ncw_prepare_slicing_i4
 
-  subroutine ncw_prepare_slicing_i8(shape_f, start, cnt, stride, map, start_c, count_c, stride_c, map_c, use_slice, use_stride, use_map)
+  subroutine ncw_prepare_slicing_i8(shape_f, start, cnt, stride, map, start_c, count_c, stride_c, map_c, use_slice, use_stride, use_map, &
+          status)
     integer(i8), intent(in) :: shape_f(:)
     integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
     integer(c_size_t), intent(out) :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), intent(out) :: stride_c(:), map_c(:)
     logical, intent(out) :: use_slice, use_stride, use_map
+    integer(i4), intent(out) :: status
 
-    integer(i4) :: i, j, rank, value_rank
+    integer(i4) :: i, j, rank_c, value_rank
+    integer(i8) :: value_i8
 
-    rank = size(start_c)
+    rank_c = size(start_c)
     value_rank = size(shape_f)
+    status = NCW_NOERR
     start_c = 0_c_size_t
     count_c = 1_c_size_t
     stride_c = 1_c_ptrdiff_t
     map_c = 1_c_ptrdiff_t
 
     do i = 1, value_rank
-      j = rank - i + 1
+      if (.not. ncw_fits_c_size_t(shape_f(i))) then
+        status = NCW_ERANGE
+        return
+      end if
+      j = rank_c - i + 1
       count_c(j) = int(shape_f(i), c_size_t)
     end do
 
     if (present(start)) then
-      do i = 1, min(size(start), rank)
-        j = rank - i + 1
-        start_c(j) = int(start(i) - 1_i8, c_size_t)
+      do i = 1, size(start)
+        if (start(i) < 1_i8) then
+          status = NCW_EINVAL
+          return
+        end if
+        value_i8 = start(i) - 1_i8
+        if (.not. ncw_fits_c_size_t(value_i8)) then
+          status = NCW_ERANGE
+          return
+        end if
+        j = rank_c - i + 1
+        start_c(j) = int(value_i8, c_size_t)
       end do
     end if
     if (present(cnt)) then
-      do i = 1, min(size(cnt), rank)
-        j = rank - i + 1
-        count_c(j) = int(cnt(i), c_size_t)
+      do i = 1, size(cnt)
+        if (cnt(i) < 0_i8) then
+          status = NCW_EINVAL
+          return
+        end if
+        value_i8 = cnt(i)
+        if (.not. ncw_fits_c_size_t(value_i8)) then
+          status = NCW_ERANGE
+          return
+        end if
+        if (.not. present(map)) then
+          if (i <= value_rank) then
+            if (value_i8 > shape_f(i)) then
+              status = NCW_EEDGE
+              return
+            end if
+          else if (value_i8 > 1_i8) then
+            status = NCW_EEDGE
+            return
+          end if
+        end if
+        j = rank_c - i + 1
+        count_c(j) = int(value_i8, c_size_t)
       end do
     end if
     if (present(stride)) then
-      do i = 1, min(size(stride), rank)
-        j = rank - i + 1
-        stride_c(j) = int(stride(i), c_ptrdiff_t)
+      do i = 1, size(stride)
+        if (stride(i) <= 0_i8) then
+          status = NCW_ESTRIDE
+          return
+        end if
+        value_i8 = stride(i)
+        if (.not. ncw_fits_c_ptrdiff_t(value_i8)) then
+          status = NCW_ERANGE
+          return
+        end if
+        j = rank_c - i + 1
+        stride_c(j) = int(value_i8, c_ptrdiff_t)
       end do
     end if
     if (present(map)) then
-      do i = 1, min(size(map), rank)
-        j = rank - i + 1
-        map_c(j) = int(map(i), c_ptrdiff_t)
+      do i = 1, size(map)
+        value_i8 = map(i)
+        if (.not. ncw_fits_c_ptrdiff_t(value_i8)) then
+          status = NCW_ERANGE
+          return
+        end if
+        j = rank_c - i + 1
+        map_c(j) = int(value_i8, c_ptrdiff_t)
       end do
     end if
 
@@ -8597,6 +9375,29 @@ contains
     if (present(stride)) rank_out = max(rank_out, size(stride))
     if (present(map)) rank_out = max(rank_out, size(map))
   end function ncw_slice_rank_i8
+
+  logical function ncw_fits_c_size_t(value)
+    integer(i8), intent(in) :: value
+
+    ncw_fits_c_size_t = value >= 0_i8
+    if (.not. ncw_fits_c_size_t) return
+    if (int(storage_size(0_c_size_t), i4) <= int(storage_size(0_i8), i4)) then
+      ncw_fits_c_size_t = value <= int(huge(0_c_size_t), i8)
+    end if
+  end function ncw_fits_c_size_t
+
+  logical function ncw_fits_c_ptrdiff_t(value)
+    integer(i8), intent(in) :: value
+    integer(i8) :: min_value, max_value
+
+    if (int(storage_size(0_c_ptrdiff_t), i4) > int(storage_size(0_i8), i4)) then
+      ncw_fits_c_ptrdiff_t = .true.
+      return
+    end if
+    max_value = int(huge(0_c_ptrdiff_t), i8)
+    min_value = -max_value - 1_i8
+    ncw_fits_c_ptrdiff_t = (value >= min_value) .and. (value <= max_value)
+  end function ncw_fits_c_ptrdiff_t
 
   function maybe_i4_ptr(arg, carg) result(ptr)
     integer(i4), intent(out), optional :: arg

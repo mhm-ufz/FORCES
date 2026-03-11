@@ -408,4 +408,36 @@ contains
 
   end subroutine test_netcdf_i8_slice_apis
 
+  @test
+  subroutine test_netcdf_noncontiguous_actual_sections()
+
+    character(*), parameter :: read_fname = "netcdf_make_check_test_file_noncontig"
+
+    type(NcDataset) :: local_nc
+    type(NcDimension) :: dim1
+    type(NcVariable) :: var_i4
+    integer(i4) :: base(6), out(6), expected(3)
+    integer(i4) :: i
+
+    base = [(i, i = 1, size(base))]
+    expected = base(1:6:2)
+    out = -1_i4
+
+    local_nc = NcDataset(read_fname, "w")
+    dim1 = local_nc%setDimension("x", size(expected))
+    var_i4 = local_nc%setVariable("data_i4", "i32", (/dim1/))
+    call var_i4%setData(base(1:6:2))
+    call local_nc%close()
+
+    local_nc = NcDataset(read_fname, "r")
+    var_i4 = local_nc%getVariable("data_i4")
+    call var_i4%readInto(out(1:6:2))
+
+    @assertEqual(expected, out(1:6:2))
+    @assertEqual([-1_i4, -1_i4, -1_i4], out(2:6:2))
+
+    call local_nc%close()
+
+  end subroutine test_netcdf_noncontiguous_actual_sections
+
 end module test_mo_netcdf
