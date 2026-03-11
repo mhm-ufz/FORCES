@@ -1,15 +1,16 @@
 module test_mo_netcdf_wrapper
 
   use funit
-  use mo_kind, only : i4, dp
+  use mo_kind, only : i4, i8, dp
   use mo_netcdf_wrapper, only : &
-          NCW_CHUNKED, NCW_CLOBBER, NCW_DOUBLE, NCW_ENDIAN_LITTLE, NCW_FILL, NCW_FORMAT_64BIT_OFFSET, &
-          NCW_FORMAT_CLASSIC, NCW_FORMAT_NETCDF4, NCW_GLOBAL, NCW_INT, NCW_NETCDF4, NCW_NOERR, NCW_NOWRITE, &
-          NCW_64BIT_OFFSET, NCW_WRITE, ncw_abort, ncw_close, ncw_copy_att, ncw_create, ncw_def_dim, ncw_def_grp, &
-          ncw_def_var, ncw_def_var_fill, ncw_del_att, ncw_enddef, ncw_get_att, ncw_inq_dimid, ncw_inq_format, &
-          ncw_inq_ncid, ncw_inq_path, ncw_inq_var_chunking, ncw_inq_var_deflate, ncw_inq_var_endian, &
+          NCW_CHUNKED, NCW_CLOBBER, NCW_DOUBLE, NCW_EEDGE, NCW_EINVAL, NCW_ERANGE, NCW_ESTRIDE, NCW_ENDIAN_LITTLE, &
+          NCW_FILL, NCW_FORMAT_64BIT_OFFSET, NCW_FORMAT_CLASSIC, NCW_FORMAT_NETCDF4, NCW_GLOBAL, NCW_INT, NCW_NETCDF4, &
+          NCW_NOERR, NCW_NOWRITE, NCW_64BIT_OFFSET, NCW_WRITE, ncw_abort, ncw_close, ncw_copy_att, ncw_create, &
+          ncw_def_dim, ncw_def_grp, ncw_def_var, ncw_def_var_fill, ncw_del_att, ncw_enddef, ncw_get_att, ncw_get_var, &
+          ncw_get_var64, ncw_inq_dimid, ncw_inq_format, ncw_inq_ncid, ncw_inq_path, ncw_inq_var_chunking, &
+          ncw_inq_var_deflate, ncw_inq_var_endian, &
           ncw_inq_var_fletcher32, ncw_inq_var_fill, ncw_inquire, ncw_inquire_attribute, ncw_inquire_variable, &
-          ncw_open, ncw_put_att, ncw_redef, ncw_rename_grp
+          ncw_open, ncw_put_att, ncw_put_var, ncw_redef, ncw_rename_grp
 
   implicit none
 
@@ -229,5 +230,50 @@ contains
     status = ncw_close(ncid)
     @assertEqual(NCW_NOERR, status)
   end subroutine test_wrapper_variable_property_inquiry
+
+  @test
+  subroutine test_wrapper_slice_validation()
+    use, intrinsic :: iso_c_binding, only : c_ptrdiff_t, c_size_t
+
+    integer(i4) :: status, ncid, dimid, varid
+    integer(i4) :: write_buf(2), read_buf(2)
+    integer(i8) :: bad_value(1)
+
+    write_buf = [10_i4, 20_i4]
+    read_buf = -1_i4
+
+    status = ncw_create("netcdf_wrapper_slice_validation.nc", ior(NCW_CLOBBER, NCW_NETCDF4), ncid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_dim(ncid, "x", 4_i4, dimid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_var(ncid, "data", NCW_INT, dimid, varid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_enddef(ncid)
+    @assertEqual(NCW_NOERR, status)
+
+    status = ncw_put_var(ncid, varid, write_buf, start = [1_i4], cnt = [3_i4])
+    @assertEqual(NCW_EEDGE, status)
+
+    status = ncw_put_var(ncid, varid, write_buf, start = [0_i4], cnt = [2_i4])
+    @assertEqual(NCW_EINVAL, status)
+
+    status = ncw_get_var(ncid, varid, read_buf, start = [1_i4], cnt = [2_i4], stride = [0_i4])
+    @assertEqual(NCW_ESTRIDE, status)
+
+    if (int(storage_size(0_c_size_t), i4) < int(storage_size(0_i8), i4)) then
+      bad_value = [huge(0_i8)]
+      status = ncw_get_var64(ncid, varid, read_buf, cnt = bad_value)
+      @assertEqual(NCW_ERANGE, status)
+    else if (int(storage_size(0_c_ptrdiff_t), i4) < int(storage_size(0_i8), i4)) then
+      bad_value = [huge(0_i8)]
+      status = ncw_get_var64(ncid, varid, read_buf, stride = bad_value)
+      @assertEqual(NCW_ERANGE, status)
+    else
+      @assertTrue(.true.)
+    end if
+
+    status = ncw_close(ncid)
+    @assertEqual(NCW_NOERR, status)
+  end subroutine test_wrapper_slice_validation
 
 end module test_mo_netcdf_wrapper

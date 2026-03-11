@@ -323,4 +323,121 @@ contains
 
   end subroutine test_netcdf_i4_readinto_direct
 
+  @test
+  subroutine test_netcdf_dimension64_metadata()
+
+    character(*), parameter :: read_fname = "netcdf_make_check_test_file_i8_metadata"
+    integer(i8), parameter :: big_len = int(huge(0_i4), i8) + 5_i8
+
+    type(NcDataset) :: local_nc
+    type(NcDimension) :: dim_big
+    type(NcVariable) :: var_big
+    integer(i8), allocatable :: shape64(:)
+
+    local_nc = NcDataset(read_fname, "w")
+    dim_big = local_nc%setDimension64("big", big_len)
+    var_big = local_nc%setVariable("data_big", "i32", (/dim_big/))
+
+    @assertEqual(big_len, dim_big%getLength64())
+    shape64 = var_big%getShape64()
+    @assertEqual([big_len], shape64)
+
+    call local_nc%close()
+
+    local_nc = NcDataset(read_fname, "r")
+    dim_big = local_nc%getDimension("big")
+    var_big = local_nc%getVariable("data_big")
+
+    @assertEqual(big_len, dim_big%getLength64())
+    shape64 = var_big%getShape64()
+    @assertEqual([big_len], shape64)
+
+    call local_nc%close()
+
+  end subroutine test_netcdf_dimension64_metadata
+
+  @test
+  subroutine test_netcdf_i8_slice_apis()
+
+    character(*), parameter :: read_fname = "netcdf_make_check_test_file_i8_slices"
+    integer(i8), parameter :: start1(1) = [2_i8]
+    integer(i8), parameter :: cnt1(1) = [3_i8]
+    integer(i8), parameter :: stride1(1) = [2_i8]
+    integer(i8), parameter :: start2(2) = [2_i8, 2_i8]
+    integer(i8), parameter :: cnt2(2) = [2_i8, 2_i8]
+    integer(i8), parameter :: map2(2) = [1_i8, 2_i8]
+
+    type(NcDataset) :: local_nc
+    type(NcDimension) :: dim1, dim2
+    type(NcVariable) :: var_i4, var_dp
+    integer(i4) :: base1(6), slab1(3), out1_buf(3)
+    integer(i4), allocatable :: out1(:)
+    real(dp) :: base2(4, 3), slab2(2, 2)
+    real(dp), allocatable :: out2(:,:)
+
+    base1 = 0_i4
+    slab1 = [11_i4, 22_i4, 33_i4]
+    base2 = -1.0_dp
+    slab2 = reshape([1.5_dp, 2.5_dp, 3.5_dp, 4.5_dp], shape(slab2))
+
+    local_nc = NcDataset(read_fname, "w")
+    dim1 = local_nc%setDimension("x", size(base1, 1))
+    dim2 = local_nc%setDimension("y", size(base2, 2))
+    var_i4 = local_nc%setVariable("data_i4", "i32", (/dim1/))
+    var_dp = local_nc%setVariable("data_dp", "f64", (/local_nc%setDimension("x2", size(base2, 1)), dim2/))
+
+    call var_i4%setData(base1)
+    call var_i4%setData64(slab1, start = start1, cnt = cnt1, stride = stride1)
+    call var_dp%setData(base2)
+    call var_dp%setData64(slab2, start = start2, cnt = cnt2, map = map2)
+    call local_nc%close()
+
+    local_nc = NcDataset(read_fname, "r")
+    var_i4 = local_nc%getVariable("data_i4")
+    var_dp = local_nc%getVariable("data_dp")
+
+    call var_i4%getData64(out1, start = start1, cnt = cnt1, stride = stride1)
+    call var_i4%readInto64(out1_buf, start = start1, cnt = cnt1, stride = stride1)
+    call var_dp%getData64(out2, start = start2, cnt = cnt2, map = map2)
+
+    @assertEqual(slab1, out1)
+    @assertEqual(slab1, out1_buf)
+    @assertEqual(slab2, out2)
+
+    call local_nc%close()
+
+  end subroutine test_netcdf_i8_slice_apis
+
+  @test
+  subroutine test_netcdf_noncontiguous_actual_sections()
+
+    character(*), parameter :: read_fname = "netcdf_make_check_test_file_noncontig"
+
+    type(NcDataset) :: local_nc
+    type(NcDimension) :: dim1
+    type(NcVariable) :: var_i4
+    integer(i4) :: base(6), out(6), expected(3)
+    integer(i4) :: i
+
+    base = [(i, i = 1, size(base))]
+    expected = base(1:6:2)
+    out = -1_i4
+
+    local_nc = NcDataset(read_fname, "w")
+    dim1 = local_nc%setDimension("x", size(expected))
+    var_i4 = local_nc%setVariable("data_i4", "i32", (/dim1/))
+    call var_i4%setData(base(1:6:2))
+    call local_nc%close()
+
+    local_nc = NcDataset(read_fname, "r")
+    var_i4 = local_nc%getVariable("data_i4")
+    call var_i4%readInto(out(1:6:2))
+
+    @assertEqual(expected, out(1:6:2))
+    @assertEqual([-1_i4, -1_i4, -1_i4], out(2:6:2))
+
+    call local_nc%close()
+
+  end subroutine test_netcdf_noncontiguous_actual_sections
+
 end module test_mo_netcdf

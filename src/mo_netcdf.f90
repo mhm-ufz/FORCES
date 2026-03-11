@@ -31,15 +31,19 @@ module mo_netcdf
     nf90_close             => ncw_close,             &
     nf90_strerror          => ncw_strerror,          &
     nf90_def_dim           => ncw_def_dim,           &
+    nf90_def_dim64         => ncw_def_dim64,         &
     nf90_def_var           => ncw_def_var,           &
     nf90_put_var           => ncw_put_var,           &
+    nf90_put_var64         => ncw_put_var64,         &
     nf90_get_var           => ncw_get_var,           &
+    nf90_get_var64         => ncw_get_var64,         &
     nf90_put_att           => ncw_put_att,           &
     nf90_get_att           => ncw_get_att,           &
     nf90_inq_attname       => ncw_inq_attname,       &
     nf90_inquire           => ncw_inquire,           &
     nf90_inq_dimid         => ncw_inq_dimid,         &
     nf90_inquire_dimension => ncw_inquire_dimension, &
+    nf90_inquire_dimension64 => ncw_inquire_dimension64, &
     nf90_inq_varid         => ncw_inq_varid,         &
     nf90_inq_varids        => ncw_inq_varids,        &
     nf90_inquire_variable  => ncw_inquire_variable,  &
@@ -198,6 +202,7 @@ module mo_netcdf
     ! setter
     procedure, public  :: setGroup !< set group
     procedure, public  :: setDimension !< set dimension
+    procedure, public  :: setDimension64 !< set dimension with 64-bit size
     procedure, public  :: setCoordinate !< set coordinate
     procedure, private :: set_scrip_dimension
     procedure, private :: set_1d_coordinate_variable
@@ -246,6 +251,7 @@ module mo_netcdf
     procedure, public :: getParent => getDimensionParent !< get parent
     procedure, public :: getName => getDimensionName !< get name
     procedure, public :: getLength => getDimensionLength !< get length
+    procedure, public :: getLength64 => getDimensionLength64 !< get 64-bit length
     procedure, public :: isUnlimited => isUnlimitedDimension !< is unlimited
   end type NcDimension
 
@@ -264,6 +270,7 @@ module mo_netcdf
     procedure, public :: getParent => getVariableParent !< get parent
     procedure, public :: getName => getVariableName !< get name
     procedure, private :: getSlicingShape
+    procedure, private :: getSlicingShape64
 
     procedure, private :: setData_0d_sp
     generic, public :: setData => setData_0d_sp !< set data
@@ -271,42 +278,84 @@ module mo_netcdf
     generic, public :: getData => getData_0d_sp !< get data
     procedure, private :: readInto_0d_sp
     generic, public :: readInto => readInto_0d_sp !< read into existing buffer
+    procedure, private :: setData64_0d_sp
+    generic, public :: setData64 => setData64_0d_sp !< set data with 64-bit slices
+    procedure, private :: getData64_0d_sp
+    generic, public :: getData64 => getData64_0d_sp !< get data with 64-bit slices
+    procedure, private :: readInto64_0d_sp
+    generic, public :: readInto64 => readInto64_0d_sp !< read into existing buffer with 64-bit slices
     procedure, private :: setData_1d_sp
     generic, public :: setData => setData_1d_sp !< set data
     procedure, private :: getData_1d_sp
     generic, public :: getData => getData_1d_sp !< get data
     procedure, private :: readInto_1d_sp
     generic, public :: readInto => readInto_1d_sp !< read into existing buffer
+    procedure, private :: setData64_1d_sp
+    generic, public :: setData64 => setData64_1d_sp !< set data with 64-bit slices
+    procedure, private :: getData64_1d_sp
+    generic, public :: getData64 => getData64_1d_sp !< get data with 64-bit slices
+    procedure, private :: readInto64_1d_sp
+    generic, public :: readInto64 => readInto64_1d_sp !< read into existing buffer with 64-bit slices
     procedure, private :: setData_2d_sp
     generic, public :: setData => setData_2d_sp !< set data
     procedure, private :: getData_2d_sp
     generic, public :: getData => getData_2d_sp !< get data
     procedure, private :: readInto_2d_sp
     generic, public :: readInto => readInto_2d_sp !< read into existing buffer
+    procedure, private :: setData64_2d_sp
+    generic, public :: setData64 => setData64_2d_sp !< set data with 64-bit slices
+    procedure, private :: getData64_2d_sp
+    generic, public :: getData64 => getData64_2d_sp !< get data with 64-bit slices
+    procedure, private :: readInto64_2d_sp
+    generic, public :: readInto64 => readInto64_2d_sp !< read into existing buffer with 64-bit slices
     procedure, private :: setData_3d_sp
     generic, public :: setData => setData_3d_sp !< set data
     procedure, private :: getData_3d_sp
     generic, public :: getData => getData_3d_sp !< get data
     procedure, private :: readInto_3d_sp
     generic, public :: readInto => readInto_3d_sp !< read into existing buffer
+    procedure, private :: setData64_3d_sp
+    generic, public :: setData64 => setData64_3d_sp !< set data with 64-bit slices
+    procedure, private :: getData64_3d_sp
+    generic, public :: getData64 => getData64_3d_sp !< get data with 64-bit slices
+    procedure, private :: readInto64_3d_sp
+    generic, public :: readInto64 => readInto64_3d_sp !< read into existing buffer with 64-bit slices
     procedure, private :: setData_4d_sp
     generic, public :: setData => setData_4d_sp !< set data
     procedure, private :: getData_4d_sp
     generic, public :: getData => getData_4d_sp !< get data
     procedure, private :: readInto_4d_sp
     generic, public :: readInto => readInto_4d_sp !< read into existing buffer
+    procedure, private :: setData64_4d_sp
+    generic, public :: setData64 => setData64_4d_sp !< set data with 64-bit slices
+    procedure, private :: getData64_4d_sp
+    generic, public :: getData64 => getData64_4d_sp !< get data with 64-bit slices
+    procedure, private :: readInto64_4d_sp
+    generic, public :: readInto64 => readInto64_4d_sp !< read into existing buffer with 64-bit slices
     procedure, private :: setData_5d_sp
     generic, public :: setData => setData_5d_sp !< set data
     procedure, private :: getData_5d_sp
     generic, public :: getData => getData_5d_sp !< get data
     procedure, private :: readInto_5d_sp
     generic, public :: readInto => readInto_5d_sp !< read into existing buffer
+    procedure, private :: setData64_5d_sp
+    generic, public :: setData64 => setData64_5d_sp !< set data with 64-bit slices
+    procedure, private :: getData64_5d_sp
+    generic, public :: getData64 => getData64_5d_sp !< get data with 64-bit slices
+    procedure, private :: readInto64_5d_sp
+    generic, public :: readInto64 => readInto64_5d_sp !< read into existing buffer with 64-bit slices
     procedure, private :: setData_6d_sp
     generic, public :: setData => setData_6d_sp !< set data
     procedure, private :: getData_6d_sp
     generic, public :: getData => getData_6d_sp !< get data
     procedure, private :: readInto_6d_sp
     generic, public :: readInto => readInto_6d_sp !< read into existing buffer
+    procedure, private :: setData64_6d_sp
+    generic, public :: setData64 => setData64_6d_sp !< set data with 64-bit slices
+    procedure, private :: getData64_6d_sp
+    generic, public :: getData64 => getData64_6d_sp !< get data with 64-bit slices
+    procedure, private :: readInto64_6d_sp
+    generic, public :: readInto64 => readInto64_6d_sp !< read into existing buffer with 64-bit slices
     procedure, private :: getCFAttributes_sp
     generic, public :: getCFAttributes => getCFAttributes_sp !< get CF attributes
     procedure, private :: setVariableFillValue_sp
@@ -319,42 +368,84 @@ module mo_netcdf
     generic, public :: getData => getData_0d_dp !< get data
     procedure, private :: readInto_0d_dp
     generic, public :: readInto => readInto_0d_dp !< read into existing buffer
+    procedure, private :: setData64_0d_dp
+    generic, public :: setData64 => setData64_0d_dp !< set data with 64-bit slices
+    procedure, private :: getData64_0d_dp
+    generic, public :: getData64 => getData64_0d_dp !< get data with 64-bit slices
+    procedure, private :: readInto64_0d_dp
+    generic, public :: readInto64 => readInto64_0d_dp !< read into existing buffer with 64-bit slices
     procedure, private :: setData_1d_dp
     generic, public :: setData => setData_1d_dp !< set data
     procedure, private :: getData_1d_dp
     generic, public :: getData => getData_1d_dp !< get data
     procedure, private :: readInto_1d_dp
     generic, public :: readInto => readInto_1d_dp !< read into existing buffer
+    procedure, private :: setData64_1d_dp
+    generic, public :: setData64 => setData64_1d_dp !< set data with 64-bit slices
+    procedure, private :: getData64_1d_dp
+    generic, public :: getData64 => getData64_1d_dp !< get data with 64-bit slices
+    procedure, private :: readInto64_1d_dp
+    generic, public :: readInto64 => readInto64_1d_dp !< read into existing buffer with 64-bit slices
     procedure, private :: setData_2d_dp
     generic, public :: setData => setData_2d_dp !< set data
     procedure, private :: getData_2d_dp
     generic, public :: getData => getData_2d_dp !< get data
     procedure, private :: readInto_2d_dp
     generic, public :: readInto => readInto_2d_dp !< read into existing buffer
+    procedure, private :: setData64_2d_dp
+    generic, public :: setData64 => setData64_2d_dp !< set data with 64-bit slices
+    procedure, private :: getData64_2d_dp
+    generic, public :: getData64 => getData64_2d_dp !< get data with 64-bit slices
+    procedure, private :: readInto64_2d_dp
+    generic, public :: readInto64 => readInto64_2d_dp !< read into existing buffer with 64-bit slices
     procedure, private :: setData_3d_dp
     generic, public :: setData => setData_3d_dp !< set data
     procedure, private :: getData_3d_dp
     generic, public :: getData => getData_3d_dp !< get data
     procedure, private :: readInto_3d_dp
     generic, public :: readInto => readInto_3d_dp !< read into existing buffer
+    procedure, private :: setData64_3d_dp
+    generic, public :: setData64 => setData64_3d_dp !< set data with 64-bit slices
+    procedure, private :: getData64_3d_dp
+    generic, public :: getData64 => getData64_3d_dp !< get data with 64-bit slices
+    procedure, private :: readInto64_3d_dp
+    generic, public :: readInto64 => readInto64_3d_dp !< read into existing buffer with 64-bit slices
     procedure, private :: setData_4d_dp
     generic, public :: setData => setData_4d_dp !< set data
     procedure, private :: getData_4d_dp
     generic, public :: getData => getData_4d_dp !< get data
     procedure, private :: readInto_4d_dp
     generic, public :: readInto => readInto_4d_dp !< read into existing buffer
+    procedure, private :: setData64_4d_dp
+    generic, public :: setData64 => setData64_4d_dp !< set data with 64-bit slices
+    procedure, private :: getData64_4d_dp
+    generic, public :: getData64 => getData64_4d_dp !< get data with 64-bit slices
+    procedure, private :: readInto64_4d_dp
+    generic, public :: readInto64 => readInto64_4d_dp !< read into existing buffer with 64-bit slices
     procedure, private :: setData_5d_dp
     generic, public :: setData => setData_5d_dp !< set data
     procedure, private :: getData_5d_dp
     generic, public :: getData => getData_5d_dp !< get data
     procedure, private :: readInto_5d_dp
     generic, public :: readInto => readInto_5d_dp !< read into existing buffer
+    procedure, private :: setData64_5d_dp
+    generic, public :: setData64 => setData64_5d_dp !< set data with 64-bit slices
+    procedure, private :: getData64_5d_dp
+    generic, public :: getData64 => getData64_5d_dp !< get data with 64-bit slices
+    procedure, private :: readInto64_5d_dp
+    generic, public :: readInto64 => readInto64_5d_dp !< read into existing buffer with 64-bit slices
     procedure, private :: setData_6d_dp
     generic, public :: setData => setData_6d_dp !< set data
     procedure, private :: getData_6d_dp
     generic, public :: getData => getData_6d_dp !< get data
     procedure, private :: readInto_6d_dp
     generic, public :: readInto => readInto_6d_dp !< read into existing buffer
+    procedure, private :: setData64_6d_dp
+    generic, public :: setData64 => setData64_6d_dp !< set data with 64-bit slices
+    procedure, private :: getData64_6d_dp
+    generic, public :: getData64 => getData64_6d_dp !< get data with 64-bit slices
+    procedure, private :: readInto64_6d_dp
+    generic, public :: readInto64 => readInto64_6d_dp !< read into existing buffer with 64-bit slices
     procedure, private :: getCFAttributes_dp
     generic, public :: getCFAttributes => getCFAttributes_dp !< get CF attributes
     procedure, private :: setVariableFillValue_dp
@@ -367,42 +458,84 @@ module mo_netcdf
     generic, public :: getData => getData_0d_i1 !< get data
     procedure, private :: readInto_0d_i1
     generic, public :: readInto => readInto_0d_i1 !< read into existing buffer
+    procedure, private :: setData64_0d_i1
+    generic, public :: setData64 => setData64_0d_i1 !< set data with 64-bit slices
+    procedure, private :: getData64_0d_i1
+    generic, public :: getData64 => getData64_0d_i1 !< get data with 64-bit slices
+    procedure, private :: readInto64_0d_i1
+    generic, public :: readInto64 => readInto64_0d_i1 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_1d_i1
     generic, public :: setData => setData_1d_i1 !< set data
     procedure, private :: getData_1d_i1
     generic, public :: getData => getData_1d_i1 !< get data
     procedure, private :: readInto_1d_i1
     generic, public :: readInto => readInto_1d_i1 !< read into existing buffer
+    procedure, private :: setData64_1d_i1
+    generic, public :: setData64 => setData64_1d_i1 !< set data with 64-bit slices
+    procedure, private :: getData64_1d_i1
+    generic, public :: getData64 => getData64_1d_i1 !< get data with 64-bit slices
+    procedure, private :: readInto64_1d_i1
+    generic, public :: readInto64 => readInto64_1d_i1 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_2d_i1
     generic, public :: setData => setData_2d_i1 !< set data
     procedure, private :: getData_2d_i1
     generic, public :: getData => getData_2d_i1 !< get data
     procedure, private :: readInto_2d_i1
     generic, public :: readInto => readInto_2d_i1 !< read into existing buffer
+    procedure, private :: setData64_2d_i1
+    generic, public :: setData64 => setData64_2d_i1 !< set data with 64-bit slices
+    procedure, private :: getData64_2d_i1
+    generic, public :: getData64 => getData64_2d_i1 !< get data with 64-bit slices
+    procedure, private :: readInto64_2d_i1
+    generic, public :: readInto64 => readInto64_2d_i1 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_3d_i1
     generic, public :: setData => setData_3d_i1 !< set data
     procedure, private :: getData_3d_i1
     generic, public :: getData => getData_3d_i1 !< get data
     procedure, private :: readInto_3d_i1
     generic, public :: readInto => readInto_3d_i1 !< read into existing buffer
+    procedure, private :: setData64_3d_i1
+    generic, public :: setData64 => setData64_3d_i1 !< set data with 64-bit slices
+    procedure, private :: getData64_3d_i1
+    generic, public :: getData64 => getData64_3d_i1 !< get data with 64-bit slices
+    procedure, private :: readInto64_3d_i1
+    generic, public :: readInto64 => readInto64_3d_i1 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_4d_i1
     generic, public :: setData => setData_4d_i1 !< set data
     procedure, private :: getData_4d_i1
     generic, public :: getData => getData_4d_i1 !< get data
     procedure, private :: readInto_4d_i1
     generic, public :: readInto => readInto_4d_i1 !< read into existing buffer
+    procedure, private :: setData64_4d_i1
+    generic, public :: setData64 => setData64_4d_i1 !< set data with 64-bit slices
+    procedure, private :: getData64_4d_i1
+    generic, public :: getData64 => getData64_4d_i1 !< get data with 64-bit slices
+    procedure, private :: readInto64_4d_i1
+    generic, public :: readInto64 => readInto64_4d_i1 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_5d_i1
     generic, public :: setData => setData_5d_i1 !< set data
     procedure, private :: getData_5d_i1
     generic, public :: getData => getData_5d_i1 !< get data
     procedure, private :: readInto_5d_i1
     generic, public :: readInto => readInto_5d_i1 !< read into existing buffer
+    procedure, private :: setData64_5d_i1
+    generic, public :: setData64 => setData64_5d_i1 !< set data with 64-bit slices
+    procedure, private :: getData64_5d_i1
+    generic, public :: getData64 => getData64_5d_i1 !< get data with 64-bit slices
+    procedure, private :: readInto64_5d_i1
+    generic, public :: readInto64 => readInto64_5d_i1 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_6d_i1
     generic, public :: setData => setData_6d_i1 !< set data
     procedure, private :: getData_6d_i1
     generic, public :: getData => getData_6d_i1 !< get data
     procedure, private :: readInto_6d_i1
     generic, public :: readInto => readInto_6d_i1 !< read into existing buffer
+    procedure, private :: setData64_6d_i1
+    generic, public :: setData64 => setData64_6d_i1 !< set data with 64-bit slices
+    procedure, private :: getData64_6d_i1
+    generic, public :: getData64 => getData64_6d_i1 !< get data with 64-bit slices
+    procedure, private :: readInto64_6d_i1
+    generic, public :: readInto64 => readInto64_6d_i1 !< read into existing buffer with 64-bit slices
     procedure, private :: getCFAttributes_i1
     generic, public :: getCFAttributes => getCFAttributes_i1 !< get CF attributes
     procedure, private :: setVariableFillValue_i1
@@ -415,42 +548,84 @@ module mo_netcdf
     generic, public :: getData => getData_0d_i2 !< get data
     procedure, private :: readInto_0d_i2
     generic, public :: readInto => readInto_0d_i2 !< read into existing buffer
+    procedure, private :: setData64_0d_i2
+    generic, public :: setData64 => setData64_0d_i2 !< set data with 64-bit slices
+    procedure, private :: getData64_0d_i2
+    generic, public :: getData64 => getData64_0d_i2 !< get data with 64-bit slices
+    procedure, private :: readInto64_0d_i2
+    generic, public :: readInto64 => readInto64_0d_i2 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_1d_i2
     generic, public :: setData => setData_1d_i2 !< set data
     procedure, private :: getData_1d_i2
     generic, public :: getData => getData_1d_i2 !< get data
     procedure, private :: readInto_1d_i2
     generic, public :: readInto => readInto_1d_i2 !< read into existing buffer
+    procedure, private :: setData64_1d_i2
+    generic, public :: setData64 => setData64_1d_i2 !< set data with 64-bit slices
+    procedure, private :: getData64_1d_i2
+    generic, public :: getData64 => getData64_1d_i2 !< get data with 64-bit slices
+    procedure, private :: readInto64_1d_i2
+    generic, public :: readInto64 => readInto64_1d_i2 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_2d_i2
     generic, public :: setData => setData_2d_i2 !< set data
     procedure, private :: getData_2d_i2
     generic, public :: getData => getData_2d_i2 !< get data
     procedure, private :: readInto_2d_i2
     generic, public :: readInto => readInto_2d_i2 !< read into existing buffer
+    procedure, private :: setData64_2d_i2
+    generic, public :: setData64 => setData64_2d_i2 !< set data with 64-bit slices
+    procedure, private :: getData64_2d_i2
+    generic, public :: getData64 => getData64_2d_i2 !< get data with 64-bit slices
+    procedure, private :: readInto64_2d_i2
+    generic, public :: readInto64 => readInto64_2d_i2 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_3d_i2
     generic, public :: setData => setData_3d_i2 !< set data
     procedure, private :: getData_3d_i2
     generic, public :: getData => getData_3d_i2 !< get data
     procedure, private :: readInto_3d_i2
     generic, public :: readInto => readInto_3d_i2 !< read into existing buffer
+    procedure, private :: setData64_3d_i2
+    generic, public :: setData64 => setData64_3d_i2 !< set data with 64-bit slices
+    procedure, private :: getData64_3d_i2
+    generic, public :: getData64 => getData64_3d_i2 !< get data with 64-bit slices
+    procedure, private :: readInto64_3d_i2
+    generic, public :: readInto64 => readInto64_3d_i2 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_4d_i2
     generic, public :: setData => setData_4d_i2 !< set data
     procedure, private :: getData_4d_i2
     generic, public :: getData => getData_4d_i2 !< get data
     procedure, private :: readInto_4d_i2
     generic, public :: readInto => readInto_4d_i2 !< read into existing buffer
+    procedure, private :: setData64_4d_i2
+    generic, public :: setData64 => setData64_4d_i2 !< set data with 64-bit slices
+    procedure, private :: getData64_4d_i2
+    generic, public :: getData64 => getData64_4d_i2 !< get data with 64-bit slices
+    procedure, private :: readInto64_4d_i2
+    generic, public :: readInto64 => readInto64_4d_i2 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_5d_i2
     generic, public :: setData => setData_5d_i2 !< set data
     procedure, private :: getData_5d_i2
     generic, public :: getData => getData_5d_i2 !< get data
     procedure, private :: readInto_5d_i2
     generic, public :: readInto => readInto_5d_i2 !< read into existing buffer
+    procedure, private :: setData64_5d_i2
+    generic, public :: setData64 => setData64_5d_i2 !< set data with 64-bit slices
+    procedure, private :: getData64_5d_i2
+    generic, public :: getData64 => getData64_5d_i2 !< get data with 64-bit slices
+    procedure, private :: readInto64_5d_i2
+    generic, public :: readInto64 => readInto64_5d_i2 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_6d_i2
     generic, public :: setData => setData_6d_i2 !< set data
     procedure, private :: getData_6d_i2
     generic, public :: getData => getData_6d_i2 !< get data
     procedure, private :: readInto_6d_i2
     generic, public :: readInto => readInto_6d_i2 !< read into existing buffer
+    procedure, private :: setData64_6d_i2
+    generic, public :: setData64 => setData64_6d_i2 !< set data with 64-bit slices
+    procedure, private :: getData64_6d_i2
+    generic, public :: getData64 => getData64_6d_i2 !< get data with 64-bit slices
+    procedure, private :: readInto64_6d_i2
+    generic, public :: readInto64 => readInto64_6d_i2 !< read into existing buffer with 64-bit slices
     procedure, private :: getCFAttributes_i2
     generic, public :: getCFAttributes => getCFAttributes_i2 !< get CF attributes
     procedure, private :: setVariableFillValue_i2
@@ -463,42 +638,84 @@ module mo_netcdf
     generic, public :: getData => getData_0d_i4 !< get data
     procedure, private :: readInto_0d_i4
     generic, public :: readInto => readInto_0d_i4 !< read into existing buffer
+    procedure, private :: setData64_0d_i4
+    generic, public :: setData64 => setData64_0d_i4 !< set data with 64-bit slices
+    procedure, private :: getData64_0d_i4
+    generic, public :: getData64 => getData64_0d_i4 !< get data with 64-bit slices
+    procedure, private :: readInto64_0d_i4
+    generic, public :: readInto64 => readInto64_0d_i4 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_1d_i4
     generic, public :: setData => setData_1d_i4 !< set data
     procedure, private :: getData_1d_i4
     generic, public :: getData => getData_1d_i4 !< get data
     procedure, private :: readInto_1d_i4
     generic, public :: readInto => readInto_1d_i4 !< read into existing buffer
+    procedure, private :: setData64_1d_i4
+    generic, public :: setData64 => setData64_1d_i4 !< set data with 64-bit slices
+    procedure, private :: getData64_1d_i4
+    generic, public :: getData64 => getData64_1d_i4 !< get data with 64-bit slices
+    procedure, private :: readInto64_1d_i4
+    generic, public :: readInto64 => readInto64_1d_i4 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_2d_i4
     generic, public :: setData => setData_2d_i4 !< set data
     procedure, private :: getData_2d_i4
     generic, public :: getData => getData_2d_i4 !< get data
     procedure, private :: readInto_2d_i4
     generic, public :: readInto => readInto_2d_i4 !< read into existing buffer
+    procedure, private :: setData64_2d_i4
+    generic, public :: setData64 => setData64_2d_i4 !< set data with 64-bit slices
+    procedure, private :: getData64_2d_i4
+    generic, public :: getData64 => getData64_2d_i4 !< get data with 64-bit slices
+    procedure, private :: readInto64_2d_i4
+    generic, public :: readInto64 => readInto64_2d_i4 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_3d_i4
     generic, public :: setData => setData_3d_i4 !< set data
     procedure, private :: getData_3d_i4
     generic, public :: getData => getData_3d_i4 !< get data
     procedure, private :: readInto_3d_i4
     generic, public :: readInto => readInto_3d_i4 !< read into existing buffer
+    procedure, private :: setData64_3d_i4
+    generic, public :: setData64 => setData64_3d_i4 !< set data with 64-bit slices
+    procedure, private :: getData64_3d_i4
+    generic, public :: getData64 => getData64_3d_i4 !< get data with 64-bit slices
+    procedure, private :: readInto64_3d_i4
+    generic, public :: readInto64 => readInto64_3d_i4 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_4d_i4
     generic, public :: setData => setData_4d_i4 !< set data
     procedure, private :: getData_4d_i4
     generic, public :: getData => getData_4d_i4 !< get data
     procedure, private :: readInto_4d_i4
     generic, public :: readInto => readInto_4d_i4 !< read into existing buffer
+    procedure, private :: setData64_4d_i4
+    generic, public :: setData64 => setData64_4d_i4 !< set data with 64-bit slices
+    procedure, private :: getData64_4d_i4
+    generic, public :: getData64 => getData64_4d_i4 !< get data with 64-bit slices
+    procedure, private :: readInto64_4d_i4
+    generic, public :: readInto64 => readInto64_4d_i4 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_5d_i4
     generic, public :: setData => setData_5d_i4 !< set data
     procedure, private :: getData_5d_i4
     generic, public :: getData => getData_5d_i4 !< get data
     procedure, private :: readInto_5d_i4
     generic, public :: readInto => readInto_5d_i4 !< read into existing buffer
+    procedure, private :: setData64_5d_i4
+    generic, public :: setData64 => setData64_5d_i4 !< set data with 64-bit slices
+    procedure, private :: getData64_5d_i4
+    generic, public :: getData64 => getData64_5d_i4 !< get data with 64-bit slices
+    procedure, private :: readInto64_5d_i4
+    generic, public :: readInto64 => readInto64_5d_i4 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_6d_i4
     generic, public :: setData => setData_6d_i4 !< set data
     procedure, private :: getData_6d_i4
     generic, public :: getData => getData_6d_i4 !< get data
     procedure, private :: readInto_6d_i4
     generic, public :: readInto => readInto_6d_i4 !< read into existing buffer
+    procedure, private :: setData64_6d_i4
+    generic, public :: setData64 => setData64_6d_i4 !< set data with 64-bit slices
+    procedure, private :: getData64_6d_i4
+    generic, public :: getData64 => getData64_6d_i4 !< get data with 64-bit slices
+    procedure, private :: readInto64_6d_i4
+    generic, public :: readInto64 => readInto64_6d_i4 !< read into existing buffer with 64-bit slices
     procedure, private :: getCFAttributes_i4
     generic, public :: getCFAttributes => getCFAttributes_i4 !< get CF attributes
     procedure, private :: setVariableFillValue_i4
@@ -511,42 +728,84 @@ module mo_netcdf
     generic, public :: getData => getData_0d_i8 !< get data
     procedure, private :: readInto_0d_i8
     generic, public :: readInto => readInto_0d_i8 !< read into existing buffer
+    procedure, private :: setData64_0d_i8
+    generic, public :: setData64 => setData64_0d_i8 !< set data with 64-bit slices
+    procedure, private :: getData64_0d_i8
+    generic, public :: getData64 => getData64_0d_i8 !< get data with 64-bit slices
+    procedure, private :: readInto64_0d_i8
+    generic, public :: readInto64 => readInto64_0d_i8 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_1d_i8
     generic, public :: setData => setData_1d_i8 !< set data
     procedure, private :: getData_1d_i8
     generic, public :: getData => getData_1d_i8 !< get data
     procedure, private :: readInto_1d_i8
     generic, public :: readInto => readInto_1d_i8 !< read into existing buffer
+    procedure, private :: setData64_1d_i8
+    generic, public :: setData64 => setData64_1d_i8 !< set data with 64-bit slices
+    procedure, private :: getData64_1d_i8
+    generic, public :: getData64 => getData64_1d_i8 !< get data with 64-bit slices
+    procedure, private :: readInto64_1d_i8
+    generic, public :: readInto64 => readInto64_1d_i8 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_2d_i8
     generic, public :: setData => setData_2d_i8 !< set data
     procedure, private :: getData_2d_i8
     generic, public :: getData => getData_2d_i8 !< get data
     procedure, private :: readInto_2d_i8
     generic, public :: readInto => readInto_2d_i8 !< read into existing buffer
+    procedure, private :: setData64_2d_i8
+    generic, public :: setData64 => setData64_2d_i8 !< set data with 64-bit slices
+    procedure, private :: getData64_2d_i8
+    generic, public :: getData64 => getData64_2d_i8 !< get data with 64-bit slices
+    procedure, private :: readInto64_2d_i8
+    generic, public :: readInto64 => readInto64_2d_i8 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_3d_i8
     generic, public :: setData => setData_3d_i8 !< set data
     procedure, private :: getData_3d_i8
     generic, public :: getData => getData_3d_i8 !< get data
     procedure, private :: readInto_3d_i8
     generic, public :: readInto => readInto_3d_i8 !< read into existing buffer
+    procedure, private :: setData64_3d_i8
+    generic, public :: setData64 => setData64_3d_i8 !< set data with 64-bit slices
+    procedure, private :: getData64_3d_i8
+    generic, public :: getData64 => getData64_3d_i8 !< get data with 64-bit slices
+    procedure, private :: readInto64_3d_i8
+    generic, public :: readInto64 => readInto64_3d_i8 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_4d_i8
     generic, public :: setData => setData_4d_i8 !< set data
     procedure, private :: getData_4d_i8
     generic, public :: getData => getData_4d_i8 !< get data
     procedure, private :: readInto_4d_i8
     generic, public :: readInto => readInto_4d_i8 !< read into existing buffer
+    procedure, private :: setData64_4d_i8
+    generic, public :: setData64 => setData64_4d_i8 !< set data with 64-bit slices
+    procedure, private :: getData64_4d_i8
+    generic, public :: getData64 => getData64_4d_i8 !< get data with 64-bit slices
+    procedure, private :: readInto64_4d_i8
+    generic, public :: readInto64 => readInto64_4d_i8 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_5d_i8
     generic, public :: setData => setData_5d_i8 !< set data
     procedure, private :: getData_5d_i8
     generic, public :: getData => getData_5d_i8 !< get data
     procedure, private :: readInto_5d_i8
     generic, public :: readInto => readInto_5d_i8 !< read into existing buffer
+    procedure, private :: setData64_5d_i8
+    generic, public :: setData64 => setData64_5d_i8 !< set data with 64-bit slices
+    procedure, private :: getData64_5d_i8
+    generic, public :: getData64 => getData64_5d_i8 !< get data with 64-bit slices
+    procedure, private :: readInto64_5d_i8
+    generic, public :: readInto64 => readInto64_5d_i8 !< read into existing buffer with 64-bit slices
     procedure, private :: setData_6d_i8
     generic, public :: setData => setData_6d_i8 !< set data
     procedure, private :: getData_6d_i8
     generic, public :: getData => getData_6d_i8 !< get data
     procedure, private :: readInto_6d_i8
     generic, public :: readInto => readInto_6d_i8 !< read into existing buffer
+    procedure, private :: setData64_6d_i8
+    generic, public :: setData64 => setData64_6d_i8 !< set data with 64-bit slices
+    procedure, private :: getData64_6d_i8
+    generic, public :: getData64 => getData64_6d_i8 !< get data with 64-bit slices
+    procedure, private :: readInto64_6d_i8
+    generic, public :: readInto64 => readInto64_6d_i8 !< read into existing buffer with 64-bit slices
     procedure, private :: getCFAttributes_i8
     generic, public :: getCFAttributes => getCFAttributes_i8 !< get CF attributes
     procedure, private :: setVariableFillValue_i8
@@ -561,6 +820,7 @@ module mo_netcdf
     procedure, public :: getRank => getVariableRank !< get rank
 
     procedure, public :: getShape => getVariableShape !< get shape
+    procedure, public :: getShape64 => getVariableShape64 !< get 64-bit shape
 
     procedure, public :: getDtype => getVariableDtype !< get data type
 
@@ -747,6 +1007,14 @@ contains
             "Failed to inquire dimension: " // self%getName())
   end function getDimensionLength
 
+  function getDimensionLength64(self)
+    class(NcDimension), intent(in) :: self
+    integer(i8) :: getDimensionLength64
+
+    call check(nf90_inquire_dimension64(self%parent%id, self%id, len = getDimensionLength64), &
+            "Failed to inquire dimension: " // self%getName())
+  end function getDimensionLength64
+
   function isDatasetUnlimited(self)
     class(NcGroup), intent(in) :: self
     logical :: isDatasetUnlimited
@@ -920,6 +1188,29 @@ contains
     ncDim = NcDimension(id, self)
 
   end function setDimension
+
+  function setDimension64(self, name, length) result(ncDim)
+    class(NcGroup), intent(in) :: self
+    character(*)  , intent(in) :: name
+    integer(i8), intent(in), optional :: length
+
+    type(NcDimension) :: ncDim
+    integer(i8) :: dimLength
+    integer(i4) :: id
+
+    dimLength = int(NF90_UNLIMITED, i8)
+    if (present(length)) then
+      if (length > 0_i8) then
+        dimLength = length
+      end if
+    end if
+
+    call check(nf90_def_dim64(self%id, name, dimLength, id), &
+         "Failed to create dimension: " // name)
+
+    ncDim = NcDimension(id, self)
+
+  end function setDimension64
 
   function setCoordinate(self, name, length, bounds, reference, attribute_names, attribute_values, &
                         centersDim1, centersDim2, cornersDim1, cornersDim2, subDimSizes, units) result(ncDim)
@@ -1151,6 +1442,21 @@ contains
       getVariableShape(ii) = dims(ii)%getLength()
     end do
   end function getVariableShape
+
+  function getVariableShape64(self)
+    class(NcVariable), intent(in) :: self
+    integer(i8), allocatable :: getVariableShape64(:)
+    type(NcDimension), allocatable :: dims(:)
+    integer(i4) :: ii, ndims
+
+    ndims = self%getNoDimensions()
+    allocate(getVariableShape64(ndims), dims(ndims))
+
+    dims = self%getDimensions()
+    do ii = 1, size(dims)
+      getVariableShape64(ii) = dims(ii)%getLength64()
+    end do
+  end function getVariableShape64
 
   function getVariableRank(self)
     class(NcVariable), intent(in) :: self
@@ -1617,6 +1923,9 @@ contains
 
 
 
+
+
+
   subroutine getData_0d_sp(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     real(sp), intent(out), allocatable :: data
@@ -1689,6 +1998,79 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_0d_sp
+
+  subroutine getData64_0d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out), allocatable :: data
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    real(sp) :: tmp(1)
+
+    call check (nf90_get_var64(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+    if (present(mask)) then
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData64_0d_sp
+
+  subroutine readInto64_0d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out) :: data
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    real(sp) :: tmp(1)
+
+    call check (nf90_get_var64(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+    if (present(mask)) then
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto64_0d_sp
+
+  subroutine setData64_0d_sp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(in) :: values
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_0d_sp
 
   subroutine getData_1d_sp(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
@@ -1784,6 +2166,100 @@ contains
 
   end subroutine setData_1d_sp
 
+  subroutine getData64_1d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out), allocatable :: data(:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 1)
+      allocate(data(datashape(1)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData64_1d_sp
+
+  subroutine readInto64_1d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out) :: data(:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(1)
+    integer(i8) :: maskshape(1)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto64_1d_sp
+
+  subroutine setData64_1d_sp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(in) :: values(:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_1d_sp
+
   subroutine getData_2d_sp(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     real(sp), intent(out), allocatable :: data(:,:)
@@ -1877,6 +2353,100 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_2d_sp
+
+  subroutine getData64_2d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out), allocatable :: data(:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 2)
+      allocate(data(datashape(1), datashape(2)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData64_2d_sp
+
+  subroutine readInto64_2d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out) :: data(:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(2)
+    integer(i8) :: maskshape(2)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto64_2d_sp
+
+  subroutine setData64_2d_sp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(in) :: values(:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_2d_sp
 
   subroutine getData_3d_sp(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
@@ -1972,6 +2542,100 @@ contains
 
   end subroutine setData_3d_sp
 
+  subroutine getData64_3d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out), allocatable :: data(:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 3)
+      allocate(data(datashape(1), datashape(2), datashape(3)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData64_3d_sp
+
+  subroutine readInto64_3d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out) :: data(:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(3)
+    integer(i8) :: maskshape(3)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto64_3d_sp
+
+  subroutine setData64_3d_sp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(in) :: values(:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_3d_sp
+
   subroutine getData_4d_sp(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     real(sp), intent(out), allocatable :: data(:,:,:,:)
@@ -2065,6 +2729,100 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_4d_sp
+
+  subroutine getData64_4d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out), allocatable :: data(:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 4)
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData64_4d_sp
+
+  subroutine readInto64_4d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out) :: data(:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(4)
+    integer(i8) :: maskshape(4)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto64_4d_sp
+
+  subroutine setData64_4d_sp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(in) :: values(:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_4d_sp
 
   subroutine getData_5d_sp(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
@@ -2160,6 +2918,100 @@ contains
 
   end subroutine setData_5d_sp
 
+  subroutine getData64_5d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out), allocatable :: data(:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 5)
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData64_5d_sp
+
+  subroutine readInto64_5d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out) :: data(:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(5)
+    integer(i8) :: maskshape(5)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto64_5d_sp
+
+  subroutine setData64_5d_sp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(in) :: values(:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_5d_sp
+
   subroutine getData_6d_sp(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     real(sp), intent(out), allocatable :: data(:,:,:,:,:,:)
@@ -2253,6 +3105,100 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_6d_sp
+
+  subroutine getData64_6d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out), allocatable :: data(:,:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 6)
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData64_6d_sp
+
+  subroutine readInto64_6d_sp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(out) :: data(:,:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(sp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(6)
+    integer(i8) :: maskshape(6)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto64_6d_sp
+
+  subroutine setData64_6d_sp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(sp), intent(in) :: values(:,:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_6d_sp
 
   subroutine getVariableFillValue_sp(self, fvalue)
     class(NcVariable), intent(in) :: self
@@ -2376,6 +3322,79 @@ contains
 
   end subroutine setData_0d_dp
 
+  subroutine getData64_0d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out), allocatable :: data
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    real(dp) :: tmp(1)
+
+    call check (nf90_get_var64(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+    if (present(mask)) then
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData64_0d_dp
+
+  subroutine readInto64_0d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out) :: data
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    real(dp) :: tmp(1)
+
+    call check (nf90_get_var64(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+    if (present(mask)) then
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto64_0d_dp
+
+  subroutine setData64_0d_dp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(in) :: values
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_0d_dp
+
   subroutine getData_1d_dp(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     real(dp), intent(out), allocatable :: data(:)
@@ -2469,6 +3488,100 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_1d_dp
+
+  subroutine getData64_1d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out), allocatable :: data(:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 1)
+      allocate(data(datashape(1)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData64_1d_dp
+
+  subroutine readInto64_1d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out) :: data(:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(1)
+    integer(i8) :: maskshape(1)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto64_1d_dp
+
+  subroutine setData64_1d_dp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(in) :: values(:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_1d_dp
 
   subroutine getData_2d_dp(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
@@ -2564,6 +3677,100 @@ contains
 
   end subroutine setData_2d_dp
 
+  subroutine getData64_2d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out), allocatable :: data(:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 2)
+      allocate(data(datashape(1), datashape(2)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData64_2d_dp
+
+  subroutine readInto64_2d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out) :: data(:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(2)
+    integer(i8) :: maskshape(2)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto64_2d_dp
+
+  subroutine setData64_2d_dp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(in) :: values(:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_2d_dp
+
   subroutine getData_3d_dp(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     real(dp), intent(out), allocatable :: data(:,:,:)
@@ -2657,6 +3864,100 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_3d_dp
+
+  subroutine getData64_3d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out), allocatable :: data(:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 3)
+      allocate(data(datashape(1), datashape(2), datashape(3)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData64_3d_dp
+
+  subroutine readInto64_3d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out) :: data(:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(3)
+    integer(i8) :: maskshape(3)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto64_3d_dp
+
+  subroutine setData64_3d_dp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(in) :: values(:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_3d_dp
 
   subroutine getData_4d_dp(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
@@ -2752,6 +4053,100 @@ contains
 
   end subroutine setData_4d_dp
 
+  subroutine getData64_4d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out), allocatable :: data(:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 4)
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData64_4d_dp
+
+  subroutine readInto64_4d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out) :: data(:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(4)
+    integer(i8) :: maskshape(4)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto64_4d_dp
+
+  subroutine setData64_4d_dp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(in) :: values(:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_4d_dp
+
   subroutine getData_5d_dp(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     real(dp), intent(out), allocatable :: data(:,:,:,:,:)
@@ -2846,6 +4241,100 @@ contains
 
   end subroutine setData_5d_dp
 
+  subroutine getData64_5d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out), allocatable :: data(:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 5)
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData64_5d_dp
+
+  subroutine readInto64_5d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out) :: data(:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(5)
+    integer(i8) :: maskshape(5)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto64_5d_dp
+
+  subroutine setData64_5d_dp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(in) :: values(:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_5d_dp
+
   subroutine getData_6d_dp(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     real(dp), intent(out), allocatable :: data(:,:,:,:,:,:)
@@ -2939,6 +4428,100 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_6d_dp
+
+  subroutine getData64_6d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out), allocatable :: data(:,:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 6)
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine getData64_6d_dp
+
+  subroutine readInto64_6d_dp(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(out) :: data(:,:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    real(dp) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(6)
+    integer(i8) :: maskshape(6)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = ne(data, fillValue)
+      case(CF_USE_NAN)
+        mask = .not. ieee_is_nan(data)
+      case(CF_USE_VALID_MIN)
+        mask = data > minValue
+      case(CF_USE_VALID_MAX)
+        mask = data < maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data < maxValue) .and. (data > minValue)
+      end select
+    end if
+
+  end subroutine readInto64_6d_dp
+
+  subroutine setData64_6d_dp(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    real(dp), intent(in) :: values(:,:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_6d_dp
 
   subroutine getVariableFillValue_dp(self, fvalue)
     class(NcVariable), intent(in) :: self
@@ -3058,6 +4641,75 @@ contains
 
   end subroutine setData_0d_i1
 
+  subroutine getData64_0d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out), allocatable :: data
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i1) :: tmp(1)
+
+    call check (nf90_get_var64(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+    if (present(mask)) then
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_0d_i1
+
+  subroutine readInto64_0d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out) :: data
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i1) :: tmp(1)
+
+    call check (nf90_get_var64(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+    if (present(mask)) then
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_0d_i1
+
+  subroutine setData64_0d_i1(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(in) :: values
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_0d_i1
+
   subroutine getData_1d_i1(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     integer(i1), intent(out), allocatable :: data(:)
@@ -3147,6 +4799,96 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_1d_i1
+
+  subroutine getData64_1d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out), allocatable :: data(:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 1)
+      allocate(data(datashape(1)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_1d_i1
+
+  subroutine readInto64_1d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out) :: data(:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(1)
+    integer(i8) :: maskshape(1)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_1d_i1
+
+  subroutine setData64_1d_i1(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(in) :: values(:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_1d_i1
 
   subroutine getData_2d_i1(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
@@ -3238,6 +4980,96 @@ contains
 
   end subroutine setData_2d_i1
 
+  subroutine getData64_2d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out), allocatable :: data(:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 2)
+      allocate(data(datashape(1), datashape(2)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_2d_i1
+
+  subroutine readInto64_2d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out) :: data(:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(2)
+    integer(i8) :: maskshape(2)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_2d_i1
+
+  subroutine setData64_2d_i1(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(in) :: values(:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_2d_i1
+
   subroutine getData_3d_i1(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     integer(i1), intent(out), allocatable :: data(:,:,:)
@@ -3327,6 +5159,96 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_3d_i1
+
+  subroutine getData64_3d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out), allocatable :: data(:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 3)
+      allocate(data(datashape(1), datashape(2), datashape(3)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_3d_i1
+
+  subroutine readInto64_3d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out) :: data(:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(3)
+    integer(i8) :: maskshape(3)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_3d_i1
+
+  subroutine setData64_3d_i1(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(in) :: values(:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_3d_i1
 
   subroutine getData_4d_i1(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
@@ -3418,6 +5340,96 @@ contains
 
   end subroutine setData_4d_i1
 
+  subroutine getData64_4d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out), allocatable :: data(:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 4)
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_4d_i1
+
+  subroutine readInto64_4d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out) :: data(:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(4)
+    integer(i8) :: maskshape(4)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_4d_i1
+
+  subroutine setData64_4d_i1(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(in) :: values(:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_4d_i1
+
   subroutine getData_5d_i1(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     integer(i1), intent(out), allocatable :: data(:,:,:,:,:)
@@ -3508,6 +5520,96 @@ contains
 
   end subroutine setData_5d_i1
 
+  subroutine getData64_5d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out), allocatable :: data(:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 5)
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_5d_i1
+
+  subroutine readInto64_5d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out) :: data(:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(5)
+    integer(i8) :: maskshape(5)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_5d_i1
+
+  subroutine setData64_5d_i1(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(in) :: values(:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_5d_i1
+
   subroutine getData_6d_i1(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     integer(i1), intent(out), allocatable :: data(:,:,:,:,:,:)
@@ -3597,6 +5699,96 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_6d_i1
+
+  subroutine getData64_6d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out), allocatable :: data(:,:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 6)
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_6d_i1
+
+  subroutine readInto64_6d_i1(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(out) :: data(:,:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i1) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(6)
+    integer(i8) :: maskshape(6)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_6d_i1
+
+  subroutine setData64_6d_i1(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i1), intent(in) :: values(:,:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_6d_i1
 
   subroutine getVariableFillValue_i1(self, fvalue)
     class(NcVariable), intent(in) :: self
@@ -3713,6 +5905,75 @@ contains
 
   end subroutine setData_0d_i2
 
+  subroutine getData64_0d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out), allocatable :: data
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i2) :: tmp(1)
+
+    call check (nf90_get_var64(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+    if (present(mask)) then
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_0d_i2
+
+  subroutine readInto64_0d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out) :: data
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i2) :: tmp(1)
+
+    call check (nf90_get_var64(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+    if (present(mask)) then
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_0d_i2
+
+  subroutine setData64_0d_i2(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(in) :: values
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_0d_i2
+
   subroutine getData_1d_i2(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     integer(i2), intent(out), allocatable :: data(:)
@@ -3802,6 +6063,96 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_1d_i2
+
+  subroutine getData64_1d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out), allocatable :: data(:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 1)
+      allocate(data(datashape(1)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_1d_i2
+
+  subroutine readInto64_1d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out) :: data(:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(1)
+    integer(i8) :: maskshape(1)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_1d_i2
+
+  subroutine setData64_1d_i2(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(in) :: values(:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_1d_i2
 
   subroutine getData_2d_i2(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
@@ -3893,6 +6244,96 @@ contains
 
   end subroutine setData_2d_i2
 
+  subroutine getData64_2d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out), allocatable :: data(:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 2)
+      allocate(data(datashape(1), datashape(2)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_2d_i2
+
+  subroutine readInto64_2d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out) :: data(:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(2)
+    integer(i8) :: maskshape(2)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_2d_i2
+
+  subroutine setData64_2d_i2(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(in) :: values(:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_2d_i2
+
   subroutine getData_3d_i2(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     integer(i2), intent(out), allocatable :: data(:,:,:)
@@ -3982,6 +6423,96 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_3d_i2
+
+  subroutine getData64_3d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out), allocatable :: data(:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 3)
+      allocate(data(datashape(1), datashape(2), datashape(3)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_3d_i2
+
+  subroutine readInto64_3d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out) :: data(:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(3)
+    integer(i8) :: maskshape(3)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_3d_i2
+
+  subroutine setData64_3d_i2(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(in) :: values(:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_3d_i2
 
   subroutine getData_4d_i2(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
@@ -4073,6 +6604,96 @@ contains
 
   end subroutine setData_4d_i2
 
+  subroutine getData64_4d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out), allocatable :: data(:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 4)
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_4d_i2
+
+  subroutine readInto64_4d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out) :: data(:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(4)
+    integer(i8) :: maskshape(4)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_4d_i2
+
+  subroutine setData64_4d_i2(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(in) :: values(:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_4d_i2
+
   subroutine getData_5d_i2(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     integer(i2), intent(out), allocatable :: data(:,:,:,:,:)
@@ -4163,6 +6784,96 @@ contains
 
   end subroutine setData_5d_i2
 
+  subroutine getData64_5d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out), allocatable :: data(:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 5)
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_5d_i2
+
+  subroutine readInto64_5d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out) :: data(:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(5)
+    integer(i8) :: maskshape(5)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_5d_i2
+
+  subroutine setData64_5d_i2(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(in) :: values(:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_5d_i2
+
   subroutine getData_6d_i2(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     integer(i2), intent(out), allocatable :: data(:,:,:,:,:,:)
@@ -4252,6 +6963,96 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_6d_i2
+
+  subroutine getData64_6d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out), allocatable :: data(:,:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 6)
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_6d_i2
+
+  subroutine readInto64_6d_i2(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(out) :: data(:,:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i2) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(6)
+    integer(i8) :: maskshape(6)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_6d_i2
+
+  subroutine setData64_6d_i2(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i2), intent(in) :: values(:,:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_6d_i2
 
   subroutine getVariableFillValue_i2(self, fvalue)
     class(NcVariable), intent(in) :: self
@@ -4368,6 +7169,75 @@ contains
 
   end subroutine setData_0d_i4
 
+  subroutine getData64_0d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out), allocatable :: data
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i4) :: tmp(1)
+
+    call check (nf90_get_var64(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+    if (present(mask)) then
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_0d_i4
+
+  subroutine readInto64_0d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out) :: data
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i4) :: tmp(1)
+
+    call check (nf90_get_var64(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+    if (present(mask)) then
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_0d_i4
+
+  subroutine setData64_0d_i4(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(in) :: values
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_0d_i4
+
   subroutine getData_1d_i4(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     integer(i4), intent(out), allocatable :: data(:)
@@ -4457,6 +7327,96 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_1d_i4
+
+  subroutine getData64_1d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out), allocatable :: data(:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 1)
+      allocate(data(datashape(1)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_1d_i4
+
+  subroutine readInto64_1d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out) :: data(:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(1)
+    integer(i8) :: maskshape(1)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_1d_i4
+
+  subroutine setData64_1d_i4(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(in) :: values(:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_1d_i4
 
   subroutine getData_2d_i4(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
@@ -4548,6 +7508,96 @@ contains
 
   end subroutine setData_2d_i4
 
+  subroutine getData64_2d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out), allocatable :: data(:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 2)
+      allocate(data(datashape(1), datashape(2)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_2d_i4
+
+  subroutine readInto64_2d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out) :: data(:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(2)
+    integer(i8) :: maskshape(2)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_2d_i4
+
+  subroutine setData64_2d_i4(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(in) :: values(:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_2d_i4
+
   subroutine getData_3d_i4(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     integer(i4), intent(out), allocatable :: data(:,:,:)
@@ -4637,6 +7687,96 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_3d_i4
+
+  subroutine getData64_3d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out), allocatable :: data(:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 3)
+      allocate(data(datashape(1), datashape(2), datashape(3)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_3d_i4
+
+  subroutine readInto64_3d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out) :: data(:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(3)
+    integer(i8) :: maskshape(3)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_3d_i4
+
+  subroutine setData64_3d_i4(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(in) :: values(:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_3d_i4
 
   subroutine getData_4d_i4(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
@@ -4728,6 +7868,96 @@ contains
 
   end subroutine setData_4d_i4
 
+  subroutine getData64_4d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out), allocatable :: data(:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 4)
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_4d_i4
+
+  subroutine readInto64_4d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out) :: data(:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(4)
+    integer(i8) :: maskshape(4)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_4d_i4
+
+  subroutine setData64_4d_i4(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(in) :: values(:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_4d_i4
+
   subroutine getData_5d_i4(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     integer(i4), intent(out), allocatable :: data(:,:,:,:,:)
@@ -4818,6 +8048,96 @@ contains
 
   end subroutine setData_5d_i4
 
+  subroutine getData64_5d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out), allocatable :: data(:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 5)
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_5d_i4
+
+  subroutine readInto64_5d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out) :: data(:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(5)
+    integer(i8) :: maskshape(5)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_5d_i4
+
+  subroutine setData64_5d_i4(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(in) :: values(:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_5d_i4
+
   subroutine getData_6d_i4(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     integer(i4), intent(out), allocatable :: data(:,:,:,:,:,:)
@@ -4907,6 +8227,96 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_6d_i4
+
+  subroutine getData64_6d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out), allocatable :: data(:,:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 6)
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_6d_i4
+
+  subroutine readInto64_6d_i4(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(out) :: data(:,:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i4) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(6)
+    integer(i8) :: maskshape(6)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_6d_i4
+
+  subroutine setData64_6d_i4(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i4), intent(in) :: values(:,:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_6d_i4
 
   subroutine getVariableFillValue_i4(self, fvalue)
     class(NcVariable), intent(in) :: self
@@ -5023,6 +8433,75 @@ contains
 
   end subroutine setData_0d_i8
 
+  subroutine getData64_0d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out), allocatable :: data
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i8) :: tmp(1)
+
+    call check (nf90_get_var64(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+    if (present(mask)) then
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_0d_i8
+
+  subroutine readInto64_0d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out) :: data
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i8) :: tmp(1)
+
+    call check (nf90_get_var64(self%parent%id, self%id, tmp, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    data = tmp(1)
+    if (present(mask)) then
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_0d_i8
+
+  subroutine setData64_0d_i8(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(in) :: values
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_0d_i8
+
   subroutine getData_1d_i8(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     integer(i8), intent(out), allocatable :: data(:)
@@ -5112,6 +8591,96 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_1d_i8
+
+  subroutine getData64_1d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out), allocatable :: data(:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 1)
+      allocate(data(datashape(1)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_1d_i8
+
+  subroutine readInto64_1d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out) :: data(:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(1)
+    integer(i8) :: maskshape(1)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_1d_i8
+
+  subroutine setData64_1d_i8(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(in) :: values(:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_1d_i8
 
   subroutine getData_2d_i8(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
@@ -5203,6 +8772,96 @@ contains
 
   end subroutine setData_2d_i8
 
+  subroutine getData64_2d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out), allocatable :: data(:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 2)
+      allocate(data(datashape(1), datashape(2)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_2d_i8
+
+  subroutine readInto64_2d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out) :: data(:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(2)
+    integer(i8) :: maskshape(2)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_2d_i8
+
+  subroutine setData64_2d_i8(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(in) :: values(:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_2d_i8
+
   subroutine getData_3d_i8(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     integer(i8), intent(out), allocatable :: data(:,:,:)
@@ -5292,6 +8951,96 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_3d_i8
+
+  subroutine getData64_3d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out), allocatable :: data(:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 3)
+      allocate(data(datashape(1), datashape(2), datashape(3)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_3d_i8
+
+  subroutine readInto64_3d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out) :: data(:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(3)
+    integer(i8) :: maskshape(3)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_3d_i8
+
+  subroutine setData64_3d_i8(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(in) :: values(:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_3d_i8
 
   subroutine getData_4d_i8(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
@@ -5383,6 +9132,96 @@ contains
 
   end subroutine setData_4d_i8
 
+  subroutine getData64_4d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out), allocatable :: data(:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 4)
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_4d_i8
+
+  subroutine readInto64_4d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out) :: data(:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(4)
+    integer(i8) :: maskshape(4)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_4d_i8
+
+  subroutine setData64_4d_i8(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(in) :: values(:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_4d_i8
+
   subroutine getData_5d_i8(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
     integer(i8), intent(out), allocatable :: data(:,:,:,:,:)
@@ -5472,6 +9311,96 @@ contains
             "Failed to write data into variable: " // trim(self%getName()))
 
   end subroutine setData_5d_i8
+
+  subroutine getData64_5d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out), allocatable :: data(:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 5)
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_5d_i8
+
+  subroutine readInto64_5d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out) :: data(:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(5)
+    integer(i8) :: maskshape(5)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_5d_i8
+
+  subroutine setData64_5d_i8(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(in) :: values(:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_5d_i8
 
   subroutine getData_6d_i8(self, data, start, cnt, stride, map, mask)
     class(NcVariable), intent(in) :: self
@@ -5563,6 +9492,96 @@ contains
 
   end subroutine setData_6d_i8
 
+  subroutine getData64_6d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out), allocatable :: data(:,:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), allocatable, optional :: mask(:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), datashape(:)
+
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    datashape = getReadShape64(slcshape, 6)
+      allocate(data(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6)))
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      allocate(mask(datashape(1), datashape(2), datashape(3), datashape(4), datashape(5), datashape(6)))
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine getData64_6d_i8
+
+  subroutine readInto64_6d_i8(self, data, start, cnt, stride, map, mask)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(out) :: data(:,:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    logical, intent(out), optional :: mask(:,:,:,:,:,:)
+
+    integer(i4) :: flagMissing
+    integer(i8) :: fillValue, minValue, maxValue
+    integer(i8), allocatable :: slcshape(:), expected_shape(:)
+    integer(i8) :: datashape(6)
+    integer(i8) :: maskshape(6)
+
+    datashape = shape(data, kind=i8)
+    slcshape = self%getSlicingShape64(start, cnt, stride)
+    expected_shape = getReadShape64(slcshape, size(datashape))
+    if (size(expected_shape) /= size(datashape)) then
+      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+    if (any(expected_shape /= datashape)) then
+      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
+      stop 1
+    end if
+
+    call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
+            "Could not read data from variable: " // trim(self%getName()))
+    if (present(mask)) then
+      maskshape = shape(mask, kind=i8)
+      if (any(maskshape /= datashape)) then
+        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
+        stop 1
+      end if
+      mask = .true.
+      call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
+      select case(flagMissing)
+      case(CF_USE_FILL_VALUE)
+        mask = .not. (data == fillValue)
+      case(CF_USE_VALID_MIN)
+        mask = data >= minValue
+      case(CF_USE_VALID_MAX)
+        mask = data <= maxValue
+      case(CF_USE_VALID_RANGE)
+        mask = (data <= maxValue) .and. (data >= minValue)
+      end select
+    end if
+
+  end subroutine readInto64_6d_i8
+
+  subroutine setData64_6d_i8(self, values, start, cnt, stride, map)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(in) :: values(:,:,:,:,:,:)
+    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    call check(nf90_put_var64(self%parent%id, self%id, values, start, cnt, stride, map), &
+            "Failed to write data into variable: " // trim(self%getName()))
+
+  end subroutine setData64_6d_i8
+
   subroutine getVariableFillValue_i8(self, fvalue)
     class(NcVariable), intent(in) :: self
     integer(i8), intent(out) :: fvalue
@@ -5631,6 +9650,26 @@ contains
 
   end function getSlicingShape
 
+  function getSlicingShape64(self, instart, incnt, instride) result(out)
+    class(NcVariable), intent(in) :: self
+    integer(i8), intent(in), optional :: instart(:), incnt(:), instride(:)
+    integer(i8), allocatable :: out(:)
+
+    out = self%getShape64()
+
+    if (present(incnt)) then
+      out(:size(incnt)) = incnt
+    else
+      if (present(instart)) then
+        out(:size(instart)) = out(:size(instart)) - (instart - 1_i8)
+      end if
+      if (present(instride)) then
+        out(:size(instride)) = out(:size(instride)) / instride
+      end if
+    end if
+
+  end function getSlicingShape64
+
   function getReadShape(slcshape, outrank) result(out)
     integer(i4), intent(in) :: slcshape(:)
     integer(i4), intent(in) :: outrank
@@ -5655,6 +9694,29 @@ contains
       stop 1
     end if
   end function getReadShape
+
+  function getReadShape64(slcshape, outrank) result(out)
+    integer(i8), intent(in) :: slcshape(:)
+    integer(i4), intent(in) :: outrank
+    integer(i4) :: naxis
+    integer(i8), allocatable :: out(:)
+
+    naxis = count(slcshape > 1_i8)
+
+    if (all(slcshape == 1_i8)) then
+      ! return 1-element array
+      allocate(out(size(slcshape)))
+      out(:) = 1_i8
+    else if (size(slcshape) == outrank) then
+      ! sizes fit
+      out = slcshape
+    else if (naxis == outrank) then
+      out = pack(slcshape, slcshape > 1_i8)
+    else
+      write(*, *) "Given indices do not match output variable rank!"
+      stop 1
+    end if
+  end function getReadShape64
 
   function getDtypeFromString(dtype)
     integer(i4) :: getDtypeFromString
