@@ -684,7 +684,7 @@ contains
           end do deps_loop
           !$omp atomic capture
           skip = addable(neigh(k)) ! check if already added by another thread or level
-          addable(neigh(k)) = .true.
+          addable(neigh(k)) = addable(neigh(k)) .or. .true.
           !$omp end atomic
           if (skip) cycle neigh_loop ! already added
           idx = idx + 1_i8
@@ -852,7 +852,7 @@ contains
           end do deps_loop
           !$omp atomic capture
           skip = addable(neigh(k)) ! check if already added by another thread or level
-          addable(neigh(k)) = .true.
+          addable(neigh(k)) = addable(neigh(k)) .or. .true.
           !$omp end atomic
           if (skip) cycle neigh_loop ! already added
           idx = idx + 1_i8
