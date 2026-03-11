@@ -171,4 +171,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-gline;-g;-nan;-O0;-C;-C=alias;-C=dangling;-strict95;-ieee=full>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O4;-ieee=full>"
   )
+  if(CMAKE_WITH_OpenMP AND OpenMP_Fortran_FLAGS)
+    target_link_options(${LIB_NAME} PUBLIC "$<$<LINK_LANGUAGE:Fortran>:SHELL:${OpenMP_Fortran_FLAGS}>")
+  endif()
 endif()

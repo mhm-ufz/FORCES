@@ -29,7 +29,7 @@ end program test
 
 You should create a minimal `CMakeLists.txt` file next to the `test.f90` file like this:
 ```cmake
-cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 
 # get CPM (package manager)
 set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_0.35.0.cmake")

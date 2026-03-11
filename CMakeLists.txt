@@ -5,7 +5,7 @@
 # -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT=OFF   - build the library INDEPENDENT of the module system,
 # -DCMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX=64     - find extra library paths on some systems (eve.nag62)
 #         so the build in the build tree works even after a module purge
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.18)
 # additional cmake-modules
 set(FORCES_CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 # get version and date from files (version.txt and version_date.txt)
