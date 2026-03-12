@@ -20,7 +20,7 @@ module mo_grid
 
   use mo_kind, only: i1, i2, i4, i8, sp, dp
   use mo_constants, only : nodata_i1, nodata_i2, nodata_i4, nodata_i8, nodata_sp, nodata_dp, RadiusEarth_dp, deg2rad_dp
-  use mo_utils, only: flip, optval
+  use mo_utils, only: flip, optval, is_close
   use mo_message, only : error_message, warn_message, message
   use mo_string_utils, only : num2str
 
@@ -1297,22 +1297,62 @@ contains
     implicit none
     class(grid_t), intent(in) :: this
     real(dp), intent(in) :: coords(:,:) !< coordiantes (x,y) or (lon,lat) per gauge (shape: ngauges, 2)
-    real(dp) :: xax(this%nx), yax(this%ny)
-    integer(i8) :: i, nx, ny, cell_mat(this%nx, this%ny)
     integer(i8) :: closest_cell_id(size(coords,1))
-    real(dp) :: dx(this%nx), dy(this%ny)
-    call this%gen_id_matrix(cell_mat)
-    xax = this%x_axis()
-    yax = this%y_axis()
+    integer(i4) :: igauge, ix, iy
+    real(dp) :: x_raw, x_norm, x_map, y_raw
+    real(dp) :: x_span, x_center, x_upper
+    logical :: is_periodic, is_spherical
+    ! integer(i8), allocatable :: cell_mat(:,:)
+    ! allocate(cell_mat(this%nx, this%ny))
+    ! call this%gen_id_matrix(cell_mat)
 
-    !$omp parallel do default(shared) private(i,dx,dy,nx,ny) schedule(static)
-    do i = 1_i4, size(coords,1)
-      dx = abs(xax - coords(i,1))
-      dy = abs(yax - coords(i,2))
-      nx = minloc(dx, dim=1)
-      ny = minloc(dy, dim=1)
+    is_spherical = this%coordsys == spherical
+    is_periodic = this%is_periodic()
+    x_span = real(this%nx, dp) * this%cellsize
+    x_center = this%xllcorner + 0.5_dp * x_span
+    x_upper = this%xllcorner + x_span
+
+    !$omp parallel do default(shared) private(igauge,ix,iy,x_raw,x_norm,x_map,y_raw) schedule(static)
+    do igauge = 1_i4, size(coords,1)
+      x_raw = coords(igauge,1)
+      y_raw = coords(igauge,2)
+
+      if (is_spherical) then
+        ! Normalize equivalent longitude conventions close to the grid domain (center +/- 180)
+        ! to avoid mapping to the wrong side of the grid due to rounding issues.
+        ! This is relevant for periodic grids, but also for non-periodic grids close to the edges.
+        x_norm = modulo(x_raw - x_center + 180.0_dp, 360.0_dp) - 180.0_dp + x_center
+        x_map = x_norm
+        if (is_periodic .and. x_raw > this%xllcorner) then
+          if (is_close(x_norm, this%xllcorner) .and. is_close(modulo(x_raw - this%xllcorner, 360.0_dp), 0.0_dp)) then
+            x_map = x_upper
+          end if
+        end if
+      else
+        x_map = x_raw
+      end if
+
+      ix = ceiling((x_map - this%xllcorner) / this%cellsize, kind=i4)
+      ix = min(max(ix, 1_i4), this%nx)
+
+      iy = 1_i4
+      select case (this%y_direction)
+        case (bottom_up)
+          iy = ceiling((y_raw - this%yllcorner) / this%cellsize, kind=i4)
+        case (top_down)
+          iy = this%ny - floor((y_raw - this%yllcorner) / this%cellsize, kind=i4)
+        case default
+          call error_message("grid % closest_cell_id_by_axes: y-direction not valid: ", trim(num2str(this%y_direction))) ! LCOV_EXCL_LINE
+      end select
+      iy = min(max(iy, 1_i4), this%ny)
+
       ! if the closest cell is masked, a nodata value is returned
-      closest_cell_id(i) = cell_mat(nx, ny)
+      if (.not. this%mask(ix, iy)) then
+        closest_cell_id(igauge) = nodata_i8
+      else
+        closest_cell_id(igauge) = this%mask_cum_col_cnt(iy) + count(this%mask(1:ix, iy), kind=i8)
+      end if
+      ! closest_cell_id(igauge) = cell_mat(ix, iy)
     end do
     !$omp end parallel do
   end function grid_closest_cell_id_by_axes

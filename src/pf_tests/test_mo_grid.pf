@@ -15,6 +15,10 @@ module test_mo_grid
   public :: test_area_and_periodicity
   public :: test_closest_cell_and_distance
   public :: test_closest_cell_by_axes
+  public :: test_closest_cell_by_axes_boundaries
+  public :: test_closest_cell_by_axes_top_down
+  public :: test_closest_cell_by_axes_spherical
+  public :: test_closest_cell_by_axes_wide_grid
   public :: test_aux_vertices_and_bounds
   public :: test_data_container_move_and_deallocate
   public :: test_gen_grid_variants
@@ -236,6 +240,95 @@ contains
 
     @assertEqual(cids, [1_i8, nodata_i8, 5_i8], message='axis-based lookup returns cell ids and nodata for masked cells')
   end subroutine test_closest_cell_by_axes
+
+  @test
+  subroutine test_closest_cell_by_axes_boundaries()
+    implicit none
+    type(grid_t) :: grid
+    real(dp) :: coords(4,2)
+    integer(i8) :: cids(4)
+
+    call grid%init(nx=3, ny=2, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=2.0_dp, &
+      coordsys=cartesian, y_direction=bottom_up)
+
+    coords(1,:) = [2.0_dp, 1.0_dp]
+    coords(2,:) = [4.0_dp, 1.0_dp]
+    coords(3,:) = [1.0_dp, 2.0_dp]
+    coords(4,:) = [6.0_dp, 4.0_dp]
+    cids = grid%closest_cell_id_by_axes(coords)
+
+    @assertEqual(cids, [1_i8, 2_i8, 1_i8, 6_i8], message='axis-based lookup preserves lower-index ties and edge clamping')
+  end subroutine test_closest_cell_by_axes_boundaries
+
+  @test
+  subroutine test_closest_cell_by_axes_top_down()
+    implicit none
+    type(grid_t) :: grid
+    real(dp) :: coords(3,2)
+    integer(i8) :: cids(3)
+
+    call grid%init(nx=2, ny=2, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=2.0_dp, &
+      coordsys=cartesian, y_direction=top_down)
+
+    coords(1,:) = [1.0_dp, 2.0_dp]
+    coords(2,:) = [1.0_dp, 0.0_dp]
+    coords(3,:) = [3.0_dp, 4.0_dp]
+    cids = grid%closest_cell_id_by_axes(coords)
+
+    @assertEqual(cids, [1_i8, 3_i8, 2_i8], message='axis-based lookup respects top_down y indexing')
+  end subroutine test_closest_cell_by_axes_top_down
+
+  @test
+  subroutine test_closest_cell_by_axes_spherical()
+    implicit none
+    type(grid_t) :: global_grid, regional_grid
+    real(dp) :: global_coords(6,2), regional_coords(3,2)
+    integer(i8) :: global_ids(6), regional_ids(3)
+    integer(i8) :: global_expected(6), regional_expected(3)
+
+    call global_grid%init(nx=360, ny=1, xllcorner=0.0_dp, yllcorner=-0.5_dp, cellsize=1.0_dp, &
+      coordsys=spherical, y_direction=bottom_up)
+
+    global_coords(1,:) = [0.0_dp, 0.0_dp]
+    global_coords(2,:) = [360.0_dp, 0.0_dp]
+    global_coords(3,:) = [720.0_dp, 0.0_dp]
+    global_coords(4,:) = [-360.0_dp, 0.0_dp]
+    global_coords(5,:) = [-180.0_dp, 0.0_dp]
+    global_coords(6,:) = [180.0_dp, 0.0_dp]
+    global_ids = global_grid%closest_cell_id_by_axes(global_coords)
+    global_expected = [1_i8, 360_i8, 360_i8, 1_i8, 180_i8, 180_i8]
+
+    @assertEqual(global_ids, global_expected, message='spherical lookup normalizes longitude conventions and preserves periodic upper-bound ties')
+
+    call regional_grid%init(nx=10, ny=1, xllcorner=10.0_dp, yllcorner=-0.5_dp, cellsize=1.0_dp, &
+      coordsys=spherical, y_direction=bottom_up)
+
+    regional_coords(1,:) = [370.0_dp, 0.0_dp]
+    regional_coords(2,:) = [350.0_dp, 0.0_dp]
+    regional_coords(3,:) = [30.0_dp, 0.0_dp]
+    regional_ids = regional_grid%closest_cell_id_by_axes(regional_coords)
+    regional_expected = [1_i8, 1_i8, 10_i8]
+
+    @assertEqual(regional_ids, regional_expected, message='regional spherical lookup normalizes longitude but still clamps to the nearest domain edge')
+  end subroutine test_closest_cell_by_axes_spherical
+
+  @test
+  subroutine test_closest_cell_by_axes_wide_grid()
+    implicit none
+    type(grid_t) :: grid
+    real(dp) :: coords(3,2)
+    integer(i8) :: cids(3)
+
+    call grid%init(nx=200000, ny=2, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+      coordsys=cartesian, y_direction=bottom_up)
+
+    coords(1,:) = [100000.0_dp, 0.5_dp]
+    coords(2,:) = [200000.0_dp, 1.5_dp]
+    coords(3,:) = [0.0_dp, 0.5_dp]
+    cids = grid%closest_cell_id_by_axes(coords)
+
+    @assertEqual(cids, [100000_i8, 400000_i8, 1_i8], message='axis-based lookup scales to wide grids without axis temporaries')
+  end subroutine test_closest_cell_by_axes_wide_grid
 
   @test
   subroutine test_aux_vertices_and_bounds()
