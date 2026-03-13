@@ -22,6 +22,7 @@ module mo_grid
   use mo_constants, only : nodata_i1, nodata_i2, nodata_i4, nodata_i8, nodata_sp, nodata_dp, RadiusEarth_dp, deg2rad_dp
   use mo_utils, only: flip, optval, is_close
   use mo_message, only : error_message, warn_message, message
+  use mo_spatial_index, only: spatial_index_t
   use mo_string_utils, only : num2str
 
   implicit none
@@ -135,7 +136,9 @@ module mo_grid
     procedure, public :: id_matrix => grid_id_matrix
     procedure, public :: gen_id_matrix => grid_gen_id_matrix
     procedure, public :: cell_id => grid_cell_id
-    procedure, public :: closest_cell_id => grid_closest_cell_id
+    procedure, private :: closest_cell_id_scalar => grid_closest_cell_id_scalar
+    procedure, private :: closest_cell_id_batch => grid_closest_cell_id_batch
+    generic, public :: closest_cell_id => closest_cell_id_scalar, closest_cell_id_batch
     procedure, public :: closest_cell_id_by_axes => grid_closest_cell_id_by_axes
     procedure, public :: x_axis => grid_x_axis
     procedure, public :: y_axis => grid_y_axis
@@ -1260,34 +1263,372 @@ contains
   !> \brief Closest cell ID for given coordinates.
   !> \return `integer(i8) :: closest_cell_id`
   !> \authors Sebastian Müller
-  !> \date Jun 2025
-  integer(i8) function grid_closest_cell_id(this, coords, use_aux) result(closest_cell_id)
+  !> \date Mar 2026
+  integer(i8) function grid_closest_cell_id_scalar(this, coords, use_aux) result(closest_cell_id)
     implicit none
     class(grid_t), intent(in) :: this
     real(dp), intent(in) :: coords(2) !< coordiantes (x,y) or (lon,lat)
     logical, intent(in), optional :: use_aux !< use auxilliar coordinates (lon,lat)
-    real(dp), allocatable :: xax(:), yax(:)
-    real(dp) :: c(this%ncells, 2), dist(this%ncells)
-    integer(i8) :: i
     logical :: aux
+
     aux = optval(use_aux, .false.)
-    if (aux .and. .not.this%has_aux_coords()) call error_message("grid%closest_cell_id: no auxilliar coordniates defined.") ! LCOV_EXCL_LINE
+    if (aux .and. .not. this%has_aux_coords()) call error_message("grid%closest_cell_id: no auxilliar coordniates defined.") ! LCOV_EXCL_LINE
+
     if (aux) then
-      c(:,1) = [(this%lon(this%cell_ij(i,1),this%cell_ij(i,2)), i=1_i8,this%ncells)]
-      c(:,2) = [(this%lat(this%cell_ij(i,1),this%cell_ij(i,2)), i=1_i8,this%ncells)]
+      closest_cell_id = grid_closest_cell_id_aux_scalar(this, coords)
     else
-      xax = this%x_axis()
-      yax = this%y_axis()
-      c(:,1) = [(xax(this%cell_ij(i,1)), i=1_i8,this%ncells)]
-      c(:,2) = [(yax(this%cell_ij(i,2)), i=1_i8,this%ncells)]
+      closest_cell_id = grid_closest_cell_id_regular_scalar(this, coords)
     end if
-    if (aux.or.this%coordsys==spherical) then
-      dist = [(dist_latlon(c(i,2), c(i,1), coords(2), coords(1)), i=1_i8,this%ncells)]
+  end function grid_closest_cell_id_scalar
+
+  !> \brief Closest cell IDs for given coordinates.
+  !> \return `integer(i8) :: closest_cell_id(:)`
+  !> \authors Sebastian Müller
+  !> \date Mar 2026
+  function grid_closest_cell_id_batch(this, coords, use_aux) result(closest_cell_id)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), intent(in) :: coords(:, :) !< coordiantes (x,y) or (lon,lat) per gauge
+    logical, intent(in), optional :: use_aux !< use auxilliar coordinates (lon,lat)
+    integer(i8) :: closest_cell_id(size(coords, 1))
+
+    logical :: aux
+    integer(i4) :: igauge
+    type(spatial_index_t) :: aux_index
+
+    if (size(coords, 2) /= 2_i4) call error_message("grid%closest_cell_id: coordinates need shape (:,2).") ! LCOV_EXCL_LINE
+
+    aux = optval(use_aux, .false.)
+    if (aux .and. .not. this%has_aux_coords()) call error_message("grid%closest_cell_id: no auxilliar coordniates defined.") ! LCOV_EXCL_LINE
+
+    if (aux) then
+      call aux_index%build_from_lonlat_grid(this%lon, this%lat, this%cell_ij)
+      !$omp parallel do default(shared) private(igauge) schedule(static)
+      do igauge = 1_i4, size(coords, 1)
+        closest_cell_id(igauge) = aux_index%nearest_id_lonlat(coords(igauge, 1), coords(igauge, 2))
+      end do
+      !$omp end parallel do
     else
-      dist = [(sqrt((c(i,1)-coords(1))**2 + (c(i,2)-coords(2))**2), i=1_i8,this%ncells)]
+      !$omp parallel do default(shared) private(igauge) schedule(static)
+      do igauge = 1_i4, size(coords, 1)
+        closest_cell_id(igauge) = grid_closest_cell_id_regular_xy(this, coords(igauge, 1), coords(igauge, 2))
+      end do
+      !$omp end parallel do
     end if
-    closest_cell_id = minloc(dist, dim=1)
-  end function grid_closest_cell_id
+  end function grid_closest_cell_id_batch
+
+  integer(i8) function grid_closest_cell_id_aux_scalar(this, coords) result(closest_cell_id)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), intent(in) :: coords(2)
+
+    closest_cell_id = grid_closest_cell_id_aux_lonlat(this, coords(1), coords(2))
+  end function grid_closest_cell_id_aux_scalar
+
+  integer(i8) function grid_closest_cell_id_regular_scalar(this, coords) result(closest_cell_id)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), intent(in) :: coords(2)
+
+    closest_cell_id = grid_closest_cell_id_regular_xy(this, coords(1), coords(2))
+  end function grid_closest_cell_id_regular_scalar
+
+  integer(i8) function grid_closest_cell_id_aux_lonlat(this, lon_query, lat_query) result(closest_cell_id)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), intent(in) :: lon_query
+    real(dp), intent(in) :: lat_query
+
+    integer(i8) :: k
+    integer(i4) :: i, j
+    real(dp) :: best_dist, cand_dist
+
+    closest_cell_id = 0_i8
+    if (this%ncells < 1_i8) return
+
+    best_dist = huge(1.0_dp)
+    do k = 1_i8, this%ncells
+      i = this%cell_ij(k, 1)
+      j = this%cell_ij(k, 2)
+      cand_dist = dist_latlon(this%lat(i, j), this%lon(i, j), lat_query, lon_query)
+      call grid_update_best_metric(closest_cell_id, best_dist, k, cand_dist)
+    end do
+  end function grid_closest_cell_id_aux_lonlat
+
+  integer(i8) function grid_closest_cell_id_regular_xy(this, x_query_raw, y_query) result(closest_cell_id)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), intent(in) :: x_query_raw
+    real(dp), intent(in) :: y_query
+
+    logical :: is_spherical, is_periodic
+    integer(i4) :: nearest_j, max_offset, row_offset, nrows, row_order(2), row_ids(2), irow, row_j, ncand, icand
+    integer(i8) :: cand_ids(4), k_lb, k_ub
+    real(dp) :: x_query, best_metric, row_metric(2), cand_metric
+
+    closest_cell_id = 0_i8
+    if (this%ncells < 1_i8) return
+
+    is_spherical = this%coordsys == spherical
+    is_periodic = is_spherical .and. this%is_periodic()
+
+    x_query = x_query_raw
+    if (is_spherical) x_query = grid_normalize_longitude_near_domain(this, x_query)
+
+    nearest_j = grid_nearest_y_index(this, y_query)
+    max_offset = max(nearest_j - 1_i4, this%ny - nearest_j)
+    best_metric = huge(1.0_dp)
+
+    search_rows: do row_offset = 0_i4, max_offset
+      nrows = 0_i4
+
+      if (nearest_j - row_offset >= 1_i4) then
+        nrows = nrows + 1_i4
+        row_ids(nrows) = nearest_j - row_offset
+        row_metric(nrows) = grid_row_lower_bound(this, row_ids(nrows), y_query, is_spherical)
+      end if
+      if (row_offset > 0_i4 .and. nearest_j + row_offset <= this%ny) then
+        nrows = nrows + 1_i4
+        row_ids(nrows) = nearest_j + row_offset
+        row_metric(nrows) = grid_row_lower_bound(this, row_ids(nrows), y_query, is_spherical)
+      end if
+
+      row_order(1) = 1_i4
+      row_order(2) = 2_i4
+      if (nrows == 2_i4) then
+        if (row_metric(2) < row_metric(1) .or. (is_close(row_metric(2), row_metric(1)) .and. row_ids(2) < row_ids(1))) then
+          row_order = [2_i4, 1_i4]
+        end if
+      end if
+
+      do irow = 1_i4, nrows
+        row_j = row_ids(row_order(irow))
+        if (closest_cell_id > 0_i8) then
+          if (row_metric(row_order(irow)) > best_metric .and. .not. is_close(row_metric(row_order(irow)), best_metric)) exit search_rows
+        end if
+
+        call grid_row_k_bounds(this, row_j, k_lb, k_ub)
+        if (k_lb > k_ub) cycle
+
+        call grid_row_candidate_ids(this, k_lb, k_ub, x_query, is_periodic, cand_ids, ncand)
+        do icand = 1_i4, ncand
+          if (is_spherical) then
+            cand_metric = grid_spherical_cell_distance(this, cand_ids(icand), x_query, y_query)
+          else
+            cand_metric = grid_cartesian_cell_distance2(this, cand_ids(icand), x_query, y_query)
+          end if
+          call grid_update_best_metric(closest_cell_id, best_metric, cand_ids(icand), cand_metric)
+        end do
+      end do
+    end do search_rows
+  end function grid_closest_cell_id_regular_xy
+
+  subroutine grid_row_k_bounds(this, j, k_lb, k_ub)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i4), intent(in) :: j
+    integer(i8), intent(out) :: k_lb
+    integer(i8), intent(out) :: k_ub
+
+    if (this%mask_col_cnt(j) < 1_i8) then
+      k_lb = 1_i8
+      k_ub = 0_i8
+      return
+    end if
+
+    k_lb = this%mask_cum_col_cnt(j) + 1_i8
+    k_ub = this%mask_cum_col_cnt(j) + this%mask_col_cnt(j)
+  end subroutine grid_row_k_bounds
+
+  subroutine grid_row_candidate_ids(this, k_lb, k_ub, x_query, periodic_wrap, cand_ids, ncand)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i8), intent(in) :: k_lb
+    integer(i8), intent(in) :: k_ub
+    real(dp), intent(in) :: x_query
+    logical, intent(in) :: periodic_wrap
+    integer(i8), intent(out) :: cand_ids(4)
+    integer(i4), intent(out) :: ncand
+
+    real(dp) :: target_i
+    integer(i8) :: left_k, right_k
+
+    cand_ids = 0_i8
+    ncand = 0_i4
+    if (k_lb > k_ub) return
+
+    target_i = (x_query - this%xllcorner) / this%cellsize + 0.5_dp
+    call grid_row_binary_search(this, k_lb, k_ub, target_i, left_k, right_k)
+
+    call grid_append_candidate_id(cand_ids, ncand, right_k, k_lb, k_ub)
+    call grid_append_candidate_id(cand_ids, ncand, left_k, k_lb, k_ub)
+    if (periodic_wrap) then
+      call grid_append_candidate_id(cand_ids, ncand, k_lb, k_lb, k_ub)
+      call grid_append_candidate_id(cand_ids, ncand, k_ub, k_lb, k_ub)
+    end if
+  end subroutine grid_row_candidate_ids
+
+  subroutine grid_row_binary_search(this, k_lb, k_ub, target_i, left_k, right_k)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i8), intent(in) :: k_lb
+    integer(i8), intent(in) :: k_ub
+    real(dp), intent(in) :: target_i
+    integer(i8), intent(out) :: left_k
+    integer(i8), intent(out) :: right_k
+
+    integer(i8) :: lo, hi, mid
+
+    lo = k_lb
+    hi = k_ub
+    do while (lo <= hi)
+      mid = lo + (hi - lo) / 2_i8
+      if (real(this%cell_ij(mid, 1), dp) < target_i) then
+        lo = mid + 1_i8
+      else
+        hi = mid - 1_i8
+      end if
+    end do
+
+    left_k = hi
+    right_k = lo
+  end subroutine grid_row_binary_search
+
+  subroutine grid_append_candidate_id(cand_ids, ncand, cand_k, k_lb, k_ub)
+    implicit none
+    integer(i8), intent(inout) :: cand_ids(4)
+    integer(i4), intent(inout) :: ncand
+    integer(i8), intent(in) :: cand_k
+    integer(i8), intent(in) :: k_lb
+    integer(i8), intent(in) :: k_ub
+
+    integer(i4) :: i
+
+    if (cand_k < k_lb .or. cand_k > k_ub) return
+    do i = 1_i4, ncand
+      if (cand_ids(i) == cand_k) return
+    end do
+
+    ncand = ncand + 1_i4
+    cand_ids(ncand) = cand_k
+  end subroutine grid_append_candidate_id
+
+  subroutine grid_update_best_metric(best_k, best_metric, cand_k, cand_metric)
+    implicit none
+    integer(i8), intent(inout) :: best_k
+    real(dp), intent(inout) :: best_metric
+    integer(i8), intent(in) :: cand_k
+    real(dp), intent(in) :: cand_metric
+
+    if (best_k < 1_i8) then
+      best_k = cand_k
+      best_metric = cand_metric
+      return
+    end if
+
+    if (cand_metric < best_metric) then
+      best_k = cand_k
+      best_metric = cand_metric
+      return
+    end if
+
+    if (is_close(cand_metric, best_metric) .and. cand_k < best_k) then
+      best_k = cand_k
+      best_metric = cand_metric
+    end if
+  end subroutine grid_update_best_metric
+
+  pure integer(i4) function grid_nearest_y_index(this, y_raw) result(iy)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), intent(in) :: y_raw
+
+    select case (this%y_direction)
+      case (bottom_up)
+        iy = ceiling((y_raw - this%yllcorner) / this%cellsize, kind=i4)
+      case (top_down)
+        iy = this%ny - floor((y_raw - this%yllcorner) / this%cellsize, kind=i4)
+      case default
+        iy = 1_i4
+    end select
+
+    iy = max(1_i4, min(this%ny, iy))
+  end function grid_nearest_y_index
+
+  pure real(dp) function grid_row_lower_bound(this, j, y_query, is_spherical) result(metric)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i4), intent(in) :: j
+    real(dp), intent(in) :: y_query
+    logical, intent(in) :: is_spherical
+
+    real(dp) :: dy
+
+    dy = abs(grid_y_center(this, j) - y_query)
+    if (is_spherical) then
+      metric = RadiusEarth_dp * deg2rad_dp * dy
+    else
+      metric = dy * dy
+    end if
+  end function grid_row_lower_bound
+
+  pure real(dp) function grid_cartesian_cell_distance2(this, k, x_query, y_query) result(metric)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i8), intent(in) :: k
+    real(dp), intent(in) :: x_query
+    real(dp), intent(in) :: y_query
+
+    real(dp) :: dx, dy
+
+    dx = grid_x_center(this, this%cell_ij(k, 1)) - x_query
+    dy = grid_y_center(this, this%cell_ij(k, 2)) - y_query
+    metric = dx * dx + dy * dy
+  end function grid_cartesian_cell_distance2
+
+  pure real(dp) function grid_spherical_cell_distance(this, k, x_query, y_query) result(metric)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i8), intent(in) :: k
+    real(dp), intent(in) :: x_query
+    real(dp), intent(in) :: y_query
+
+    metric = dist_latlon(grid_y_center(this, this%cell_ij(k, 2)), grid_x_center(this, this%cell_ij(k, 1)), y_query, x_query)
+  end function grid_spherical_cell_distance
+
+  pure real(dp) function grid_x_center(this, i) result(x_center)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i4), intent(in) :: i
+
+    x_center = (real(i, dp) - 0.5_dp) * this%cellsize + this%xllcorner
+  end function grid_x_center
+
+  pure real(dp) function grid_y_center(this, j) result(y_center)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i4), intent(in) :: j
+
+    select case (this%y_direction)
+      case (bottom_up)
+        y_center = (real(j, dp) - 0.5_dp) * this%cellsize + this%yllcorner
+      case (top_down)
+        y_center = (real(this%ny - j + 1_i4, dp) - 0.5_dp) * this%cellsize + this%yllcorner
+      case default
+        y_center = (real(j, dp) - 0.5_dp) * this%cellsize + this%yllcorner
+    end select
+  end function grid_y_center
+
+  pure real(dp) function grid_normalize_longitude_near_domain(this, x_raw) result(x_norm)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), intent(in) :: x_raw
+
+    real(dp) :: x_center
+
+    x_center = this%xllcorner + 0.5_dp * real(this%nx, dp) * this%cellsize
+    x_norm = modulo(x_raw - x_center + 180.0_dp, 360.0_dp) - 180.0_dp + x_center
+  end function grid_normalize_longitude_near_domain
 
   !> \brief Closest cell ID for given coordinates from axis.
   !> \return `integer(i8) :: closest_cell_id(:)`
