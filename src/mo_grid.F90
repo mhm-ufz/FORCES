@@ -140,6 +140,7 @@ module mo_grid
     procedure, private :: closest_cell_id_batch => grid_closest_cell_id_batch
     generic, public :: closest_cell_id => closest_cell_id_scalar, closest_cell_id_batch
     procedure, public :: closest_cell_id_by_axes => grid_closest_cell_id_by_axes
+    procedure, public :: build_spatial_index => grid_build_spatial_index
     procedure, public :: x_axis => grid_x_axis
     procedure, public :: y_axis => grid_y_axis
     procedure, public :: x_vertices => grid_x_vertices
@@ -1260,6 +1261,47 @@ contains
     cell_id = this%mask_cum_col_cnt(indices(2)) + count(this%mask(1_i4:indices(1), indices(2)), kind=i8)
   end function grid_cell_id
 
+  subroutine grid_build_spatial_index(this, index, use_aux)
+    implicit none
+    class(grid_t), intent(in) :: this
+    type(spatial_index_t), intent(out) :: index
+    logical, intent(in), optional :: use_aux
+
+    logical :: aux
+    integer(i8) :: k
+    integer(i4) :: i, j
+    integer(i8), allocatable :: point_ids(:)
+    real(dp), allocatable :: points(:, :)
+
+    aux = optval(use_aux, .false.)
+    if (aux .and. .not. this%has_aux_coords()) &
+      call error_message("grid%build_spatial_index: no auxilliar coordniates defined.") ! LCOV_EXCL_LINE
+
+    allocate(point_ids(this%ncells))
+    do k = 1_i8, this%ncells
+      point_ids(k) = k
+    end do
+
+    allocate(points(this%ncells, 2))
+    do k = 1_i8, this%ncells
+      i = this%cell_ij(k, 1)
+      j = this%cell_ij(k, 2)
+      if (aux) then
+        points(k, 1) = this%lon(i, j)
+        points(k, 2) = this%lat(i, j)
+      else
+        points(k, 1) = grid_x_center(this, i)
+        points(k, 2) = grid_y_center(this, j)
+      end if
+    end do
+
+    if (aux .or. this%coordsys == spherical) then
+      call index%init_lonlat(points, point_ids)
+    else
+      call index%init(points, point_ids)
+    end if
+  end subroutine grid_build_spatial_index
+
   !> \brief Closest cell ID for given coordinates.
   !> \return `integer(i8) :: closest_cell_id`
   !> \authors Sebastian Müller
@@ -1302,12 +1344,8 @@ contains
     if (aux .and. .not. this%has_aux_coords()) call error_message("grid%closest_cell_id: no auxilliar coordniates defined.") ! LCOV_EXCL_LINE
 
     if (aux) then
-      call aux_index%build_from_lonlat_grid(this%lon, this%lat, this%cell_ij)
-      !$omp parallel do default(shared) private(igauge) schedule(static)
-      do igauge = 1_i4, size(coords, 1)
-        closest_cell_id(igauge) = aux_index%nearest_id_lonlat(coords(igauge, 1), coords(igauge, 2))
-      end do
-      !$omp end parallel do
+      call this%build_spatial_index(aux_index, use_aux=.true.)
+      closest_cell_id = aux_index%nearest_ids_lonlat(coords)
     else
       !$omp parallel do default(shared) private(igauge) schedule(static)
       do igauge = 1_i4, size(coords, 1)
