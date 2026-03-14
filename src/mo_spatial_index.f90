@@ -309,10 +309,12 @@ contains
     j = hi
 
     do
-      do while (pts(axis, i) < pivot)
+      do while (i <= hi)
+        if (pts(axis, i) >= pivot) exit
         i = i + 1_i8
       end do
-      do while (pts(axis, j) > pivot)
+      do while (j >= lo)
+        if (pts(axis, j) <= pivot) exit
         j = j - 1_i8
       end do
       if (i > j) exit
