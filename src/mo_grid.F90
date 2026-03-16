@@ -1261,39 +1261,67 @@ contains
     cell_id = this%mask_cum_col_cnt(indices(2)) + count(this%mask(1_i4:indices(1), indices(2)), kind=i8)
   end function grid_cell_id
 
-  subroutine grid_build_spatial_index(this, index, use_aux)
+  !> \brief Build a spatial index over grid cell centers.
+  !> \details By default, only active cells are indexed and the returned point ids
+  !! match packed cell ids. With `include_masked=.true.`, all matrix cells are
+  !! indexed and point ids follow the row-major full-cell numbering
+  !! `((j - 1) * nx + i)`.
+  subroutine grid_build_spatial_index(this, index, use_aux, include_masked)
     implicit none
     class(grid_t), intent(in) :: this
     type(spatial_index_t), intent(out) :: index
     logical, intent(in), optional :: use_aux
+    logical, intent(in), optional :: include_masked
 
-    logical :: aux
+    logical :: aux, include_masked_
     integer(i8) :: k
     integer(i4) :: i, j
+    integer(i8) :: npts
     integer(i8), allocatable :: point_ids(:)
     real(dp), allocatable :: points(:, :)
 
     aux = optval(use_aux, .false.)
+    include_masked_ = optval(include_masked, .false.)
     if (aux .and. .not. this%has_aux_coords()) &
       call error_message("grid%build_spatial_index: no auxilliar coordniates defined.") ! LCOV_EXCL_LINE
 
-    allocate(point_ids(this%ncells))
-    do k = 1_i8, this%ncells
-      point_ids(k) = k
-    end do
+    if (include_masked_) then
+      npts = int(this%nx, i8) * int(this%ny, i8)
+    else
+      npts = this%ncells
+    end if
 
-    allocate(points(this%ncells, 2))
-    do k = 1_i8, this%ncells
-      i = this%cell_ij(k, 1)
-      j = this%cell_ij(k, 2)
-      if (aux) then
-        points(k, 1) = this%lon(i, j)
-        points(k, 2) = this%lat(i, j)
-      else
-        points(k, 1) = grid_x_center(this, i)
-        points(k, 2) = grid_y_center(this, j)
-      end if
-    end do
+    allocate(point_ids(npts))
+    allocate(points(npts, 2))
+
+    if (include_masked_) then
+      do j = 1_i4, this%ny
+        do i = 1_i4, this%nx
+          k = int(j - 1_i4, i8) * int(this%nx, i8) + int(i, i8)
+          point_ids(k) = k
+          if (aux) then
+            points(k, 1) = this%lon(i, j)
+            points(k, 2) = this%lat(i, j)
+          else
+            points(k, 1) = grid_x_center(this, i)
+            points(k, 2) = grid_y_center(this, j)
+          end if
+        end do
+      end do
+    else
+      do k = 1_i8, this%ncells
+        point_ids(k) = k
+        i = this%cell_ij(k, 1)
+        j = this%cell_ij(k, 2)
+        if (aux) then
+          points(k, 1) = this%lon(i, j)
+          points(k, 2) = this%lat(i, j)
+        else
+          points(k, 1) = grid_x_center(this, i)
+          points(k, 2) = grid_y_center(this, j)
+        end if
+      end do
+    end if
 
     if (aux .or. this%coordsys == spherical) then
       call index%init_lonlat(points, point_ids)

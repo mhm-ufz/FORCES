@@ -208,6 +208,9 @@ module mo_grid_scaler
     procedure, private :: check_packed_target => nearest_regridder_check_packed_target
     procedure, private :: check_unpacked_source => nearest_regridder_check_unpacked_source
     procedure, private :: check_unpacked_target => nearest_regridder_check_unpacked_target
+    procedure, private :: derive_target_mask => nearest_regridder_derive_target_mask
+    procedure, private :: apply_target_mask => nearest_regridder_apply_target_mask
+    procedure, private :: build_id_map => nearest_regridder_build_id_map
     procedure, private :: map_dp => nearest_regridder_map_dp
     procedure, private :: map_i4 => nearest_regridder_map_i4
     !> \brief Execute nearest-neighbor remapping.
@@ -347,53 +350,28 @@ contains
 
   !> \brief Setup nearest-neighbor regridder from source and target grids.
   !> \details Builds a transient spatial index over the active source cells and
-  !! stores the nearest source cell id for every active target cell.
-  subroutine nearest_regridder_init(this, source_grid, target_grid, use_aux)
+  !! stores the nearest source cell id for every active target cell. When
+  !! `derive_target_mask=.true.`, the target grid mask is first reduced by the
+  !! nearest full source-cell mask before the final active-cell mapping is built.
+  subroutine nearest_regridder_init(this, source_grid, target_grid, use_aux, derive_target_mask)
     class(nearest_regridder_t), intent(inout) :: this
     type(grid_t), pointer, intent(in) :: source_grid
     type(grid_t), pointer, intent(in) :: target_grid
     logical, intent(in), optional :: use_aux
+    logical, intent(in), optional :: derive_target_mask
 
-    type(spatial_index_t) :: index
-    real(dp), allocatable :: source_points(:, :), target_points(:, :)
-    integer(i8), allocatable :: point_ids(:)
-    integer(i8) :: k
-    logical :: use_aux_
+    logical :: use_aux_, derive_target_mask_
 
     use_aux_ = optval(use_aux, .false.)
+    derive_target_mask_ = optval(derive_target_mask, .false.)
 
     this%source_grid => source_grid
     this%target_grid => target_grid
     if (allocated(this%id_map)) deallocate(this%id_map)
 
     call this%select_space(use_aux_)
-
-    allocate(this%id_map(this%target_grid%ncells))
-    if (this%target_grid%ncells < 1_i8) return
-    if (this%source_grid%ncells < 1_i8) then
-      call error_message("nearest_regridder % init: source grid has no active cells.") ! LCOV_EXCL_LINE
-    end if
-
-    allocate(point_ids(this%source_grid%ncells))
-    !$omp parallel do default(shared) private(k) schedule(static)
-    do k = 1_i8, this%source_grid%ncells
-      point_ids(k) = k
-    end do
-    !$omp end parallel do
-
-    allocate(source_points(this%source_grid%ncells, 2))
-    allocate(target_points(this%target_grid%ncells, 2))
-    if (this%mapping_coordsys == cartesian) then
-      call nearest_regridder_collect_cartesian_points(this%source_grid, source_points)
-      call nearest_regridder_collect_cartesian_points(this%target_grid, target_points)
-      call index%init(source_points, point_ids)
-      this%id_map = index%nearest_ids(target_points)
-    else
-      call nearest_regridder_collect_lonlat_points(this%source_grid, this%source_use_aux, source_points)
-      call nearest_regridder_collect_lonlat_points(this%target_grid, this%target_use_aux, target_points)
-      call index%init_lonlat(source_points, point_ids)
-      this%id_map = index%nearest_ids_lonlat(target_points)
-    end if
+    if (derive_target_mask_) call this%derive_target_mask()
+    call this%build_id_map()
   end subroutine nearest_regridder_init
 
   subroutine nearest_regridder_exe_dp_1d_1d(this, in_data, out_data)
@@ -552,6 +530,96 @@ contains
     end if
   end subroutine nearest_regridder_select_space
 
+  subroutine nearest_regridder_derive_target_mask(this)
+    class(nearest_regridder_t), intent(inout) :: this
+
+    type(spatial_index_t) :: index
+    logical, allocatable :: target_mask(:, :)
+    integer(i8), allocatable :: nearest_ids(:)
+    real(dp), allocatable :: target_points(:, :)
+    integer(i8) :: k
+    integer(i4) :: src_i, src_j, tgt_i, tgt_j
+
+    if (.not. this%source_grid%any_missing()) return
+    if (this%target_grid%ncells < 1_i8) return
+
+    allocate(target_mask(this%target_grid%nx, this%target_grid%ny), source=this%target_grid%mask)
+    allocate(target_points(this%target_grid%ncells, 2))
+
+    if (this%mapping_coordsys == cartesian) then
+      call nearest_regridder_collect_cartesian_points(this%target_grid, target_points)
+      call this%source_grid%build_spatial_index(index, include_masked=.true.)
+      nearest_ids = index%nearest_ids(target_points)
+    else
+      call nearest_regridder_collect_lonlat_points(this%target_grid, this%target_use_aux, target_points)
+      call this%source_grid%build_spatial_index(index, use_aux=this%source_use_aux, include_masked=.true.)
+      nearest_ids = index%nearest_ids_lonlat(target_points)
+    end if
+
+    do k = 1_i8, this%target_grid%ncells
+      tgt_i = this%target_grid%cell_ij(k, 1)
+      tgt_j = this%target_grid%cell_ij(k, 2)
+      call nearest_regridder_full_id_to_ij(this%source_grid, nearest_ids(k), src_i, src_j)
+      if (.not. this%source_grid%mask(src_i, src_j)) target_mask(tgt_i, tgt_j) = .false.
+    end do
+
+    if (any(target_mask .neqv. this%target_grid%mask)) call this%apply_target_mask(target_mask)
+  end subroutine nearest_regridder_derive_target_mask
+
+  subroutine nearest_regridder_apply_target_mask(this, target_mask)
+    class(nearest_regridder_t), intent(inout) :: this
+    logical, intent(in) :: target_mask(:, :)
+
+    real(dp), allocatable :: area_matrix(:, :)
+    real(dp), allocatable :: packed_area(:)
+    logical :: has_cell_area
+
+    if (size(target_mask, 1) /= this%target_grid%nx .or. size(target_mask, 2) /= this%target_grid%ny) then
+      call error_message("nearest_regridder % init: derived target mask has wrong shape.") ! LCOV_EXCL_LINE
+    end if
+
+    has_cell_area = allocated(this%target_grid%cell_area)
+    if (has_cell_area) then
+      allocate(area_matrix(this%target_grid%nx, this%target_grid%ny))
+      call this%target_grid%unpack_into(this%target_grid%cell_area, area_matrix)
+    end if
+
+    this%target_grid%mask = target_mask
+    call this%target_grid%calculate_cell_ids()
+
+    if (has_cell_area) then
+      allocate(packed_area(this%target_grid%ncells))
+      call this%target_grid%pack_into(area_matrix, packed_area)
+      deallocate(this%target_grid%cell_area)
+      call move_alloc(packed_area, this%target_grid%cell_area)
+    end if
+  end subroutine nearest_regridder_apply_target_mask
+
+  subroutine nearest_regridder_build_id_map(this)
+    class(nearest_regridder_t), intent(inout) :: this
+
+    type(spatial_index_t) :: index
+    real(dp), allocatable :: target_points(:, :)
+
+    if (allocated(this%id_map)) deallocate(this%id_map)
+    allocate(this%id_map(this%target_grid%ncells))
+    if (this%target_grid%ncells < 1_i8) return
+    if (this%source_grid%ncells < 1_i8) then
+      call error_message("nearest_regridder % init: source grid has no active cells.") ! LCOV_EXCL_LINE
+    end if
+
+    call this%source_grid%build_spatial_index(index, use_aux=this%source_use_aux)
+    allocate(target_points(this%target_grid%ncells, 2))
+
+    if (this%mapping_coordsys == cartesian) then
+      call nearest_regridder_collect_cartesian_points(this%target_grid, target_points)
+      this%id_map = index%nearest_ids(target_points)
+    else
+      call nearest_regridder_collect_lonlat_points(this%target_grid, this%target_use_aux, target_points)
+      this%id_map = index%nearest_ids_lonlat(target_points)
+    end if
+  end subroutine nearest_regridder_build_id_map
+
   subroutine nearest_regridder_collect_cartesian_points(grid, points)
     type(grid_t), intent(in) :: grid
     real(dp), intent(out) :: points(:, :)
@@ -693,6 +761,24 @@ contains
 
     x_center = (real(i, dp) - 0.5_dp) * grid%cellsize + grid%xllcorner
   end function nearest_regridder_grid_x_center
+
+  subroutine nearest_regridder_full_id_to_ij(grid, full_id, i, j)
+    type(grid_t), intent(in) :: grid
+    integer(i8), intent(in) :: full_id
+    integer(i4), intent(out) :: i
+    integer(i4), intent(out) :: j
+
+    integer(i8) :: nx_i8, total_cells
+
+    nx_i8 = int(grid%nx, i8)
+    total_cells = nx_i8 * int(grid%ny, i8)
+    if (full_id < 1_i8 .or. full_id > total_cells) then
+      call error_message("nearest_regridder % init: source full-cell id is out of bounds.") ! LCOV_EXCL_LINE
+    end if
+
+    j = int((full_id - 1_i8) / nx_i8, i4) + 1_i4
+    i = int(full_id - int(j - 1_i4, i8) * nx_i8, i4)
+  end subroutine nearest_regridder_full_id_to_ij
 
   pure real(dp) function nearest_regridder_grid_y_center(grid, j) result(y_center)
     type(grid_t), intent(in) :: grid

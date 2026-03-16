@@ -370,7 +370,7 @@ contains
     type(spatial_index_t) :: index
     logical :: mask(3, 2), sph_mask(360, 3)
     real(dp) :: cart_coords(3, 2), sph_coords(3, 2), aux_coords(3, 2)
-    integer(i8) :: index_ids(3), grid_ids(3)
+    integer(i8) :: index_ids(3), grid_ids(3), masked_full_id
     integer(i8) :: brute_ids(3), k, iq
     integer(i4) :: i, j
     real(dp) :: best_dist, cand_dist
@@ -386,6 +386,9 @@ contains
     call cart_grid%build_spatial_index(index)
     index_ids = index%nearest_ids(cart_coords)
     @assertEqual(index_ids, grid_ids, message='cartesian grid builder matches exact nearest active cell ids')
+    call cart_grid%build_spatial_index(index, include_masked=.true.)
+    masked_full_id = index%nearest_id([1.5_dp, 0.5_dp])
+    @assertEqual(masked_full_id, 2_i8, message='cartesian grid builder can return masked full-cell ids when requested')
 
     sph_mask = .false.
     sph_mask(1, 1) = .true.
