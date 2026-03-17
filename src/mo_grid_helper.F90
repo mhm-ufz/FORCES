@@ -13,6 +13,7 @@
 module mo_grid_helper
 
   use mo_kind, only: i1, i2, i4, i8, sp, dp
+  use mo_grid_constants, only: top_down, bottom_up
   use mo_constants, only : nodata_dp, RadiusEarth_dp, deg2rad_dp
   use mo_utils, only: flip, optval, is_close
   use mo_message, only : error_message, warn_message
@@ -21,9 +22,6 @@ module mo_grid_helper
   implicit none
 
   private
-
-  integer(i4), parameter :: helper_top_down = 0_i4
-  integer(i4), parameter :: helper_bottom_up = 1_i4
 
   public :: grid_value_in_closed_interval
   public :: grid_shift_longitude_near_query
@@ -41,6 +39,7 @@ module mo_grid_helper
   public :: read_ascii_grid
   public :: write_ascii_grid
   public :: read_ascii_header
+  public :: data_t
 #ifdef FORCES_WITH_NETCDF
   public :: check_uniform_axis
   public :: is_x_axis
@@ -49,6 +48,8 @@ module mo_grid_helper
   public :: is_t_axis
   public :: is_lon_coord
   public :: is_lat_coord
+  public :: mask_from_var
+  public :: data_from_var
 #endif
 
   interface read_ascii_grid
@@ -59,7 +60,83 @@ module mo_grid_helper
     module procedure write_ascii_grid_i4, write_ascii_grid_dp
   end interface write_ascii_grid
 
+  !> \class   data_t
+  !> \brief   2D data container for different data types.
+  type, public :: data_t
+    character(:), allocatable :: dtype       !< selector for data type ('f32', 'f64', 'i8', 'i16', 'i32', 'i64')
+    real(sp), allocatable :: data_sp(:,:)    !< data in single precision
+    real(dp), allocatable :: data_dp(:,:)    !< data in double precision
+    integer(i1), allocatable :: data_i1(:,:) !< data in 1-byte integers
+    integer(i2), allocatable :: data_i2(:,:) !< data in 2-byte integers
+    integer(i4), allocatable :: data_i4(:,:) !< data in 4-byte integers
+    integer(i8), allocatable :: data_i8(:,:) !< data in 8-byte integers
+  contains
+    procedure, public :: deallocate => data_deallocate
+    generic, public :: move => data_move_sp, data_move_dp, data_move_i1, data_move_i2, data_move_i4, data_move_i8
+    procedure, private :: data_move_sp, data_move_dp, data_move_i1, data_move_i2, data_move_i4, data_move_i8
+  end type data_t
+
 contains
+
+  !> \brief Deallocate data in data container.
+  subroutine data_deallocate(this)
+    class(data_t), intent(inout) :: this
+
+    if (allocated(this%data_sp)) deallocate(this%data_sp)
+    if (allocated(this%data_dp)) deallocate(this%data_dp)
+    if (allocated(this%data_i1)) deallocate(this%data_i1)
+    if (allocated(this%data_i2)) deallocate(this%data_i2)
+    if (allocated(this%data_i4)) deallocate(this%data_i4)
+    if (allocated(this%data_i8)) deallocate(this%data_i8)
+  end subroutine data_deallocate
+
+  subroutine data_move_sp(this, data)
+    class(data_t), intent(inout) :: this
+    real(sp), allocatable, dimension(:,:), intent(out) :: data
+
+    if (.not. allocated(this%data_sp)) call error_message("data % get: data not allocated for dtype 'f32'") ! LCOV_EXCL_LINE
+    call move_alloc(this%data_sp, data)
+  end subroutine data_move_sp
+
+  subroutine data_move_dp(this, data)
+    class(data_t), intent(inout) :: this
+    real(dp), allocatable, dimension(:,:), intent(out) :: data
+
+    if (.not. allocated(this%data_dp)) call error_message("data % get: data not allocated for dtype 'f64'") ! LCOV_EXCL_LINE
+    call move_alloc(this%data_dp, data)
+  end subroutine data_move_dp
+
+  subroutine data_move_i1(this, data)
+    class(data_t), intent(inout) :: this
+    integer(i1), allocatable, dimension(:,:), intent(out) :: data
+
+    if (.not. allocated(this%data_i1)) call error_message("data % get: data not allocated for dtype 'i8'") ! LCOV_EXCL_LINE
+    call move_alloc(this%data_i1, data)
+  end subroutine data_move_i1
+
+  subroutine data_move_i2(this, data)
+    class(data_t), intent(inout) :: this
+    integer(i2), allocatable, dimension(:,:), intent(out) :: data
+
+    if (.not. allocated(this%data_i2)) call error_message("data % get: data not allocated for dtype 'i16'") ! LCOV_EXCL_LINE
+    call move_alloc(this%data_i2, data)
+  end subroutine data_move_i2
+
+  subroutine data_move_i4(this, data)
+    class(data_t), intent(inout) :: this
+    integer(i4), allocatable, dimension(:,:), intent(out) :: data
+
+    if (.not. allocated(this%data_i4)) call error_message("data % get: data not allocated for dtype 'i32'") ! LCOV_EXCL_LINE
+    call move_alloc(this%data_i4, data)
+  end subroutine data_move_i4
+
+  subroutine data_move_i8(this, data)
+    class(data_t), intent(inout) :: this
+    integer(i8), allocatable, dimension(:,:), intent(out) :: data
+
+    if (.not. allocated(this%data_i8)) call error_message("data % get: data not allocated for dtype 'i64'") ! LCOV_EXCL_LINE
+    call move_alloc(this%data_i8, data)
+  end subroutine data_move_i8
 
   pure logical function grid_value_in_closed_interval(value, lower, upper) result(in_interval)
     implicit none
@@ -399,6 +476,197 @@ contains
     end if
   end function is_lat_coord
 
+  !> \brief Create a mask from a NetCDF variable.
+  !> \details Non-missing values become `.true.` and missing values become `.false.`.
+  !! Supports 2D data and reads only the first layer of higher dimensions.
+  subroutine mask_from_var(var, mask, data, flip_y)
+    use mo_netcdf, only : NcVariable
+    use mo_utils, only : ne
+    use ieee_arithmetic, only : ieee_is_nan
+    implicit none
+    type(NcVariable), intent(in) :: var
+    logical, dimension(:, :), allocatable, intent(out) :: mask
+    type(data_t), intent(inout), optional :: data
+    logical, intent(in), optional :: flip_y
+    integer(i1), dimension(:, :), allocatable :: data_i1
+    integer(i1) :: fv_i1
+    integer(i2), dimension(:, :), allocatable :: data_i2
+    integer(i2) :: fv_i2
+    integer(i4), dimension(:, :), allocatable :: data_i4
+    integer(i4) :: fv_i4
+    integer(i8), dimension(:, :), allocatable :: data_i8
+    integer(i8) :: fv_i8
+    real(sp), dimension(:, :), allocatable :: data_sp
+    real(sp) :: fv_sp
+    real(dp), dimension(:, :), allocatable :: data_dp
+    real(dp) :: fv_dp
+    integer(i4), dimension(:), allocatable :: shp, start, cnt
+    character(:), allocatable :: dtype, name
+    integer(i4) :: i, nx, ny
+    logical :: flip_y_
+
+    flip_y_ = optval(flip_y, default=.false.)
+
+    shp = var%getShape()
+    allocate(start(size(shp)), source=1_i4)
+    allocate(cnt(size(shp)), source=1_i4)
+    cnt(:2) = shp(:2)
+    dtype = trim(var%getDtype())
+
+    if (present(data)) then
+      if (allocated(data%dtype)) then
+        dtype = trim(data%dtype)
+      else
+        data%dtype = dtype
+      end if
+      call data%deallocate()
+    end if
+
+    select case (dtype)
+      case ("i8")
+        call var%getData(data_i1, start=start, cnt=cnt)
+        if (flip_y_) call flip(data_i1, iDim=2)
+        call var%getFillValue(fv_i1)
+        nx = size(data_i1, 1)
+        ny = size(data_i1, 2)
+        allocate(mask(nx, ny))
+        !$omp parallel do default(shared) schedule(static)
+        do i = 1_i4, ny
+          mask(:,i) = data_i1(:,i) /= fv_i1
+        end do
+        !$omp end parallel do
+        if (present(data)) call move_alloc(data_i1, data%data_i1)
+      case ("i16")
+        call var%getData(data_i2, start=start, cnt=cnt)
+        if (flip_y_) call flip(data_i2, iDim=2)
+        call var%getFillValue(fv_i2)
+        nx = size(data_i2, 1)
+        ny = size(data_i2, 2)
+        allocate(mask(nx, ny))
+        !$omp parallel do default(shared) schedule(static)
+        do i = 1_i4, ny
+          mask(:,i) = data_i2(:,i) /= fv_i2
+        end do
+        !$omp end parallel do
+        if (present(data)) call move_alloc(data_i2, data%data_i2)
+      case ("i32")
+        call var%getData(data_i4, start=start, cnt=cnt)
+        if (flip_y_) call flip(data_i4, iDim=2)
+        call var%getFillValue(fv_i4)
+        nx = size(data_i4, 1)
+        ny = size(data_i4, 2)
+        allocate(mask(nx, ny))
+        !$omp parallel do default(shared) schedule(static)
+        do i = 1_i4, ny
+          mask(:,i) = data_i4(:,i) /= fv_i4
+        end do
+        !$omp end parallel do
+        if (present(data)) call move_alloc(data_i4, data%data_i4)
+      case ("i64")
+        call var%getData(data_i8, start=start, cnt=cnt)
+        if (flip_y_) call flip(data_i8, iDim=2)
+        call var%getFillValue(fv_i8)
+        nx = size(data_i8, 1)
+        ny = size(data_i8, 2)
+        allocate(mask(nx, ny))
+        !$omp parallel do default(shared) schedule(static)
+        do i = 1_i4, ny
+          mask(:,i) = data_i8(:,i) /= fv_i8
+        end do
+        !$omp end parallel do
+        if (present(data)) call move_alloc(data_i8, data%data_i8)
+      case ("f32")
+        call var%getData(data_sp, start=start, cnt=cnt)
+        if (flip_y_) call flip(data_sp, iDim=2)
+        call var%getFillValue(fv_sp)
+        nx = size(data_sp, 1)
+        ny = size(data_sp, 2)
+        allocate(mask(nx, ny))
+        if (ieee_is_nan(fv_sp)) then
+          !$omp parallel do default(shared) schedule(static)
+          do i = 1_i4, ny
+            mask(:,i) = .not. ieee_is_nan(data_sp(:,i))
+          end do
+          !$omp end parallel do
+        else
+          !$omp parallel do default(shared) schedule(static)
+          do i = 1_i4, ny
+            mask(:,i) = ne(data_sp(:,i), fv_sp)
+          end do
+          !$omp end parallel do
+        end if
+        if (present(data)) call move_alloc(data_sp, data%data_sp)
+      case ("f64")
+        call var%getData(data_dp, start=start, cnt=cnt)
+        if (flip_y_) call flip(data_dp, iDim=2)
+        call var%getFillValue(fv_dp)
+        nx = size(data_dp, 1)
+        ny = size(data_dp, 2)
+        allocate(mask(nx, ny))
+        if (ieee_is_nan(fv_dp)) then
+          !$omp parallel do default(shared) schedule(static)
+          do i = 1_i4, ny
+            mask(:,i) = .not. ieee_is_nan(data_dp(:,i))
+          end do
+          !$omp end parallel do
+        else
+          !$omp parallel do default(shared) schedule(static)
+          do i = 1_i4, ny
+            mask(:,i) = ne(data_dp(:,i), fv_dp)
+          end do
+          !$omp end parallel do
+        end if
+        if (present(data)) call move_alloc(data_dp, data%data_dp)
+      case default
+        name = trim(var%getName())
+        call error_message("mask_from_var: Unsupported variable type: ", name, " - dtype: ", dtype) ! LCOV_EXCL_LINE
+    end select
+  end subroutine mask_from_var
+
+  !> \brief Read data from a NetCDF variable into a generic data container.
+  subroutine data_from_var(var, data, flip_y)
+    use mo_netcdf, only : NcVariable
+    implicit none
+    type(NcVariable), intent(in) :: var
+    type(data_t), intent(inout) :: data
+    logical, intent(in), optional :: flip_y
+    integer(i4), dimension(:), allocatable :: shp, start, cnt
+    character(:), allocatable :: name
+    logical :: flip_y_
+
+    flip_y_ = optval(flip_y, default=.false.)
+    shp = var%getShape()
+    allocate(start(size(shp)), source=1_i4)
+    allocate(cnt(size(shp)), source=1_i4)
+    cnt(:2) = shp(:2)
+    if (.not. allocated(data%dtype)) data%dtype = trim(var%getDtype())
+    call data%deallocate()
+
+    select case (data%dtype)
+      case ("i8")
+        call var%getData(data%data_i1, start=start, cnt=cnt)
+        if (flip_y_) call flip(data%data_i1, iDim=2)
+      case ("i16")
+        call var%getData(data%data_i2, start=start, cnt=cnt)
+        if (flip_y_) call flip(data%data_i2, iDim=2)
+      case ("i32")
+        call var%getData(data%data_i4, start=start, cnt=cnt)
+        if (flip_y_) call flip(data%data_i4, iDim=2)
+      case ("i64")
+        call var%getData(data%data_i8, start=start, cnt=cnt)
+        if (flip_y_) call flip(data%data_i8, iDim=2)
+      case ("f32")
+        call var%getData(data%data_sp, start=start, cnt=cnt)
+        if (flip_y_) call flip(data%data_sp, iDim=2)
+      case ("f64")
+        call var%getData(data%data_dp, start=start, cnt=cnt)
+        if (flip_y_) call flip(data%data_dp, iDim=2)
+      case default
+        name = trim(var%getName())
+        call error_message("data_from_var: Unsupported variable type: ", name, " - dtype: ", data%dtype) ! LCOV_EXCL_LINE
+    end select
+  end subroutine data_from_var
+
 #endif
 
   subroutine check_factor(fine_cellsize, coarse_cellsize, cellfactor, rounded, factor, tol)
@@ -449,7 +717,7 @@ contains
     logical :: flip_y
 
     flip_y = .false.
-    if (present(y_direction)) flip_y = y_direction == helper_bottom_up
+    if (present(y_direction)) flip_y = y_direction == bottom_up
 
     call read_ascii_header( &
       path, file_ncols, file_nrows, file_xllcorner, file_yllcorner, file_cellsize, file_nodata, &
@@ -494,7 +762,7 @@ contains
     logical :: flip_y
 
     flip_y = .false.
-    if (present(y_direction)) flip_y = y_direction == helper_bottom_up
+    if (present(y_direction)) flip_y = y_direction == bottom_up
 
     call read_ascii_header( &
       path, file_ncols, file_nrows, file_xllcorner, file_yllcorner, file_cellsize, file_nodata, &
@@ -607,7 +875,7 @@ contains
     logical :: is_bottom_up, is_xy_
 
     is_bottom_up = .true.
-    if (present(y_direction)) is_bottom_up = y_direction == helper_bottom_up
+    if (present(y_direction)) is_bottom_up = y_direction == bottom_up
     is_xy_ = optval(is_xy, .true.)
 
     if (present(data)) then
@@ -679,7 +947,7 @@ contains
     logical :: is_bottom_up, is_xy_
 
     is_bottom_up = .false.
-    if (present(y_direction)) is_bottom_up = y_direction == helper_bottom_up
+    if (present(y_direction)) is_bottom_up = y_direction == bottom_up
     is_xy_ = optval(is_xy, .true.)
 
     if (present(data)) then
@@ -746,10 +1014,10 @@ contains
     integer(i4) :: j
 
     j = fine_j
-    if (fine_y_dir == helper_top_down) j = fine_ny - j + 1_i4
+    if (fine_y_dir == top_down) j = fine_ny - j + 1_i4
     coarse_j = (j - 1_i4) / factor + 1_i4
     coarse_i = (fine_i - 1_i4) / factor + 1_i4
-    if (coarse_y_dir == helper_top_down) coarse_j = coarse_ny - coarse_j + 1_i4
+    if (coarse_y_dir == top_down) coarse_j = coarse_ny - coarse_j + 1_i4
   end subroutine coarse_ij
 
   pure subroutine id_bounds(factor, coarse_i, coarse_j, coarse_y_dir, coarse_ny, fine_y_dir, fine_nx, fine_ny, i_lb, i_ub, j_lb, j_ub)
@@ -772,11 +1040,11 @@ contains
     i_ub = min(ic * factor, fine_nx)
 
     jc = coarse_j
-    if (coarse_y_dir == helper_top_down) jc = coarse_ny - coarse_j + 1
+    if (coarse_y_dir == top_down) jc = coarse_ny - coarse_j + 1
     j_lb = (jc - 1) * factor + 1
     j_ub = min(jc * factor, fine_ny)
 
-    if (fine_y_dir == helper_top_down) then
+    if (fine_y_dir == top_down) then
       temp = j_lb
       j_lb = fine_ny - j_ub + 1
       j_ub = fine_ny - temp + 1

@@ -18,12 +18,14 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_grid
 
+  use mo_grid_constants, only: cartesian, spherical, keep_y, top_down, bottom_up, area_sum, area_full, area_count
   use mo_grid_helper, only: grid_value_in_closed_interval, grid_shift_longitude_near_query, grid_quad_contains_point, &
                             grid_append_candidate_id, grid_update_best_metric, intersection, calculate_coarse_extent, &
                             coarse_ij, id_bounds, dist_latlon, check_factor, read_ascii_grid, write_ascii_grid, &
-                            read_ascii_header
+                            read_ascii_header, data_t
 #ifdef FORCES_WITH_NETCDF
-  use mo_grid_helper, only: is_x_axis, is_y_axis, is_z_axis, is_t_axis, is_lon_coord, is_lat_coord, check_uniform_axis
+  use mo_grid_helper, only: is_x_axis, is_y_axis, is_z_axis, is_t_axis, is_lon_coord, is_lat_coord, check_uniform_axis, &
+                            mask_from_var, data_from_var
 #endif
   use mo_kind, only: i1, i2, i4, i8, sp, dp
   use mo_constants, only : nodata_i1, nodata_i2, nodata_i4, nodata_i8, nodata_sp, nodata_dp, RadiusEarth_dp, deg2rad_dp
@@ -41,6 +43,15 @@ module mo_grid
   public :: id_bounds
   public :: dist_latlon
   public :: check_factor
+  public :: cartesian
+  public :: spherical
+  public :: keep_y
+  public :: top_down
+  public :: bottom_up
+  public :: area_sum
+  public :: area_full
+  public :: area_count
+  public :: data_t
 #ifdef FORCES_WITH_NETCDF
   public :: is_x_axis
   public :: is_y_axis
@@ -54,47 +65,7 @@ module mo_grid
 #endif
 
   private
-
-  !> \name Coordinate System Selectors
-  !> \brief Constants to specify the coordinate system in the \ref grid_t.
-  !!@{
-  integer(i4), public, parameter :: cartesian = 0_i4 !<    Cartesian coordinate system.
-  integer(i4), public, parameter :: spherical = 1_i4 !< Spherical coordinates in degrees.
-  !!@}
-
-  !> \name Y-Axis Direction Selectors
-  !> \brief Constants to specify the y-axis direction in the \ref grid_t.
-  !!@{
-  integer(i4), public, parameter :: keep_y = -1_i4 !< keep y-axis direction.
-  integer(i4), public, parameter :: top_down = 0_i4 !< y-axis with decreasing values.
-  integer(i4), public, parameter :: bottom_up = 1_i4 !< y-axis with increasing values.
-  !!@}
-
-  !> \name Cell Area Calculation Selectors
-  !> \brief Constants to specify the method for calculating cell area of a coarsened grid.
-  !!@{
-  integer(i4), public, parameter :: area_sum = 0_i4 !< Calculate cell area as sum of the area of sub-cells.
-  integer(i4), public, parameter :: area_full = 1_i4 !< Calculate cell area as full cell.
-  integer(i4), public, parameter :: area_count = 2_i4 !< Calculate cell area by count fraction of valid sub-cells.
-  !!@}
   integer(i8), parameter :: grid_spatial_index_parallel_min_n = 2048_i8
-
-  !> \class   data_t
-  !> \brief   2D Data container for different data types.
-  type, public :: data_t
-    character(:), allocatable :: dtype       !< selector for data type ('f32', 'f64', 'i8', 'i16', 'i32', 'i64')
-    real(sp), allocatable :: data_sp(:,:)    !< data in single precision
-    real(dp), allocatable :: data_dp(:,:)    !< data in double precision
-    integer(i1), allocatable :: data_i1(:,:) !< data in 1-byte integers
-    integer(i2), allocatable :: data_i2(:,:) !< data in 2-byte integers
-    integer(i4), allocatable :: data_i4(:,:) !< data in 4-byte integers
-    integer(i8), allocatable :: data_i8(:,:) !< data in 8-byte integers
-  contains
-    procedure, public :: deallocate => data_deallocate
-    !> \brief Get data from data container by moving allocation.
-    generic, public :: move => data_move_sp, data_move_dp, data_move_i1, data_move_i2, data_move_i4, data_move_i8
-    procedure, private :: data_move_sp, data_move_dp, data_move_i1, data_move_i2, data_move_i4, data_move_i8
-  end type data_t
 
   !> \class   grid_t
   !> \brief   2D grid description with data in xy order..
@@ -226,59 +197,6 @@ module mo_grid
 contains
 
   ! ------------------------------------------------------------------
-
-  !> \brief Deallocate data in data container.
-  subroutine data_deallocate(this)
-    class(data_t), intent(inout) :: this
-    if (allocated(this%data_sp)) deallocate(this%data_sp)
-    if (allocated(this%data_dp)) deallocate(this%data_dp)
-    if (allocated(this%data_i1)) deallocate(this%data_i1)
-    if (allocated(this%data_i2)) deallocate(this%data_i2)
-    if (allocated(this%data_i4)) deallocate(this%data_i4)
-    if (allocated(this%data_i8)) deallocate(this%data_i8)
-  end subroutine data_deallocate
-
-  subroutine data_move_sp(this, data)
-    class(data_t), intent(inout) :: this
-    real(sp), allocatable, dimension(:,:), intent(out) :: data
-    if (.not.allocated(this%data_sp)) call error_message("data % get: data not allocated for dtype 'f32'") ! LCOV_EXCL_LINE
-    call move_alloc(this%data_sp, data)
-  end subroutine data_move_sp
-
-  subroutine data_move_dp(this, data)
-    class(data_t), intent(inout) :: this
-    real(dp), allocatable, dimension(:,:), intent(out) :: data
-    if (.not.allocated(this%data_dp)) call error_message("data % get: data not allocated for dtype 'f64'") ! LCOV_EXCL_LINE
-    call move_alloc(this%data_dp, data)
-  end subroutine data_move_dp
-
-  subroutine data_move_i1(this, data)
-    class(data_t), intent(inout) :: this
-    integer(i1), allocatable, dimension(:,:), intent(out) :: data
-    if (.not.allocated(this%data_i1)) call error_message("data % get: data not allocated for dtype 'i8'") ! LCOV_EXCL_LINE
-    call move_alloc(this%data_i1, data)
-  end subroutine data_move_i1
-
-  subroutine data_move_i2(this, data)
-    class(data_t), intent(inout) :: this
-    integer(i2), allocatable, dimension(:,:), intent(out) :: data
-    if (.not.allocated(this%data_i2)) call error_message("data % get: data not allocated for dtype 'i16'") ! LCOV_EXCL_LINE
-    call move_alloc(this%data_i2, data)
-  end subroutine data_move_i2
-
-  subroutine data_move_i4(this, data)
-    class(data_t), intent(inout) :: this
-    integer(i4), allocatable, dimension(:,:), intent(out) :: data
-    if (.not.allocated(this%data_i4)) call error_message("data % get: data not allocated for dtype 'i32'") ! LCOV_EXCL_LINE
-    call move_alloc(this%data_i4, data)
-  end subroutine data_move_i4
-
-  subroutine data_move_i8(this, data)
-    class(data_t), intent(inout) :: this
-    integer(i8), allocatable, dimension(:,:), intent(out) :: data
-    if (.not.allocated(this%data_i8)) call error_message("data % get: data not allocated for dtype 'i64'") ! LCOV_EXCL_LINE
-    call move_alloc(this%data_i8, data)
-  end subroutine data_move_i8
 
   ! ------------------------------------------------------------------
 
@@ -3318,208 +3236,5 @@ contains
     end do
     !$omp end parallel do
   end subroutine grid_unpack_into_lgt
-
-  !> \brief create mask from NetCDF variable.
-  !> \details Create a logical mask from a NetCDF variable where non-missing values are `true` and missing values are `false`.
-  !! This will check for the variable dtype first to use the best fitting kind for reading dummy data.
-  !! Only supports 2D variables and requires the "_FillValue" attribute to be set.
-  !> \authors Sebastian Müller
-  subroutine mask_from_var(var, mask, data, flip_y)
-    use mo_netcdf, only : NcVariable
-    use mo_utils, only : ne
-    use ieee_arithmetic, only : ieee_is_nan
-    implicit none
-    type(NcVariable), intent(in) :: var !< NetCDF variable to create mask from
-    logical, dimension(:, :), allocatable, intent(out) :: mask !< resulting mask
-    type(data_t), intent(inout), optional :: data !< optional data container to reuse memory
-    logical, intent(in), optional :: flip_y !< whether to flip the mask in y-direction (default: .false.)
-    integer(i1), dimension(:, :), allocatable :: data_i1
-    integer(i1) :: fv_i1
-    integer(i2), dimension(:, :), allocatable :: data_i2
-    integer(i2) :: fv_i2
-    integer(i4), dimension(:, :), allocatable :: data_i4
-    integer(i4) :: fv_i4
-    integer(i8), dimension(:, :), allocatable :: data_i8
-    integer(i8) :: fv_i8
-    real(sp), dimension(:, :), allocatable :: data_sp
-    real(sp) :: fv_sp
-    real(dp), dimension(:, :), allocatable :: data_dp
-    real(dp) :: fv_dp
-    integer(i4), dimension(:), allocatable :: shp, start, cnt
-    character(:), allocatable :: dtype, name
-    integer(i4) :: i, nx, ny
-    logical :: flip_y_
-
-    flip_y_ = optval(flip_y, default=.false.)
-
-    shp = var%getShape()
-    allocate(start(size(shp)), source=1_i4)
-    allocate(cnt(size(shp)), source=1_i4)
-    ! only use first 2 dims and use first layer of potential other dims (z, time, soil-layer etc.)
-    cnt(:2) = shp(:2)
-    dtype = trim(var%getDtype())
-
-    if (present(data)) then
-      if (allocated(data%dtype)) then
-        dtype = trim(data%dtype)
-      else
-        data%dtype = dtype
-      end if
-      call data%deallocate()
-    end if
-
-    select case (dtype)
-      case ("i8")
-        call var%getData(data_i1, start=start, cnt=cnt)
-        if (flip_y_) call flip(data_i1, iDim=2)
-        call var%getFillValue(fv_i1)
-        ! parallel mask creation
-        nx = size(data_i1, 1)
-        ny = size(data_i1, 2)
-        allocate(mask(nx, ny))
-        !$omp parallel do default(shared) schedule(static)
-        do i = 1_i4, ny
-          mask(:,i) = data_i1(:,i) /= fv_i1
-        end do
-        !$omp end parallel do
-        if (present(data)) call move_alloc(data_i1, data%data_i1)
-      case ("i16")
-        call var%getData(data_i2, start=start, cnt=cnt)
-        if (flip_y_) call flip(data_i2, iDim=2)
-        call var%getFillValue(fv_i2)
-        ! parallel mask creation
-        nx = size(data_i2, 1)
-        ny = size(data_i2, 2)
-        allocate(mask(nx, ny))
-        !$omp parallel do default(shared) schedule(static)
-        do i = 1_i4, ny
-          mask(:,i) = data_i2(:,i) /= fv_i2
-        end do
-        !$omp end parallel do
-        if (present(data)) call move_alloc(data_i2, data%data_i2)
-      case ("i32")
-        call var%getData(data_i4, start=start, cnt=cnt)
-        if (flip_y_) call flip(data_i4, iDim=2)
-        call var%getFillValue(fv_i4)
-        ! parallel mask creation
-        nx = size(data_i4, 1)
-        ny = size(data_i4, 2)
-        allocate(mask(nx, ny))
-        !$omp parallel do default(shared) schedule(static)
-        do i = 1_i4, ny
-          mask(:,i) = data_i4(:,i) /= fv_i4
-        end do
-        !$omp end parallel do
-        if (present(data)) call move_alloc(data_i4, data%data_i4)
-      case ("i64")
-        call var%getData(data_i8, start=start, cnt=cnt)
-        if (flip_y_) call flip(data_i8, iDim=2)
-        call var%getFillValue(fv_i8)
-        ! parallel mask creation
-        nx = size(data_i8, 1)
-        ny = size(data_i8, 2)
-        allocate(mask(nx, ny))
-        !$omp parallel do default(shared) schedule(static)
-        do i = 1_i4, ny
-          mask(:,i) = data_i8(:,i) /= fv_i8
-        end do
-        !$omp end parallel do
-        if (present(data)) call move_alloc(data_i8, data%data_i8)
-      case ("f32")
-        call var%getData(data_sp, start=start, cnt=cnt)
-        if (flip_y_) call flip(data_sp, iDim=2)
-        call var%getFillValue(fv_sp)
-        ! parallel mask creation
-        nx = size(data_sp, 1)
-        ny = size(data_sp, 2)
-        allocate(mask(nx, ny))
-        if (ieee_is_nan(fv_sp)) then
-          !$omp parallel do default(shared) schedule(static)
-          do i = 1_i4, ny
-            mask(:,i) = .not.ieee_is_nan(data_sp(:,i))
-          end do
-          !$omp end parallel do
-        else
-          !$omp parallel do default(shared) schedule(static)
-          do i = 1_i4, ny
-            mask(:,i) = ne(data_sp(:,i), fv_sp)
-          end do
-          !$omp end parallel do
-        end if
-        if (present(data)) call move_alloc(data_sp, data%data_sp)
-      case ("f64")
-        call var%getData(data_dp, start=start, cnt=cnt)
-        if (flip_y_) call flip(data_dp, iDim=2)
-        call var%getFillValue(fv_dp)
-        ! parallel mask creation
-        nx = size(data_dp, 1)
-        ny = size(data_dp, 2)
-        allocate(mask(nx, ny))
-        if (ieee_is_nan(fv_dp)) then
-          !$omp parallel do default(shared) schedule(static)
-          do i = 1_i4, ny
-            mask(:,i) = .not.ieee_is_nan(data_dp(:,i))
-          end do
-          !$omp end parallel do
-        else
-          !$omp parallel do default(shared) schedule(static)
-          do i = 1_i4, ny
-            mask(:,i) = ne(data_dp(:,i), fv_dp)
-          end do
-          !$omp end parallel do
-        end if
-        if (present(data)) call move_alloc(data_dp, data%data_dp)
-      case default
-        name = trim(var%getName())
-        call error_message("mask_from_var: Unsupported variable type: ", name, " - dtype: ", dtype) ! LCOV_EXCL_LINE
-    end select
-  end subroutine mask_from_var
-
-  !> \brief Read data from NetCDF variable.
-  !> \authors Sebastian Müller
-  subroutine data_from_var(var, data, flip_y)
-    use mo_netcdf, only : NcVariable
-    use mo_utils, only : ne
-    use ieee_arithmetic, only : ieee_is_nan
-    implicit none
-    type(NcVariable), intent(in) :: var !< NetCDF variable to create mask from
-    type(data_t), intent(inout) :: data !< optional data container to reuse memory
-    logical, intent(in), optional :: flip_y !< whether to flip the mask in y-direction (default: .false.)
-    integer(i4), dimension(:), allocatable :: shp, start, cnt
-    character(:), allocatable :: name
-    logical :: flip_y_
-
-    flip_y_ = optval(flip_y, default=.false.)
-    shp = var%getShape()
-    allocate(start(size(shp)), source=1_i4)
-    allocate(cnt(size(shp)), source=1_i4)
-    ! only use first 2 dims and use first layer of potential other dims (z, time, soil-layer etc.)
-    cnt(:2) = shp(:2)
-    if (.not.allocated(data%dtype)) data%dtype = trim(var%getDtype())
-    call data%deallocate()
-    select case (data%dtype)
-      case ("i8")
-        call var%getData(data%data_i1, start=start, cnt=cnt)
-        if (flip_y_) call flip(data%data_i1, iDim=2)
-      case ("i16")
-        call var%getData(data%data_i2, start=start, cnt=cnt)
-        if (flip_y_) call flip(data%data_i2, iDim=2)
-      case ("i32")
-        call var%getData(data%data_i4, start=start, cnt=cnt)
-        if (flip_y_) call flip(data%data_i4, iDim=2)
-      case ("i64")
-        call var%getData(data%data_i8, start=start, cnt=cnt)
-        if (flip_y_) call flip(data%data_i8, iDim=2)
-      case ("f32")
-        call var%getData(data%data_sp, start=start, cnt=cnt)
-        if (flip_y_) call flip(data%data_sp, iDim=2)
-      case ("f64")
-        call var%getData(data%data_dp, start=start, cnt=cnt)
-        if (flip_y_) call flip(data%data_dp, iDim=2)
-      case default
-        name = trim(var%getName())
-        call error_message("data_from_var: Unsupported variable type: ", name, " - dtype: ", data%dtype) ! LCOV_EXCL_LINE
-    end select
-  end subroutine data_from_var
 
 end module mo_grid
