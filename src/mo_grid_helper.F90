@@ -62,7 +62,7 @@ module mo_grid_helper
 
   !> \class   data_t
   !> \brief   2D data container for different data types.
-  type, public :: data_t
+  type :: data_t
     character(:), allocatable :: dtype       !< selector for data type ('f32', 'f64', 'i8', 'i16', 'i32', 'i64')
     real(sp), allocatable :: data_sp(:,:)    !< data in single precision
     real(dp), allocatable :: data_dp(:,:)    !< data in double precision

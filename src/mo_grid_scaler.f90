@@ -28,7 +28,6 @@ module mo_grid_scaler
   implicit none
 
   private
-  private :: scaler_init
   integer(i8), parameter :: nearest_regridder_loop_parallel_min_n = 2048_i8
   !> \name Scaling Indicators
   !> \brief Constants to indicate the scaling mode of the \ref scaler_t.
