@@ -23,13 +23,13 @@ module mo_grid_helper
 
   private
 
-  public :: grid_value_in_closed_interval
-  public :: grid_shift_longitude_near_query
-  public :: grid_orient2d
-  public :: grid_point_in_triangle
-  public :: grid_quad_contains_point
-  public :: grid_append_candidate_id
-  public :: grid_update_best_metric
+  public :: value_in_closed_interval
+  public :: shift_longitude_near_query
+  public :: orient2d
+  public :: point_in_triangle
+  public :: quad_contains_point
+  public :: append_candidate_id
+  public :: update_best_metric
   public :: intersection
   public :: calculate_coarse_extent
   public :: coarse_ij
@@ -78,9 +78,9 @@ module mo_grid_helper
 
 contains
 
-  !> \brief Deallocate data in data container.
+  !> \brief Deallocate all arrays stored in a generic data container.
   subroutine data_deallocate(this)
-    class(data_t), intent(inout) :: this
+    class(data_t), intent(inout) :: this !< Data container to clear.
 
     if (allocated(this%data_sp)) deallocate(this%data_sp)
     if (allocated(this%data_dp)) deallocate(this%data_dp)
@@ -90,89 +90,110 @@ contains
     if (allocated(this%data_i8)) deallocate(this%data_i8)
   end subroutine data_deallocate
 
+  !> \brief Move single-precision data out of a generic data container.
   subroutine data_move_sp(this, data)
     class(data_t), intent(inout) :: this
-    real(sp), allocatable, dimension(:,:), intent(out) :: data
+    real(sp), allocatable, dimension(:,:), intent(out) :: data  !< Moved single-precision data.
 
     if (.not. allocated(this%data_sp)) call error_message("data % get: data not allocated for dtype 'f32'") ! LCOV_EXCL_LINE
     call move_alloc(this%data_sp, data)
   end subroutine data_move_sp
 
+  !> \brief Move double-precision data out of a generic data container.
   subroutine data_move_dp(this, data)
     class(data_t), intent(inout) :: this
-    real(dp), allocatable, dimension(:,:), intent(out) :: data
+    real(dp), allocatable, dimension(:,:), intent(out) :: data  !< Moved double-precision data.
 
     if (.not. allocated(this%data_dp)) call error_message("data % get: data not allocated for dtype 'f64'") ! LCOV_EXCL_LINE
     call move_alloc(this%data_dp, data)
   end subroutine data_move_dp
 
+  !> \brief Move 1-byte integer data out of a generic data container.
   subroutine data_move_i1(this, data)
     class(data_t), intent(inout) :: this
-    integer(i1), allocatable, dimension(:,:), intent(out) :: data
+    integer(i1), allocatable, dimension(:,:), intent(out) :: data  !< Moved 1-byte integer data.
 
     if (.not. allocated(this%data_i1)) call error_message("data % get: data not allocated for dtype 'i8'") ! LCOV_EXCL_LINE
     call move_alloc(this%data_i1, data)
   end subroutine data_move_i1
 
+  !> \brief Move 2-byte integer data out of a generic data container.
   subroutine data_move_i2(this, data)
     class(data_t), intent(inout) :: this
-    integer(i2), allocatable, dimension(:,:), intent(out) :: data
+    integer(i2), allocatable, dimension(:,:), intent(out) :: data  !< Moved 2-byte integer data.
 
     if (.not. allocated(this%data_i2)) call error_message("data % get: data not allocated for dtype 'i16'") ! LCOV_EXCL_LINE
     call move_alloc(this%data_i2, data)
   end subroutine data_move_i2
 
+  !> \brief Move 4-byte integer data out of a generic data container.
   subroutine data_move_i4(this, data)
     class(data_t), intent(inout) :: this
-    integer(i4), allocatable, dimension(:,:), intent(out) :: data
+    integer(i4), allocatable, dimension(:,:), intent(out) :: data  !< Moved 4-byte integer data.
 
     if (.not. allocated(this%data_i4)) call error_message("data % get: data not allocated for dtype 'i32'") ! LCOV_EXCL_LINE
     call move_alloc(this%data_i4, data)
   end subroutine data_move_i4
 
+  !> \brief Move 8-byte integer data out of a generic data container.
   subroutine data_move_i8(this, data)
     class(data_t), intent(inout) :: this
-    integer(i8), allocatable, dimension(:,:), intent(out) :: data
+    integer(i8), allocatable, dimension(:,:), intent(out) :: data  !< Moved 8-byte integer data.
 
     if (.not. allocated(this%data_i8)) call error_message("data % get: data not allocated for dtype 'i64'") ! LCOV_EXCL_LINE
     call move_alloc(this%data_i8, data)
   end subroutine data_move_i8
 
-  pure logical function grid_value_in_closed_interval(value, lower, upper) result(in_interval)
+  !> \brief Check whether a value lies inside a closed interval.
+  pure logical function value_in_closed_interval(value, lower, upper) result(in_interval)
     implicit none
-    real(dp), intent(in) :: value
-    real(dp), intent(in) :: lower
-    real(dp), intent(in) :: upper
+    real(dp), intent(in) :: value !< Value to test.
+    real(dp), intent(in) :: lower !< Inclusive lower bound.
+    real(dp), intent(in) :: upper !< Inclusive upper bound.
 
     in_interval = (value > lower .or. is_close(value, lower)) .and. &
                   (value < upper .or. is_close(value, upper))
-  end function grid_value_in_closed_interval
+  end function value_in_closed_interval
 
-  pure elemental real(dp) function grid_shift_longitude_near_query(lon, query_lon) result(lon_shifted)
+  !> \brief Shift a longitude by 360-degree multiples to stay near a query longitude.
+  pure elemental real(dp) function shift_longitude_near_query(lon, query_lon) result(lon_shifted)
     implicit none
-    real(dp), intent(in) :: lon
-    real(dp), intent(in) :: query_lon
+    real(dp), intent(in) :: lon        !< Longitude to shift.
+    real(dp), intent(in) :: query_lon  !< Reference longitude for the shift.
 
     lon_shifted = modulo(lon - query_lon + 180.0_dp, 360.0_dp) - 180.0_dp + query_lon
-  end function grid_shift_longitude_near_query
+  end function shift_longitude_near_query
 
-  pure real(dp) function grid_orient2d(ax, ay, bx, by, cx, cy) result(cross)
+  !> \brief Compute the signed 2D orientation of three points.
+  pure real(dp) function orient2d(ax, ay, bx, by, cx, cy) result(cross)
     implicit none
-    real(dp), intent(in) :: ax, ay, bx, by, cx, cy
+    real(dp), intent(in) :: ax !< X coordinate of the first point.
+    real(dp), intent(in) :: ay !< Y coordinate of the first point.
+    real(dp), intent(in) :: bx !< X coordinate of the second point.
+    real(dp), intent(in) :: by !< Y coordinate of the second point.
+    real(dp), intent(in) :: cx !< X coordinate of the third point.
+    real(dp), intent(in) :: cy !< Y coordinate of the third point.
 
     cross = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
-  end function grid_orient2d
+  end function orient2d
 
-  pure logical function grid_point_in_triangle(px, py, x1, y1, x2, y2, x3, y3) result(is_inside)
+  !> \brief Check whether a point lies inside or on the boundary of a triangle.
+  pure logical function point_in_triangle(px, py, x1, y1, x2, y2, x3, y3) result(is_inside)
     implicit none
-    real(dp), intent(in) :: px, py
-    real(dp), intent(in) :: x1, y1, x2, y2, x3, y3
+    real(dp), intent(in) :: px !< X coordinate of the query point.
+    real(dp), intent(in) :: py !< Y coordinate of the query point.
+    real(dp), intent(in) :: x1 !< X coordinate of triangle vertex 1.
+    real(dp), intent(in) :: y1 !< Y coordinate of triangle vertex 1.
+    real(dp), intent(in) :: x2 !< X coordinate of triangle vertex 2.
+    real(dp), intent(in) :: y2 !< Y coordinate of triangle vertex 2.
+    real(dp), intent(in) :: x3 !< X coordinate of triangle vertex 3.
+    real(dp), intent(in) :: y3 !< Y coordinate of triangle vertex 3.
 
     real(dp) :: c1, c2, c3
 
-    c1 = grid_orient2d(x1, y1, x2, y2, px, py)
-    c2 = grid_orient2d(x2, y2, x3, y3, px, py)
-    c3 = grid_orient2d(x3, y3, x1, y1, px, py)
+    c1 = orient2d(x1, y1, x2, y2, px, py)
+    c2 = orient2d(x2, y2, x3, y3, px, py)
+    c3 = orient2d(x3, y3, x1, y1, px, py)
 
     is_inside = ((c1 > 0.0_dp .or. is_close(c1, 0.0_dp)) .and. &
                  (c2 > 0.0_dp .or. is_close(c2, 0.0_dp)) .and. &
@@ -180,28 +201,30 @@ contains
                 ((c1 < 0.0_dp .or. is_close(c1, 0.0_dp)) .and. &
                  (c2 < 0.0_dp .or. is_close(c2, 0.0_dp)) .and. &
                  (c3 < 0.0_dp .or. is_close(c3, 0.0_dp)))
-  end function grid_point_in_triangle
+  end function point_in_triangle
 
-  pure logical function grid_quad_contains_point(x_vertices, y_vertices, x, y) result(is_inside)
+  !> \brief Check whether a point lies inside or on the boundary of a quadrilateral.
+  pure logical function quad_contains_point(x_vertices, y_vertices, x, y) result(is_inside)
     implicit none
-    real(dp), intent(in) :: x_vertices(4)
-    real(dp), intent(in) :: y_vertices(4)
-    real(dp), intent(in) :: x
-    real(dp), intent(in) :: y
+    real(dp), intent(in) :: x_vertices(4) !< X coordinates of the quadrilateral vertices.
+    real(dp), intent(in) :: y_vertices(4) !< Y coordinates of the quadrilateral vertices.
+    real(dp), intent(in) :: x             !< X coordinate of the query point.
+    real(dp), intent(in) :: y             !< Y coordinate of the query point.
 
-    is_inside = grid_point_in_triangle(x, y, x_vertices(1), y_vertices(1), x_vertices(2), y_vertices(2), &
-                                       x_vertices(3), y_vertices(3)) .or. &
-                grid_point_in_triangle(x, y, x_vertices(1), y_vertices(1), x_vertices(3), y_vertices(3), &
-                                       x_vertices(4), y_vertices(4))
-  end function grid_quad_contains_point
+    is_inside = point_in_triangle(x, y, x_vertices(1), y_vertices(1), x_vertices(2), y_vertices(2), &
+                                  x_vertices(3), y_vertices(3)) .or. &
+                point_in_triangle(x, y, x_vertices(1), y_vertices(1), x_vertices(3), y_vertices(3), &
+                                  x_vertices(4), y_vertices(4))
+  end function quad_contains_point
 
-  subroutine grid_append_candidate_id(cand_ids, ncand, cand_k, k_lb, k_ub)
+  !> \brief Append a candidate id if it lies inside bounds and is not yet present.
+  subroutine append_candidate_id(cand_ids, ncand, cand_k, k_lb, k_ub)
     implicit none
-    integer(i8), intent(inout) :: cand_ids(4)
-    integer(i4), intent(inout) :: ncand
-    integer(i8), intent(in) :: cand_k
-    integer(i8), intent(in) :: k_lb
-    integer(i8), intent(in) :: k_ub
+    integer(i8), intent(inout) :: cand_ids(4) !< Candidate id buffer.
+    integer(i4), intent(inout) :: ncand       !< Number of valid entries currently stored.
+    integer(i8), intent(in) :: cand_k         !< Candidate id to append.
+    integer(i8), intent(in) :: k_lb           !< Inclusive lower id bound.
+    integer(i8), intent(in) :: k_ub           !< Inclusive upper id bound.
 
     integer(i4) :: i
 
@@ -212,14 +235,15 @@ contains
 
     ncand = ncand + 1_i4
     cand_ids(ncand) = cand_k
-  end subroutine grid_append_candidate_id
+  end subroutine append_candidate_id
 
-  subroutine grid_update_best_metric(best_k, best_metric, cand_k, cand_metric)
+  !> \brief Update the current best id and metric with deterministic tie handling.
+  subroutine update_best_metric(best_k, best_metric, cand_k, cand_metric)
     implicit none
-    integer(i8), intent(inout) :: best_k
-    real(dp), intent(inout) :: best_metric
-    integer(i8), intent(in) :: cand_k
-    real(dp), intent(in) :: cand_metric
+    integer(i8), intent(inout) :: best_k        !< Current best id.
+    real(dp), intent(inout) :: best_metric      !< Current best metric value.
+    integer(i8), intent(in) :: cand_k           !< Candidate id to compare.
+    real(dp), intent(in) :: cand_metric         !< Candidate metric to compare.
 
     if (best_k < 1_i8) then
       best_k = cand_k
@@ -237,12 +261,20 @@ contains
       best_k = cand_k
       best_metric = cand_metric
     end if
-  end subroutine grid_update_best_metric
+  end subroutine update_best_metric
 
+  !> \brief Calculate the intersection point of two infinite lines.
   subroutine intersection(p1x, p1y, p2x, p2y, q1x, q1y, q2x, q2y, x, y)
-    real(dp), intent(in) :: p1x, p1y, p2x, p2y
-    real(dp), intent(in) :: q1x, q1y, q2x, q2y
-    real(dp), intent(out) :: x, y
+    real(dp), intent(in) :: p1x  !< X coordinate of line P endpoint 1.
+    real(dp), intent(in) :: p1y  !< Y coordinate of line P endpoint 1.
+    real(dp), intent(in) :: p2x  !< X coordinate of line P endpoint 2.
+    real(dp), intent(in) :: p2y  !< Y coordinate of line P endpoint 2.
+    real(dp), intent(in) :: q1x  !< X coordinate of line Q endpoint 1.
+    real(dp), intent(in) :: q1y  !< Y coordinate of line Q endpoint 1.
+    real(dp), intent(in) :: q2x  !< X coordinate of line Q endpoint 2.
+    real(dp), intent(in) :: q2y  !< Y coordinate of line Q endpoint 2.
+    real(dp), intent(out) :: x   !< X coordinate of the intersection point.
+    real(dp), intent(out) :: y   !< Y coordinate of the intersection point.
     real(dp) :: denom, det1, det2
 
     denom = (p1x-p2x)*(q1y-q2y) - (p1y-p2y)*(q1x-q2x)
@@ -252,22 +284,23 @@ contains
     y = (det1*(q1y-q2y) - det2*(p1y-p2y)) / denom
   end subroutine intersection
 
+  !> \brief Derive the outer extent of a coarsened grid from a finer grid.
   subroutine calculate_coarse_extent(nx_in,  ny_in,  xllcorner_in,  yllcorner_in,  cellsize_in,  target_resolution, &
                                      nx_out, ny_out, xllcorner_out, yllcorner_out, cellsize_out, tol)
     implicit none
 
-    integer(i4), intent(in) :: nx_in
-    integer(i4), intent(in) :: ny_in
-    real(dp), intent(in) :: xllcorner_in
-    real(dp), intent(in) :: yllcorner_in
-    real(dp), intent(in) :: cellsize_in
-    real(dp), intent(in) :: target_resolution
-    integer(i4), intent(out) :: nx_out
-    integer(i4), intent(out) :: ny_out
-    real(dp), intent(out) :: xllcorner_out
-    real(dp), intent(out) :: yllcorner_out
-    real(dp), intent(out) :: cellsize_out
-    real(dp), intent(in), optional :: tol
+    integer(i4), intent(in) :: nx_in                  !< Number of cells along x on the input grid.
+    integer(i4), intent(in) :: ny_in                  !< Number of cells along y on the input grid.
+    real(dp), intent(in) :: xllcorner_in              !< Lower-left x coordinate of the input grid.
+    real(dp), intent(in) :: yllcorner_in              !< Lower-left y coordinate of the input grid.
+    real(dp), intent(in) :: cellsize_in               !< Cell size of the input grid.
+    real(dp), intent(in) :: target_resolution         !< Requested coarse-grid cell size.
+    integer(i4), intent(out) :: nx_out                !< Number of cells along x on the coarse grid.
+    integer(i4), intent(out) :: ny_out                !< Number of cells along y on the coarse grid.
+    real(dp), intent(out) :: xllcorner_out            !< Lower-left x coordinate of the coarse grid.
+    real(dp), intent(out) :: yllcorner_out            !< Lower-left y coordinate of the coarse grid.
+    real(dp), intent(out) :: cellsize_out             !< Cell size of the coarse grid.
+    real(dp), intent(in), optional :: tol             !< Tolerance for the resolution ratio check.
 
     real(dp) :: cellFactor, rounded
     integer(i4) :: factor
@@ -287,14 +320,15 @@ contains
 
 #ifdef FORCES_WITH_NETCDF
 
+  !> \brief Validate that a NetCDF axis variable is uniformly spaced.
   subroutine check_uniform_axis(var, cellsize, origin, increasing, tol)
     use mo_netcdf, only : NcVariable
     implicit none
-    type(NcVariable), intent(in) :: var
-    real(dp), optional, intent(out) :: cellsize
-    real(dp), optional, intent(out) :: origin
-    logical, optional, intent(out) :: increasing
-    real(dp), intent(in), optional :: tol
+    type(NcVariable), intent(in) :: var            !< NetCDF axis variable to validate.
+    real(dp), optional, intent(out) :: cellsize    !< Absolute spacing of the axis points.
+    real(dp), optional, intent(out) :: origin      !< Lower bound origin implied by the axis.
+    logical, optional, intent(out) :: increasing   !< Whether the axis increases with index.
+    real(dp), intent(in), optional :: tol          !< Absolute tolerance for uniformity checks.
     real(dp), dimension(:), allocatable :: axis
     real(dp), dimension(:,:), allocatable :: bounds
     real(dp) :: diff, tol_
@@ -350,10 +384,11 @@ contains
     if (present(increasing)) increasing = diff > 0.0_dp
   end subroutine check_uniform_axis
 
+  !> \brief Check whether a NetCDF variable represents a projection x axis.
   logical function is_x_axis(var)
     use mo_netcdf, only : NcVariable
     implicit none
-    type(NcVariable), intent(in) :: var
+    type(NcVariable), intent(in) :: var !< NetCDF variable to inspect.
     character(len=256) :: tmp_str
 
     is_x_axis = .false.
@@ -369,10 +404,11 @@ contains
     end if
   end function is_x_axis
 
+  !> \brief Check whether a NetCDF variable represents a projection y axis.
   logical function is_y_axis(var)
     use mo_netcdf, only : NcVariable
     implicit none
-    type(NcVariable), intent(in) :: var
+    type(NcVariable), intent(in) :: var !< NetCDF variable to inspect.
     character(len=256) :: tmp_str
 
     is_y_axis = .false.
@@ -388,10 +424,11 @@ contains
     end if
   end function is_y_axis
 
+  !> \brief Check whether a NetCDF variable represents a vertical axis.
   logical function is_z_axis(var)
     use mo_netcdf, only : NcVariable
     implicit none
-    type(NcVariable), intent(in) :: var
+    type(NcVariable), intent(in) :: var !< NetCDF variable to inspect.
     character(len=256) :: tmp_str
 
     is_z_axis = .false.
@@ -403,10 +440,11 @@ contains
     end if
   end function is_z_axis
 
+  !> \brief Check whether a NetCDF variable represents a time axis.
   logical function is_t_axis(var)
     use mo_netcdf, only : NcVariable
     implicit none
-    type(NcVariable), intent(in) :: var
+    type(NcVariable), intent(in) :: var !< NetCDF variable to inspect.
     character(len=256) :: tmp_str
 
     is_t_axis = .false.
@@ -422,10 +460,11 @@ contains
     end if
   end function is_t_axis
 
+  !> \brief Check whether a NetCDF variable represents longitude coordinates.
   logical function is_lon_coord(var)
     use mo_netcdf, only : NcVariable
     implicit none
-    type(NcVariable), intent(in) :: var
+    type(NcVariable), intent(in) :: var !< NetCDF variable to inspect.
     character(len=256) :: tmp_str
 
     is_lon_coord = .false.
@@ -449,10 +488,11 @@ contains
     end if
   end function is_lon_coord
 
+  !> \brief Check whether a NetCDF variable represents latitude coordinates.
   logical function is_lat_coord(var)
     use mo_netcdf, only : NcVariable
     implicit none
-    type(NcVariable), intent(in) :: var
+    type(NcVariable), intent(in) :: var !< NetCDF variable to inspect.
     character(len=256) :: tmp_str
 
     is_lat_coord = .false.
@@ -484,10 +524,10 @@ contains
     use mo_utils, only : ne
     use ieee_arithmetic, only : ieee_is_nan
     implicit none
-    type(NcVariable), intent(in) :: var
-    logical, dimension(:, :), allocatable, intent(out) :: mask
-    type(data_t), intent(inout), optional :: data
-    logical, intent(in), optional :: flip_y
+    type(NcVariable), intent(in) :: var                               !< NetCDF variable to read.
+    logical, dimension(:, :), allocatable, intent(out) :: mask        !< Derived mask.
+    type(data_t), intent(inout), optional :: data                     !< Optional container receiving the raw variable data.
+    logical, intent(in), optional :: flip_y                           !< Whether to flip the y dimension after reading.
     integer(i1), dimension(:, :), allocatable :: data_i1
     integer(i1) :: fv_i1
     integer(i2), dimension(:, :), allocatable :: data_i2
@@ -627,9 +667,9 @@ contains
   subroutine data_from_var(var, data, flip_y)
     use mo_netcdf, only : NcVariable
     implicit none
-    type(NcVariable), intent(in) :: var
-    type(data_t), intent(inout) :: data
-    logical, intent(in), optional :: flip_y
+    type(NcVariable), intent(in) :: var    !< NetCDF variable to read.
+    type(data_t), intent(inout) :: data    !< Target generic data container.
+    logical, intent(in), optional :: flip_y !< Whether to flip the y dimension after reading.
     integer(i4), dimension(:), allocatable :: shp, start, cnt
     character(:), allocatable :: name
     logical :: flip_y_
@@ -669,13 +709,14 @@ contains
 
 #endif
 
+  !> \brief Check that two cell sizes differ by an integer scaling factor.
   subroutine check_factor(fine_cellsize, coarse_cellsize, cellfactor, rounded, factor, tol)
-    real(dp), intent(in) :: fine_cellsize
-    real(dp), intent(in) :: coarse_cellsize
-    real(dp), optional, intent(out) :: cellfactor
-    real(dp), optional, intent(out) :: rounded
-    integer(i4), optional, intent(out) :: factor
-    real(dp), intent(in), optional :: tol
+    real(dp), intent(in) :: fine_cellsize               !< Cell size of the fine grid.
+    real(dp), intent(in) :: coarse_cellsize             !< Cell size of the coarse grid.
+    real(dp), optional, intent(out) :: cellfactor       !< Exact floating-point cell-size ratio.
+    real(dp), optional, intent(out) :: rounded          !< Rounded floating-point ratio.
+    integer(i4), optional, intent(out) :: factor        !< Integer scaling factor.
+    real(dp), intent(in), optional :: tol               !< Allowed deviation from an integer ratio.
     real(dp) :: cellfactor_, rounded_, tol_
     integer(i4) :: factor_
 
@@ -697,19 +738,20 @@ contains
     if (present(factor)) factor = factor_
   end subroutine check_factor
 
+  !> \brief Read a double-precision ESRI ASCII grid into an xy-ordered array.
   subroutine read_ascii_grid_dp(path, data, mask, ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, y_direction)
     use mo_utils, only : eq
     implicit none
 
-    character(len = *), intent(in) :: path
-    real(dp), dimension(:, :), allocatable, intent(out) :: data
-    logical, dimension(:, :), allocatable, intent(out), optional :: mask
-    integer(i4), intent(in), optional :: ref_nrows
-    integer(i4), intent(in), optional :: ref_ncols
-    real(dp), intent(in), optional :: ref_xllcorner
-    real(dp), intent(in), optional :: ref_yllcorner
-    real(dp), intent(in), optional :: ref_cellsize
-    integer(i4), intent(in), optional :: y_direction
+    character(len = *), intent(in) :: path                                   !< Path to the ASCII grid file.
+    real(dp), dimension(:, :), allocatable, intent(out) :: data              !< Read data array in xy order.
+    logical, dimension(:, :), allocatable, intent(out), optional :: mask     !< Optional nodata mask derived from the file.
+    integer(i4), intent(in), optional :: ref_nrows                           !< Optional reference number of rows.
+    integer(i4), intent(in), optional :: ref_ncols                           !< Optional reference number of columns.
+    real(dp), intent(in), optional :: ref_xllcorner                          !< Optional reference lower-left x coordinate.
+    real(dp), intent(in), optional :: ref_yllcorner                          !< Optional reference lower-left y coordinate.
+    real(dp), intent(in), optional :: ref_cellsize                           !< Optional reference cell size.
+    integer(i4), intent(in), optional :: y_direction                         !< Desired y-axis direction for the output arrays.
 
     integer(i4) :: file_nrows, file_ncols
     real(dp) :: file_xllcorner, file_yllcorner, file_cellsize, file_nodata
@@ -743,18 +785,19 @@ contains
     if (flip_y) call flip(data, idim=2)
   end subroutine read_ascii_grid_dp
 
+  !> \brief Read a 4-byte integer ESRI ASCII grid into an xy-ordered array.
   subroutine read_ascii_grid_i4(path, data, mask, ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, y_direction)
     implicit none
 
-    character(len = *), intent(in) :: path
-    integer(i4), dimension(:, :), allocatable, intent(out) :: data
-    logical, dimension(:, :), allocatable, intent(out), optional :: mask
-    integer(i4), intent(in), optional :: ref_nrows
-    integer(i4), intent(in), optional :: ref_ncols
-    real(dp), intent(in), optional :: ref_xllcorner
-    real(dp), intent(in), optional :: ref_yllcorner
-    real(dp), intent(in), optional :: ref_cellsize
-    integer(i4), intent(in), optional :: y_direction
+    character(len = *), intent(in) :: path                                   !< Path to the ASCII grid file.
+    integer(i4), dimension(:, :), allocatable, intent(out) :: data           !< Read data array in xy order.
+    logical, dimension(:, :), allocatable, intent(out), optional :: mask     !< Optional nodata mask derived from the file.
+    integer(i4), intent(in), optional :: ref_nrows                           !< Optional reference number of rows.
+    integer(i4), intent(in), optional :: ref_ncols                           !< Optional reference number of columns.
+    real(dp), intent(in), optional :: ref_xllcorner                          !< Optional reference lower-left x coordinate.
+    real(dp), intent(in), optional :: ref_yllcorner                          !< Optional reference lower-left y coordinate.
+    real(dp), intent(in), optional :: ref_cellsize                           !< Optional reference cell size.
+    integer(i4), intent(in), optional :: y_direction                         !< Desired y-axis direction for the output arrays.
 
     integer(i4) :: file_nrows, file_ncols
     real(dp) :: file_xllcorner, file_yllcorner, file_cellsize, file_nodata
@@ -787,6 +830,7 @@ contains
     if (flip_y) call flip(data, idim=2)
   end subroutine read_ascii_grid_i4
 
+  !> \brief Read and optionally validate the header of an ESRI ASCII grid file.
   subroutine read_ascii_header( &
     path, ncols, nrows, xllcorner, yllcorner, cellsize, nodata, &
     ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, header_size)
@@ -795,19 +839,19 @@ contains
     use mo_string_utils, only : tolower
     implicit none
 
-    character(len = *), intent(in) :: path
-    integer(i4), intent(out) :: nrows
-    integer(i4), intent(out) :: ncols
-    real(dp), intent(out) :: xllcorner
-    real(dp), intent(out) :: yllcorner
-    real(dp), intent(out) :: cellsize
-    real(dp), intent(out), optional :: nodata
-    integer(i4), intent(in), optional :: ref_nrows
-    integer(i4), intent(in), optional :: ref_ncols
-    real(dp), intent(in), optional :: ref_xllcorner
-    real(dp), intent(in), optional :: ref_yllcorner
-    real(dp), intent(in), optional :: ref_cellsize
-    integer(i4), optional, intent(out) :: header_size
+    character(len = *), intent(in) :: path                !< Path to the ASCII grid file.
+    integer(i4), intent(out) :: nrows                     !< Number of rows read from the header.
+    integer(i4), intent(out) :: ncols                     !< Number of columns read from the header.
+    real(dp), intent(out) :: xllcorner                    !< Lower-left x coordinate from the header.
+    real(dp), intent(out) :: yllcorner                    !< Lower-left y coordinate from the header.
+    real(dp), intent(out) :: cellsize                     !< Cell size read from the header.
+    real(dp), intent(out), optional :: nodata             !< Optional nodata marker from the header.
+    integer(i4), intent(in), optional :: ref_nrows        !< Optional reference number of rows.
+    integer(i4), intent(in), optional :: ref_ncols        !< Optional reference number of columns.
+    real(dp), intent(in), optional :: ref_xllcorner       !< Optional reference lower-left x coordinate.
+    real(dp), intent(in), optional :: ref_yllcorner       !< Optional reference lower-left y coordinate.
+    real(dp), intent(in), optional :: ref_cellsize        !< Optional reference cell size.
+    integer(i4), optional, intent(out) :: header_size     !< Number of header lines consumed.
 
     real(dp) :: file_nodata
     character(12) :: attribute
@@ -857,19 +901,20 @@ contains
     end if
   end subroutine read_ascii_header
 
+  !> \brief Write a double-precision ESRI ASCII grid from an xy- or yx-ordered array.
   subroutine write_ascii_grid_dp(path, ncols, nrows, xllcorner, yllcorner, cellsize, nodata, data, y_direction, is_xy)
     implicit none
 
-    character(len=*), intent(in) :: path
-    integer(i4), intent(in) :: ncols
-    integer(i4), intent(in) :: nrows
-    real(dp), intent(in) :: xllcorner
-    real(dp), intent(in) :: yllcorner
-    real(dp), intent(in) :: cellsize
-    real(dp), intent(in) :: nodata
-    real(dp), intent(in), optional :: data(:,:)
-    integer(i4), intent(in), optional :: y_direction
-    logical, intent(in), optional :: is_xy
+    character(len=*), intent(in) :: path             !< Output path for the ASCII grid file.
+    integer(i4), intent(in) :: ncols                 !< Number of columns to write.
+    integer(i4), intent(in) :: nrows                 !< Number of rows to write.
+    real(dp), intent(in) :: xllcorner                !< Lower-left x coordinate of the grid.
+    real(dp), intent(in) :: yllcorner                !< Lower-left y coordinate of the grid.
+    real(dp), intent(in) :: cellsize                 !< Cell size of the grid.
+    real(dp), intent(in) :: nodata                   !< Nodata marker to write.
+    real(dp), intent(in), optional :: data(:,:)      !< Optional data array to write.
+    integer(i4), intent(in), optional :: y_direction !< Direction of the y axis in the supplied data.
+    logical, intent(in), optional :: is_xy           !< Whether the supplied data uses xy ordering.
 
     integer(i4) :: i, j, io, ierr
     logical :: is_bottom_up, is_xy_
@@ -929,19 +974,20 @@ contains
     close(io)
   end subroutine write_ascii_grid_dp
 
+  !> \brief Write a 4-byte integer ESRI ASCII grid from an xy- or yx-ordered array.
   subroutine write_ascii_grid_i4(path, ncols, nrows, xllcorner, yllcorner, cellsize, nodata, data, y_direction, is_xy)
     implicit none
 
-    character(len=*), intent(in) :: path
-    integer(i4), intent(in) :: ncols
-    integer(i4), intent(in) :: nrows
-    real(dp), intent(in) :: xllcorner
-    real(dp), intent(in) :: yllcorner
-    real(dp), intent(in) :: cellsize
-    integer(i4), intent(in) :: nodata
-    integer(i4), intent(in), optional :: data(:,:)
-    integer(i4), intent(in), optional :: y_direction
-    logical, intent(in), optional :: is_xy
+    character(len=*), intent(in) :: path               !< Output path for the ASCII grid file.
+    integer(i4), intent(in) :: ncols                   !< Number of columns to write.
+    integer(i4), intent(in) :: nrows                   !< Number of rows to write.
+    real(dp), intent(in) :: xllcorner                  !< Lower-left x coordinate of the grid.
+    real(dp), intent(in) :: yllcorner                  !< Lower-left y coordinate of the grid.
+    real(dp), intent(in) :: cellsize                   !< Cell size of the grid.
+    integer(i4), intent(in) :: nodata                  !< Nodata marker to write.
+    integer(i4), intent(in), optional :: data(:,:)     !< Optional data array to write.
+    integer(i4), intent(in), optional :: y_direction   !< Direction of the y axis in the supplied data.
+    logical, intent(in), optional :: is_xy             !< Whether the supplied data uses xy ordering.
 
     integer(i4) :: i, j, io, ierr
     logical :: is_bottom_up, is_xy_
@@ -1001,16 +1047,17 @@ contains
     close(io)
   end subroutine write_ascii_grid_i4
 
+  !> \brief Map one fine-grid cell index pair to its containing coarse-grid cell.
   pure subroutine coarse_ij(factor, fine_i, fine_j, fine_y_dir, fine_ny, coarse_y_dir, coarse_ny, coarse_i, coarse_j)
-    integer(i4), intent(in) :: factor
-    integer(i4), intent(in) :: fine_i
-    integer(i4), intent(in) :: fine_j
-    integer(i4), intent(in) :: fine_y_dir
-    integer(i4), intent(in) :: fine_ny
-    integer(i4), intent(in) :: coarse_y_dir
-    integer(i4), intent(in) :: coarse_ny
-    integer(i4), intent(out) :: coarse_i
-    integer(i4), intent(out) :: coarse_j
+    integer(i4), intent(in) :: factor        !< Integer coarsening factor.
+    integer(i4), intent(in) :: fine_i        !< Fine-grid x index.
+    integer(i4), intent(in) :: fine_j        !< Fine-grid y index.
+    integer(i4), intent(in) :: fine_y_dir    !< Fine-grid y-axis direction selector.
+    integer(i4), intent(in) :: fine_ny       !< Number of rows on the fine grid.
+    integer(i4), intent(in) :: coarse_y_dir  !< Coarse-grid y-axis direction selector.
+    integer(i4), intent(in) :: coarse_ny     !< Number of rows on the coarse grid.
+    integer(i4), intent(out) :: coarse_i     !< Containing coarse-grid x index.
+    integer(i4), intent(out) :: coarse_j     !< Containing coarse-grid y index.
     integer(i4) :: j
 
     j = fine_j
@@ -1020,19 +1067,20 @@ contains
     if (coarse_y_dir == top_down) coarse_j = coarse_ny - coarse_j + 1_i4
   end subroutine coarse_ij
 
+  !> \brief Compute fine-grid index bounds covered by one coarse-grid cell.
   pure subroutine id_bounds(factor, coarse_i, coarse_j, coarse_y_dir, coarse_ny, fine_y_dir, fine_nx, fine_ny, i_lb, i_ub, j_lb, j_ub)
-    integer(i4), intent(in) :: factor
-    integer(i4), intent(in) :: coarse_i
-    integer(i4), intent(in) :: coarse_j
-    integer(i4), intent(in) :: coarse_y_dir
-    integer(i4), intent(in) :: coarse_ny
-    integer(i4), intent(in) :: fine_y_dir
-    integer(i4), intent(in) :: fine_nx
-    integer(i4), intent(in) :: fine_ny
-    integer(i4), intent(out) :: i_lb
-    integer(i4), intent(out) :: i_ub
-    integer(i4), intent(out) :: j_lb
-    integer(i4), intent(out) :: j_ub
+    integer(i4), intent(in) :: factor         !< Integer coarsening factor.
+    integer(i4), intent(in) :: coarse_i       !< Coarse-grid x index.
+    integer(i4), intent(in) :: coarse_j       !< Coarse-grid y index.
+    integer(i4), intent(in) :: coarse_y_dir   !< Coarse-grid y-axis direction selector.
+    integer(i4), intent(in) :: coarse_ny      !< Number of rows on the coarse grid.
+    integer(i4), intent(in) :: fine_y_dir     !< Fine-grid y-axis direction selector.
+    integer(i4), intent(in) :: fine_nx        !< Number of columns on the fine grid.
+    integer(i4), intent(in) :: fine_ny        !< Number of rows on the fine grid.
+    integer(i4), intent(out) :: i_lb          !< Inclusive lower fine-grid x bound.
+    integer(i4), intent(out) :: i_ub          !< Inclusive upper fine-grid x bound.
+    integer(i4), intent(out) :: j_lb          !< Inclusive lower fine-grid y bound.
+    integer(i4), intent(out) :: j_ub          !< Inclusive upper fine-grid y bound.
     integer(i4) :: temp, ic, jc
 
     ic = coarse_i
@@ -1051,11 +1099,12 @@ contains
     end if
   end subroutine id_bounds
 
+  !> \brief Compute the spherical great-circle distance between two lon/lat points.
   pure real(dp) function dist_latlon(lat1, lon1, lat2, lon2)
-    real(dp), intent(in) :: lat1
-    real(dp), intent(in) :: lon1
-    real(dp), intent(in) :: lat2
-    real(dp), intent(in) :: lon2
+    real(dp), intent(in) :: lat1 !< Latitude of the first point in degrees.
+    real(dp), intent(in) :: lon1 !< Longitude of the first point in degrees.
+    real(dp), intent(in) :: lat2 !< Latitude of the second point in degrees.
+    real(dp), intent(in) :: lon2 !< Longitude of the second point in degrees.
     real(dp) :: theta1, phi1, theta2, phi2
     real(dp) :: term1, term2, term3, temp
 

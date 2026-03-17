@@ -19,8 +19,8 @@
 module mo_grid
 
   use mo_grid_constants, only: cartesian, spherical, keep_y, top_down, bottom_up, area_sum, area_full, area_count
-  use mo_grid_helper, only: grid_value_in_closed_interval, grid_shift_longitude_near_query, grid_quad_contains_point, &
-                            grid_append_candidate_id, grid_update_best_metric, intersection, calculate_coarse_extent, &
+  use mo_grid_helper, only: value_in_closed_interval, shift_longitude_near_query, quad_contains_point, &
+                            append_candidate_id, update_best_metric, intersection, calculate_coarse_extent, &
                             coarse_ij, id_bounds, dist_latlon, check_factor, read_ascii_grid, write_ascii_grid, &
                             read_ascii_header, data_t
 #ifdef FORCES_WITH_NETCDF
@@ -1322,7 +1322,7 @@ contains
       i = this%cell_ij(k, 1)
       j = this%cell_ij(k, 2)
       cand_dist = dist_latlon(this%lat(i, j), this%lon(i, j), lat_query, lon_query)
-      call grid_update_best_metric(closest_cell_id, best_dist, k, cand_dist)
+      call update_best_metric(closest_cell_id, best_dist, k, cand_dist)
     end do
   end function grid_closest_cell_id_aux_lonlat
 
@@ -1388,7 +1388,7 @@ contains
           else
             cand_metric = this%cartesian_cell_metric(cand_ids(icand), x_query, y_query)
           end if
-          call grid_update_best_metric(closest_cell_id, best_metric, cand_ids(icand), cand_metric)
+          call update_best_metric(closest_cell_id, best_metric, cand_ids(icand), cand_metric)
         end do
       end do
     end do search_rows
@@ -1431,11 +1431,11 @@ contains
     target_i = (x_query - this%xllcorner) / this%cellsize + 0.5_dp
     call this%row_binary_search(k_lb, k_ub, target_i, left_k, right_k)
 
-    call grid_append_candidate_id(cand_ids, ncand, right_k, k_lb, k_ub)
-    call grid_append_candidate_id(cand_ids, ncand, left_k, k_lb, k_ub)
+    call append_candidate_id(cand_ids, ncand, right_k, k_lb, k_ub)
+    call append_candidate_id(cand_ids, ncand, left_k, k_lb, k_ub)
     if (periodic_wrap) then
-      call grid_append_candidate_id(cand_ids, ncand, k_lb, k_lb, k_ub)
-      call grid_append_candidate_id(cand_ids, ncand, k_ub, k_lb, k_ub)
+      call append_candidate_id(cand_ids, ncand, k_lb, k_lb, k_ub)
+      call append_candidate_id(cand_ids, ncand, k_ub, k_lb, k_ub)
     end if
   end subroutine grid_row_candidate_ids
 
@@ -1608,8 +1608,8 @@ contains
         cell_y = [this%lat_vertices(i, j + 1_i4), this%lat_vertices(i + 1_i4, j + 1_i4), &
                   this%lat_vertices(i + 1_i4, j), this%lat_vertices(i, j)]
       end if
-      cell_x = grid_shift_longitude_near_query(cell_x, x)
-      in_cell = grid_quad_contains_point(cell_x, cell_y, x, y)
+      cell_x = shift_longitude_near_query(cell_x, x)
+      in_cell = quad_contains_point(cell_x, cell_y, x, y)
       return
     end if
 
@@ -1621,8 +1621,8 @@ contains
     y_lower = this%y_center(j) - 0.5_dp * this%cellsize
     y_upper = y_lower + this%cellsize
 
-    in_cell = grid_value_in_closed_interval(x_map, x_lower, x_upper) .and. &
-              grid_value_in_closed_interval(y, y_lower, y_upper)
+    in_cell = value_in_closed_interval(x_map, x_lower, x_upper) .and. &
+              value_in_closed_interval(y, y_lower, y_upper)
   end function grid_in_cell
 
   !> \brief Closest cell ID for given coordinates from axis.
