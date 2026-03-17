@@ -28,8 +28,6 @@ module mo_spatial_index
   integer(i4), parameter :: lonlat_ndim = 2_i4
   integer(i4), parameter :: spherical_storage_ndim = 3_i4
 
-  public :: spatial_index_t
-
   !> \class spatial_index_t
   !> \brief Exact transient KD-tree index for nearest-neighbor queries.
   !> \details The index stores coordinates column-wise in the implicit KD-tree
