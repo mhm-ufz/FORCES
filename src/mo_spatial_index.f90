@@ -15,6 +15,7 @@
 module mo_spatial_index
 
   use mo_kind, only: i4, i8, dp
+  use mo_grid_constants, only: cartesian, spherical
   use mo_constants, only: deg2rad_dp
   use mo_utils, only: is_close
   use mo_message, only: error_message
@@ -23,8 +24,6 @@ module mo_spatial_index
 
   private
 
-  integer(i4), parameter :: spatial_cartesian = 0_i4
-  integer(i4), parameter :: spatial_spherical = 1_i4
   integer(i4), parameter :: lonlat_ndim = 2_i4
   integer(i4), parameter :: spherical_storage_ndim = 3_i4
   integer(i8), parameter :: loop_parallel_min_n = 2048_i8
@@ -40,7 +39,7 @@ module mo_spatial_index
   type, public :: spatial_index_t
     integer(i4) :: ndim = 0_i4                    !< External point dimension expected by the public query API.
     integer(i4) :: storage_ndim = 0_i4            !< Internal point dimension stored in \ref pts.
-    integer(i4) :: coordsys = spatial_cartesian   !< Coordinate mode, either Cartesian or spherical lon/lat.
+    integer(i4) :: coordsys = cartesian           !< Coordinate mode, either Cartesian or spherical lon/lat.
     real(dp), allocatable :: pts(:, :)            !< Point coordinates stored column-wise in KD-tree order.
     integer(i8), allocatable :: point_ids(:)      !< User point ids stored alongside \ref pts.
     integer(i4), allocatable :: split_axis(:)     !< Splitting axis used by each implicit KD-tree node.
@@ -65,7 +64,7 @@ contains
     if (allocated(this%split_axis)) deallocate(this%split_axis)
     this%ndim = 0_i4
     this%storage_ndim = 0_i4
-    this%coordsys = spatial_cartesian
+    this%coordsys = cartesian
   end subroutine spatial_index_clear
 
   !> \brief Build a Cartesian KD-tree from Euclidean point coordinates.
@@ -89,7 +88,7 @@ contains
     call this%clear()
     this%ndim = ndim
     this%storage_ndim = ndim
-    this%coordsys = spatial_cartesian
+    this%coordsys = cartesian
 
     allocate(this%pts(this%storage_ndim, npts))
     allocate(this%point_ids(npts))
@@ -127,7 +126,7 @@ contains
     call this%clear()
     this%ndim = lonlat_ndim
     this%storage_ndim = spherical_storage_ndim
-    this%coordsys = spatial_spherical
+    this%coordsys = spherical
 
     allocate(this%pts(this%storage_ndim, npts))
     allocate(this%point_ids(npts))
@@ -150,7 +149,7 @@ contains
 
     real(dp) :: target(size(query))
 
-    if (this%coordsys == spatial_spherical) &
+    if (this%coordsys == spherical) &
       call error_message("spatial_index % nearest_id: spherical indices need nearest_id_lonlat.") ! LCOV_EXCL_LINE
     if (size(query, kind=i4) /= this%storage_ndim) &
       call error_message("spatial_index % nearest_id: query dimension does not match index.") ! LCOV_EXCL_LINE
@@ -171,7 +170,7 @@ contains
     integer(i4) :: idim
     real(dp) :: target(size(queries, 2))
 
-    if (this%coordsys == spatial_spherical) &
+    if (this%coordsys == spherical) &
       call error_message("spatial_index % nearest_ids: spherical indices need nearest_ids_lonlat.") ! LCOV_EXCL_LINE
     if (size(queries, 2) /= this%storage_ndim) &
       call error_message("spatial_index % nearest_ids: query dimension does not match index.") ! LCOV_EXCL_LINE
@@ -195,7 +194,7 @@ contains
 
     real(dp) :: target(spherical_storage_ndim)
 
-    if (this%coordsys /= spatial_spherical) &
+    if (this%coordsys /= spherical) &
       call error_message("spatial_index % nearest_id_lonlat: index is not spherical.") ! LCOV_EXCL_LINE
 
     call lonlat_to_unitvec(lon, lat, target)
@@ -213,7 +212,7 @@ contains
     integer(i8) :: iquery
     real(dp) :: target(spherical_storage_ndim)
 
-    if (this%coordsys /= spatial_spherical) &
+    if (this%coordsys /= spherical) &
       call error_message("spatial_index % nearest_ids_lonlat: index is not spherical.") ! LCOV_EXCL_LINE
     if (size(coords, 2) /= lonlat_ndim) &
       call error_message("spatial_index % nearest_ids_lonlat: coordinates need shape (:,2).") ! LCOV_EXCL_LINE
