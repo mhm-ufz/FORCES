@@ -27,6 +27,9 @@ module mo_spatial_index
   integer(i4), parameter :: spatial_spherical = 1_i4
   integer(i4), parameter :: lonlat_ndim = 2_i4
   integer(i4), parameter :: spherical_storage_ndim = 3_i4
+  integer(i8), parameter :: loop_parallel_min_n = 2048_i8
+  integer(i8), parameter :: build_task_min_n = 16384_i8
+  integer(i4), parameter :: build_task_max_depth = 4_i4
 
   !> \class spatial_index_t
   !> \brief Exact transient KD-tree index for nearest-neighbor queries.
@@ -92,14 +95,16 @@ contains
     allocate(this%point_ids(npts))
     allocate(this%split_axis(npts))
 
+    !$omp parallel do default(shared) private(ipt,idim) schedule(static) if(npts >= loop_parallel_min_n)
     do ipt = 1_i8, npts
       do idim = 1_i4, this%storage_ndim
         this%pts(idim, ipt) = points(ipt, idim)
       end do
       this%point_ids(ipt) = point_ids(ipt)
     end do
+    !$omp end parallel do
 
-    if (npts > 0_i8) call spatial_index_build(this, 1_i8, npts, 0_i4)
+    if (npts > 0_i8) call spatial_index_build_root(this, npts)
   end subroutine spatial_index_init
 
   !> \brief Build a spherical KD-tree from longitude/latitude coordinates.
@@ -128,12 +133,14 @@ contains
     allocate(this%point_ids(npts))
     allocate(this%split_axis(npts))
 
+    !$omp parallel do default(shared) private(ipt) schedule(static) if(npts >= loop_parallel_min_n)
     do ipt = 1_i8, npts
       call lonlat_to_unitvec(coords(ipt, 1), coords(ipt, 2), this%pts(:, ipt))
       this%point_ids(ipt) = point_ids(ipt)
     end do
+    !$omp end parallel do
 
-    if (npts > 0_i8) call spatial_index_build(this, 1_i8, npts, 0_i4)
+    if (npts > 0_i8) call spatial_index_build_root(this, npts)
   end subroutine spatial_index_init_lonlat
 
   !> \brief Return the id of the nearest Cartesian point to a single query.
@@ -160,7 +167,8 @@ contains
     real(dp), intent(in) :: queries(:, :)
     integer(i8) :: point_ids(size(queries, 1))
 
-    integer(i4) :: iquery, idim
+    integer(i8) :: iquery
+    integer(i4) :: idim
     real(dp) :: target(size(queries, 2))
 
     if (this%coordsys == spatial_spherical) &
@@ -168,8 +176,9 @@ contains
     if (size(queries, 2) /= this%storage_ndim) &
       call error_message("spatial_index % nearest_ids: query dimension does not match index.") ! LCOV_EXCL_LINE
 
-    !$omp parallel do default(shared) private(iquery,idim,target) schedule(static)
-    do iquery = 1_i4, size(queries, 1)
+    !$omp parallel do default(shared) private(iquery,idim,target) schedule(static) &
+    !$omp& if(size(queries, 1, kind=i8) >= loop_parallel_min_n)
+    do iquery = 1_i8, size(queries, 1, kind=i8)
       do idim = 1_i4, size(queries, 2)
         target(idim) = queries(iquery, idim)
       end do
@@ -201,16 +210,18 @@ contains
     real(dp), intent(in) :: coords(:, :)
     integer(i8) :: point_ids(size(coords, 1))
 
-    integer(i4) :: iquery
+    integer(i8) :: iquery
+    real(dp) :: target(spherical_storage_ndim)
 
     if (this%coordsys /= spatial_spherical) &
       call error_message("spatial_index % nearest_ids_lonlat: index is not spherical.") ! LCOV_EXCL_LINE
     if (size(coords, 2) /= lonlat_ndim) &
       call error_message("spatial_index % nearest_ids_lonlat: coordinates need shape (:,2).") ! LCOV_EXCL_LINE
 
-    !$omp parallel do default(shared) private(iquery) schedule(static)
-    do iquery = 1_i4, size(coords, 1)
-      point_ids(iquery) = spatial_index_nearest_id_lonlat(this, coords(iquery, 1), coords(iquery, 2))
+    !$omp parallel do default(shared) private(iquery,target) schedule(static) if(size(coords, 1, kind=i8) >= loop_parallel_min_n)
+    do iquery = 1_i8, size(coords, 1, kind=i8)
+      call lonlat_to_unitvec(coords(iquery, 1), coords(iquery, 2), target)
+      point_ids(iquery) = spatial_index_nearest_target(this, target)
     end do
     !$omp end parallel do
   end function spatial_index_nearest_ids_lonlat
@@ -232,6 +243,20 @@ contains
     call spatial_index_search(this, 1_i8, size(this%point_ids, kind=i8), target, point_id, best_dist2)
   end function spatial_index_nearest_target
 
+  !> \brief Enter one OpenMP region to build the KD-tree and spawn top-level subtree tasks.
+  subroutine spatial_index_build_root(this, npts)
+    class(spatial_index_t), intent(inout) :: this
+    integer(i8), intent(in) :: npts
+
+    if (npts < 1_i8) return
+
+    !$omp parallel default(shared) if(npts >= build_task_min_n)
+    !$omp single
+    call spatial_index_build(this, 1_i8, npts, 0_i4)
+    !$omp end single
+    !$omp end parallel
+  end subroutine spatial_index_build_root
+
   !> \brief Build the implicit KD-tree layout in place over the stored points.
   recursive subroutine spatial_index_build(this, lo, hi, depth)
     class(spatial_index_t), intent(inout) :: this
@@ -239,7 +264,8 @@ contains
     integer(i8), intent(in) :: hi
     integer(i4), intent(in) :: depth
 
-    integer(i8) :: mid
+    integer(i8) :: mid, left_size, right_size
+    logical :: spawn_left, spawn_right
 
     if (lo > hi) return
 
@@ -247,8 +273,32 @@ contains
     this%split_axis(mid) = 1_i4 + mod(depth, this%storage_ndim)
     call spatial_index_quickselect(this%pts, this%point_ids, lo, hi, mid, this%split_axis(mid))
 
-    if (lo < mid) call spatial_index_build(this, lo, mid - 1_i8, depth + 1_i4)
-    if (mid < hi) call spatial_index_build(this, mid + 1_i8, hi, depth + 1_i4)
+    left_size = mid - lo
+    right_size = hi - mid
+    spawn_left = left_size >= build_task_min_n .and. depth < build_task_max_depth
+    spawn_right = right_size >= build_task_min_n .and. depth < build_task_max_depth
+
+    if (lo < mid) then
+      if (spawn_left) then
+        !$omp task default(shared) firstprivate(lo,mid,depth)
+        call spatial_index_build(this, lo, mid - 1_i8, depth + 1_i4)
+        !$omp end task
+      else
+        call spatial_index_build(this, lo, mid - 1_i8, depth + 1_i4)
+      end if
+    end if
+    if (mid < hi) then
+      if (spawn_right) then
+        !$omp task default(shared) firstprivate(mid,hi,depth)
+        call spatial_index_build(this, mid + 1_i8, hi, depth + 1_i4)
+        !$omp end task
+      else
+        call spatial_index_build(this, mid + 1_i8, hi, depth + 1_i4)
+      end if
+    end if
+    if (spawn_left .or. spawn_right) then
+      !$omp taskwait
+    end if
   end subroutine spatial_index_build
 
   !> \brief Recursively search the implicit KD-tree for the nearest stored point.
@@ -268,7 +318,7 @@ contains
 
     mid = lo + (hi - lo) / 2_i8
     axis = this%split_axis(mid)
-    cand_dist2 = sum((this%pts(:, mid) - target)**2)
+    cand_dist2 = spatial_index_point_dist2(this, mid, target)
     call spatial_index_update_best(best_id, best_dist2, this%point_ids(mid), cand_dist2)
 
     delta = target(axis) - this%pts(axis, mid)
@@ -370,6 +420,61 @@ contains
       best_dist2 = cand_dist2
     end if
   end subroutine spatial_index_update_best
+
+  pure real(dp) function spatial_index_point_dist2(this, idx, target) result(dist2)
+    class(spatial_index_t), intent(in) :: this
+    integer(i8), intent(in) :: idx
+    real(dp), intent(in) :: target(:)
+
+    select case (this%storage_ndim)
+      case (2_i4)
+        dist2 = spatial_index_point_dist2_2d(this%pts, idx, target)
+      case (3_i4)
+        dist2 = spatial_index_point_dist2_3d(this%pts, idx, target)
+      case default
+        dist2 = spatial_index_point_dist2_generic(this%pts, idx, target)
+    end select
+  end function spatial_index_point_dist2
+
+  pure real(dp) function spatial_index_point_dist2_2d(pts, idx, target) result(dist2)
+    real(dp), intent(in) :: pts(:, :)
+    integer(i8), intent(in) :: idx
+    real(dp), intent(in) :: target(:)
+
+    real(dp) :: dx, dy
+
+    dx = pts(1, idx) - target(1)
+    dy = pts(2, idx) - target(2)
+    dist2 = dx * dx + dy * dy
+  end function spatial_index_point_dist2_2d
+
+  pure real(dp) function spatial_index_point_dist2_3d(pts, idx, target) result(dist2)
+    real(dp), intent(in) :: pts(:, :)
+    integer(i8), intent(in) :: idx
+    real(dp), intent(in) :: target(:)
+
+    real(dp) :: dx, dy, dz
+
+    dx = pts(1, idx) - target(1)
+    dy = pts(2, idx) - target(2)
+    dz = pts(3, idx) - target(3)
+    dist2 = dx * dx + dy * dy + dz * dz
+  end function spatial_index_point_dist2_3d
+
+  pure real(dp) function spatial_index_point_dist2_generic(pts, idx, target) result(dist2)
+    real(dp), intent(in) :: pts(:, :)
+    integer(i8), intent(in) :: idx
+    real(dp), intent(in) :: target(:)
+
+    integer(i4) :: idim
+    real(dp) :: delta
+
+    dist2 = 0.0_dp
+    do idim = 1_i4, size(target, kind=i4)
+      delta = pts(idim, idx) - target(idim)
+      dist2 = dist2 + delta * delta
+    end do
+  end function spatial_index_point_dist2_generic
 
   !> \brief Convert longitude and latitude in degrees to a 3D unit vector.
   subroutine lonlat_to_unitvec(lon, lat, vec)

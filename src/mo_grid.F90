@@ -77,6 +77,7 @@ module mo_grid
   integer(i4), public, parameter :: area_full = 1_i4 !< Calculate cell area as full cell.
   integer(i4), public, parameter :: area_count = 2_i4 !< Calculate cell area by count fraction of valid sub-cells.
   !!@}
+  integer(i8), parameter :: grid_spatial_index_parallel_min_n = 2048_i8
 
   !> \class   data_t
   !> \brief   2D Data container for different data types.
@@ -1277,18 +1278,37 @@ contains
     allocate(point_ids(this%ncells))
     allocate(points(this%ncells, 2))
 
-    do k = 1_i8, this%ncells
-      point_ids(k) = k
-      i = this%cell_ij(k, 1)
-      j = this%cell_ij(k, 2)
-      if (aux) then
+    if (aux) then
+      !$omp parallel do default(shared) private(k,i,j) schedule(static) if(this%ncells >= grid_spatial_index_parallel_min_n)
+      do k = 1_i8, this%ncells
+        point_ids(k) = k
+        i = this%cell_ij(k, 1)
+        j = this%cell_ij(k, 2)
         points(k, 1) = this%lon(i, j)
         points(k, 2) = this%lat(i, j)
-      else
+      end do
+      !$omp end parallel do
+    else if (this%coordsys == spherical) then
+      !$omp parallel do default(shared) private(k,i,j) schedule(static) if(this%ncells >= grid_spatial_index_parallel_min_n)
+      do k = 1_i8, this%ncells
+        point_ids(k) = k
+        i = this%cell_ij(k, 1)
+        j = this%cell_ij(k, 2)
         points(k, 1) = this%x_center(i)
         points(k, 2) = this%y_center(j)
-      end if
-    end do
+      end do
+      !$omp end parallel do
+    else
+      !$omp parallel do default(shared) private(k,i,j) schedule(static) if(this%ncells >= grid_spatial_index_parallel_min_n)
+      do k = 1_i8, this%ncells
+        point_ids(k) = k
+        i = this%cell_ij(k, 1)
+        j = this%cell_ij(k, 2)
+        points(k, 1) = this%x_center(i)
+        points(k, 2) = this%y_center(j)
+      end do
+      !$omp end parallel do
+    end if
 
     if (aux .or. this%coordsys == spherical) then
       call index%init_lonlat(points, point_ids)

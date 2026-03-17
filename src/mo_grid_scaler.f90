@@ -29,6 +29,7 @@ module mo_grid_scaler
 
   private
   private :: scaler_init
+  integer(i8), parameter :: nearest_regridder_loop_parallel_min_n = 2048_i8
   !> \name Scaling Indicators
   !> \brief Constants to indicate the scaling mode of the \ref scaler_t.
   !!@{
@@ -210,11 +211,14 @@ module mo_grid_scaler
     procedure, private :: check_unpacked_source => nearest_regridder_check_unpacked_source
     procedure, private :: check_unpacked_target => nearest_regridder_check_unpacked_target
     procedure, private :: prepare_source_aux_vertices => nearest_regridder_prepare_source_aux_vertices
+    procedure, private :: collect_target_points => nearest_regridder_collect_target_points
+    procedure, private :: query_source_ids => nearest_regridder_query_source_ids
     procedure, private :: derive_target_mask => nearest_regridder_derive_target_mask
     procedure, private :: find_containing_source_cell => nearest_regridder_find_containing_source_cell
     procedure, private :: candidate_metric => nearest_regridder_candidate_metric
     procedure, private :: apply_target_mask => nearest_regridder_apply_target_mask
     procedure, private :: build_id_map => nearest_regridder_build_id_map
+    procedure, private :: repack_id_map => nearest_regridder_repack_id_map
     procedure, private :: map_dp => nearest_regridder_map_dp
     procedure, private :: map_i4 => nearest_regridder_map_i4
     !> \brief Execute nearest-neighbor remapping.
@@ -364,6 +368,11 @@ contains
     logical, intent(in), optional :: use_aux
     logical, intent(in), optional :: derive_target_mask
 
+    type(spatial_index_t) :: index
+    integer(i4), allocatable :: old_target_cell_ij(:, :)
+    real(dp), allocatable :: target_points(:, :)
+    integer(i8), allocatable :: nearest_ids(:)
+    logical, allocatable :: target_mask(:, :)
     logical :: use_aux_, derive_target_mask_
 
     use_aux_ = optval(use_aux, .false.)
@@ -376,7 +385,25 @@ contains
     call this%select_space(use_aux_)
     if (derive_target_mask_) then
       call this%prepare_source_aux_vertices()
-      call this%derive_target_mask()
+      allocate(target_mask(this%target_grid%nx, this%target_grid%ny), source=this%target_grid%mask)
+      if (this%source_grid%ncells < 1_i8) then
+        target_mask = .false.
+        if (any(target_mask .neqv. this%target_grid%mask)) call this%apply_target_mask(target_mask)
+        allocate(this%id_map(this%target_grid%ncells))
+        return
+      end if
+
+      allocate(old_target_cell_ij(this%target_grid%ncells, 2), source=this%target_grid%cell_ij)
+      call this%collect_target_points(target_points)
+      call this%source_grid%build_spatial_index(index, use_aux=this%source_use_aux)
+      call this%query_source_ids(index, target_points, nearest_ids)
+      call this%derive_target_mask(target_points, nearest_ids, target_mask)
+
+      if (any(target_mask .neqv. this%target_grid%mask)) then
+        call this%apply_target_mask(target_mask)
+      end if
+      call this%repack_id_map(old_target_cell_ij, nearest_ids)
+      return
     end if
     call this%build_id_map()
   end subroutine nearest_regridder_init
@@ -549,39 +576,55 @@ contains
     call this%source_grid%estimate_aux_vertices()
   end subroutine nearest_regridder_prepare_source_aux_vertices
 
-  subroutine nearest_regridder_derive_target_mask(this)
-    class(nearest_regridder_t), intent(inout) :: this
+  subroutine nearest_regridder_collect_target_points(this, target_points)
+    class(nearest_regridder_t), intent(in) :: this
+    real(dp), allocatable, intent(out) :: target_points(:, :)
 
-    type(spatial_index_t) :: index
-    logical, allocatable :: target_mask(:, :)
-    integer(i8), allocatable :: nearest_ids(:)
-    real(dp), allocatable :: target_points(:, :)
+    allocate(target_points(this%target_grid%ncells, 2))
+    if (this%mapping_coordsys == cartesian) then
+      call nearest_regridder_collect_cartesian_points(this%target_grid, target_points)
+    else
+      call nearest_regridder_collect_lonlat_points(this%target_grid, this%target_use_aux, target_points)
+    end if
+  end subroutine nearest_regridder_collect_target_points
+
+  subroutine nearest_regridder_query_source_ids(this, index, target_points, nearest_ids)
+    class(nearest_regridder_t), intent(in) :: this
+    type(spatial_index_t), intent(in) :: index
+    real(dp), intent(in) :: target_points(:, :)
+    integer(i8), allocatable, intent(out) :: nearest_ids(:)
+
+    if (this%mapping_coordsys == cartesian) then
+      nearest_ids = index%nearest_ids(target_points)
+    else
+      nearest_ids = index%nearest_ids_lonlat(target_points)
+    end if
+  end subroutine nearest_regridder_query_source_ids
+
+  subroutine nearest_regridder_derive_target_mask(this, target_points, nearest_ids, target_mask)
+    class(nearest_regridder_t), intent(inout) :: this
+    real(dp), intent(in) :: target_points(:, :)
+    integer(i8), intent(in) :: nearest_ids(:)
+    logical, intent(inout) :: target_mask(:, :)
+
     integer(i8) :: k
     integer(i4) :: src_i, src_j, src_i_found, src_j_found, tgt_i, tgt_j
     logical :: found
 
     if (this%target_grid%ncells < 1_i8) return
 
-    allocate(target_mask(this%target_grid%nx, this%target_grid%ny), source=this%target_grid%mask)
-
-    if (this%source_grid%ncells < 1_i8) then
-      target_mask = .false.
-      if (any(target_mask .neqv. this%target_grid%mask)) call this%apply_target_mask(target_mask)
-      return
+    if (size(target_points, 1, kind=i8) /= this%target_grid%ncells .or. size(target_points, 2) /= 2_i4) then
+      call error_message("nearest_regridder % init: target point buffer has wrong shape.") ! LCOV_EXCL_LINE
+    end if
+    if (size(nearest_ids, kind=i8) /= this%target_grid%ncells) then
+      call error_message("nearest_regridder % init: nearest source ids have wrong size.") ! LCOV_EXCL_LINE
+    end if
+    if (size(target_mask, 1) /= this%target_grid%nx .or. size(target_mask, 2) /= this%target_grid%ny) then
+      call error_message("nearest_regridder % init: target mask buffer has wrong shape.") ! LCOV_EXCL_LINE
     end if
 
-    allocate(target_points(this%target_grid%ncells, 2))
-
-    if (this%mapping_coordsys == cartesian) then
-      call nearest_regridder_collect_cartesian_points(this%target_grid, target_points)
-      call this%source_grid%build_spatial_index(index)
-      nearest_ids = index%nearest_ids(target_points)
-    else
-      call nearest_regridder_collect_lonlat_points(this%target_grid, this%target_use_aux, target_points)
-      call this%source_grid%build_spatial_index(index, use_aux=this%source_use_aux)
-      nearest_ids = index%nearest_ids_lonlat(target_points)
-    end if
-
+    !$omp parallel do default(shared) private(k,tgt_i,tgt_j,src_i,src_j,found,src_i_found,src_j_found) schedule(static) &
+    !$omp if(this%target_grid%ncells >= nearest_regridder_loop_parallel_min_n)
     do k = 1_i8, this%target_grid%ncells
       tgt_i = this%target_grid%cell_ij(k, 1)
       tgt_j = this%target_grid%cell_ij(k, 2)
@@ -595,8 +638,7 @@ contains
         target_mask(tgt_i, tgt_j) = .false.
       end if
     end do
-
-    if (any(target_mask .neqv. this%target_grid%mask)) call this%apply_target_mask(target_mask)
+    !$omp end parallel do
   end subroutine nearest_regridder_derive_target_mask
 
   subroutine nearest_regridder_find_containing_source_cell(this, src_i0, src_j0, x, y, found, src_i, src_j)
@@ -721,23 +763,53 @@ contains
     real(dp), allocatable :: target_points(:, :)
 
     if (allocated(this%id_map)) deallocate(this%id_map)
-    allocate(this%id_map(this%target_grid%ncells))
-    if (this%target_grid%ncells < 1_i8) return
+    if (this%target_grid%ncells < 1_i8) then
+      allocate(this%id_map(0))
+      return
+    end if
     if (this%source_grid%ncells < 1_i8) then
       call error_message("nearest_regridder % init: source grid has no active cells.") ! LCOV_EXCL_LINE
     end if
 
     call this%source_grid%build_spatial_index(index, use_aux=this%source_use_aux)
-    allocate(target_points(this%target_grid%ncells, 2))
-
-    if (this%mapping_coordsys == cartesian) then
-      call nearest_regridder_collect_cartesian_points(this%target_grid, target_points)
-      this%id_map = index%nearest_ids(target_points)
-    else
-      call nearest_regridder_collect_lonlat_points(this%target_grid, this%target_use_aux, target_points)
-      this%id_map = index%nearest_ids_lonlat(target_points)
-    end if
+    call this%collect_target_points(target_points)
+    call this%query_source_ids(index, target_points, this%id_map)
   end subroutine nearest_regridder_build_id_map
+
+  subroutine nearest_regridder_repack_id_map(this, old_target_cell_ij, nearest_ids)
+    class(nearest_regridder_t), intent(inout) :: this
+    integer(i4), intent(in) :: old_target_cell_ij(:, :)
+    integer(i8), intent(in) :: nearest_ids(:)
+
+    integer(i8) :: k
+    integer(i4) :: i, j
+    integer(i8), allocatable :: nearest_id_matrix(:, :)
+
+    if (size(old_target_cell_ij, 1, kind=i8) /= size(nearest_ids, kind=i8) .or. size(old_target_cell_ij, 2) /= 2_i4) then
+      call error_message("nearest_regridder % init: old target cell ids and nearest ids do not match.") ! LCOV_EXCL_LINE
+    end if
+
+    allocate(nearest_id_matrix(this%target_grid%nx, this%target_grid%ny), source=0_i8)
+    !$omp parallel do default(shared) private(k,i,j) schedule(static) &
+    !$omp& if(size(nearest_ids, kind=i8) >= nearest_regridder_loop_parallel_min_n)
+    do k = 1_i8, size(nearest_ids, kind=i8)
+      i = old_target_cell_ij(k, 1)
+      j = old_target_cell_ij(k, 2)
+      nearest_id_matrix(i, j) = nearest_ids(k)
+    end do
+    !$omp end parallel do
+
+    if (allocated(this%id_map)) deallocate(this%id_map)
+    allocate(this%id_map(this%target_grid%ncells))
+    !$omp parallel do default(shared) private(k,i,j) schedule(static) &
+    !$omp& if(this%target_grid%ncells >= nearest_regridder_loop_parallel_min_n)
+    do k = 1_i8, this%target_grid%ncells
+      i = this%target_grid%cell_ij(k, 1)
+      j = this%target_grid%cell_ij(k, 2)
+      this%id_map(k) = nearest_id_matrix(i, j)
+    end do
+    !$omp end parallel do
+  end subroutine nearest_regridder_repack_id_map
 
   subroutine nearest_regridder_collect_cartesian_points(grid, points)
     type(grid_t), intent(in) :: grid
@@ -750,7 +822,7 @@ contains
       call error_message("nearest_regridder: Cartesian point buffer has wrong shape.") ! LCOV_EXCL_LINE
     end if
 
-    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    !$omp parallel do default(shared) private(k,i,j) schedule(static) if(grid%ncells >= nearest_regridder_loop_parallel_min_n)
     do k = 1_i8, grid%ncells
       i = grid%cell_ij(k, 1)
       j = grid%cell_ij(k, 2)
@@ -779,7 +851,7 @@ contains
       call error_message("nearest_regridder: regular lon/lat points need a spherical grid.") ! LCOV_EXCL_LINE
     end if
 
-    !$omp parallel do default(shared) private(k,i,j) schedule(static)
+    !$omp parallel do default(shared) private(k,i,j) schedule(static) if(grid%ncells >= nearest_regridder_loop_parallel_min_n)
     do k = 1_i8, grid%ncells
       i = grid%cell_ij(k, 1)
       j = grid%cell_ij(k, 2)
@@ -853,7 +925,8 @@ contains
 
     integer(i8) :: k
 
-    !$omp parallel do default(shared) private(k) schedule(static)
+    !$omp parallel do default(shared) private(k) schedule(static) &
+    !$omp& if(this%target_grid%ncells >= nearest_regridder_loop_parallel_min_n)
     do k = 1_i8, this%target_grid%ncells
       out_data(k) = in_data(this%id_map(k))
     end do
@@ -867,7 +940,8 @@ contains
 
     integer(i8) :: k
 
-    !$omp parallel do default(shared) private(k) schedule(static)
+    !$omp parallel do default(shared) private(k) schedule(static) &
+    !$omp& if(this%target_grid%ncells >= nearest_regridder_loop_parallel_min_n)
     do k = 1_i8, this%target_grid%ncells
       out_data(k) = in_data(this%id_map(k))
     end do

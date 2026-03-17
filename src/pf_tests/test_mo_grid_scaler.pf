@@ -472,7 +472,7 @@ contains
                             source_all_masked, target_empty, target_area
     type(nearest_regridder_t) :: derived_regridder, outside_regridder, and_regridder, empty_regridder, area_regridder
     logical :: source_mask(3,1), source_and_mask(3,1), target_and_mask(3,1), all_mask(2,1)
-    real(dp) :: target_out(3,1), outside_out(4,1), and_out(3,1), empty_out(2,1)
+    real(dp) :: target_out(3,1), outside_out(4,1), and_out(3,1), empty_out(2,1), target_packed(2), outside_packed(2)
     real(dp), allocatable :: empty_in(:)
 
     source_mask = .true.
@@ -485,6 +485,8 @@ contains
     call derived_regridder%init(source_masked, target_mid, derive_target_mask=.true.)
     @assertEqual(target_mid%ncells, 2_i8)
     @assertTrue(all(target_mid%mask(:,1) .eqv. [.true., .false., .true.]))
+    call derived_regridder%execute([10.0_dp, 30.0_dp], target_packed)
+    @assertEqual(target_packed, [10.0_dp, 30.0_dp], tolerance=1.0e-12_dp)
     call derived_regridder%execute([10.0_dp, 30.0_dp], target_out)
     @assertEqual(target_out(1,1), 10.0_dp, tolerance=1.0e-12_dp)
     @assertEqual(target_out(2,1), nodata_dp, tolerance=1.0e-12_dp)
@@ -497,6 +499,8 @@ contains
     call outside_regridder%init(source_small, target_wide, derive_target_mask=.true.)
     @assertEqual(target_wide%ncells, 2_i8)
     @assertTrue(all(target_wide%mask(:,1) .eqv. [.false., .true., .true., .false.]))
+    call outside_regridder%execute([10.0_dp, 20.0_dp], outside_packed)
+    @assertEqual(outside_packed, [10.0_dp, 20.0_dp], tolerance=1.0e-12_dp)
     call outside_regridder%execute([10.0_dp, 20.0_dp], outside_out)
     @assertEqual(outside_out(1,1), nodata_dp, tolerance=1.0e-12_dp)
     @assertEqual(outside_out(2,1), 10.0_dp, tolerance=1.0e-12_dp)

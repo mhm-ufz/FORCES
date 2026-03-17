@@ -35,6 +35,10 @@ contains
     ids = index%nearest_ids(queries)
 
     @assertEqual(ids, [20_i8, 30_i8, 5_i8], message='cartesian batched queries return exact nearest ids')
+    @assertEqual(index%nearest_ids(queries), ids, message='cartesian repeated batched queries stay deterministic')
+
+    call index%init(points, point_ids)
+    @assertEqual(index%nearest_ids(queries), ids, message='cartesian rebuild keeps batched nearest ids unchanged')
   end subroutine test_spatial_index_cartesian
 
   @test
@@ -58,6 +62,10 @@ contains
     ids = index%nearest_ids_lonlat(queries)
 
     @assertEqual(ids, [1_i8, 3_i8], message='spherical batched queries use exact great-circle nearest ids')
+    @assertEqual(index%nearest_ids_lonlat(queries), ids, message='spherical repeated batched queries stay deterministic')
+
+    call index%init_lonlat(coords, point_ids)
+    @assertEqual(index%nearest_ids_lonlat(queries), ids, message='spherical rebuild keeps batched nearest ids unchanged')
   end subroutine test_spatial_index_spherical
 
 end module test_mo_spatial_index
