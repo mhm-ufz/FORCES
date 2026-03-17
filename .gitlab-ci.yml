@@ -339,10 +339,7 @@ test-intel2023b-llvm-release-omp:
     <<: [*omp_release_vars, *intel_vars_2023b-llvm]
   <<: *omp_job_template
 
-test-intel2023b-llvm-debug-omp:
-  variables:
-    <<: [*omp_debug_vars, *intel_vars_2023b-llvm]
-  <<: *omp_job_template
+# `ifx 2023.2.0` Debug+OpenMP is disabled due to compiler instability, not a known FORCES functional failure.
 
 ################
 ### EXAMPLES ###
