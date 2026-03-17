@@ -67,6 +67,22 @@ show-env-vars:
   BUILD_TARGET: test
   ARTIFACT_PATH: Testing/Temporary
 
+# debug OpenMP variables
+.omp_debug_vars: &omp_debug_vars
+  BUILD_DIR: build_omp_debug
+  CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_OpenMP=ON'
+  BUILD_TARGET: test
+  ARTIFACT_PATH: Testing/Temporary
+  OMP_NUM_THREADS: 4
+
+# release OpenMP variables
+.omp_release_vars: &omp_release_vars
+  BUILD_DIR: build_omp_release
+  CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_WITH_OpenMP=ON'
+  BUILD_TARGET: test
+  ARTIFACT_PATH: Testing/Temporary
+  OMP_NUM_THREADS: 4
+
 # example variables
 .examples_vars: &examples_vars
   BUILD_DIR: build_examples
@@ -204,9 +220,19 @@ test-gfortran102-release:
     <<: [*release_vars, *gfortran_vars_102]
   <<: *job_template
 
+test-gfortran102-release-omp:
+  variables:
+    <<: [*omp_release_vars, *gfortran_vars_102]
+  <<: *job_template
+
 test-gfortran102-debug:
   variables:
     <<: [*debug_vars, *gfortran_vars_102]
+  <<: *job_template
+
+test-gfortran102-debug-omp:
+  variables:
+    <<: [*omp_debug_vars, *gfortran_vars_102]
   <<: *job_template
 
 test-gfortran122-release:
@@ -214,9 +240,19 @@ test-gfortran122-release:
     <<: [*release_vars, *gfortran_vars_122]
   <<: *job_template
 
+test-gfortran122-release-omp:
+  variables:
+    <<: [*omp_release_vars, *gfortran_vars_122]
+  <<: *job_template
+
 test-gfortran122-debug:
   variables:
     <<: [*debug_vars, *gfortran_vars_122]
+  <<: *job_template
+
+test-gfortran122-debug-omp:
+  variables:
+    <<: [*omp_debug_vars, *gfortran_vars_122]
   <<: *job_template
 
 test-intel2020b-release:
@@ -224,9 +260,19 @@ test-intel2020b-release:
     <<: [*release_vars, *intel_vars_2020b]
   <<: *job_template
 
+test-intel2020b-release-omp:
+  variables:
+    <<: [*omp_release_vars, *intel_vars_2020b]
+  <<: *job_template
+
 test-intel2020b-debug:
   variables:
     <<: [*debug_vars, *intel_vars_2020b]
+  <<: *job_template
+
+test-intel2020b-debug-omp:
+  variables:
+    <<: [*omp_debug_vars, *intel_vars_2020b]
   <<: *job_template
 
 test-intel2023b-classic-release:
@@ -234,9 +280,19 @@ test-intel2023b-classic-release:
     <<: [*release_vars, *intel_vars_2023b-classic]
   <<: *job_template
 
+test-intel2023b-classic-release-omp:
+  variables:
+    <<: [*omp_release_vars, *intel_vars_2023b-classic]
+  <<: *job_template
+
 test-intel2023b-classic-debug:
   variables:
     <<: [*debug_vars, *intel_vars_2023b-classic]
+  <<: *job_template
+
+test-intel2023b-classic-debug-omp:
+  variables:
+    <<: [*omp_debug_vars, *intel_vars_2023b-classic]
   <<: *job_template
 
 test-intel2023b-llvm-release:
@@ -244,9 +300,19 @@ test-intel2023b-llvm-release:
     <<: [*release_vars, *intel_vars_2023b-llvm]
   <<: *job_template
 
+test-intel2023b-llvm-release-omp:
+  variables:
+    <<: [*omp_release_vars, *intel_vars_2023b-llvm]
+  <<: *job_template
+
 test-intel2023b-llvm-debug:
   variables:
     <<: [*debug_vars, *intel_vars_2023b-llvm]
+  <<: *job_template
+
+test-intel2023b-llvm-debug-omp:
+  variables:
+    <<: [*omp_debug_vars, *intel_vars_2023b-llvm]
   <<: *job_template
 
 coverage:
