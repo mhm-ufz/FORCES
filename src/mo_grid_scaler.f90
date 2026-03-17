@@ -16,7 +16,7 @@ module mo_grid_scaler
 
   use, intrinsic :: ieee_arithmetic, only : ieee_is_finite, ieee_is_nan, ieee_is_negative
   use mo_kind, only: i4, i8, dp
-  use mo_grid, only: grid_t, id_bounds, coarse_ij, check_factor, cartesian, spherical, top_down, bottom_up
+  use mo_grid, only: grid_t, id_bounds, coarse_ij, check_factor, cartesian, spherical, top_down, bottom_up, dist_latlon
   use mo_utils, only: is_close, eq, flipped, optval
   use mo_string_utils, only: num2str
   use mo_message, only: error_message
@@ -208,7 +208,10 @@ module mo_grid_scaler
     procedure, private :: check_packed_target => nearest_regridder_check_packed_target
     procedure, private :: check_unpacked_source => nearest_regridder_check_unpacked_source
     procedure, private :: check_unpacked_target => nearest_regridder_check_unpacked_target
+    procedure, private :: prepare_source_aux_vertices => nearest_regridder_prepare_source_aux_vertices
     procedure, private :: derive_target_mask => nearest_regridder_derive_target_mask
+    procedure, private :: find_containing_source_cell => nearest_regridder_find_containing_source_cell
+    procedure, private :: candidate_metric => nearest_regridder_candidate_metric
     procedure, private :: apply_target_mask => nearest_regridder_apply_target_mask
     procedure, private :: build_id_map => nearest_regridder_build_id_map
     procedure, private :: map_dp => nearest_regridder_map_dp
@@ -351,8 +354,8 @@ contains
   !> \brief Setup nearest-neighbor regridder from source and target grids.
   !> \details Builds a transient spatial index over the active source cells and
   !! stores the nearest source cell id for every active target cell. When
-  !! `derive_target_mask=.true.`, the target grid mask is first reduced by the
-  !! nearest full source-cell mask before the final active-cell mapping is built.
+  !! `derive_target_mask=.true.`, the target grid mask is first reduced by
+  !! local source-cell containment before the final active-cell mapping is built.
   subroutine nearest_regridder_init(this, source_grid, target_grid, use_aux, derive_target_mask)
     class(nearest_regridder_t), intent(inout) :: this
     type(grid_t), pointer, intent(in) :: source_grid
@@ -370,7 +373,10 @@ contains
     if (allocated(this%id_map)) deallocate(this%id_map)
 
     call this%select_space(use_aux_)
-    if (derive_target_mask_) call this%derive_target_mask()
+    if (derive_target_mask_) then
+      call this%prepare_source_aux_vertices()
+      call this%derive_target_mask()
+    end if
     call this%build_id_map()
   end subroutine nearest_regridder_init
 
@@ -530,6 +536,18 @@ contains
     end if
   end subroutine nearest_regridder_select_space
 
+  subroutine nearest_regridder_prepare_source_aux_vertices(this)
+    class(nearest_regridder_t), intent(inout) :: this
+
+    if (.not. this%source_use_aux) return
+    if (this%source_grid%has_aux_vertices()) return
+    if (this%source_grid%nx <= 1_i4 .or. this%source_grid%ny <= 1_i4) then
+      call error_message("nearest_regridder % init: source grid needs auxiliary vertices for derived masking", &
+                         " in aux mode and cannot estimate them for singleton dimensions.") ! LCOV_EXCL_LINE
+    end if
+    call this%source_grid%estimate_aux_vertices()
+  end subroutine nearest_regridder_prepare_source_aux_vertices
+
   subroutine nearest_regridder_derive_target_mask(this)
     class(nearest_regridder_t), intent(inout) :: this
 
@@ -538,33 +556,134 @@ contains
     integer(i8), allocatable :: nearest_ids(:)
     real(dp), allocatable :: target_points(:, :)
     integer(i8) :: k
-    integer(i4) :: src_i, src_j, tgt_i, tgt_j
+    integer(i4) :: src_i, src_j, src_i_found, src_j_found, tgt_i, tgt_j
+    logical :: found
 
-    if (.not. this%source_grid%any_missing()) return
     if (this%target_grid%ncells < 1_i8) return
 
     allocate(target_mask(this%target_grid%nx, this%target_grid%ny), source=this%target_grid%mask)
+
+    if (this%source_grid%ncells < 1_i8) then
+      target_mask = .false.
+      if (any(target_mask .neqv. this%target_grid%mask)) call this%apply_target_mask(target_mask)
+      return
+    end if
+
     allocate(target_points(this%target_grid%ncells, 2))
 
     if (this%mapping_coordsys == cartesian) then
       call nearest_regridder_collect_cartesian_points(this%target_grid, target_points)
-      call this%source_grid%build_spatial_index(index, include_masked=.true.)
+      call this%source_grid%build_spatial_index(index)
       nearest_ids = index%nearest_ids(target_points)
     else
       call nearest_regridder_collect_lonlat_points(this%target_grid, this%target_use_aux, target_points)
-      call this%source_grid%build_spatial_index(index, use_aux=this%source_use_aux, include_masked=.true.)
+      call this%source_grid%build_spatial_index(index, use_aux=this%source_use_aux)
       nearest_ids = index%nearest_ids_lonlat(target_points)
     end if
 
     do k = 1_i8, this%target_grid%ncells
       tgt_i = this%target_grid%cell_ij(k, 1)
       tgt_j = this%target_grid%cell_ij(k, 2)
-      call nearest_regridder_full_id_to_ij(this%source_grid, nearest_ids(k), src_i, src_j)
-      if (.not. this%source_grid%mask(src_i, src_j)) target_mask(tgt_i, tgt_j) = .false.
+      src_i = this%source_grid%cell_ij(nearest_ids(k), 1)
+      src_j = this%source_grid%cell_ij(nearest_ids(k), 2)
+      call this%find_containing_source_cell(src_i, src_j, target_points(k, 1), target_points(k, 2), &
+                                            found, src_i_found, src_j_found)
+      if (.not. found) then
+        target_mask(tgt_i, tgt_j) = .false.
+      else if (.not. this%source_grid%mask(src_i_found, src_j_found)) then
+        target_mask(tgt_i, tgt_j) = .false.
+      end if
     end do
 
     if (any(target_mask .neqv. this%target_grid%mask)) call this%apply_target_mask(target_mask)
   end subroutine nearest_regridder_derive_target_mask
+
+  subroutine nearest_regridder_find_containing_source_cell(this, src_i0, src_j0, x, y, found, src_i, src_j)
+    class(nearest_regridder_t), intent(in) :: this
+    integer(i4), intent(in) :: src_i0
+    integer(i4), intent(in) :: src_j0
+    real(dp), intent(in) :: x
+    real(dp), intent(in) :: y
+    logical, intent(out) :: found
+    integer(i4), intent(out) :: src_i
+    integer(i4), intent(out) :: src_j
+
+    integer(i4) :: di, dj, icand, insert_pos, ncand
+    integer(i4) :: cand_i(8), cand_j(8)
+    integer(i8) :: cand_full_id(8), full_id
+    real(dp) :: cand_metric(8), metric
+
+    src_i = src_i0
+    src_j = src_j0
+    found = this%source_grid%in_cell(src_i0, src_j0, x, y, aux=this%source_use_aux)
+    if (found) return
+
+    ncand = 0_i4
+    do dj = -1_i4, 1_i4
+      do di = -1_i4, 1_i4
+        src_i = src_i0 + di
+        src_j = src_j0 + dj
+        if (di == 0_i4 .and. dj == 0_i4) cycle
+        if (src_i < 1_i4 .or. src_i > this%source_grid%nx) cycle
+        if (src_j < 1_i4 .or. src_j > this%source_grid%ny) cycle
+
+        metric = this%candidate_metric(src_i, src_j, x, y)
+        full_id = int(src_j - 1_i4, i8) * int(this%source_grid%nx, i8) + int(src_i, i8)
+        insert_pos = ncand + 1_i4
+        do while (insert_pos > 1_i4)
+          if ((metric < cand_metric(insert_pos - 1_i4) .and. .not. is_close(metric, cand_metric(insert_pos - 1_i4))) .or. &
+              (is_close(metric, cand_metric(insert_pos - 1_i4)) .and. full_id < cand_full_id(insert_pos - 1_i4))) then
+            insert_pos = insert_pos - 1_i4
+          else
+            exit
+          end if
+        end do
+        do icand = ncand, insert_pos, -1_i4
+          cand_i(icand + 1_i4) = cand_i(icand)
+          cand_j(icand + 1_i4) = cand_j(icand)
+          cand_metric(icand + 1_i4) = cand_metric(icand)
+          cand_full_id(icand + 1_i4) = cand_full_id(icand)
+        end do
+        cand_i(insert_pos) = src_i
+        cand_j(insert_pos) = src_j
+        cand_metric(insert_pos) = metric
+        cand_full_id(insert_pos) = full_id
+        ncand = ncand + 1_i4
+      end do
+    end do
+
+    do icand = 1_i4, ncand
+      src_i = cand_i(icand)
+      src_j = cand_j(icand)
+      found = this%source_grid%in_cell(src_i, src_j, x, y, aux=this%source_use_aux)
+      if (found) return
+    end do
+
+    src_i = src_i0
+    src_j = src_j0
+    found = .false.
+  end subroutine nearest_regridder_find_containing_source_cell
+
+  pure real(dp) function nearest_regridder_candidate_metric(this, src_i, src_j, x, y) result(metric)
+    class(nearest_regridder_t), intent(in) :: this
+    integer(i4), intent(in) :: src_i
+    integer(i4), intent(in) :: src_j
+    real(dp), intent(in) :: x
+    real(dp), intent(in) :: y
+
+    real(dp) :: dx, dy
+
+    if (this%mapping_coordsys == cartesian) then
+      dx = nearest_regridder_grid_x_center(this%source_grid, src_i) - x
+      dy = nearest_regridder_grid_y_center(this%source_grid, src_j) - y
+      metric = dx * dx + dy * dy
+    else if (this%source_use_aux) then
+      metric = dist_latlon(this%source_grid%lat(src_i, src_j), this%source_grid%lon(src_i, src_j), y, x)
+    else
+      metric = dist_latlon(nearest_regridder_grid_y_center(this%source_grid, src_j), &
+                           nearest_regridder_grid_x_center(this%source_grid, src_i), y, x)
+    end if
+  end function nearest_regridder_candidate_metric
 
   subroutine nearest_regridder_apply_target_mask(this, target_mask)
     class(nearest_regridder_t), intent(inout) :: this
@@ -761,24 +880,6 @@ contains
 
     x_center = (real(i, dp) - 0.5_dp) * grid%cellsize + grid%xllcorner
   end function nearest_regridder_grid_x_center
-
-  subroutine nearest_regridder_full_id_to_ij(grid, full_id, i, j)
-    type(grid_t), intent(in) :: grid
-    integer(i8), intent(in) :: full_id
-    integer(i4), intent(out) :: i
-    integer(i4), intent(out) :: j
-
-    integer(i8) :: nx_i8, total_cells
-
-    nx_i8 = int(grid%nx, i8)
-    total_cells = nx_i8 * int(grid%ny, i8)
-    if (full_id < 1_i8 .or. full_id > total_cells) then
-      call error_message("nearest_regridder % init: source full-cell id is out of bounds.") ! LCOV_EXCL_LINE
-    end if
-
-    j = int((full_id - 1_i8) / nx_i8, i4) + 1_i4
-    i = int(full_id - int(j - 1_i4, i8) * nx_i8, i4)
-  end subroutine nearest_regridder_full_id_to_ij
 
   pure real(dp) function nearest_regridder_grid_y_center(grid, j) result(y_center)
     type(grid_t), intent(in) :: grid

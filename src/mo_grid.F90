@@ -141,6 +141,7 @@ module mo_grid
     generic, public :: closest_cell_id => closest_cell_id_scalar, closest_cell_id_batch
     procedure, public :: closest_cell_id_by_axes => grid_closest_cell_id_by_axes
     procedure, public :: build_spatial_index => grid_build_spatial_index
+    procedure, public :: in_cell => grid_in_cell
     procedure, public :: x_axis => grid_x_axis
     procedure, public :: y_axis => grid_y_axis
     procedure, public :: x_vertices => grid_x_vertices
@@ -1261,67 +1262,39 @@ contains
     cell_id = this%mask_cum_col_cnt(indices(2)) + count(this%mask(1_i4:indices(1), indices(2)), kind=i8)
   end function grid_cell_id
 
-  !> \brief Build a spatial index over grid cell centers.
-  !> \details By default, only active cells are indexed and the returned point ids
-  !! match packed cell ids. With `include_masked=.true.`, all matrix cells are
-  !! indexed and point ids follow the row-major full-cell numbering
-  !! `((j - 1) * nx + i)`.
-  subroutine grid_build_spatial_index(this, index, use_aux, include_masked)
+  !> \brief Build a spatial index over active grid cell centers.
+  !> \details Point ids in the resulting index match packed active-cell ids.
+  subroutine grid_build_spatial_index(this, index, use_aux)
     implicit none
     class(grid_t), intent(in) :: this
     type(spatial_index_t), intent(out) :: index
     logical, intent(in), optional :: use_aux
-    logical, intent(in), optional :: include_masked
 
-    logical :: aux, include_masked_
+    logical :: aux
     integer(i8) :: k
     integer(i4) :: i, j
-    integer(i8) :: npts
     integer(i8), allocatable :: point_ids(:)
     real(dp), allocatable :: points(:, :)
 
     aux = optval(use_aux, .false.)
-    include_masked_ = optval(include_masked, .false.)
     if (aux .and. .not. this%has_aux_coords()) &
       call error_message("grid%build_spatial_index: no auxilliar coordniates defined.") ! LCOV_EXCL_LINE
 
-    if (include_masked_) then
-      npts = int(this%nx, i8) * int(this%ny, i8)
-    else
-      npts = this%ncells
-    end if
+    allocate(point_ids(this%ncells))
+    allocate(points(this%ncells, 2))
 
-    allocate(point_ids(npts))
-    allocate(points(npts, 2))
-
-    if (include_masked_) then
-      do j = 1_i4, this%ny
-        do i = 1_i4, this%nx
-          k = int(j - 1_i4, i8) * int(this%nx, i8) + int(i, i8)
-          point_ids(k) = k
-          if (aux) then
-            points(k, 1) = this%lon(i, j)
-            points(k, 2) = this%lat(i, j)
-          else
-            points(k, 1) = grid_x_center(this, i)
-            points(k, 2) = grid_y_center(this, j)
-          end if
-        end do
-      end do
-    else
-      do k = 1_i8, this%ncells
-        point_ids(k) = k
-        i = this%cell_ij(k, 1)
-        j = this%cell_ij(k, 2)
-        if (aux) then
-          points(k, 1) = this%lon(i, j)
-          points(k, 2) = this%lat(i, j)
-        else
-          points(k, 1) = grid_x_center(this, i)
-          points(k, 2) = grid_y_center(this, j)
-        end if
-      end do
-    end if
+    do k = 1_i8, this%ncells
+      point_ids(k) = k
+      i = this%cell_ij(k, 1)
+      j = this%cell_ij(k, 2)
+      if (aux) then
+        points(k, 1) = this%lon(i, j)
+        points(k, 2) = this%lat(i, j)
+      else
+        points(k, 1) = grid_x_center(this, i)
+        points(k, 2) = grid_y_center(this, j)
+      end if
+    end do
 
     if (aux .or. this%coordsys == spherical) then
       call index%init_lonlat(points, point_ids)
@@ -1695,6 +1668,131 @@ contains
     x_center = this%xllcorner + 0.5_dp * real(this%nx, dp) * this%cellsize
     x_norm = modulo(x_raw - x_center + 180.0_dp, 360.0_dp) - 180.0_dp + x_center
   end function grid_normalize_longitude_near_domain
+
+  pure real(dp) function grid_map_longitude_for_domain(this, x_raw) result(x_map)
+    implicit none
+    class(grid_t), intent(in) :: this
+    real(dp), intent(in) :: x_raw
+
+    real(dp) :: x_upper
+
+    x_map = grid_normalize_longitude_near_domain(this, x_raw)
+    if (this%is_periodic() .and. x_raw > this%xllcorner) then
+      x_upper = this%xllcorner + real(this%nx, dp) * this%cellsize
+      if (is_close(x_map, this%xllcorner) .and. is_close(modulo(x_raw - this%xllcorner, 360.0_dp), 0.0_dp)) then
+        x_map = x_upper
+      end if
+    end if
+  end function grid_map_longitude_for_domain
+
+  pure logical function grid_value_in_closed_interval(value, lower, upper) result(in_interval)
+    implicit none
+    real(dp), intent(in) :: value
+    real(dp), intent(in) :: lower
+    real(dp), intent(in) :: upper
+
+    in_interval = (value > lower .or. is_close(value, lower)) .and. &
+                  (value < upper .or. is_close(value, upper))
+  end function grid_value_in_closed_interval
+
+  pure elemental real(dp) function grid_shift_longitude_near_query(lon, query_lon) result(lon_shifted)
+    implicit none
+    real(dp), intent(in) :: lon
+    real(dp), intent(in) :: query_lon
+
+    lon_shifted = modulo(lon - query_lon + 180.0_dp, 360.0_dp) - 180.0_dp + query_lon
+  end function grid_shift_longitude_near_query
+
+  pure real(dp) function grid_orient2d(ax, ay, bx, by, cx, cy) result(cross)
+    implicit none
+    real(dp), intent(in) :: ax, ay, bx, by, cx, cy
+
+    cross = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+  end function grid_orient2d
+
+  pure logical function grid_point_in_triangle(px, py, x1, y1, x2, y2, x3, y3) result(is_inside)
+    implicit none
+    real(dp), intent(in) :: px, py
+    real(dp), intent(in) :: x1, y1, x2, y2, x3, y3
+
+    real(dp) :: c1, c2, c3
+
+    c1 = grid_orient2d(x1, y1, x2, y2, px, py)
+    c2 = grid_orient2d(x2, y2, x3, y3, px, py)
+    c3 = grid_orient2d(x3, y3, x1, y1, px, py)
+
+    is_inside = ((c1 > 0.0_dp .or. is_close(c1, 0.0_dp)) .and. &
+                 (c2 > 0.0_dp .or. is_close(c2, 0.0_dp)) .and. &
+                 (c3 > 0.0_dp .or. is_close(c3, 0.0_dp))) .or. &
+                ((c1 < 0.0_dp .or. is_close(c1, 0.0_dp)) .and. &
+                 (c2 < 0.0_dp .or. is_close(c2, 0.0_dp)) .and. &
+                 (c3 < 0.0_dp .or. is_close(c3, 0.0_dp)))
+  end function grid_point_in_triangle
+
+  pure logical function grid_quad_contains_point(x_vertices, y_vertices, x, y) result(is_inside)
+    implicit none
+    real(dp), intent(in) :: x_vertices(4)
+    real(dp), intent(in) :: y_vertices(4)
+    real(dp), intent(in) :: x
+    real(dp), intent(in) :: y
+
+    is_inside = grid_point_in_triangle(x, y, x_vertices(1), y_vertices(1), x_vertices(2), y_vertices(2), &
+                                       x_vertices(3), y_vertices(3)) .or. &
+                grid_point_in_triangle(x, y, x_vertices(1), y_vertices(1), x_vertices(3), y_vertices(3), &
+                                       x_vertices(4), y_vertices(4))
+  end function grid_quad_contains_point
+
+  !> \brief Check whether a point lies inside a specific cell.
+  !> \details Uses regular axis-aligned cell bounds by default. With `aux=.true.`,
+  !! the cell is interpreted as a quadrilateral from auxiliary lon/lat vertices.
+  elemental logical function grid_in_cell(this, i, j, x, y, aux) result(in_cell)
+    implicit none
+    class(grid_t), intent(in) :: this
+    integer(i4), intent(in) :: i
+    integer(i4), intent(in) :: j
+    real(dp), intent(in) :: x
+    real(dp), intent(in) :: y
+    logical, intent(in), optional :: aux
+
+    logical :: use_aux
+    real(dp) :: cell_x(4), cell_y(4)
+    real(dp) :: x_lower, x_upper, y_lower, y_upper, x_map
+
+    use_aux = .false.
+    if (present(aux)) use_aux = aux
+
+    in_cell = .false.
+    if (i < 1_i4 .or. i > this%nx .or. j < 1_i4 .or. j > this%ny) return
+
+    if (use_aux) then
+      if (.not. allocated(this%lat_vertices) .or. .not. allocated(this%lon_vertices)) return
+      if (this%y_direction == bottom_up) then
+        cell_x = [this%lon_vertices(i, j), this%lon_vertices(i + 1_i4, j), &
+                  this%lon_vertices(i + 1_i4, j + 1_i4), this%lon_vertices(i, j + 1_i4)]
+        cell_y = [this%lat_vertices(i, j), this%lat_vertices(i + 1_i4, j), &
+                  this%lat_vertices(i + 1_i4, j + 1_i4), this%lat_vertices(i, j + 1_i4)]
+      else
+        cell_x = [this%lon_vertices(i, j + 1_i4), this%lon_vertices(i + 1_i4, j + 1_i4), &
+                  this%lon_vertices(i + 1_i4, j), this%lon_vertices(i, j)]
+        cell_y = [this%lat_vertices(i, j + 1_i4), this%lat_vertices(i + 1_i4, j + 1_i4), &
+                  this%lat_vertices(i + 1_i4, j), this%lat_vertices(i, j)]
+      end if
+      cell_x = grid_shift_longitude_near_query(cell_x, x)
+      in_cell = grid_quad_contains_point(cell_x, cell_y, x, y)
+      return
+    end if
+
+    x_map = x
+    if (this%coordsys == spherical) x_map = grid_map_longitude_for_domain(this, x)
+
+    x_lower = grid_x_center(this, i) - 0.5_dp * this%cellsize
+    x_upper = x_lower + this%cellsize
+    y_lower = grid_y_center(this, j) - 0.5_dp * this%cellsize
+    y_upper = y_lower + this%cellsize
+
+    in_cell = grid_value_in_closed_interval(x_map, x_lower, x_upper) .and. &
+              grid_value_in_closed_interval(y, y_lower, y_upper)
+  end function grid_in_cell
 
   !> \brief Closest cell ID for given coordinates from axis.
   !> \return `integer(i8) :: closest_cell_id(:)`
@@ -2341,7 +2439,7 @@ contains
   !> \return `logical :: has_aux_coords`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  logical function grid_has_aux_coords(this) result(has_aux_coords)
+  pure logical function grid_has_aux_coords(this) result(has_aux_coords)
     implicit none
     class(grid_t), intent(in) :: this
     has_aux_coords = allocated(this%lat) .and. allocated(this%lon)
@@ -2351,7 +2449,7 @@ contains
   !> \return `logical :: has_aux_vertices`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  logical function grid_has_aux_vertices(this) result(has_aux_vertices)
+  pure logical function grid_has_aux_vertices(this) result(has_aux_vertices)
     implicit none
     class(grid_t), intent(in) :: this
     has_aux_vertices = allocated(this%lat_vertices) .and. allocated(this%lon_vertices)
@@ -2488,8 +2586,7 @@ contains
   !> \return `logical :: is_periodic`
   !> \authors Sebastian Müller
   !> \date Mar 2024
-  logical function grid_is_periodic(this) result(is_periodic)
-    use mo_utils, only : is_close
+  pure logical function grid_is_periodic(this) result(is_periodic)
     implicit none
     class(grid_t), intent(in) :: this
     if (this%coordsys == cartesian) then
