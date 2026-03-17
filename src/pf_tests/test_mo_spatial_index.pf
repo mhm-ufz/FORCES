@@ -51,8 +51,7 @@ contains
 
     call index%init_lonlat(coords, point_ids)
 
-    @assertEqual(index%nearest_id_lonlat(180.0_dp, 0.0_dp), 1_i8, &
-      message='spherical lookup resolves dateline ties by smaller point id')
+    @assertEqual(index%nearest_id_lonlat(180.0_dp, 0.0_dp), 1_i8, message='spherical lookup resolves dateline ties by smaller point id')
 
     queries(1,:) = [180.0_dp, 0.0_dp]
     queries(2,:) = [0.0_dp, 41.0_dp]

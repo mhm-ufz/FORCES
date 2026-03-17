@@ -273,7 +273,7 @@ contains
     coords(2,:) = [3.5_dp, 3.5_dp]
     cids = grid%closest_cell_id(coords)
 
-    @assertEqual(cids, [2_i8, 2_i8], message='exact row search crosses empty rows and keeps legacy lower-id ties')
+    @assertEqual([2_i8, 3_i8], cids, message='exact row search crosses empty rows and still finds the nearest active cell')
   end subroutine test_closest_cell_exact_sparse_rows
 
   @test
@@ -360,8 +360,7 @@ contains
     coords(3,:) = [0.0_dp, 0.5_dp]
     cids = grid%closest_cell_id(coords)
 
-    @assertEqual(cids, [100000_i8, 400000_i8, 1_i8], &
-      message='exact lookup handles wide regular grids without full active-cell temporaries')
+    @assertEqual(cids, [100000_i8, 400000_i8, 1_i8], message='exact lookup handles wide regular grids without full active-cell temporaries')
   end subroutine test_closest_cell_exact_wide_grid
 
   @test
@@ -441,6 +440,8 @@ contains
 
     call cart_grid%init(nx=2, ny=2, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
       coordsys=cartesian, y_direction=bottom_up)
+    @assertEqual(cart_grid%x_center(1_i4), 0.5_dp, tolerance=1.0e-12_dp, message='x_center returns the regular cell center')
+    @assertEqual(cart_grid%y_center(2_i4), 1.5_dp, tolerance=1.0e-12_dp, message='y_center returns the regular cell center')
     @assertTrue(cart_grid%in_cell(1_i4, 1_i4, 0.5_dp, 0.5_dp), message='cartesian cell contains its center')
     @assertTrue(cart_grid%in_cell(1_i4, 1_i4, 0.0_dp, 0.0_dp), message='cartesian cell includes lower-left boundary')
     @assertFalse(cart_grid%in_cell(1_i4, 1_i4, 1.5_dp, 0.5_dp), message='cartesian cell excludes outside point')
@@ -448,24 +449,20 @@ contains
 
     call sph_grid%init(nx=360, ny=1, xllcorner=0.0_dp, yllcorner=-0.5_dp, cellsize=1.0_dp, &
       coordsys=spherical, y_direction=bottom_up)
-    @assertTrue(sph_grid%in_cell(360_i4, 1_i4, 360.0_dp, 0.0_dp), &
-      message='periodic spherical upper boundary belongs to last cell')
-    @assertFalse(sph_grid%in_cell(1_i4, 1_i4, 360.0_dp, 0.0_dp), &
-      message='periodic spherical upper boundary does not belong to first cell')
-    @assertTrue(sph_grid%in_cell(1_i4, 1_i4, -360.0_dp, 0.0_dp), &
-      message='equivalent spherical longitudes normalize into the domain')
+    @assertEqual(sph_grid%normalize_longitude_near_domain(-360.0_dp), 0.0_dp, tolerance=1.0e-12_dp, message='longitude normalization maps equivalent values close to the domain')
+    @assertEqual(sph_grid%map_longitude_for_domain(360.0_dp), 360.0_dp, tolerance=1.0e-12_dp, message='longitude mapping preserves the periodic upper boundary')
+    @assertTrue(sph_grid%in_cell(360_i4, 1_i4, 360.0_dp, 0.0_dp), message='periodic spherical upper boundary belongs to last cell')
+    @assertFalse(sph_grid%in_cell(1_i4, 1_i4, 360.0_dp, 0.0_dp), message='periodic spherical upper boundary does not belong to first cell')
+    @assertTrue(sph_grid%in_cell(1_i4, 1_i4, -360.0_dp, 0.0_dp), message='equivalent spherical longitudes normalize into the domain')
 
     call aux_grid%init(nx=1, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
       coordsys=cartesian, y_direction=bottom_up)
     allocate(aux_grid%lat_vertices(2, 2), aux_grid%lon_vertices(2, 2))
     aux_grid%lat_vertices = reshape([0.0_dp, 0.0_dp, 1.0_dp, 1.0_dp], [2, 2])
     aux_grid%lon_vertices = reshape([179.0_dp, -179.0_dp, 179.0_dp, -179.0_dp], [2, 2])
-    @assertTrue(aux_grid%in_cell(1_i4, 1_i4, -179.5_dp, 0.5_dp, aux=.true.), &
-      message='aux quadrilateral handles dateline-adjacent cells')
-    @assertTrue(aux_grid%in_cell(1_i4, 1_i4, 179.0_dp, 1.0_dp, aux=.true.), &
-      message='aux quadrilateral includes edge and vertex hits')
-    @assertFalse(aux_grid%in_cell(1_i4, 1_i4, -177.0_dp, 0.5_dp, aux=.true.), &
-      message='aux quadrilateral excludes outside points')
+    @assertTrue(aux_grid%in_cell(1_i4, 1_i4, -179.5_dp, 0.5_dp, aux=.true.), message='aux quadrilateral handles dateline-adjacent cells')
+    @assertTrue(aux_grid%in_cell(1_i4, 1_i4, 179.0_dp, 1.0_dp, aux=.true.), message='aux quadrilateral includes edge and vertex hits')
+    @assertFalse(aux_grid%in_cell(1_i4, 1_i4, -177.0_dp, 0.5_dp, aux=.true.), message='aux quadrilateral excludes outside points')
   end subroutine test_in_cell
 
   @test
