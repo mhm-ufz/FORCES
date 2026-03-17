@@ -16,7 +16,8 @@ module mo_grid_scaler
 
   use, intrinsic :: ieee_arithmetic, only : ieee_is_finite, ieee_is_nan, ieee_is_negative
   use mo_kind, only: i4, i8, dp
-  use mo_grid, only: grid_t, id_bounds, coarse_ij, check_factor, cartesian, spherical, top_down, bottom_up, dist_latlon
+  use mo_grid, only: grid_t, cartesian, spherical, top_down, bottom_up
+  use mo_grid_helper, only: id_bounds, coarse_ij, check_factor, dist_latlon
   use mo_utils, only: is_close, eq, flipped, optval
   use mo_string_utils, only: num2str
   use mo_message, only: error_message
@@ -674,14 +675,13 @@ contains
     real(dp) :: dx, dy
 
     if (this%mapping_coordsys == cartesian) then
-      dx = nearest_regridder_grid_x_center(this%source_grid, src_i) - x
-      dy = nearest_regridder_grid_y_center(this%source_grid, src_j) - y
+      dx = this%source_grid%x_center(src_i) - x
+      dy = this%source_grid%y_center(src_j) - y
       metric = dx * dx + dy * dy
     else if (this%source_use_aux) then
       metric = dist_latlon(this%source_grid%lat(src_i, src_j), this%source_grid%lon(src_i, src_j), y, x)
     else
-      metric = dist_latlon(nearest_regridder_grid_y_center(this%source_grid, src_j), &
-                           nearest_regridder_grid_x_center(this%source_grid, src_i), y, x)
+      metric = dist_latlon(this%source_grid%y_center(src_j), this%source_grid%x_center(src_i), y, x)
     end if
   end function nearest_regridder_candidate_metric
 
@@ -754,8 +754,8 @@ contains
     do k = 1_i8, grid%ncells
       i = grid%cell_ij(k, 1)
       j = grid%cell_ij(k, 2)
-      points(k, 1) = nearest_regridder_grid_x_center(grid, i)
-      points(k, 2) = nearest_regridder_grid_y_center(grid, j)
+      points(k, 1) = grid%x_center(i)
+      points(k, 2) = grid%y_center(j)
     end do
     !$omp end parallel do
   end subroutine nearest_regridder_collect_cartesian_points
@@ -787,8 +787,8 @@ contains
         points(k, 1) = grid%lon(i, j)
         points(k, 2) = grid%lat(i, j)
       else
-        points(k, 1) = nearest_regridder_grid_x_center(grid, i)
-        points(k, 2) = nearest_regridder_grid_y_center(grid, j)
+        points(k, 1) = grid%x_center(i)
+        points(k, 2) = grid%y_center(j)
       end if
     end do
     !$omp end parallel do
@@ -873,27 +873,6 @@ contains
     end do
     !$omp end parallel do
   end subroutine nearest_regridder_map_i4
-
-  pure real(dp) function nearest_regridder_grid_x_center(grid, i) result(x_center)
-    type(grid_t), intent(in) :: grid
-    integer(i4), intent(in) :: i
-
-    x_center = (real(i, dp) - 0.5_dp) * grid%cellsize + grid%xllcorner
-  end function nearest_regridder_grid_x_center
-
-  pure real(dp) function nearest_regridder_grid_y_center(grid, j) result(y_center)
-    type(grid_t), intent(in) :: grid
-    integer(i4), intent(in) :: j
-
-    select case (grid%y_direction)
-      case (bottom_up)
-        y_center = (real(j, dp) - 0.5_dp) * grid%cellsize + grid%yllcorner
-      case (top_down)
-        y_center = (real(grid%ny - j + 1_i4, dp) - 0.5_dp) * grid%cellsize + grid%yllcorner
-      case default
-        y_center = (real(j, dp) - 0.5_dp) * grid%cellsize + grid%yllcorner
-    end select
-  end function nearest_regridder_grid_y_center
 
   !> \brief Default arguments to execute scaler (arithmetic mean as upscaling, nearest neighbor as downscaling)
   subroutine operator_init(this, up_operator, down_operator, upscaling_operator, downscaling_operator)

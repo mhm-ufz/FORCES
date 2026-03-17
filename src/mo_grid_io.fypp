@@ -553,7 +553,8 @@ module mo_grid_io
 
   use mo_kind, only : i1, i2, i4, i8, dp, sp
   use mo_constants, only : nodata_dp, nodata_sp, nodata_i1, nodata_i2, nodata_i4, nodata_i8
-  use mo_grid, only: grid_t, cartesian, is_t_axis, check_uniform_axis, bottom_up, is_z_axis
+  use mo_grid, only: grid_t, cartesian, bottom_up
+  use mo_grid_helper, only: is_t_axis, check_uniform_axis, is_z_axis
   use mo_netcdf, only : NcDataset, NcDimension, NcVariable
   use mo_datetime, only : datetime, timedelta, delta_from_string, decode_cf_time_units, one_day, one_hour
   use mo_message, only : error_message, warn_message
