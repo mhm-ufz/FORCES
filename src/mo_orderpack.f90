@@ -728,8 +728,6 @@ MODULE mo_orderpack
 
   PRIVATE
 
-  Integer(kind = i4), Allocatable, Dimension(:), Save :: IDONT
-
 CONTAINS
 
   ! ------------------------------------------------------------------
@@ -1032,6 +1030,7 @@ CONTAINS
     Integer(kind = i4), Intent (Out) :: INDM
     ! __________________________________________________________
     Integer(kind = i4) :: IDON
+    Integer(kind = i4), Allocatable :: IDONT(:)
     !
     Allocate (IDONT (SIZE(XDONT)))
     Do IDON = 1, SIZE(XDONT)
@@ -1430,6 +1429,7 @@ CONTAINS
     Integer(kind = i4), Intent (Out) :: INDM
     ! __________________________________________________________
     Integer(kind = i4) :: IDON
+    Integer(kind = i4), Allocatable :: IDONT(:)
     !
     Allocate (IDONT (SIZE(XDONT)))
     Do IDON = 1, SIZE(XDONT)
@@ -1828,6 +1828,7 @@ CONTAINS
     Integer(kind = i4), Intent (Out) :: INDM
     ! __________________________________________________________
     Integer(kind = i4) :: IDON
+    Integer(kind = i4), Allocatable :: IDONT(:)
     !
     Allocate (IDONT (SIZE(XDONT)))
     Do IDON = 1, SIZE(XDONT)
