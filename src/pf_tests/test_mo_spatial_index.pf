@@ -1,0 +1,71 @@
+module test_mo_spatial_index
+  use funit
+  use mo_spatial_index, only: spatial_index_t
+  use mo_kind, only: i8, dp
+
+  implicit none
+
+  private
+
+  public :: test_spatial_index_cartesian
+  public :: test_spatial_index_spherical
+
+contains
+
+  @test
+  subroutine test_spatial_index_cartesian()
+    implicit none
+    type(spatial_index_t) :: index
+    real(dp) :: points(4, 2), queries(3, 2)
+    integer(i8) :: point_ids(4), ids(3)
+
+    points(1,:) = [0.0_dp, 0.0_dp]
+    points(2,:) = [2.0_dp, 0.0_dp]
+    points(3,:) = [0.0_dp, 2.0_dp]
+    points(4,:) = [2.0_dp, 2.0_dp]
+    point_ids = [10_i8, 20_i8, 30_i8, 5_i8]
+
+    call index%init(points, point_ids)
+
+    @assertEqual(index%nearest_id([1.0_dp, 2.0_dp]), 5_i8, message='cartesian tie picks the smaller point id')
+
+    queries(1,:) = [1.7_dp, 0.1_dp]
+    queries(2,:) = [0.1_dp, 1.8_dp]
+    queries(3,:) = [1.0_dp, 2.0_dp]
+    ids = index%nearest_ids(queries)
+
+    @assertEqual(ids, [20_i8, 30_i8, 5_i8], message='cartesian batched queries return exact nearest ids')
+    @assertEqual(index%nearest_ids(queries), ids, message='cartesian repeated batched queries stay deterministic')
+
+    call index%init(points, point_ids)
+    @assertEqual(index%nearest_ids(queries), ids, message='cartesian rebuild keeps batched nearest ids unchanged')
+  end subroutine test_spatial_index_cartesian
+
+  @test
+  subroutine test_spatial_index_spherical()
+    implicit none
+    type(spatial_index_t) :: index
+    real(dp) :: coords(3, 2), queries(2, 2)
+    integer(i8) :: point_ids(3), ids(2)
+
+    coords(1,:) = [179.0_dp, 0.0_dp]
+    coords(2,:) = [-179.0_dp, 0.0_dp]
+    coords(3,:) = [0.0_dp, 40.0_dp]
+    point_ids = [2_i8, 1_i8, 3_i8]
+
+    call index%init_lonlat(coords, point_ids)
+
+    @assertEqual(index%nearest_id_lonlat(180.0_dp, 0.0_dp), 1_i8, message='spherical lookup resolves dateline ties by smaller point id')
+
+    queries(1,:) = [180.0_dp, 0.0_dp]
+    queries(2,:) = [0.0_dp, 41.0_dp]
+    ids = index%nearest_ids_lonlat(queries)
+
+    @assertEqual(ids, [1_i8, 3_i8], message='spherical batched queries use exact great-circle nearest ids')
+    @assertEqual(index%nearest_ids_lonlat(queries), ids, message='spherical repeated batched queries stay deterministic')
+
+    call index%init_lonlat(coords, point_ids)
+    @assertEqual(index%nearest_ids_lonlat(queries), ids, message='spherical rebuild keeps batched nearest ids unchanged')
+  end subroutine test_spatial_index_spherical
+
+end module test_mo_spatial_index

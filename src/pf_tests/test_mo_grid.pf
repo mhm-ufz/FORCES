@@ -1,6 +1,8 @@
 module test_mo_grid
   use funit
-  use mo_grid, only: grid_t, data_t, cartesian, spherical, top_down, bottom_up, area_full, area_count, dist_latlon, is_z_axis, write_ascii_grid, read_ascii_grid, data_from_var
+  use mo_grid, only: grid_t, data_t, cartesian, spherical, top_down, bottom_up, area_full, area_count, &
+    dist_latlon, is_z_axis, write_ascii_grid, read_ascii_grid, data_from_var
+  use mo_spatial_index, only: spatial_index_t
   use mo_kind, only: i1, i2, i4, i8, sp, dp
   use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   use mo_constants, only: nodata_dp, nodata_sp, nodata_i1, nodata_i2, nodata_i4, nodata_i8, RadiusEarth_dp, deg2rad_dp
@@ -14,6 +16,13 @@ module test_mo_grid
   public :: test_mask_ids_and_pack
   public :: test_area_and_periodicity
   public :: test_closest_cell_and_distance
+  public :: test_closest_cell_exact_cartesian_batch
+  public :: test_closest_cell_exact_sparse_rows
+  public :: test_closest_cell_exact_spherical
+  public :: test_closest_cell_exact_aux_batch
+  public :: test_closest_cell_exact_wide_grid
+  public :: test_build_spatial_index
+  public :: test_in_cell
   public :: test_closest_cell_by_axes
   public :: test_closest_cell_by_axes_boundaries
   public :: test_closest_cell_by_axes_top_down
@@ -220,6 +229,241 @@ contains
     d = dist_latlon(0.0_dp, 0.0_dp, 0.0_dp, 1.0_dp)
     @assertGreaterThan(d, 0.0_dp)
   end subroutine test_closest_cell_and_distance
+
+  @test
+  subroutine test_closest_cell_exact_cartesian_batch()
+    implicit none
+    type(grid_t) :: grid
+    logical :: mask(3, 2)
+    real(dp) :: query(2), coords(3, 2)
+    integer(i8) :: cid, cids(3)
+
+    mask = reshape([.true., .false., .true., .true., .false., .true.], [3, 2])
+    call grid%init(nx=3, ny=2, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+      coordsys=cartesian, mask=mask, y_direction=bottom_up)
+
+    query = [2.1_dp, 0.6_dp]
+    cid = grid%closest_cell_id(query)
+    @assertEqual(cid, 2_i8, message='exact lookup skips masked nearest-axis cell and finds the nearest active neighbor')
+
+    coords(1,:) = [2.1_dp, 0.6_dp]
+    coords(2,:) = [2.1_dp, 2.1_dp]
+    coords(3,:) = [2.5_dp, 1.0_dp]
+    cids = grid%closest_cell_id(coords)
+
+    @assertEqual(cids, [2_i8, 4_i8, 2_i8], message='batched exact lookup preserves scalar masked and tie behavior')
+  end subroutine test_closest_cell_exact_cartesian_batch
+
+  @test
+  subroutine test_closest_cell_exact_sparse_rows()
+    implicit none
+    type(grid_t) :: grid
+    logical :: mask(5, 5)
+    real(dp) :: coords(2, 2)
+    integer(i8) :: cids(2)
+
+    mask = .false.
+    mask(3, 1) = .true.
+    mask(2, 4) = .true.
+    mask(4, 5) = .true.
+    call grid%init(nx=5, ny=5, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+      coordsys=cartesian, mask=mask, y_direction=bottom_up)
+
+    coords(1,:) = [2.1_dp, 2.6_dp]
+    coords(2,:) = [3.5_dp, 3.5_dp]
+    cids = grid%closest_cell_id(coords)
+
+    @assertEqual([2_i8, 3_i8], cids, message='exact row search crosses empty rows and still finds the nearest active cell')
+  end subroutine test_closest_cell_exact_sparse_rows
+
+  @test
+  subroutine test_closest_cell_exact_spherical()
+    implicit none
+    type(grid_t) :: grid
+    logical :: mask(360, 3)
+    real(dp) :: coords(3, 2)
+    integer(i8) :: cids(3)
+
+    mask = .false.
+    mask(1, 1) = .true.
+    mask(360, 1) = .true.
+    mask(180, 3) = .true.
+    call grid%init(nx=360, ny=3, xllcorner=0.0_dp, yllcorner=-1.5_dp, cellsize=1.0_dp, &
+      coordsys=spherical, mask=mask, y_direction=bottom_up)
+
+    coords(1,:) = [-0.1_dp, -1.0_dp]
+    coords(2,:) = [360.0_dp, -1.0_dp]
+    coords(3,:) = [180.2_dp, 0.0_dp]
+    cids = grid%closest_cell_id(coords)
+
+    @assertEqual(cids, [2_i8, 1_i8, 3_i8], message='exact spherical lookup handles dateline wrap and masked nearest rows')
+  end subroutine test_closest_cell_exact_spherical
+
+  @test
+  subroutine test_closest_cell_exact_aux_batch()
+    implicit none
+    type(grid_t) :: grid
+    real(dp) :: coords(3, 2)
+    integer(i8) :: brute_ids(3), batch_ids(3), scalar_id
+    integer(i8) :: k, iq
+    integer(i4) :: i, j
+    real(dp) :: best_dist, cand_dist
+
+    call grid%init(nx=3, ny=2, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+      coordsys=cartesian, y_direction=bottom_up)
+
+    allocate(grid%lat(grid%nx, grid%ny))
+    allocate(grid%lon(grid%nx, grid%ny))
+    grid%lon = reshape([10.0_dp, 12.0_dp, 14.0_dp, 10.2_dp, 12.4_dp, 14.8_dp], [3, 2])
+    grid%lat = reshape([50.0_dp, 50.3_dp, 49.8_dp, 51.0_dp, 51.2_dp, 50.7_dp], [3, 2])
+
+    coords(1,:) = [12.3_dp, 50.2_dp]
+    coords(2,:) = [14.7_dp, 50.8_dp]
+    coords(3,:) = [10.1_dp, 51.05_dp]
+
+    do iq = 1_i8, 3_i8
+      brute_ids(iq) = 0_i8
+      best_dist = huge(1.0_dp)
+      do k = 1_i8, grid%ncells
+        i = grid%cell_ij(k, 1)
+        j = grid%cell_ij(k, 2)
+        cand_dist = dist_latlon(grid%lat(i, j), grid%lon(i, j), coords(iq, 2), coords(iq, 1))
+        if (brute_ids(iq) < 1_i8 .or. cand_dist < best_dist .or. &
+            (abs(cand_dist - best_dist) < 1.0e-12_dp .and. k < brute_ids(iq))) then
+          brute_ids(iq) = k
+          best_dist = cand_dist
+        end if
+      end do
+    end do
+
+    batch_ids = grid%closest_cell_id(coords, use_aux=.true.)
+    @assertEqual(batch_ids, brute_ids, message='batched aux exact lookup matches brute-force great-circle distances')
+
+    do iq = 1_i8, 3_i8
+      scalar_id = grid%closest_cell_id(coords(iq, :), use_aux=.true.)
+      @assertEqual(scalar_id, brute_ids(iq), message='scalar aux exact lookup matches the batched aux path')
+    end do
+  end subroutine test_closest_cell_exact_aux_batch
+
+  @test
+  subroutine test_closest_cell_exact_wide_grid()
+    implicit none
+    type(grid_t) :: grid
+    real(dp) :: coords(3, 2)
+    integer(i8) :: cids(3)
+
+    call grid%init(nx=200000, ny=2, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+      coordsys=cartesian, y_direction=bottom_up)
+
+    coords(1,:) = [100000.0_dp, 0.5_dp]
+    coords(2,:) = [200000.0_dp, 1.5_dp]
+    coords(3,:) = [0.0_dp, 0.5_dp]
+    cids = grid%closest_cell_id(coords)
+
+    @assertEqual(cids, [100000_i8, 400000_i8, 1_i8], message='exact lookup handles wide regular grids without full active-cell temporaries')
+  end subroutine test_closest_cell_exact_wide_grid
+
+  @test
+  subroutine test_build_spatial_index()
+    implicit none
+    type(grid_t) :: cart_grid, sph_grid, aux_grid
+    type(spatial_index_t) :: index
+    logical :: mask(3, 2), sph_mask(360, 3)
+    real(dp) :: cart_coords(3, 2), sph_coords(3, 2), aux_coords(3, 2)
+    integer(i8) :: index_ids(3), grid_ids(3)
+    integer(i8) :: brute_ids(3), k, iq
+    integer(i4) :: i, j
+    real(dp) :: best_dist, cand_dist
+
+    mask = reshape([.true., .false., .true., .true., .false., .true.], [3, 2])
+    call cart_grid%init(nx=3, ny=2, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+      coordsys=cartesian, mask=mask, y_direction=bottom_up)
+
+    cart_coords(1,:) = [2.1_dp, 0.6_dp]
+    cart_coords(2,:) = [2.1_dp, 2.1_dp]
+    cart_coords(3,:) = [2.5_dp, 1.0_dp]
+    grid_ids = cart_grid%closest_cell_id(cart_coords)
+    call cart_grid%build_spatial_index(index)
+    index_ids = index%nearest_ids(cart_coords)
+    @assertEqual(index_ids, grid_ids, message='cartesian grid builder matches exact nearest active cell ids')
+
+    sph_mask = .false.
+    sph_mask(1, 1) = .true.
+    sph_mask(360, 1) = .true.
+    sph_mask(180, 3) = .true.
+    call sph_grid%init(nx=360, ny=3, xllcorner=0.0_dp, yllcorner=-1.5_dp, cellsize=1.0_dp, &
+      coordsys=spherical, mask=sph_mask, y_direction=bottom_up)
+
+    sph_coords(1,:) = [-0.1_dp, -1.0_dp]
+    sph_coords(2,:) = [360.0_dp, -1.0_dp]
+    sph_coords(3,:) = [180.2_dp, 0.0_dp]
+    grid_ids = sph_grid%closest_cell_id(sph_coords)
+    call sph_grid%build_spatial_index(index)
+    index_ids = index%nearest_ids_lonlat(sph_coords)
+    @assertEqual(index_ids, grid_ids, message='spherical grid builder handles dateline wrap like exact lookup')
+
+    call aux_grid%init(nx=3, ny=2, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+      coordsys=cartesian, y_direction=bottom_up)
+    allocate(aux_grid%lat(aux_grid%nx, aux_grid%ny))
+    allocate(aux_grid%lon(aux_grid%nx, aux_grid%ny))
+    aux_grid%lon = reshape([10.0_dp, 12.0_dp, 14.0_dp, 10.2_dp, 12.4_dp, 14.8_dp], [3, 2])
+    aux_grid%lat = reshape([50.0_dp, 50.3_dp, 49.8_dp, 51.0_dp, 51.2_dp, 50.7_dp], [3, 2])
+
+    aux_coords(1,:) = [12.3_dp, 50.2_dp]
+    aux_coords(2,:) = [14.7_dp, 50.8_dp]
+    aux_coords(3,:) = [10.1_dp, 51.05_dp]
+
+    do iq = 1_i8, 3_i8
+      brute_ids(iq) = 0_i8
+      best_dist = huge(1.0_dp)
+      do k = 1_i8, aux_grid%ncells
+        i = aux_grid%cell_ij(k, 1)
+        j = aux_grid%cell_ij(k, 2)
+        cand_dist = dist_latlon(aux_grid%lat(i, j), aux_grid%lon(i, j), aux_coords(iq, 2), aux_coords(iq, 1))
+        if (brute_ids(iq) < 1_i8 .or. cand_dist < best_dist .or. &
+            (abs(cand_dist - best_dist) < 1.0e-12_dp .and. k < brute_ids(iq))) then
+          brute_ids(iq) = k
+          best_dist = cand_dist
+        end if
+      end do
+    end do
+
+    call aux_grid%build_spatial_index(index, use_aux=.true.)
+    index_ids = index%nearest_ids_lonlat(aux_coords)
+    @assertEqual(index_ids, brute_ids, message='aux grid builder matches brute-force great-circle lookup')
+  end subroutine test_build_spatial_index
+
+  @test
+  subroutine test_in_cell()
+    implicit none
+    type(grid_t) :: cart_grid, sph_grid, aux_grid
+
+    call cart_grid%init(nx=2, ny=2, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+      coordsys=cartesian, y_direction=bottom_up)
+    @assertEqual(cart_grid%x_center(1_i4), 0.5_dp, tolerance=1.0e-12_dp, message='x_center returns the regular cell center')
+    @assertEqual(cart_grid%y_center(2_i4), 1.5_dp, tolerance=1.0e-12_dp, message='y_center returns the regular cell center')
+    @assertTrue(cart_grid%in_cell(1_i4, 1_i4, 0.5_dp, 0.5_dp), message='cartesian cell contains its center')
+    @assertTrue(cart_grid%in_cell(1_i4, 1_i4, 0.0_dp, 0.0_dp), message='cartesian cell includes lower-left boundary')
+    @assertFalse(cart_grid%in_cell(1_i4, 1_i4, 1.5_dp, 0.5_dp), message='cartesian cell excludes outside point')
+    @assertFalse(cart_grid%in_cell(0_i4, 1_i4, 0.5_dp, 0.5_dp), message='out-of-range i returns false')
+
+    call sph_grid%init(nx=360, ny=1, xllcorner=0.0_dp, yllcorner=-0.5_dp, cellsize=1.0_dp, &
+      coordsys=spherical, y_direction=bottom_up)
+    @assertEqual(sph_grid%normalize_longitude_near_domain(-360.0_dp), 0.0_dp, tolerance=1.0e-12_dp, message='longitude normalization maps equivalent values close to the domain')
+    @assertEqual(sph_grid%map_longitude_for_domain(360.0_dp), 360.0_dp, tolerance=1.0e-12_dp, message='longitude mapping preserves the periodic upper boundary')
+    @assertTrue(sph_grid%in_cell(360_i4, 1_i4, 360.0_dp, 0.0_dp), message='periodic spherical upper boundary belongs to last cell')
+    @assertFalse(sph_grid%in_cell(1_i4, 1_i4, 360.0_dp, 0.0_dp), message='periodic spherical upper boundary does not belong to first cell')
+    @assertTrue(sph_grid%in_cell(1_i4, 1_i4, -360.0_dp, 0.0_dp), message='equivalent spherical longitudes normalize into the domain')
+
+    call aux_grid%init(nx=1, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+      coordsys=cartesian, y_direction=bottom_up)
+    allocate(aux_grid%lat_vertices(2, 2), aux_grid%lon_vertices(2, 2))
+    aux_grid%lat_vertices = reshape([0.0_dp, 0.0_dp, 1.0_dp, 1.0_dp], [2, 2])
+    aux_grid%lon_vertices = reshape([179.0_dp, -179.0_dp, 179.0_dp, -179.0_dp], [2, 2])
+    @assertTrue(aux_grid%in_cell(1_i4, 1_i4, -179.5_dp, 0.5_dp, aux=.true.), message='aux quadrilateral handles dateline-adjacent cells')
+    @assertTrue(aux_grid%in_cell(1_i4, 1_i4, 179.0_dp, 1.0_dp, aux=.true.), message='aux quadrilateral includes edge and vertex hits')
+    @assertFalse(aux_grid%in_cell(1_i4, 1_i4, -177.0_dp, 0.5_dp, aux=.true.), message='aux quadrilateral excludes outside points')
+  end subroutine test_in_cell
 
   @test
   subroutine test_closest_cell_by_axes()

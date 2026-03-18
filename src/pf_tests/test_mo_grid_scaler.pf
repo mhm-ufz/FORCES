@@ -1,9 +1,11 @@
 module test_mo_grid_scaler
   use funit
-  use mo_grid, only: grid_t, cartesian, top_down, bottom_up
-  use mo_grid_scaler, only: scaler_t, up_a_mean, up_h_mean, up_p_mean, up_min, up_max, up_sum, up_laf, up_fraction, up_median, down_nearest, down_split
+  use mo_grid, only: grid_t, cartesian, spherical, top_down, bottom_up
+  use mo_grid_scaler, only: scaler_t, nearest_regridder_t, up_a_mean, up_h_mean, up_p_mean, up_min, up_max, up_sum, &
+                            up_laf, up_fraction, up_median, down_nearest, down_split
   use mo_kind, only: i4, dp, i8
   use mo_utils, only: flip, flipped, is_close
+  use mo_constants, only: nodata_dp
   ! use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   implicit none
 
@@ -14,6 +16,11 @@ module test_mo_grid_scaler
   public :: test_no_scaling_identity
   public :: test_stats_and_weight_count
   public :: test_median_masked
+  public :: test_nearest_regridder_cartesian
+  public :: test_nearest_regridder_masked_and_aux
+  public :: test_nearest_regridder_spherical_and_mixed
+  public :: test_nearest_regridder_derived_mask_cartesian
+  public :: test_nearest_regridder_derived_mask_spherical_aux
 
 contains
 
@@ -351,5 +358,229 @@ contains
     @assertEqual(out(1), 20.0_dp, tolerance=1.0e-12_dp)
     @assertEqual(out(2), 3.5_dp, tolerance=1.0e-12_dp)
   end subroutine test_median_masked
+
+  @test
+  subroutine test_nearest_regridder_cartesian()
+    implicit none
+    type(grid_t), target :: source, target
+    type(nearest_regridder_t) :: regridder
+    real(dp) :: dp_in(2), dp_in_mat(2,1), dp_out(3), dp_out_mat(3,1)
+    integer(i4) :: i_in(2), i_in_mat(2,1), i_out(3), i_out_mat(3,1)
+
+    call source%init(nx=2, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=2.0_dp, &
+                     coordsys=cartesian, y_direction=bottom_up)
+    call target%init(nx=3, ny=1, xllcorner=0.4_dp, yllcorner=0.0_dp, cellsize=0.75_dp, &
+                     coordsys=cartesian, y_direction=bottom_up)
+
+    call regridder%init(source, target)
+
+    dp_in = [10.0_dp, 20.0_dp]
+    dp_in_mat = reshape(dp_in, [2, 1])
+    i_in = [1_i4, 2_i4]
+    i_in_mat = reshape(i_in, [2, 1])
+
+    call regridder%execute(dp_in, dp_out)
+    @assertEqual(dp_out, [10.0_dp, 10.0_dp, 20.0_dp], tolerance=1.0e-12_dp)
+
+    call regridder%execute(dp_in_mat, dp_out_mat)
+    @assertEqual(dp_out_mat(:,1), [10.0_dp, 10.0_dp, 20.0_dp], tolerance=1.0e-12_dp)
+
+    call regridder%execute(i_in, i_out)
+    @assertEqual(i_out, [1_i4, 1_i4, 2_i4])
+
+    call regridder%execute(i_in_mat, i_out_mat)
+    @assertEqual(i_out_mat(:,1), [1_i4, 1_i4, 2_i4])
+  end subroutine test_nearest_regridder_cartesian
+
+  @test
+  subroutine test_nearest_regridder_masked_and_aux()
+    implicit none
+    type(grid_t), target :: source_masked, target_near, source_plain, target_masked, source_aux, target_aux
+    type(nearest_regridder_t) :: masked_regridder, target_regridder, aux_regridder
+    logical :: source_mask(3,1), target_mask(3,1)
+    real(dp) :: masked_out(1), target_out(3,1), aux_out(2)
+
+    source_mask = .true.
+    source_mask(2,1) = .false.
+    call source_masked%init(nx=3, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                            coordsys=cartesian, y_direction=bottom_up, mask=source_mask)
+    call target_near%init(nx=1, ny=1, xllcorner=1.1_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                          coordsys=cartesian, y_direction=bottom_up)
+    call masked_regridder%init(source_masked, target_near)
+    call masked_regridder%execute([10.0_dp, 30.0_dp], masked_out)
+    @assertEqual(masked_out(1), 30.0_dp, tolerance=1.0e-12_dp)
+
+    target_mask = .true.
+    target_mask(2,1) = .false.
+    call source_plain%init(nx=2, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                           coordsys=cartesian, y_direction=bottom_up)
+    call target_masked%init(nx=3, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                            coordsys=cartesian, y_direction=bottom_up, mask=target_mask)
+    call target_regridder%init(source_plain, target_masked)
+    call target_regridder%execute([1.0_dp, 2.0_dp], target_out)
+    @assertEqual(target_out(1,1), 1.0_dp, tolerance=1.0e-12_dp)
+    @assertEqual(target_out(2,1), nodata_dp, tolerance=1.0e-12_dp)
+    @assertEqual(target_out(3,1), 2.0_dp, tolerance=1.0e-12_dp)
+
+    call source_aux%init(nx=2, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                         coordsys=cartesian, y_direction=bottom_up)
+    call target_aux%init(nx=2, ny=1, xllcorner=10.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                         coordsys=cartesian, y_direction=bottom_up)
+    allocate(source_aux%lon(source_aux%nx, source_aux%ny), source_aux%lat(source_aux%nx, source_aux%ny))
+    allocate(target_aux%lon(target_aux%nx, target_aux%ny), target_aux%lat(target_aux%nx, target_aux%ny))
+    source_aux%lon(:,1) = [0.0_dp, 10.0_dp]
+    source_aux%lat(:,1) = [0.0_dp, 0.0_dp]
+    target_aux%lon(:,1) = [9.0_dp, 1.0_dp]
+    target_aux%lat(:,1) = [0.0_dp, 0.0_dp]
+
+    call aux_regridder%init(source_aux, target_aux, use_aux=.true.)
+    call aux_regridder%execute([10.0_dp, 20.0_dp], aux_out)
+    @assertEqual(aux_out, [20.0_dp, 10.0_dp], tolerance=1.0e-12_dp)
+  end subroutine test_nearest_regridder_masked_and_aux
+
+  @test
+  subroutine test_nearest_regridder_spherical_and_mixed()
+    implicit none
+    type(grid_t), target :: source_sph, target_sph, target_cart_aux
+    type(nearest_regridder_t) :: sph_regridder, mixed_regridder
+    real(dp) :: sph_out(1), mixed_out(2)
+
+    call source_sph%init(nx=4, ny=1, xllcorner=0.0_dp, yllcorner=-45.0_dp, cellsize=90.0_dp, &
+                         coordsys=spherical, y_direction=bottom_up)
+    call target_sph%init(nx=1, ny=1, xllcorner=330.0_dp, yllcorner=-20.0_dp, cellsize=40.0_dp, &
+                         coordsys=spherical, y_direction=bottom_up)
+    call sph_regridder%init(source_sph, target_sph)
+    call sph_regridder%execute([1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp], sph_out)
+    @assertEqual(sph_out(1), 4.0_dp, tolerance=1.0e-12_dp)
+
+    call target_cart_aux%init(nx=2, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                              coordsys=cartesian, y_direction=bottom_up)
+    allocate(target_cart_aux%lon(target_cart_aux%nx, target_cart_aux%ny), &
+             target_cart_aux%lat(target_cart_aux%nx, target_cart_aux%ny))
+    target_cart_aux%lon(:,1) = [44.0_dp, 316.0_dp]
+    target_cart_aux%lat(:,1) = [0.0_dp, 0.0_dp]
+
+    call mixed_regridder%init(source_sph, target_cart_aux)
+    call mixed_regridder%execute([1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp], mixed_out)
+    @assertEqual(mixed_out, [1.0_dp, 4.0_dp], tolerance=1.0e-12_dp)
+  end subroutine test_nearest_regridder_spherical_and_mixed
+
+  @test
+  subroutine test_nearest_regridder_derived_mask_cartesian()
+    implicit none
+    type(grid_t), target :: source_masked, target_mid, source_small, target_wide, source_and, target_and, &
+                            source_all_masked, target_empty, target_area
+    type(nearest_regridder_t) :: derived_regridder, outside_regridder, and_regridder, empty_regridder, area_regridder
+    logical :: source_mask(3,1), source_and_mask(3,1), target_and_mask(3,1), all_mask(2,1)
+    real(dp) :: target_out(3,1), outside_out(4,1), and_out(3,1), empty_out(2,1), target_packed(2), outside_packed(2)
+    real(dp), allocatable :: empty_in(:)
+
+    source_mask = .true.
+    source_mask(2,1) = .false.
+    call source_masked%init(nx=3, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                            coordsys=cartesian, y_direction=bottom_up, mask=source_mask)
+
+    call target_mid%init(nx=3, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                         coordsys=cartesian, y_direction=bottom_up)
+    call derived_regridder%init(source_masked, target_mid, derive_target_mask=.true.)
+    @assertEqual(target_mid%ncells, 2_i8)
+    @assertTrue(all(target_mid%mask(:,1) .eqv. [.true., .false., .true.]))
+    call derived_regridder%execute([10.0_dp, 30.0_dp], target_packed)
+    @assertEqual(target_packed, [10.0_dp, 30.0_dp], tolerance=1.0e-12_dp)
+    call derived_regridder%execute([10.0_dp, 30.0_dp], target_out)
+    @assertEqual(target_out(1,1), 10.0_dp, tolerance=1.0e-12_dp)
+    @assertEqual(target_out(2,1), nodata_dp, tolerance=1.0e-12_dp)
+    @assertEqual(target_out(3,1), 30.0_dp, tolerance=1.0e-12_dp)
+
+    call source_small%init(nx=2, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                           coordsys=cartesian, y_direction=bottom_up)
+    call target_wide%init(nx=4, ny=1, xllcorner=-1.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                          coordsys=cartesian, y_direction=bottom_up)
+    call outside_regridder%init(source_small, target_wide, derive_target_mask=.true.)
+    @assertEqual(target_wide%ncells, 2_i8)
+    @assertTrue(all(target_wide%mask(:,1) .eqv. [.false., .true., .true., .false.]))
+    call outside_regridder%execute([10.0_dp, 20.0_dp], outside_packed)
+    @assertEqual(outside_packed, [10.0_dp, 20.0_dp], tolerance=1.0e-12_dp)
+    call outside_regridder%execute([10.0_dp, 20.0_dp], outside_out)
+    @assertEqual(outside_out(1,1), nodata_dp, tolerance=1.0e-12_dp)
+    @assertEqual(outside_out(2,1), 10.0_dp, tolerance=1.0e-12_dp)
+    @assertEqual(outside_out(3,1), 20.0_dp, tolerance=1.0e-12_dp)
+    @assertEqual(outside_out(4,1), nodata_dp, tolerance=1.0e-12_dp)
+
+    source_and_mask(:,1) = [.false., .true., .true.]
+    target_and_mask(:,1) = [.true., .false., .true.]
+    call source_and%init(nx=3, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                         coordsys=cartesian, y_direction=bottom_up, mask=source_and_mask)
+    call target_and%init(nx=3, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                         coordsys=cartesian, y_direction=bottom_up, mask=target_and_mask)
+    call and_regridder%init(source_and, target_and, derive_target_mask=.true.)
+    @assertEqual(target_and%ncells, 1_i8)
+    @assertTrue(all(target_and%mask(:,1) .eqv. [.false., .false., .true.]))
+    call and_regridder%execute([20.0_dp, 30.0_dp], and_out)
+    @assertEqual(and_out(1,1), nodata_dp, tolerance=1.0e-12_dp)
+    @assertEqual(and_out(2,1), nodata_dp, tolerance=1.0e-12_dp)
+    @assertEqual(and_out(3,1), 30.0_dp, tolerance=1.0e-12_dp)
+
+    call target_area%init(nx=3, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                          coordsys=cartesian, y_direction=bottom_up)
+    target_area%cell_area = [1.0_dp, 2.0_dp, 3.0_dp]
+    call area_regridder%init(source_masked, target_area, derive_target_mask=.true.)
+    @assertEqual(target_area%ncells, 2_i8)
+    @assertEqual(target_area%cell_area, [1.0_dp, 3.0_dp], tolerance=1.0e-12_dp)
+
+    all_mask = .false.
+    call source_all_masked%init(nx=2, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                                coordsys=cartesian, y_direction=bottom_up, mask=all_mask)
+    call target_empty%init(nx=2, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                           coordsys=cartesian, y_direction=bottom_up)
+    call empty_regridder%init(source_all_masked, target_empty, derive_target_mask=.true.)
+    @assertEqual(target_empty%ncells, 0_i8)
+    @assertTrue(all(.not. target_empty%mask(:,1)))
+    allocate(empty_in(0))
+    call empty_regridder%execute(empty_in, empty_out)
+    @assertEqual(empty_out(1,1), nodata_dp, tolerance=1.0e-12_dp)
+    @assertEqual(empty_out(2,1), nodata_dp, tolerance=1.0e-12_dp)
+  end subroutine test_nearest_regridder_derived_mask_cartesian
+
+  @test
+  subroutine test_nearest_regridder_derived_mask_spherical_aux()
+    implicit none
+    type(grid_t), target :: source_sph_masked, target_sph, source_aux_masked, target_aux
+    type(nearest_regridder_t) :: sph_mask_regridder, aux_mask_regridder
+    logical :: sph_mask(4,1), aux_mask(2,2)
+    real(dp) :: sph_out(1,1), aux_out(2,1)
+
+    sph_mask = .true.
+    sph_mask(4,1) = .false.
+    call source_sph_masked%init(nx=4, ny=1, xllcorner=0.0_dp, yllcorner=-45.0_dp, cellsize=90.0_dp, &
+                                coordsys=spherical, y_direction=bottom_up, mask=sph_mask)
+    call target_sph%init(nx=1, ny=1, xllcorner=330.0_dp, yllcorner=-20.0_dp, cellsize=40.0_dp, &
+                         coordsys=spherical, y_direction=bottom_up)
+    call sph_mask_regridder%init(source_sph_masked, target_sph, derive_target_mask=.true.)
+    @assertEqual(target_sph%ncells, 0_i8)
+    call sph_mask_regridder%execute([1.0_dp, 2.0_dp, 3.0_dp], sph_out)
+    @assertEqual(sph_out(1,1), nodata_dp, tolerance=1.0e-12_dp)
+
+    aux_mask = reshape([.true., .false., .true., .true.], [2, 2])
+    call source_aux_masked%init(nx=2, ny=2, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                                coordsys=cartesian, y_direction=bottom_up, mask=aux_mask)
+    call target_aux%init(nx=2, ny=1, xllcorner=10.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                         coordsys=cartesian, y_direction=bottom_up)
+    allocate(source_aux_masked%lon(source_aux_masked%nx, source_aux_masked%ny), &
+             source_aux_masked%lat(source_aux_masked%nx, source_aux_masked%ny))
+    allocate(target_aux%lon(target_aux%nx, target_aux%ny), target_aux%lat(target_aux%nx, target_aux%ny))
+    source_aux_masked%lon = reshape([0.5_dp, 1.5_dp, 0.5_dp, 1.5_dp], [2, 2])
+    source_aux_masked%lat = reshape([0.5_dp, 0.5_dp, 1.5_dp, 1.5_dp], [2, 2])
+    target_aux%lon(:,1) = [1.5_dp, 0.5_dp]
+    target_aux%lat(:,1) = [0.5_dp, 1.5_dp]
+
+    call aux_mask_regridder%init(source_aux_masked, target_aux, use_aux=.true., derive_target_mask=.true.)
+    @assertTrue(source_aux_masked%has_aux_vertices())
+    @assertEqual(target_aux%ncells, 1_i8)
+    @assertTrue(all(target_aux%mask(:,1) .eqv. [.false., .true.]))
+    call aux_mask_regridder%execute([10.0_dp, 20.0_dp, 30.0_dp], aux_out)
+    @assertEqual(aux_out(1,1), nodata_dp, tolerance=1.0e-12_dp)
+    @assertEqual(aux_out(2,1), 20.0_dp, tolerance=1.0e-12_dp)
+  end subroutine test_nearest_regridder_derived_mask_spherical_aux
 
 end module test_mo_grid_scaler

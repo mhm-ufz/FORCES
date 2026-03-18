@@ -27,7 +27,8 @@ module mo_grid_io
 
   use mo_kind, only : i1, i2, i4, i8, dp, sp
   use mo_constants, only : nodata_dp, nodata_sp, nodata_i1, nodata_i2, nodata_i4, nodata_i8
-  use mo_grid, only: grid_t, cartesian, is_t_axis, check_uniform_axis, bottom_up, is_z_axis
+  use mo_grid, only: grid_t, cartesian, bottom_up
+  use mo_grid_helper, only: is_t_axis, check_uniform_axis, is_z_axis
   use mo_netcdf, only : NcDataset, NcDimension, NcVariable
   use mo_datetime, only : datetime, timedelta, delta_from_string, decode_cf_time_units, one_day, one_hour
   use mo_message, only : error_message, warn_message
@@ -66,9 +67,9 @@ module mo_grid_io
     character(:), allocatable :: dtype         !< variable data type in file ('f32', 'f64' (default), 'i8', 'i16', 'i32', 'i64')
     character(:), allocatable :: kind          !< kind of array for IO ('sp', 'dp' (real def.), 'i1', 'i2', 'i4' (int def.), 'i8')
     logical :: static = .false.                !< static variable (without time dimension)
+    logical :: allow_static = .false.          !< accept a static variable on input when static=.false.
     logical :: avg = .false.                   !< average data (only for writing)
     logical :: layered = .false.               !< variable is layered
-    logical :: allow_static = .false.          !< accept a static variable on input when static=.false.
   contains
     procedure, public :: meta => var_meta
   end type var

@@ -12,6 +12,7 @@ variables:
 stages:
   - info
   - test
+  - openmp
   - examples
   - doc
   - deploy
@@ -67,6 +68,22 @@ show-env-vars:
   BUILD_TARGET: test
   ARTIFACT_PATH: Testing/Temporary
 
+# debug OpenMP variables
+.omp_debug_vars: &omp_debug_vars
+  BUILD_DIR: build_omp_debug
+  CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_OpenMP=ON'
+  BUILD_TARGET: test
+  ARTIFACT_PATH: Testing/Temporary
+  OMP_NUM_THREADS: 4
+
+# release OpenMP variables
+.omp_release_vars: &omp_release_vars
+  BUILD_DIR: build_omp_release
+  CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_WITH_OpenMP=ON'
+  BUILD_TARGET: test
+  ARTIFACT_PATH: Testing/Temporary
+  OMP_NUM_THREADS: 4
+
 # example variables
 .examples_vars: &examples_vars
   BUILD_DIR: build_examples
@@ -104,9 +121,9 @@ show-env-vars:
 .conda_vars_04: &conda_vars_04
   MODULE_LOAD_SCRIPT: hpc-module-loads/eve.chs-conda04
 
-# #################
-# ### TEMPLATES ###
-# #################
+#################
+### TEMPLATES ###
+#################
 
 # template for documentation
 .doc_template: &doc_template
@@ -156,6 +173,11 @@ show-env-vars:
     paths:
     - $BUILD_DIR/$ARTIFACT_PATH
 
+# template for OpenMP test jobs
+.omp_job_template: &omp_job_template
+  <<: *job_template
+  stage: openmp
+
 # template for example jobs
 .examples_template: &examples_template
   stage: examples
@@ -175,9 +197,9 @@ show-env-vars:
         ./$BUILD_DIR/main
       done
 
-# #################
-# ### TEST JOBS ###
-# #################
+#################
+### TEST JOBS ###
+#################
 
 test-conda01-release:
   variables:
@@ -268,9 +290,63 @@ conditional_coverage:
     CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON -DFORCES_WITH_OPTIMIZATION=OFF -DFORCES_WITH_NETCDF=OFF'
   <<: *job_template
 
-##################
-### EXAMPLES #####
-##################
+##############
+### OPENMP ###
+##############
+
+test-gfortran102-release-omp:
+  variables:
+    <<: [*omp_release_vars, *gfortran_vars_102]
+  <<: *omp_job_template
+
+test-gfortran102-debug-omp:
+  variables:
+    <<: [*omp_debug_vars, *gfortran_vars_102]
+  <<: *omp_job_template
+
+test-gfortran122-release-omp:
+  variables:
+    <<: [*omp_release_vars, *gfortran_vars_122]
+  <<: *omp_job_template
+
+test-gfortran122-debug-omp:
+  variables:
+    <<: [*omp_debug_vars, *gfortran_vars_122]
+  <<: *omp_job_template
+
+test-intel2020b-release-omp:
+  variables:
+    <<: [*omp_release_vars, *intel_vars_2020b]
+  <<: *omp_job_template
+
+test-intel2020b-debug-omp:
+  variables:
+    <<: [*omp_debug_vars, *intel_vars_2020b]
+  <<: *omp_job_template
+
+test-intel2023b-classic-release-omp:
+  variables:
+    <<: [*omp_release_vars, *intel_vars_2023b-classic]
+  <<: *omp_job_template
+
+test-intel2023b-classic-debug-omp:
+  variables:
+    <<: [*omp_debug_vars, *intel_vars_2023b-classic]
+  <<: *omp_job_template
+
+test-intel2023b-llvm-release-omp:
+  variables:
+    <<: [*omp_release_vars, *intel_vars_2023b-llvm]
+  <<: *omp_job_template
+
+test-intel2023b-llvm-debug-omp:
+  variables:
+    <<: [*omp_debug_vars, *intel_vars_2023b-llvm]
+  <<: *omp_job_template
+
+################
+### EXAMPLES ###
+################
 
 examples-conda01:
   variables:
@@ -333,9 +409,9 @@ documentation:
     <<: *doc_latest_vars
   <<: *doc_template
 
-# ###################
-# ### DEPLOY JOBS ###
-# ###################
+###################
+### DEPLOY JOBS ###
+###################
 
 pages:
   when: always
