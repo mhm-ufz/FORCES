@@ -1023,7 +1023,7 @@ CONTAINS
     !
   End Function I_fndnth
 
-  Subroutine D_indmed (XDONT, INDM)
+  Recursive Subroutine D_indmed (XDONT, INDM)
     !  Returns index of median value of XDONT.
     ! __________________________________________________________
     real(kind = dp), Dimension (:), Intent (In) :: XDONT
@@ -1067,7 +1067,7 @@ CONTAINS
     !
     NDAT = Size (IDATT)
     NMED = (NDAT + 1) / 2
-    IWRKT = IDATT
+    IWRKT(1:NDAT) = IDATT
     !
     !  If the number of values is small, then use insertion sort
     !
@@ -1422,7 +1422,7 @@ CONTAINS
     !
   END Subroutine d_med
   !
-  Subroutine R_indmed (XDONT, INDM)
+  Recursive Subroutine R_indmed (XDONT, INDM)
     !  Returns index of median value of XDONT.
     ! __________________________________________________________
     Real(kind = sp), Dimension (:), Intent (In) :: XDONT
@@ -1466,7 +1466,7 @@ CONTAINS
     !
     NDAT = Size (IDATT)
     NMED = (NDAT + 1) / 2
-    IWRKT = IDATT
+    IWRKT(1:NDAT) = IDATT
     !
     !  If the number of values is small, then use insertion sort
     !
@@ -1821,7 +1821,7 @@ CONTAINS
     !
   END Subroutine r_med
 
-  Subroutine I_indmed (XDONT, INDM)
+  Recursive Subroutine I_indmed (XDONT, INDM)
     !  Returns index of median value of XDONT.
     ! __________________________________________________________
     Integer(kind = i4), Dimension (:), Intent (In) :: XDONT
@@ -1865,7 +1865,7 @@ CONTAINS
     !
     NDAT = Size (IDATT)
     NMED = (NDAT + 1) / 2
-    IWRKT = IDATT
+    IWRKT(1:NDAT) = IDATT
     !
     !  If the number of values is small, then use insertion sort
     !
