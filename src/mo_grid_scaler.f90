@@ -1571,17 +1571,20 @@ contains
     real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
     real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
     integer(i8) :: k
-    integer(i4) :: x_lb, x_ub, y_lb, y_ub
+    integer(i4) :: x_lb, x_ub, y_lb, y_ub, n
+    real(dp) :: vals(this%factor * this%factor)
     call check_upscaling(this%scaling_mode)
-    !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
+    !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub,vals,n) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
       call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
-      out_data(k) = omedian( &
-          pack(in_data(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub)) &
-        )
+      n = this%n_subcells(k)
+      ! need vals temporary array to prevent intel bug with openmp and pack+omedian (segmentation fault or wrong results)
+      vals(1_i4:n) = pack(in_data(x_lb:x_ub,y_lb:y_ub), this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub))
+      out_data(k) = omedian(vals(1_i4:n))
     end do
     !$omp end parallel do
   end subroutine scaler_upscale_median
+
 
   subroutine scaler_upscale_laf(this, in_data, out_data, vmin, vmax)
     class(scaler_t), intent(inout) :: this
