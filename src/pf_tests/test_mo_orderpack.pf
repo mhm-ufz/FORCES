@@ -2,9 +2,7 @@ module test_mo_orderpack
   
   use funit
   use mo_kind,      only: i4, dp, sp
-  use mo_utils,     only: eq
-  use mo_orderpack, only: refsor, mrgrnk, omedian, sort, sort_index
-  use mo_message, only: error_message
+  use mo_orderpack, only: refsor, mrgrnk, indmed, omedian, sort, sort_index
   
   implicit none
 
@@ -17,6 +15,8 @@ contains
   subroutine test_orderpack_dp()
 
     real(dp),    dimension(10) :: dat1, dat2
+    real(dp),    dimension(5) :: dat3
+    integer(i4) :: idx
 
     ! sort
     dat1 = (/ 1., 2., 3., 4., 5., 6., 7., 8., 9., 10. /)
@@ -37,6 +37,9 @@ contains
  
     ! median
     @assertEqual(omedian(dat1), 5.5_dp)
+    dat3 = [11.0_dp,  1.0_dp,  7.0_dp,  3.0_dp,  5.0_dp]
+    call indmed(dat3, idx)
+    @assertEqual(idx, 5_i4)
 
   end subroutine test_orderpack_dp
 
@@ -45,6 +48,8 @@ contains
   subroutine test_orderpack_sp()
 
     real(sp),    dimension(10) :: sat1, sat2
+    real(sp),    dimension(5) :: sat3
+    integer(i4) :: idx
   
     ! sort
     sat1 = (/ 1., 2., 3., 4., 5., 6., 7., 8., 9., 10. /)
@@ -65,7 +70,49 @@ contains
 
     ! median
     @assertEqual(omedian(sat1), 5.5_sp)
+    sat3 = [11.0_sp,  1.0_sp,  7.0_sp,  3.0_sp,  5.0_sp]
+    call indmed(sat3, idx)
+    @assertEqual(idx, 5_i4)
 
   end subroutine test_orderpack_sp
+
+  @test
+  subroutine test_orderpack_indmed_i4()
+
+    integer(i4), dimension(5) :: idat
+    integer(i4) :: idx
+
+    idat = [11_i4, 1_i4, 7_i4, 3_i4, 5_i4]
+    call indmed(idat, idx)
+    @assertEqual(idx, 5_i4)
+
+  end subroutine test_orderpack_indmed_i4
+
+  @test
+  subroutine test_orderpack_indmed_parallel()
+
+    integer(i4), parameter :: ncases = 128_i4
+    real(dp) :: dat(5, ncases)
+    integer(i4) :: idx(ncases)
+    integer(i4) :: i
+
+    do i = 1_i4, ncases
+      dat(:, i) = [5.0_dp + 10.0_dp * real(i - 1_i4, dp), &
+                   1.0_dp + 10.0_dp * real(i - 1_i4, dp), &
+                   3.0_dp + 10.0_dp * real(i - 1_i4, dp), &
+                   2.0_dp + 10.0_dp * real(i - 1_i4, dp), &
+                   4.0_dp + 10.0_dp * real(i - 1_i4, dp)]
+      idx(i) = 0_i4
+    end do
+
+    !$omp parallel do default(shared) private(i) schedule(static)
+    do i = 1_i4, ncases
+      call indmed(dat(:, i), idx(i))
+    end do
+    !$omp end parallel do
+
+    @assertTrue(all(idx == 3_i4))
+
+  end subroutine test_orderpack_indmed_parallel
 
 end module test_mo_orderpack
