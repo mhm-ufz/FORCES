@@ -331,7 +331,7 @@ contains
       ! count valid fine cells in coarse cell (mask should be always present here)
       this%n_subcells(k) = count(this%fine_grid%mask(i_lb : i_ub, j_lb : j_ub))
       ! compute coarse weights for sub-cell count based weighting either way
-      this%coarse_weights(k) = 1.0_dp / real(min(1_i4, this%n_subcells(k)), dp)
+      this%coarse_weights(k) = 1.0_dp / real(max(1_i4, this%n_subcells(k)), dp)
     end do
     !$omp end parallel do
 
@@ -1616,7 +1616,7 @@ contains
       cnt_v = 0
       do i = min_v, max_v
         ! nodata value should be out of range (-9999) so we don't need to pack data
-        cnt_i = count(in_data(x_lb:x_ub,y_lb:y_ub) == i)
+        cnt_i = count((in_data(x_lb:x_ub,y_lb:y_ub) == i) .and. this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub))
         if (cnt_i > cnt_v) then
           laf_v = i
           cnt_v = cnt_i
