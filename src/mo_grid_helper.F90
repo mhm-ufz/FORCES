@@ -28,6 +28,7 @@ module mo_grid_helper
   public :: orient2d
   public :: point_in_triangle
   public :: quad_contains_point
+  public :: arrays_match_2d
   public :: append_candidate_id
   public :: update_best_metric
   public :: intersection
@@ -52,13 +53,20 @@ module mo_grid_helper
   public :: data_from_var
 #endif
 
+  !> \brief Read ESRI ASCII grid into an xy-ordered array.
   interface read_ascii_grid
     module procedure read_ascii_grid_i4, read_ascii_grid_dp
   end interface read_ascii_grid
 
+  !> \brief Write ESRI ASCII grid from an xy- or yx-ordered array.
   interface write_ascii_grid
     module procedure write_ascii_grid_i4, write_ascii_grid_dp
   end interface write_ascii_grid
+
+  !> \brief Check whether two 2D arrays match in shape and element-wise values.
+  interface arrays_match_2d
+    module procedure arrays_match_2d_dp, arrays_match_2d_lgt
+  end interface arrays_match_2d
 
   !> \class   data_t
   !> \brief   2D data container for different data types.
@@ -143,6 +151,57 @@ contains
     if (.not. allocated(this%data_i8)) call error_message("data % get: data not allocated for dtype 'i64'") ! LCOV_EXCL_LINE
     call move_alloc(this%data_i8, data)
   end subroutine data_move_i8
+
+  !> \brief Check whether two 2D double-precision arrays match within a tolerance.
+  logical function arrays_match_2d_dp(a, b, tol) result(arrays_match)
+    implicit none
+    real(dp), intent(in) :: a(:, :) !< First array to compare.
+    real(dp), intent(in) :: b(:, :) !< Second array to compare.
+    real(dp), optional, intent(in) :: tol !< Tolerance for element-wise comparison (default: 1.e-7).
+
+    real(dp) :: tol_
+    integer(i4) :: j
+
+    arrays_match = .false.
+    if (any(shape(a, kind=i4) /= shape(b, kind=i4))) return
+
+    tol_ = optval(tol, 1.0e-7_dp)
+    arrays_match = .true.
+    !$omp parallel do default(shared) schedule(static)
+    do j = 1_i4, size(a, dim=2, kind=i4)
+      !$omp flush(arrays_match)
+      if (.not. arrays_match) cycle ! no work for rest of the loop (exit not safe with omp)
+      if (.not. all(is_close(a(:, j), b(:, j), tol_, tol_))) then
+        !$omp atomic write
+        arrays_match = .false.
+      end if
+    end do
+    !$omp end parallel do
+  end function arrays_match_2d_dp
+
+  !> \brief Check whether two 2D logical arrays match.
+  logical function arrays_match_2d_lgt(a, b) result(arrays_match)
+    implicit none
+    logical, intent(in) :: a(:, :) !< First array to compare.
+    logical, intent(in) :: b(:, :) !< Second array to compare.
+
+    integer(i4) :: j
+
+    arrays_match = .false.
+    if (any(shape(a, kind=i4) /= shape(b, kind=i4))) return
+
+    arrays_match = .true.
+    !$omp parallel do default(shared) schedule(static)
+    do j = 1_i4, size(a, dim=2, kind=i4)
+      !$omp flush(arrays_match)
+      if (.not. arrays_match) cycle ! no work for rest of the loop (exit not safe with omp)
+      if (any(a(:, j) .neqv. b(:, j))) then
+        !$omp atomic write
+        arrays_match = .false.
+      end if
+    end do
+    !$omp end parallel do
+  end function arrays_match_2d_lgt
 
   !> \brief Check whether a value lies inside a closed interval.
   pure logical function value_in_closed_interval(value, lower, upper) result(in_interval)

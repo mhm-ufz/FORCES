@@ -15,6 +15,7 @@ module test_mo_grid
   public :: test_axes_and_extent
   public :: test_mask_ids_and_pack
   public :: test_area_and_periodicity
+  public :: test_is_matching
   public :: test_closest_cell_and_distance
   public :: test_closest_cell_exact_cartesian_batch
   public :: test_closest_cell_exact_sparse_rows
@@ -206,6 +207,75 @@ contains
     @assertTrue(periodic%is_periodic(), message='360 deg spherical grid detected as periodic')
     @assertFalse(cart%is_periodic(), message='cartesian grid not periodic')
   end subroutine test_area_and_periodicity
+
+  @test
+  subroutine test_is_matching()
+    implicit none
+    type(grid_t) :: base, same, diff_coordsys, diff_shape, diff_ncells, diff_ydir, diff_float
+    type(grid_t) :: masked_a, masked_b, aux_same, aux_diff, aux_alloc, vert_same, vert_diff
+    logical :: mask_a(2, 2), mask_b(2, 2)
+
+    call base%init(nx=2, ny=2, xllcorner=0.0_dp, yllcorner=1.0_dp, cellsize=2.0_dp, &
+      coordsys=cartesian, y_direction=bottom_up)
+
+    same = base
+    @assertTrue(base%is_matching(same), message='identical grids match by default')
+
+    call diff_coordsys%init(nx=2, ny=2, xllcorner=0.0_dp, yllcorner=1.0_dp, cellsize=2.0_dp, &
+      coordsys=spherical, y_direction=bottom_up)
+    @assertFalse(base%is_matching(diff_coordsys), message='coordsys mismatch returns false')
+
+    call diff_shape%init(nx=3, ny=2, xllcorner=0.0_dp, yllcorner=1.0_dp, cellsize=2.0_dp, &
+      coordsys=cartesian, y_direction=bottom_up)
+    @assertFalse(base%is_matching(diff_shape), message='axis size mismatch returns false')
+
+    mask_a = reshape([.true., .false., .true., .true.], [2, 2])
+    call diff_ncells%init(nx=2, ny=2, xllcorner=0.0_dp, yllcorner=1.0_dp, cellsize=2.0_dp, &
+      coordsys=cartesian, mask=mask_a, y_direction=bottom_up)
+    @assertFalse(base%is_matching(diff_ncells), message='ncells mismatch returns false')
+
+    call diff_ydir%init(nx=2, ny=2, xllcorner=0.0_dp, yllcorner=1.0_dp, cellsize=2.0_dp, &
+      coordsys=cartesian, y_direction=top_down)
+    @assertFalse(base%is_matching(diff_ydir), message='y direction mismatch returns false')
+
+    diff_float = base
+    diff_float%xllcorner = diff_float%xllcorner + 5.0e-8_dp
+    @assertTrue(base%is_matching(diff_float), message='default tolerance accepts small metadata differences')
+    @assertFalse(base%is_matching(diff_float, tol=1.0e-9_dp), message='tight tolerance rejects small metadata differences')
+
+    mask_b = reshape([.true., .true., .false., .true.], [2, 2])
+    call masked_a%init(nx=2, ny=2, xllcorner=0.0_dp, yllcorner=1.0_dp, cellsize=2.0_dp, &
+      coordsys=cartesian, mask=mask_a, y_direction=bottom_up)
+    call masked_b%init(nx=2, ny=2, xllcorner=0.0_dp, yllcorner=1.0_dp, cellsize=2.0_dp, &
+      coordsys=cartesian, mask=mask_b, y_direction=bottom_up)
+    @assertEqual(masked_a%ncells, masked_b%ncells, message='masked test grids keep the same number of cells')
+    @assertFalse(masked_a%is_matching(masked_b), message='mask differences are part of matching')
+
+    aux_same = base
+    allocate(aux_same%lat(2, 2), aux_same%lon(2, 2))
+    aux_same%lat = reshape([50.0_dp, 50.1_dp, 50.2_dp, 50.3_dp], [2, 2])
+    aux_same%lon = reshape([10.0_dp, 10.1_dp, 10.2_dp, 10.3_dp], [2, 2])
+
+    aux_diff = aux_same
+    @assertTrue(aux_same%is_matching(aux_diff, aux=.true.), message='equal aux coordinates match when requested')
+    aux_diff%lat(1, 1) = aux_diff%lat(1, 1) + 1.0e-3_dp
+    @assertTrue(aux_same%is_matching(aux_diff), message='aux coordinates are ignored by default')
+    @assertFalse(aux_same%is_matching(aux_diff, aux=.true.), message='aux coordinate differences fail when requested')
+
+    aux_alloc = base
+    allocate(aux_alloc%lat(2, 2), aux_alloc%lon(2, 2))
+    aux_alloc%lat = aux_same%lat
+    aux_alloc%lon = aux_same%lon
+    @assertFalse(base%is_matching(aux_alloc, aux=.true.), message='aux coordinate allocation mismatch returns false')
+
+    vert_same = aux_same
+    call vert_same%estimate_aux_vertices()
+    vert_diff = vert_same
+    @assertTrue(vert_same%is_matching(vert_diff, aux=.true.), message='equal aux vertices match when requested')
+    vert_diff%lat_vertices(1, 1) = vert_diff%lat_vertices(1, 1) + 1.0e-3_dp
+    @assertFalse(vert_same%is_matching(vert_diff, aux=.true.), message='aux vertex differences fail when requested')
+    @assertFalse(aux_same%is_matching(vert_same, aux=.true.), message='aux vertex allocation mismatch returns false')
+  end subroutine test_is_matching
 
   @test
   subroutine test_closest_cell_and_distance()
@@ -789,31 +859,8 @@ contains
 
     call coarse%to_restart(nc_path, mask=.true., area=.true.)
     call restart_grid%from_restart(nc_path)
-    @assertTrue(all(restart_grid%mask .eqv. coarse%mask), message='restart grid mask matches original')
+    @assertTrue(restart_grid%is_matching(coarse, aux=.true.), message='restart grid matches original structure and aux data')
     @assertEqual(restart_grid%cell_area, coarse%cell_area, tolerance=1.0e-4_dp, message='restart grid area matches original')
-    @assertEqual(restart_grid%nx, coarse%nx, message='restart grid nx matches original')
-    @assertEqual(restart_grid%ny, coarse%ny, message='restart grid ny matches original')
-    !ncells
-    @assertEqual(restart_grid%ncells, coarse%ncells, message='restart grid ncells matches original')
-    !xll
-    @assertEqual(restart_grid%xllcorner, coarse%xllcorner, tolerance=1.0e-4_dp, message='restart grid xllcorner matches original')
-    !yll
-    @assertEqual(restart_grid%yllcorner, coarse%yllcorner, tolerance=1.0e-4_dp, message='restart grid yllcorner matches original')
-    !cellsize
-    @assertEqual(restart_grid%cellsize, coarse%cellsize, tolerance=1.0e-4_dp, message='restart grid cellsize matches original')
-    !mask_cum_col_cnt
-    @assertEqual(restart_grid%mask_cum_col_cnt, coarse%mask_cum_col_cnt, message='restart grid mask_cum_col_cnt matches original')
-    !mask_col_cnt
-    @assertEqual(restart_grid%mask_col_cnt, coarse%mask_col_cnt, message='restart grid mask_col_cnt matches original')
-    !coordsys
-    @assertEqual(restart_grid%coordsys, coarse%coordsys, message='restart grid coordsys matches original')
-    !y_direction
-    @assertEqual(restart_grid%y_direction, coarse%y_direction, message='restart grid y_direction matches original')
-    !cell_ij
-    @assertEqual(restart_grid%cell_ij, coarse%cell_ij, message='restart grid cell_ij matches original')
-    !lonlat
-    @assertEqual(restart_grid%lon, coarse%lon, tolerance=1.0e-4_dp, message='restart grid lon matches original')
-    @assertEqual(restart_grid%lat, coarse%lat, tolerance=1.0e-4_dp, message='restart grid lat matches original')
 
     nc = NcDataset(nc_path, "r")
     var = nc%getVariable("mask")
