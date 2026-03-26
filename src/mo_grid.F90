@@ -138,6 +138,7 @@ module mo_grid
     procedure, public :: lon_bounds => grid_lon_bounds
     procedure, public :: has_mask => grid_has_mask
     procedure, public :: any_missing => grid_any_missing
+    procedure, public :: is_matching => grid_is_matching
     procedure, public :: check_is_covered_by => grid_check_is_covered_by
     procedure, public :: check_is_covering => grid_check_is_covering
     procedure, public :: check_is_filled_by => grid_check_is_filled_by
@@ -2084,6 +2085,70 @@ contains
     end do
     !$omp end parallel do
   end function grid_any_missing
+
+  !> \brief check if given grid matches another grid
+  !> \details Returns `.true.` if the structural grid metadata matches,
+  !!          the mask matches, and optionally the auxiliary coordinates
+  !!          and vertices match as well.
+  !> \return `logical :: is_matching`
+  !> \authors Sebastian Mueller
+  !> \date Mar 2026
+  logical function grid_is_matching(this, other, tol, aux) result(is_matching)
+    implicit none
+    class(grid_t), intent(in) :: this
+    type(grid_t), intent(in) :: other
+    real(dp), optional, intent(in) :: tol
+    logical, optional, intent(in) :: aux
+
+    real(dp) :: tol_
+    logical :: check_aux
+
+    is_matching = .false.
+    tol_ = optval(tol, 1.0e-7_dp)
+    check_aux = optval(aux, .false.)
+
+    if (this%ncells /= other%ncells) return
+    if (this%nx /= other%nx) return
+    if (this%ny /= other%ny) return
+    if (this%coordsys /= other%coordsys) return
+    if (this%y_direction /= other%y_direction) return
+
+    if (.not. is_close(this%xllcorner, other%xllcorner, tol_, tol_)) return
+    if (.not. is_close(this%yllcorner, other%yllcorner, tol_, tol_)) return
+    if (.not. is_close(this%cellsize, other%cellsize, tol_, tol_)) return
+
+    if (check_aux) then
+      if (allocated(this%lat) .neqv. allocated(other%lat)) return
+      if (allocated(this%lon) .neqv. allocated(other%lon)) return
+      if (allocated(this%lat_vertices) .neqv. allocated(other%lat_vertices)) return
+      if (allocated(this%lon_vertices) .neqv. allocated(other%lon_vertices)) return
+
+      if (allocated(this%lat)) then
+        if (any(shape(this%lat, kind=i4) /= shape(other%lat, kind=i4))) return
+        if (.not. all(is_close(this%lat, other%lat, tol_, tol_))) return
+      end if
+      if (allocated(this%lon)) then
+        if (any(shape(this%lon, kind=i4) /= shape(other%lon, kind=i4))) return
+        if (.not. all(is_close(this%lon, other%lon, tol_, tol_))) return
+      end if
+      if (allocated(this%lat_vertices)) then
+        if (any(shape(this%lat_vertices, kind=i4) /= shape(other%lat_vertices, kind=i4))) return
+        if (.not. all(is_close(this%lat_vertices, other%lat_vertices, tol_, tol_))) return
+      end if
+      if (allocated(this%lon_vertices)) then
+        if (any(shape(this%lon_vertices, kind=i4) /= shape(other%lon_vertices, kind=i4))) return
+        if (.not. all(is_close(this%lon_vertices, other%lon_vertices, tol_, tol_))) return
+      end if
+    end if
+
+    if (allocated(this%mask) .neqv. allocated(other%mask)) return
+    if (allocated(this%mask)) then
+      if (any(shape(this%mask, kind=i4) /= shape(other%mask, kind=i4))) return
+      if (.not. all(this%mask .eqv. other%mask)) return
+    end if
+
+    is_matching = .true.
+  end function grid_is_matching
 
   !> \brief check if given grid is covered by coarser grid
   !> \details check if given grid is compatible and covered by coarser grid and raise an error if this is not the case.
