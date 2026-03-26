@@ -2096,9 +2096,9 @@ contains
   logical function grid_is_matching(this, other, tol, aux) result(is_matching)
     implicit none
     class(grid_t), intent(in) :: this
-    type(grid_t), intent(in) :: other
-    real(dp), optional, intent(in) :: tol
-    logical, optional, intent(in) :: aux
+    type(grid_t), intent(in) :: other !< grid to compare with
+    real(dp), optional, intent(in) :: tol !< tolerance for comparisson of real values (default: 1.e-7)
+    logical, optional, intent(in) :: aux !< whether to check if auxilliar coordinates and vertices match as well (default: .false.)
 
     real(dp) :: tol_
     logical :: check_aux

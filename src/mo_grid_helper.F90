@@ -53,14 +53,17 @@ module mo_grid_helper
   public :: data_from_var
 #endif
 
+  !> \brief Read ESRI ASCII grid into an xy-ordered array.
   interface read_ascii_grid
     module procedure read_ascii_grid_i4, read_ascii_grid_dp
   end interface read_ascii_grid
 
+  !> \brief Write ESRI ASCII grid from an xy- or yx-ordered array.
   interface write_ascii_grid
     module procedure write_ascii_grid_i4, write_ascii_grid_dp
   end interface write_ascii_grid
 
+  !> \brief Check whether two 2D arrays match in shape and element-wise values.
   interface arrays_match_2d
     module procedure arrays_match_2d_dp, arrays_match_2d_lgt
   end interface arrays_match_2d
@@ -152,9 +155,9 @@ contains
   !> \brief Check whether two 2D double-precision arrays match within a tolerance.
   logical function arrays_match_2d_dp(a, b, tol) result(arrays_match)
     implicit none
-    real(dp), intent(in) :: a(:, :)
-    real(dp), intent(in) :: b(:, :)
-    real(dp), optional, intent(in) :: tol
+    real(dp), intent(in) :: a(:, :) !< First array to compare.
+    real(dp), intent(in) :: b(:, :) !< Second array to compare.
+    real(dp), optional, intent(in) :: tol !< Tolerance for element-wise comparison (default: 1.e-7).
 
     real(dp) :: tol_
     integer(i4) :: j
@@ -179,8 +182,8 @@ contains
   !> \brief Check whether two 2D logical arrays match.
   logical function arrays_match_2d_lgt(a, b) result(arrays_match)
     implicit none
-    logical, intent(in) :: a(:, :)
-    logical, intent(in) :: b(:, :)
+    logical, intent(in) :: a(:, :) !< First array to compare.
+    logical, intent(in) :: b(:, :) !< Second array to compare.
 
     integer(i4) :: j
 
