@@ -2102,6 +2102,8 @@ contains
 
     real(dp) :: tol_
     logical :: check_aux
+    logical :: mask_matches
+    integer(i4) :: j
 
     is_matching = .false.
     tol_ = optval(tol, 1.0e-7_dp)
@@ -2144,7 +2146,18 @@ contains
     if (allocated(this%mask) .neqv. allocated(other%mask)) return
     if (allocated(this%mask)) then
       if (any(shape(this%mask, kind=i4) /= shape(other%mask, kind=i4))) return
-      if (.not. all(this%mask .eqv. other%mask)) return
+      mask_matches = .true.
+      !$omp parallel do default(shared) schedule(static)
+      do j = 1_i4, this%ny
+        !$omp flush(mask_matches)
+        if (.not. mask_matches) cycle ! no work for rest of the loop (exit not safe with omp)
+        if (any(this%mask(:, j) .neqv. other%mask(:, j))) then
+          !$omp atomic write
+          mask_matches = .false.
+        end if
+      end do
+      !$omp end parallel do
+      if (.not. mask_matches) return
     end if
 
     is_matching = .true.
