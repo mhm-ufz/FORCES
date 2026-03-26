@@ -20,7 +20,7 @@ module mo_grid
 
   use mo_grid_constants, only: cartesian, spherical, keep_y, top_down, bottom_up, area_sum, area_full, area_count
   use mo_grid_helper, only: value_in_closed_interval, shift_longitude_near_query, quad_contains_point, &
-                            append_candidate_id, update_best_metric, intersection, calculate_coarse_extent, &
+                            arrays_match_2d, append_candidate_id, update_best_metric, intersection, calculate_coarse_extent, &
                             coarse_ij, id_bounds, dist_latlon, check_factor, read_ascii_grid, write_ascii_grid, &
                             read_ascii_header, data_t
 #ifdef FORCES_WITH_NETCDF
@@ -2102,8 +2102,6 @@ contains
 
     real(dp) :: tol_
     logical :: check_aux
-    logical :: mask_matches
-    integer(i4) :: j
 
     is_matching = .false.
     tol_ = optval(tol, 1.0e-7_dp)
@@ -2126,38 +2124,22 @@ contains
       if (allocated(this%lon_vertices) .neqv. allocated(other%lon_vertices)) return
 
       if (allocated(this%lat)) then
-        if (any(shape(this%lat, kind=i4) /= shape(other%lat, kind=i4))) return
-        if (.not. all(is_close(this%lat, other%lat, tol_, tol_))) return
+        if (.not. arrays_match_2d(this%lat, other%lat, tol=tol_)) return
       end if
       if (allocated(this%lon)) then
-        if (any(shape(this%lon, kind=i4) /= shape(other%lon, kind=i4))) return
-        if (.not. all(is_close(this%lon, other%lon, tol_, tol_))) return
+        if (.not. arrays_match_2d(this%lon, other%lon, tol=tol_)) return
       end if
       if (allocated(this%lat_vertices)) then
-        if (any(shape(this%lat_vertices, kind=i4) /= shape(other%lat_vertices, kind=i4))) return
-        if (.not. all(is_close(this%lat_vertices, other%lat_vertices, tol_, tol_))) return
+        if (.not. arrays_match_2d(this%lat_vertices, other%lat_vertices, tol=tol_)) return
       end if
       if (allocated(this%lon_vertices)) then
-        if (any(shape(this%lon_vertices, kind=i4) /= shape(other%lon_vertices, kind=i4))) return
-        if (.not. all(is_close(this%lon_vertices, other%lon_vertices, tol_, tol_))) return
+        if (.not. arrays_match_2d(this%lon_vertices, other%lon_vertices, tol=tol_)) return
       end if
     end if
 
     if (allocated(this%mask) .neqv. allocated(other%mask)) return
     if (allocated(this%mask)) then
-      if (any(shape(this%mask, kind=i4) /= shape(other%mask, kind=i4))) return
-      mask_matches = .true.
-      !$omp parallel do default(shared) schedule(static)
-      do j = 1_i4, this%ny
-        !$omp flush(mask_matches)
-        if (.not. mask_matches) cycle ! no work for rest of the loop (exit not safe with omp)
-        if (any(this%mask(:, j) .neqv. other%mask(:, j))) then
-          !$omp atomic write
-          mask_matches = .false.
-        end if
-      end do
-      !$omp end parallel do
-      if (.not. mask_matches) return
+      if (.not. arrays_match_2d(this%mask, other%mask)) return
     end if
 
     is_matching = .true.
