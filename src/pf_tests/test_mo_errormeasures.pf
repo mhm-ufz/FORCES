@@ -1,11 +1,11 @@
 module test_mo_errormeasures
-  
+
   use funit
   use mo_kind         , only: i4, sp, dp
-  use mo_errorMeasures, only: BIAS, KGE, KGEnocorr, LNNSE, MAE, MSE, NSE, wNSE, RMSE, SAE, SSE
+  use mo_errormeasures, only: BIAS, KGE, KGEnocorr, LNNSE, MAE, MSE, NSE, wNSE, RMSE, SAE, SSE, CA
   use mo_message, only: error_message
   use mo_moment, only: stddev, average
-  
+
   implicit none
 
   real(dp)                    :: t_dp
@@ -73,13 +73,13 @@ contains
     @assertEqual(BIAS(arr1(:,:,1), arr2(:,:,4)), -0.5995_dp, tolerance = t_dp)
     @assertEqual(BIAS(real(arr1, sp), real(arr2, sp)), 0.9000_sp, tolerance = t_sp)
     @assertEqual(BIAS(arr1, arr2), 0.9000_dp, tolerance = t_dp)
-    
+
   end subroutine test_error_bias
 
   ! Test KGE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_kge()
-  
+
     ! With mask
     @assertEqual(KGE(real(vec1, sp), real(vec2, sp), mask=maskvec), 0.1783_sp, tolerance = t_sp)
     @assertEqual(KGE(vec1, vec2, mask=maskvec), 0.1783_dp, tolerance = t_dp)
@@ -95,13 +95,13 @@ contains
     @assertEqual(KGE(arr1(:,:,1), arr2(:,:,4)), -0.4589_dp, tolerance = t_dp)
     @assertEqual(KGE(real(arr1, sp), real(arr2, sp)), 0.8306_sp, tolerance = t_sp)
     @assertEqual(KGE(arr1, arr2), 0.8306_dp, tolerance = t_dp)
-    
+
   end subroutine test_error_kge
 
   ! Test KGEnocorr (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_kgenocorr()
-  
+
     ! With mask
     @assertEqual(KGEnocorr(real(vec1, sp), real(vec2, sp), mask=maskvec), 0.3867_sp, tolerance = t_sp)
     @assertEqual(KGEnocorr(vec1, vec2, mask=maskvec), 0.3867_dp, tolerance = t_dp)
@@ -123,7 +123,7 @@ contains
   ! Test MAE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_mae()
-  
+
     ! With mask
     @assertEqual(MAE(real(vec1, sp), real(vec2, sp), mask=maskvec), 1.6123_sp, tolerance = t_sp)
     @assertEqual(MAE(vec1, vec2, mask=maskvec), 1.6123_dp, tolerance = t_dp)
@@ -145,7 +145,7 @@ contains
   ! Test MSE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_mse()
-  
+
     ! With mask
     @assertEqual(MSE(real(vec1, sp), real(vec2, sp), mask=maskvec), 4.2183_sp, tolerance = t_sp)
     @assertEqual(MSE(vec1, vec2, mask=maskvec), 4.2183_dp, tolerance = t_dp)
@@ -167,7 +167,7 @@ contains
   ! Test NSE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_nse()
-  
+
     ! With mask
     @assertEqual(NSE(real(vec1, sp), real(vec2, sp), mask=maskvec), -2.3368_sp, tolerance = t_sp)
     @assertEqual(NSE(vec1, vec2, mask=maskvec), -2.3368_dp, tolerance = t_dp)
@@ -189,7 +189,7 @@ contains
   ! Test weighted NSE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_wnse()
-  
+
     ! With mask
     @assertEqual(wNSE(real(vec1, sp), real(vec2, sp), mask=maskvec), -1.8952_sp, tolerance = t_sp)
     @assertEqual(wNSE(vec1, vec2, mask=maskvec), -1.8952_dp, tolerance = t_dp)
@@ -211,7 +211,7 @@ contains
   ! Test SAE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_sae()
-  
+
     ! With mask
     @assertEqual(SAE(real(vec1, sp), real(vec2, sp), mask=maskvec), 40.3063_sp, tolerance = t_sp)
     @assertEqual(SAE(vec1, vec2, mask=maskvec), 40.3063_dp, tolerance = t_dp)
@@ -233,7 +233,7 @@ contains
   ! Test SSE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_sse()
-  
+
     ! With mask
     @assertEqual(SSE(real(vec1, sp), real(vec2, sp), mask=maskvec), 105.4575_sp, tolerance = t_sp)
     @assertEqual(SSE(vec1, vec2, mask=maskvec), 105.4575_dp, tolerance = t_dp)
@@ -255,7 +255,7 @@ contains
   ! Test RMSE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_rmse()
-  
+
     ! With mask
     @assertEqual(RMSE(real(vec1, sp), real(vec2, sp), mask=maskvec), 2.0538_sp, tolerance = t_sp)
     @assertEqual(RMSE(vec1, vec2, mask=maskvec), 2.0538_dp, tolerance = t_dp)
@@ -277,7 +277,7 @@ contains
   ! Test LNNSE (order: sp-dp, 1D-2D-3D)
   @test
   subroutine test_error_lnnse()
-  
+
     ! With mask
     @assertEqual(LNNSE(real(vec1, sp), real(vec2, sp), mask=maskvec), -0.8993_sp, tolerance = t_sp)
     @assertEqual(LNNSE(vec1, vec2, mask=maskvec), -0.8993_dp, tolerance = t_dp)
@@ -295,5 +295,35 @@ contains
     @assertEqual(LNNSE(arr1, arr2), 0.9164_dp, tolerance = t_dp)
 
   end subroutine test_error_lnnse
+
+  ! Test SPAEF (order: dp, 1D)
+  @test
+  subroutine test_error_spaef()
+
+    ! With mask
+    @assertEqual(KGE(vec1, vec2, mask=maskvec), 0.1653_dp, tolerance = t_dp)
+
+    ! Without mask
+    @assertEqual(KGE(vec1, vec2), -0.1105_dp, tolerance = t_dp)
+
+  end subroutine test_error_spaef
+
+  ! Test CA (order: dp, 2D)
+  @test
+  subroutine test_error_ca()
+
+    real(dp) :: res
+
+    res = CA(merge(1.0_dp, 0.0_dp, mod(int(arr1(:,:,1)), 2) == 1), merge(1.0_dp, 0.0_dp, mod(int(arr1(:,:,4)), 2) == 1), mask = mask(:,:,1) )
+    ! With mask
+    ! converting values to 0 and 1 for classification accuracy use case
+    @assertEqual(res, 0.4799_dp, tolerance = t_dp)
+
+    res = CA(merge(1.0_dp, 0.0_dp, mod(int(arr1(:,:,1)), 2) == 1), merge(1.0_dp, 0.0_dp, mod(int(arr1(:,:,4)), 2) == 1))
+    ! Without mask
+    ! converting values to 0 and 1 for classification accuracy use case
+    @assertEqual(res, 0.4629_dp, tolerance = t_dp)
+
+  end subroutine test_error_ca
 
 end module test_mo_errormeasures
