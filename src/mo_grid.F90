@@ -1563,15 +1563,15 @@ contains
     class(grid_t), intent(in) :: this
     real(dp), intent(in) :: x_raw
 
-    real(dp) :: x_upper
+    real(dp) :: x_delta, x_upper
     integer(i8) :: nturn
 
     x_map = this%normalize_longitude_near_domain(x_raw)
     if (this%is_periodic() .and. x_raw > this%xllcorner) then
+      x_delta = x_raw - this%xllcorner
       x_upper = this%xllcorner + real(this%nx, dp) * this%cellsize
-      nturn = nint((x_raw - this%xllcorner) / 360.0_dp, kind=i8)
-      if (nturn >= 1_i8 .and. is_close(x_map, this%xllcorner) .and. &
-          is_close(x_raw - this%xllcorner, real(nturn, dp) * 360.0_dp)) then
+      nturn = nint(x_delta / 360.0_dp, kind=i8)
+      if (nturn >= 1_i8 .and. is_close(x_delta, real(nturn, dp) * 360.0_dp)) then
         x_map = x_upper
       end if
     end if
