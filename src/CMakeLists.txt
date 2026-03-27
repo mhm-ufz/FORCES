@@ -130,7 +130,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     "$<$<COMPILE_LANGUAGE:Fortran>:-ffree-line-length-none>"
   )
   target_compile_options(${LIB_NAME} PRIVATE
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-Og;-g;-Wall;-Wextra;-Wimplicit-interface;-Wsurprising;-fimplicit-none;-fbacktrace;-fcheck=all;-ffpe-trap=zero,overflow,underflow;-finit-real=snan;-pedantic-errors>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-Og;-g;-Wall;-Wextra;-Wimplicit-interface;-Wsurprising;-fimplicit-none;-fbacktrace;-fcheck=all,no-array-temps;-ffpe-trap=zero,overflow,underflow;-finit-real=snan;-pedantic-errors>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3>"
   )
   # https://www.scivision.dev/gfortran-15-external-argument-mismatch
@@ -148,7 +148,7 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   target_compile_options(${LIB_NAME} PRIVATE
     "$<$<COMPILE_LANGUAGE:Fortran>:-nofixed;SHELL:-assume byterecl;-standard-realloc-lhs>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-g;-fp-model=source;SHELL:-warn all;SHELL:-check all;SHELL:-check noarg_temp_created;-debug;-traceback;-fp-stack-check;-O0>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3;-qoverride-limits;-fp-model=precise;-fprotect-parens>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3;-qoverride-limits>"
   )
 endif()
 # ifx (IntelLLVM)
@@ -157,7 +157,7 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
   target_compile_options(${LIB_NAME} PRIVATE
     "$<$<COMPILE_LANGUAGE:Fortran>:-nofixed;SHELL:-assume byterecl;-standard-realloc-lhs>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-g;-fp-model=source;SHELL:-warn all;SHELL:-check all;SHELL:-check noarg_temp_created;SHELL:-check nouninit;-traceback;-O0>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3;-qoverride-limits;-fp-model=precise;-fprotect-parens>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3;-qoverride-limits>"
   )
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
