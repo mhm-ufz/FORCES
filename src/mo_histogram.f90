@@ -1,84 +1,36 @@
+!> \file    mo_histogram.f90
+!> \copydoc mo_histogram
+
+!> \brief   Histogram generation utilities.
+!> \details This module provides routines to compute histogram bin counts for
+!>          one-dimensional input data.
+!> \authors Pallav Shrestha
+!> \date    Dec 2024
+!> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+!! FORCES is released under the LGPLv3+ license \license_note
 MODULE mo_histogram
 
-  ! This module contains routines for the histogram generation of input vectors
-
-  ! Literature
-
-  ! Written Dec 2024, Pallav Shrestha
-
-  ! License
-  ! -------
-  ! This file is part of the UFZ Fortran library.
-
-  ! The UFZ Fortran library is free software: you can redistribute it and/or modify
-  ! it under the terms of the GNU Lesser General Public License as published by
-  ! the Free Software Foundation, either version 3 of the License, or
-  ! (at your option) any later version.
-
-  ! The UFZ Fortran library is distributed in the hope that it will be useful,
-  ! but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  ! GNU Lesser General Public License for more details.
-
-  ! You should have received a copy of the GNU Lesser General Public License
-  ! along with the UFZ Fortran library (cf. gpl.txt and lgpl.txt).
-  ! If not, see <http://www.gnu.org/licenses/>.
-
-  ! Copyright 2024 Pallav Shrestha
-
   USE mo_kind, ONLY : i4, sp, dp
+  use mo_message, ONLY : error_message
 
   PUBLIC :: histogram    ! Generate histogram
 
   ! ------------------------------------------------------------------
-
-  !     NAME
-  !         histogram
-
-  !     PURPOSE
-  !         Calculates the mean absolute deviations from the mean
-  !             histogram = sum(abs(x-mean(x)))/n
-  !
-  !         If an optinal mask is given, the calculations are over those locations that correspond to true values in the mask.
-  !         x can be single or double precision. The result will have the same numerical precision.
-
-  !     CALLING SEQUENCE
-  !         out = histogram(dat, mask=mask)
-
-  !     INTENT(IN)
-  !         real(sp/dp) :: dat(:)     1D-array with input numbers
-
-  !     INTENT(INOUT)
-  !         None
-
-  !     INTENT(OUT)
-  !         real(sp/dp) :: histogram     mean absolute deviations from average
-
-  !     INTENT(IN), OPTIONAL
-  !         logical :: mask(:)        1D-array of logical values with size(dat).
-  !                                   If present, only those locations in vec corresponding to the true values in mask are used.
-
-  !     INTENT(INOUT), OPTIONAL
-  !         None
-
-  !     INTENT(OUT), OPTIONAL
-  !         None
-
-  !     RESTRICTIONS
-  !         Input values must be floating points.
-
-  !     EXAMPLE
-  !         vec = (/ 1., 2, 3., -999., 5., 6. /)
-  !         m   = histogram(vec, mask=(vec >= 0.))
-  !         -> see also example in test directory
-
-  !     HISTORY
-  !         Written,  Pallav Shrestha, Dec 2024
-
+  !> \brief Compute histogram bin counts.
+  !> \details This generic interface currently dispatches to the
+  !>          double-precision implementation for one-dimensional arrays.
+  !>          Values below `min_edge` are accumulated in the first bin, values
+  !>          above `max_edge` are accumulated in the last bin, and `max_edge`
+  !>          itself is included in the last bin.
+  !> \param[in] data Input values to bin.
+  !> \param[in] num_bins Number of equally spaced bins.
+  !> \param[in] min_edge Lower edge of the histogram range.
+  !> \param[in] max_edge Upper edge of the histogram range.
+  !> \return Histogram counts for each bin.
   INTERFACE histogram
     MODULE PROCEDURE histogram_dp
   END INTERFACE histogram
-  
+
   ! ------------------------------------------------------------------
 
   PRIVATE
@@ -88,19 +40,22 @@ MODULE mo_histogram
 CONTAINS
 
   ! ------------------------------------------------------------------
+  !> \brief Compute a histogram for a double-precision vector.
+  !> \details Creates `num_bins` equally spaced bins over the interval
+  !>          `[min_edge, max_edge]` and counts how many elements of `data`
+  !>          fall into each bin. Values below `min_edge` are assigned to the
+  !>          first bin, values above `max_edge` are assigned to the last bin,
+  !>          and `max_edge` is included in the last bin.
+  !> \return Histogram counts for each bin.
+  FUNCTION histogram_dp(data, num_bins, min_edge, max_edge)
 
-
-FUNCTION histogram_dp(data, num_bins, min_edge, max_edge)
-    
     IMPLICIT NONE
 
-    REAL(dp), DIMENSION(:), INTENT(IN) :: data
-    INTEGER(i4), INTENT(IN) :: num_bins
-    REAL(dp), INTENT(IN) :: min_edge, max_edge
-    INTEGER(i4), DIMENSION(:), ALLOCATABLE :: histogram_dp
-
-    ! ! Outputs
-    ! INTEGER(i4), DIMENSION(:), ALLOCATABLE, INTENT(OUT) :: hist_count
+    REAL(dp), DIMENSION(:), INTENT(IN) :: data !< Input data vector.
+    INTEGER(i4), INTENT(IN) :: num_bins !< Number of equally spaced bins.
+    REAL(dp), INTENT(IN) :: min_edge !< Lower edge of the histogram range.
+    REAL(dp), INTENT(IN) :: max_edge !< Upper edge of the histogram range.
+    INTEGER(i4), DIMENSION(:), ALLOCATABLE :: histogram_dp !< Histogram counts for each bin.
 
     ! Local variables
     REAL(dp), DIMENSION(:), ALLOCATABLE:: hist_bins
@@ -108,15 +63,8 @@ FUNCTION histogram_dp(data, num_bins, min_edge, max_edge)
     INTEGER(i4) :: i, bin_index
 
     ! Validate inputs
-    IF (num_bins <= 0) THEN
-        PRINT *, "Error histogram_dp: num_bins must be greater than 0."
-        STOP
-    END IF
-
-    IF (min_edge >= max_edge) THEN
-        PRINT *, "Error histogram_dp: min_edge must be less than max_edge."
-        STOP
-    END IF
+    IF (num_bins <= 0) call error_message("Error histogram_dp: num_bins must be greater than 0.")
+    IF (min_edge >= max_edge) call error_message("Error histogram_dp: min_edge must be less than max_edge.")
 
     ! Initialize bins and histogram
     ALLOCATE(histogram_dp(num_bins))
@@ -127,31 +75,31 @@ FUNCTION histogram_dp(data, num_bins, min_edge, max_edge)
     bin_width = (max_edge - min_edge) / num_bins
 
     DO i = 1, num_bins + 1
-        hist_bins(i) = min_edge + (i - 1) * bin_width
+      hist_bins(i) = min_edge + (i - 1) * bin_width
     END DO
 
     ! Compute histogram
     DO i = 1, SIZE(data)
 
-        if (data(i) < min_edge) then
-           ! out-of-range to the left 
-           bin_index = 1
-        else if (data(i) > max_edge) then
-           ! out-of-range to the right 
-            bin_index = num_bins
-        else
-           ! within range
-            bin_index = INT((data(i) - min_edge) / bin_width) + 1
-        end if
+      if (data(i) < min_edge) then
+          ! out-of-range to the left
+          bin_index = 1
+      else if (data(i) > max_edge) then
+          ! out-of-range to the right
+          bin_index = num_bins
+      else
+          ! within range
+          bin_index = INT((data(i) - min_edge) / bin_width) + 1
+      end if
 
-        ! Ensure the last bin includes the maximum value
-        IF (bin_index > num_bins) bin_index = num_bins
+      ! Ensure the last bin includes the maximum value
+      IF (bin_index > num_bins) bin_index = num_bins
 
-        histogram_dp(bin_index) = histogram_dp(bin_index) + 1
-        
+      histogram_dp(bin_index) = histogram_dp(bin_index) + 1
+
     END DO
 
-END FUNCTION histogram_dp
+  END FUNCTION histogram_dp
 
 
 END MODULE mo_histogram
