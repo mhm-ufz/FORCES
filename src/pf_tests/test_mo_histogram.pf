@@ -1,0 +1,52 @@
+module test_mo_histogram
+
+  use funit
+  use mo_kind         , only: i4, dp
+  use mo_message, only: error_message
+  use mo_histogram, only: histogram
+
+  implicit none
+
+  real(dp)                    :: t_dp
+  real(dp), dimension(54)     :: vec1
+  real(dp), dimension(9,6,8)  :: arr1
+
+contains
+
+  @test
+  subroutine errormeasures_initial()
+
+    integer(i4)                 :: i, j, k
+    integer(i4), dimension(10)  :: histogram_should
+
+    write(*,*) ''
+    write(*,*) 'Test mo_histogram.f90'
+    ! read random number array - shape = (6,9,5)
+    open(unit=20, file='./files/field.dat', action='read', status='old')
+    do k = 1, size(arr1, dim=3)
+      do i = 1, size(arr1, dim=1)
+          read(20,*) (arr1(i,j,k), j=1, size(arr1, dim=2))
+      end do
+    end do
+    close(20)
+    !
+    ! create example for 1D
+    vec1     = reshape(arr1(:,:,1), (/size(arr1, dim=1)*size(arr1, dim=2)/))
+    t_dp     = 1.e-4_dp
+
+  end subroutine errormeasures_initial
+
+  ! Test Bias (order: sp-dp, 1D-2D-3D)
+  @test
+  subroutine test_histogram()
+    integer(i4), dimension(10) :: histogram_should
+    ! With mask
+
+    ! Without mask
+    histogram_should = (/ 3_i4, 8_i4,11_i4, 5_i4, 8_i4,11_i4, 8_i4, 0_i4, 0_i4, 0_i4 /)
+    @assertEqual(histogram(vec1, num_bins = 10_i4, min_edge = 0.0_dp, max_edge = 15.0_dp), histogram_should)
+
+  end subroutine test_histogram
+
+
+end module test_mo_histogram
