@@ -1,0 +1,11 @@
+module purge
+module use /global/apps/modulefiles
+module load python_env_mpr
+module load foss/2024a
+module load netCDF/4.9.2
+module load CMake
+module load pFUnit/4.16.0_foss2024a
+export FC=mpifort
+export F77=mpifort
+export CC=mpicc
+export CXX=mpic++

@@ -70,6 +70,12 @@ eve.gfortran122:
 eve.gfortran122MPI:
   extends: .common-test-job
 
+eve.gfortran133:
+  extends: .common-test-job
+
+eve.gfortran133MPI:
+  extends: .common-test-job
+
 eve.intel2020b:
   extends: .common-test-job
 
@@ -89,4 +95,7 @@ eve.intel2023bMPI-llvm:
   extends: .common-test-job
 
 eve.nagfor72:
+  extends: .common-test-job
+
+eve.nagfor72-omp:
   extends: .common-test-job
