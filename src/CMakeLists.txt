@@ -65,6 +65,14 @@ else()
   list(FILTER sources EXCLUDE REGEX ".*mo_grid_io.f90$")
 endif()
 
+# option for host-native Release tuning
+option(FORCES_ENABLE_NATIVE "Enable host-native tuning for Release builds." OFF)
+if(FORCES_ENABLE_NATIVE)
+  message(STATUS "FORCES: enable host-native Release tuning (opt-in local/HPC mode)")
+else()
+  message(STATUS "FORCES: use portable Release tuning")
+endif()
+
 # create library
 add_library(${LIB_NAME} ${sources} ${fyppOutFiles})
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../include)
@@ -133,6 +141,11 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-Og;-g;-Wall;-Wextra;-Wimplicit-interface;-Wsurprising;-fimplicit-none;-fbacktrace;-fcheck=all,no-array-temps;-ffpe-trap=zero,overflow,underflow;-finit-real=snan;-pedantic-errors>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3>"
   )
+  if(FORCES_ENABLE_NATIVE)
+    target_compile_options(${LIB_NAME} PRIVATE
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-march=native>"
+    )
+  endif()
   # https://www.scivision.dev/gfortran-15-external-argument-mismatch
   # AND: passed procedures with pointer attribute should be called with positional arguments
   if(CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER_EQUAL "15.0" AND
@@ -150,6 +163,11 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-g;-fp-model=source;SHELL:-warn all;SHELL:-check all;SHELL:-check noarg_temp_created;-debug;-traceback;-fp-stack-check;-O0>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3;-qoverride-limits>"
   )
+  if(FORCES_ENABLE_NATIVE)
+    target_compile_options(${LIB_NAME} PRIVATE
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-xHost>"
+    )
+  endif()
 endif()
 # ifx (IntelLLVM)
 if(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
@@ -159,8 +177,16 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-g;-fp-model=source;SHELL:-warn all;SHELL:-check all;SHELL:-check noarg_temp_created;SHELL:-check nouninit;-traceback;-O0>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3;-qoverride-limits>"
   )
+  if(FORCES_ENABLE_NATIVE)
+    target_compile_options(${LIB_NAME} PRIVATE
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-xHost>"
+    )
+  endif()
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
+  if(FORCES_ENABLE_NATIVE)
+    message(STATUS "FORCES: host-native Release tuning has no effect for NAG")
+  endif()
   target_compile_definitions(${LIB_NAME} PRIVATE "NAG")
   target_compile_options(${LIB_NAME} PRIVATE
     "$<$<COMPILE_LANGUAGE:Fortran>:-fpp;-colour;-unsharedf95;-ideclient>"

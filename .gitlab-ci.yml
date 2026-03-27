@@ -84,6 +84,14 @@ show-env-vars:
   ARTIFACT_PATH: Testing/Temporary
   OMP_NUM_THREADS: 4
 
+# native release OpenMP variables (opt-in local/HPC tuning mode)
+.omp_release_native_vars: &omp_release_native_vars
+  BUILD_DIR: build_omp_release_native
+  CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_WITH_OpenMP=ON -DFORCES_ENABLE_NATIVE=ON'
+  BUILD_TARGET: test
+  ARTIFACT_PATH: Testing/Temporary
+  OMP_NUM_THREADS: 4
+
 # example variables
 .examples_vars: &examples_vars
   BUILD_DIR: build_examples
@@ -347,6 +355,11 @@ test-gfortran133-release-omp:
     <<: [*omp_release_vars, *gfortran_vars_133]
   <<: *omp_job_template
 
+test-gfortran133-release-omp-native:
+  variables:
+    <<: [*omp_release_native_vars, *gfortran_vars_133]
+  <<: *omp_job_template
+
 test-gfortran133-debug-omp:
   variables:
     <<: [*omp_debug_vars, *gfortran_vars_133]
@@ -367,6 +380,11 @@ test-intel2023b-classic-release-omp:
     <<: [*omp_release_vars, *intel_vars_2023b-classic]
   <<: *omp_job_template
 
+test-intel2023b-classic-release-omp-native:
+  variables:
+    <<: [*omp_release_native_vars, *intel_vars_2023b-classic]
+  <<: *omp_job_template
+
 test-intel2023b-classic-debug-omp:
   variables:
     <<: [*omp_debug_vars, *intel_vars_2023b-classic]
@@ -375,6 +393,11 @@ test-intel2023b-classic-debug-omp:
 test-intel2023b-llvm-release-omp:
   variables:
     <<: [*omp_release_vars, *intel_vars_2023b-llvm]
+  <<: *omp_job_template
+
+test-intel2023b-llvm-release-omp-native:
+  variables:
+    <<: [*omp_release_native_vars, *intel_vars_2023b-llvm]
   <<: *omp_job_template
 
 test-intel2023b-llvm-debug-omp:
