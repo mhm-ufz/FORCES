@@ -501,8 +501,8 @@ CONTAINS
 
       ! Element numbered closest
     case(3_i4)
-      kk = 0.5_dp + k / 100._dp * real(n, dp)
-      nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
+      kk = k / 100._dp * real(n, dp)
+      nn1 = min(n, max(1_i4, nint(kk, kind = i4)))
       nn2 = nn1
 
       ! Linear interpolation (hydrologist method)
@@ -579,7 +579,8 @@ CONTAINS
 
     INTEGER(i4) :: n, nn1, nn2
     INTEGER(i4) :: mode
-    REAL(sp) :: kk, ks1, ks2
+    REAL(dp) :: kk
+    REAL(sp) :: ks1, ks2
     REAL(sp), DIMENSION(:), ALLOCATABLE :: arr
 
     if (present(mask)) then
@@ -600,49 +601,49 @@ CONTAINS
     select case (mode)
       ! Inverse empirical CDF: Mathematica default
     case(1_i4)
-      kk = k / 100._sp * real(n, sp)
+      kk = real(k, dp) / 100._dp * real(n, dp)
       nn1 = min(n, max(1_i4, ceiling(kk, kind = i4)))
       nn2 = nn1
 
       ! Linear interpolation (California method)
     case(2_i4)
-      kk = k / 100._sp * real(n, sp)
+      kk = real(k, dp) / 100._dp * real(n, dp)
       nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
       nn2 = min(n, max(1_i4, ceiling(kk, kind = i4)))
 
       ! Element numbered closest
     case(3_i4)
-      kk = 0.5_sp + k / 100._sp * real(n, sp)
-      nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
+      kk = real(k, dp) / 100._dp * real(n, dp)
+      nn1 = min(n, max(1_i4, nint(kk, kind = i4)))
       nn2 = nn1
 
       ! Linear interpolation (hydrologist method)
     case(4_i4)
-      kk = 0.5_sp + k / 100._sp * (real(n, sp))
+      kk = 0.5_dp + real(k, dp) / 100._dp * real(n, dp)
       nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
       nn2 = min(n, max(1_i4, ceiling(kk, kind = i4)))
 
       ! Mean-based estimate (Weibull method): IMSL default
     case(5_i4)
-      kk = k / 100._sp * (real(n, sp) + 1._sp)
+      kk = real(k, dp) / 100._dp * (real(n, dp) + 1._dp)
       nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
       nn2 = min(n, max(1_i4, ceiling(kk, kind = i4)))
 
       ! Mode-based estimate
     case(6_i4)
-      kk = 1.0_sp + k / 100._sp * (real(n, sp) - 1._sp)
+      kk = 1.0_dp + real(k, dp) / 100._dp * (real(n, dp) - 1._dp)
       nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
       nn2 = min(n, max(1_i4, ceiling(kk, kind = i4)))
 
       ! Median-based estimate
     case(7_i4)
-      kk = 1.0_sp / 3.0_sp + k / 100._sp * (real(n, sp) + 1.0_sp / 3.0_sp)
+      kk = 1.0_dp / 3.0_dp + real(k, dp) / 100._dp * (real(n, dp) + 1.0_dp / 3.0_dp)
       nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
       nn2 = min(n, max(1_i4, ceiling(kk, kind = i4)))
 
       ! Normal distribution estimate
     case(8_i4)
-      kk = 3.0_sp / 8.0_sp + k / 100._sp * (real(n, sp) + 1.0_sp / 4.0_sp)
+      kk = 3.0_dp / 8.0_dp + real(k, dp) / 100._dp * (real(n, dp) + 1.0_dp / 4.0_dp)
       nn1 = min(n, max(1_i4, floor(kk, kind = i4)))
       nn2 = min(n, max(1_i4, ceiling(kk, kind = i4)))
 
@@ -661,7 +662,7 @@ CONTAINS
       else
         ! interpolation
         ks2 = n_element(arr, nn2, previous = ks1)
-        percentile_0d_sp = ks1 + (ks2 - ks1) * (kk - real(nn1, sp))
+        percentile_0d_sp = ks1 + (ks2 - ks1) * real(kk - real(nn1, dp), sp)
       end if
       deallocate(arr)
     else
@@ -671,7 +672,7 @@ CONTAINS
       else
         ! interpolation
         ks2 = n_element(arrin, nn2, previous = ks1)
-        percentile_0d_sp = ks1 + (ks2 - ks1) * (kk - real(nn1, sp))
+        percentile_0d_sp = ks1 + (ks2 - ks1) * real(kk - real(nn1, dp), sp)
       end if
     end if
 
@@ -728,8 +729,8 @@ CONTAINS
 
       ! Element numbered closest
     case(3_i4)
-      kk(:) = 0.5_dp + k(:) / 100._dp * real(n, dp)
-      nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
+      kk(:) = k(:) / 100._dp * real(n, dp)
+      nn1(:) = min(n, max(1_i4, nint(kk(:), kind = i4)))
       nn2 = nn1
 
       ! Linear interpolation (hydrologist method)
@@ -812,7 +813,7 @@ CONTAINS
     INTEGER(i4) :: i, n
     INTEGER(i4) :: mode
     INTEGER(i4), DIMENSION(size(k)) :: nn1, nn2
-    REAL(sp), DIMENSION(size(k)) :: kk
+    REAL(dp), DIMENSION(size(k)) :: kk
     REAL(sp) :: ks1, ks2
     REAL(sp), DIMENSION(:), ALLOCATABLE :: arr
 
@@ -836,49 +837,49 @@ CONTAINS
     select case (mode)
       ! Inverse empirical CDF: Mathematica default
     case(1_i4)
-      kk(:) = k(:) / 100._sp * real(n, sp)
+      kk(:) = real(k(:), dp) / 100._dp * real(n, dp)
       nn1(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
       nn2 = nn1
 
       ! Linear interpolation (California method)
     case(2_i4)
-      kk(:) = k(:) / 100._sp * real(n, sp)
+      kk(:) = real(k(:), dp) / 100._dp * real(n, dp)
       nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
       nn2(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
 
       ! Element numbered closest
     case(3_i4)
-      kk(:) = 0.5_sp + k(:) / 100._sp * real(n, sp)
-      nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
+      kk(:) = real(k(:), dp) / 100._dp * real(n, dp)
+      nn1(:) = min(n, max(1_i4, nint(kk(:), kind = i4)))
       nn2 = nn1
 
       ! Linear interpolation (hydrologist method)
     case(4_i4)
-      kk(:) = 0.5_sp + k(:) / 100._sp * (real(n, sp))
+      kk(:) = 0.5_dp + real(k(:), dp) / 100._dp * real(n, dp)
       nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
       nn2(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
 
       ! Mean-based estimate (Weibull method): IMSL default
     case(5_i4)
-      kk(:) = k(:) / 100._sp * (real(n, sp) + 1._sp)
+      kk(:) = real(k(:), dp) / 100._dp * (real(n, dp) + 1._dp)
       nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
       nn2(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
 
       ! Mode-based estimate
     case(6_i4)
-      kk(:) = 1.0_sp + k(:) / 100._sp * (real(n, sp) - 1._sp)
+      kk(:) = 1.0_dp + real(k(:), dp) / 100._dp * (real(n, dp) - 1._dp)
       nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
       nn2(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
 
       ! Median-based estimate
     case(7_i4)
-      kk(:) = 1.0_sp / 3.0_sp + k(:) / 100._sp * (real(n, sp) + 1.0_sp / 3.0_sp)
+      kk(:) = 1.0_dp / 3.0_dp + real(k(:), dp) / 100._dp * (real(n, dp) + 1.0_dp / 3.0_dp)
       nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
       nn2(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
 
       ! Normal distribution estimate
     case(8_i4)
-      kk(:) = 3.0_sp / 8.0_sp + k(:) / 100._sp * (real(n, sp) + 1.0_sp / 4.0_sp)
+      kk(:) = 3.0_dp / 8.0_dp + real(k(:), dp) / 100._dp * (real(n, dp) + 1.0_dp / 4.0_dp)
       nn1(:) = min(n, max(1_i4, floor(kk(:), kind = i4)))
       nn2(:) = min(n, max(1_i4, ceiling(kk(:), kind = i4)))
 
@@ -898,7 +899,7 @@ CONTAINS
         else
           ! interpolation
           ks2 = n_element(arr, nn2(i), previous = ks1)
-          percentile_1d_sp(i) = ks1 + (ks2 - ks1) * (kk(i) - real(nn1(i), sp))
+          percentile_1d_sp(i) = ks1 + (ks2 - ks1) * real(kk(i) - real(nn1(i), dp), sp)
         end if
       end do
       deallocate(arr)
@@ -910,7 +911,7 @@ CONTAINS
         else
           ! interpolation
           ks2 = n_element(arrin, nn2(i), previous = ks1)
-          percentile_1d_sp(i) = ks1 + (ks2 - ks1) * (kk(i) - real(nn1(i), sp))
+          percentile_1d_sp(i) = ks1 + (ks2 - ks1) * real(kk(i) - real(nn1(i), dp), sp)
         end if
       end do
     end if
