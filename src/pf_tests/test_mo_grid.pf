@@ -521,6 +521,7 @@ contains
       coordsys=spherical, y_direction=bottom_up)
     @assertEqual(sph_grid%normalize_longitude_near_domain(-360.0_dp), 0.0_dp, tolerance=1.0e-12_dp, message='longitude normalization maps equivalent values close to the domain')
     @assertEqual(sph_grid%map_longitude_for_domain(360.0_dp), 360.0_dp, tolerance=1.0e-12_dp, message='longitude mapping preserves the periodic upper boundary')
+    @assertEqual(sph_grid%map_longitude_for_domain(720.0_dp), 360.0_dp, tolerance=1.0e-12_dp, message='longitude mapping preserves repeated periodic upper-bound ties')
     @assertTrue(sph_grid%in_cell(360_i4, 1_i4, 360.0_dp, 0.0_dp), message='periodic spherical upper boundary belongs to last cell')
     @assertFalse(sph_grid%in_cell(1_i4, 1_i4, 360.0_dp, 0.0_dp), message='periodic spherical upper boundary does not belong to first cell')
     @assertTrue(sph_grid%in_cell(1_i4, 1_i4, -360.0_dp, 0.0_dp), message='equivalent spherical longitudes normalize into the domain')
