@@ -2,7 +2,7 @@ module test_mo_errormeasures
 
   use funit
   use mo_kind         , only: i4, sp, dp
-  use mo_errormeasures, only: BIAS, KGE, KGEnocorr, LNNSE, MAE, MSE, NSE, wNSE, RMSE, SAE, SSE, CA
+  use mo_errormeasures, only: BIAS, KGE, KGEnocorr, LNNSE, MAE, MSE, NSE, wNSE, RMSE, SAE, SPAEF, SSE, CA
   use mo_message, only: error_message
   use mo_moment, only: stddev, average
 
@@ -301,10 +301,10 @@ contains
   subroutine test_error_spaef()
 
     ! With mask
-    @assertEqual(KGE(vec1, vec2, mask=maskvec), 0.1653_dp, tolerance = t_dp)
+    @assertEqual(SPAEF(vec1, vec2, mask=maskvec), 0.1653_dp, tolerance = t_dp)
 
     ! Without mask
-    @assertEqual(KGE(vec1, vec2), -0.1105_dp, tolerance = t_dp)
+    @assertEqual(SPAEF(vec1, vec2), -0.1105_dp, tolerance = t_dp)
 
   end subroutine test_error_spaef
 
@@ -317,12 +317,12 @@ contains
     res = CA(merge(1.0_dp, 0.0_dp, mod(int(arr1(:,:,1)), 2) == 1), merge(1.0_dp, 0.0_dp, mod(int(arr1(:,:,4)), 2) == 1), mask = mask(:,:,1) )
     ! With mask
     ! converting values to 0 and 1 for classification accuracy use case
-    @assertEqual(res, 0.4799_dp, tolerance = t_dp)
+    @assertEqual(res, 0.4800_dp, tolerance = t_dp)
 
     res = CA(merge(1.0_dp, 0.0_dp, mod(int(arr1(:,:,1)), 2) == 1), merge(1.0_dp, 0.0_dp, mod(int(arr1(:,:,4)), 2) == 1))
     ! Without mask
     ! converting values to 0 and 1 for classification accuracy use case
-    @assertEqual(res, 0.4629_dp, tolerance = t_dp)
+    @assertEqual(res, 0.4630_dp, tolerance = t_dp)
 
   end subroutine test_error_ca
 
