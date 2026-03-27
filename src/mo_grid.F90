@@ -68,7 +68,7 @@ module mo_grid
   integer(i8), parameter :: grid_spatial_index_parallel_min_n = 2048_i8
 
   !> \class   grid_t
-  !> \brief   2D grid description with data in xy order..
+  !> \brief   2D grid description with data in xy order.
   !> \details This type represents uniform grids with data in xy order with strictly increasing or decreasing y-axis.
   !!          ASCII grid files have the opposite behavior: yx order, with decreasing y-axis.
   !!          NetCDF files natively have yx order, but since Fortran arrays are column-major order,
