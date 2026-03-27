@@ -16,6 +16,7 @@ module test_mo_grid_scaler
   public :: test_no_scaling_identity
   public :: test_stats_and_weight_count
   public :: test_median_masked
+  public :: test_laf_masked_direct_and_packed
   public :: test_nearest_regridder_cartesian
   public :: test_nearest_regridder_masked_and_aux
   public :: test_nearest_regridder_spherical_and_mixed
@@ -214,7 +215,7 @@ contains
     @assertEqual(dp_out, [2.0_dp, 2.0_dp, 6.0_dp, 6.0_dp], tolerance=1.0e-12_dp)
 
     call scaler%execute(dp_in, dp_out, downscaling_operator=down_split)
-    @assertEqual(dp_out(3), 6.0_dp, tolerance=1.0e-12_dp)
+    @assertEqual(dp_out, [1.0_dp, 1.0_dp, 3.0_dp, 3.0_dp], tolerance=1.0e-12_dp)
 
     call scaler%downscale_nearest(dp_in_mat, dp_out)
     @assertEqual(dp_out(2), 2.0_dp, tolerance=1.0e-12_dp)
@@ -279,12 +280,13 @@ contains
     data = reshape([1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp], [2,2])
     idata = reshape([1_i4, 2_i4, 3_i4, 4_i4], [2,2])
     allocate(out(coarse%ncells))
+    @assertEqual(scaler%coarse_weights(1), 0.25_dp, tolerance=1.0e-12_dp)
 
     call scaler%execute(data, out, upscaling_operator=7_i4) ! up_var
-    @assertEqual(out(1), 230.0_dp, tolerance=1.0e-12_dp)
+    @assertEqual(out(1), 1.25_dp, tolerance=1.0e-12_dp)
 
     call scaler%execute(data, out, upscaling_operator=8_i4) ! up_std
-    @assertEqual(out(1), sqrt(230.0_dp), tolerance=1.0e-12_dp)
+    @assertEqual(out(1), sqrt(1.25_dp), tolerance=1.0e-12_dp)
 
     call scaler%execute(data, out, upscaling_operator=up_median)
     @assertEqual(out(1), 2.5_dp, tolerance=1.0e-12_dp)
@@ -299,15 +301,15 @@ contains
 
     allocate(out_mat(coarse%nx, coarse%ny))
     call scaler%execute(idata, out_mat, upscaling_operator=up_a_mean)
-    @assertEqual(10.0_dp, out_mat(1,1), tolerance=1.0e-12_dp)
+    @assertEqual(2.5_dp, out_mat(1,1), tolerance=1.0e-12_dp)
 
     allocate(out_mat2(coarse%nx, coarse%ny))
     call scaler%execute(data, out_mat2) ! dp 2d -> 2d
-    @assertEqual(out_mat2(1,1), 10.0_dp, tolerance=1.0e-12_dp)
+    @assertEqual(out_mat2(1,1), 2.5_dp, tolerance=1.0e-12_dp)
 
     packed_dp = fine%pack(data)
     call scaler%execute(packed_dp, out_mat2) ! dp 1d -> 2d
-    @assertEqual(out_mat2(1,1), 10.0_dp, tolerance=1.0e-12_dp)
+    @assertEqual(out_mat2(1,1), 2.5_dp, tolerance=1.0e-12_dp)
 
     allocate(i_mat(coarse%nx, coarse%ny))
     packed_i = fine%pack(idata)
@@ -358,6 +360,33 @@ contains
     @assertEqual(out(1), 20.0_dp, tolerance=1.0e-12_dp)
     @assertEqual(out(2), 3.5_dp, tolerance=1.0e-12_dp)
   end subroutine test_median_masked
+
+  @test
+  subroutine test_laf_masked_direct_and_packed()
+    implicit none
+    type(grid_t), target :: fine, coarse
+    type(scaler_t) :: scaler
+    logical :: mask(2,2)
+    integer(i4) :: idata(2,2)
+    integer(i4), allocatable :: out(:), packed_i(:)
+
+    mask = .false.
+    mask(1,1) = .true.
+
+    call fine%init(nx=2, ny=2, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=mask)
+    call coarse%init(nx=1, ny=1, cellsize=2.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    call scaler%init(fine, coarse)
+
+    idata = reshape([1_i4, 2_i4, 2_i4, 2_i4], [2,2])
+    allocate(out(coarse%ncells))
+
+    call scaler%execute(idata, out, upscaling_operator=up_laf, vmin=1_i4, vmax=2_i4)
+    @assertEqual(out(1), 1_i4)
+
+    packed_i = fine%pack(idata)
+    call scaler%execute(packed_i, out, upscaling_operator=up_laf, vmin=1_i4, vmax=2_i4)
+    @assertEqual(out(1), 1_i4)
+  end subroutine test_laf_masked_direct_and_packed
 
   @test
   subroutine test_nearest_regridder_cartesian()
