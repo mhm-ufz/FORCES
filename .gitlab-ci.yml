@@ -121,6 +121,10 @@ show-env-vars:
 .conda_vars_04: &conda_vars_04
   MODULE_LOAD_SCRIPT: hpc-module-loads/eve.chs-conda04
 
+# module loads for NAG compiler
+.nag_vars_72: &nag_vars_72
+  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.nagfor72
+
 #################
 ### TEMPLATES ###
 #################
@@ -271,6 +275,16 @@ test-intel2023b-llvm-debug:
     <<: [*debug_vars, *intel_vars_2023b-llvm]
   <<: *job_template
 
+test-nag72-release:
+  variables:
+    <<: [*release_vars, *nag_vars_72]
+  <<: *job_template
+
+test-nag72-debug:
+  variables:
+    <<: [*debug_vars, *nag_vars_72]
+  <<: *job_template
+
 coverage:
   variables:
     <<: [*coverage_vars, *conda_vars_04]
@@ -342,6 +356,16 @@ test-intel2023b-llvm-release-omp:
 test-intel2023b-llvm-debug-omp:
   variables:
     <<: [*omp_debug_vars, *intel_vars_2023b-llvm]
+  <<: *omp_job_template
+
+test-nag72-release-omp:
+  variables:
+    <<: [*omp_release_vars, *nag_vars_72]
+  <<: *omp_job_template
+
+test-nag72-debug-omp:
+  variables:
+    <<: [*omp_debug_vars, *nag_vars_72]
   <<: *omp_job_template
 
 ################
