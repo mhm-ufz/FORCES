@@ -110,6 +110,8 @@ show-env-vars:
   MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran102
 .gnu_vars_122: &gfortran_vars_122
   MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran122
+.gnu_vars_133: &gfortran_vars_133
+  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran133
 
 # module loads for conda+gfortran
 .conda_vars_01: &conda_vars_01
@@ -247,6 +249,16 @@ test-gfortran122-debug:
     <<: [*debug_vars, *gfortran_vars_122]
   <<: *job_template
 
+test-gfortran133-release:
+  variables:
+    <<: [*release_vars, *gfortran_vars_133]
+  <<: *job_template
+
+test-gfortran133-debug:
+  variables:
+    <<: [*debug_vars, *gfortran_vars_133]
+  <<: *job_template
+
 test-intel2020b-release:
   variables:
     <<: [*release_vars, *intel_vars_2020b]
@@ -330,6 +342,16 @@ test-gfortran122-debug-omp:
     <<: [*omp_debug_vars, *gfortran_vars_122]
   <<: *omp_job_template
 
+test-gfortran133-release-omp:
+  variables:
+    <<: [*omp_release_vars, *gfortran_vars_133]
+  <<: *omp_job_template
+
+test-gfortran133-debug-omp:
+  variables:
+    <<: [*omp_debug_vars, *gfortran_vars_133]
+  <<: *omp_job_template
+
 test-intel2020b-release-omp:
   variables:
     <<: [*omp_release_vars, *intel_vars_2020b]
@@ -402,6 +424,11 @@ examples-gfortran102:
 examples-gfortran122:
   variables:
     <<: [*examples_vars, *gfortran_vars_122]
+  <<: *examples_template
+
+examples-gfortran133:
+  variables:
+    <<: [*examples_vars, *gfortran_vars_133]
   <<: *examples_template
 
 examples-intel2020b:
