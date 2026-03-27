@@ -108,7 +108,18 @@ if (CMAKE_WITH_MPI)
 endif()
 if (CMAKE_WITH_OpenMP)
   message(STATUS "FORCES: use OpenMP")
-  target_link_libraries(${LIB_NAME} PUBLIC OpenMP::OpenMP_Fortran)
+  # Hack for NAG+Cmake+OpenMP
+  # See: https://gitlab.kitware.com/cmake/cmake/-/work_items/21280
+  if(CMAKE_Fortran_COMPILER_ID STREQUAL "NAG")
+    # Do not use OpenMP::OpenMP_Fortran for NAG.
+    add_library(project_openmp INTERFACE)
+    target_compile_options(project_openmp INTERFACE "$<$<COMPILE_LANGUAGE:Fortran>:-openmp>")
+    target_link_options(project_openmp INTERFACE "$<$<LINK_LANGUAGE:Fortran>:-openmp>")
+  else()
+    add_library(project_openmp INTERFACE)
+    target_link_libraries(project_openmp INTERFACE OpenMP::OpenMP_Fortran)
+  endif()
+  target_link_libraries(${LIB_NAME} PUBLIC project_openmp)
 endif()
 
 # log settings
@@ -205,9 +216,4 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O4;-ieee=full>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-gline;-ieee=full>"
   )
-  if(CMAKE_WITH_OpenMP AND OpenMP_Fortran_FLAGS)
-    # Work around CMake not propagating the required NAG OpenMP link flags here yet:
-    # https://gitlab.kitware.com/cmake/cmake/-/work_items/21280
-    target_link_options(${LIB_NAME} PUBLIC "$<$<LINK_LANGUAGE:Fortran>:SHELL:${OpenMP_Fortran_FLAGS}>")
-  endif()
 endif()

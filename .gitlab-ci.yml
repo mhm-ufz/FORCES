@@ -134,8 +134,6 @@ show-env-vars:
 # module loads for NAG compiler
 .nag_vars_72: &nag_vars_72
   MODULE_LOAD_SCRIPT: hpc-module-loads/eve.nagfor72
-.nag_vars_72-omp: &nag_vars_72-omp
-  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.nagfor72-omp
 
 #################
 ### TEMPLATES ###
@@ -407,12 +405,12 @@ test-intel2023b-llvm-debug-omp:
 
 test-nag72-release-omp:
   variables:
-    <<: [*omp_release_vars, *nag_vars_72-omp]
+    <<: [*omp_release_vars, *nag_vars_72]
   <<: *omp_job_template
 
 test-nag72-debug-omp:
   variables:
-    <<: [*omp_debug_vars, *nag_vars_72-omp]
+    <<: [*omp_debug_vars, *nag_vars_72]
   <<: *omp_job_template
 
 ################
