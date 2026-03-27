@@ -46,6 +46,11 @@ All these scripts will load:
   source eve.intel2023bMPI-llvm
   ```
 
+- NAG Fortran 7.2 compiler (`NAGfor/7.2` + `gompi/2024a` Toolchain):
+  ```bash
+  source eve.nagfor72
+  ```
+
 ## Toolchains at Juwels
 
 All these scripts will load:
