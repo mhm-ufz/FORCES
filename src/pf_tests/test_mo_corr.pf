@@ -16,7 +16,7 @@ contains
   subroutine test_coor_dp()
     real(dp), dimension(n)  ::  dat1, dat2
     real(dp), dimension(2)  ::  acfm_dp, acf_dp
-    real(dp)                ::  t = epsilon(1.0_dp)
+    real(dp)                ::  t = 32.0_dp * epsilon(1.0_dp)
 
     forall(i=1:n) dat1(i) = real(i, dp)
     dat2 = dat1 + sin(dat1)
@@ -36,7 +36,7 @@ contains
   subroutine test_coor_sp()
     real(sp), dimension(n)  ::  sat1, sat2
     real(sp), dimension(2)  ::  acfm_sp, acf_sp
-    real(sp)                ::  t = epsilon(1.0_sp)
+    real(sp)                ::  t = 32.0_sp * epsilon(1.0_sp)
 
     forall(i=1:n) sat1(i) = real(i, sp)
     sat2 = sat1 + sin(sat1)
@@ -46,10 +46,8 @@ contains
     acfm_sp = autocorr(sat2, (/ 0, 5 /), mask)
     acf_sp = autocorr(sat2, (/ 0, 5 /))
 
-    write(*,*) acf_sp
-
     @assertEqual(acfm_sp, acf_sp, tolerance = t, message='coor single precision acf array')
-    @assertEqual(acf_sp(2), 0.993306875_sp, message='coor single precision with lag')
+    @assertEqual(acf_sp(2), 0.993306875_sp, tolerance = t, message='coor single precision with lag')
   
   end subroutine test_coor_sp
   

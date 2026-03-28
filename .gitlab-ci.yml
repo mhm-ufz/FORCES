@@ -84,6 +84,14 @@ show-env-vars:
   ARTIFACT_PATH: Testing/Temporary
   OMP_NUM_THREADS: 4
 
+# native release OpenMP variables (opt-in local/HPC tuning mode)
+.omp_release_native_vars: &omp_release_native_vars
+  BUILD_DIR: build_omp_release_native
+  CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_WITH_OpenMP=ON -DFORCES_ENABLE_NATIVE=ON'
+  BUILD_TARGET: test
+  ARTIFACT_PATH: Testing/Temporary
+  OMP_NUM_THREADS: 4
+
 # example variables
 .examples_vars: &examples_vars
   BUILD_DIR: build_examples
@@ -110,6 +118,8 @@ show-env-vars:
   MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran102
 .gnu_vars_122: &gfortran_vars_122
   MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran122
+.gnu_vars_133: &gfortran_vars_133
+  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.gfortran133
 
 # module loads for conda+gfortran
 .conda_vars_01: &conda_vars_01
@@ -120,6 +130,10 @@ show-env-vars:
   MODULE_LOAD_SCRIPT: hpc-module-loads/eve.chs-conda03
 .conda_vars_04: &conda_vars_04
   MODULE_LOAD_SCRIPT: hpc-module-loads/eve.chs-conda04
+
+# module loads for NAG compiler
+.nag_vars_72: &nag_vars_72
+  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.nagfor72
 
 #################
 ### TEMPLATES ###
@@ -241,6 +255,16 @@ test-gfortran122-debug:
     <<: [*debug_vars, *gfortran_vars_122]
   <<: *job_template
 
+test-gfortran133-release:
+  variables:
+    <<: [*release_vars, *gfortran_vars_133]
+  <<: *job_template
+
+test-gfortran133-debug:
+  variables:
+    <<: [*debug_vars, *gfortran_vars_133]
+  <<: *job_template
+
 test-intel2020b-release:
   variables:
     <<: [*release_vars, *intel_vars_2020b]
@@ -269,6 +293,16 @@ test-intel2023b-llvm-release:
 test-intel2023b-llvm-debug:
   variables:
     <<: [*debug_vars, *intel_vars_2023b-llvm]
+  <<: *job_template
+
+test-nag72-release:
+  variables:
+    <<: [*release_vars, *nag_vars_72]
+  <<: *job_template
+
+test-nag72-debug:
+  variables:
+    <<: [*debug_vars, *nag_vars_72]
   <<: *job_template
 
 coverage:
@@ -314,6 +348,21 @@ test-gfortran122-debug-omp:
     <<: [*omp_debug_vars, *gfortran_vars_122]
   <<: *omp_job_template
 
+test-gfortran133-release-omp:
+  variables:
+    <<: [*omp_release_vars, *gfortran_vars_133]
+  <<: *omp_job_template
+
+test-gfortran133-release-omp-native:
+  variables:
+    <<: [*omp_release_native_vars, *gfortran_vars_133]
+  <<: *omp_job_template
+
+test-gfortran133-debug-omp:
+  variables:
+    <<: [*omp_debug_vars, *gfortran_vars_133]
+  <<: *omp_job_template
+
 test-intel2020b-release-omp:
   variables:
     <<: [*omp_release_vars, *intel_vars_2020b]
@@ -329,6 +378,11 @@ test-intel2023b-classic-release-omp:
     <<: [*omp_release_vars, *intel_vars_2023b-classic]
   <<: *omp_job_template
 
+test-intel2023b-classic-release-omp-native:
+  variables:
+    <<: [*omp_release_native_vars, *intel_vars_2023b-classic]
+  <<: *omp_job_template
+
 test-intel2023b-classic-debug-omp:
   variables:
     <<: [*omp_debug_vars, *intel_vars_2023b-classic]
@@ -339,9 +393,24 @@ test-intel2023b-llvm-release-omp:
     <<: [*omp_release_vars, *intel_vars_2023b-llvm]
   <<: *omp_job_template
 
+test-intel2023b-llvm-release-omp-native:
+  variables:
+    <<: [*omp_release_native_vars, *intel_vars_2023b-llvm]
+  <<: *omp_job_template
+
 test-intel2023b-llvm-debug-omp:
   variables:
     <<: [*omp_debug_vars, *intel_vars_2023b-llvm]
+  <<: *omp_job_template
+
+test-nag72-release-omp:
+  variables:
+    <<: [*omp_release_vars, *nag_vars_72]
+  <<: *omp_job_template
+
+test-nag72-debug-omp:
+  variables:
+    <<: [*omp_debug_vars, *nag_vars_72]
   <<: *omp_job_template
 
 ################
@@ -378,6 +447,11 @@ examples-gfortran122:
     <<: [*examples_vars, *gfortran_vars_122]
   <<: *examples_template
 
+examples-gfortran133:
+  variables:
+    <<: [*examples_vars, *gfortran_vars_133]
+  <<: *examples_template
+
 examples-intel2020b:
   variables:
     <<: [*examples_vars, *intel_vars_2020b]
@@ -391,6 +465,11 @@ examples-intel2023b-classic:
 examples-intel2023b-llvm:
   variables:
     <<: [*examples_vars, *intel_vars_2023b-llvm]
+  <<: *examples_template
+
+examples-nag72:
+  variables:
+    <<: [*examples_vars, *nag_vars_72]
   <<: *examples_template
 
 ################

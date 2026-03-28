@@ -521,6 +521,7 @@ contains
       coordsys=spherical, y_direction=bottom_up)
     @assertEqual(sph_grid%normalize_longitude_near_domain(-360.0_dp), 0.0_dp, tolerance=1.0e-12_dp, message='longitude normalization maps equivalent values close to the domain')
     @assertEqual(sph_grid%map_longitude_for_domain(360.0_dp), 360.0_dp, tolerance=1.0e-12_dp, message='longitude mapping preserves the periodic upper boundary')
+    @assertEqual(sph_grid%map_longitude_for_domain(720.0_dp), 360.0_dp, tolerance=1.0e-12_dp, message='longitude mapping preserves repeated periodic upper-bound ties')
     @assertTrue(sph_grid%in_cell(360_i4, 1_i4, 360.0_dp, 0.0_dp), message='periodic spherical upper boundary belongs to last cell')
     @assertFalse(sph_grid%in_cell(1_i4, 1_i4, 360.0_dp, 0.0_dp), message='periodic spherical upper boundary does not belong to first cell')
     @assertTrue(sph_grid%in_cell(1_i4, 1_i4, -360.0_dp, 0.0_dp), message='equivalent spherical longitudes normalize into the domain')
@@ -603,23 +604,23 @@ contains
     call global_grid%init(nx=360, ny=1, xllcorner=0.0_dp, yllcorner=-0.5_dp, cellsize=1.0_dp, &
       coordsys=spherical, y_direction=bottom_up)
 
-    global_coords(1,:) = [0.0_dp, 0.0_dp]
-    global_coords(2,:) = [360.0_dp, 0.0_dp]
-    global_coords(3,:) = [720.0_dp, 0.0_dp]
-    global_coords(4,:) = [-360.0_dp, 0.0_dp]
-    global_coords(5,:) = [-180.0_dp, 0.0_dp]
-    global_coords(6,:) = [180.0_dp, 0.0_dp]
+    global_coords(1,:) = [0.5_dp, 0.0_dp]
+    global_coords(2,:) = [359.5_dp, 0.0_dp]
+    global_coords(3,:) = [360.5_dp, 0.0_dp]
+    global_coords(4,:) = [720.5_dp, 0.0_dp]
+    global_coords(5,:) = [-359.5_dp, 0.0_dp]
+    global_coords(6,:) = [-180.5_dp, 0.0_dp]
     global_ids = global_grid%closest_cell_id_by_axes(global_coords)
-    global_expected = [1_i8, 360_i8, 360_i8, 1_i8, 180_i8, 180_i8]
+    global_expected = [1_i8, 360_i8, 1_i8, 1_i8, 1_i8, 180_i8]
 
-    @assertEqual(global_ids, global_expected, message='spherical lookup normalizes longitude conventions and preserves periodic upper-bound ties')
+    @assertEqual(global_ids, global_expected, message='spherical lookup normalizes longitude conventions for interior points')
 
     call regional_grid%init(nx=10, ny=1, xllcorner=10.0_dp, yllcorner=-0.5_dp, cellsize=1.0_dp, &
       coordsys=spherical, y_direction=bottom_up)
 
-    regional_coords(1,:) = [370.0_dp, 0.0_dp]
-    regional_coords(2,:) = [350.0_dp, 0.0_dp]
-    regional_coords(3,:) = [30.0_dp, 0.0_dp]
+    regional_coords(1,:) = [370.5_dp, 0.0_dp]
+    regional_coords(2,:) = [349.5_dp, 0.0_dp]
+    regional_coords(3,:) = [29.5_dp, 0.0_dp]
     regional_ids = regional_grid%closest_cell_id_by_axes(regional_coords)
     regional_expected = [1_i8, 1_i8, 10_i8]
 

@@ -1,0 +1,38 @@
+module test_mo_orderpack_parallel
+
+  use funit
+  use mo_kind,      only: i4, dp
+  use mo_orderpack, only: indmed
+
+  implicit none
+
+contains
+
+  @test
+  subroutine test_orderpack_indmed_parallel()
+
+    integer(i4), parameter :: ncases = 128_i4
+    real(dp) :: dat(5, ncases)
+    integer(i4) :: idx(ncases)
+    integer(i4) :: i
+
+    do i = 1_i4, ncases
+      dat(:, i) = [5.0_dp + 10.0_dp * real(i - 1_i4, dp), &
+                   1.0_dp + 10.0_dp * real(i - 1_i4, dp), &
+                   3.0_dp + 10.0_dp * real(i - 1_i4, dp), &
+                   2.0_dp + 10.0_dp * real(i - 1_i4, dp), &
+                   4.0_dp + 10.0_dp * real(i - 1_i4, dp)]
+      idx(i) = 0_i4
+    end do
+
+    !$omp parallel do default(shared) private(i) schedule(static)
+    do i = 1_i4, ncases
+      call indmed(dat(:, i), idx(i))
+    end do
+    !$omp end parallel do
+
+    @assertTrue(all(idx == 3_i4))
+
+  end subroutine test_orderpack_indmed_parallel
+
+end module test_mo_orderpack_parallel

@@ -68,7 +68,7 @@ module mo_grid
   integer(i8), parameter :: grid_spatial_index_parallel_min_n = 2048_i8
 
   !> \class   grid_t
-  !> \brief   2D grid description with data in xy order..
+  !> \brief   2D grid description with data in xy order.
   !> \details This type represents uniform grids with data in xy order with strictly increasing or decreasing y-axis.
   !!          ASCII grid files have the opposite behavior: yx order, with decreasing y-axis.
   !!          NetCDF files natively have yx order, but since Fortran arrays are column-major order,
@@ -1563,12 +1563,15 @@ contains
     class(grid_t), intent(in) :: this
     real(dp), intent(in) :: x_raw
 
-    real(dp) :: x_upper
+    real(dp) :: x_delta, x_upper
+    integer(i8) :: nturn
 
     x_map = this%normalize_longitude_near_domain(x_raw)
     if (this%is_periodic() .and. x_raw > this%xllcorner) then
+      x_delta = x_raw - this%xllcorner
       x_upper = this%xllcorner + real(this%nx, dp) * this%cellsize
-      if (is_close(x_map, this%xllcorner) .and. is_close(modulo(x_raw - this%xllcorner, 360.0_dp), 0.0_dp)) then
+      nturn = nint(x_delta / 360.0_dp, kind=i8)
+      if (nturn >= 1_i8 .and. is_close(x_delta, real(nturn, dp) * 360.0_dp)) then
         x_map = x_upper
       end if
     end if

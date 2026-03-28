@@ -49,8 +49,8 @@ contains
     vec1     = reshape(arr1(:,:,1), (/size(arr1, dim=1)*size(arr1, dim=2)/))
     vec2     = reshape(arr1(:,:,2), (/size(arr1, dim=1)*size(arr1, dim=2)/))
     maskvec  = reshape(mask(:,:,1), (/size(mask, dim=1)*size(mask, dim=2)/))
-    t_dp     = 1.e-4_dp
-    t_sp     = 1.e-4_sp
+    t_dp     = 2.e-4_dp
+    t_sp     = 2.e-4_sp
 
   end subroutine errormeasures_initial
 

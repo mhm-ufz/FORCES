@@ -36,7 +36,11 @@ show-env-vars:
     - echo CC  = $CC
     - echo CXX = $CXX
     - echo "NetCDF-C:" $(nc-config --version)
-    - echo "NetCDF-F:" $(nf-config --version)
+    - |
+      if command -v nf-config >/dev/null 2>&1
+      then echo "NetCDF-F: $(nf-config --version)"
+      else echo "NetCDF-F: not installed"
+      fi
     - make --version
     - cmake --version
     - python --version
@@ -66,6 +70,12 @@ eve.gfortran122:
 eve.gfortran122MPI:
   extends: .common-test-job
 
+eve.gfortran133:
+  extends: .common-test-job
+
+eve.gfortran133MPI:
+  extends: .common-test-job
+
 eve.intel2020b:
   extends: .common-test-job
 
@@ -82,4 +92,10 @@ eve.intel2023b-llvm:
   extends: .common-test-job
 
 eve.intel2023bMPI-llvm:
+  extends: .common-test-job
+
+eve.nagfor72:
+  extends: .common-test-job
+
+eve.nagfor72-omp:
   extends: .common-test-job

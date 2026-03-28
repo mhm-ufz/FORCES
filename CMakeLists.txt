@@ -1,6 +1,7 @@
 # common (default) options to cmake
 # -DCMAKE_BUILD_TYPE=Release     - compile in debug or release mode
 # -DBUILD_TESTING=ON             - whether to compile tests
+# -DFORCES_ENABLE_NATIVE=ON      - enable host-native release tuning for local/HPC builds
 # -DCMAKE_VERBOSE_MAKEFILE=OFF   - see all the commands
 # -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT=OFF   - build the library INDEPENDENT of the module system,
 # -DCMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX=64     - find extra library paths on some systems (eve.nag62)

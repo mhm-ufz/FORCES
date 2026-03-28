@@ -65,6 +65,14 @@ else()
   list(FILTER sources EXCLUDE REGEX ".*mo_grid_io.f90$")
 endif()
 
+# option for host-native Release tuning
+option(FORCES_ENABLE_NATIVE "Enable host-native tuning for Release builds." OFF)
+if(FORCES_ENABLE_NATIVE)
+  message(STATUS "FORCES: enable host-native Release tuning (opt-in local/HPC mode)")
+else()
+  message(STATUS "FORCES: use portable Release tuning")
+endif()
+
 # create library
 add_library(${LIB_NAME} ${sources} ${fyppOutFiles})
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../include)
@@ -100,7 +108,20 @@ if (CMAKE_WITH_MPI)
 endif()
 if (CMAKE_WITH_OpenMP)
   message(STATUS "FORCES: use OpenMP")
-  target_link_libraries(${LIB_NAME} PUBLIC OpenMP::OpenMP_Fortran)
+  # Hack for NAG+Cmake+OpenMP
+  # See: https://gitlab.kitware.com/cmake/cmake/-/work_items/21280
+  if(CMAKE_Fortran_COMPILER_ID STREQUAL "NAG")
+    # Do not use OpenMP::OpenMP_Fortran for NAG.
+    # Do not add -thread_safe here: FORCES intentionally uses saved/threadprivate
+    # RNG state in mo_xor4096, which NAG rejects in thread-safe procedures.
+    add_library(project_openmp INTERFACE)
+    target_compile_options(project_openmp INTERFACE "$<$<COMPILE_LANGUAGE:Fortran>:-openmp>")
+    target_link_options(project_openmp INTERFACE "$<$<LINK_LANGUAGE:Fortran>:-openmp>")
+  else()
+    add_library(project_openmp INTERFACE)
+    target_link_libraries(project_openmp INTERFACE OpenMP::OpenMP_Fortran)
+  endif()
+  target_link_libraries(${LIB_NAME} PUBLIC project_openmp)
 endif()
 
 # log settings
@@ -125,14 +146,22 @@ endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   # set the preprocessor
   target_compile_definitions(${LIB_NAME} PRIVATE "GFORTRAN")
-  # free line length to enable logging (only needed for gfortran)
+  # Keep this PUBLIC because downstream code using mo_logging can expand
+  # logging calls into lines that exceed gfortran's default free-form limit.
   target_compile_options(${LIB_NAME} PUBLIC
     "$<$<COMPILE_LANGUAGE:Fortran>:-ffree-line-length-none>"
   )
   target_compile_options(${LIB_NAME} PRIVATE
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-Og;-g;-Wall;-Wextra;-Wimplicit-interface;-Wsurprising;-fimplicit-none;-fbacktrace;-fcheck=all;-ffpe-trap=zero,overflow,underflow;-finit-real=snan;-pedantic-errors>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-Og;-g;-Wall;-Wextra;-Wimplicit-interface;-Wsurprising;-fimplicit-none;-fbacktrace;-fcheck=all,no-array-temps;-ffpe-trap=zero,overflow,underflow;-finit-real=snan;-pedantic-errors>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-fbacktrace>"
   )
+  if(FORCES_ENABLE_NATIVE)
+    target_compile_options(${LIB_NAME} PRIVATE
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-march=native>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-march=native>"
+    )
+  endif()
   # https://www.scivision.dev/gfortran-15-external-argument-mismatch
   # AND: passed procedures with pointer attribute should be called with positional arguments
   if(CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER_EQUAL "15.0" AND
@@ -148,8 +177,15 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   target_compile_options(${LIB_NAME} PRIVATE
     "$<$<COMPILE_LANGUAGE:Fortran>:-nofixed;SHELL:-assume byterecl;-standard-realloc-lhs>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-g;-fp-model=source;SHELL:-warn all;SHELL:-check all;SHELL:-check noarg_temp_created;-debug;-traceback;-fp-stack-check;-O0>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3;-qoverride-limits;-fp-model=precise;-fprotect-parens>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3;-qoverride-limits>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-traceback>"
   )
+  if(FORCES_ENABLE_NATIVE)
+    target_compile_options(${LIB_NAME} PRIVATE
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-xHost>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-xHost>"
+    )
+  endif()
 endif()
 # ifx (IntelLLVM)
 if(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
@@ -157,21 +193,39 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
   target_compile_options(${LIB_NAME} PRIVATE
     "$<$<COMPILE_LANGUAGE:Fortran>:-nofixed;SHELL:-assume byterecl;-standard-realloc-lhs>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-g;-fp-model=source;SHELL:-warn all;SHELL:-check all;SHELL:-check noarg_temp_created;SHELL:-check nouninit;-traceback;-O0>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3;-qoverride-limits;-fp-model=precise;-fprotect-parens>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3;-qoverride-limits>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-traceback>"
   )
+  if(FORCES_ENABLE_NATIVE)
+    target_compile_options(${LIB_NAME} PRIVATE
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-xHost>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-xHost>"
+    )
+  endif()
 endif()
 if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
+  if(FORCES_ENABLE_NATIVE)
+    message(STATUS "FORCES: host-native Release tuning has no effect for NAG")
+  endif()
   target_compile_definitions(${LIB_NAME} PRIVATE "NAG")
+  if(CMAKE_WITH_OpenMP)
+    # NAG's -gline traceback instrumentation destabilizes explicit OpenMP calls
+    # into the recursive indmed path in mo_orderpack. Keep debug checks, but
+    # disable -gline for OpenMP builds.
+    set(NAG_DEBUG_FLAGS "-g;-nan;-O0;-C;-C=alias;-C=dangling;-strict95;-ieee=full")
+    set(NAG_RELWITHDEBINFO_FLAGS "-ieee=full")
+  else()
+    set(NAG_DEBUG_FLAGS "-gline;-g;-nan;-O0;-C;-C=alias;-C=dangling;-strict95;-ieee=full")
+    set(NAG_RELWITHDEBINFO_FLAGS "-gline;-ieee=full")
+  endif()
   target_compile_options(${LIB_NAME} PRIVATE
     "$<$<COMPILE_LANGUAGE:Fortran>:-fpp;-colour;-unsharedf95;-ideclient>"
     # "-C=all" is not set, only "-C -C=alias -C=dangling" and "-ieee=full" instead of "-ieee=stop" because
     # this effectively omits the -C=intovf flag which checks for integer overflow
     # we need to exclude that as the random number generator relies on that technique
     # -ieee=full is needed for mo_utils (is_nan, is_finite etc. fails with -ieee=stop)
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-gline;-g;-nan;-O0;-C;-C=alias;-C=dangling;-strict95;-ieee=full>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:${NAG_DEBUG_FLAGS}>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O4;-ieee=full>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:${NAG_RELWITHDEBINFO_FLAGS}>"
   )
-  if(CMAKE_WITH_OpenMP AND OpenMP_Fortran_FLAGS)
-    target_link_options(${LIB_NAME} PUBLIC "$<$<LINK_LANGUAGE:Fortran>:SHELL:${OpenMP_Fortran_FLAGS}>")
-  endif()
 endif()

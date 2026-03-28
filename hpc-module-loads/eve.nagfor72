@@ -1,0 +1,12 @@
+module purge
+module use /global/apps/modulefiles
+module load python_env_mpr
+module load gompi/2024a
+module load NAGfor/7.2
+module load netCDF/4.9.2
+module load CMake
+module load pFUnit/4.16.0_NAG72
+export FC=nagfor
+export F77=nagfor
+export CC=gcc
+export CXX=g++

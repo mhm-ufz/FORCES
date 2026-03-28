@@ -30,6 +30,11 @@ All these scripts will load:
   source eve.gfortran122 # or
   source eve.gfortran122MPI
   ```
+- GNU 13.3 compiler (`foss/2024a` Toolchain):
+  ```bash
+  source eve.gfortran133 # or
+  source eve.gfortran133MPI
+  ```
 - Intel 19.1.3 compiler (`iomkl/2020b` Toolchain):
   ```bash
   source eve.intel2020b # or
@@ -44,6 +49,11 @@ All these scripts will load:
   ```bash
   source eve.intel2023b-llvm # or
   source eve.intel2023bMPI-llvm
+  ```
+- NAG Fortran 7.2 compiler (`NAGfor/7.2` + `gompi/2024a` Toolchain):
+  ```bash
+  source eve.nagfor72 # or
+  source eve.nagfor72-omp
   ```
 
 ## Toolchains at Juwels

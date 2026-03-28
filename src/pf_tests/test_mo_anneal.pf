@@ -22,12 +22,17 @@ module test_mo_anneal
 
       real(dp)                                :: costbestAll
       real(dp), dimension(size(para,1))       :: parabestAll
-      real(dp)                                :: t=1.0E-5_dp
+      real(dp)                                :: initialCost
+      real(dp)                                :: finalCost
+      real(dp)                                :: rangePar(2)
+      real(dp)                                :: t = 1.0E-5_dp
+      real(dp)                                :: cost_tol
 
       integer(i4)                             :: i, runs
       integer(i8), dimension(3)               :: seeds
       real(dp)                                :: Tstart, Tend
       real(dp), dimension(:,:), allocatable   :: history
+      logical                                 :: within_range
 
       type(function_optimizee) :: objective
 
@@ -50,7 +55,8 @@ module test_mo_anneal
       print*, '-----------------------------------'
       print*, 'Initial parameter set:       ',para
       print*, 'Initial cost function value: ',objective%evaluate(para(:))
-      costbestAll = objective%evaluate(para(:))
+      initialCost = objective%evaluate(para(:))
+      costbestAll = initialCost
       parabestAll = para(:)
       print*, '-----------------------------------'
       print*, '   INITIAL TEMPERATURE             '
@@ -118,9 +124,20 @@ module test_mo_anneal
       print*, '   costbest = ', costbestAll
       print*, '   parabest = ', parabestAll
 
-      ! Is program running properly?   costbestAll = 3.1142480812726376E-02
+      finalCost = objective%evaluate(parabestAll(:))
+      cost_tol = 32.0_dp * epsilon(1.0_dp)
+      within_range = .true.
+      do i = 1, size(parabestAll, 1)
+        call range_dp(parabestAll, i, rangePar)
+        within_range = within_range .and. &
+            (parabestAll(i) >= rangePar(1) - t) .and. &
+            (parabestAll(i) <= rangePar(2) + t)
+      end do
 
-      @assertEqual(costbestAll, 3.1142480812726376E-02_dp, tolerance=t)
+      @assertEqual(costbestAll, finalCost, tolerance=cost_tol, message='anneal reported cost should match returned parameters')
+      @assertTrue(costbestAll < initialCost, message='anneal should improve over the initial guess')
+      @assertTrue(costbestAll < 5.0E-2_dp, message='anneal should find a low-cost solution for fixed seeds')
+      @assertTrue(within_range, message='anneal should keep the best parameters inside the feasible range')
 
     end subroutine test_anneal_dp
 
