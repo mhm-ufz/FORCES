@@ -1030,16 +1030,13 @@ CONTAINS
     Integer(kind = i4), Intent (Out) :: INDM
     ! __________________________________________________________
     Integer(kind = i4) :: IDON
-    Integer(kind = i4), Allocatable :: IDONT(:)
+    Integer(kind = i4) :: IDONT(SIZE(XDONT))
     !
-    Allocate (IDONT (SIZE(XDONT)))
     Do IDON = 1, SIZE(XDONT)
       IDONT (IDON) = IDON
     End Do
     !
     Call d_med (XDONT, IDONT, INDM)
-    !
-    Deallocate (IDONT)
   End Subroutine D_indmed
 
   Recursive Subroutine d_med (XDATT, IDATT, ires_med)
@@ -1429,16 +1426,13 @@ CONTAINS
     Integer(kind = i4), Intent (Out) :: INDM
     ! __________________________________________________________
     Integer(kind = i4) :: IDON
-    Integer(kind = i4), Allocatable :: IDONT(:)
+    Integer(kind = i4) :: IDONT(SIZE(XDONT))
     !
-    Allocate (IDONT (SIZE(XDONT)))
     Do IDON = 1, SIZE(XDONT)
       IDONT (IDON) = IDON
     End Do
     !
     Call r_med (XDONT, IDONT, INDM)
-    !
-    Deallocate (IDONT)
   End Subroutine R_indmed
 
   Recursive Subroutine r_med (XDATT, IDATT, ires_med)
@@ -1828,16 +1822,13 @@ CONTAINS
     Integer(kind = i4), Intent (Out) :: INDM
     ! __________________________________________________________
     Integer(kind = i4) :: IDON
-    Integer(kind = i4), Allocatable :: IDONT(:)
+    Integer(kind = i4) :: IDONT(SIZE(XDONT))
     !
-    Allocate (IDONT (SIZE(XDONT)))
     Do IDON = 1, SIZE(XDONT)
       IDONT (IDON) = IDON
     End Do
     !
     Call i_med(XDONT, IDONT, INDM)
-    !
-    Deallocate (IDONT)
   End Subroutine I_indmed
 
   Recursive Subroutine i_med (XDATT, IDATT, ires_med)
