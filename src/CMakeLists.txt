@@ -112,9 +112,10 @@ if (CMAKE_WITH_OpenMP)
   # See: https://gitlab.kitware.com/cmake/cmake/-/work_items/21280
   if(CMAKE_Fortran_COMPILER_ID STREQUAL "NAG")
     # Do not use OpenMP::OpenMP_Fortran for NAG.
+    # NAG also requires -thread_safe for code executed in a multi-threaded runtime.
     add_library(project_openmp INTERFACE)
-    target_compile_options(project_openmp INTERFACE "$<$<COMPILE_LANGUAGE:Fortran>:-openmp>")
-    target_link_options(project_openmp INTERFACE "$<$<LINK_LANGUAGE:Fortran>:-openmp>")
+    target_compile_options(project_openmp INTERFACE "$<$<COMPILE_LANGUAGE:Fortran>:-openmp;-thread_safe>")
+    target_link_options(project_openmp INTERFACE "$<$<LINK_LANGUAGE:Fortran>:-openmp;-thread_safe>")
   else()
     add_library(project_openmp INTERFACE)
     target_link_libraries(project_openmp INTERFACE OpenMP::OpenMP_Fortran)
