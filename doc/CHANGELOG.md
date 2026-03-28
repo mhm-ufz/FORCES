@@ -4,7 +4,102 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
-## v0.8 - 2025-11
+## v0.9.0 - 2026-04
+- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.8.0...v0.9.0) for details.
+
+### Enhancements and Changes
+
+* `mo_netcdf`, `mo_ncread`, `mo_ncwrite`, `mo_netcdf_wrapper` ([130](https://git.ufz.de/chs/forces/-/merge_requests/130), [132](https://git.ufz.de/chs/forces/-/merge_requests/132))
+  * removed the `netcdf-fortran` dependency and replaced it with a FORCES-owned wrapper built directly on top of `netcdf-c`
+  * kept the existing high-level FORCES NetCDF API intact while moving production code away from `use netcdf`
+  * preserved FORCES NetCDF semantics such as 1-based slicing indices and current dimension ordering
+  * added a small C companion layer for selected `netcdf-c` functionality
+  * added 64-bit NetCDF dimension/index support through additive `*64` methods
+  * `NcGroup` now provides `setDimension64`
+  * `NcDimension` now provides `getLength64`
+  * `NcVariable` now provides `getShape64`, `setData64`, `getData64`, and `readInto64`
+  * tightened wrapper-side validation and contiguity requirements for rank>0 buffers passed via `c_loc`
+
+* `mo_grid`, `mo_spatial_index`, `mo_grid_scaler`, `mo_grid_helper`, `mo_grid_constants` ([131](https://git.ufz.de/chs/forces/-/merge_requests/131), [136](https://git.ufz.de/chs/forces/-/merge_requests/136), [137](https://git.ufz.de/chs/forces/-/merge_requests/137), [139](https://git.ufz.de/chs/forces/-/merge_requests/139), [140](https://git.ufz.de/chs/forces/-/merge_requests/140))
+  * added `grid_t%closest_cell_id_by_axes` for fast nearest-cell lookup on axis-aligned grids
+  * reworked `grid_closest_cell_id_by_axes` to avoid large local/thread-private temporaries that caused failures on huge grids with OpenMP
+  * added a reusable KD-tree based spatial index for Cartesian and spherical coordinates
+  * added exact and batched nearest-active-cell search support for large and irregular grids
+  * added `grid_t%build_spatial_index`
+  * added `grid_t%in_cell(i,j,x,y,aux)` for regular and auxiliary-grid containment checks
+  * added `grid_t%is_matching(other[, tol, aux])` to compare grids
+  * added a dedicated `nearest_regridder_t` for arbitrary nearest-neighbor remapping
+  * target-mask derivation for nearest-neighbor remapping is now based on source-cell containment
+  * refactored grid-independent helpers into `mo_grid_helper`
+  * added shared grid selector constants in `mo_grid_constants`
+  * restored compatibility-facing exports in `mo_grid` for `data_t`, `mask_from_var`, and `data_from_var`
+  * fixed coarse-weight calculation in the scaler so empty coarse cells no longer trigger division-by-zero
+
+* `mo_grid_scaler`, `mo_orderpack` ([127](https://git.ufz.de/chs/forces/-/merge_requests/127), [138](https://git.ufz.de/chs/forces/-/merge_requests/138))
+  * added a new `up_median` upscaling operator
+  * median upscaling is available for floating-point output and supports both `dp -> dp` and `i4 -> dp`
+  * made `mo_orderpack` thread-safe by removing global state from median-related routines
+  * marked the affected routines as `recursive` for safer OpenMP use on older compilers
+
+* `mo_grid_io`, `mo_grid` ([108](https://git.ufz.de/chs/forces/-/merge_requests/108), [113](https://git.ufz.de/chs/forces/-/merge_requests/113), [118](https://git.ufz.de/chs/forces/-/merge_requests/118), [123](https://git.ufz.de/chs/forces/-/merge_requests/123), [126](https://git.ufz.de/chs/forces/-/merge_requests/126), [128](https://git.ufz.de/chs/forces/-/merge_requests/128))
+  * added `ref_time` to input and output datasets for unit reference
+  * clarified `start_time` semantics so it now represents the start of the time frame in the file
+  * made the optional `timestamp` handling consistent in `input_dataset%init` and related routines
+  * passed tolerance from initialization down to the respective functions
+  * `input%time_index` now returns `0` when the requested time matches the file start time, preventing out-of-bounds chunk reads
+  * added restart-oriented grid I/O via `grid_t%to_restart` and `grid_t%from_restart`
+  * restart files can now include additional grid information for faster setup
+  * removed `area` and `mask` arguments from `to_netcdf`
+  * added `allow_static` to `type(var)` so temporal inputs can optionally accept static variables on read-in
+  * kept `static` as the authoritative flag for output handling and strict validation
+  * added optional NetCDF output controls `cache_size` and `static_contiguous`
+  * when `cache_size` is set, output datasets derive chunk sizes from the cache budget and pass chunk/cache settings to NetCDF
+  * static output variables can now optionally be written as contiguous storage
+
+* `mo_dag` ([104](https://git.ufz.de/chs/forces/-/merge_requests/104))
+  * added `n_roots`, `n_leaves`, `roots`, and `leaves` methods to the DAG type
+  * updated `traverse` so traversal starts at leaves when traversing down and at roots otherwise
+
+* `mo_message`, `mo_logging` ([120](https://git.ufz.de/chs/forces/-/merge_requests/120), [125](https://git.ufz.de/chs/forces/-/merge_requests/125))
+  * added `mo_message::use_log` to route messages through the logging module
+  * added `log_redirect_to_file(log_file_path[, append])` to redirect log output to a file
+
+* `mo_errormeasures` ([141](https://git.ufz.de/chs/forces/-/merge_requests/141))
+  * added Spatial Efficiency (SPAEF) and Classification Accuracy (CA) metrics
+  * added support for the new objective functions 35 to 47 based on SPAEF and CA
+
+* CI / CMake / compiler support ([134](https://git.ufz.de/chs/forces/-/merge_requests/134), [143](https://git.ufz.de/chs/forces/-/merge_requests/143))
+  * fixed NAG+OpenMP support
+  * adjusted atomic capture usage for NAG requirements
+  * fixed OpenMP link handling
+  * increased the minimum CMake version to 3.18 for the required `LINK_LANGUAGE` generator expression
+  * added `FORCES_ENABLE_NATIVE` CMake option to enable HPC/local optimized code
+  * added `RelWithDebInfo` build support for faster run/debug cycles with backtraces and debug logging
+  * added CI test jobs for NAG v7.2 on DS3
+  * added CI test jobs for GNU v13.3 on DS3
+  * removed `-fp-model=precise` and `-fprotect-parens` for Intel release builds to allow better optimization
+  * added `-fcheck=no-array-temps` for GNU debug builds to suppress excessive runtime warnings for array temporaries
+  * adjusted CMake+NAG+OpenMP handling by only adding `-openmp` and removing `-gline` in debug mode
+
+### Fixes
+
+* `mo_glob` ([121](https://git.ufz.de/chs/forces/-/merge_requests/121))
+  * fixed matching of empty strings against non-trivial glob patterns
+  * empty text is now handled separately to avoid substring bound errors
+
+* `mo_dag` ([115](https://git.ufz.de/chs/forces/-/merge_requests/115))
+  * fixed OpenMP atomic capture statements that did not follow the OpenMP rules in the updated DAG traversal code
+
+* tests / numerical robustness ([143](https://git.ufz.de/chs/forces/-/merge_requests/143))
+  * updated tests to be less dependent on exact floating-point optimizer trajectories
+  * improved tolerance-based floating-point comparisons in `mo_corr`, `mo_percentile`, and `mo_errormeasures`
+  * removed non-portable subnormal relational assertions in `mo_utils`
+
+* `mo_percentile`, `mo_grid` ([143](https://git.ufz.de/chs/forces/-/merge_requests/143))
+  * fixed a mode-3 index-selection issue in `mo_percentile` that could flip the selected index under aggressive Intel optimization in single precision
+  * fixed `grid_map_longitude_for_domain` so periodic upper-bound ties no longer rely on `modulo(..., 360)`
+
+## v0.8.0 - 2025-11
 - See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.7.1...v0.8.0) for details.
 
 ### Enhancements and Changes
