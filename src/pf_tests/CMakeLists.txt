@@ -24,10 +24,6 @@ if(PFUNIT_FOUND)
     list(FILTER testsourcefiles EXCLUDE REGEX ".*mo_grid.pf$")
     list(FILTER testsourcefiles EXCLUDE REGEX ".*mo_grid_io.pf$")
   endif()
-  if (CMAKE_WITH_OpenMP AND CMAKE_Fortran_COMPILER_ID STREQUAL "NAG")
-    # NAG OpenMP still trips a runtime issue in the indmed parallel stress test.
-    list(FILTER testsourcefiles EXCLUDE REGEX ".*mo_orderpack_parallel.pf$")
-  endif()
   foreach(testsourcefile ${testsourcefiles})
     get_filename_component(testname ${testsourcefile} NAME_WE)
     add_pfunit_ctest(${testname}
