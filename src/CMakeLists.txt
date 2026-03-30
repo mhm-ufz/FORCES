@@ -120,7 +120,7 @@ if (FORCES_WITH_OpenMP)
     add_library(project_openmp INTERFACE)
     target_link_libraries(project_openmp INTERFACE OpenMP::OpenMP_Fortran)
   endif()
-  target_link_libraries(${LIB_NAME} PUBLIC project_openmp)
+  target_link_libraries(${LIB_NAME} PRIVATE project_openmp)
 endif()
 
 # log settings
