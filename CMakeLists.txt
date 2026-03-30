@@ -3,9 +3,9 @@
 # -DFORCES_BUILD_TESTING=ON      - build FORCES pfUnit tests
 # -DFORCES_WITH_NETCDF=OFF       - build without NetCDF support
 # -DFORCES_WITH_OpenMP=ON        - build with OpenMP support
+# -DFORCES_WITH_MPI=ON           - build with MPI support
 # -DFORCES_ENABLE_NATIVE=ON      - enable host-native release tuning for local/HPC builds
 # -DCMAKE_VERBOSE_MAKEFILE=OFF   - see all the commands
-# -DCMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT=OFF   - build the library INDEPENDENT of the module system,
 # -DCMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX=64     - find extra library paths on some systems (eve.nag62)
 #         so the build in the build tree works even after a module purge
 cmake_minimum_required(VERSION 3.18)
