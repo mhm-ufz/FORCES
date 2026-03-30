@@ -1,12 +1,9 @@
-enable_testing()
-
 set (LIB_NAME forces)
-find_package(PFUNIT)
+find_package(PFUNIT QUIET)
 # copy files
 file ( COPY ./files DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 if(PFUNIT_FOUND)
-  set(FORCES_TEST_GLOB "*.pf" CACHE STRING "Globbing expression for pFUnit tests to run.")
   set(pfunit_suffix ".pf")
   file(GLOB testsourcefiles RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${FORCES_TEST_GLOB})
   if (NOT FORCES_WITH_OPTIMIZATION)
@@ -32,5 +29,5 @@ if(PFUNIT_FOUND)
     list(APPEND testnames ${testname})
   endforeach()
 else()
-  message(STATUS "No test program found, install pFUnit")
+  message(STATUS "FORCES: No test program found, install pFUnit")
 endif()

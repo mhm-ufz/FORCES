@@ -57,21 +57,21 @@ show-env-vars:
 # debug variables
 .debug_vars: &debug_vars
   BUILD_DIR: build_debug
-  CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug'
+  CMAKE_FLAGS: '-DFORCES_BUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug'
   BUILD_TARGET: test
   ARTIFACT_PATH: Testing/Temporary
 
 # release variables
 .release_vars: &release_vars
   BUILD_DIR: build_release
-  CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
+  CMAKE_FLAGS: '-DFORCES_BUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release'
   BUILD_TARGET: test
   ARTIFACT_PATH: Testing/Temporary
 
 # debug OpenMP variables
 .omp_debug_vars: &omp_debug_vars
   BUILD_DIR: build_omp_debug
-  CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_OpenMP=ON'
+  CMAKE_FLAGS: '-DFORCES_BUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DFORCES_WITH_OpenMP=ON'
   BUILD_TARGET: test
   ARTIFACT_PATH: Testing/Temporary
   OMP_NUM_THREADS: 4
@@ -79,7 +79,7 @@ show-env-vars:
 # release OpenMP variables
 .omp_release_vars: &omp_release_vars
   BUILD_DIR: build_omp_release
-  CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_WITH_OpenMP=ON'
+  CMAKE_FLAGS: '-DFORCES_BUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DFORCES_WITH_OpenMP=ON'
   BUILD_TARGET: test
   ARTIFACT_PATH: Testing/Temporary
   OMP_NUM_THREADS: 4
@@ -87,7 +87,7 @@ show-env-vars:
 # native release OpenMP variables (opt-in local/HPC tuning mode)
 .omp_release_native_vars: &omp_release_native_vars
   BUILD_DIR: build_omp_release_native
-  CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_WITH_OpenMP=ON -DFORCES_ENABLE_NATIVE=ON'
+  CMAKE_FLAGS: '-DFORCES_BUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DFORCES_WITH_OpenMP=ON -DFORCES_ENABLE_NATIVE=ON'
   BUILD_TARGET: test
   ARTIFACT_PATH: Testing/Temporary
   OMP_NUM_THREADS: 4
@@ -95,12 +95,12 @@ show-env-vars:
 # example variables
 .examples_vars: &examples_vars
   BUILD_DIR: build_examples
-  CMAKE_FLAGS: '-DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Debug'
+  CMAKE_FLAGS: '-DFORCES_BUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Debug'
 
 # coverage variables
 .coverage_vars: &coverage_vars
   BUILD_DIR: build_debug
-  CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON'
+  CMAKE_FLAGS: '-DFORCES_BUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DFORCES_WITH_COVERAGE=ON'
   BUILD_TARGET: coverage
   ARTIFACT_PATH: coverage
   POST_RUN_CMD: 'lcov_cobertura build_debug/coverage.info'
@@ -321,7 +321,7 @@ coverage:
 conditional_coverage:
   variables:
     <<: [*coverage_vars, *conda_vars_02]
-    CMAKE_FLAGS: '-DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_WITH_COVERAGE=ON -DFORCES_WITH_OPTIMIZATION=OFF -DFORCES_WITH_NETCDF=OFF'
+    CMAKE_FLAGS: '-DFORCES_BUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DFORCES_WITH_COVERAGE=ON -DFORCES_WITH_OPTIMIZATION=OFF -DFORCES_WITH_NETCDF=OFF'
   <<: *job_template
 
 ##############

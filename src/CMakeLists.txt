@@ -8,9 +8,9 @@ file(GLOB sources ./mo_*.f90 ./mo_*.F90)
 include(${FORCES_CMAKE_MODULE_PATH}/fortranpreprocessor.cmake)
 find_program(FYPP fypp)
 if(NOT FYPP)
-  message(WARNING "Preprocessor fypp not found!")
+  message(WARNING "FORCES: Preprocessor fypp not found!")
 else()
-  message(STATUS "Preprocessor fypp found!")
+  message(STATUS "FORCES: Preprocessor fypp found!")
   # Create a list of the files to be preprocessed
   set(fppFiles mo_netcdf_wrapper.fypp mo_netcdf.fypp mo_poly.fypp mo_sentinel.fypp mo_grid_io.fypp)
   # Custom preprocessor flags
@@ -31,8 +31,6 @@ else()
   list(FILTER sources EXCLUDE REGEX ".*mo_grid_io.f90$")
 endif()
 
-# option for optimization routines
-option(FORCES_WITH_OPTIMIZATION "Building FORCES with optimization routines." ON)
 if (FORCES_WITH_OPTIMIZATION)
   message(STATUS "FORCES: provide optimization routines")
 else()
@@ -49,8 +47,6 @@ else()
   list(FILTER sources EXCLUDE REGEX ".*mo_opt_eval_utils.f90$")
 endif()
 
-# option for NetCDF support
-option(FORCES_WITH_NETCDF "Building FORCES with NetCDF support." ON)
 if (FORCES_WITH_NETCDF)
   message(STATUS "FORCES: use NetCDF")
 else()
@@ -65,8 +61,6 @@ else()
   list(FILTER sources EXCLUDE REGEX ".*mo_grid_io.f90$")
 endif()
 
-# option for host-native Release tuning
-option(FORCES_ENABLE_NATIVE "Enable host-native tuning for Release builds." OFF)
 if(FORCES_ENABLE_NATIVE)
   message(STATUS "FORCES: enable host-native Release tuning (opt-in local/HPC mode)")
 else()
@@ -77,8 +71,6 @@ endif()
 add_library(${LIB_NAME} ${sources} ${fyppOutFiles})
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
-# control mo_kind
-option(FORCES_WITH_ISO_FORTRAN_ENV "build the module with kind definitions of ISO_FORTRAN_ENV instead of ISO_C_BINDING" OFF)
 if (FORCES_WITH_ISO_FORTRAN_ENV)
   message(STATUS "FORCES: use ISO_FORTRAN_ENV for mo_kind")
   target_compile_definitions(${LIB_NAME} PRIVATE FORCES_WITH_ISO_FORTRAN_ENV)
@@ -99,14 +91,21 @@ if (FORCES_WITH_NETCDF)
   target_compile_definitions(${LIB_NAME} PRIVATE FORCES_WITH_NETCDF)
 endif()
 
-# add all compile options (MPI, OpenMP, Lapack, Coverage)
-include(${FORCES_CMAKE_MODULE_PATH}/compileoptions.cmake)
-if (CMAKE_WITH_MPI)
+# add all compile options (MPI, OpenMP, Coverage)
+if (FORCES_WITH_MPI)
+  find_package(MPI REQUIRED COMPONENTS Fortran)
+  if(NOT MPI_Fortran_HAVE_F08_MODULE)
+      message(FATAL_ERROR "FORCES: MPI found, but the 'mpi_f08' module is not available.")
+  endif()
   message(STATUS "FORCES: use MPI")
   target_compile_definitions(${LIB_NAME} PRIVATE MPI)
   target_link_libraries(${LIB_NAME} PUBLIC MPI::MPI_Fortran)
 endif()
-if (CMAKE_WITH_OpenMP)
+if (FORCES_WITH_OpenMP)
+  find_package(OpenMP REQUIRED COMPONENTS Fortran)
+  if(NOT OpenMP_Fortran_HAVE_OMPLIB_MODULE)
+      message(FATAL_ERROR "FORCES: OpenMP found, but the 'omp_lib' module is not available.")
+  endif()
   message(STATUS "FORCES: use OpenMP")
   # Hack for NAG+Cmake+OpenMP
   # See: https://gitlab.kitware.com/cmake/cmake/-/work_items/21280
@@ -125,11 +124,6 @@ if (CMAKE_WITH_OpenMP)
 endif()
 
 # log settings
-set(LOG_TRACE "AUTO" CACHE STRING "Control log trace level (AUTO (debug - ON), ON, OFF)")
-set_property(CACHE LOG_TRACE PROPERTY STRINGS AUTO ON OFF)
-set(LOG_DEBUG "AUTO" CACHE STRING "Control log debug level (AUTO (release - OFF), ON, OFF)")
-set_property(CACHE LOG_DEBUG PROPERTY STRINGS AUTO ON OFF)
-
 if(LOG_TRACE STREQUAL "ON")
   target_compile_definitions(${LIB_NAME} PUBLIC ENABLE_LOG_TRACE)
 elseif(LOG_TRACE STREQUAL "AUTO")
@@ -208,7 +202,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
     message(STATUS "FORCES: host-native Release tuning has no effect for NAG")
   endif()
   target_compile_definitions(${LIB_NAME} PRIVATE "NAG")
-  if(CMAKE_WITH_OpenMP)
+  if(FORCES_WITH_OpenMP)
     # NAG's -gline traceback instrumentation destabilizes explicit OpenMP calls
     # into the recursive indmed path in mo_orderpack. Keep debug checks, but
     # disable -gline for OpenMP builds.

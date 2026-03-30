@@ -65,12 +65,43 @@ This is working!
 
 If you have the FORCES sources downloaded and you want to link a local executable against it, you can specify a path to CMake with `FORCES_EXE`:
 ```bash
-cmake -B build -D FORCES_EXE=test.f90
+cmake -B build -DFORCES_EXE=test.f90
 cmake --build build --parallel
 ./build/main
 ```
 You can use this with the examples provided in the `examples/` directory, e.g. `FORCES_EXE=examples/01_grids/01_regridding.f90`.
 The executable will be always called `main`.
+
+## Build Configuration
+
+FORCES uses standard CMake inputs such as `CMAKE_BUILD_TYPE` and a small set of project-specific cache options:
+
+* `FORCES_BUILD_TESTING`: build the FORCES pfUnit tests. Defaults to `ON` when FORCES is configured as the top-level project and `OFF` when it is pulled in as a dependency.
+* `FORCES_WITH_COVERAGE`: enable GNU coverage instrumentation for FORCES test builds.
+* `FORCES_WITH_OpenMP`: enable OpenMP support.
+* `FORCES_WITH_MPI`: enable MPI support.
+* `FORCES_WITH_NETCDF`: enable NetCDF support.
+* `FORCES_WITH_OPTIMIZATION`: include optimization routines.
+* `FORCES_ENABLE_NATIVE`: enable host-native tuning for `Release` and `RelWithDebInfo` builds.
+* `FORCES_EXE`: build a local executable linked against `forces`.
+
+Typical configure commands:
+
+```bash
+# test build
+cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFORCES_BUILD_TESTING=ON
+
+# OpenMP build
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DFORCES_BUILD_TESTING=ON -DFORCES_WITH_OpenMP=ON
+
+# GNU coverage build
+cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFORCES_BUILD_TESTING=ON -DFORCES_WITH_COVERAGE=ON
+
+# local executable build
+cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFORCES_EXE=test.f90
+```
+
+`FORCES_WITH_COVERAGE` is only meaningful for test builds and requires GNU Fortran.
 
 For a more complex project, prepared for unit-tests, documentation and modules, have a look at the [Fortran Template](https://git.ufz.de/chs/fortran-template).
 
