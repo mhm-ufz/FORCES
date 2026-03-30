@@ -175,4 +175,4 @@ For a more complex project, prepared for unit-tests, documentation and modules, 
 
 ## License
 
-LGPLv3 (c) 2005-6 CHS-Developers
+LGPLv3 (c) 2005-2026 CHS-Developers
