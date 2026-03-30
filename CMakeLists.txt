@@ -36,7 +36,7 @@ endif()
 # public build configuration
 include(CMakeDependentOption)
 
-option(FORCES_BUILD_TESTING "Build FORCES pfUnit tests." ${FORCES_IS_TOP_LEVEL})
+option(FORCES_BUILD_TESTING "Build FORCES pfUnit tests." OFF)
 cmake_dependent_option(FORCES_WITH_COVERAGE "Build with code coverage." OFF
   "FORCES_BUILD_TESTING" OFF)
 option(FORCES_WITH_OPTIMIZATION "Building FORCES with optimization routines." ON)
