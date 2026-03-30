@@ -76,7 +76,7 @@ The executable will be always called `main`.
 
 FORCES uses standard CMake inputs such as `CMAKE_BUILD_TYPE` and a small set of project-specific cache options:
 
-* `FORCES_BUILD_TESTING`: build the FORCES pfUnit tests. Defaults to `ON` when FORCES is configured as the top-level project and `OFF` when it is pulled in as a dependency.
+* `FORCES_BUILD_TESTING`: build the FORCES pfUnit tests. Defaults to `OFF`.
 * `FORCES_WITH_COVERAGE`: enable GNU coverage instrumentation for FORCES test builds.
 * `FORCES_WITH_OpenMP`: enable OpenMP support.
 * `FORCES_WITH_MPI`: enable MPI support.
@@ -102,6 +102,52 @@ cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFORCES_EXE=test.f90
 ```
 
 `FORCES_WITH_COVERAGE` is only meaningful for test builds and requires GNU Fortran.
+
+## Testing with pFUnit
+
+FORCES uses [pFUnit](https://github.com/Goddard-Fortran-Ecosystem/pFUnit) for its unit tests. When `FORCES_BUILD_TESTING=ON`, CMake will look for `PFUNIT`. If pFUnit is not available, configuration still succeeds, but no FORCES tests are added.
+
+You need to provide `pFUnit` to run the tests. It is unfortunately not available on conda yet. To compile it by hand in the current conda environment, you can do the following:
+
+```bash
+conda install -y m4
+git clone https://github.com/Goddard-Fortran-Ecosystem/pFUnit.git
+cmake -DCMAKE_BUILD_TYPE=Release -B pFUnit/build -S pFUnit
+cmake --build pFUnit/build --parallel
+cmake --install pFUnit/build --prefix $CONDA_PREFIX
+rm -rf pFUnit
+```
+
+Then you can compile and run the tests and/or calculate coverage in the same environment:
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFORCES_BUILD_TESTING=ON -DFORCES_WITH_COVERAGE=ON
+cmake --build build --parallel
+cmake --build build --target test
+cmake --build build --target coverage
+```
+
+Run all configured tests with:
+
+```bash
+ctest --test-dir build --output-on-failure
+```
+
+Run a single pFUnit suite with `ctest -R`, for example:
+
+```bash
+ctest --test-dir build --output-on-failure -R test_mo_message
+```
+
+If you only want to configure a subset of the pFUnit files, use `FORCES_TEST_GLOB`:
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFORCES_BUILD_TESTING=ON -DFORCES_TEST_GLOB='test_mo_message.pf'
+```
+
+This is useful when iterating on one module or when you want to avoid configuring optional suites such as NetCDF- or optimization-related tests.
+
+The `coverage` target additionally requires `lcov` to be available on `PATH`.
 
 For a more complex project, prepared for unit-tests, documentation and modules, have a look at the [Fortran Template](https://git.ufz.de/chs/fortran-template).
 
