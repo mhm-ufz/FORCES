@@ -68,7 +68,7 @@ All notable changes to **FORCES** will be documented in this file.
   * added Spatial Efficiency (SPAEF) and Classification Accuracy (CA) metrics
   * added support for the new objective functions 35 to 47 based on SPAEF and CA
 
-* CI / CMake / compiler support ([134](https://git.ufz.de/chs/forces/-/merge_requests/134), [143](https://git.ufz.de/chs/forces/-/merge_requests/143))
+* CI / CMake / compiler support ([134](https://git.ufz.de/chs/forces/-/merge_requests/134), [143](https://git.ufz.de/chs/forces/-/merge_requests/143), [144](https://git.ufz.de/chs/forces/-/merge_requests/144))
   * fixed NAG+OpenMP support
   * adjusted atomic capture usage for NAG requirements
   * fixed OpenMP link handling
@@ -77,6 +77,13 @@ All notable changes to **FORCES** will be documented in this file.
   * added `RelWithDebInfo` build support for faster run/debug cycles with backtraces and debug logging
   * added CI test jobs for NAG v7.2 on DS3
   * added CI test jobs for GNU v13.3 on DS3
+  * moved build configuration to FORCES-owned top-level cache options such as `FORCES_BUILD_TESTING`, `FORCES_WITH_COVERAGE`, `FORCES_WITH_NETCDF`, `FORCES_WITH_MPI`, `FORCES_WITH_OpenMP`, `FORCES_WITH_OPTIMIZATION`, and `FORCES_ENABLE_NATIVE`
+  * made testing opt-in through `FORCES_BUILD_TESTING`
+  * switched coverage setup to target-scoped coverage flags with GNU-only validation at configure time
+  * updated the vendored `cmake/` helper subtree to `cmake-fortran-scripts` v3.0
+  * updated `README.md`, `cmake/README.md`, and `.gitlab-ci.yml` to document and use the new `FORCES_*` options
+  * changed the OpenMP link on `forces` from `PUBLIC` to `PRIVATE`, so downstream targets no longer inherit OpenMP compile flags implicitly
+  * kept pFUnit discovery non-fatal and quiet when tests are enabled but `PFUNIT` is not installed
   * removed `-fp-model=precise` and `-fprotect-parens` for Intel release builds to allow better optimization
   * added `-fcheck=no-array-temps` for GNU debug builds to suppress excessive runtime warnings for array temporaries
   * adjusted CMake+NAG+OpenMP handling by only adding `-openmp` and removing `-gline` in debug mode
