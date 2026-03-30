@@ -18,6 +18,7 @@ The `jams_fortran` library was formerly developed at the CHS department at the U
 [TOC]
 
 ## Using FORCES with your Fortran program
+
 Let's assume, you want to write a fortran program using forces, like this example `test.f90`:
 ```fortran
 program test
@@ -103,6 +104,27 @@ cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFORCES_EXE=test.f90
 
 `FORCES_WITH_COVERAGE` is only meaningful for test builds and requires GNU Fortran.
 
+## Dependencies and Requirements
+
+* Fortran compiler: We support [gfortran](https://gcc.gnu.org/fortran/), [nagfor](https://www.nag.com/content/nag-fortran-compiler) and [ifort](https://www.intel.com/content/www/us/en/developer/tools/oneapi/overview.html)
+* Build system: We support [make](https://www.gnu.org/software/make/) and [ninja](https://ninja-build.org/)
+* [cmake](https://cmake.org/): Software for build automation
+* [NetCDF-C](https://github.com/Unidata/netcdf-c): NetCDF I/O library
+* (optional) [fypp](https://github.com/aradi/fypp): Fortran pre-processor written in Python
+
+It is recommended to have a clean installation at a custom location
+for a C compiler, a Fortran compiler and the NetCDF C library with consistent compilers.
+
+We recommend to use a [conda](https://docs.conda.io/en/latest/) environment by using [Miniconda](https://docs.conda.io/en/latest/miniconda.html) to get all dependencies easily:
+```bash
+conda create -y --prefix ./forces_env
+conda activate ./forces_env
+conda config --add channels conda-forge
+conda config --set channel_priority strict
+conda install -y cmake make fortran-compiler libnetcdf fypp
+```
+With this you could now proceed with the example given above.
+
 ## Testing with pFUnit
 
 FORCES uses [pFUnit](https://github.com/Goddard-Fortran-Ecosystem/pFUnit) for its unit tests. When `FORCES_BUILD_TESTING=ON`, CMake will look for `PFUNIT`. If pFUnit is not available, configuration still succeeds, but no FORCES tests are added.
@@ -150,28 +172,6 @@ This is useful when iterating on one module or when you want to avoid configurin
 The `coverage` target additionally requires `lcov` to be available on `PATH`.
 
 For a more complex project, prepared for unit-tests, documentation and modules, have a look at the [Fortran Template](https://git.ufz.de/chs/fortran-template).
-
-## Dependencies and Requirements
-
-* Fortran compiler: We support [gfortran](https://gcc.gnu.org/fortran/), [nagfor](https://www.nag.com/content/nag-fortran-compiler) and [ifort](https://www.intel.com/content/www/us/en/developer/tools/oneapi/overview.html)
-* Build system: We support [make](https://www.gnu.org/software/make/) and [ninja](https://ninja-build.org/)
-* [cmake](https://cmake.org/): Software for build automation
-* [NetCDF-C](https://github.com/Unidata/netcdf-c): NetCDF I/O library
-* (optional) [fypp](https://github.com/aradi/fypp): Fortran pre-processor written in Python
-
-It is recommended to have a clean installation at a custom location
-for a C compiler, a Fortran compiler and the NetCDF C library with consistent compilers.
-
-We recommend to use a [conda](https://docs.conda.io/en/latest/) environment by using [Miniconda](https://docs.conda.io/en/latest/miniconda.html) to get all dependencies easily:
-```bash
-conda create -y --prefix ./forces_env
-conda activate ./forces_env
-conda config --add channels conda-forge
-conda config --set channel_priority strict
-conda install -y cmake make fortran-compiler libnetcdf fypp
-```
-With this you could now proceed with the example given above.
-
 
 ## License
 
