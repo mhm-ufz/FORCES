@@ -10,7 +10,7 @@
 # MIT License
 # -----------
 #[[
-  Copyright (c) 2020 - 2022 CHS Developers
+  Copyright (c) 2020 - 2026 CHS Developers
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -31,49 +31,79 @@
   SOFTWARE.
 ]]
 
-# function to search for yac
-function(search_yac)
+# pkg-config uses ':' on Unix-like systems and ';' on Windows.
+set(_YAC_pkg_config_separator ":")
+if(CMAKE_HOST_WIN32)
+  set(_YAC_pkg_config_separator ";")
+endif()
 
-  if(PkgConfig_FOUND AND NOT YAC_LIB AND NOT YAC_INCLUDE_DIR)
-    set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${YAC_ROOT}/lib/pkgconfig")
-    pkg_check_modules(YAC REQUIRED yac)
+set(_YAC_root_hints)
+if(DEFINED YAC_ROOT AND NOT YAC_ROOT STREQUAL "")
+  list(APPEND _YAC_root_hints "${YAC_ROOT}")
+endif()
+if(DEFINED ENV{YAC_ROOT} AND NOT "$ENV{YAC_ROOT}" STREQUAL "")
+  list(APPEND _YAC_root_hints "$ENV{YAC_ROOT}")
+endif()
+list(REMOVE_DUPLICATES _YAC_root_hints)
+
+set(_YAC_pkg_config_paths)
+foreach(_YAC_root IN LISTS _YAC_root_hints)
+  foreach(_YAC_suffix lib/pkgconfig lib64/pkgconfig)
+    if(IS_DIRECTORY "${_YAC_root}/${_YAC_suffix}")
+      list(APPEND _YAC_pkg_config_paths "${_YAC_root}/${_YAC_suffix}")
+    endif()
+  endforeach()
+endforeach()
+
+if(DEFINED ENV{PKG_CONFIG_PATH})
+  set(_YAC_original_pkg_config_path "$ENV{PKG_CONFIG_PATH}")
+  set(_YAC_had_pkg_config_path TRUE)
+else()
+  set(_YAC_had_pkg_config_path FALSE)
+endif()
+
+if(_YAC_pkg_config_paths)
+  list(JOIN _YAC_pkg_config_paths "${_YAC_pkg_config_separator}" _YAC_root_pkg_config_path)
+  if(_YAC_had_pkg_config_path)
+    set(ENV{PKG_CONFIG_PATH} "${_YAC_root_pkg_config_path}${_YAC_pkg_config_separator}$ENV{PKG_CONFIG_PATH}")
   else()
-    return()
+    set(ENV{PKG_CONFIG_PATH} "${_YAC_root_pkg_config_path}")
   endif()
+endif()
 
-  # library
-  if(CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT)
-    execute_process(
-      COMMAND bash "-c" "pkg-config --libs yac"
-      OUTPUT_VARIABLE YAC_LIB_TEMP1
-    )
-    string(STRIP ${YAC_LIB_TEMP1} YAC_LIB_TEMP1)
-    execute_process(
-      COMMAND bash "-c" "pkg-config --libs-only-L yac | sed 's/-L/-Wl,-rpath,/g'"
-      OUTPUT_VARIABLE YAC_LIB_TEMP2
-    )
-    string(STRIP ${YAC_LIB_TEMP2} YAC_LIB_TEMP2)
-    string(CONCAT YAC_LIBRARY "${YAC_LIB_TEMP1}" " ${YAC_LIB_TEMP2}")
-  else()
-    set(YAC_LIBRARY ${YAC_LDFLAGS})
-  endif()
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+  pkg_check_modules(YAC_PKG QUIET IMPORTED_TARGET yac)
+endif()
 
-  # set required variables in parent scope
-  set(YAC_FOUND true PARENT_SCOPE)
-  set(YAC_INCLUDE_DIR ${YAC_INCLUDE_DIRS} PARENT_SCOPE)
-  set(YAC_LIB ${YAC_LIBRARY} PARENT_SCOPE)
+if(_YAC_had_pkg_config_path)
+  set(ENV{PKG_CONFIG_PATH} "${_YAC_original_pkg_config_path}")
+else()
+  unset(ENV{PKG_CONFIG_PATH})
+endif()
 
-endfunction(search_yac)
+if(NOT PkgConfig_FOUND)
+  set(_YAC_failure_reason "PkgConfig is required to locate YAC")
+elseif(NOT YAC_PKG_FOUND)
+  set(_YAC_failure_reason "pkg-config could not locate package 'yac'")
+endif()
 
-find_package(PkgConfig REQUIRED)
-search_yac()
-set(_yac_req_vars ${YAC_LIB})
-
-mark_as_advanced (YAC_LIB YAC_INCLUDE_DIR)
-
-# check the requirements
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(YAC
-  REQUIRED_VARS _yac_req_vars
+  REQUIRED_VARS PkgConfig_FOUND YAC_PKG_FOUND
+  VERSION_VAR YAC_PKG_VERSION
+  REASON_FAILURE_MESSAGE "${_YAC_failure_reason}"
   HANDLE_COMPONENTS
 )
+
+if(YAC_FOUND AND NOT TARGET YAC::YAC)
+  add_library(YAC::YAC INTERFACE IMPORTED)
+  set_property(TARGET YAC::YAC PROPERTY
+    INTERFACE_LINK_LIBRARIES PkgConfig::YAC_PKG
+  )
+  if(YAC_PKG_INCLUDE_DIRS)
+    set_property(TARGET YAC::YAC PROPERTY
+      INTERFACE_INCLUDE_DIRECTORIES "${YAC_PKG_INCLUDE_DIRS}"
+    )
+  endif()
+endif()

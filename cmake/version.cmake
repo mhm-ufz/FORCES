@@ -4,7 +4,7 @@
 # MIT License
 # -----------
 #[[
-  Copyright (c) 2020 - 2022 CHS Developers
+  Copyright (c) 2020 - 2026 CHS Developers
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -30,13 +30,50 @@
 # version.txt - version string
 # version_date.txt - version date sting
 #
-# get_version(VER VER_DEV DATE)
+# get_version(NAME [SOURCE_DIR <dir>])
 #
-# will store version string in "VER" and version date string in "DATE"
-function(get_version ver_short ver_full ver_date)
+# will store version information in NAME_VER, NAME_VER_DEV and NAME_DATE
+function(get_version name)
+  string(CONCAT get_version_expected
+    "Expected: get_version(NAME [SOURCE_DIR <dir>])\n"
+    "This populates NAME_VER, NAME_VER_DEV and NAME_DATE."
+  )
+
+  if("${name}" STREQUAL "")
+    message(FATAL_ERROR "get_version(NAME [SOURCE_DIR <dir>]) requires a NAME argument")
+  endif()
+
+  if(ARGC GREATER 3)
+    message(FATAL_ERROR
+      "Unsupported get_version() arguments: ${ARGV}\n"
+      "${get_version_expected}"
+    )
+  endif()
+
+  set(version_source_dir "${CMAKE_SOURCE_DIR}")
+  if(ARGC EQUAL 2)
+    if("${ARGV1}" STREQUAL "SOURCE_DIR")
+      message(FATAL_ERROR "get_version(): SOURCE_DIR requires a directory argument")
+    endif()
+    message(FATAL_ERROR "Unsupported get_version() arguments: ${ARGV}\n${get_version_expected}")
+  elseif(ARGC EQUAL 3)
+    if(NOT "${ARGV1}" STREQUAL "SOURCE_DIR")
+      message(FATAL_ERROR
+        "Legacy get_version(VER VER_DEV DATE) is no longer supported.\n"
+        "Use get_version(NAME) instead.\n"
+        "${get_version_expected}"
+      )
+    endif()
+    get_filename_component(version_source_dir "${ARGV2}" ABSOLUTE
+      BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+  endif()
+
+  set(message_prefix "${name}: ")
+
   # check version file
-  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/version.txt")
-    file(STRINGS "version.txt" ver_file LIMIT_COUNT 1)
+  if(EXISTS "${version_source_dir}/version.txt")
+    file(STRINGS "${version_source_dir}/version.txt" ver_file LIMIT_COUNT 1)
   else()
     set(ver_file "0.0.0-dev0") # default version
   endif()
@@ -46,15 +83,15 @@ function(get_version ver_short ver_full ver_date)
   # - 1.2.3-rc1  (release candidate with number)
   # - 1.2.3      (release)
   # remove possible "v" prefix and find major.minor.patch version
-  string(REGEX MATCH "^v?([0-9]+)" _ ${ver_file})
-  set(ver_major ${CMAKE_MATCH_1})
-  string(REGEX MATCH "^v?[0-9]+\.([0-9]+)" _ ${ver_file})
-  set(ver_minor ${CMAKE_MATCH_1})
-  string(REGEX MATCH "^v?[0-9]+\.[0-9]+\.([0-9]+)" _ ${ver_file})
-  set(ver_patch ${CMAKE_MATCH_1})
+  string(REGEX MATCH "^v?([0-9]+)" _ "${ver_file}")
+  set(ver_major "${CMAKE_MATCH_1}")
+  string(REGEX MATCH "^v?[0-9]+\.([0-9]+)" _ "${ver_file}")
+  set(ver_minor "${CMAKE_MATCH_1}")
+  string(REGEX MATCH "^v?[0-9]+\.[0-9]+\.([0-9]+)" _ "${ver_file}")
+  set(ver_patch "${CMAKE_MATCH_1}")
   # find pre-release tag
-  string(REGEX MATCH ".*-(.+)" _ ${ver_file})
-  set(ver_pre ${CMAKE_MATCH_1})
+  string(REGEX MATCH ".*-(.+)" _ "${ver_file}")
+  set(ver_pre "${CMAKE_MATCH_1}")
 
   # create the version string for cmake (fill up with 0)
   if ("${ver_major}" STREQUAL "")
@@ -71,7 +108,7 @@ function(get_version ver_short ver_full ver_date)
 
   # whether it is a development version (e.g.: 1.1.0-dev0)
   set(is_dev_ver FALSE)
-  if(${ver_pre} MATCHES "^dev.*")
+  if("${ver_pre}" MATCHES "^dev.*")
       set(is_dev_ver TRUE)
   endif()
 
@@ -80,13 +117,13 @@ function(get_version ver_short ver_full ver_date)
 
   # set date, check date file (if not a development version)
   string(TIMESTAMP date "%Y-%m-%d") # current date
-  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/version_date.txt" AND (NOT is_dev_ver))
-    file(STRINGS "version_date.txt" date LIMIT_COUNT 1)
+  if(EXISTS "${version_source_dir}/version_date.txt" AND (NOT is_dev_ver))
+    file(STRINGS "${version_source_dir}/version_date.txt" date LIMIT_COUNT 1)
   else()
     if(Git_FOUND)
       execute_process(
         COMMAND "${GIT_EXECUTABLE}" log -1 --format=%cd --date=format:%Y-%m-%d
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        WORKING_DIRECTORY "${version_source_dir}"
         RESULT_VARIABLE res
         OUTPUT_VARIABLE out
         ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -103,7 +140,7 @@ function(get_version ver_short ver_full ver_date)
     if(Git_FOUND)
       execute_process(
         COMMAND "${GIT_EXECUTABLE}" log -1 --format=%h
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        WORKING_DIRECTORY "${version_source_dir}"
         RESULT_VARIABLE res
         OUTPUT_VARIABLE out
         ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -112,14 +149,14 @@ function(get_version ver_short ver_full ver_date)
         set(ver_dev "${ver_file}+${out}")
       endif()
     endif()
-    message(STATUS "use DEV-VERSION: ${ver_dev}")
+    message(STATUS "${message_prefix}use DEV-VERSION: ${ver_dev}")
   endif()
 
-  message(STATUS "use VERSION    : ${ver} (from ${ver_file})")
-  message(STATUS "use DATE       : ${date}")
+  message(STATUS "${message_prefix}use VERSION    : ${ver} (from ${ver_file})")
+  message(STATUS "${message_prefix}use DATE       : ${date}")
 
   # set given variables in parent scope
-  set(${ver_date} ${date} PARENT_SCOPE)
-  set(${ver_full} ${ver_dev} PARENT_SCOPE)
-  set(${ver_short} ${ver} PARENT_SCOPE)
+  set(${name}_DATE "${date}" PARENT_SCOPE)
+  set(${name}_VER_DEV "${ver_dev}" PARENT_SCOPE)
+  set(${name}_VER "${ver}" PARENT_SCOPE)
 endfunction()
