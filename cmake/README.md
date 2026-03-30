@@ -25,13 +25,28 @@ For package finders (e.g. YAC or NetCDF) you **need** to update the cmake module
 Draws inspiration from https://github.com/fortran-lang/stdlib/blob/master/cmake/stdlib.cmake (MIT license)
 to handle `fypp` pre-processor.
 
-Additional functions:
-- `get_preproc_flag`: checks for the pre-processor flag of the current compiler (`-fpp` or `-cpp`)
-- `cpp_definitions`: adds a compile definition and a corresponding cmake option
+Functions:
+- `fypp_f90`: preprocess `.fypp` sources to `.f90`
+- `fypp_f90pp`: preprocess `.fypp` sources to `.F90` so compiler preprocessing still applies
 
 Can be included with:
 ```cmake
 include(fortranpreprocessor)
+```
+
+Typical usage:
+```cmake
+find_program(FYPP fypp)
+set(fypp_sources src/foo.fypp)
+set(fypp_pp_sources src/bar.fypp)
+
+fypp_f90("${fyppFlags}" "${fypp_sources}" generated_f90_sources)
+fypp_f90pp("${fyppFlags}" "${fypp_pp_sources}" generated_F90_sources)
+
+target_sources(my_target PRIVATE
+  ${generated_f90_sources}
+  ${generated_F90_sources}
+)
 ```
 
 ### `CodeCoverage.cmake`
@@ -48,22 +63,6 @@ SETUP_TARGET_FOR_COVERAGE_LCOV(
   DEPENDENCIES PROJECT
   GENHTML_ARGS -t "PROJECT coverage"
 )
-```
-
-### `compileoptions.cmake`
-
-Adds cmake compile options
-- `CMAKE_BUILD_MODULE_SYSTEM_INDEPENDENT`: setting r_path
-- `CMAKE_WITH_MPI`: use MPI
-- `CMAKE_WITH_OpenMP`: use OpenMP
-- `CMAKE_WITH_LAPACK`: use LAPACK bindings
-- `CMAKE_WITH_COVERAGE`: Coverage calculation
-- `CMAKE_WITH_GPROF`: gprof profiling information (see [here](https://www.thegeekstuff.com/2012/08/gprof-tutorial/) for tutorial)
-- will also search for `MPI`, `OpenMP` and `LAPACK` if the respective option is `ON`
-
-Can be included with:
-```cmake
-include(compileoptions)
 ```
 
 ### `FindPackageWrapper.cmake`
@@ -97,11 +96,10 @@ or set environment variable `NetCDF_ROOT=/path/to/netcdf`.
 Can be used like:
 ```cmake
 find_package(YAC)
-target_include_directories(<target> PUBLIC ${YAC_INCLUDE_DIR})
-target_link_libraries(<target> PUBLIC ${YAC_LIB})
+target_link_libraries(<target> PUBLIC YAC::YAC)
 ```
 
-To specify a particular NetCDF library, use
+To specify a particular YAC library, use
 
     cmake -DYAC_ROOT=/path/to/yac -B build
 
@@ -136,10 +134,18 @@ target_link_libraries(<target> PUBLIC ESMF)
 
 Provides a function to read version and date from given files `version.txt` and (optional) `version_date.txt`.
 
-Can be included and used with (`PROJECT_VER_DEV` will hold the develop version string):
+Can be included and used with (`PROJECT_VER_DEV` will hold the development version string):
 ```cmake
 include(version)
-get_version(PROJECT_VER PROJECT_VER_DEV PROJECT_DATE)
+get_version(PROJECT)
+project(my_project VERSION ${PROJECT_VER})
+```
+
+This will populate `PROJECT_VER`, `PROJECT_VER_DEV`, and `PROJECT_DATE`.
+By default, `version.txt` and `version_date.txt` are read from `${CMAKE_SOURCE_DIR}`, which also works before `project()` is called.
+You can override the lookup directory explicitly:
+```cmake
+get_version(PROJECT SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 ```
 
 If a development version was found (e.g. `1.0.0-dev0`), it will try to determine the latest git commit short hash and add it (e.g. `1.0.0-dev0+02d7e12`).
