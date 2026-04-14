@@ -971,7 +971,8 @@ contains
     integer(i4), intent(in), optional :: class_id !< class id for up_fraction operator
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
-    real(dp) :: temp_in(this%source_grid%nx,this%source_grid%ny)
+    real(dp), allocatable :: temp_in(:, :)
+    allocate(temp_in(this%source_grid%nx, this%source_grid%ny))
     call this%source_grid%unpack_into(in_data, temp_in)
     call this%scaler_exe_dp_2d_1d(temp_in, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
   end subroutine scaler_exe_dp_1d_1d
@@ -987,7 +988,8 @@ contains
     integer(i4), intent(in), optional :: class_id !< class id for up_fraction operator
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
-    real(dp) :: temp_out(this%target_grid%ncells), temp_in(this%source_grid%nx,this%source_grid%ny)
+    real(dp), allocatable :: temp_out(:), temp_in(:, :)
+    allocate(temp_out(this%target_grid%ncells), temp_in(this%source_grid%nx, this%source_grid%ny))
     call this%source_grid%unpack_into(in_data, temp_in)
     call this%scaler_exe_dp_2d_1d(temp_in, temp_out, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     call this%target_grid%unpack_into(temp_out, out_data)
@@ -1004,7 +1006,8 @@ contains
     integer(i4), intent(in), optional :: class_id !< class id for up_fraction operator
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
-    real(dp), dimension(this%target_grid%ncells) :: temp
+    real(dp), allocatable :: temp(:)
+    allocate(temp(this%target_grid%ncells))
     call this%scaler_exe_dp_2d_1d(in_data, temp, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     call this%target_grid%unpack_into(temp, out_data)
   end subroutine scaler_exe_dp_2d_2d
@@ -1083,7 +1086,8 @@ contains
     integer(i4), intent(in), optional :: class_id !< class id for up_fraction operator
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
-    integer(i4) :: temp_in(this%source_grid%nx,this%source_grid%ny)
+    integer(i4), allocatable :: temp_in(:, :)
+    allocate(temp_in(this%source_grid%nx, this%source_grid%ny))
     call this%source_grid%unpack_into(in_data, temp_in)
     call this%scaler_exe_i4_2d_1d(temp_in, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
   end subroutine scaler_exe_i4_1d_1d
@@ -1099,7 +1103,8 @@ contains
     integer(i4), intent(in), optional :: class_id !< class id for up_fraction operator
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
-    integer(i4) :: temp_out(this%target_grid%ncells), temp_in(this%source_grid%nx,this%source_grid%ny)
+    integer(i4), allocatable :: temp_out(:), temp_in(:, :)
+    allocate(temp_out(this%target_grid%ncells), temp_in(this%source_grid%nx, this%source_grid%ny))
     call this%source_grid%unpack_into(in_data, temp_in)
     call this%scaler_exe_i4_2d_1d(temp_in, temp_out, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     call this%target_grid%unpack_into(temp_out, out_data)
@@ -1116,7 +1121,8 @@ contains
     integer(i4), intent(in), optional :: class_id !< class id for up_fraction operator
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
-    integer(i4), dimension(this%target_grid%ncells) :: temp
+    integer(i4), allocatable :: temp(:)
+    allocate(temp(this%target_grid%ncells))
     call this%scaler_exe_i4_2d_1d(in_data, temp, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     call this%target_grid%unpack_into(temp, out_data)
   end subroutine scaler_exe_i4_2d_2d
@@ -1194,7 +1200,8 @@ contains
     integer(i4), intent(in), optional :: class_id !< class id for up_fraction operator
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
-    integer(i4) :: temp_in(this%source_grid%nx,this%source_grid%ny)
+    integer(i4), allocatable :: temp_in(:, :)
+    allocate(temp_in(this%source_grid%nx, this%source_grid%ny))
     call this%source_grid%unpack_into(in_data, temp_in)
     call this%scaler_exe_i4_dp_2d_1d(temp_in, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
   end subroutine scaler_exe_i4_dp_1d_1d
@@ -1210,8 +1217,9 @@ contains
     integer(i4), intent(in), optional :: class_id !< class id for up_fraction operator
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
-    integer(i4) :: temp_in(this%source_grid%nx,this%source_grid%ny)
-    real(dp) :: temp_out(this%target_grid%ncells)
+    integer(i4), allocatable :: temp_in(:, :)
+    real(dp), allocatable :: temp_out(:)
+    allocate(temp_in(this%source_grid%nx, this%source_grid%ny), temp_out(this%target_grid%ncells))
     call this%source_grid%unpack_into(in_data, temp_in)
     call this%scaler_exe_i4_dp_2d_1d(temp_in, temp_out, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     call this%target_grid%unpack_into(temp_out, out_data)
@@ -1228,7 +1236,8 @@ contains
     integer(i4), intent(in), optional :: class_id !< class id for up_fraction operator
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
-    real(dp), dimension(this%target_grid%ncells) :: temp
+    real(dp), allocatable :: temp(:)
+    allocate(temp(this%target_grid%ncells))
     call this%scaler_exe_i4_dp_2d_1d(in_data, temp, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     call this%target_grid%unpack_into(temp, out_data)
   end subroutine scaler_exe_i4_dp_2d_2d
@@ -1774,7 +1783,8 @@ contains
     real(dp), dimension(this%fine_grid%ncells), intent(in) :: in_data !< fine grid input data
     integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of max values
     logical, intent(in), optional :: back !< start search from back (default: false)
-    real(dp) :: temp_in(this%fine_grid%nx,this%fine_grid%ny)
+    real(dp), allocatable :: temp_in(:, :)
+    allocate(temp_in(this%fine_grid%nx, this%fine_grid%ny))
     call this%fine_grid%unpack_into(in_data, temp_in)
     call this%scaler_maxloc_dp_2d(temp_in, ids, back)
   end subroutine scaler_maxloc_dp_1d
@@ -1810,7 +1820,8 @@ contains
     integer(i4), dimension(this%fine_grid%ncells), intent(in) :: in_data !< fine grid input data
     integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of max values
     logical, intent(in), optional :: back !< start search from back (default: false)
-    integer(i4) :: temp_in(this%fine_grid%nx,this%fine_grid%ny)
+    integer(i4), allocatable :: temp_in(:, :)
+    allocate(temp_in(this%fine_grid%nx, this%fine_grid%ny))
     call this%fine_grid%unpack_into(in_data, temp_in)
     call this%scaler_maxloc_i4_2d(temp_in, ids, back)
   end subroutine scaler_maxloc_i4_1d
@@ -1846,7 +1857,8 @@ contains
     real(dp), dimension(this%fine_grid%ncells), intent(in) :: in_data !< fine grid input data
     integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of min values
     logical, intent(in), optional :: back !< start search from back (default: false)
-    real(dp) :: temp_in(this%fine_grid%nx,this%fine_grid%ny)
+    real(dp), allocatable :: temp_in(:, :)
+    allocate(temp_in(this%fine_grid%nx, this%fine_grid%ny))
     call this%fine_grid%unpack_into(in_data, temp_in)
     call this%scaler_minloc_dp_2d(temp_in, ids, back)
   end subroutine scaler_minloc_dp_1d
@@ -1882,7 +1894,8 @@ contains
     integer(i4), dimension(this%fine_grid%ncells), intent(in) :: in_data !< fine grid input data
     integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of min values
     logical, intent(in), optional :: back !< start search from back (default: false)
-    integer(i4) :: temp_in(this%fine_grid%nx,this%fine_grid%ny)
+    integer(i4), allocatable :: temp_in(:, :)
+    allocate(temp_in(this%fine_grid%nx, this%fine_grid%ny))
     call this%fine_grid%unpack_into(in_data, temp_in)
     call this%scaler_minloc_i4_2d(temp_in, ids, back)
   end subroutine scaler_minloc_i4_1d

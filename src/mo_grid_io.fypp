@@ -243,11 +243,12 @@
     integer(i4), intent(in) :: var_id !< variable index
     ${type}$, dimension(:), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
-    ${type}$, dimension(self%grid%nx, self%grid%ny) :: data_matrix
+    ${type}$, allocatable :: data_matrix(:, :)
     if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_id: invalid variable id")
     if (size(data, kind=i8) /= self%grid%ncells) call error_message( &
       "input%read_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
       ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, kind=i8)))
+    allocate(data_matrix(self%grid%nx, self%grid%ny))
     call self%input_read_matrix_id_${kind}$(var_id, data_matrix, current_time)
     call self%grid%pack_into(data_matrix, data)
   end subroutine input_read_pack_id_${kind}$
@@ -271,7 +272,7 @@
     integer(i4), intent(in) :: var_id !< variable index
     ${type}$, dimension(:, :), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
-    ${type}$ :: data_matrix(self%grid%nx, self%grid%ny, self%nlayers)
+    ${type}$, allocatable :: data_matrix(:, :, :)
     integer(i4) :: i
     if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_layered_id: invalid variable id")
     if (size(data, 1, kind=i8) /= self%grid%ncells) call error_message( &
@@ -280,6 +281,7 @@
     if (size(data, 2, kind=i8) /= int(self%nlayers, i8)) call error_message( &
       "input%read_layered_id: layer count mismatch for variable ", self%vars(var_id)%name, &
       ". Expected: ", num2str(int(self%nlayers, i8)), ", got: ", num2str(size(data, 2, kind=i8)))
+    allocate(data_matrix(self%grid%nx, self%grid%ny, self%nlayers))
     call self%input_read_matrix_layered_id_${kind}$(var_id, data_matrix, current_time)
     do i = 1_i4, self%nlayers
       call self%grid%pack_into(data_matrix(:,:,i), data(:, i))
