@@ -416,27 +416,27 @@ contains
     getVariableParent = self%parent
   end function getVariableParent
 
-  function getVariableIds(self)
+  function getVariableIds(self) result(variableIds)
     class(NcGroup), intent(in) :: self
-    integer(i4), dimension(:), allocatable :: getVariableIds
+    integer(i4), dimension(:), allocatable :: variableIds
     integer(i4) :: tmp
 
-    allocate(getVariableIds(self%getNoVariables()))
-    call check(nf90_inq_varids(self%id, tmp, getVariableIds), "Failed to inquire variable ids")
+    allocate(variableIds(self%getNoVariables()))
+    call check(nf90_inq_varids(self%id, tmp, variableIds), "Failed to inquire variable ids")
   end function getVariableIds
 
-  function getVariables(self)
+  function getVariables(self) result(variables)
     class(NcGroup), intent(in) :: self
-    type(NcVariable), dimension(:), allocatable :: getVariables
+    type(NcVariable), dimension(:), allocatable :: variables
     integer(i4), dimension(:), allocatable :: varids
     integer(i4) :: i, nvars
 
     nvars = self%getNoVariables()
-    allocate(getVariables(nvars), varids(nvars))
+    allocate(variables(nvars), varids(nvars))
 
     varids = self%getVariableIds()
     do i = 1, size(varids)
-      getVariables(i) = NcVariable(varids(i), self)
+      variables(i) = NcVariable(varids(i), self)
     end do
 
   end function getVariables
@@ -862,49 +862,49 @@ contains
             "Could not inquire variable: " // self%getName())
   end function getNoDimensions
 
-  function getVariableDimensions(self)
+  function getVariableDimensions(self) result(variableDimensions)
     class(NcVariable), intent(in) :: self
-    type(NcDimension), allocatable :: getVariableDimensions(:)
+    type(NcDimension), allocatable :: variableDimensions(:)
     integer(i4), allocatable :: dimids(:)
     integer(i4) :: ii, ndims
 
     ndims = self%getNoDimensions()
-    allocate(dimids(ndims), getVariableDimensions(ndims))
+    allocate(dimids(ndims), variableDimensions(ndims))
     call check(nf90_inquire_variable(self%parent%id, self%id, dimids = dimids), &
             "Could not inquire variable: " // self%getName())
 
     do ii = 1, ndims
-      getVariableDimensions (ii) = self%parent%getDimension(dimids(ii))
+      variableDimensions (ii) = self%parent%getDimension(dimids(ii))
     end do
   end function getVariableDimensions
 
-  function getVariableShape(self)
+  function getVariableShape(self) result(variableShape)
     class(NcVariable), intent(in) :: self
-    integer(i4), allocatable :: getVariableShape(:)
+    integer(i4), allocatable :: variableShape(:)
     type(NcDimension), allocatable :: dims(:)
     integer(i4) :: ii, ndims
 
     ndims = self%getNoDimensions()
-    allocate(getVariableShape(ndims), dims(ndims))
+    allocate(variableShape(ndims), dims(ndims))
 
     dims = self%getDimensions()
     do ii = 1, size(dims)
-      getVariableShape(ii) = dims(ii)%getLength()
+      variableShape(ii) = dims(ii)%getLength()
     end do
   end function getVariableShape
 
-  function getVariableShape64(self)
+  function getVariableShape64(self) result(variableShape64)
     class(NcVariable), intent(in) :: self
-    integer(i8), allocatable :: getVariableShape64(:)
+    integer(i8), allocatable :: variableShape64(:)
     type(NcDimension), allocatable :: dims(:)
     integer(i4) :: ii, ndims
 
     ndims = self%getNoDimensions()
-    allocate(getVariableShape64(ndims), dims(ndims))
+    allocate(variableShape64(ndims), dims(ndims))
 
     dims = self%getDimensions()
     do ii = 1, size(dims)
-      getVariableShape64(ii) = dims(ii)%getLength64()
+      variableShape64(ii) = dims(ii)%getLength64()
     end do
   end function getVariableShape64
 
@@ -1038,16 +1038,16 @@ contains
   #:endfor
 #:endfor
 
-  function getAttributableIds(self)
+  function getAttributableIds(self) result(attributableIds)
     class(NcAttributable), intent(in) :: self
-    integer(i4) :: getAttributableIds(2)
+    integer(i4) :: attributableIds(2)
     select type(self)
     class is (NcGroup)
-      getAttributableIds(1) = self%id
-      getAttributableIds(2) = NF90_GLOBAL
+      attributableIds(1) = self%id
+      attributableIds(2) = NF90_GLOBAL
     class is (NcVariable)
-      getAttributableIds(1) = self%parent%id
-      getAttributableIds(2) = self%id
+      attributableIds(1) = self%parent%id
+      attributableIds(2) = self%id
     end select
   end function getAttributableIds
 
