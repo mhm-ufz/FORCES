@@ -179,7 +179,7 @@
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
-    ${type}$, dimension(self%grid%nx, self%grid%ny), intent(out) :: data !< read data
+    ${type}$, dimension(:, :), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     call self%input_read_matrix_id_${kind}$(self%var_index(name), data, current_time)
   end subroutine input_read_matrix_${kind}$
@@ -189,10 +189,15 @@
     implicit none
     class(input_dataset), intent(inout) :: self
     integer(i4), intent(in) :: var_id !< variable index
-    ${type}$, dimension(self%grid%nx, self%grid%ny), intent(out) :: data !< read data
+    ${type}$, dimension(:, :), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4) :: t_index
     if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_id: invalid variable id")
+    if (size(data, dim=1) /= self%grid%nx .or. &
+        size(data, dim=2) /= self%grid%ny) call error_message( &
+      "input%read_id: matrix data shape mismatch for variable ", self%vars(var_id)%name, &
+      ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), "), got: (", &
+      num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ")")
     t_index = 0_i4 ! indicate missing current_time
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
     call self%vars(var_id)%read(flip_y=self%flip_y, t_index=t_index, data=data)
@@ -205,7 +210,7 @@
     implicit none
     class(input_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< name of the variable
-    ${type}$, dimension(self%grid%nx, self%grid%ny, self%nlayers), intent(out) :: data !< read data
+    ${type}$, dimension(:, :, :), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     call self%input_read_matrix_layered_id_${kind}$(self%var_index(name), data, current_time)
   end subroutine input_read_matrix_layered_${kind}$
@@ -215,10 +220,17 @@
     implicit none
     class(input_dataset), intent(inout) :: self
     integer(i4), intent(in) :: var_id !< variable index
-    ${type}$, dimension(self%grid%nx, self%grid%ny, self%nlayers), intent(out) :: data !< read data
+    ${type}$, dimension(:, :, :), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4) :: t_index
     if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_layered_id: invalid variable id")
+    if (size(data, dim=1) /= self%grid%nx .or. &
+        size(data, dim=2) /= self%grid%ny .or. &
+        size(data, dim=3) /= self%nlayers) call error_message( &
+      "input%read_layered_id: layered matrix data shape mismatch for variable ", self%vars(var_id)%name, &
+      ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), ", ", num2str(self%nlayers), &
+      "), got: (", num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ", ", &
+      num2str(size(data, dim=3)), ")")
     t_index = 0_i4
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
     call self%vars(var_id)%read_layered(flip_y=self%flip_y, t_index=t_index, data=data)
@@ -278,9 +290,9 @@
     if (size(data, 1, kind=i8) /= self%grid%ncells) call error_message( &
       "input%read_layered_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
       ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, 1, kind=i8)))
-    if (size(data, 2, kind=i8) /= int(self%nlayers, i8)) call error_message( &
+    if (size(data, 2) /= self%nlayers) call error_message( &
       "input%read_layered_id: layer count mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(int(self%nlayers, i8)), ", got: ", num2str(size(data, 2, kind=i8)))
+      ". Expected: ", num2str(self%nlayers), ", got: ", num2str(size(data, 2)))
     allocate(data_matrix(self%grid%nx, self%grid%ny, self%nlayers))
     call self%input_read_matrix_layered_id_${kind}$(var_id, data_matrix, current_time)
     do i = 1_i4, self%nlayers

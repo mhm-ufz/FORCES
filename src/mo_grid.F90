@@ -1144,9 +1144,10 @@ contains
   subroutine grid_gen_id_matrix(this, mat)
     implicit none
     class(grid_t), intent(in) :: this
-    integer(i8), intent(out) :: mat(this%nx, this%ny)
+    integer(i8), intent(out) :: mat(:, :)
     integer(i8) :: k
     integer(i4) :: i, j
+    call this%check_shape(shape(mat, kind=i4))
     !$omp parallel do default(shared) private(k,i) schedule(static)
     do j = 1_i4, this%ny
       k = this%mask_cum_col_cnt(j)

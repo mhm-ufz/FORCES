@@ -117,6 +117,14 @@ module mo_grid_scaler
     procedure, private :: scaler_coarse_bounds, scaler_coarse_bounds_cell
     generic, public :: coarse_bounds => scaler_coarse_bounds, scaler_coarse_bounds_cell
     procedure, public :: operator_init
+    procedure, private :: check_packed_source => scaler_check_packed_source
+    procedure, private :: check_packed_target => scaler_check_packed_target
+    procedure, private :: check_unpacked_source => scaler_check_unpacked_source
+    procedure, private :: check_unpacked_target => scaler_check_unpacked_target
+    procedure, private :: check_packed_fine => scaler_check_packed_fine
+    procedure, private :: check_packed_coarse => scaler_check_packed_coarse
+    procedure, private :: check_unpacked_fine => scaler_check_unpacked_fine
+    procedure, private :: check_unpacked_coarse => scaler_check_unpacked_coarse
     ! separate routines for all packed(1d)/unpacked(2d) combinations of IO-data
     procedure, private :: scaler_exe_dp_1d_1d, scaler_exe_dp_1d_2d, scaler_exe_dp_2d_1d, scaler_exe_dp_2d_2d
     procedure, private :: scaler_exe_i4_1d_1d, scaler_exe_i4_1d_2d, scaler_exe_i4_2d_1d, scaler_exe_i4_2d_2d
@@ -960,11 +968,79 @@ contains
     if (present(downscaling_operator)) down_operator = downscaling_operator
   end subroutine operator_init
 
+  subroutine scaler_check_packed_source(this, nvals)
+    class(scaler_t), intent(in) :: this
+    integer(i8), intent(in) :: nvals
+    if (nvals /= this%source_grid%ncells) then
+      call error_message("scaler % execute: packed source size does not match source grid.") ! LCOV_EXCL_LINE
+    end if
+  end subroutine scaler_check_packed_source
+
+  subroutine scaler_check_packed_target(this, nvals)
+    class(scaler_t), intent(in) :: this
+    integer(i8), intent(in) :: nvals
+    if (nvals /= this%target_grid%ncells) then
+      call error_message("scaler % execute: packed target size does not match target grid.") ! LCOV_EXCL_LINE
+    end if
+  end subroutine scaler_check_packed_target
+
+  subroutine scaler_check_unpacked_source(this, nx, ny)
+    class(scaler_t), intent(in) :: this
+    integer(i4), intent(in) :: nx
+    integer(i4), intent(in) :: ny
+    if (nx /= this%source_grid%nx .or. ny /= this%source_grid%ny) then
+      call error_message("scaler % execute: source matrix shape does not match source grid.") ! LCOV_EXCL_LINE
+    end if
+  end subroutine scaler_check_unpacked_source
+
+  subroutine scaler_check_unpacked_target(this, nx, ny)
+    class(scaler_t), intent(in) :: this
+    integer(i4), intent(in) :: nx
+    integer(i4), intent(in) :: ny
+    if (nx /= this%target_grid%nx .or. ny /= this%target_grid%ny) then
+      call error_message("scaler % execute: target matrix shape does not match target grid.") ! LCOV_EXCL_LINE
+    end if
+  end subroutine scaler_check_unpacked_target
+
+  subroutine scaler_check_packed_fine(this, nvals)
+    class(scaler_t), intent(in) :: this
+    integer(i8), intent(in) :: nvals
+    if (nvals /= this%fine_grid%ncells) then
+      call error_message("scaler: packed fine-grid size does not match fine grid.") ! LCOV_EXCL_LINE
+    end if
+  end subroutine scaler_check_packed_fine
+
+  subroutine scaler_check_packed_coarse(this, nvals)
+    class(scaler_t), intent(in) :: this
+    integer(i8), intent(in) :: nvals
+    if (nvals /= this%coarse_grid%ncells) then
+      call error_message("scaler: packed coarse-grid size does not match coarse grid.") ! LCOV_EXCL_LINE
+    end if
+  end subroutine scaler_check_packed_coarse
+
+  subroutine scaler_check_unpacked_fine(this, nx, ny)
+    class(scaler_t), intent(in) :: this
+    integer(i4), intent(in) :: nx
+    integer(i4), intent(in) :: ny
+    if (nx /= this%fine_grid%nx .or. ny /= this%fine_grid%ny) then
+      call error_message("scaler: fine-grid matrix shape does not match fine grid.") ! LCOV_EXCL_LINE
+    end if
+  end subroutine scaler_check_unpacked_fine
+
+  subroutine scaler_check_unpacked_coarse(this, nx, ny)
+    class(scaler_t), intent(in) :: this
+    integer(i4), intent(in) :: nx
+    integer(i4), intent(in) :: ny
+    if (nx /= this%coarse_grid%nx .or. ny /= this%coarse_grid%ny) then
+      call error_message("scaler: coarse-grid matrix shape does not match coarse grid.") ! LCOV_EXCL_LINE
+    end if
+  end subroutine scaler_check_unpacked_coarse
+
   !> \brief Execute scaler for packed real input and output.
   subroutine scaler_exe_dp_1d_1d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%source_grid%ncells), intent(in) :: in_data !< input data on source grid
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data !< output data on target grid
+    real(dp), intent(in) :: in_data(:) !< input data on source grid
+    real(dp), intent(out) :: out_data(:) !< output data on target grid
     integer(i4), intent(in), optional :: upscaling_operator !< upscaling operator (up_a_mean by default)
     integer(i4), intent(in), optional :: downscaling_operator !< downscaling operator (down_nearest by default)
     real(dp), intent(in), optional :: p !< exponent for the up_p_mean operator
@@ -972,6 +1048,8 @@ contains
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
     real(dp), allocatable :: temp_in(:, :)
+    call this%check_packed_source(size(in_data, kind=i8))
+    call this%check_packed_target(size(out_data, kind=i8))
     allocate(temp_in(this%source_grid%nx, this%source_grid%ny))
     call this%source_grid%unpack_into(in_data, temp_in)
     call this%scaler_exe_dp_2d_1d(temp_in, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
@@ -980,8 +1058,8 @@ contains
   !> \brief Execute scaler for packed real input and unpacked real output.
   subroutine scaler_exe_dp_1d_2d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%source_grid%ncells), intent(in) :: in_data !< input data on source grid
-    real(dp), dimension(this%target_grid%nx,this%target_grid%ny), intent(out) :: out_data !< output data on target grid
+    real(dp), intent(in) :: in_data(:) !< input data on source grid
+    real(dp), intent(out) :: out_data(:, :) !< output data on target grid
     integer(i4), intent(in), optional :: upscaling_operator !< upscaling operator (up_a_mean by default)
     integer(i4), intent(in), optional :: downscaling_operator !< downscaling operator (down_nearest by default)
     real(dp), intent(in), optional :: p !< exponent for the up_p_mean operator
@@ -989,6 +1067,8 @@ contains
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
     real(dp), allocatable :: temp_out(:), temp_in(:, :)
+    call this%check_packed_source(size(in_data, kind=i8))
+    call this%check_unpacked_target(size(out_data, 1), size(out_data, 2))
     allocate(temp_out(this%target_grid%ncells), temp_in(this%source_grid%nx, this%source_grid%ny))
     call this%source_grid%unpack_into(in_data, temp_in)
     call this%scaler_exe_dp_2d_1d(temp_in, temp_out, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
@@ -998,8 +1078,8 @@ contains
   !> \brief Execute scaler for unpacked real input and output.
   subroutine scaler_exe_dp_2d_2d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data !< input data on source grid
-    real(dp), dimension(this%target_grid%nx,this%target_grid%ny), intent(out) :: out_data !< output data on target grid
+    real(dp), intent(in) :: in_data(:, :) !< input data on source grid
+    real(dp), intent(out) :: out_data(:, :) !< output data on target grid
     integer(i4), intent(in), optional :: upscaling_operator !< upscaling operator (up_a_mean by default)
     integer(i4), intent(in), optional :: downscaling_operator !< downscaling operator (down_nearest by default)
     real(dp), intent(in), optional :: p !< exponent for the up_p_mean operator
@@ -1007,6 +1087,8 @@ contains
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
     real(dp), allocatable :: temp(:)
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_unpacked_target(size(out_data, 1), size(out_data, 2))
     allocate(temp(this%target_grid%ncells))
     call this%scaler_exe_dp_2d_1d(in_data, temp, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     call this%target_grid%unpack_into(temp, out_data)
@@ -1015,8 +1097,8 @@ contains
   !> \brief Execute scaler for unpacked real input and packed real output.
   subroutine scaler_exe_dp_2d_1d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data !< input data on source grid
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data !< output data on target grid
+    real(dp), intent(in) :: in_data(:, :) !< input data on source grid
+    real(dp), intent(out) :: out_data(:) !< output data on target grid
     integer(i4), intent(in), optional :: upscaling_operator !< upscaling operator (up_a_mean by default)
     integer(i4), intent(in), optional :: downscaling_operator !< downscaling operator (down_nearest by default)
     real(dp), intent(in), optional :: p !< exponent for the up_p_mean operator
@@ -1025,6 +1107,8 @@ contains
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
 
     integer(i4) :: up_operator, down_operator
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(out_data, kind=i8))
     call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
     ! shortcut if resolution is equal (only masking and flipping)
     if (this%scaling_mode == no_scaling) then
@@ -1078,8 +1162,8 @@ contains
   !> \brief Execute scaler for packed integer input and output.
   subroutine scaler_exe_i4_1d_1d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%source_grid%ncells), intent(in) :: in_data !< input data on source grid
-    integer(i4), dimension(this%target_grid%ncells), intent(out) :: out_data !< output data on target grid
+    integer(i4), intent(in) :: in_data(:) !< input data on source grid
+    integer(i4), intent(out) :: out_data(:) !< output data on target grid
     integer(i4), intent(in), optional :: upscaling_operator !< upscaling operator (up_a_mean by default)
     integer(i4), intent(in), optional :: downscaling_operator !< downscaling operator (down_nearest by default)
     real(dp), intent(in), optional :: p !< exponent for the up_p_mean operator
@@ -1087,6 +1171,8 @@ contains
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
     integer(i4), allocatable :: temp_in(:, :)
+    call this%check_packed_source(size(in_data, kind=i8))
+    call this%check_packed_target(size(out_data, kind=i8))
     allocate(temp_in(this%source_grid%nx, this%source_grid%ny))
     call this%source_grid%unpack_into(in_data, temp_in)
     call this%scaler_exe_i4_2d_1d(temp_in, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
@@ -1095,8 +1181,8 @@ contains
   !> \brief Execute scaler for packed integer input and unpacked integer output.
   subroutine scaler_exe_i4_1d_2d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%source_grid%ncells), intent(in) :: in_data !< input data on source grid
-    integer(i4), dimension(this%target_grid%nx,this%target_grid%ny), intent(out) :: out_data !< output data on target grid
+    integer(i4), intent(in) :: in_data(:) !< input data on source grid
+    integer(i4), intent(out) :: out_data(:, :) !< output data on target grid
     integer(i4), intent(in), optional :: upscaling_operator !< upscaling operator (up_a_mean by default)
     integer(i4), intent(in), optional :: downscaling_operator !< downscaling operator (down_nearest by default)
     real(dp), intent(in), optional :: p !< exponent for the up_p_mean operator
@@ -1104,6 +1190,8 @@ contains
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
     integer(i4), allocatable :: temp_out(:), temp_in(:, :)
+    call this%check_packed_source(size(in_data, kind=i8))
+    call this%check_unpacked_target(size(out_data, 1), size(out_data, 2))
     allocate(temp_out(this%target_grid%ncells), temp_in(this%source_grid%nx, this%source_grid%ny))
     call this%source_grid%unpack_into(in_data, temp_in)
     call this%scaler_exe_i4_2d_1d(temp_in, temp_out, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
@@ -1113,8 +1201,8 @@ contains
   !> \brief Execute scaler for unpacked integer input output.
   subroutine scaler_exe_i4_2d_2d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data !< input data on source grid
-    integer(i4), dimension(this%target_grid%nx,this%target_grid%ny), intent(out) :: out_data !< output data on target grid
+    integer(i4), intent(in) :: in_data(:, :) !< input data on source grid
+    integer(i4), intent(out) :: out_data(:, :) !< output data on target grid
     integer(i4), intent(in), optional :: upscaling_operator !< upscaling operator (up_a_mean by default)
     integer(i4), intent(in), optional :: downscaling_operator !< downscaling operator (down_nearest by default)
     real(dp), intent(in), optional :: p !< exponent for the up_p_mean operator
@@ -1122,6 +1210,8 @@ contains
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
     integer(i4), allocatable :: temp(:)
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_unpacked_target(size(out_data, 1), size(out_data, 2))
     allocate(temp(this%target_grid%ncells))
     call this%scaler_exe_i4_2d_1d(in_data, temp, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     call this%target_grid%unpack_into(temp, out_data)
@@ -1130,8 +1220,8 @@ contains
   !> \brief Execute scaler for unpacked integer input and packed integer output.
   subroutine scaler_exe_i4_2d_1d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data !< input data on source grid
-    integer(i4), dimension(this%target_grid%ncells), intent(out) :: out_data !< output data on target grid
+    integer(i4), intent(in) :: in_data(:, :) !< input data on source grid
+    integer(i4), intent(out) :: out_data(:) !< output data on target grid
     integer(i4), intent(in), optional :: upscaling_operator !< upscaling operator (up_a_mean by default)
     integer(i4), intent(in), optional :: downscaling_operator !< downscaling operator (down_nearest by default)
     real(dp), intent(in), optional :: p !< exponent for the up_p_mean operator
@@ -1140,6 +1230,8 @@ contains
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
 
     integer(i4) :: up_operator, down_operator
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(out_data, kind=i8))
     call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
     ! shortcut if resolution is equal (only masking and flipping)
     if (this%scaling_mode == no_scaling) then
@@ -1192,8 +1284,8 @@ contains
   !> \brief Execute scaler for packed integer input and packed real output.
   subroutine scaler_exe_i4_dp_1d_1d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%source_grid%ncells), intent(in) :: in_data !< input data on source grid
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data !< output data on target grid
+    integer(i4), intent(in) :: in_data(:) !< input data on source grid
+    real(dp), intent(out) :: out_data(:) !< output data on target grid
     integer(i4), intent(in), optional :: upscaling_operator !< upscaling operator (up_a_mean by default)
     integer(i4), intent(in), optional :: downscaling_operator !< downscaling operator (down_nearest by default)
     real(dp), intent(in), optional :: p !< exponent for the up_p_mean operator
@@ -1201,6 +1293,8 @@ contains
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
     integer(i4), allocatable :: temp_in(:, :)
+    call this%check_packed_source(size(in_data, kind=i8))
+    call this%check_packed_target(size(out_data, kind=i8))
     allocate(temp_in(this%source_grid%nx, this%source_grid%ny))
     call this%source_grid%unpack_into(in_data, temp_in)
     call this%scaler_exe_i4_dp_2d_1d(temp_in, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
@@ -1209,8 +1303,8 @@ contains
   !> \brief Execute scaler for packed integer input and unpacked real output.
   subroutine scaler_exe_i4_dp_1d_2d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%source_grid%ncells), intent(in) :: in_data !< input data on source grid
-    real(dp), dimension(this%target_grid%nx,this%target_grid%ny), intent(out) :: out_data !< output data on target grid
+    integer(i4), intent(in) :: in_data(:) !< input data on source grid
+    real(dp), intent(out) :: out_data(:, :) !< output data on target grid
     integer(i4), intent(in), optional :: upscaling_operator !< upscaling operator (up_a_mean by default)
     integer(i4), intent(in), optional :: downscaling_operator !< downscaling operator (down_nearest by default)
     real(dp), intent(in), optional :: p !< exponent for the up_p_mean operator
@@ -1219,6 +1313,8 @@ contains
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
     integer(i4), allocatable :: temp_in(:, :)
     real(dp), allocatable :: temp_out(:)
+    call this%check_packed_source(size(in_data, kind=i8))
+    call this%check_unpacked_target(size(out_data, 1), size(out_data, 2))
     allocate(temp_in(this%source_grid%nx, this%source_grid%ny), temp_out(this%target_grid%ncells))
     call this%source_grid%unpack_into(in_data, temp_in)
     call this%scaler_exe_i4_dp_2d_1d(temp_in, temp_out, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
@@ -1228,8 +1324,8 @@ contains
   !> \brief Execute scaler for unpacked integer input and unpacked real output.
   subroutine scaler_exe_i4_dp_2d_2d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data !< input data on source grid
-    real(dp), dimension(this%target_grid%nx,this%target_grid%ny), intent(out) :: out_data !< output data on target grid
+    integer(i4), intent(in) :: in_data(:, :) !< input data on source grid
+    real(dp), intent(out) :: out_data(:, :) !< output data on target grid
     integer(i4), intent(in), optional :: upscaling_operator !< upscaling operator (up_a_mean by default)
     integer(i4), intent(in), optional :: downscaling_operator !< downscaling operator (down_nearest by default)
     real(dp), intent(in), optional :: p !< exponent for the up_p_mean operator
@@ -1237,6 +1333,8 @@ contains
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
     real(dp), allocatable :: temp(:)
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_unpacked_target(size(out_data, 1), size(out_data, 2))
     allocate(temp(this%target_grid%ncells))
     call this%scaler_exe_i4_dp_2d_1d(in_data, temp, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     call this%target_grid%unpack_into(temp, out_data)
@@ -1245,8 +1343,8 @@ contains
   !> \brief Execute scaler for unpacked integer input and packed real output.
   subroutine scaler_exe_i4_dp_2d_1d(this, in_data, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data !< input data on source grid
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data !< output data on target grid
+    integer(i4), intent(in) :: in_data(:, :) !< input data on source grid
+    real(dp), intent(out) :: out_data(:) !< output data on target grid
     integer(i4), intent(in), optional :: upscaling_operator !< upscaling operator (up_a_mean by default)
     integer(i4), intent(in), optional :: downscaling_operator !< downscaling operator (down_nearest by default)
     real(dp), intent(in), optional :: p !< exponent for the up_p_mean operator
@@ -1257,6 +1355,8 @@ contains
     integer(i4), dimension(:), allocatable :: temp
 
     integer(i4) :: up_operator, down_operator
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(out_data, kind=i8))
     call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
     ! shortcut if resolution is equal (only converting, masking and flipping)
     if (this%scaling_mode == no_scaling) then
@@ -1320,12 +1420,14 @@ contains
 
   subroutine scaler_upscale_p_mean(this, in_data, out_data, p)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
+    real(dp), intent(in) :: in_data(:, :)
+    real(dp), intent(out) :: out_data(:)
     real(dp), intent(in), optional :: p !< exponent for the p-norm (1.0 for arithmetic mean by default)
     integer(i8) :: k
     integer(i4) :: x_lb, x_ub, y_lb, y_ub
     real(dp) :: p_
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(out_data, kind=i8))
     p_ = 1.0_dp
     if (present(p)) p_ = p
     if (eq(p_, 0.0_dp)) then
@@ -1368,10 +1470,12 @@ contains
 
   subroutine scaler_upscale_a_mean(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
+    real(dp), intent(in) :: in_data(:, :)
+    real(dp), intent(out) :: out_data(:)
     integer(i8) :: k
     integer(i4) :: x_lb, x_ub, y_lb, y_ub
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(out_data, kind=i8))
     call check_upscaling(this%scaling_mode)
     if (this%weight_mode == weight_area) then
       !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
@@ -1394,10 +1498,12 @@ contains
 
   subroutine scaler_upscale_g_mean(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
+    real(dp), intent(in) :: in_data(:, :)
+    real(dp), intent(out) :: out_data(:)
     integer(i8) :: k
     integer(i4) :: x_lb, x_ub, y_lb, y_ub
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(out_data, kind=i8))
     call check_upscaling(this%scaling_mode)
     if (this%weight_mode == weight_area) then
       !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
@@ -1421,10 +1527,12 @@ contains
 
   subroutine scaler_upscale_h_mean(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
+    real(dp), intent(in) :: in_data(:, :)
+    real(dp), intent(out) :: out_data(:)
     integer(i8) :: k
     integer(i4) :: x_lb, x_ub, y_lb, y_ub
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(out_data, kind=i8))
     call check_upscaling(this%scaling_mode)
     if (this%weight_mode == weight_area) then
       !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
@@ -1448,10 +1556,12 @@ contains
 
   subroutine scaler_upscale_min_dp(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
+    real(dp), intent(in) :: in_data(:, :)
+    real(dp), intent(out) :: out_data(:)
     integer(i8) :: k
     integer(i4) :: x_lb, x_ub, y_lb, y_ub
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(out_data, kind=i8))
     call check_upscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
@@ -1463,10 +1573,12 @@ contains
 
   subroutine scaler_upscale_min_i4(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
-    integer(i4), dimension(this%target_grid%ncells), intent(out) :: out_data
+    integer(i4), intent(in) :: in_data(:, :)
+    integer(i4), intent(out) :: out_data(:)
     integer(i8) :: k
     integer(i4) :: x_lb, x_ub, y_lb, y_ub
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(out_data, kind=i8))
     call check_upscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
@@ -1478,10 +1590,12 @@ contains
 
   subroutine scaler_upscale_max_dp(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
+    real(dp), intent(in) :: in_data(:, :)
+    real(dp), intent(out) :: out_data(:)
     integer(i8) :: k
     integer(i4) :: x_lb, x_ub, y_lb, y_ub
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(out_data, kind=i8))
     call check_upscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
@@ -1493,10 +1607,12 @@ contains
 
   subroutine scaler_upscale_max_i4(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
-    integer(i4), dimension(this%target_grid%ncells), intent(out) :: out_data
+    integer(i4), intent(in) :: in_data(:, :)
+    integer(i4), intent(out) :: out_data(:)
     integer(i8) :: k
     integer(i4) :: x_lb, x_ub, y_lb, y_ub
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(out_data, kind=i8))
     call check_upscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
@@ -1508,10 +1624,12 @@ contains
 
   subroutine scaler_upscale_sum_dp(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
+    real(dp), intent(in) :: in_data(:, :)
+    real(dp), intent(out) :: out_data(:)
     integer(i8) :: k
     integer(i4) :: x_lb, x_ub, y_lb, y_ub
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(out_data, kind=i8))
     call check_upscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
@@ -1523,10 +1641,12 @@ contains
 
   subroutine scaler_upscale_sum_i4(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
-    integer(i4), dimension(this%target_grid%ncells), intent(out) :: out_data
+    integer(i4), intent(in) :: in_data(:, :)
+    integer(i4), intent(out) :: out_data(:)
     integer(i8) :: k
     integer(i4) :: x_lb, x_ub, y_lb, y_ub
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(out_data, kind=i8))
     call check_upscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
@@ -1538,11 +1658,13 @@ contains
 
   subroutine scaler_upscale_var(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
+    real(dp), intent(in) :: in_data(:, :)
+    real(dp), intent(out) :: out_data(:)
     real(dp) :: mean
     integer(i8) :: k
     integer(i4) :: x_lb, x_ub, y_lb, y_ub
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(out_data, kind=i8))
     call check_upscaling(this%scaling_mode)
     if (this%weight_mode == weight_area) then
       !$omp parallel do default(shared) private(mean,x_lb,x_ub,y_lb,y_ub) schedule(static)
@@ -1569,19 +1691,23 @@ contains
 
   subroutine scaler_upscale_std(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
+    real(dp), intent(in) :: in_data(:, :)
+    real(dp), intent(out) :: out_data(:)
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(out_data, kind=i8))
     call this%upscale_var(in_data, out_data)
     out_data = sqrt(out_data)
   end subroutine scaler_upscale_std
 
   subroutine scaler_upscale_median(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
+    real(dp), intent(in) :: in_data(:, :)
+    real(dp), intent(out) :: out_data(:)
     integer(i8) :: k
     integer(i4) :: x_lb, x_ub, y_lb, y_ub, n
     real(dp) :: vals(this%factor * this%factor)
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(out_data, kind=i8))
     call check_upscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub,vals,n) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
@@ -1597,13 +1723,15 @@ contains
 
   subroutine scaler_upscale_laf(this, in_data, out_data, vmin, vmax)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
-    integer(i4), dimension(this%target_grid%ncells), intent(out) :: out_data
+    integer(i4), intent(in) :: in_data(:, :)
+    integer(i4), intent(out) :: out_data(:)
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up operator
     integer(i4) :: i, laf_v, cnt_v, cnt_i, min_v, max_v
     integer(i8) :: k
     integer(i4) :: x_lb, x_ub, y_lb, y_ub
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(out_data, kind=i8))
     call check_upscaling(this%scaling_mode)
 
     if (present(vmin)) then
@@ -1638,12 +1766,14 @@ contains
 
   subroutine scaler_upscale_fraction(this, in_data, out_data, class_id)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%source_grid%nx,this%source_grid%ny), intent(in) :: in_data
-    real(dp), dimension(this%target_grid%ncells), intent(out) :: out_data
+    integer(i4), intent(in) :: in_data(:, :)
+    real(dp), intent(out) :: out_data(:)
     integer(i4), intent(in), optional :: class_id !< class id to determine area fraction of
     integer(i4) :: cls_id
     integer(i8) :: k
     integer(i4) :: x_lb, x_ub, y_lb, y_ub
+    call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(out_data, kind=i8))
     call check_upscaling(this%scaling_mode)
     cls_id = optval(class_id, default=nodata_i4)
     if (this%weight_mode == weight_area) then
@@ -1667,9 +1797,11 @@ contains
 
   subroutine scaler_downscale_nearest_dp_1d(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%coarse_grid%ncells), intent(in) :: in_data
-    real(dp), dimension(this%fine_grid%ncells), intent(out) :: out_data
+    real(dp), intent(in) :: in_data(:)
+    real(dp), intent(out) :: out_data(:)
     integer(i8) :: k
+    call this%check_packed_coarse(size(in_data, kind=i8))
+    call this%check_packed_fine(size(out_data, kind=i8))
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
@@ -1680,9 +1812,11 @@ contains
 
   subroutine scaler_downscale_nearest_i4_1d(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%coarse_grid%ncells), intent(in) :: in_data
-    integer(i4), dimension(this%fine_grid%ncells), intent(out) :: out_data
+    integer(i4), intent(in) :: in_data(:)
+    integer(i4), intent(out) :: out_data(:)
     integer(i8) :: k
+    call this%check_packed_coarse(size(in_data, kind=i8))
+    call this%check_packed_fine(size(out_data, kind=i8))
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
@@ -1693,9 +1827,11 @@ contains
 
   subroutine scaler_downscale_split_1d(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%coarse_grid%ncells), intent(in) :: in_data
-    real(dp), dimension(this%fine_grid%ncells), intent(out) :: out_data
+    real(dp), intent(in) :: in_data(:)
+    real(dp), intent(out) :: out_data(:)
     integer(i8) :: k
+    call this%check_packed_coarse(size(in_data, kind=i8))
+    call this%check_packed_fine(size(out_data, kind=i8))
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
@@ -1706,10 +1842,12 @@ contains
 
   subroutine scaler_downscale_nearest_dp_2d(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%coarse_grid%nx,this%coarse_grid%ny), intent(in) :: in_data
-    real(dp), dimension(this%fine_grid%ncells), intent(out) :: out_data
+    real(dp), intent(in) :: in_data(:, :)
+    real(dp), intent(out) :: out_data(:)
     integer(i4) :: i, j
     integer(i8) :: k
+    call this%check_unpacked_coarse(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_fine(size(out_data, kind=i8))
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(i,j) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
@@ -1722,10 +1860,12 @@ contains
 
   subroutine scaler_downscale_nearest_i4_2d(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%coarse_grid%nx,this%coarse_grid%ny), intent(in) :: in_data
-    integer(i4), dimension(this%fine_grid%ncells), intent(out) :: out_data
+    integer(i4), intent(in) :: in_data(:, :)
+    integer(i4), intent(out) :: out_data(:)
     integer(i4) :: i, j
     integer(i8) :: k
+    call this%check_unpacked_coarse(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_fine(size(out_data, kind=i8))
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(i,j) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
@@ -1738,10 +1878,12 @@ contains
 
   subroutine scaler_downscale_split_2d(this, in_data, out_data)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%coarse_grid%nx,this%coarse_grid%ny), intent(in) :: in_data
-    real(dp), dimension(this%fine_grid%ncells), intent(out) :: out_data
+    real(dp), intent(in) :: in_data(:, :)
+    real(dp), intent(out) :: out_data(:)
     integer(i4) :: i, j
     integer(i8) :: k
+    call this%check_unpacked_coarse(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_fine(size(out_data, kind=i8))
     call check_downscaling(this%scaling_mode)
     !$omp parallel do default(shared) private(i,j) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
@@ -1755,13 +1897,15 @@ contains
   !> \brief Find location of maximum value in coarse cell on fine grid by cell id.
   subroutine scaler_maxloc_dp_2d(this, in_data, ids, back)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%fine_grid%nx,this%fine_grid%ny), intent(in) :: in_data !< fine grid input data
-    integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of max values
+    real(dp), intent(in) :: in_data(:, :) !< fine grid input data
+    integer(i8), intent(out) :: ids(:) !< fine grid cell ids of max values
     logical, intent(in), optional :: back !< start search from back (default: false)
     integer(i4) :: x_lb, x_ub, y_lb, y_ub, loc(2), ix, iy
     integer(i8) :: k
     integer(i8), allocatable :: cells(:,:)
     logical :: back_
+    call this%check_unpacked_fine(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(ids, kind=i8))
     back_ = optval(back, default=.false.)
     allocate(cells(this%fine_grid%nx,this%fine_grid%ny))
     call this%fine_grid%gen_id_matrix(cells)
@@ -1780,10 +1924,12 @@ contains
   !> \brief Find location of maximum value in coarse cell on fine grid by cell id.
   subroutine scaler_maxloc_dp_1d(this, in_data, ids, back)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%fine_grid%ncells), intent(in) :: in_data !< fine grid input data
-    integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of max values
+    real(dp), intent(in) :: in_data(:) !< fine grid input data
+    integer(i8), intent(out) :: ids(:) !< fine grid cell ids of max values
     logical, intent(in), optional :: back !< start search from back (default: false)
     real(dp), allocatable :: temp_in(:, :)
+    call this%check_packed_fine(size(in_data, kind=i8))
+    call this%check_packed_target(size(ids, kind=i8))
     allocate(temp_in(this%fine_grid%nx, this%fine_grid%ny))
     call this%fine_grid%unpack_into(in_data, temp_in)
     call this%scaler_maxloc_dp_2d(temp_in, ids, back)
@@ -1792,13 +1938,15 @@ contains
   !> \brief Find location of maximum value in coarse cell on fine grid by cell id.
   subroutine scaler_maxloc_i4_2d(this, in_data, ids, back)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%fine_grid%nx,this%fine_grid%ny), intent(in) :: in_data !< fine grid input data
-    integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of max values
+    integer(i4), intent(in) :: in_data(:, :) !< fine grid input data
+    integer(i8), intent(out) :: ids(:) !< fine grid cell ids of max values
     logical, intent(in), optional :: back !< start search from back (default: false)
     integer(i4) :: x_lb, x_ub, y_lb, y_ub, loc(2), ix, iy
     integer(i8) :: k
     integer(i8), allocatable :: cells(:,:)
     logical :: back_
+    call this%check_unpacked_fine(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(ids, kind=i8))
     back_ = optval(back, default=.false.)
     allocate(cells(this%fine_grid%nx,this%fine_grid%ny))
     call this%fine_grid%gen_id_matrix(cells)
@@ -1817,10 +1965,12 @@ contains
   !> \brief Find location of maximum value in coarse cell on fine grid by cell id.
   subroutine scaler_maxloc_i4_1d(this, in_data, ids, back)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%fine_grid%ncells), intent(in) :: in_data !< fine grid input data
-    integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of max values
+    integer(i4), intent(in) :: in_data(:) !< fine grid input data
+    integer(i8), intent(out) :: ids(:) !< fine grid cell ids of max values
     logical, intent(in), optional :: back !< start search from back (default: false)
     integer(i4), allocatable :: temp_in(:, :)
+    call this%check_packed_fine(size(in_data, kind=i8))
+    call this%check_packed_target(size(ids, kind=i8))
     allocate(temp_in(this%fine_grid%nx, this%fine_grid%ny))
     call this%fine_grid%unpack_into(in_data, temp_in)
     call this%scaler_maxloc_i4_2d(temp_in, ids, back)
@@ -1829,13 +1979,15 @@ contains
   !> \brief Find location of minimum value in coarse cell on fine grid by cell id.
   subroutine scaler_minloc_dp_2d(this, in_data, ids, back)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%fine_grid%nx,this%fine_grid%ny), intent(in) :: in_data !< fine grid input data
-    integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of min values
+    real(dp), intent(in) :: in_data(:, :) !< fine grid input data
+    integer(i8), intent(out) :: ids(:) !< fine grid cell ids of min values
     logical, intent(in), optional :: back !< start search from back (default: false)
     integer(i4) :: x_lb, x_ub, y_lb, y_ub, loc(2), ix, iy
     integer(i8) :: k
     integer(i8), allocatable :: cells(:,:)
     logical :: back_
+    call this%check_unpacked_fine(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(ids, kind=i8))
     back_ = optval(back, default=.false.)
     allocate(cells(this%fine_grid%nx,this%fine_grid%ny))
     call this%fine_grid%gen_id_matrix(cells)
@@ -1854,10 +2006,12 @@ contains
   !> \brief Find location of minimum value in coarse cell on fine grid by cell id.
   subroutine scaler_minloc_dp_1d(this, in_data, ids, back)
     class(scaler_t), intent(inout) :: this
-    real(dp), dimension(this%fine_grid%ncells), intent(in) :: in_data !< fine grid input data
-    integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of min values
+    real(dp), intent(in) :: in_data(:) !< fine grid input data
+    integer(i8), intent(out) :: ids(:) !< fine grid cell ids of min values
     logical, intent(in), optional :: back !< start search from back (default: false)
     real(dp), allocatable :: temp_in(:, :)
+    call this%check_packed_fine(size(in_data, kind=i8))
+    call this%check_packed_target(size(ids, kind=i8))
     allocate(temp_in(this%fine_grid%nx, this%fine_grid%ny))
     call this%fine_grid%unpack_into(in_data, temp_in)
     call this%scaler_minloc_dp_2d(temp_in, ids, back)
@@ -1866,13 +2020,15 @@ contains
   !> \brief Find location of minimum value in coarse cell on fine grid by cell id.
   subroutine scaler_minloc_i4_2d(this, in_data, ids, back)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%fine_grid%nx,this%fine_grid%ny), intent(in) :: in_data !< fine grid input data
-    integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of min values
+    integer(i4), intent(in) :: in_data(:, :) !< fine grid input data
+    integer(i8), intent(out) :: ids(:) !< fine grid cell ids of min values
     logical, intent(in), optional :: back !< start search from back (default: false)
     integer(i4) :: x_lb, x_ub, y_lb, y_ub, loc(2), ix, iy
     integer(i8) :: k
     integer(i8), allocatable :: cells(:,:)
     logical :: back_
+    call this%check_unpacked_fine(size(in_data, 1), size(in_data, 2))
+    call this%check_packed_target(size(ids, kind=i8))
     back_ = optval(back, default=.false.)
     allocate(cells(this%fine_grid%nx,this%fine_grid%ny))
     call this%fine_grid%gen_id_matrix(cells)
@@ -1891,10 +2047,12 @@ contains
   !> \brief Find location of minimum value in coarse cell on fine grid by cell id.
   subroutine scaler_minloc_i4_1d(this, in_data, ids, back)
     class(scaler_t), intent(inout) :: this
-    integer(i4), dimension(this%fine_grid%ncells), intent(in) :: in_data !< fine grid input data
-    integer(i8), dimension(this%target_grid%ncells), intent(out) :: ids !< fine grid cell ids of min values
+    integer(i4), intent(in) :: in_data(:) !< fine grid input data
+    integer(i8), intent(out) :: ids(:) !< fine grid cell ids of min values
     logical, intent(in), optional :: back !< start search from back (default: false)
     integer(i4), allocatable :: temp_in(:, :)
+    call this%check_packed_fine(size(in_data, kind=i8))
+    call this%check_packed_target(size(ids, kind=i8))
     allocate(temp_in(this%fine_grid%nx, this%fine_grid%ny))
     call this%fine_grid%unpack_into(in_data, temp_in)
     call this%scaler_minloc_i4_2d(temp_in, ids, back)
