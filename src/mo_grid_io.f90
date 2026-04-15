@@ -29,7 +29,7 @@ module mo_grid_io
   use mo_constants, only : nodata_dp, nodata_sp, nodata_i1, nodata_i2, nodata_i4, nodata_i8
   use mo_grid, only: grid_t, cartesian, bottom_up
   use mo_grid_helper, only: is_t_axis, check_uniform_axis, is_z_axis
-  use mo_netcdf, only : NcDataset, NcDimension, NcVariable
+  use mo_netcdf, only : NcDataset, NcDimension, NcVariable, NF90_NOFILL
   use mo_datetime, only : datetime, timedelta, delta_from_string, decode_cf_time_units, one_day, one_hour
   use mo_message, only : error_message, warn_message
   use mo_string_utils, only : num2str
@@ -74,6 +74,17 @@ module mo_grid_io
   contains
     procedure, public :: meta => var_meta
   end type var
+
+  !> \class scratch_t
+  !> \brief Reusable full-grid output scratch buffers.
+  type scratch_t
+    real(sp), allocatable :: data_sp(:,:) !< reusable full-grid scratch for sp writes
+    real(dp), allocatable :: data_dp(:,:) !< reusable full-grid scratch for dp writes
+    integer(i1), allocatable :: data_i1(:,:) !< reusable full-grid scratch for i1 writes
+    integer(i2), allocatable :: data_i2(:,:) !< reusable full-grid scratch for i2 writes
+    integer(i4), allocatable :: data_i4(:,:) !< reusable full-grid scratch for i4 writes
+    integer(i8), allocatable :: data_i8(:,:) !< reusable full-grid scratch for i8 writes
+  end type scratch_t
 
   !> \class output_variable
   !> \brief netcdf output variable container for a 2D variable
@@ -155,6 +166,7 @@ module mo_grid_io
     integer(i4) :: deflate_level = 6_i4           !< deflate level for compression
     integer(i4) :: cache_size = 0_i4              !< optional netcdf variable cache size in MB (0: netcdf default)
     logical :: static_contiguous = .false.        !< write static variables as contiguous (only when cache_size is set)
+    type(scratch_t) :: scratch                    !< shared reusable full-grid output scratch buffers
     logical :: has_layer = .false.                !< dataset includes vertical layers
     integer(i4) :: nlayers = 0_i4                 !< number of layers in dataset
     logical :: positive_up = .false.              !< indicates upwards as positive direction for layers
@@ -907,6 +919,78 @@ contains
     self%counter = self%counter + 1_i4
   end subroutine out_var_update_layered_i8
 
+  !> \brief Ensure reusable output scratch for sp has the requested grid shape.
+  subroutine ensure_scratch_sp(scratch, nx, ny)
+    implicit none
+    type(scratch_t), intent(inout) :: scratch
+    integer(i4), intent(in) :: nx, ny
+    if (allocated(scratch%data_sp)) then
+      if (size(scratch%data_sp, 1, kind=i4) /= nx .or. size(scratch%data_sp, 2, kind=i4) /= ny) &
+        deallocate(scratch%data_sp)
+    end if
+    if (.not.allocated(scratch%data_sp)) allocate(scratch%data_sp(nx, ny))
+  end subroutine ensure_scratch_sp
+
+  !> \brief Ensure reusable output scratch for dp has the requested grid shape.
+  subroutine ensure_scratch_dp(scratch, nx, ny)
+    implicit none
+    type(scratch_t), intent(inout) :: scratch
+    integer(i4), intent(in) :: nx, ny
+    if (allocated(scratch%data_dp)) then
+      if (size(scratch%data_dp, 1, kind=i4) /= nx .or. size(scratch%data_dp, 2, kind=i4) /= ny) &
+        deallocate(scratch%data_dp)
+    end if
+    if (.not.allocated(scratch%data_dp)) allocate(scratch%data_dp(nx, ny))
+  end subroutine ensure_scratch_dp
+
+  !> \brief Ensure reusable output scratch for i1 has the requested grid shape.
+  subroutine ensure_scratch_i1(scratch, nx, ny)
+    implicit none
+    type(scratch_t), intent(inout) :: scratch
+    integer(i4), intent(in) :: nx, ny
+    if (allocated(scratch%data_i1)) then
+      if (size(scratch%data_i1, 1, kind=i4) /= nx .or. size(scratch%data_i1, 2, kind=i4) /= ny) &
+        deallocate(scratch%data_i1)
+    end if
+    if (.not.allocated(scratch%data_i1)) allocate(scratch%data_i1(nx, ny))
+  end subroutine ensure_scratch_i1
+
+  !> \brief Ensure reusable output scratch for i2 has the requested grid shape.
+  subroutine ensure_scratch_i2(scratch, nx, ny)
+    implicit none
+    type(scratch_t), intent(inout) :: scratch
+    integer(i4), intent(in) :: nx, ny
+    if (allocated(scratch%data_i2)) then
+      if (size(scratch%data_i2, 1, kind=i4) /= nx .or. size(scratch%data_i2, 2, kind=i4) /= ny) &
+        deallocate(scratch%data_i2)
+    end if
+    if (.not.allocated(scratch%data_i2)) allocate(scratch%data_i2(nx, ny))
+  end subroutine ensure_scratch_i2
+
+  !> \brief Ensure reusable output scratch for i4 has the requested grid shape.
+  subroutine ensure_scratch_i4(scratch, nx, ny)
+    implicit none
+    type(scratch_t), intent(inout) :: scratch
+    integer(i4), intent(in) :: nx, ny
+    if (allocated(scratch%data_i4)) then
+      if (size(scratch%data_i4, 1, kind=i4) /= nx .or. size(scratch%data_i4, 2, kind=i4) /= ny) &
+        deallocate(scratch%data_i4)
+    end if
+    if (.not.allocated(scratch%data_i4)) allocate(scratch%data_i4(nx, ny))
+  end subroutine ensure_scratch_i4
+
+  !> \brief Ensure reusable output scratch for i8 has the requested grid shape.
+  subroutine ensure_scratch_i8(scratch, nx, ny)
+    implicit none
+    type(scratch_t), intent(inout) :: scratch
+    integer(i4), intent(in) :: nx, ny
+    if (allocated(scratch%data_i8)) then
+      if (size(scratch%data_i8, 1, kind=i4) /= nx .or. size(scratch%data_i8, 2, kind=i4) /= ny) &
+        deallocate(scratch%data_i8)
+    end if
+    if (.not.allocated(scratch%data_i8)) allocate(scratch%data_i8(nx, ny))
+  end subroutine ensure_scratch_i8
+
   !> \brief Write timestep to file
   !> \details Write the content of the derived types's component 'data' to file, average if necessary
   !> \changelog
@@ -916,9 +1000,10 @@ contains
   !!   - support all int/float kinds and layered variables
   !> \authors Sebastian, Müller, David Schafer, Robert Schweppe
   !> \date June 2015
-  subroutine out_var_write(self, t_index)
+  subroutine out_var_write(self, scratch, t_index)
     implicit none
     class(output_variable), intent(inout) :: self
+    type(scratch_t), intent(inout) :: scratch
     !> index along the time dimension of the netcdf variable
     integer(i4), intent(in), optional :: t_index
     integer(i4) :: i
@@ -935,81 +1020,99 @@ contains
     if (.not.self%static) start(self%rank) = t_index
     select case(self%kind)
       case("sp")
+        call ensure_scratch_sp(scratch, self%grid%nx, self%grid%ny)
         if (self%layered) then
           if (self%avg.and.self%counter>1_i4) self%data_layered_sp = self%data_layered_sp / real(self%counter, sp)
           do i = 1_i4, self%nlayers
             start(3) = i
-            call self%nc%setData(unpack(self%data_layered_sp(:,i), self%grid%mask, nodata_sp), start=start, cnt=cnt)
+            call self%grid%unpack_into(self%data_layered_sp(:,i), scratch%data_sp)
+            call self%nc%setData(scratch%data_sp, start=start, cnt=cnt)
           end do
           self%data_layered_sp = 0.0_sp
         else
           if (self%avg.and.self%counter>1_i4) self%data_sp = self%data_sp / real(self%counter, sp)
-          call self%nc%setData(unpack(self%data_sp, self%grid%mask, nodata_sp), start=start, cnt=cnt)
+          call self%grid%unpack_into(self%data_sp, scratch%data_sp)
+          call self%nc%setData(scratch%data_sp, start=start, cnt=cnt)
           self%data_sp = 0.0_sp
         end if
       case("dp")
+        call ensure_scratch_dp(scratch, self%grid%nx, self%grid%ny)
         if (self%layered) then
           if (self%avg.and.self%counter>1_i4) self%data_layered_dp = self%data_layered_dp / real(self%counter, dp)
           do i = 1_i4, self%nlayers
             start(3) = i
-            call self%nc%setData(unpack(self%data_layered_dp(:,i), self%grid%mask, nodata_dp), start=start, cnt=cnt)
+            call self%grid%unpack_into(self%data_layered_dp(:,i), scratch%data_dp)
+            call self%nc%setData(scratch%data_dp, start=start, cnt=cnt)
           end do
           self%data_layered_dp = 0.0_dp
         else
           if (self%avg.and.self%counter>1_i4) self%data_dp = self%data_dp / real(self%counter, dp)
-          call self%nc%setData(unpack(self%data_dp, self%grid%mask, nodata_dp), start=start, cnt=cnt)
+          call self%grid%unpack_into(self%data_dp, scratch%data_dp)
+          call self%nc%setData(scratch%data_dp, start=start, cnt=cnt)
           self%data_dp = 0.0_dp
         end if
       case("i1")
+        call ensure_scratch_i1(scratch, self%grid%nx, self%grid%ny)
         if (self%layered) then
           if (self%avg.and.self%counter>1_i4) self%data_layered_i1 = int(int(self%data_layered_i1, kind=i4) / self%counter, kind=i1)
           do i = 1_i4, self%nlayers
             start(3) = i
-            call self%nc%setData(unpack(self%data_layered_i1(:,i), self%grid%mask, nodata_i1), start=start, cnt=cnt)
+            call self%grid%unpack_into(self%data_layered_i1(:,i), scratch%data_i1)
+            call self%nc%setData(scratch%data_i1, start=start, cnt=cnt)
           end do
           self%data_layered_i1 = 0_i1
         else
           if (self%avg.and.self%counter>1_i4) self%data_i1 = int(int(self%data_i1, kind=i4) / self%counter, kind=i1)
-          call self%nc%setData(unpack(self%data_i1, self%grid%mask, nodata_i1), start=start, cnt=cnt)
+          call self%grid%unpack_into(self%data_i1, scratch%data_i1)
+          call self%nc%setData(scratch%data_i1, start=start, cnt=cnt)
           self%data_i1 = 0_i1
         end if
       case("i2")
+        call ensure_scratch_i2(scratch, self%grid%nx, self%grid%ny)
         if (self%layered) then
           if (self%avg.and.self%counter>1_i4) self%data_layered_i2 = int(int(self%data_layered_i2, kind=i4) / self%counter, kind=i2)
           do i = 1_i4, self%nlayers
             start(3) = i
-            call self%nc%setData(unpack(self%data_layered_i2(:,i), self%grid%mask, nodata_i2), start=start, cnt=cnt)
+            call self%grid%unpack_into(self%data_layered_i2(:,i), scratch%data_i2)
+            call self%nc%setData(scratch%data_i2, start=start, cnt=cnt)
           end do
           self%data_layered_i2 = 0_i2
         else
           if (self%avg.and.self%counter>1_i4) self%data_i2 = int(int(self%data_i2, kind=i4) / self%counter, kind=i2)
-          call self%nc%setData(unpack(self%data_i2, self%grid%mask, nodata_i2), start=start, cnt=cnt)
+          call self%grid%unpack_into(self%data_i2, scratch%data_i2)
+          call self%nc%setData(scratch%data_i2, start=start, cnt=cnt)
           self%data_i2 = 0_i2
         end if
       case("i4")
+        call ensure_scratch_i4(scratch, self%grid%nx, self%grid%ny)
         if (self%layered) then
           if (self%avg.and.self%counter>1_i4) self%data_layered_i4 = self%data_layered_i4 / self%counter
           do i = 1_i4, self%nlayers
             start(3) = i
-            call self%nc%setData(unpack(self%data_layered_i4(:,i), self%grid%mask, nodata_i4), start=start, cnt=cnt)
+            call self%grid%unpack_into(self%data_layered_i4(:,i), scratch%data_i4)
+            call self%nc%setData(scratch%data_i4, start=start, cnt=cnt)
           end do
           self%data_layered_i4 = 0_i4
         else
           if (self%avg.and.self%counter>1_i4) self%data_i4 = self%data_i4 / self%counter
-          call self%nc%setData(unpack(self%data_i4, self%grid%mask, nodata_i4), start=start, cnt=cnt)
+          call self%grid%unpack_into(self%data_i4, scratch%data_i4)
+          call self%nc%setData(scratch%data_i4, start=start, cnt=cnt)
           self%data_i4 = 0_i4
         end if
       case("i8")
+        call ensure_scratch_i8(scratch, self%grid%nx, self%grid%ny)
         if (self%layered) then
           if (self%avg.and.self%counter>1_i4) self%data_layered_i8 = self%data_layered_i8 / int(self%counter, i8)
           do i = 1_i4, self%nlayers
             start(3) = i
-            call self%nc%setData(unpack(self%data_layered_i8(:,i), self%grid%mask, nodata_i8), start=start, cnt=cnt)
+            call self%grid%unpack_into(self%data_layered_i8(:,i), scratch%data_i8)
+            call self%nc%setData(scratch%data_i8, start=start, cnt=cnt)
           end do
           self%data_layered_i8 = 0_i8
         else
           if (self%avg.and.self%counter>1_i4) self%data_i8 = self%data_i8 / int(self%counter, i8)
-          call self%nc%setData(unpack(self%data_i8, self%grid%mask, nodata_i8), start=start, cnt=cnt)
+          call self%grid%unpack_into(self%data_i8, scratch%data_i8)
+          call self%nc%setData(scratch%data_i8, start=start, cnt=cnt)
           self%data_i8 = 0_i8
         end if
     end select
@@ -1717,6 +1820,7 @@ contains
 
     self%path = trim(path)
     self%nc = NcDataset(self%path, "w")
+    call self%nc%setFill(NF90_NOFILL)
     self%grid => grid
     self%counter = 0_i4
     self%nlayers = 0_i4
@@ -2122,7 +2226,7 @@ contains
     end if
     ! write all variables
     do i = 1_i4, self%nvars
-      call self%vars(i)%write(self%counter)
+      call self%vars(i)%write(self%scratch, self%counter)
     end do
   end subroutine output_write
 
@@ -2132,7 +2236,7 @@ contains
     class(output_dataset), intent(inout) :: self
     integer(i4) :: i
     do i = 1_i4, self%nvars
-      if (self%vars(i)%static) call self%vars(i)%write()
+      if (self%vars(i)%static) call self%vars(i)%write(self%scratch)
     end do
   end subroutine output_write_static
 
@@ -2164,6 +2268,12 @@ contains
     end do
     call self%nc%close()
     deallocate(self%vars)
+    if (allocated(self%scratch%data_sp)) deallocate(self%scratch%data_sp)
+    if (allocated(self%scratch%data_dp)) deallocate(self%scratch%data_dp)
+    if (allocated(self%scratch%data_i1)) deallocate(self%scratch%data_i1)
+    if (allocated(self%scratch%data_i2)) deallocate(self%scratch%data_i2)
+    if (allocated(self%scratch%data_i4)) deallocate(self%scratch%data_i4)
+    if (allocated(self%scratch%data_i8)) deallocate(self%scratch%data_i8)
     if (allocated(self%layer)) deallocate(self%layer)
     if (allocated(self%layer_vertices)) deallocate(self%layer_vertices)
   end subroutine output_close
