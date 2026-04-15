@@ -56,6 +56,7 @@ module mo_netcdf
     nf90_rename_var        => ncw_rename_var,        &
     nf90_rename_att        => ncw_rename_att,        &
     nf90_sync              => ncw_sync,              &
+    nf90_set_fill          => ncw_set_fill,          &
     NF90_NETCDF4           => NCW_NETCDF4,           &
     NF90_WRITE             => NCW_WRITE,             &
     NF90_NOWRITE           => NCW_NOWRITE,           &
@@ -72,6 +73,8 @@ module mo_netcdf
     NF90_FILL_FLOAT        => NCW_FILL_FLOAT,        &
     NF90_FILL_DOUBLE       => NCW_FILL_DOUBLE,       &
     NF90_NOERR             => NCW_NOERR,             &
+    NF90_FILL              => NCW_FILL,              &
+    NF90_NOFILL            => NCW_NOFILL,            &
     NF90_UNLIMITED         => NCW_UNLIMITED,         &
     NF90_GLOBAL            => NCW_GLOBAL,            &
     NF90_SHARE             => NCW_SHARE,             &
@@ -232,6 +235,7 @@ module mo_netcdf
   contains
 
     procedure, public :: sync !< sync dataset
+    procedure, public :: setFill !< set dataset fill mode
     procedure, public :: close !< close dataset
 
   end type NcDataset
@@ -912,6 +916,18 @@ contains
 
     call check(nf90_sync(self%id), "Failed to sync file: " // self%fname)
   end subroutine sync
+
+  subroutine setFill(self, fillmode, old_mode)
+    class(NcDataset) :: self
+    integer(i4), intent(in) :: fillmode
+    integer(i4), intent(out), optional :: old_mode
+
+    if (present(old_mode)) then
+      call check(nf90_set_fill(self%id, fillmode, old_mode), "Failed to set fill mode for file: " // self%fname)
+    else
+      call check(nf90_set_fill(self%id, fillmode), "Failed to set fill mode for file: " // self%fname)
+    end if
+  end subroutine setFill
 
   subroutine close(self)
     class(NcDataset) :: self

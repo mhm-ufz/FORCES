@@ -44,7 +44,7 @@ contains
     type(datetime), allocatable :: times(:)
     real(dp), allocatable :: dem(:,:), height(:), heights(:), dem_read(:,:), height_read(:), h_chunk(:,:)
     real(sp), allocatable :: dem_sp(:,:)
-    integer(i4), allocatable :: dem_i4(:,:)
+    integer(i4), allocatable :: dem_i4(:,:), dem_int_read(:,:), height_i4(:)
     integer(i8), allocatable :: dem_i8(:,:)
 
     type(var), allocatable :: vars(:), in_vars(:)
@@ -68,12 +68,15 @@ contains
     call grid%from_ascii_file("./files/dem.asc")
     call grid%read_data("./files/dem.asc", dem)
     height = grid%pack(dem)
+    height_i4 = grid%pack(nint(dem, i4))
 
     allocate(vars(0))
     vars = [vars, var(name="dem", units="m", static=.true., allow_static=.true., dtype="f32", kind="dp")]
+    vars = [vars, var(name="dem_int", units="m", static=.true., allow_static=.true., dtype="i32", kind="i4")]
     vars = [vars, var(name="height", units="m", avg=.true., static=.false., allow_static=.true.)]
     allocate(in_vars(0))
     in_vars = [in_vars, var(name="dem", units="m", static=.false., allow_static=.true., dtype="f32", kind="dp")]
+    in_vars = [in_vars, var(name="dem_int", units="m", static=.false., allow_static=.true., dtype="i32", kind="i4")]
     in_vars = [in_vars, var(name="height", units="m", static=.false., allow_static=.true.)]
     if (present(cache_size)) then
       if (present(static_contiguous)) then
@@ -116,6 +119,7 @@ contains
     @assertFalse(out_height_meta%allow_static, message='output should ignore allow_static')
 
     call out_ds%update("dem", height)
+    call out_ds%update("dem_int", height_i4)
     call out_ds%write_static()
 
     ! model time loop
@@ -152,12 +156,14 @@ contains
     allocate(dem_read(grid%nx, grid%ny))
     allocate(dem_sp(grid%nx, grid%ny))
     allocate(dem_i4(grid%nx, grid%ny))
+    allocate(dem_int_read(grid%nx, grid%ny))
     allocate(dem_i8(grid%nx, grid%ny))
     allocate(height_read(grid%ncells))
     call in_ds%read("dem", data=dem_read)
     call in_ds%read("dem", data=dem_sp)
     call in_ds%read("dem", data=dem_i4)
     call in_ds%read("dem", data=dem_i8)
+    call in_ds%read("dem_int", data=dem_int_read)
     call in_ds%read("height", data=height_read, current_time=datetime("2025-01-11"))
     call in_ds%read_chunk("height", &
       timeframe_start=datetime("2025-01-10"), &
@@ -166,6 +172,7 @@ contains
     call in_ds%close()
 
     @assertEqual(dem_i4, nint(dem, i4), message='static read check i4')
+    @assertEqual(dem_int_read, nint(dem, i4), message='static integer output read check i4')
     @assertEqual(dem_i8, nint(dem, i8), message='static read check i8')
     @assertEqual(dem_sp, real(dem, sp), tolerance=real(t, sp), message='static read check sp')
     @assertEqual(dem_read, dem, tolerance=t, message='static read check')
