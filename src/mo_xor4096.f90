@@ -389,7 +389,7 @@ CONTAINS
 
     integer(i4), save :: w
     integer(i4), save :: x(0 : 127)                 ! x(0) ... x(r-1)
-    integer(i4) :: weyl = 1640531527_i4     !Z'61C88647'       ! Hexadecimal notation
+    integer(i4), parameter :: weyl = 1640531527_i4     !Z'61C88647'       ! Hexadecimal notation
     integer(i4) :: t, v, tmp
     integer(i4), save :: i = -1                   ! i<0 indicates first call
     integer(i4) :: k
@@ -488,7 +488,7 @@ CONTAINS
 
     integer(i4) :: m
     integer(i4) :: wlen, r, s, a, b, c, d
-    integer(i4) :: weyl = 1640531527_i4    !Z'61C88647'       ! Hexadecimal notation
+    integer(i4), parameter :: weyl = 1640531527_i4    !Z'61C88647'       ! Hexadecimal notation
     integer(i4) :: k, j, tmp
     integer(i4), dimension(size(seed, 1)) :: t, v
     integer(i4), dimension(:, :), allocatable, save :: x               ! x(0) ... x(r-1)
@@ -629,12 +629,12 @@ CONTAINS
     integer(i4) :: wlen, r, s, a, b, c, d
     integer(i4), save :: w
     integer(i4), save :: x(0 : 127)                 ! x(0) ... x(r-1)
-    integer(i4) :: weyl = 1640531527_i4    !Z'61C88647'       ! Hexadecimal notation
+    integer(i4), parameter :: weyl = 1640531527_i4    !Z'61C88647'       ! Hexadecimal notation
     integer(i4) :: t, v, tmp
     integer(i4), save :: i = -1                   ! i<0 indicates first call
     integer(i4) :: k
 
-    real(SP) :: t24 = 1.0_SP / 16777216.0_SP     ! = 0.5^24 = 1/2^24
+    real(SP), parameter :: t24 = 1.0_SP / 16777216.0_SP     ! = 0.5^24 = 1/2^24
 
     !$omp   threadprivate(x,i,w)
     !
@@ -743,9 +743,9 @@ CONTAINS
 
     integer(i4) :: m
     integer(i4) :: wlen, r, s, a, b, c, d
-    integer(i4) :: weyl = 1640531527_i4              !Z'61C88647' = Hexadecimal notation
+    integer(i4), parameter :: weyl = 1640531527_i4              !Z'61C88647' = Hexadecimal notation
     integer(i4) :: k, j, tmp
-    real(SP), save :: t24 = 1.0_SP / 16777216.0_SP      ! = 0.5^24 = 1/2^24
+    real(SP), parameter :: t24 = 1.0_SP / 16777216.0_SP      ! = 0.5^24 = 1/2^24
     integer(i4), dimension(size(seed)) :: t, v
     integer(i4), dimension(:, :), allocatable, save :: x                   ! x(0) ... x(r-1)
     integer(i4), dimension(:), allocatable, save :: i, w                 ! i<0 indicates first call
@@ -893,7 +893,7 @@ CONTAINS
     integer(i8) :: wlen, r, s, a, b, c, d
     integer(i8), save :: w
     integer(i8), save :: x(0 : 63)                  ! x(0) ... x(r-1)
-    integer(i8) :: weyl = 7046029254386353131_i8
+    integer(i8), parameter :: weyl = 7046029254386353131_i8
     integer(i8) :: t, v, tmp
     integer(i8), save :: i = -1                   ! i<0 indicates first call
     integer(i8) :: k
@@ -993,7 +993,7 @@ CONTAINS
 
     integer(i4) :: m
     integer(i8) :: wlen, r, s, a, b, c, d
-    integer(i8) :: weyl = 7046029254386353131_i8
+    integer(i8), parameter :: weyl = 7046029254386353131_i8
     integer(i8) :: k, j, tmp
     integer(i8), dimension(size(seed)) :: t, v
     integer(i8), dimension(:, :), allocatable, save :: x                  ! x(0) ... x(r-1)
@@ -1134,12 +1134,12 @@ CONTAINS
 
     integer(i8), save :: w
     integer(i8), save :: x(0 : 63)                  ! x(0) ... x(r-1)
-    integer(i8) :: weyl = 7046029254386353131_i8
+    integer(i8), parameter :: weyl = 7046029254386353131_i8
     integer(i8) :: t, v, tmp
     integer(i8), save :: i = -1                   ! i<0 indicates first call
     integer(i8) :: k
 
-    real(DP) :: t53 = 1.0_DP / 9007199254740992.0_DP                     ! = 0.5^53 = 1/2^53
+    real(DP), parameter :: t53 = 1.0_DP / 9007199254740992.0_DP                     ! = 0.5^53 = 1/2^53
 
     !$omp   threadprivate(x,i,w)
 
@@ -1243,8 +1243,8 @@ CONTAINS
 
     integer(i4) :: m
     integer(i8) :: wlen, r, s, a, b, c, d
-    integer(i8) :: weyl = 7046029254386353131_i8
-    real(dp) :: t53 = 1.0_dp / 9007199254740992.0_dp  ! = 0.5^53 = 1/2^53
+    integer(i8), parameter :: weyl = 7046029254386353131_i8
+    real(dp), parameter :: t53 = 1.0_dp / 9007199254740992.0_dp  ! = 0.5^53 = 1/2^53
     integer(i8) :: k, j, tmp
     integer(i8), dimension(size(seed)) :: t, v
     integer(i8), dimension(:, :), allocatable, save :: x       ! x(0) ... x(r-1)
@@ -1392,11 +1392,11 @@ CONTAINS
     integer(i4) :: wlen, r, s, a, b, c, d
     integer(i4), save :: w
     integer(i4), save :: x(0 : 127)                 ! x(0) ... x(r-1)
-    integer(i4) :: weyl = 1640531527_i4
+    integer(i4), parameter :: weyl = 1640531527_i4
     integer(i4) :: t, v, tmp
     integer(i4), save :: i = -1                   ! i<0 indicates first call
     integer(i4) :: k
-    real(SP) :: t24 = 1.0_SP / 16777216.0_SP     ! = 0.5^24 = 1/2^24
+    real(SP), parameter :: t24 = 1.0_SP / 16777216.0_SP     ! = 0.5^24 = 1/2^24
 
     real(SP) :: rn1, rn2               ! uniform random numbers
     real(SP) :: x1, x2, y1, ww            ! for Box-Mueller transform
@@ -1555,9 +1555,9 @@ CONTAINS
 
     integer(i4) :: m
     integer(i4) :: wlen, r, s, a, b, c, d
-    integer(i4) :: weyl = 1640531527_i4
+    integer(i4), parameter :: weyl = 1640531527_i4
     integer(i4) :: k, j, tmp
-    real(SP) :: t24 = 1.0_SP / 16777216.0_SP      ! = 0.5^24 = 1/2^24
+    real(SP), parameter :: t24 = 1.0_SP / 16777216.0_SP      ! = 0.5^24 = 1/2^24
     integer(i4), dimension(size(seed)) :: t, v
     integer(i4), dimension(:, :), allocatable, save :: x                   ! x(0) ... x(r-1)
     integer(i4), dimension(:), allocatable, save :: i, w                 ! i<0 indicates first call
@@ -1774,12 +1774,12 @@ CONTAINS
 
     integer(i8), save :: w
     integer(i8), save :: x(0 : 63)                  ! x(0) ... x(r-1)
-    integer(i8) :: weyl = 7046029254386353131_i8
+    integer(i8), parameter :: weyl = 7046029254386353131_i8
     integer(i8) :: t, v, tmp
     integer(i8), save :: i = -1_i8                ! i<0 indicates first call
     integer(i8) :: k
 
-    real(DP) :: t53 = 1.0_DP / 9007199254740992.0_DP     ! = 0.5^53 = 1/2^53
+    real(DP), parameter :: t53 = 1.0_DP / 9007199254740992.0_DP     ! = 0.5^53 = 1/2^53
 
     real(DP) :: rn1, rn2                 ! uniform random numbers
     real(DP) :: x1, x2, y1, ww              ! for Box-Mueller transform
@@ -1935,9 +1935,9 @@ CONTAINS
 
     integer(i4) :: m
     integer(i8) :: wlen, r, s, a, b, c, d
-    integer(i8) :: weyl = 7046029254386353131_i8              !Z'61C88647' = Hexadecimal notation
+    integer(i8), parameter :: weyl = 7046029254386353131_i8              !Z'61C88647' = Hexadecimal notation
     integer(i8) :: k, j, tmp
-    real(DP) :: t53 = 1.0_DP / 9007199254740992.0_DP      ! = 0.5^24 = 1/2^24
+    real(DP), parameter :: t53 = 1.0_DP / 9007199254740992.0_DP      ! = 0.5^24 = 1/2^24
     integer(i8), dimension(size(seed)) :: t, v
     integer(i8), dimension(:, :), allocatable, save :: x                   ! x(0) ... x(r-1)
     integer(i8), dimension(:), allocatable, save :: i, w                   ! i<0 indicates first call

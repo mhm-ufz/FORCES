@@ -3460,8 +3460,8 @@ CONTAINS
     REAL(dp) :: SPAEF_dp_1d
 
     ! local variables
-    REAL(dp) :: zscore_limit = 6._dp
-    INTEGER(i4) :: nbins = 100_i4
+    REAL(dp), PARAMETER :: zscore_limit = 6._dp
+    INTEGER(i4), PARAMETER :: nbins = 100_i4
     INTEGER(i4) :: n
     INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
     LOGICAL, DIMENSION(size(x)) :: maske
