@@ -1095,13 +1095,14 @@ contains
     use mo_message, only: error_message
     class(dag), intent(inout) :: this
     integer(i8), intent(in)   :: n !< number of nodes
-    integer(i8), dimension(n), intent(in), optional :: tags !< tags of the nodes (will be their index by default)
+    integer(i8), dimension(:), intent(in), optional :: tags !< tags of the nodes (will be their index by default)
     integer(i8) :: i !! counter
     if (n<1_i8) call error_message('error: n must be >= 1')
     if (allocated(this%nodes)) deallocate(this%nodes)
     this%n_nodes = n
     allocate(this%nodes(n))
     if (present(tags)) then
+      if (size(tags, kind=i8) /= n) call error_message("error: tags size must match n")
       this%tags = tags
       call this%rebuild_tag_map()
     else
