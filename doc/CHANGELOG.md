@@ -4,6 +4,28 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
+## v0.9.1 - 2026-04
+- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.9.0...v0.9.1) for details.
+
+### Enhancements and Changes
+
+* `mo_grid_io`, `mo_netcdf` ([149](https://git.ufz.de/chs/forces/-/merge_requests/149))
+  * optimized grid NetCDF writes by adding a no-fill write mode and shared scratch-buffer handling
+  * added and integrated wrapper support so no-fill control is available through FORCES NetCDF paths
+  * extended tests for NetCDF wrapper/grid I/O behavior around the new write path
+
+* thread-safety / compiler robustness (`src/CMakeLists.txt`, `mo_xor4096`, `mo_errormeasures`, `mo_netcdf`) ([147](https://git.ufz.de/chs/forces/-/merge_requests/147))
+  * hardened thread-safety by making affected routines explicitly `recursive` to avoid compiler-introduced implicit `save` state
+  * adjusted build handling to support this thread-safe behavior consistently
+  * updated `mo_netcdf` function declarations to use explicit `result(...)` names for Intel 19 compatibility with recursive procedures
+
+### Fixes
+
+* `mo_grid_io`, `mo_grid_scaler`, `mo_grid`, `mo_dag` ([148](https://git.ufz.de/chs/forces/-/merge_requests/148))
+  * fixed large-grid packed input handling to prevent overflow and stack-pressure issues on very large domains
+  * replaced critical large local temporaries with allocatable/assumed-shape buffers in affected paths
+  * improved robustness of large-buffer interfaces used by grid scaling and related routines
+
 ## v0.9.0 - 2026-04
 - See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.8.0...v0.9.0) for details.
 
