@@ -2125,8 +2125,7 @@ contains
 
     cname = to_c_string(name)
     cvalue = to_c_string(values)
-    ! to_c_string() trims and appends NUL, so pass payload length (without NUL).
-    nvals = int(size(cvalue, kind=i4) - 1_i4, c_size_t)
+    nvals = int(len_trim(values, kind=i4), c_size_t)
     ncw_put_att_0d_char = int(c_nc_put_att_text(int(ncid, c_int), int(varid, c_int), c_loc(cname(1)), &
             nvals, c_loc(cvalue(1))), i4)
   end function ncw_put_att_0d_char
