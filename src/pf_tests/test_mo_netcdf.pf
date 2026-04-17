@@ -17,7 +17,7 @@ module test_mo_netcdf
   ! NetCDF type ids follow the C library constants exposed by mo_netcdf_wrapper.
   logical, dimension(3), parameter  :: wahasatt = [.true., .true., .false.]
   integer(i4), dimension(3), parameter  :: waglobaltype = [2_i4, 4_i4, -1_i4]
-  integer(i4), dimension(3), parameter  :: wagloballen = [64_i4, 1_i4, -1_i4]
+  integer(i4), dimension(3), parameter  :: wagloballen = [14_i4, 1_i4, -1_i4]
   integer(i4), dimension(3)  :: raglobaltype, ragloballen, raglobalnum
   logical, dimension(3)  :: rahasatt
   character(64), dimension(2), parameter  :: wavarnames = [character(64) :: 'units', 'scaling']

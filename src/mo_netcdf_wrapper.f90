@@ -2121,11 +2121,13 @@ contains
     integer(i4) :: ncw_put_att_0d_char
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:), cvalue(:)
+    integer(c_size_t) :: nvals
 
     cname = to_c_string(name)
     cvalue = to_c_string(values)
+    nvals = int(len_trim(values, kind=i4), c_size_t)
     ncw_put_att_0d_char = int(c_nc_put_att_text(int(ncid, c_int), int(varid, c_int), c_loc(cname(1)), &
-            int(len(values), c_size_t), c_loc(cvalue(1))), i4)
+            nvals, c_loc(cvalue(1))), i4)
   end function ncw_put_att_0d_char
 
   function ncw_get_att_0d_char(ncid, varid, name, values)
@@ -2135,12 +2137,25 @@ contains
     integer(i4) :: ncw_get_att_0d_char
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:), cvalue(:)
+    integer(i8) :: nvals64
+    integer(i4) :: nvals
 
     cname = to_c_string(name)
-    allocate(cvalue(len(values)))
+    ncw_get_att_0d_char = ncw_inquire_attribute64(ncid, varid, name, len=nvals64)
+    if (ncw_get_att_0d_char /= NCW_NOERR) return
+    if (.not. ncw_fits_c_size_t(nvals64)) then
+      ncw_get_att_0d_char = NCW_EINVAL
+      return
+    end if
+    if (nvals64 > int(huge(0_i4), i8)) then
+      ncw_get_att_0d_char = NCW_EINVAL
+      return
+    end if
+    nvals = max(1_i4, int(nvals64, i4))
+    allocate(cvalue(nvals))
     cvalue = c_null_char
     ncw_get_att_0d_char = int(c_nc_get_att_text(int(ncid, c_int), int(varid, c_int), c_loc(cname(1)), c_loc(cvalue(1))), i4)
-    if (ncw_get_att_0d_char == NCW_NOERR) call c_chars_to_fortran(cvalue, values)
+    if (ncw_get_att_0d_char == NCW_NOERR) call c_chars_to_fortran(cvalue, values, stop_at_null=.false.)
   end function ncw_get_att_0d_char
 
   function ncw_put_var_0d_sp(ncid, varid, values, start, cnt, stride, map)
