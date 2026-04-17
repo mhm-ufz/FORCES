@@ -1,0 +1,21 @@
+{
+    "license": "LGPL-3.0-or-later",
+    "language": "eng",
+    "keywords": [
+        "hydrology",
+        "spatial data",
+        "grids",
+        "upscaling",
+        "downscaling",
+        "optimization",
+        "environmental modeling",
+        "fortran",
+        "netcdf"
+    ],
+    "creators": [
+        {
+            "affiliation": "UFZ",
+            "name": "CHS-Developers"
+        }
+    ]
+}

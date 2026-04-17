@@ -4,6 +4,15 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
+## v0.9.2 - 2026-04
+- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.9.1...v0.9.2) for details.
+
+### Fixes
+
+* `mo_netcdf_wrapper` ([152](https://git.ufz.de/chs/forces/-/merge_requests/152))
+  * fix `ncw_put_att_0d_char` to pass the actual C-string payload length `len_trim(values)` instead of `len(values)`
+  * fix `ncw_get_att_0d_char` to query attribute length first and allocate a sufficiently large C buffer before `nc_get_att_text`
+
 ## v0.9.1 - 2026-04
 - See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.9.0...v0.9.1) for details.
 
