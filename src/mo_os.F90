@@ -534,7 +534,7 @@ contains
     character(len=len_trim(path)), allocatable, intent(out) :: parts(:) !< parts of the given path
 
     integer   :: i
-    character(len=len_trim(path)) :: temp, comp
+    character(len=len_trim(path)) :: temp, head, comp
 
     ! create array to join
     temp = trim(path)
@@ -551,7 +551,8 @@ contains
         exit
       end if
       ! get next component
-      call path_split(temp, temp, comp)
+      call path_split(temp, head, comp)
+      temp = head
       if (len_trim(comp) > 0) call append(parts, comp)
     end do
 
