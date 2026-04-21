@@ -14,6 +14,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_os
 
+  use, intrinsic :: iso_c_binding, only: c_char, c_int, c_null_char, c_size_t
   use mo_kind, only: i4
 
   implicit none
@@ -62,11 +63,37 @@ module mo_os
   !> The string used to separate (or, rather, terminate) lines on the current platform.
   character(len = *), public, parameter :: linesep = '\n'
   !> The file path of the null device.
+#ifdef FORCES_OS_WINDOWS
+  character(len = *), public, parameter :: devnull = 'NUL'
+#else
   character(len = *), public, parameter :: devnull = '/dev/null'
+#endif
   !> Maximum length of a path component (folder/file names).
   integer(i4), public, save :: max_path_comp_len = 256_i4
   !> Maximum length of a path (16 max. length components).
   integer(i4), public, save :: max_path_len = 4096_i4
+
+  integer(i4), parameter :: OS_PATH_MISSING = 0_i4
+  integer(i4), parameter :: OS_PATH_FILE = 1_i4
+  integer(i4), parameter :: OS_PATH_DIR = 2_i4
+
+  interface
+    integer(c_int) function forces_os_getcwd(buffer, buffer_len) bind(C, name="forces_os_getcwd")
+      import :: c_char, c_int, c_size_t
+      character(kind=c_char, len=1), intent(out) :: buffer(*)
+      integer(c_size_t), value :: buffer_len
+    end function forces_os_getcwd
+
+    integer(c_int) function forces_os_chdir(path) bind(C, name="forces_os_chdir")
+      import :: c_char, c_int
+      character(kind=c_char, len=1), intent(in) :: path(*)
+    end function forces_os_chdir
+
+    integer(c_int) function forces_os_path_kind(path) bind(C, name="forces_os_path_kind")
+      import :: c_char, c_int
+      character(kind=c_char, len=1), intent(in) :: path(*)
+    end function forces_os_path_kind
+  end interface
 
   private
 
@@ -74,17 +101,63 @@ module mo_os
 
 contains
 
+  pure logical function is_drive_letter(ch)
+    character(len=1), intent(in) :: ch
+
+    is_drive_letter = ((ch >= 'a') .and. (ch <= 'z')) .or. ((ch >= 'A') .and. (ch <= 'Z'))
+
+  end function is_drive_letter
+
+  subroutine path_to_c_chars(path, cpath)
+    implicit none
+
+    character(len=*), intent(in) :: path
+    character(kind=c_char, len=1), allocatable, intent(out) :: cpath(:)
+
+    integer(i4) :: i, n
+
+    n = len_trim(path)
+    allocate(cpath(n + 1))
+    do i = 1, n
+      cpath(i) = achar(iachar(path(i:i)), kind=c_char)
+    end do
+    cpath(n + 1) = c_null_char
+
+  end subroutine path_to_c_chars
+
+  subroutine c_chars_to_path(cpath, path)
+    implicit none
+
+    character(kind=c_char, len=1), intent(in) :: cpath(*)
+    character(len=*), intent(out) :: path
+
+    integer(i4) :: i
+
+    path = ""
+    do i = 1, len(path)
+      if (cpath(i) == c_null_char) exit
+      path(i:i) = char(iachar(cpath(i)))
+    end do
+
+  end subroutine c_chars_to_path
+
+  integer(i4) function query_path_kind(path)
+    implicit none
+
+    character(len=*), intent(in) :: path
+
+    character(kind=c_char, len=1), allocatable :: cpath(:)
+
+    call path_to_c_chars(trim(path), cpath)
+    query_path_kind = int(forces_os_path_kind(cpath), i4)
+
+  end function query_path_kind
+
   ! ------------------------------------------------------------------
   !> \brief Get the current working directory.
   !> \author Sebastian Müller
   !> \date Mar 2023
   subroutine get_cwd(path, status, verbose, raise)
-#ifdef NAG
-    use f90_unix_dir, only : getcwd
-#endif
-#ifdef INTEL
-    use ifport, only : getcwd
-#endif
     implicit none
 
     character(*), intent(out) :: path !< the current working directory
@@ -94,18 +167,16 @@ contains
 
     integer(i4) :: status_
     logical :: raise_
+    character(kind=c_char, len=1) :: cpath(len(path) + 1)
 
     raise_ = .true.
     if ( present(raise) ) raise_ = raise
     ! prevent raise if error code should be returned
     raise_ = raise_ .and. .not. present(status)
 
-#ifdef NAG
-    call getcwd(path, errno=status_)
-#else
-    ! gfortran and intel can use a function
-    status_ = getcwd(path)
-#endif
+    cpath = c_null_char
+    status_ = int(forces_os_getcwd(cpath, int(size(cpath), c_size_t)), i4)
+    call c_chars_to_path(cpath, path)
 
     if (status_ /= 0) call path_msg("Can't determine current working directory.", verbose=verbose, raise=raise_)
     if ( present(status) ) status = status_
@@ -117,12 +188,6 @@ contains
   !> \author Sebastian Müller
   !> \date Mar 2023
   subroutine change_dir(path, status, verbose, raise)
-#ifdef NAG
-    use f90_unix_dir, only : chdir
-#endif
-#ifdef INTEL
-    use ifport, only : chdir
-#endif
     implicit none
 
     character(*), intent(in) :: path !< path to change CWD to
@@ -132,18 +197,15 @@ contains
 
     integer(i4) :: status_
     logical :: raise_
+    character(kind=c_char, len=1), allocatable :: cpath(:)
 
     raise_ = .true.
     if ( present(raise) ) raise_ = raise
     ! prevent raise if error code should be returned
     raise_ = raise_ .and. .not. present(status)
 
-#ifdef NAG
-    call chdir(trim(path), errno=status_)
-#else
-    ! gfortran and intel can use a function
-    status_ = chdir(path)
-#endif
+    call path_to_c_chars(trim(path), cpath)
+    status_ = int(forces_os_chdir(cpath), i4)
 
     if (status_ /= 0) call path_msg("Can't open directory: ", trim(path), verbose, raise_)
     if ( present(status) ) status = status_
@@ -236,7 +298,7 @@ contains
     implicit none
     character(len=*), intent(in)  :: path !< given path
 
-    path_exists = path_isfile(path) .or. path_isdir(path)
+    path_exists = query_path_kind(path) /= OS_PATH_MISSING
 
   end function path_exists
 
@@ -248,9 +310,7 @@ contains
     implicit none
     character(len=*), intent(in)  :: path !< given path
 
-    inquire(file=trim(path), exist=path_isfile)
-    ! gfortran/NAG need the check if it is not a directory explicitly
-    path_isfile = path_isfile .and. (.not. path_isdir(path))
+    path_isfile = query_path_kind(path) == OS_PATH_FILE
 
   end function path_isfile
 
@@ -262,13 +322,7 @@ contains
     implicit none
     character(len=*), intent(in)  :: path !< given path
 
-#ifdef INTEL
-    ! intel has non-standard 'directory' argument
-    inquire(directory=trim(path), exist=path_isdir)
-#else
-    ! append "/" and check if it still exists
-    inquire(file=trim(path)//sep, exist=path_isdir)
-#endif
+    path_isdir = query_path_kind(path) == OS_PATH_DIR
 
   end function path_isdir
 
@@ -277,12 +331,26 @@ contains
   !> \author Sebastian Müller
   !> \date Mar 2023
   logical function path_isabs(path)
-    use mo_string_utils, only : startswith
     implicit none
     character(len=*), intent(in)  :: path !< given path
 
-    ! absolute posix path starts with '/'
-    path_isabs = startswith(path, sep)
+    character(:), allocatable :: posix
+    integer(i4) :: path_len
+
+    posix = path_as_posix(path)
+    path_len = len_trim(posix)
+    if (path_len == 0) then
+      path_isabs = .false.
+    else if (posix(1:1) == sep) then
+      path_isabs = .true.
+    else
+      path_isabs = .false.
+      if (path_len >= 2) then
+        if (is_drive_letter(posix(1:1)) .and. (posix(2:2) == ':')) then
+          path_isabs = .true.
+        end if
+      end if
+    end if
 
   end function path_isabs
 
@@ -291,17 +359,58 @@ contains
   !> \author Sebastian Müller
   !> \date Mar 2023
   logical function path_isroot(path)
-    use mo_string_utils, only : startswith
     implicit none
     character(len=*), intent(in)  :: path !< given path
 
-    integer   :: i
+    character(:), allocatable :: posix, temp
+    integer(i4) :: i, slash_i, share_i, temp_len
 
-    do i=len_trim(path), 0, -1
-      if (i == 0) exit ! only sep found or empty
-      if (path(i:i) /= sep) exit
+    posix = path_as_posix(path)
+    temp = trim(posix)
+    temp_len = len_trim(temp)
+
+    if (temp_len == 0) then
+      path_isroot = .false.
+      return
+    end if
+
+    if (temp_len >= 2) then
+      if (is_drive_letter(temp(1:1)) .and. (temp(2:2) == ':')) then
+        if (temp_len == 2) then
+          path_isroot = .true.
+          return
+        end if
+        if ((temp_len == 3) .and. (temp(3:3) == sep)) then
+          path_isroot = .true.
+          return
+        end if
+      end if
+    end if
+
+    do i = temp_len, 3, -1
+      if (temp(i:i) /= sep) exit
+      temp = temp(:i - 1)
     end do
-    path_isroot = (i == 0) .and. (len_trim(path) > 0)
+    temp_len = len_trim(temp)
+
+    if (temp_len >= 2) then
+      if (temp(1:2) == sep // sep) then
+      slash_i = index(temp(3:), sep)
+      if (slash_i == 0) then
+        path_isroot = .false.
+        return
+      end if
+      share_i = index(temp(3 + slash_i:), sep)
+      path_isroot = share_i == 0
+      return
+      end if
+    end if
+
+    do i = temp_len, 0, -1
+      if (i == 0) exit ! only sep found or empty
+      if (temp(i:i) /= sep) exit
+    end do
+    path_isroot = (i == 0) .and. (temp_len > 0)
 
   end function path_isroot
 
