@@ -364,6 +364,7 @@ contains
 
     character(:), allocatable :: posix, temp
     integer(i4) :: i, slash_i, share_i, temp_len
+    logical :: all_sep
 
     posix = path_as_posix(path)
     temp = trim(posix)
@@ -387,22 +388,33 @@ contains
       end if
     end if
 
-    do i = temp_len, 3, -1
-      if (temp(i:i) /= sep) exit
-      temp = temp(:i - 1)
+    all_sep = .true.
+    do i = 1, temp_len
+      if (temp(i:i) /= sep) then
+        all_sep = .false.
+        exit
+      end if
     end do
-    temp_len = len_trim(temp)
+    if (all_sep) then
+      path_isroot = .true.
+      return
+    end if
 
     if (temp_len >= 2) then
       if (temp(1:2) == sep // sep) then
-      slash_i = index(temp(3:), sep)
-      if (slash_i == 0) then
-        path_isroot = .false.
+        do i = temp_len, 3, -1
+          if (temp(i:i) /= sep) exit
+          temp = temp(:i - 1)
+        end do
+        temp_len = len_trim(temp)
+        slash_i = index(temp(3:), sep)
+        if (slash_i == 0) then
+          path_isroot = .false.
+          return
+        end if
+        share_i = index(temp(3 + slash_i:), sep)
+        path_isroot = share_i == 0
         return
-      end if
-      share_i = index(temp(3 + slash_i:), sep)
-      path_isroot = share_i == 0
-      return
       end if
     end if
 
