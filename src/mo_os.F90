@@ -362,7 +362,7 @@ contains
     implicit none
     character(len=*), intent(in)  :: path !< given path
 
-    character(:), allocatable :: posix, temp
+    character(:), allocatable :: posix, temp, server, share
     integer(i4) :: i, slash_i, share_i, temp_len
     logical :: all_sep
 
@@ -375,6 +375,7 @@ contains
       return
     end if
 
+    ! Windows drive roots: accept both "C:" and "C:/" as root-like absolute anchors.
     if (temp_len >= 2) then
       if (is_drive_letter(temp(1:1)) .and. (temp(2:2) == ':')) then
         if (temp_len == 2) then
@@ -388,6 +389,8 @@ contains
       end if
     end if
 
+    ! Pure separator strings are roots. This preserves existing POSIX behavior where
+    ! "/" and "//" are roots, and "///" or more still count as a root-like anchor.
     all_sep = .true.
     do i = 1, temp_len
       if (temp(i:i) /= sep) then
@@ -400,24 +403,60 @@ contains
       return
     end if
 
+    ! UNC/network roots: accept "//server/share" but reject degenerate forms such as
+    ! "//", "///..", "//..", or "//../.." that are not valid server/share anchors.
     if (temp_len >= 2) then
       if (temp(1:2) == sep // sep) then
+        ! Strip trailing separators before validating the UNC server/share pair.
         do i = temp_len, 3, -1
           if (temp(i:i) /= sep) exit
           temp = temp(:i - 1)
         end do
         temp_len = len_trim(temp)
+        if (temp_len < 5) then
+          path_isroot = .false.
+          return
+        end if
+        if (temp(3:3) == sep) then
+          path_isroot = .false.
+          return
+        end if
         slash_i = index(temp(3:), sep)
         if (slash_i == 0) then
           path_isroot = .false.
           return
         end if
+        if (slash_i == 1) then
+          path_isroot = .false.
+          return
+        end if
+        if ((3 + slash_i) > temp_len) then
+          path_isroot = .false.
+          return
+        end if
+        ! Reject "." and ".." as UNC server/share components.
+        server = temp(3:slash_i + 1)
+        if ((trim(server) == curdir) .or. (trim(server) == pardir)) then
+          path_isroot = .false.
+          return
+        end if
+        share = temp(3 + slash_i:temp_len)
+        if ((trim(share) == curdir) .or. (trim(share) == pardir)) then
+          path_isroot = .false.
+          return
+        end if
         share_i = index(temp(3 + slash_i:), sep)
+        if (temp(3 + slash_i:3 + slash_i) == sep) then
+          path_isroot = .false.
+          return
+        end if
         path_isroot = share_i == 0
         return
       end if
     end if
 
+    ! Fallback POSIX root check for strings like "/" after the special Windows/UNC
+    ! cases above have been ruled out.
     do i = temp_len, 0, -1
       if (i == 0) exit ! only sep found or empty
       if (temp(i:i) /= sep) exit
