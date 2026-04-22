@@ -61,14 +61,19 @@ int forces_os_getcwd(char *buffer, size_t buffer_len)
 #ifdef _WIN32
     {
         char *cwd = _getcwd(NULL, 0);
+        size_t copy_len;
 
         if (cwd == NULL) {
             return errno;
         }
 
         forces_os_normalize_separators(cwd);
-        strncpy(buffer, cwd, buffer_len - 1);
-        buffer[buffer_len - 1] = '\0';
+        copy_len = strlen(cwd);
+        if (copy_len >= buffer_len) {
+            copy_len = buffer_len - 1;
+        }
+        memcpy(buffer, cwd, copy_len);
+        buffer[copy_len] = '\0';
         free(cwd);
     }
 #else
