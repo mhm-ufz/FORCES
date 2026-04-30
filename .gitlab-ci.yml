@@ -135,6 +135,10 @@ show-env-vars:
 .nag_vars_72: &nag_vars_72
   MODULE_LOAD_SCRIPT: hpc-module-loads/eve.nagfor72
 
+# module loads for LLVM compilers
+.llvm_vars_201: &llvm_vars_201
+  MODULE_LOAD_SCRIPT: hpc-module-loads/eve.lfoss2025b
+
 #################
 ### TEMPLATES ###
 #################
@@ -305,6 +309,16 @@ test-nag72-debug:
     <<: [*debug_vars, *nag_vars_72]
   <<: *job_template
 
+test-llvm201-release:
+  variables:
+    <<: [*release_vars, *llvm_vars_201]
+  <<: *job_template
+
+test-llvm201-debug:
+  variables:
+    <<: [*debug_vars, *llvm_vars_201]
+  <<: *job_template
+
 coverage:
   variables:
     <<: [*coverage_vars, *conda_vars_04]
@@ -413,6 +427,21 @@ test-nag72-debug-omp:
     <<: [*omp_debug_vars, *nag_vars_72]
   <<: *omp_job_template
 
+test-llvm201-release-omp:
+  variables:
+    <<: [*omp_release_vars, *llvm_vars_201]
+  <<: *omp_job_template
+
+test-llvm201-release-omp-native:
+  variables:
+    <<: [*omp_release_native_vars, *llvm_vars_201]
+  <<: *omp_job_template
+
+test-llvm201-debug-omp:
+  variables:
+    <<: [*omp_debug_vars, *llvm_vars_201]
+  <<: *omp_job_template
+
 ################
 ### EXAMPLES ###
 ################
@@ -470,6 +499,11 @@ examples-intel2023b-llvm:
 examples-nag72:
   variables:
     <<: [*examples_vars, *nag_vars_72]
+  <<: *examples_template
+
+examples-llvm201:
+  variables:
+    <<: [*examples_vars, *llvm_vars_201]
   <<: *examples_template
 
 ################
