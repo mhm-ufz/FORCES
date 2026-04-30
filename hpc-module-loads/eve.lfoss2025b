@@ -1,0 +1,12 @@
+module purge
+module use /global/apps/modulefiles
+module load python_env_mpr
+module load lfoss/2025b
+module load netCDF/4.9.3
+module load netCDF-Fortran/4.6.2
+module load CMake
+module load pFUnit/4.17.1_lfoss2025b
+export FC=flang
+export F77=flang
+export CC=clang
+export CXX=clang++
