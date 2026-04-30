@@ -54,13 +54,21 @@ set(LOG_DEBUG "AUTO" CACHE STRING "Control log debug level (AUTO (release - OFF)
 set_property(CACHE LOG_DEBUG PROPERTY STRINGS AUTO ON OFF)
 
 if(FORCES_IS_TOP_LEVEL)
-  set(BUILD_TESTING "${FORCES_BUILD_TESTING}" CACHE BOOL "Enable testing via CTest.")
+  # Keep CTest's standard cache option synchronized with the FORCES-owned
+  # option so ccmake users only need to change FORCES_BUILD_TESTING.
+  set(BUILD_TESTING "${FORCES_BUILD_TESTING}" CACHE BOOL "Enable testing via CTest." FORCE)
   include(CTest)
+  mark_as_advanced(BUILD_TESTING)
+endif()
+
+set(FORCES_TESTING_ENABLED OFF)
+if(FORCES_BUILD_TESTING AND BUILD_TESTING)
+  set(FORCES_TESTING_ENABLED ON)
 endif()
 
 if(FORCES_WITH_COVERAGE)
-  if(NOT BUILD_TESTING)
-    message(FATAL_ERROR "FORCES: FORCES_WITH_COVERAGE requires BUILD_TESTING=ON.")
+  if(NOT FORCES_TESTING_ENABLED)
+    message(FATAL_ERROR "FORCES: FORCES_WITH_COVERAGE requires FORCES_BUILD_TESTING=ON.")
   endif()
   if(NOT CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     message(FATAL_ERROR "FORCES: FORCES_WITH_COVERAGE requires GNU Fortran.")
@@ -92,7 +100,7 @@ target_compile_definitions(${LIB_NAME} PRIVATE
 )
 
 # prepare testing
-if(FORCES_BUILD_TESTING AND BUILD_TESTING)
+if(FORCES_TESTING_ENABLED)
   message(STATUS "FORCES: build tests")
   add_subdirectory(./src/pf_tests)
   # prepare coverage
