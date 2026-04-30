@@ -69,7 +69,12 @@ endif()
 
 # create library
 add_library(${LIB_NAME} ${sources} ${fyppOutFiles})
+target_sources(${LIB_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/mo_os_backend.c)
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+
+if(WIN32)
+  target_compile_definitions(${LIB_NAME} PRIVATE FORCES_OS_WINDOWS)
+endif()
 
 if (FORCES_WITH_ISO_FORTRAN_ENV)
   message(STATUS "FORCES: use ISO_FORTRAN_ENV for mo_kind")

@@ -1,6 +1,7 @@
 module test_mo_os
 
   use funit
+  use mo_kind, only: i4
   use mo_os
 
   implicit none
@@ -141,6 +142,9 @@ contains
   subroutine test_isabs()
 
     @assertTrue(path_isabs("/a"))
+    @assertTrue(path_isabs("C:"))
+    @assertTrue(path_isabs("C:/tmp"))
+    @assertTrue(path_isabs("//server/share"))
     @assertFalse(path_isabs("a"))
     @assertFalse(path_isabs(""))
 
@@ -191,6 +195,7 @@ contains
   subroutine test_change_dir
 
     character(len=max_path_len) :: cwd, parent, cwd2, parent2, cwd_dir, cwd3, cwd4
+    integer(i4) :: status
 
     call get_cwd(cwd)                            ! here we are
     cwd_dir = path_basename(cwd)                 ! current folder name
@@ -202,11 +207,13 @@ contains
     call get_cwd(cwd3, raise=.false.)            ! we should be back again
     call change_dir(curdir)                      ! do we stay here?
     call get_cwd(cwd4)                           ! hope so
+    call change_dir("path-does-not-exist", status=status, raise=.false., verbose=.false.)
 
     @assertEqual(trim(cwd), trim(cwd2))
     @assertEqual(trim(cwd), trim(cwd3))
     @assertEqual(trim(cwd), trim(cwd4))
     @assertEqual(trim(parent), trim(parent2))
+    @assertTrue(status /= 0)
 
   end subroutine test_change_dir
 
@@ -214,6 +221,7 @@ contains
   subroutine test_posix
 
     @assertEqual(path_as_posix("\\a\\b"), "/a/b")
+    @assertEqual(path_as_posix("C:\\tmp\\x"), "C:/tmp/x")
 
   end subroutine test_posix
 
