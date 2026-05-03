@@ -56,8 +56,6 @@ else()
   list(FILTER fyppOutFiles EXCLUDE REGEX ".*mo_grid_io.f90$")
   list(FILTER sources EXCLUDE REGEX ".*mo_netcdf_wrapper.f90$")
   list(FILTER sources EXCLUDE REGEX ".*mo_netcdf.f90$")
-  list(FILTER sources EXCLUDE REGEX ".*mo_ncwrite.f90$")
-  list(FILTER sources EXCLUDE REGEX ".*mo_ncread.f90$")
   list(FILTER sources EXCLUDE REGEX ".*mo_grid_io.f90$")
 endif()
 
