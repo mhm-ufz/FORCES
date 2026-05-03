@@ -39,6 +39,8 @@ module mo_os
   public :: path_ext
   public :: path_stem
   public :: path_as_posix
+  public :: path_as_windows
+  public :: path_as_native
   public :: path_normpath
   public :: path_abspath
   public :: path_join
@@ -56,7 +58,7 @@ module mo_os
   character(len = *), public, parameter :: curdir = '.'
   !> The constant string used by the operating system to refer to the parent directory.
   character(len = *), public, parameter :: pardir = '..'
-  !> The character used by the operating system to separate pathname components.
+  !> The canonical FORCES character used to separate pathname components.
   character(len = *), public, parameter :: sep = '/'
   !> The character which separates the base filename from the extension.
   character(len = *), public, parameter :: extsep = '.'
@@ -345,9 +347,9 @@ contains
       path_isabs = .true.
     else
       path_isabs = .false.
-      if (path_len >= 2) then
+      if (path_len >= 3) then
         if (is_drive_letter(posix(1:1)) .and. (posix(2:2) == ':')) then
-          path_isabs = .true.
+          path_isabs = posix(3:3) == sep
         end if
       end if
     end if
@@ -375,13 +377,9 @@ contains
       return
     end if
 
-    ! Windows drive roots: accept both "C:" and "C:/" as root-like absolute anchors.
-    if (temp_len >= 2) then
+    ! Windows drive roots: "C:" is drive-relative, while "C:/" is a root.
+    if (temp_len >= 3) then
       if (is_drive_letter(temp(1:1)) .and. (temp(2:2) == ':')) then
-        if (temp_len == 2) then
-          path_isroot = .true.
-          return
-        end if
         if ((temp_len == 3) .and. (temp(3:3) == sep)) then
           path_isroot = .true.
           return
@@ -487,12 +485,14 @@ contains
     character(len=*), intent(out), optional :: ext  !< extension of given path (starting with ".")
 
     integer   :: lead_i, dot_i, sep_i
-    character(len=len_trim(path)) :: head, tail
+    character(:), allocatable :: head, posix, tail
+
+    posix = path_as_posix(path)
 
     ! find last '/' and split there
-    sep_i = index(trim(path), sep, back=.true.)
-    head = path(1:sep_i)
-    tail = path(sep_i+1:len_trim(path))
+    sep_i = index(trim(posix), sep, back=.true.)
+    head = posix(1:sep_i)
+    tail = posix(sep_i+1:len_trim(posix))
 
     ! ignore leading dots of the tail ("...a" has no extension)
     do lead_i = 1, len_trim(tail) + 1
@@ -538,19 +538,21 @@ contains
     character(len=*), intent(out), optional :: tail !< last pathname component
 
     integer   :: i
-    character(len=len_trim(path)) :: head_
+    character(:), allocatable :: head_, posix
+
+    posix = path_as_posix(path)
 
     ! find last '/'
-    i = index(trim(path), sep, back=.true.)
+    i = index(trim(posix), sep, back=.true.)
 
     if (i == 0) then
       ! no '/' found
-      if (present(tail)) tail = trim(path)
+      if (present(tail)) tail = trim(posix)
       if (present(head)) head = ''
     else
-      if (present(tail)) tail = path((i+1):len_trim(path))
+      if (present(tail)) tail = posix((i+1):len_trim(posix))
       if (.not. present(head)) return
-      head_ = path(1:i)
+      head_ = posix(1:i)
       ! remove trailing '/' from head unless it is root
       do i=len_trim(head_), 0, -1
         if (i == 0) exit ! only sep found
@@ -574,9 +576,11 @@ contains
 
     integer   :: i
     character(len=len_trim(path)) :: temp, head, comp
+    character(:), allocatable :: posix
 
     ! create array to join
-    temp = trim(path)
+    posix = path_as_posix(path)
+    temp = trim(posix)
     allocate(parts(0))
     ! stop if we can't further split the path
     do while (len_trim(temp) > 0)
@@ -693,10 +697,40 @@ contains
     character(len=*), intent(in)  :: path !< given path
     character(:), allocatable     :: posix !< posix version of the path
 
-    posix = trim(replace_text(path, "\\", sep))
-    posix = trim(replace_text(posix, "\", sep))
+    posix = trim(replace_text(path, "\", sep))
 
   end function path_as_posix
+
+  ! ------------------------------------------------------------------
+  !> \brief Return the string representation of the path with backward (\) slashes.
+  !> \author Sebastian Müller
+  !> \date May 2026
+  function path_as_windows(path) result(windows)
+    use mo_string_utils, only : replace_text
+    implicit none
+    character(len=*), intent(in)  :: path !< given path
+    character(:), allocatable     :: windows !< windows version of the path
+
+    windows = trim(replace_text(path_as_posix(path), sep, "\"))
+
+  end function path_as_windows
+
+  ! ------------------------------------------------------------------
+  !> \brief Return the string representation of the path with native OS slashes.
+  !> \author Sebastian Müller
+  !> \date May 2026
+  function path_as_native(path) result(native)
+    implicit none
+    character(len=*), intent(in)  :: path !< given path
+    character(:), allocatable     :: native !< native version of the path
+
+#ifdef FORCES_OS_WINDOWS
+    native = path_as_windows(path)
+#else
+    native = path_as_posix(path)
+#endif
+
+  end function path_as_native
 
   ! ------------------------------------------------------------------
   !> \brief Normalize a pathname by collapsing redundant separators and up-level references.
@@ -711,7 +745,7 @@ contains
     character(len=*), intent(in)  :: path !< given path
     character(:), allocatable     :: normpath !< normalized path
 
-    character(len=len_trim(path)) :: temp, comp, root
+    character(len=len_trim(path)) :: comp
     character(len=len_trim(path)), allocatable :: comps_raw(:), comps(:)
     integer :: i
     logical :: has_root ! flag to indicate an absolute path
@@ -786,16 +820,20 @@ contains
     implicit none
     character(len=*), intent(in)  :: p1, p2 ! given paths
     character(:), allocatable     :: join !< joined paths
+    character(:), allocatable     :: p1_posix, p2_posix
 
-    if (path_isabs(p2)) then
+    p1_posix = path_as_posix(p1)
+    p2_posix = path_as_posix(p2)
+
+    if (path_isabs(p2_posix)) then
       ! if second path is absolute, first path gets ignored
-      join = trim(p2)
+      join = trim(p2_posix)
     else
       ! check if sep should be added (p1 not empty and not ending with sep)
-      if ( (len_trim(p1) > 0) .and. .not. endswith(p1, sep) ) then
-        join = trim(p1) // sep // trim(p2)
+      if ( (len_trim(p1_posix) > 0) .and. .not. endswith(p1_posix, sep) ) then
+        join = trim(p1_posix) // sep // trim(p2_posix)
       else
-        join = trim(p1) // trim(p2)
+        join = trim(p1_posix) // trim(p2_posix)
       end if
     end if
 
@@ -813,7 +851,7 @@ contains
     character(len=*), intent(in), optional :: p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16 ! given paths
     character(:), allocatable              :: join !< joined paths
 
-    join = p1
+    join = path_as_posix(p1)
     if (present(p2)) join = path_join_char(join, p2)
     if (present(p3)) join = path_join_char(join, p3)
     if (present(p4)) join = path_join_char(join, p4)
