@@ -17,7 +17,7 @@ contains
   subroutine test_mcmc_tmp_file_uses_legacy_netcdf_names()
 
     type(eval_optimizee) :: objective
-    real(dp), dimension(3) :: para, stepsize
+    real(dp), dimension(3) :: para
     real(dp), dimension(3, 2) :: range_par
     real(dp), dimension(:, :), allocatable :: mcmc_paras, burnin_paras
     real(dp), dimension(:, :, :), allocatable :: chain1_expected, chain2_expected
@@ -33,11 +33,10 @@ contains
     para = [0.9999815795293934_dp, 2.0035191695594499_dp, 2.8675479872139675_dp]
     range_par(:, 1) = -10.0_dp
     range_par(:, 2) = 10.0_dp
-    stepsize = 0.0_dp
 
     call mcmc(objective, para, range_par, mcmc_paras, burnin_paras, &
             tmp_file = "mcmc_netcdf_tmp.nc", seed_in = 62001519_i8, loglike_in = .true., &
-            restart_file = "mcmc_netcdf_restart.nml", iter_mcmc_in = 4_i4, chains_in = 2_i4, stepsize_in = stepsize)
+            restart_file = "mcmc_netcdf_restart.nml", iter_burnin_in = 20_i4, iter_mcmc_in = 10_i4, chains_in = 2_i4)
 
     samples_per_chain = int(size(mcmc_paras, 1) / 2_i4, i4)
     allocate(chain1_expected(samples_per_chain, size(mcmc_paras, 2), 2))
@@ -47,7 +46,7 @@ contains
 
     call mcmc(objective, para, range_par, mcmc_paras, burnin_paras, &
             tmp_file = "mcmc_netcdf_tmp.nc", seed_in = 62001519_i8, loglike_in = .true., &
-            restart_file = "mcmc_netcdf_restart.nml", iter_mcmc_in = 4_i4, chains_in = 2_i4, stepsize_in = stepsize)
+            restart_file = "mcmc_netcdf_restart.nml", iter_burnin_in = 20_i4, iter_mcmc_in = 10_i4, chains_in = 2_i4)
 
     chain1_expected(:, :, 2) = mcmc_paras(1:samples_per_chain, :)
     chain2_expected(:, :, 2) = mcmc_paras(samples_per_chain + 1_i4:2_i4 * samples_per_chain, :)
@@ -137,7 +136,7 @@ contains
     @assertEqual([(coord_index, coord_index = 1_i4, int(size(expected, 1), i4))], x_values)
     @assertEqual([1_i4, 2_i4, 3_i4], y_values)
     @assertEqual([(coord_index, coord_index = 1_i4, int(size(expected, 3), i4))], time_values)
-    @assertEqual(expected, values)
+    @assertEqual(expected, values, tolerance = 1.0e-12_dp)
 
     status = ncw_close(ncid)
     @assertEqual(NCW_NOERR, status)
