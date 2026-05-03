@@ -697,8 +697,7 @@ contains
     character(len=*), intent(in)  :: path !< given path
     character(:), allocatable     :: posix !< posix version of the path
 
-    posix = trim(replace_text(path, "\\", sep))
-    posix = trim(replace_text(posix, "\", sep))
+    posix = trim(replace_text(path, "\", sep))
 
   end function path_as_posix
 

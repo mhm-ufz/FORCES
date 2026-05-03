@@ -234,8 +234,9 @@ contains
   @test
   subroutine test_posix
 
-    @assertEqual(path_as_posix("\\a\\b"), "/a/b")
-    @assertEqual(path_as_posix("C:\\tmp\\x"), "C:/tmp/x")
+    @assertEqual(path_as_posix("\a\b"), "/a/b")
+    @assertEqual(path_as_posix("C:\tmp\x"), "C:/tmp/x")
+    @assertEqual(path_as_posix("\\server\share\x"), "//server/share/x")
 
   end subroutine test_posix
 
