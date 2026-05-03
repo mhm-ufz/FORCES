@@ -21,7 +21,7 @@ contains
     real(dp), dimension(3, 2) :: range_par
     real(dp), dimension(:, :), allocatable :: mcmc_paras, burnin_paras
     real(dp), dimension(:, :, :), allocatable :: chain1_expected, chain2_expected
-    integer(i4) :: samples_per_chain
+    integer(i4) :: chunk_size, samples_per_chain, records_per_call, record
 
     call cleanup_file("1_mcmc_netcdf_tmp.nc")
     call cleanup_file("2_mcmc_netcdf_tmp.nc")
@@ -35,22 +35,35 @@ contains
 
     stepsize = 0.0_dp
 
+    chunk_size = 4_i4
+
     call mcmc_stddev(objective, para, range_par, mcmc_paras, burnin_paras, &
             tmp_file = "mcmc_netcdf_tmp.nc", seed_in = 62001519_i8, loglike_in = .true., &
-            iter_mcmc_in = 4_i4, chains_in = 2_i4, stepsize_in = stepsize)
+            iter_mcmc_in = chunk_size, chains_in = 2_i4, stepsize_in = stepsize)
 
     samples_per_chain = int(size(mcmc_paras, 1) / 2_i4, i4)
-    allocate(chain1_expected(samples_per_chain, size(mcmc_paras, 2), 2))
-    allocate(chain2_expected(samples_per_chain, size(mcmc_paras, 2), 2))
-    chain1_expected(:, :, 1) = mcmc_paras(1:samples_per_chain, :)
-    chain2_expected(:, :, 1) = mcmc_paras(samples_per_chain + 1_i4:2_i4 * samples_per_chain, :)
+    @assertEqual(0_i4, mod(samples_per_chain, chunk_size))
+    records_per_call = samples_per_chain / chunk_size
+    allocate(chain1_expected(chunk_size, size(mcmc_paras, 2), 2_i4 * records_per_call))
+    allocate(chain2_expected(chunk_size, size(mcmc_paras, 2), 2_i4 * records_per_call))
+    do record = 1_i4, records_per_call
+      chain1_expected(:, :, record) = mcmc_paras((record - 1_i4) * chunk_size + 1_i4 : record * chunk_size, :)
+      chain2_expected(:, :, record) = mcmc_paras(samples_per_chain + (record - 1_i4) * chunk_size + 1_i4 : &
+              samples_per_chain + record * chunk_size, :)
+    end do
 
     call mcmc_stddev(objective, para, range_par, mcmc_paras, burnin_paras, &
             tmp_file = "mcmc_netcdf_tmp.nc", seed_in = 62001519_i8, loglike_in = .true., &
-            iter_mcmc_in = 4_i4, chains_in = 2_i4, stepsize_in = stepsize)
+            iter_mcmc_in = chunk_size, chains_in = 2_i4, stepsize_in = stepsize)
 
-    chain1_expected(:, :, 2) = mcmc_paras(1:samples_per_chain, :)
-    chain2_expected(:, :, 2) = mcmc_paras(samples_per_chain + 1_i4:2_i4 * samples_per_chain, :)
+    @assertEqual(2_i4 * samples_per_chain, int(size(mcmc_paras, 1), i4))
+    do record = 1_i4, records_per_call
+      chain1_expected(:, :, records_per_call + record) = &
+              mcmc_paras((record - 1_i4) * chunk_size + 1_i4 : record * chunk_size, :)
+      chain2_expected(:, :, records_per_call + record) = &
+              mcmc_paras(samples_per_chain + (record - 1_i4) * chunk_size + 1_i4 : &
+              samples_per_chain + record * chunk_size, :)
+    end do
 
     call assert_mcmc_file("1_mcmc_netcdf_tmp.nc", 1_i4, chain1_expected)
     call assert_mcmc_file("2_mcmc_netcdf_tmp.nc", 2_i4, chain2_expected)
