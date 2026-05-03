@@ -19,6 +19,8 @@ module test_mo_os
   public :: test_abspath
   public :: test_change_dir
   public :: test_posix
+  public :: test_windows
+  public :: test_native
 
 contains
 
@@ -86,12 +88,13 @@ contains
   @test
   subroutine test_splitext()
 
-    character(len=100) :: root1, root2, root3
-    character(len=100) :: ext1, ext2, ext3
+    character(len=100) :: root1, root2, root3, root4
+    character(len=100) :: ext1, ext2, ext3, ext4
 
     call path_splitext('./files/namelist.txt',root1,ext1)
     call path_splitext('./.',root2,ext2)
     call path_splitext('../../README',root3,ext3)
+    call path_splitext('a\b.txt',root4,ext4)
 
     @assertEqual(trim(root1), './files/namelist')
     @assertEqual(trim(ext1), '.txt')
@@ -99,6 +102,8 @@ contains
     @assertEqual(trim(ext2), '')
     @assertEqual(trim(root3), '../../README')
     @assertEqual(trim(ext3), '')
+    @assertEqual(trim(root4), 'a/b')
+    @assertEqual(trim(ext4), '.txt')
 
   end subroutine test_splitext
 
@@ -106,13 +111,14 @@ contains
   subroutine test_split()
 
     character(len=100) :: path, stem, ext, root
-    character(len=100) :: head1, head2, head3
-    character(len=100) :: tail1,tail2,tail3
+    character(len=100) :: head1, head2, head3, head4
+    character(len=100) :: tail1,tail2,tail3,tail4
 
     path = '/home/user/Desktop/file.txt'
     call path_split(path, head1, tail1)
     call path_split('/home/user/Desktop/', head2, tail2)
     call path_split('file.txt', head3, tail3)
+    call path_split('C:\tmp\file.txt', head4, tail4)
 
     @assertEqual('/home/user/Desktop', head1)
     @assertEqual('file.txt', tail1)
@@ -120,6 +126,8 @@ contains
     @assertEqual('', tail2)
     @assertEqual('', head3)
     @assertEqual('file.txt', tail3)
+    @assertEqual('C:/tmp', head4)
+    @assertEqual('file.txt', tail4)
 
     tail1 = path_basename(path)
     head1 = path_dirname(path)
@@ -142,11 +150,15 @@ contains
   subroutine test_isabs()
 
     @assertTrue(path_isabs("/a"))
-    @assertTrue(path_isabs("C:"))
+    @assertTrue(path_isabs("C:/"))
     @assertTrue(path_isabs("C:/tmp"))
     @assertTrue(path_isabs("//server/share"))
+    @assertFalse(path_isabs("C:"))
     @assertFalse(path_isabs("a"))
     @assertFalse(path_isabs(""))
+    @assertTrue(path_isroot("C:/"))
+    @assertFalse(path_isroot("C:"))
+    @assertFalse(path_isroot("C:/tmp"))
 
   end subroutine test_isabs
 
@@ -160,6 +172,7 @@ contains
     @assertEqual(path_join("/a/", "b", "c"), "/a/b/c")
     @assertEqual(path_join("/a", "b", "/c"), "/c")
     @assertEqual(path_join(["/a", "b ", "/c"]), "/c")
+    @assertEqual(path_join("C:\tmp", "x"), "C:/tmp/x")
 
   end subroutine test_join
 
@@ -173,6 +186,7 @@ contains
     @assertEqual(path_normpath('a/./b'), "a/b")
     @assertEqual(path_normpath('a/b/'), "a/b")
     @assertEqual(path_normpath('a/foo/../b//'), "a/b")
+    @assertEqual(path_normpath('a\foo\..\b'), "a/b")
     @assertEqual(path_normpath('./.././..//'), "../..")
     @assertEqual(path_normpath(''), ".")
 
@@ -224,5 +238,25 @@ contains
     @assertEqual(path_as_posix("C:\\tmp\\x"), "C:/tmp/x")
 
   end subroutine test_posix
+
+  @test
+  subroutine test_windows
+
+    @assertEqual(path_as_windows("/a/b"), "\a\b")
+    @assertEqual(path_as_windows("C:/tmp/x"), "C:\tmp\x")
+    @assertEqual(path_as_windows("//server/share/x"), "\\server\share\x")
+
+  end subroutine test_windows
+
+  @test
+  subroutine test_native
+
+    if (devnull == "NUL") then
+      @assertEqual(path_as_native("/a/b"), "\a\b")
+    else
+      @assertEqual(path_as_native("\a\b"), "/a/b")
+    end if
+
+  end subroutine test_native
 
 end module test_mo_os
