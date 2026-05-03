@@ -2,8 +2,8 @@ module test_mo_mcmc_no_netcdf
 
   use funit
   use mo_kind, only : dp, i4, i8
-  use mo_likelihood, only : setmeas, loglikelihood_dp, model_dp
-  use mo_mcmc, only : mcmc
+  use mo_likelihood, only : setmeas, loglikelihood_stddev_dp, model_dp
+  use mo_mcmc, only : mcmc_stddev
   use mo_optimizee, only : eval_optimizee
 
   implicit none
@@ -14,31 +14,31 @@ contains
   subroutine test_tmp_file_without_netcdf_warns_and_writes_no_files()
 
     type(eval_optimizee) :: objective
-    real(dp), dimension(3) :: para
+    real(dp), dimension(3) :: para, stepsize
     real(dp), dimension(3, 2) :: range_par
     real(dp), dimension(:, :), allocatable :: mcmc_paras, burnin_paras
     logical :: exists
 
     call cleanup_file("1_mcmc_no_netcdf_tmp.nc")
     call cleanup_file("2_mcmc_no_netcdf_tmp.nc")
-    call cleanup_file("mcmc_no_netcdf_restart.nml")
     call setmeas()
 
     objective%eval_pointer => model_dp
-    objective%obj_pointer => loglikelihood_dp
+    objective%obj_pointer => loglikelihood_stddev_dp
     para = [0.9999815795293934_dp, 2.0035191695594499_dp, 2.8675479872139675_dp]
     range_par(:, 1) = -10.0_dp
     range_par(:, 2) = 10.0_dp
 
-    call mcmc(objective, para, range_par, mcmc_paras, burnin_paras, &
+    stepsize = 0.0_dp
+
+    call mcmc_stddev(objective, para, range_par, mcmc_paras, burnin_paras, &
             tmp_file = "mcmc_no_netcdf_tmp.nc", seed_in = 62001519_i8, loglike_in = .true., &
-            restart_file = "mcmc_no_netcdf_restart.nml", iter_burnin_in = 20_i4, iter_mcmc_in = 10_i4, chains_in = 2_i4)
+            iter_mcmc_in = 4_i4, chains_in = 2_i4, stepsize_in = stepsize)
 
     inquire(file = "1_mcmc_no_netcdf_tmp.nc", exist = exists)
     @assertFalse(exists)
     inquire(file = "2_mcmc_no_netcdf_tmp.nc", exist = exists)
     @assertFalse(exists)
-    call cleanup_file("mcmc_no_netcdf_restart.nml")
 
   end subroutine test_tmp_file_without_netcdf_warns_and_writes_no_files
 

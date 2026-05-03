@@ -2,8 +2,8 @@ module test_mo_mcmc_netcdf
 
   use funit
   use mo_kind, only : dp, i4, i8
-  use mo_likelihood, only : setmeas, loglikelihood_dp, model_dp
-  use mo_mcmc, only : mcmc
+  use mo_likelihood, only : setmeas, loglikelihood_stddev_dp, model_dp
+  use mo_mcmc, only : mcmc_stddev
   use mo_netcdf_wrapper, only : &
           NCW_DOUBLE, NCW_GLOBAL, NCW_INT, NCW_NOERR, NCW_NOWRITE, ncw_close, ncw_get_att, ncw_get_var, ncw_inq_dimid, &
           ncw_inq_varid, ncw_inquire_dimension, ncw_inquire_variable, ncw_open
@@ -17,7 +17,7 @@ contains
   subroutine test_mcmc_tmp_file_uses_legacy_netcdf_names()
 
     type(eval_optimizee) :: objective
-    real(dp), dimension(3) :: para
+    real(dp), dimension(3) :: para, stepsize
     real(dp), dimension(3, 2) :: range_par
     real(dp), dimension(:, :), allocatable :: mcmc_paras, burnin_paras
     real(dp), dimension(:, :, :), allocatable :: chain1_expected, chain2_expected
@@ -25,18 +25,19 @@ contains
 
     call cleanup_file("1_mcmc_netcdf_tmp.nc")
     call cleanup_file("2_mcmc_netcdf_tmp.nc")
-    call cleanup_file("mcmc_netcdf_restart.nml")
     call setmeas()
 
     objective%eval_pointer => model_dp
-    objective%obj_pointer => loglikelihood_dp
+    objective%obj_pointer => loglikelihood_stddev_dp
     para = [0.9999815795293934_dp, 2.0035191695594499_dp, 2.8675479872139675_dp]
     range_par(:, 1) = -10.0_dp
     range_par(:, 2) = 10.0_dp
 
-    call mcmc(objective, para, range_par, mcmc_paras, burnin_paras, &
+    stepsize = 0.0_dp
+
+    call mcmc_stddev(objective, para, range_par, mcmc_paras, burnin_paras, &
             tmp_file = "mcmc_netcdf_tmp.nc", seed_in = 62001519_i8, loglike_in = .true., &
-            restart_file = "mcmc_netcdf_restart.nml", iter_burnin_in = 20_i4, iter_mcmc_in = 10_i4, chains_in = 2_i4)
+            iter_mcmc_in = 4_i4, chains_in = 2_i4, stepsize_in = stepsize)
 
     samples_per_chain = int(size(mcmc_paras, 1) / 2_i4, i4)
     allocate(chain1_expected(samples_per_chain, size(mcmc_paras, 2), 2))
@@ -44,9 +45,9 @@ contains
     chain1_expected(:, :, 1) = mcmc_paras(1:samples_per_chain, :)
     chain2_expected(:, :, 1) = mcmc_paras(samples_per_chain + 1_i4:2_i4 * samples_per_chain, :)
 
-    call mcmc(objective, para, range_par, mcmc_paras, burnin_paras, &
+    call mcmc_stddev(objective, para, range_par, mcmc_paras, burnin_paras, &
             tmp_file = "mcmc_netcdf_tmp.nc", seed_in = 62001519_i8, loglike_in = .true., &
-            restart_file = "mcmc_netcdf_restart.nml", iter_burnin_in = 20_i4, iter_mcmc_in = 10_i4, chains_in = 2_i4)
+            iter_mcmc_in = 4_i4, chains_in = 2_i4, stepsize_in = stepsize)
 
     chain1_expected(:, :, 2) = mcmc_paras(1:samples_per_chain, :)
     chain2_expected(:, :, 2) = mcmc_paras(samples_per_chain + 1_i4:2_i4 * samples_per_chain, :)
@@ -56,7 +57,6 @@ contains
 
     call cleanup_file("1_mcmc_netcdf_tmp.nc")
     call cleanup_file("2_mcmc_netcdf_tmp.nc")
-    call cleanup_file("mcmc_netcdf_restart.nml")
 
   end subroutine test_mcmc_tmp_file_uses_legacy_netcdf_names
 
