@@ -3639,7 +3639,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3671,7 +3675,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3702,7 +3710,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3735,7 +3747,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3767,7 +3783,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3800,7 +3820,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3832,7 +3856,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3865,7 +3893,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3897,7 +3929,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3930,7 +3966,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3962,7 +4002,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3995,7 +4039,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4027,7 +4075,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4060,7 +4112,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4092,7 +4148,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4124,7 +4184,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4155,7 +4219,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4188,7 +4256,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4220,7 +4292,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4253,7 +4329,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4285,7 +4365,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4318,7 +4402,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4350,7 +4438,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4383,7 +4475,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4415,7 +4511,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4448,7 +4548,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4480,7 +4584,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4513,7 +4621,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4545,7 +4657,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4577,7 +4693,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4608,7 +4728,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4641,7 +4765,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4673,7 +4801,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4706,7 +4838,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4738,7 +4874,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4771,7 +4911,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4803,7 +4947,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4836,7 +4984,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4868,7 +5020,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4901,7 +5057,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4933,7 +5093,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4966,7 +5130,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4998,7 +5166,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5030,7 +5202,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5061,7 +5237,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5094,7 +5274,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5126,7 +5310,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5159,7 +5347,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5191,7 +5383,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5224,7 +5420,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5256,7 +5456,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5289,7 +5493,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5321,7 +5529,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5354,7 +5566,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5386,7 +5602,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5419,7 +5639,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5451,7 +5675,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5483,7 +5711,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5514,7 +5746,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5547,7 +5783,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5579,7 +5819,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5612,7 +5856,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5644,7 +5892,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5677,7 +5929,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5709,7 +5965,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5742,7 +6002,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5774,7 +6038,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5807,7 +6075,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5839,7 +6111,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5872,7 +6148,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5904,7 +6184,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5936,7 +6220,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5967,7 +6255,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6000,7 +6292,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6032,7 +6328,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6065,7 +6365,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6097,7 +6401,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6130,7 +6438,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6162,7 +6474,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6195,7 +6511,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6227,7 +6547,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6260,7 +6584,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6292,7 +6620,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6325,7 +6657,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6357,7 +6693,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6389,7 +6729,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6420,7 +6764,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6453,7 +6801,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6485,7 +6837,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6518,7 +6874,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6550,7 +6910,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6583,7 +6947,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6615,7 +6983,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6648,7 +7020,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6680,7 +7056,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6713,7 +7093,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6745,7 +7129,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6778,7 +7166,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6810,7 +7202,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6842,7 +7238,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6873,7 +7273,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6906,7 +7310,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6938,7 +7346,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6971,7 +7383,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7003,7 +7419,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7036,7 +7456,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7068,7 +7492,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7101,7 +7529,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7133,7 +7565,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7166,7 +7602,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7198,7 +7638,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7231,7 +7675,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7263,7 +7711,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7295,7 +7747,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7326,7 +7782,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7359,7 +7819,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7391,7 +7855,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7424,7 +7892,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7456,7 +7928,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7489,7 +7965,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7521,7 +8001,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7554,7 +8038,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7586,7 +8074,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7619,7 +8111,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7651,7 +8147,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7684,7 +8184,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7716,7 +8220,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7748,7 +8256,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7779,7 +8291,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7812,7 +8328,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7844,7 +8364,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7877,7 +8401,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7909,7 +8437,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7942,7 +8474,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7974,7 +8510,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8007,7 +8547,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8039,7 +8583,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8072,7 +8620,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8104,7 +8656,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8137,7 +8693,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8169,7 +8729,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8201,7 +8765,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8232,7 +8800,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8265,7 +8837,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8297,7 +8873,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8330,7 +8910,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8362,7 +8946,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8395,7 +8983,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8427,7 +9019,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8460,7 +9056,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8492,7 +9092,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8525,7 +9129,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8557,7 +9165,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8590,7 +9202,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8622,7 +9238,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8654,7 +9274,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8685,7 +9309,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8718,7 +9346,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8750,7 +9382,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8783,7 +9419,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8815,7 +9455,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8848,7 +9492,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8880,7 +9528,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8913,7 +9565,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8945,7 +9601,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8978,7 +9638,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -9010,7 +9674,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -9043,7 +9711,11 @@ contains
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -9183,6 +9855,11 @@ contains
     stride_c = 1_c_ptrdiff_t
     map_c = 1_c_ptrdiff_t
 
+    if (value_rank > rank_c) then
+      status = NCW_EINVAL
+      return
+    end if
+
     do i = 1, value_rank
       if (.not. ncw_fits_c_size_t(shape_f(i))) then
         status = NCW_ERANGE
@@ -9197,6 +9874,13 @@ contains
         if (start(i) < 1_i4) then
           status = NCW_EINVAL
           return
+        end if
+        if (i > rank_c) then
+          if (start(i) /= 1_i4) then
+            status = NCW_EINVAL
+            return
+          end if
+          cycle
         end if
         value_i8 = int(start(i) - 1_i4, i8)
         if (.not. ncw_fits_c_size_t(value_i8)) then
@@ -9213,6 +9897,13 @@ contains
           status = NCW_EINVAL
           return
         end if
+        if (i > rank_c) then
+          if (cnt(i) /= 1_i4) then
+            status = NCW_EEDGE
+            return
+          end if
+          cycle
+        end if
         value_i8 = int(cnt(i), i8)
         if (.not. ncw_fits_c_size_t(value_i8)) then
           status = NCW_ERANGE
@@ -9224,7 +9915,7 @@ contains
               status = NCW_EEDGE
               return
             end if
-          else if (value_i8 > 1_i8) then
+          else if (value_i8 /= 1_i8) then
             status = NCW_EEDGE
             return
           end if
@@ -9238,6 +9929,13 @@ contains
         if (stride(i) <= 0_i4) then
           status = NCW_ESTRIDE
           return
+        end if
+        if (i > rank_c) then
+          if (stride(i) /= 1_i4) then
+            status = NCW_ESTRIDE
+            return
+          end if
+          cycle
         end if
         value_i8 = int(stride(i), i8)
         if (.not. ncw_fits_c_ptrdiff_t(value_i8)) then
@@ -9255,8 +9953,10 @@ contains
           status = NCW_ERANGE
           return
         end if
-        j = rank_c - i + 1
-        map_c(j) = int(value_i8, c_ptrdiff_t)
+        if (i <= rank_c) then
+          j = rank_c - i + 1
+          map_c(j) = int(value_i8, c_ptrdiff_t)
+        end if
       end do
     end if
 
@@ -9285,6 +9985,11 @@ contains
     stride_c = 1_c_ptrdiff_t
     map_c = 1_c_ptrdiff_t
 
+    if (value_rank > rank_c) then
+      status = NCW_EINVAL
+      return
+    end if
+
     do i = 1, value_rank
       if (.not. ncw_fits_c_size_t(shape_f(i))) then
         status = NCW_ERANGE
@@ -9299,6 +10004,13 @@ contains
         if (start(i) < 1_i8) then
           status = NCW_EINVAL
           return
+        end if
+        if (i > rank_c) then
+          if (start(i) /= 1_i8) then
+            status = NCW_EINVAL
+            return
+          end if
+          cycle
         end if
         value_i8 = start(i) - 1_i8
         if (.not. ncw_fits_c_size_t(value_i8)) then
@@ -9315,6 +10027,13 @@ contains
           status = NCW_EINVAL
           return
         end if
+        if (i > rank_c) then
+          if (cnt(i) /= 1_i8) then
+            status = NCW_EEDGE
+            return
+          end if
+          cycle
+        end if
         value_i8 = cnt(i)
         if (.not. ncw_fits_c_size_t(value_i8)) then
           status = NCW_ERANGE
@@ -9326,7 +10045,7 @@ contains
               status = NCW_EEDGE
               return
             end if
-          else if (value_i8 > 1_i8) then
+          else if (value_i8 /= 1_i8) then
             status = NCW_EEDGE
             return
           end if
@@ -9340,6 +10059,13 @@ contains
         if (stride(i) <= 0_i8) then
           status = NCW_ESTRIDE
           return
+        end if
+        if (i > rank_c) then
+          if (stride(i) /= 1_i8) then
+            status = NCW_ESTRIDE
+            return
+          end if
+          cycle
         end if
         value_i8 = stride(i)
         if (.not. ncw_fits_c_ptrdiff_t(value_i8)) then
@@ -9357,8 +10083,10 @@ contains
           status = NCW_ERANGE
           return
         end if
-        j = rank_c - i + 1
-        map_c(j) = int(value_i8, c_ptrdiff_t)
+        if (i <= rank_c) then
+          j = rank_c - i + 1
+          map_c(j) = int(value_i8, c_ptrdiff_t)
+        end if
       end do
     end if
 
@@ -9366,30 +10094,6 @@ contains
     use_map = present(map)
     use_slice = present(start) .or. present(cnt) .or. use_stride .or. use_map
   end subroutine ncw_prepare_slicing_i8
-
-  function ncw_slice_rank_i4(base_rank, start, cnt, stride, map) result(rank_out)
-    integer(i4), intent(in) :: base_rank
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
-    integer(i4) :: rank_out
-
-    rank_out = base_rank
-    if (present(start)) rank_out = max(rank_out, size(start))
-    if (present(cnt)) rank_out = max(rank_out, size(cnt))
-    if (present(stride)) rank_out = max(rank_out, size(stride))
-    if (present(map)) rank_out = max(rank_out, size(map))
-  end function ncw_slice_rank_i4
-
-  function ncw_slice_rank_i8(base_rank, start, cnt, stride, map) result(rank_out)
-    integer(i4), intent(in) :: base_rank
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
-    integer(i4) :: rank_out
-
-    rank_out = base_rank
-    if (present(start)) rank_out = max(rank_out, size(start))
-    if (present(cnt)) rank_out = max(rank_out, size(cnt))
-    if (present(stride)) rank_out = max(rank_out, size(stride))
-    if (present(map)) rank_out = max(rank_out, size(map))
-  end function ncw_slice_rank_i8
 
   logical function ncw_fits_c_size_t(value)
     integer(i8), intent(in) :: value
