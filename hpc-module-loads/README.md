@@ -55,7 +55,11 @@ All these scripts will load:
   source eve.nagfor72 # or
   source eve.nagfor72-omp
   ```
-
+- LLVM 20.1.8 compiler (`lfoss/2025b` Toolchain):
+  ```bash
+  source eve.lfoss2025b # or
+  source eve.lfoss2025bMPI
+  ```
 ## Toolchains at Juwels
 
 All these scripts will load:
@@ -113,4 +117,4 @@ source lumi.gfortran112
 
 MIT License (MIT)
 
-Copyright (c) 2020 - 2024 CHS Developers
+Copyright (c) 2020 - 2026 CHS Developers

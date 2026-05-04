@@ -99,3 +99,9 @@ eve.nagfor72:
 
 eve.nagfor72-omp:
   extends: .common-test-job
+
+eve.lfoss2025b:
+  extends: .common-test-job
+
+eve.lfoss2025bMPI:
+  extends: .common-test-job

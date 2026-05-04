@@ -140,6 +140,7 @@ elseif(LOG_DEBUG STREQUAL "AUTO")
 endif()
 
 # set compiling flags for debug and relese version
+# gfortran
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   # set the preprocessor
   target_compile_definitions(${LIB_NAME} PRIVATE "GFORTRAN")
@@ -201,6 +202,7 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
     )
   endif()
 endif()
+# nagfor
 if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
   if(FORCES_ENABLE_NATIVE)
     message(STATUS "FORCES: host-native Release tuning has no effect for NAG")
@@ -226,4 +228,17 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O4;-ieee=full>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:${NAG_RELWITHDEBINFO_FLAGS}>"
   )
+endif()
+# flang (LLVMFlang)
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "LLVMFlang")
+  target_compile_options(${LIB_NAME} PRIVATE
+    "$<$<COMPILE_LANGUAGE:Fortran>:-frealloc-lhs>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-fimplicit-none;-pedantic;-Wall>"
+  )
+  if(FORCES_ENABLE_NATIVE)
+    target_compile_options(${LIB_NAME} PRIVATE
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-march=native>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-march=native>"
+    )
+  endif()
 endif()

@@ -682,10 +682,10 @@ contains
             ! check if dependency ready
             if ( visit_level(deps(m)) == 0_i8) cycle neigh_loop
           end do deps_loop
-          !$omp atomic capture
+          !$omp critical(dag_levelsort_addable)
           skip = addable(neigh(k)) ! check if already added by another thread or level
-          addable(neigh(k)) = addable(neigh(k)) .or. .true.
-          !$omp end atomic
+          addable(neigh(k)) = .true.
+          !$omp end critical(dag_levelsort_addable)
           if (skip) cycle neigh_loop ! already added
           idx = idx + 1_i8
           added_from(neigh(k)) = current(i)
@@ -850,10 +850,10 @@ contains
             ! check if dependency ready
             if ( visit_level(deps(m)) == 0_i8) cycle neigh_loop
           end do deps_loop
-          !$omp atomic capture
+          !$omp critical(dag_levelsort_addable)
           skip = addable(neigh(k)) ! check if already added by another thread or level
-          addable(neigh(k)) = addable(neigh(k)) .or. .true.
-          !$omp end atomic
+          addable(neigh(k)) = .true.
+          !$omp end critical(dag_levelsort_addable)
           if (skip) cycle neigh_loop ! already added
           idx = idx + 1_i8
           added_from(neigh(k)) = current(i)
