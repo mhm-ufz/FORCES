@@ -8,9 +8,10 @@ module test_mo_netcdf_wrapper
           NCW_NOERR, NCW_NOWRITE, NCW_64BIT_OFFSET, NCW_WRITE, ncw_abort, ncw_close, ncw_copy_att, ncw_create, &
           ncw_def_dim, ncw_def_grp, ncw_def_var, ncw_def_var_chunking, ncw_def_var_deflate, ncw_def_var_endian, ncw_def_var_fill, &
           ncw_def_var_fletcher32, ncw_del_att, ncw_delete, ncw_enddef, ncw_get_att, ncw_get_var, &
-          ncw_get_var64, ncw_inq_dimid, ncw_inq_format, ncw_inq_ncid, ncw_inq_path, ncw_inq_var_chunking, &
+          ncw_get_var64, ncw_inq_dimid, ncw_inq_dimids, ncw_inq_format, ncw_inq_grp_full_ncid, ncw_inq_grp_ncid, &
+          ncw_inq_grpname_full, ncw_inq_grpname_len, ncw_inq_grps, ncw_inq_ncid, ncw_inq_path, ncw_inq_var_chunking, &
           ncw_inq_var_deflate, ncw_inq_var_endian, &
-          ncw_inq_var_fletcher32, ncw_inq_var_fill, ncw_inquire, ncw_inquire_attribute, ncw_inquire_variable, &
+          ncw_inq_var_fletcher32, ncw_inq_var_fill, ncw_inquire, ncw_inquire_attribute, ncw_inquire_dimension, ncw_inquire_variable, &
           ncw_open, ncw_put_att, ncw_put_var, ncw_redef, ncw_rename_grp
 
   implicit none
@@ -24,6 +25,7 @@ module test_mo_netcdf_wrapper
   character(*), parameter :: fname_scalar = "netcdf_wrapper_scalar_var.nc"
   character(*), parameter :: fname_delete = "netcdf_wrapper_delete.nc"
   character(*), parameter :: fname_standalone_props = "netcdf_wrapper_var_standalone_props.nc"
+  character(*), parameter :: fname_group_listing = "netcdf_wrapper_group_listing.nc"
 
 contains
 
@@ -200,6 +202,84 @@ contains
     status = ncw_close(ncid)
     @assertEqual(NCW_NOERR, status)
   end subroutine test_wrapper_attribute_and_group_management
+
+  @test
+  subroutine test_wrapper_group_and_dimension_listing()
+    integer(i4) :: status, ncid, grp_left, grp_right, grp_leaf, got_grp
+    integer(i4) :: dim_root, dim_local, dimids(4), grpids(4), ndims, ngrps, name_len, i
+    character(32) :: full_name, dim_name
+    logical :: found_root_dim, found_local_dim
+
+    status = ncw_create(fname_group_listing, ior(NCW_CLOBBER, NCW_NETCDF4), ncid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_dim(ncid, "root_dim", 3_i4, dim_root)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_grp(ncid, "left", grp_left)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_grp(ncid, "right", grp_right)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_grp(grp_left, "leaf", grp_leaf)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_dim(grp_left, "local_dim", 4_i4, dim_local)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_enddef(ncid)
+    @assertEqual(NCW_NOERR, status)
+
+    status = ncw_inq_grps(ncid, ngrps, grpids)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(2_i4, ngrps)
+    @assertEqual(grp_left, grpids(1))
+    @assertEqual(grp_right, grpids(2))
+
+    status = ncw_inq_grps(grp_left, ngrps, grpids)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(1_i4, ngrps)
+    @assertEqual(grp_leaf, grpids(1))
+
+    status = ncw_inq_grp_ncid(ncid, "left", got_grp)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(grp_left, got_grp)
+    status = ncw_inq_grp_full_ncid(ncid, "/left/leaf", got_grp)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(grp_leaf, got_grp)
+
+    status = ncw_inq_grpname_len(grp_leaf, name_len)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(len_trim("/left/leaf"), name_len)
+    full_name = ""
+    status = ncw_inq_grpname_full(grp_leaf, name_len, full_name)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual("/left/leaf", full_name(1:name_len))
+
+    status = ncw_inq_dimids(grp_left, ndims, dimids, 0_i4)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(1_i4, ndims)
+    dim_name = ""
+    status = ncw_inquire_dimension(grp_left, dimids(1), name = dim_name)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual("local_dim", trim(dim_name))
+
+    status = ncw_inq_dimids(grp_left, ndims, dimids, 1_i4)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(2_i4, ndims)
+    found_root_dim = .false.
+    found_local_dim = .false.
+    do i = 1, ndims
+      dim_name = ""
+      status = ncw_inquire_dimension(grp_left, dimids(i), name = dim_name)
+      @assertEqual(NCW_NOERR, status)
+      found_root_dim = found_root_dim .or. trim(dim_name) == "root_dim"
+      found_local_dim = found_local_dim .or. trim(dim_name) == "local_dim"
+    end do
+    @assertTrue(found_root_dim)
+    @assertTrue(found_local_dim)
+
+    status = ncw_inq_dimids(grp_left, ndims, dimids(1:1), 1_i4)
+    @assertEqual(NCW_EINVAL, status)
+
+    status = ncw_close(ncid)
+    @assertEqual(NCW_NOERR, status)
+  end subroutine test_wrapper_group_and_dimension_listing
 
   @test
   subroutine test_wrapper_variable_property_inquiry()

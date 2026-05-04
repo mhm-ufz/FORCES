@@ -69,7 +69,8 @@ module mo_netcdf_wrapper
   public :: ncw_abort, ncw_close, ncw_copy_att, ncw_create, ncw_def_dim, ncw_def_dim64, ncw_def_grp, ncw_def_var
   public :: ncw_def_var_chunking, ncw_def_var_deflate, ncw_def_var_endian, ncw_def_var_fill, ncw_def_var_fletcher32, ncw_del_att
   public :: ncw_delete, ncw_enddef, ncw_get_att, ncw_get_var, ncw_get_var64, ncw_inq_attname
-  public :: ncw_inq_dimid, ncw_inq_format, ncw_inq_grp_parent, ncw_inq_grpname, ncw_inq_ncid, ncw_inq_path
+  public :: ncw_inq_dimid, ncw_inq_dimids, ncw_inq_format, ncw_inq_grp_full_ncid, ncw_inq_grp_ncid, ncw_inq_grp_parent
+  public :: ncw_inq_grpname, ncw_inq_grpname_full, ncw_inq_grpname_len, ncw_inq_grps, ncw_inq_ncid, ncw_inq_path
   public :: ncw_inq_var_chunking, ncw_inq_var_deflate, ncw_inq_var_endian, ncw_inq_var_fletcher32, ncw_inq_var_fill
   public :: ncw_inq_varid, ncw_inq_varids, ncw_inquire, ncw_inquire_attribute, ncw_inquire_attribute64
   public :: ncw_inquire_dimension, ncw_inquire_dimension64, ncw_inquire_variable, ncw_open, ncw_put_att, ncw_put_var
@@ -211,6 +212,24 @@ module mo_netcdf_wrapper
       type(c_ptr), value :: name, grp_ncidp
     end function c_nc_inq_ncid
 
+    integer(c_int) function c_nc_inq_grps(ncid, numgrpsp, ncidsp) bind(C, name="nc_inq_grps")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid
+      type(c_ptr), value :: numgrpsp, ncidsp
+    end function c_nc_inq_grps
+
+    integer(c_int) function c_nc_inq_grp_ncid(ncid, name, grp_ncidp) bind(C, name="nc_inq_grp_ncid")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid
+      type(c_ptr), value :: name, grp_ncidp
+    end function c_nc_inq_grp_ncid
+
+    integer(c_int) function c_nc_inq_grp_full_ncid(ncid, full_name, grp_ncidp) bind(C, name="nc_inq_grp_full_ncid")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid
+      type(c_ptr), value :: full_name, grp_ncidp
+    end function c_nc_inq_grp_full_ncid
+
     integer(c_int) function c_nc_inq_grp_parent(ncid, parent_ncidp) bind(C, name="nc_inq_grp_parent")
       import :: c_int, c_ptr
       integer(c_int), value :: ncid
@@ -223,11 +242,29 @@ module mo_netcdf_wrapper
       type(c_ptr), value :: name
     end function c_nc_inq_grpname
 
+    integer(c_int) function c_nc_inq_grpname_len(ncid, lenp) bind(C, name="nc_inq_grpname_len")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid
+      type(c_ptr), value :: lenp
+    end function c_nc_inq_grpname_len
+
+    integer(c_int) function c_nc_inq_grpname_full(ncid, lenp, name) bind(C, name="nc_inq_grpname_full")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid
+      type(c_ptr), value :: lenp, name
+    end function c_nc_inq_grpname_full
+
     integer(c_int) function c_nc_rename_grp(grpid, name) bind(C, name="nc_rename_grp")
       import :: c_int, c_ptr
       integer(c_int), value :: grpid
       type(c_ptr), value :: name
     end function c_nc_rename_grp
+
+    integer(c_int) function c_nc_inq_dimids(ncid, ndimsp, dimidsp, include_parents) bind(C, name="nc_inq_dimids")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid, include_parents
+      type(c_ptr), value :: ndimsp, dimidsp
+    end function c_nc_inq_dimids
 
     integer(c_int) function c_nc_inq_varids(ncid, nvarsp, varidsp) bind(C, name="nc_inq_varids")
       import :: c_int, c_ptr
@@ -1354,6 +1391,41 @@ contains
     if (ncw_inq_dimid == NCW_NOERR) dimid = int(c_dimid, i4)
   end function ncw_inq_dimid
 
+  !> \brief Retrieve visible dimension IDs in a NetCDF-4 group.
+  !> \return NetCDF status code; NCW_NOERR on success.
+  function ncw_inq_dimids(ncid, ndims, dimids, include_parents)
+    integer(i4), intent(in) :: ncid !< NetCDF group ID.
+    integer(i4), intent(out) :: ndims !< Receives the number of visible dimensions.
+    integer(i4), intent(out) :: dimids(:) !< Array that receives dimension IDs (length >= ndims).
+    integer(i4), intent(in) :: include_parents !< Non-zero to include dimensions from parent groups.
+    integer(i4) :: ncw_inq_dimids
+
+    integer(c_int), target :: c_ndims
+    integer(c_int), target :: c_dimids(max(1, size(dimids)))
+    integer(i4) :: i
+
+    c_ndims = 0_c_int
+    dimids = 0_i4
+    ncw_inq_dimids = int(c_nc_inq_dimids(int(ncid, c_int), c_loc(c_ndims), c_null_ptr, int(include_parents, c_int)), i4)
+    if (ncw_inq_dimids /= NCW_NOERR) return
+
+    ndims = int(c_ndims, i4)
+    if (size(dimids) < ndims) then
+      ncw_inq_dimids = NCW_EINVAL
+      return
+    end if
+    if (ndims == 0_i4) return
+
+    ncw_inq_dimids = int(c_nc_inq_dimids(int(ncid, c_int), c_loc(c_ndims), c_loc(c_dimids(1)), &
+            int(include_parents, c_int)), i4)
+    if (ncw_inq_dimids /= NCW_NOERR) return
+
+    ndims = int(c_ndims, i4)
+    do i = 1, ndims
+      dimids(i) = int(c_dimids(i), i4)
+    end do
+  end function ncw_inq_dimids
+
   !> \brief Rename an existing dimension.
   !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_rename_dim(ncid, dimid, name)
@@ -1400,6 +1472,71 @@ contains
     if (ncw_inq_ncid == NCW_NOERR) grp_ncid = int(c_grp_ncid, i4)
   end function ncw_inq_ncid
 
+  !> \brief Retrieve all immediate child group IDs in a NetCDF-4 group.
+  !> \return NetCDF status code; NCW_NOERR on success.
+  function ncw_inq_grps(ncid, numgrps, ncids)
+    integer(i4), intent(in) :: ncid !< NetCDF group ID.
+    integer(i4), intent(out) :: numgrps !< Receives the number of immediate child groups.
+    integer(i4), intent(out) :: ncids(:) !< Array that receives child group IDs (length >= numgrps).
+    integer(i4) :: ncw_inq_grps
+
+    integer(c_int), target :: c_numgrps
+    integer(c_int), target :: c_ncids(max(1, size(ncids)))
+    integer(i4) :: i
+
+    c_numgrps = 0_c_int
+    ncids = 0_i4
+    ncw_inq_grps = int(c_nc_inq_grps(int(ncid, c_int), c_loc(c_numgrps), c_null_ptr), i4)
+    if (ncw_inq_grps /= NCW_NOERR) return
+
+    numgrps = int(c_numgrps, i4)
+    if (size(ncids) < numgrps) then
+      ncw_inq_grps = NCW_EINVAL
+      return
+    end if
+    if (numgrps == 0_i4) return
+
+    ncw_inq_grps = int(c_nc_inq_grps(int(ncid, c_int), c_loc(c_numgrps), c_loc(c_ncids(1))), i4)
+    if (ncw_inq_grps /= NCW_NOERR) return
+
+    numgrps = int(c_numgrps, i4)
+    do i = 1, numgrps
+      ncids(i) = int(c_ncids(i), i4)
+    end do
+  end function ncw_inq_grps
+
+  !> \brief Look up the ID of a named child group within a NetCDF-4 group.
+  !> \return NetCDF status code; NCW_NOERR on success.
+  function ncw_inq_grp_ncid(ncid, name, grp_ncid)
+    integer(i4), intent(in) :: ncid !< NetCDF ID of the parent group or file.
+    character(len = *), intent(in) :: name !< Name of the child group to find.
+    integer(i4), intent(out) :: grp_ncid !< Receives the child group NetCDF ID.
+    integer(i4) :: ncw_inq_grp_ncid
+
+    character(kind = c_char, len = 1), allocatable, target :: cname(:)
+    integer(c_int), target :: c_grp_ncid
+
+    cname = to_c_string(name)
+    ncw_inq_grp_ncid = int(c_nc_inq_grp_ncid(int(ncid, c_int), c_loc(cname(1)), c_loc(c_grp_ncid)), i4)
+    if (ncw_inq_grp_ncid == NCW_NOERR) grp_ncid = int(c_grp_ncid, i4)
+  end function ncw_inq_grp_ncid
+
+  !> \brief Look up the ID of a group by full path within a NetCDF-4 file.
+  !> \return NetCDF status code; NCW_NOERR on success.
+  function ncw_inq_grp_full_ncid(ncid, full_name, grp_ncid)
+    integer(i4), intent(in) :: ncid !< NetCDF file or group ID.
+    character(len = *), intent(in) :: full_name !< Absolute or relative group path.
+    integer(i4), intent(out) :: grp_ncid !< Receives the group NetCDF ID.
+    integer(i4) :: ncw_inq_grp_full_ncid
+
+    character(kind = c_char, len = 1), allocatable, target :: cname(:)
+    integer(c_int), target :: c_grp_ncid
+
+    cname = to_c_string(full_name)
+    ncw_inq_grp_full_ncid = int(c_nc_inq_grp_full_ncid(int(ncid, c_int), c_loc(cname(1)), c_loc(c_grp_ncid)), i4)
+    if (ncw_inq_grp_full_ncid == NCW_NOERR) grp_ncid = int(c_grp_ncid, i4)
+  end function ncw_inq_grp_full_ncid
+
   !> \brief Retrieve the NetCDF ID of the parent group of a given group.
   !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_grp_parent(ncid, parent_ncid)
@@ -1426,6 +1563,62 @@ contains
     ncw_inq_grpname = int(c_nc_inq_grpname(int(ncid, c_int), c_loc(cname(1))), i4)
     if (ncw_inq_grpname == NCW_NOERR) call c_chars_to_fortran(cname, name)
   end function ncw_inq_grpname
+
+  !> \brief Retrieve the length of the full path name of a NetCDF-4 group.
+  !> \return NetCDF status code; NCW_NOERR on success.
+  function ncw_inq_grpname_len(ncid, name_len)
+    integer(i4), intent(in) :: ncid !< NetCDF group ID.
+    integer(i4), intent(out) :: name_len !< Receives the full group path length.
+    integer(i4) :: ncw_inq_grpname_len
+
+    integer(c_size_t), target :: c_len
+
+    ncw_inq_grpname_len = int(c_nc_inq_grpname_len(int(ncid, c_int), c_loc(c_len)), i4)
+    if (ncw_inq_grpname_len /= NCW_NOERR) return
+
+    if (c_len > int(huge(name_len), c_size_t)) then
+      name_len = huge(name_len)
+      ncw_inq_grpname_len = NCW_EINVAL
+    else
+      name_len = int(c_len, i4)
+    end if
+  end function ncw_inq_grpname_len
+
+  !> \brief Retrieve the full path name of a NetCDF-4 group.
+  !> \return NetCDF status code; NCW_NOERR on success.
+  function ncw_inq_grpname_full(ncid, name_len, name)
+    integer(i4), intent(in) :: ncid !< NetCDF group ID.
+    integer(i4), intent(out) :: name_len !< Receives the full group path length.
+    character(len = *), intent(out) :: name !< Receives the full group path.
+    integer(i4) :: ncw_inq_grpname_full
+
+    character(kind = c_char, len = 1), allocatable, target :: cname(:)
+    integer(c_size_t), target :: c_len
+    integer(i4) :: alloc_len
+
+    ncw_inq_grpname_full = int(c_nc_inq_grpname_len(int(ncid, c_int), c_loc(c_len)), i4)
+    if (ncw_inq_grpname_full /= NCW_NOERR) return
+
+    if (c_len >= int(huge(alloc_len), c_size_t)) then
+      name_len = huge(name_len)
+      ncw_inq_grpname_full = NCW_EINVAL
+      return
+    end if
+
+    alloc_len = max(len(name, kind = i4) + 1_i4, int(c_len, i4) + 1_i4)
+    allocate(cname(max(1_i4, alloc_len)))
+    cname = c_null_char
+    ncw_inq_grpname_full = int(c_nc_inq_grpname_full(int(ncid, c_int), c_loc(c_len), c_loc(cname(1))), i4)
+    if (ncw_inq_grpname_full /= NCW_NOERR) return
+
+    if (c_len > int(huge(name_len), c_size_t)) then
+      name_len = huge(name_len)
+      ncw_inq_grpname_full = NCW_EINVAL
+    else
+      name_len = int(c_len, i4)
+      call c_chars_to_fortran(cname, name)
+    end if
+  end function ncw_inq_grpname_full
 
   !> \brief Rename an existing NetCDF-4 group.
   !> \return NetCDF status code; NCW_NOERR on success.
