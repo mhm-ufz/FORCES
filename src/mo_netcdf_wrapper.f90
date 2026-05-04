@@ -67,8 +67,10 @@ module mo_netcdf_wrapper
   real(dp), parameter, public :: NCW_FILL_DOUBLE = 9.9692099683868690e+36_dp !< Default fill value for NCW_DOUBLE variables.
 
   public :: ncw_abort, ncw_close, ncw_copy_att, ncw_create, ncw_def_dim, ncw_def_dim64, ncw_def_grp, ncw_def_var
-  public :: ncw_def_var_fill, ncw_del_att, ncw_enddef, ncw_get_att, ncw_get_var, ncw_get_var64, ncw_inq_attname
-  public :: ncw_inq_dimid, ncw_inq_format, ncw_inq_grp_parent, ncw_inq_grpname, ncw_inq_ncid, ncw_inq_path
+  public :: ncw_def_var_chunking, ncw_def_var_deflate, ncw_def_var_endian, ncw_def_var_fill, ncw_def_var_fletcher32, ncw_del_att
+  public :: ncw_delete, ncw_enddef, ncw_get_att, ncw_get_var, ncw_get_var64, ncw_inq_attname
+  public :: ncw_inq_dimid, ncw_inq_dimids, ncw_inq_format, ncw_inq_grp_full_ncid, ncw_inq_grp_ncid, ncw_inq_grp_parent
+  public :: ncw_inq_grpname, ncw_inq_grpname_full, ncw_inq_grpname_len, ncw_inq_grps, ncw_inq_ncid, ncw_inq_path
   public :: ncw_inq_var_chunking, ncw_inq_var_deflate, ncw_inq_var_endian, ncw_inq_var_fletcher32, ncw_inq_var_fill
   public :: ncw_inq_varid, ncw_inq_varids, ncw_inquire, ncw_inquire_attribute, ncw_inquire_attribute64
   public :: ncw_inquire_dimension, ncw_inquire_dimension64, ncw_inquire_variable, ncw_open, ncw_put_att, ncw_put_var
@@ -107,6 +109,11 @@ module mo_netcdf_wrapper
       integer(c_int), value :: cmode
       integer(c_size_t), value :: initialsz
     end function c_nc__create
+
+    integer(c_int) function c_nc_delete(path) bind(C, name="nc_delete")
+      import :: c_int, c_ptr
+      type(c_ptr), value :: path
+    end function c_nc_delete
 
     integer(c_int) function c_nc_close(ncid) bind(C, name="nc_close")
       import :: c_int
@@ -205,6 +212,24 @@ module mo_netcdf_wrapper
       type(c_ptr), value :: name, grp_ncidp
     end function c_nc_inq_ncid
 
+    integer(c_int) function c_nc_inq_grps(ncid, numgrpsp, ncidsp) bind(C, name="nc_inq_grps")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid
+      type(c_ptr), value :: numgrpsp, ncidsp
+    end function c_nc_inq_grps
+
+    integer(c_int) function c_nc_inq_grp_ncid(ncid, name, grp_ncidp) bind(C, name="nc_inq_grp_ncid")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid
+      type(c_ptr), value :: name, grp_ncidp
+    end function c_nc_inq_grp_ncid
+
+    integer(c_int) function c_nc_inq_grp_full_ncid(ncid, full_name, grp_ncidp) bind(C, name="nc_inq_grp_full_ncid")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid
+      type(c_ptr), value :: full_name, grp_ncidp
+    end function c_nc_inq_grp_full_ncid
+
     integer(c_int) function c_nc_inq_grp_parent(ncid, parent_ncidp) bind(C, name="nc_inq_grp_parent")
       import :: c_int, c_ptr
       integer(c_int), value :: ncid
@@ -217,11 +242,29 @@ module mo_netcdf_wrapper
       type(c_ptr), value :: name
     end function c_nc_inq_grpname
 
+    integer(c_int) function c_nc_inq_grpname_len(ncid, lenp) bind(C, name="nc_inq_grpname_len")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid
+      type(c_ptr), value :: lenp
+    end function c_nc_inq_grpname_len
+
+    integer(c_int) function c_nc_inq_grpname_full(ncid, lenp, name) bind(C, name="nc_inq_grpname_full")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid
+      type(c_ptr), value :: lenp, name
+    end function c_nc_inq_grpname_full
+
     integer(c_int) function c_nc_rename_grp(grpid, name) bind(C, name="nc_rename_grp")
       import :: c_int, c_ptr
       integer(c_int), value :: grpid
       type(c_ptr), value :: name
     end function c_nc_rename_grp
+
+    integer(c_int) function c_nc_inq_dimids(ncid, ndimsp, dimidsp, include_parents) bind(C, name="nc_inq_dimids")
+      import :: c_int, c_ptr
+      integer(c_int), value :: ncid, include_parents
+      type(c_ptr), value :: ndimsp, dimidsp
+    end function c_nc_inq_dimids
 
     integer(c_int) function c_nc_inq_varids(ncid, nvarsp, varidsp) bind(C, name="nc_inq_varids")
       import :: c_int, c_ptr
@@ -956,6 +999,7 @@ module mo_netcdf_wrapper
 
   !> \brief Generic interface: define a variable, dispatching on whether chunk sizes are supplied.
   interface ncw_def_var
+    module procedure ncw_def_var_scalar
     module procedure ncw_def_var_1d
     module procedure ncw_def_var_nd
   end interface ncw_def_var
@@ -1105,6 +1149,18 @@ contains
       ncw_create = int(c_nc_set_chunk_cache(size_in, nelems_in, preemption_in), i4)
     end if
   end function ncw_create
+
+  !> \brief Delete a closed NetCDF file from the file system.
+  !> \return NetCDF status code; NCW_NOERR on success.
+  function ncw_delete(path)
+    character(len = *), intent(in) :: path !< File system path to the NetCDF file to delete.
+    integer(i4) :: ncw_delete
+
+    character(kind = c_char, len = 1), allocatable, target :: cpath(:)
+
+    cpath = to_c_string(path)
+    ncw_delete = int(c_nc_delete(c_loc(cpath(1))), i4)
+  end function ncw_delete
 
   !> \brief Close an open NetCDF file and flush all pending writes.
   !> \return NetCDF status code; NCW_NOERR on success.
@@ -1335,6 +1391,41 @@ contains
     if (ncw_inq_dimid == NCW_NOERR) dimid = int(c_dimid, i4)
   end function ncw_inq_dimid
 
+  !> \brief Retrieve visible dimension IDs in a NetCDF-4 group.
+  !> \return NetCDF status code; NCW_NOERR on success.
+  function ncw_inq_dimids(ncid, ndims, dimids, include_parents)
+    integer(i4), intent(in) :: ncid !< NetCDF group ID.
+    integer(i4), intent(out) :: ndims !< Receives the number of visible dimensions.
+    integer(i4), intent(out) :: dimids(:) !< Array that receives dimension IDs (length >= ndims).
+    integer(i4), intent(in) :: include_parents !< Non-zero to include dimensions from parent groups.
+    integer(i4) :: ncw_inq_dimids
+
+    integer(c_int), target :: c_ndims
+    integer(c_int), target :: c_dimids(max(1, size(dimids)))
+    integer(i4) :: i
+
+    c_ndims = 0_c_int
+    dimids = 0_i4
+    ncw_inq_dimids = int(c_nc_inq_dimids(int(ncid, c_int), c_loc(c_ndims), c_null_ptr, int(include_parents, c_int)), i4)
+    if (ncw_inq_dimids /= NCW_NOERR) return
+
+    ndims = int(c_ndims, i4)
+    if (size(dimids) < ndims) then
+      ncw_inq_dimids = NCW_EINVAL
+      return
+    end if
+    if (ndims == 0_i4) return
+
+    ncw_inq_dimids = int(c_nc_inq_dimids(int(ncid, c_int), c_loc(c_ndims), c_loc(c_dimids(1)), &
+            int(include_parents, c_int)), i4)
+    if (ncw_inq_dimids /= NCW_NOERR) return
+
+    ndims = int(c_ndims, i4)
+    do i = 1, ndims
+      dimids(i) = int(c_dimids(i), i4)
+    end do
+  end function ncw_inq_dimids
+
   !> \brief Rename an existing dimension.
   !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_rename_dim(ncid, dimid, name)
@@ -1381,6 +1472,71 @@ contains
     if (ncw_inq_ncid == NCW_NOERR) grp_ncid = int(c_grp_ncid, i4)
   end function ncw_inq_ncid
 
+  !> \brief Retrieve all immediate child group IDs in a NetCDF-4 group.
+  !> \return NetCDF status code; NCW_NOERR on success.
+  function ncw_inq_grps(ncid, numgrps, ncids)
+    integer(i4), intent(in) :: ncid !< NetCDF group ID.
+    integer(i4), intent(out) :: numgrps !< Receives the number of immediate child groups.
+    integer(i4), intent(out) :: ncids(:) !< Array that receives child group IDs (length >= numgrps).
+    integer(i4) :: ncw_inq_grps
+
+    integer(c_int), target :: c_numgrps
+    integer(c_int), target :: c_ncids(max(1, size(ncids)))
+    integer(i4) :: i
+
+    c_numgrps = 0_c_int
+    ncids = 0_i4
+    ncw_inq_grps = int(c_nc_inq_grps(int(ncid, c_int), c_loc(c_numgrps), c_null_ptr), i4)
+    if (ncw_inq_grps /= NCW_NOERR) return
+
+    numgrps = int(c_numgrps, i4)
+    if (size(ncids) < numgrps) then
+      ncw_inq_grps = NCW_EINVAL
+      return
+    end if
+    if (numgrps == 0_i4) return
+
+    ncw_inq_grps = int(c_nc_inq_grps(int(ncid, c_int), c_loc(c_numgrps), c_loc(c_ncids(1))), i4)
+    if (ncw_inq_grps /= NCW_NOERR) return
+
+    numgrps = int(c_numgrps, i4)
+    do i = 1, numgrps
+      ncids(i) = int(c_ncids(i), i4)
+    end do
+  end function ncw_inq_grps
+
+  !> \brief Look up the ID of a named child group within a NetCDF-4 group.
+  !> \return NetCDF status code; NCW_NOERR on success.
+  function ncw_inq_grp_ncid(ncid, name, grp_ncid)
+    integer(i4), intent(in) :: ncid !< NetCDF ID of the parent group or file.
+    character(len = *), intent(in) :: name !< Name of the child group to find.
+    integer(i4), intent(out) :: grp_ncid !< Receives the child group NetCDF ID.
+    integer(i4) :: ncw_inq_grp_ncid
+
+    character(kind = c_char, len = 1), allocatable, target :: cname(:)
+    integer(c_int), target :: c_grp_ncid
+
+    cname = to_c_string(name)
+    ncw_inq_grp_ncid = int(c_nc_inq_grp_ncid(int(ncid, c_int), c_loc(cname(1)), c_loc(c_grp_ncid)), i4)
+    if (ncw_inq_grp_ncid == NCW_NOERR) grp_ncid = int(c_grp_ncid, i4)
+  end function ncw_inq_grp_ncid
+
+  !> \brief Look up the ID of a group by full path within a NetCDF-4 file.
+  !> \return NetCDF status code; NCW_NOERR on success.
+  function ncw_inq_grp_full_ncid(ncid, full_name, grp_ncid)
+    integer(i4), intent(in) :: ncid !< NetCDF file or group ID.
+    character(len = *), intent(in) :: full_name !< Absolute or relative group path.
+    integer(i4), intent(out) :: grp_ncid !< Receives the group NetCDF ID.
+    integer(i4) :: ncw_inq_grp_full_ncid
+
+    character(kind = c_char, len = 1), allocatable, target :: cname(:)
+    integer(c_int), target :: c_grp_ncid
+
+    cname = to_c_string(full_name)
+    ncw_inq_grp_full_ncid = int(c_nc_inq_grp_full_ncid(int(ncid, c_int), c_loc(cname(1)), c_loc(c_grp_ncid)), i4)
+    if (ncw_inq_grp_full_ncid == NCW_NOERR) grp_ncid = int(c_grp_ncid, i4)
+  end function ncw_inq_grp_full_ncid
+
   !> \brief Retrieve the NetCDF ID of the parent group of a given group.
   !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_grp_parent(ncid, parent_ncid)
@@ -1407,6 +1563,62 @@ contains
     ncw_inq_grpname = int(c_nc_inq_grpname(int(ncid, c_int), c_loc(cname(1))), i4)
     if (ncw_inq_grpname == NCW_NOERR) call c_chars_to_fortran(cname, name)
   end function ncw_inq_grpname
+
+  !> \brief Retrieve the length of the full path name of a NetCDF-4 group.
+  !> \return NetCDF status code; NCW_NOERR on success.
+  function ncw_inq_grpname_len(ncid, name_len)
+    integer(i4), intent(in) :: ncid !< NetCDF group ID.
+    integer(i4), intent(out) :: name_len !< Receives the full group path length.
+    integer(i4) :: ncw_inq_grpname_len
+
+    integer(c_size_t), target :: c_len
+
+    ncw_inq_grpname_len = int(c_nc_inq_grpname_len(int(ncid, c_int), c_loc(c_len)), i4)
+    if (ncw_inq_grpname_len /= NCW_NOERR) return
+
+    if (c_len > int(huge(name_len), c_size_t)) then
+      name_len = huge(name_len)
+      ncw_inq_grpname_len = NCW_EINVAL
+    else
+      name_len = int(c_len, i4)
+    end if
+  end function ncw_inq_grpname_len
+
+  !> \brief Retrieve the full path name of a NetCDF-4 group.
+  !> \return NetCDF status code; NCW_NOERR on success.
+  function ncw_inq_grpname_full(ncid, name_len, name)
+    integer(i4), intent(in) :: ncid !< NetCDF group ID.
+    integer(i4), intent(out) :: name_len !< Receives the full group path length.
+    character(len = *), intent(out) :: name !< Receives the full group path.
+    integer(i4) :: ncw_inq_grpname_full
+
+    character(kind = c_char, len = 1), allocatable, target :: cname(:)
+    integer(c_size_t), target :: c_len
+    integer(i4) :: alloc_len
+
+    ncw_inq_grpname_full = int(c_nc_inq_grpname_len(int(ncid, c_int), c_loc(c_len)), i4)
+    if (ncw_inq_grpname_full /= NCW_NOERR) return
+
+    if (c_len >= int(huge(alloc_len), c_size_t)) then
+      name_len = huge(name_len)
+      ncw_inq_grpname_full = NCW_EINVAL
+      return
+    end if
+
+    alloc_len = max(len(name, kind = i4) + 1_i4, int(c_len, i4) + 1_i4)
+    allocate(cname(max(1_i4, alloc_len)))
+    cname = c_null_char
+    ncw_inq_grpname_full = int(c_nc_inq_grpname_full(int(ncid, c_int), c_loc(c_len), c_loc(cname(1))), i4)
+    if (ncw_inq_grpname_full /= NCW_NOERR) return
+
+    if (c_len > int(huge(name_len), c_size_t)) then
+      name_len = huge(name_len)
+      ncw_inq_grpname_full = NCW_EINVAL
+    else
+      name_len = int(c_len, i4)
+      call c_chars_to_fortran(cname, name)
+    end if
+  end function ncw_inq_grpname_full
 
   !> \brief Rename an existing NetCDF-4 group.
   !> \return NetCDF status code; NCW_NOERR on success.
@@ -1446,27 +1658,15 @@ contains
   !> \details Internal overload dispatched through the `ncw_def_var` generic interface.
   !>          Use `ncw_def_var` rather than calling this directly.
   !> \return NetCDF status code; NCW_NOERR on success.
-  function ncw_def_var_scalar(ncid, name, xtype, varid, contiguous, chunksizes, deflate_level, shuffle, fletcher32, endianness, &
-          cache_size, cache_nelems, cache_preemption)
+  function ncw_def_var_scalar(ncid, name, xtype, varid)
     integer(i4), intent(in) :: ncid !< NetCDF file ID.
     integer(i4), intent(in) :: xtype !< NetCDF external type (e.g. NCW_FLOAT, NCW_DOUBLE).
     character(len = *), intent(in) :: name !< Variable name.
     integer(i4), intent(out) :: varid !< Receives the new variable ID.
-    logical, intent(in), optional :: contiguous !< Request contiguous storage.
-    logical, intent(in), optional :: shuffle !< Enable shuffle filter.
-    logical, intent(in), optional :: fletcher32 !< Enable fletcher32 checksum.
-    integer(i4), intent(in), optional :: chunksizes !< Chunk size (scalar).
-    integer(i4), intent(in), optional :: deflate_level !< Zlib deflate level (1–9).
-    integer(i4), intent(in), optional :: endianness !< Endianness constant.
-    integer(i4), intent(in), optional :: cache_size !< Per-variable chunk cache size (bytes).
-    integer(i4), intent(in), optional :: cache_nelems !< Per-variable cache slot count.
-    integer(i4), intent(in), optional :: cache_preemption !< Per-variable cache preemption factor (0–100).
     integer(i4) :: ncw_def_var_scalar
     integer(i4) :: dimids(1)
-    integer(i4) :: chunk(1)
-    if (present(chunksizes)) chunk(1) = chunksizes
-    ncw_def_var_scalar = ncw_def_var_impl(ncid, name, xtype, dimids(1:0), varid, contiguous, chunk(1:0), deflate_level, shuffle, &
-            fletcher32, endianness, cache_size, cache_nelems, cache_preemption, .false.)
+
+    ncw_def_var_scalar = ncw_def_var_impl(ncid, name, xtype, dimids(1:0), varid, chunksizes = dimids(1:0), has_chunksizes = .false.)
   end function ncw_def_var_scalar
 
   !> \brief Define a 1-D variable in an open NetCDF file.
@@ -1533,6 +1733,82 @@ contains
               fletcher32, endianness, cache_size, cache_nelems, cache_preemption, .false.)
     end if
   end function ncw_def_var_nd
+
+  !> \brief Set the storage layout and chunk sizes for a variable.
+  !> \details Chunk sizes are passed in FORCES (Fortran-natural) dimension order and
+  !>          reversed internally before calling the NetCDF C library.
+  !> \return NetCDF status code; NCW_NOERR on success.
+  function ncw_def_var_chunking(ncid, varid, storage, chunksizes)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in) :: storage !< Storage type constant (NCW_CONTIGUOUS or NCW_CHUNKED).
+    integer(i4), intent(in) :: chunksizes(:) !< Chunk sizes in Fortran order when storage is NCW_CHUNKED.
+    integer(i4) :: ncw_def_var_chunking
+
+    integer(c_int), target :: c_ndims
+    integer(c_size_t), target :: c_chunks(max(1, size(chunksizes)))
+    integer(i4) :: i, ndims
+
+    ncw_def_var_chunking = int(c_nc_inq_var(int(ncid, c_int), int(varid, c_int), c_null_ptr, c_null_ptr, c_loc(c_ndims), c_null_ptr, &
+            c_null_ptr), i4)
+    if (ncw_def_var_chunking /= NCW_NOERR) return
+
+    ndims = int(c_ndims, i4)
+    if (storage == NCW_CONTIGUOUS) then
+      ncw_def_var_chunking = int(c_nc_def_var_chunking(int(ncid, c_int), int(varid, c_int), int(NCW_CONTIGUOUS, c_int), c_null_ptr), i4)
+    else if (storage == NCW_CHUNKED) then
+      if (size(chunksizes) /= ndims) then
+        ncw_def_var_chunking = NCW_EINVAL
+        return
+      end if
+      do i = 1, ndims
+        if (chunksizes(i) <= 0_i4) then
+          ncw_def_var_chunking = NCW_EINVAL
+          return
+        end if
+        c_chunks(i) = int(chunksizes(ndims - i + 1), c_size_t)
+      end do
+      ncw_def_var_chunking = int(c_nc_def_var_chunking(int(ncid, c_int), int(varid, c_int), int(NCW_CHUNKED, c_int), c_loc(c_chunks(1))), i4)
+    else
+      ncw_def_var_chunking = NCW_EINVAL
+    end if
+  end function ncw_def_var_chunking
+
+  !> \brief Set deflate compression and shuffle settings for a variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
+  function ncw_def_var_deflate(ncid, varid, shuffle, deflate, deflate_level)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in) :: shuffle !< Non-zero to enable the shuffle filter.
+    integer(i4), intent(in) :: deflate !< Non-zero to enable deflate compression.
+    integer(i4), intent(in) :: deflate_level !< Deflate level (1-9) when deflate is enabled.
+    integer(i4) :: ncw_def_var_deflate
+
+    ncw_def_var_deflate = int(c_nc_def_var_deflate(int(ncid, c_int), int(varid, c_int), int(shuffle, c_int), int(deflate, c_int), &
+            int(deflate_level, c_int)), i4)
+  end function ncw_def_var_deflate
+
+  !> \brief Set the fletcher32 checksum flag for a variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
+  function ncw_def_var_fletcher32(ncid, varid, fletcher32)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in) :: fletcher32 !< Non-zero to enable the fletcher32 checksum filter.
+    integer(i4) :: ncw_def_var_fletcher32
+
+    ncw_def_var_fletcher32 = int(c_nc_def_var_fletcher32(int(ncid, c_int), int(varid, c_int), int(fletcher32, c_int)), i4)
+  end function ncw_def_var_fletcher32
+
+  !> \brief Set the byte-endianness flag for a variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
+  function ncw_def_var_endian(ncid, varid, endianness)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in) :: endianness !< Endianness constant (e.g. NCW_ENDIAN_NATIVE).
+    integer(i4) :: ncw_def_var_endian
+
+    ncw_def_var_endian = int(c_nc_def_var_endian(int(ncid, c_int), int(varid, c_int), int(endianness, c_int)), i4)
+  end function ncw_def_var_endian
 
   !> \brief Inquire metadata and storage properties of a variable.
   !> \return NetCDF status code; NCW_NOERR on success.
