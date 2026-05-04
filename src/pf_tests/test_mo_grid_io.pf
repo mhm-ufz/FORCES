@@ -30,7 +30,7 @@ contains
   subroutine run_output_case(outfile, cache_size, static_contiguous)
     use mo_kind, only: dp, i4, sp, i8
     use mo_grid, only: grid_t
-    use mo_grid_io, only: var, output_dataset, center_timestamp, time_units_delta, daily, input_dataset
+    use mo_grid_io, only: add_var, var, output_dataset, center_timestamp, time_units_delta, daily, input_dataset
     use mo_datetime, only: datetime, timedelta
     implicit none
     character(*), intent(in) :: outfile
@@ -71,13 +71,13 @@ contains
     height_i4 = grid%pack(nint(dem, i4))
 
     allocate(vars(0))
-    vars = [vars, var(name="dem", units="m", static=.true., allow_static=.true., dtype="f32", kind="dp")]
-    vars = [vars, var(name="dem_int", units="m", static=.true., allow_static=.true., dtype="i32", kind="i4")]
-    vars = [vars, var(name="height", units="m", avg=.true., static=.false., allow_static=.true.)]
+    call add_var(vars, var(name="dem", units="m", static=.true., allow_static=.true., dtype="f32", kind="dp"))
+    call add_var(vars, var(name="dem_int", units="m", static=.true., allow_static=.true., dtype="i32", kind="i4"))
+    call add_var(vars, var(name="height", units="m", avg=.true., static=.false., allow_static=.true.))
     allocate(in_vars(0))
-    in_vars = [in_vars, var(name="dem", units="m", static=.false., allow_static=.true., dtype="f32", kind="dp")]
-    in_vars = [in_vars, var(name="dem_int", units="m", static=.false., allow_static=.true., dtype="i32", kind="i4")]
-    in_vars = [in_vars, var(name="height", units="m", static=.false., allow_static=.true.)]
+    call add_var(in_vars, var(name="dem", units="m", static=.false., allow_static=.true., dtype="f32", kind="dp"))
+    call add_var(in_vars, var(name="dem_int", units="m", static=.false., allow_static=.true., dtype="i32", kind="i4"))
+    call add_var(in_vars, var(name="height", units="m", static=.false., allow_static=.true.))
     if (present(cache_size)) then
       if (present(static_contiguous)) then
         call out_ds%init( &

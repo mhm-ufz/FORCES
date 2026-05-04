@@ -599,7 +599,7 @@ module mo_grid_io
   use mo_utils, only: is_close, flip, optval
   implicit none
 
-  public :: var, output_dataset, input_dataset, time_units_delta, time_index, var_index, time_values
+  public :: var, output_dataset, input_dataset, time_units_delta, time_index, var_index, time_values, add_var
 
   private
 
@@ -1028,6 +1028,25 @@ contains
     var_meta%avg = this%avg
     var_meta%layered = this%layered
   end function var_meta
+
+  !> \brief Add variable meta data to a variable array.
+  subroutine add_var(vars, new_var)
+    type(var), allocatable, intent(inout) :: vars(:) !< variables array
+    type(var), intent(in) :: new_var !< variable to add
+    type(var), allocatable :: tmp(:)
+    integer(i4) :: i, n
+    if (allocated(vars)) then
+      n = size(vars, kind=i4)
+    else
+      n = 0_i4
+    end if
+    allocate(tmp(n + 1_i4))
+    do i = 1_i4, n
+      tmp(i) = vars(i)
+    end do
+    tmp(n + 1_i4) = new_var
+    call move_alloc(tmp, vars)
+  end subroutine add_var
 
   !> \brief Get variable index in vars array.
   !> \return index

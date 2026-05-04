@@ -15,7 +15,7 @@
 program netcdf_output
   use mo_kind, only: dp, i4
   use mo_grid, only: grid_t
-  use mo_grid_io, only: var, output_dataset, center_timestamp, time_units_delta, hourly, daily, monthly, yearly
+  use mo_grid_io, only: add_var, var, output_dataset, center_timestamp, time_units_delta, hourly, daily, monthly, yearly
   use mo_datetime, only: datetime, timedelta
   implicit none
   type(datetime) :: start_time, end_time, current_time
@@ -44,8 +44,8 @@ program netcdf_output
 
   ! extend vars array with variables to add
   allocate(vars(0))
-  vars = [vars, var(name="dem", units="m", static=.true.)]
-  vars = [vars, var(name="height", units="m", avg=.true., static=.false.)]
+  call add_var(vars, var(name="dem", units="m", static=.true.))
+  call add_var(vars, var(name="height", units="m", avg=.true., static=.false.))
 
   call ds%init(path="height.nc", grid=grid, vars=vars, start_time=start_time, delta=delta, timestamp=center_timestamp)
   call ds%update("dem", height)
