@@ -15,7 +15,7 @@ program regrid
   use mo_constants, only: nodata_dp
   use mo_grid, only: grid_t, data_t
   use mo_grid_scaler, only: scaler_t, up_a_mean
-  use mo_grid_io, only: var, output_dataset
+  use mo_grid_io, only: add_var, var, output_dataset
   implicit none
   type(grid_t), target :: cgrid, fgrid
   type(data_t) :: data
@@ -30,8 +30,8 @@ program regrid
 
   ! extend vars array with variables to add
   allocate(vars(0))
-  vars = [vars, var(name="dem", standard_name="height_above_mean_sea_level", units="m", static=.true.)]
-  vars = [vars, var(name="area", standard_name="cell_area", units="m2", static=.true.)]
+  call add_var(vars, var(name="dem", standard_name="height_above_mean_sea_level", units="m", static=.true.))
+  call add_var(vars, var(name="area", standard_name="cell_area", units="m2", static=.true.))
 
   call ds1%init(path="fdem.nc", grid=fgrid, vars=vars(:1))
   call ds1%update("dem", fgrid%pack(dem))
