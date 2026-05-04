@@ -18,53 +18,53 @@ module mo_netcdf_wrapper
 
   private
 
-  integer(i4), parameter, public :: NCW_OPEN_MODE = 0_i4
-  integer(i4), parameter, public :: NCW_CREATE_MODE = 0_i4
-  integer(i4), parameter, public :: NCW_NOWRITE = int(z'0000', i4)
-  integer(i4), parameter, public :: NCW_WRITE = int(z'0001', i4)
-  integer(i4), parameter, public :: NCW_CLOBBER = int(z'0000', i4)
-  integer(i4), parameter, public :: NCW_CLASSIC_MODEL = int(z'0100', i4)
-  integer(i4), parameter, public :: NCW_64BIT_OFFSET = int(z'0200', i4)
-  integer(i4), parameter, public :: NCW_SHARE = int(z'0800', i4)
-  integer(i4), parameter, public :: NCW_NETCDF4 = int(z'1000', i4)
-  integer(i4), parameter, public :: NCW_HDF5 = NCW_NETCDF4
+  integer(i4), parameter, public :: NCW_OPEN_MODE = 0_i4 !< Default open mode (no flags set).
+  integer(i4), parameter, public :: NCW_CREATE_MODE = 0_i4 !< Default create mode (no flags set).
+  integer(i4), parameter, public :: NCW_NOWRITE = int(z'0000', i4) !< Open flag: read-only access.
+  integer(i4), parameter, public :: NCW_WRITE = int(z'0001', i4) !< Open flag: read-write access.
+  integer(i4), parameter, public :: NCW_CLOBBER = int(z'0000', i4) !< Create flag: overwrite existing file.
+  integer(i4), parameter, public :: NCW_CLASSIC_MODEL = int(z'0100', i4) !< Create flag: enforce classic model (no groups, etc.).
+  integer(i4), parameter, public :: NCW_64BIT_OFFSET = int(z'0200', i4) !< Create flag: 64-bit offset format.
+  integer(i4), parameter, public :: NCW_SHARE = int(z'0800', i4) !< Open/create flag: share file access (e.g. across NFS).
+  integer(i4), parameter, public :: NCW_NETCDF4 = int(z'1000', i4) !< Create flag: NetCDF-4/HDF5 format.
+  integer(i4), parameter, public :: NCW_HDF5 = NCW_NETCDF4 !< Alias for NCW_NETCDF4.
 
-  integer(i4), parameter, public :: NCW_BYTE = 1_i4
-  integer(i4), parameter, public :: NCW_CHAR = 2_i4
-  integer(i4), parameter, public :: NCW_SHORT = 3_i4
-  integer(i4), parameter, public :: NCW_INT = 4_i4
-  integer(i4), parameter, public :: NCW_FLOAT = 5_i4
-  integer(i4), parameter, public :: NCW_DOUBLE = 6_i4
-  integer(i4), parameter, public :: NCW_INT64 = 10_i4
+  integer(i4), parameter, public :: NCW_BYTE = 1_i4 !< External type: 8-bit signed integer (NC_BYTE).
+  integer(i4), parameter, public :: NCW_CHAR = 2_i4 !< External type: character (NC_CHAR).
+  integer(i4), parameter, public :: NCW_SHORT = 3_i4 !< External type: 16-bit signed integer (NC_SHORT).
+  integer(i4), parameter, public :: NCW_INT = 4_i4 !< External type: 32-bit signed integer (NC_INT).
+  integer(i4), parameter, public :: NCW_FLOAT = 5_i4 !< External type: 32-bit float (NC_FLOAT).
+  integer(i4), parameter, public :: NCW_DOUBLE = 6_i4 !< External type: 64-bit float (NC_DOUBLE).
+  integer(i4), parameter, public :: NCW_INT64 = 10_i4 !< External type: 64-bit signed integer (NC_INT64).
 
-  integer(i4), parameter, public :: NCW_NOERR = 0_i4
-  integer(i4), parameter, public :: NCW_EINVAL = -36_i4
-  integer(i4), parameter, public :: NCW_EEDGE = -57_i4
-  integer(i4), parameter, public :: NCW_ESTRIDE = -58_i4
-  integer(i4), parameter, public :: NCW_ERANGE = -60_i4
-  integer(i4), parameter, public :: NCW_UNLIMITED = 0_i4
-  integer(i4), parameter, public :: NCW_GLOBAL = -1_i4
-  integer(i4), parameter, public :: NCW_MAX_NAME = 256_i4
-  integer(i4), parameter, public :: NCW_MAX_VAR_DIMS = 1024_i4
-  integer(i4), parameter, public :: NCW_FILL = 0_i4
-  integer(i4), parameter, public :: NCW_ENDIAN_NATIVE = 0_i4
-  integer(i4), parameter, public :: NCW_ENDIAN_LITTLE = 1_i4
-  integer(i4), parameter, public :: NCW_ENDIAN_BIG = 2_i4
-  integer(i4), parameter, public :: NCW_CHUNKED = 0_i4
-  integer(i4), parameter, public :: NCW_NOTCONTIGUOUS = 0_i4
-  integer(i4), parameter, public :: NCW_CONTIGUOUS = 1_i4
-  integer(i4), parameter, public :: NCW_NOFILL = int(z'0100', i4)
-  integer(i4), parameter, public :: NCW_FORMAT_CLASSIC = 1_i4
-  integer(i4), parameter, public :: NCW_FORMAT_64BIT_OFFSET = 2_i4
-  integer(i4), parameter, public :: NCW_FORMAT_NETCDF4 = 3_i4
-  integer(i4), parameter, public :: NCW_FORMAT_NETCDF4_CLASSIC = 4_i4
-  integer(i4), parameter, public :: NCW_FORMAT_CDF5 = 5_i4
+  integer(i4), parameter, public :: NCW_NOERR = 0_i4 !< Status code: no error.
+  integer(i4), parameter, public :: NCW_EINVAL = -36_i4 !< Status code: invalid argument.
+  integer(i4), parameter, public :: NCW_EEDGE = -57_i4 !< Status code: start+count exceeds dimension bound.
+  integer(i4), parameter, public :: NCW_ESTRIDE = -58_i4 !< Status code: illegal stride.
+  integer(i4), parameter, public :: NCW_ERANGE = -60_i4 !< Status code: value out of representable range.
+  integer(i4), parameter, public :: NCW_UNLIMITED = 0_i4 !< Sentinel: unlimited dimension size (pass to ncw_def_dim).
+  integer(i4), parameter, public :: NCW_GLOBAL = -1_i4 !< Sentinel: global attribute scope (not tied to a variable).
+  integer(i4), parameter, public :: NCW_MAX_NAME = 256_i4 !< Maximum length of a NetCDF name string.
+  integer(i4), parameter, public :: NCW_MAX_VAR_DIMS = 1024_i4 !< Maximum number of dimensions per variable.
+  integer(i4), parameter, public :: NCW_FILL = 0_i4 !< Fill mode: fill values are written (default).
+  integer(i4), parameter, public :: NCW_ENDIAN_NATIVE = 0_i4 !< Endianness: native byte order.
+  integer(i4), parameter, public :: NCW_ENDIAN_LITTLE = 1_i4 !< Endianness: little-endian byte order.
+  integer(i4), parameter, public :: NCW_ENDIAN_BIG = 2_i4 !< Endianness: big-endian byte order.
+  integer(i4), parameter, public :: NCW_CHUNKED = 0_i4 !< Storage: chunked layout.
+  integer(i4), parameter, public :: NCW_NOTCONTIGUOUS = 0_i4 !< Storage: not contiguous (alias for NCW_CHUNKED).
+  integer(i4), parameter, public :: NCW_CONTIGUOUS = 1_i4 !< Storage: contiguous layout.
+  integer(i4), parameter, public :: NCW_NOFILL = int(z'0100', i4) !< Fill mode: suppress fill-value writing.
+  integer(i4), parameter, public :: NCW_FORMAT_CLASSIC = 1_i4 !< Format ID: classic NetCDF format.
+  integer(i4), parameter, public :: NCW_FORMAT_64BIT_OFFSET = 2_i4 !< Format ID: 64-bit offset format.
+  integer(i4), parameter, public :: NCW_FORMAT_NETCDF4 = 3_i4 !< Format ID: NetCDF-4/HDF5 format.
+  integer(i4), parameter, public :: NCW_FORMAT_NETCDF4_CLASSIC = 4_i4 !< Format ID: NetCDF-4 with classic model.
+  integer(i4), parameter, public :: NCW_FORMAT_CDF5 = 5_i4 !< Format ID: CDF-5 large-variable format.
 
-  integer(i1), parameter, public :: NCW_FILL_BYTE = -127_i1
-  integer(i2), parameter, public :: NCW_FILL_SHORT = -32767_i2
-  integer(i4), parameter, public :: NCW_FILL_INT = -2147483647_i4
-  real(sp), parameter, public :: NCW_FILL_FLOAT = 9.9692099683868690e+36_sp
-  real(dp), parameter, public :: NCW_FILL_DOUBLE = 9.9692099683868690e+36_dp
+  integer(i1), parameter, public :: NCW_FILL_BYTE = -127_i1 !< Default fill value for NCW_BYTE variables.
+  integer(i2), parameter, public :: NCW_FILL_SHORT = -32767_i2 !< Default fill value for NCW_SHORT variables.
+  integer(i4), parameter, public :: NCW_FILL_INT = -2147483647_i4 !< Default fill value for NCW_INT variables.
+  real(sp), parameter, public :: NCW_FILL_FLOAT = 9.9692099683868690e+36_sp !< Default fill value for NCW_FLOAT variables.
+  real(dp), parameter, public :: NCW_FILL_DOUBLE = 9.9692099683868690e+36_dp !< Default fill value for NCW_DOUBLE variables.
 
   public :: ncw_abort, ncw_close, ncw_copy_att, ncw_create, ncw_def_dim, ncw_def_dim64, ncw_def_grp, ncw_def_var
   public :: ncw_def_var_fill, ncw_del_att, ncw_enddef, ncw_get_att, ncw_get_var, ncw_get_var64, ncw_inq_attname
@@ -736,6 +736,7 @@ module mo_netcdf_wrapper
     end function c_nc_get_varm_longlong
   end interface
 
+  !> \brief Generic interface: write a scalar or 1-D attribute of any numeric or character type.
   interface ncw_put_att
     module procedure ncw_put_att_0d_sp
     module procedure ncw_put_att_1d_sp
@@ -752,6 +753,7 @@ module mo_netcdf_wrapper
     module procedure ncw_put_att_0d_char
   end interface ncw_put_att
 
+  !> \brief Generic interface: read a scalar or 1-D attribute of any numeric or character type.
   interface ncw_get_att
     module procedure ncw_get_att_0d_sp
     module procedure ncw_get_att_1d_sp
@@ -768,6 +770,7 @@ module mo_netcdf_wrapper
     module procedure ncw_get_att_0d_char
   end interface ncw_get_att
 
+  !> \brief Generic interface: write a variable (rank 0–7) using `i4` index vectors.
   interface ncw_put_var
     module procedure ncw_put_var_0d_sp
     module procedure ncw_put_var_1d_sp
@@ -813,6 +816,7 @@ module mo_netcdf_wrapper
     module procedure ncw_put_var_6d_i8
   end interface ncw_put_var
 
+  !> \brief Generic interface: write a variable (rank 0–7) using `i8` index vectors for large dimensions.
   interface ncw_put_var64
     module procedure ncw_put_var64_0d_sp
     module procedure ncw_put_var64_1d_sp
@@ -858,6 +862,7 @@ module mo_netcdf_wrapper
     module procedure ncw_put_var64_6d_i8
   end interface ncw_put_var64
 
+  !> \brief Generic interface: read a variable (rank 0–7) using `i4` index vectors.
   interface ncw_get_var
     module procedure ncw_get_var_0d_sp
     module procedure ncw_get_var_1d_sp
@@ -903,6 +908,7 @@ module mo_netcdf_wrapper
     module procedure ncw_get_var_6d_i8
   end interface ncw_get_var
 
+  !> \brief Generic interface: read a variable (rank 0–7) using `i8` index vectors for large dimensions.
   interface ncw_get_var64
     module procedure ncw_get_var64_0d_sp
     module procedure ncw_get_var64_1d_sp
@@ -948,11 +954,13 @@ module mo_netcdf_wrapper
     module procedure ncw_get_var64_6d_i8
   end interface ncw_get_var64
 
+  !> \brief Generic interface: define a variable, dispatching on whether chunk sizes are supplied.
   interface ncw_def_var
     module procedure ncw_def_var_1d
     module procedure ncw_def_var_nd
   end interface ncw_def_var
 
+  !> \brief Generic interface: set the fill value and fill mode for a variable of any numeric type.
   interface ncw_def_var_fill
     module procedure ncw_def_var_fill_sp
     module procedure ncw_def_var_fill_dp
@@ -962,6 +970,7 @@ module mo_netcdf_wrapper
     module procedure ncw_def_var_fill_i8
   end interface ncw_def_var_fill
 
+  !> \brief Generic interface: inquire the fill value and fill mode for a variable of any numeric type.
   interface ncw_inq_var_fill
     module procedure ncw_inq_var_fill_sp
     module procedure ncw_inq_var_fill_dp
@@ -973,8 +982,10 @@ module mo_netcdf_wrapper
 
 contains
 
+  !> \brief Convert a NetCDF status code to a human-readable error string.
+  !> \return Character string describing the error, or an empty string on success.
   function ncw_strerror(status) result(msg)
-    integer(i4), intent(in) :: status
+    integer(i4), intent(in) :: status !< NetCDF status code (e.g. from any `ncw_*` function).
     character(len = NCW_MAX_NAME) :: msg
 
     character(kind = c_char, len = 1), target :: cbuf(NCW_MAX_NAME + 1_i4)
@@ -984,12 +995,16 @@ contains
     call c_chars_to_fortran(cbuf, msg)
   end function ncw_strerror
 
+  !> \brief Open an existing NetCDF file.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_open(path, mode, ncid, chunksize, cache_size, cache_nelems, cache_preemption)
-    character(len = *), intent(in) :: path
-    integer(i4), intent(in) :: mode
-    integer(i4), intent(out) :: ncid
-    integer(i4), intent(inout), optional :: chunksize
-    integer(i4), intent(in), optional :: cache_size, cache_nelems, cache_preemption
+    character(len = *), intent(in) :: path !< File system path to the NetCDF file.
+    integer(i4), intent(in) :: mode !< Open mode flags (e.g. NCW_NOWRITE, NCW_WRITE).
+    integer(i4), intent(out) :: ncid !< NetCDF file ID assigned on success.
+    integer(i4), intent(inout), optional :: chunksize !< I/O chunk size hint (bytes); updated to actual value on return.
+    integer(i4), intent(in), optional :: cache_size !< Chunk cache size (bytes) to set for this file.
+    integer(i4), intent(in), optional :: cache_nelems !< Number of slots in the chunk cache.
+    integer(i4), intent(in), optional :: cache_preemption !< Cache preemption factor (0–100).
     integer(i4) :: ncw_open
 
     character(kind = c_char, len = 1), allocatable, target :: cpath(:)
@@ -1033,13 +1048,17 @@ contains
     end if
   end function ncw_open
 
+  !> \brief Create a new NetCDF file.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_create(path, cmode, ncid, initialsize, chunksize, cache_size, cache_nelems, cache_preemption)
-    character(len = *), intent(in) :: path
-    integer(i4), intent(in) :: cmode
-    integer(i4), intent(out) :: ncid
-    integer(i4), intent(in), optional :: initialsize
-    integer(i4), intent(inout), optional :: chunksize
-    integer(i4), intent(in), optional :: cache_size, cache_nelems, cache_preemption
+    character(len = *), intent(in) :: path !< File system path for the new file.
+    integer(i4), intent(in) :: cmode !< Creation mode flags (e.g. NCW_CLOBBER, NCW_NETCDF4).
+    integer(i4), intent(out) :: ncid !< NetCDF file ID assigned on success.
+    integer(i4), intent(in), optional :: initialsize !< Initial file size hint (bytes).
+    integer(i4), intent(inout), optional :: chunksize !< I/O chunk size hint (bytes); updated to actual value on return.
+    integer(i4), intent(in), optional :: cache_size !< Chunk cache size (bytes) for this file.
+    integer(i4), intent(in), optional :: cache_nelems !< Number of slots in the chunk cache.
+    integer(i4), intent(in), optional :: cache_preemption !< Cache preemption factor (0–100).
     integer(i4) :: ncw_create
 
     character(kind = c_char, len = 1), allocatable, target :: cpath(:)
@@ -1087,39 +1106,52 @@ contains
     end if
   end function ncw_create
 
+  !> \brief Close an open NetCDF file and flush all pending writes.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_close(ncid)
-    integer(i4), intent(in) :: ncid
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
     integer(i4) :: ncw_close
     ncw_close = int(c_nc_close(int(ncid, c_int)), i4)
   end function ncw_close
 
+  !> \brief Synchronize an open NetCDF file to disk without closing it.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_sync(ncid)
-    integer(i4), intent(in) :: ncid
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
     integer(i4) :: ncw_sync
     ncw_sync = int(c_nc_sync(int(ncid, c_int)), i4)
   end function ncw_sync
 
+  !> \brief Put an open NetCDF file back into define mode.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_redef(ncid)
-    integer(i4), intent(in) :: ncid
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
     integer(i4) :: ncw_redef
     ncw_redef = int(c_nc_redef(int(ncid, c_int)), i4)
   end function ncw_redef
 
+  !> \brief Leave define mode and enter data mode for an open NetCDF file.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_enddef(ncid)
-    integer(i4), intent(in) :: ncid
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
     integer(i4) :: ncw_enddef
     ncw_enddef = int(c_nc_enddef(int(ncid, c_int)), i4)
   end function ncw_enddef
 
+  !> \brief Abort the creation or definition of a NetCDF file, reverting it to its previous state.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_abort(ncid)
-    integer(i4), intent(in) :: ncid
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
     integer(i4) :: ncw_abort
     ncw_abort = int(c_nc_abort(int(ncid, c_int)), i4)
   end function ncw_abort
 
+  !> \brief Set the fill mode (NCW_FILL or NCW_NOFILL) for an open NetCDF file.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_set_fill(ncid, fillmode, old_mode)
-    integer(i4), intent(in) :: ncid, fillmode
-    integer(i4), intent(out), optional :: old_mode
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: fillmode !< New fill mode (NCW_FILL or NCW_NOFILL).
+    integer(i4), intent(out), optional :: old_mode !< Receives the previous fill mode.
     integer(i4) :: ncw_set_fill
     integer(c_int), target :: c_old_mode
 
@@ -1131,10 +1163,12 @@ contains
     end if
   end function ncw_set_fill
 
+  !> \brief Retrieve the file-system path associated with an open NetCDF file.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_path(ncid, pathlen, path)
-    integer(i4), intent(in) :: ncid
-    integer(i4), intent(inout) :: pathlen
-    character(len = *), intent(inout) :: path
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(inout) :: pathlen !< The number of characters in the path.
+    character(len = *), intent(inout) :: path !< Character buffer that receives the path string.
     integer(i4) :: ncw_inq_path
 
     integer(c_size_t), target :: c_pathlen
@@ -1154,9 +1188,11 @@ contains
     call c_chars_to_fortran(cpath, path)
   end function ncw_inq_path
 
+  !> \brief Inquire the format of an open NetCDF file.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_format(ncid, format_type)
-    integer(i4), intent(in) :: ncid
-    integer(i4), intent(out) :: format_type
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(out) :: format_type !< Receives the format constant (e.g. NCW_FORMAT_NETCDF4).
     integer(i4) :: ncw_inq_format
 
     integer(c_int), target :: c_format
@@ -1165,9 +1201,15 @@ contains
     if (ncw_inq_format == NCW_NOERR) format_type = int(c_format, i4)
   end function ncw_inq_format
 
+  !> \brief Inquire global metadata of an open NetCDF file.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inquire(ncid, ndimensions, nvariables, nattributes, unlimitedDimId, formatNum)
-    integer(i4), intent(in) :: ncid
-    integer(i4), intent(out), optional :: ndimensions, nvariables, nattributes, unlimitedDimId, formatNum
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(out), optional :: ndimensions !< Receives the number of dimensions.
+    integer(i4), intent(out), optional :: nvariables !< Receives the number of variables.
+    integer(i4), intent(out), optional :: nattributes !< Receives the number of global attributes.
+    integer(i4), intent(out), optional :: unlimitedDimId !< Receives the unlimited dimension ID, or NCW_UNLIMITED if none.
+    integer(i4), intent(out), optional :: formatNum !< Receives the file format constant.
     integer(i4) :: ncw_inquire
 
     integer(c_int), target :: c_ndims, c_nvars, c_natts, c_unlim, c_format
@@ -1187,21 +1229,28 @@ contains
     end if
   end function ncw_inquire
 
+  !> \brief Define a new dimension in an open NetCDF file (32-bit length).
+  !> \details Delegates to ncw_def_dim64 after widening `len` to `i8`.
+  !>          Pass `len <= 0` to create an unlimited dimension.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_def_dim(ncid, name, len, dimid)
-    integer(i4), intent(in) :: ncid
-    character(len = *), intent(in) :: name
-    integer(i4), intent(in) :: len
-    integer(i4), intent(out) :: dimid
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    character(len = *), intent(in) :: name !< Dimension name.
+    integer(i4), intent(in) :: len !< Dimension length; <= 0 creates an unlimited dimension.
+    integer(i4), intent(out) :: dimid !< Receives the new dimension ID.
     integer(i4) :: ncw_def_dim
 
     ncw_def_dim = ncw_def_dim64(ncid, name, int(len, i8), dimid)
   end function ncw_def_dim
 
+  !> \brief Define a new dimension in an open NetCDF file (64-bit length).
+  !> \details Pass `len <= 0` to create an unlimited dimension.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_def_dim64(ncid, name, len, dimid)
-    integer(i4), intent(in) :: ncid
-    character(len = *), intent(in) :: name
-    integer(i8), intent(in) :: len
-    integer(i4), intent(out) :: dimid
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    character(len = *), intent(in) :: name !< Dimension name.
+    integer(i8), intent(in) :: len !< Dimension length; <= 0 creates an unlimited dimension.
+    integer(i4), intent(out) :: dimid !< Receives the new dimension ID.
     integer(i4) :: ncw_def_dim64
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1219,10 +1268,14 @@ contains
     if (ncw_def_dim64 == NCW_NOERR) dimid = int(c_dimid, i4)
   end function ncw_def_dim64
 
+  !> \brief Inquire the name and/or length of a dimension (32-bit length).
+  !> \details Returns NCW_EINVAL if the dimension length exceeds `huge(i4)`.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inquire_dimension(ncid, dimid, name, len)
-    integer(i4), intent(in) :: ncid, dimid
-    character(len = *), intent(out), optional :: name
-    integer(i4), intent(out), optional :: len
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: dimid !< Dimension ID.
+    character(len = *), intent(out), optional :: name !< Receives the dimension name.
+    integer(i4), intent(out), optional :: len !< Receives the dimension length.
     integer(i4) :: ncw_inquire_dimension
 
     integer(i8) :: len64
@@ -1240,10 +1293,13 @@ contains
     end if
   end function ncw_inquire_dimension
 
+  !> \brief Inquire the name and/or length of a dimension (64-bit length).
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inquire_dimension64(ncid, dimid, name, len)
-    integer(i4), intent(in) :: ncid, dimid
-    character(len = *), intent(out), optional :: name
-    integer(i8), intent(out), optional :: len
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: dimid !< Dimension ID.
+    character(len = *), intent(out), optional :: name !< Receives the dimension name.
+    integer(i8), intent(out), optional :: len !< Receives the dimension length.
     integer(i4) :: ncw_inquire_dimension64
 
     character(kind = c_char, len = 1), target :: cname(NCW_MAX_NAME + 1_i4)
@@ -1263,10 +1319,12 @@ contains
     if (present(len)) len = int(c_len, i8)
   end function ncw_inquire_dimension64
 
+  !> \brief Look up a dimension ID by name.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_dimid(ncid, name, dimid)
-    integer(i4), intent(in) :: ncid
-    character(len = *), intent(in) :: name
-    integer(i4), intent(out) :: dimid
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    character(len = *), intent(in) :: name !< Dimension name to search for.
+    integer(i4), intent(out) :: dimid !< Receives the dimension ID.
     integer(i4) :: ncw_inq_dimid
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1277,9 +1335,12 @@ contains
     if (ncw_inq_dimid == NCW_NOERR) dimid = int(c_dimid, i4)
   end function ncw_inq_dimid
 
+  !> \brief Rename an existing dimension.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_rename_dim(ncid, dimid, name)
-    integer(i4), intent(in) :: ncid, dimid
-    character(len = *), intent(in) :: name
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: dimid !< Dimension ID.
+    character(len = *), intent(in) :: name !< New name for the dimension.
     integer(i4) :: ncw_rename_dim
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1288,10 +1349,12 @@ contains
     ncw_rename_dim = int(c_nc_rename_dim(int(ncid, c_int), int(dimid, c_int), c_loc(cname(1))), i4)
   end function ncw_rename_dim
 
+  !> \brief Define a new group within a NetCDF-4 file.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_def_grp(parent_ncid, name, new_ncid)
-    integer(i4), intent(in) :: parent_ncid
-    character(len = *), intent(in) :: name
-    integer(i4), intent(out) :: new_ncid
+    integer(i4), intent(in) :: parent_ncid !< NetCDF ID of the parent group or file.
+    character(len = *), intent(in) :: name !< Name for the new group.
+    integer(i4), intent(out) :: new_ncid !< Receives the NetCDF ID of the newly created group.
     integer(i4) :: ncw_def_grp
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1302,10 +1365,12 @@ contains
     if (ncw_def_grp == NCW_NOERR) new_ncid = int(c_new_ncid, i4)
   end function ncw_def_grp
 
+  !> \brief Look up the ID of a named group within a NetCDF-4 file.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_ncid(ncid, name, grp_ncid)
-    integer(i4), intent(in) :: ncid
-    character(len = *), intent(in) :: name
-    integer(i4), intent(out) :: grp_ncid
+    integer(i4), intent(in) :: ncid !< NetCDF ID of the parent group or file.
+    character(len = *), intent(in) :: name !< Name of the group to find.
+    integer(i4), intent(out) :: grp_ncid !< Receives the group NetCDF ID.
     integer(i4) :: ncw_inq_ncid
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1316,9 +1381,11 @@ contains
     if (ncw_inq_ncid == NCW_NOERR) grp_ncid = int(c_grp_ncid, i4)
   end function ncw_inq_ncid
 
+  !> \brief Retrieve the NetCDF ID of the parent group of a given group.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_grp_parent(ncid, parent_ncid)
-    integer(i4), intent(in) :: ncid
-    integer(i4), intent(out) :: parent_ncid
+    integer(i4), intent(in) :: ncid !< NetCDF ID of the group whose parent is sought.
+    integer(i4), intent(out) :: parent_ncid !< Receives the parent group NetCDF ID.
     integer(i4) :: ncw_inq_grp_parent
 
     integer(c_int), target :: c_parent
@@ -1327,9 +1394,11 @@ contains
     if (ncw_inq_grp_parent == NCW_NOERR) parent_ncid = int(c_parent, i4)
   end function ncw_inq_grp_parent
 
+  !> \brief Retrieve the name of a NetCDF-4 group.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_grpname(ncid, name)
-    integer(i4), intent(in) :: ncid
-    character(len = *), intent(out) :: name
+    integer(i4), intent(in) :: ncid !< NetCDF group ID.
+    character(len = *), intent(out) :: name !< Receives the group name.
     integer(i4) :: ncw_inq_grpname
 
     character(kind = c_char, len = 1), target :: cname(NCW_MAX_NAME + 1_i4)
@@ -1339,9 +1408,11 @@ contains
     if (ncw_inq_grpname == NCW_NOERR) call c_chars_to_fortran(cname, name)
   end function ncw_inq_grpname
 
+  !> \brief Rename an existing NetCDF-4 group.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_rename_grp(grpid, name)
-    integer(i4), intent(in) :: grpid
-    character(len = *), intent(in) :: name
+    integer(i4), intent(in) :: grpid !< NetCDF group ID.
+    character(len = *), intent(in) :: name !< New name for the group.
     integer(i4) :: ncw_rename_grp
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1350,10 +1421,12 @@ contains
     ncw_rename_grp = int(c_nc_rename_grp(int(grpid, c_int), c_loc(cname(1))), i4)
   end function ncw_rename_grp
 
+  !> \brief Retrieve all variable IDs in a NetCDF group.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_varids(ncid, nvars, varids)
-    integer(i4), intent(in) :: ncid
-    integer(i4), intent(out) :: nvars
-    integer(i4), intent(out) :: varids(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file or group ID.
+    integer(i4), intent(out) :: nvars !< Receives the number of variables in the group.
+    integer(i4), intent(out) :: varids(:) !< Array that receives the variable IDs (length >= nvars).
     integer(i4) :: ncw_inq_varids
 
     integer(c_int), target :: c_nvars
@@ -1369,13 +1442,25 @@ contains
     end do
   end function ncw_inq_varids
 
+  !> \brief Define a scalar variable in an open NetCDF file.
+  !> \details Internal overload dispatched through the `ncw_def_var` generic interface.
+  !>          Use `ncw_def_var` rather than calling this directly.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_def_var_scalar(ncid, name, xtype, varid, contiguous, chunksizes, deflate_level, shuffle, fletcher32, endianness, &
           cache_size, cache_nelems, cache_preemption)
-    integer(i4), intent(in) :: ncid, xtype
-    character(len = *), intent(in) :: name
-    integer(i4), intent(out) :: varid
-    logical, intent(in), optional :: contiguous, shuffle, fletcher32
-    integer(i4), intent(in), optional :: chunksizes, deflate_level, endianness, cache_size, cache_nelems, cache_preemption
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: xtype !< NetCDF external type (e.g. NCW_FLOAT, NCW_DOUBLE).
+    character(len = *), intent(in) :: name !< Variable name.
+    integer(i4), intent(out) :: varid !< Receives the new variable ID.
+    logical, intent(in), optional :: contiguous !< Request contiguous storage.
+    logical, intent(in), optional :: shuffle !< Enable shuffle filter.
+    logical, intent(in), optional :: fletcher32 !< Enable fletcher32 checksum.
+    integer(i4), intent(in), optional :: chunksizes !< Chunk size (scalar).
+    integer(i4), intent(in), optional :: deflate_level !< Zlib deflate level (1–9).
+    integer(i4), intent(in), optional :: endianness !< Endianness constant.
+    integer(i4), intent(in), optional :: cache_size !< Per-variable chunk cache size (bytes).
+    integer(i4), intent(in), optional :: cache_nelems !< Per-variable cache slot count.
+    integer(i4), intent(in), optional :: cache_preemption !< Per-variable cache preemption factor (0–100).
     integer(i4) :: ncw_def_var_scalar
     integer(i4) :: dimids(1)
     integer(i4) :: chunk(1)
@@ -1384,13 +1469,25 @@ contains
             fletcher32, endianness, cache_size, cache_nelems, cache_preemption, .false.)
   end function ncw_def_var_scalar
 
+  !> \brief Define a 1-D variable in an open NetCDF file.
+  !> \details Overload of the `ncw_def_var` generic for a single scalar `dimids` argument.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_def_var_1d(ncid, name, xtype, dimids, varid, contiguous, chunksizes, deflate_level, shuffle, fletcher32, endianness, &
           cache_size, cache_nelems, cache_preemption)
-    integer(i4), intent(in) :: ncid, xtype, dimids
-    character(len = *), intent(in) :: name
-    integer(i4), intent(out) :: varid
-    logical, intent(in), optional :: contiguous, shuffle, fletcher32
-    integer(i4), intent(in), optional :: chunksizes, deflate_level, endianness, cache_size, cache_nelems, cache_preemption
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: xtype !< NetCDF external type.
+    integer(i4), intent(in) :: dimids !< Single dimension ID.
+    character(len = *), intent(in) :: name !< Variable name.
+    integer(i4), intent(out) :: varid !< Receives the new variable ID.
+    logical, intent(in), optional :: contiguous !< Request contiguous storage.
+    logical, intent(in), optional :: shuffle !< Enable shuffle filter.
+    logical, intent(in), optional :: fletcher32 !< Enable fletcher32 checksum.
+    integer(i4), intent(in), optional :: chunksizes !< Chunk size for the single dimension.
+    integer(i4), intent(in), optional :: deflate_level !< Zlib deflate level (1–9).
+    integer(i4), intent(in), optional :: endianness !< Endianness constant.
+    integer(i4), intent(in), optional :: cache_size !< Per-variable chunk cache size (bytes).
+    integer(i4), intent(in), optional :: cache_nelems !< Per-variable cache slot count.
+    integer(i4), intent(in), optional :: cache_preemption !< Per-variable cache preemption factor (0–100).
     integer(i4) :: ncw_def_var_1d
     integer(i4) :: dimids_a(1), chunk(1)
     dimids_a(1) = dimids
@@ -1404,13 +1501,27 @@ contains
     end if
   end function ncw_def_var_1d
 
+  !> \brief Define an n-dimensional variable in an open NetCDF file.
+  !> \details Overload of the `ncw_def_var` generic for an array `dimids` argument.
+  !>          Dimension IDs follow FORCES (Fortran-natural) order; the wrapper reverses
+  !>          them internally before passing to the NetCDF C library.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_def_var_nd(ncid, name, xtype, dimids, varid, contiguous, chunksizes, deflate_level, shuffle, fletcher32, endianness, &
           cache_size, cache_nelems, cache_preemption)
-    integer(i4), intent(in) :: ncid, xtype, dimids(:)
-    character(len = *), intent(in) :: name
-    integer(i4), intent(out) :: varid
-    logical, intent(in), optional :: contiguous, shuffle, fletcher32
-    integer(i4), intent(in), optional :: chunksizes(:), deflate_level, endianness, cache_size, cache_nelems, cache_preemption
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: xtype !< NetCDF external type.
+    integer(i4), intent(in) :: dimids(:) !< Array of dimension IDs in Fortran order (fastest-varying first).
+    character(len = *), intent(in) :: name !< Variable name.
+    integer(i4), intent(out) :: varid !< Receives the new variable ID.
+    logical, intent(in), optional :: contiguous !< Request contiguous storage.
+    logical, intent(in), optional :: shuffle !< Enable shuffle filter.
+    logical, intent(in), optional :: fletcher32 !< Enable fletcher32 checksum.
+    integer(i4), intent(in), optional :: chunksizes(:) !< Chunk sizes, one per dimension in Fortran order.
+    integer(i4), intent(in), optional :: deflate_level !< Zlib deflate level (1–9).
+    integer(i4), intent(in), optional :: endianness !< Endianness constant.
+    integer(i4), intent(in), optional :: cache_size !< Per-variable chunk cache size (bytes).
+    integer(i4), intent(in), optional :: cache_nelems !< Per-variable cache slot count.
+    integer(i4), intent(in), optional :: cache_preemption !< Per-variable cache preemption factor (0–100).
     integer(i4) :: ncw_def_var_nd
     integer(i4) :: chunks_local(max(1, size(dimids)))
     if (present(chunksizes)) chunks_local(1:size(chunksizes)) = chunksizes
@@ -1423,13 +1534,26 @@ contains
     end if
   end function ncw_def_var_nd
 
+  !> \brief Inquire metadata and storage properties of a variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inquire_variable(ncid, varid, name, xtype, ndims, dimids, natts, contiguous, chunksizes, deflate_level, shuffle, &
           fletcher32, endianness, cache_size, cache_nelems, cache_preemption)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(out), optional :: name
-    integer(i4), intent(out), optional :: xtype, ndims, natts
-    integer(i4), intent(out), optional :: dimids(:), chunksizes(:), deflate_level, endianness, cache_size, cache_nelems, cache_preemption
-    logical, intent(out), optional :: contiguous, shuffle, fletcher32
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    character(len = *), intent(out), optional :: name !< Receives the variable name.
+    integer(i4), intent(out), optional :: xtype !< Receives the NetCDF external type.
+    integer(i4), intent(out), optional :: ndims !< Receives the number of dimensions.
+    integer(i4), intent(out), optional :: natts !< Receives the number of attributes.
+    integer(i4), intent(out), optional :: dimids(:) !< Receives dimension IDs in Fortran order.
+    integer(i4), intent(out), optional :: chunksizes(:) !< Receives chunk sizes in Fortran order.
+    integer(i4), intent(out), optional :: deflate_level !< Receives the zlib deflate level.
+    integer(i4), intent(out), optional :: endianness !< Receives the endianness constant.
+    integer(i4), intent(out), optional :: cache_size !< Receives the per-variable chunk cache size (bytes).
+    integer(i4), intent(out), optional :: cache_nelems !< Receives the per-variable cache slot count.
+    integer(i4), intent(out), optional :: cache_preemption !< Receives the per-variable cache preemption (0–100).
+    logical, intent(out), optional :: contiguous !< Receives .true. if the variable is stored contiguously.
+    logical, intent(out), optional :: shuffle !< Receives .true. if the shuffle filter is active.
+    logical, intent(out), optional :: fletcher32 !< Receives .true. if the fletcher32 filter is active.
     integer(i4) :: ncw_inquire_variable
 
     character(kind = c_char, len = 1), target :: cname(NCW_MAX_NAME + 1_i4)
@@ -1500,10 +1624,13 @@ contains
     end if
   end function ncw_inquire_variable
 
+  !> \brief Inquire the storage (chunked/contiguous) and chunk sizes of a variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_var_chunking(ncid, varid, storage, chunksizes)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out) :: storage
-    integer(i4), intent(out) :: chunksizes(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out) :: storage !< Receives the storage type constant (NCW_CONTIGUOUS or NCW_CHUNKED).
+    integer(i4), intent(out) :: chunksizes(:) !< Array that receives the chunk size per dimension in Fortran order.
     integer(i4) :: ncw_inq_var_chunking
 
     integer(c_int), target :: c_ndims, c_storage
@@ -1528,9 +1655,14 @@ contains
     end do
   end function ncw_inq_var_chunking
 
+  !> \brief Inquire the deflate (compression) settings of a variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_var_deflate(ncid, varid, shuffle, deflate, deflate_level)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out) :: shuffle, deflate, deflate_level
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out) :: shuffle !< Non-zero if the shuffle filter is active.
+    integer(i4), intent(out) :: deflate !< Non-zero if deflate compression is active.
+    integer(i4), intent(out) :: deflate_level !< Deflate level (1–9) when deflate is active.
     integer(i4) :: ncw_inq_var_deflate
 
     integer(c_int), target :: c_shuffle, c_deflate, c_deflate_level
@@ -1544,9 +1676,12 @@ contains
     deflate_level = int(c_deflate_level, i4)
   end function ncw_inq_var_deflate
 
+  !> \brief Inquire whether the fletcher32 checksum filter is active for a variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_var_fletcher32(ncid, varid, fletcher32)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out) :: fletcher32
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out) :: fletcher32 !< Non-zero if the fletcher32 filter is active.
     integer(i4) :: ncw_inq_var_fletcher32
 
     integer(c_int), target :: c_fletcher32
@@ -1555,9 +1690,12 @@ contains
     if (ncw_inq_var_fletcher32 == NCW_NOERR) fletcher32 = int(c_fletcher32, i4)
   end function ncw_inq_var_fletcher32
 
+  !> \brief Inquire the byte-endianness setting of a variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_var_endian(ncid, varid, endianness)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out) :: endianness
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out) :: endianness !< Receives the endianness constant (e.g. NCW_ENDIAN_NATIVE).
     integer(i4) :: ncw_inq_var_endian
 
     integer(c_int), target :: c_endianness
@@ -1566,10 +1704,12 @@ contains
     if (ncw_inq_var_endian == NCW_NOERR) endianness = int(c_endianness, i4)
   end function ncw_inq_var_endian
 
+  !> \brief Look up a variable ID by name.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_varid(ncid, name, varid)
-    integer(i4), intent(in) :: ncid
-    character(len = *), intent(in) :: name
-    integer(i4), intent(out) :: varid
+    integer(i4), intent(in) :: ncid !< NetCDF file or group ID.
+    character(len = *), intent(in) :: name !< Variable name to search for.
+    integer(i4), intent(out) :: varid !< Receives the variable ID.
     integer(i4) :: ncw_inq_varid
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1580,9 +1720,12 @@ contains
     if (ncw_inq_varid == NCW_NOERR) varid = int(c_varid, i4)
   end function ncw_inq_varid
 
+  !> \brief Rename an existing variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_rename_var(ncid, varid, name)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    character(len = *), intent(in) :: name !< New name for the variable.
     integer(i4) :: ncw_rename_var
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1591,10 +1734,16 @@ contains
     ncw_rename_var = int(c_nc_rename_var(int(ncid, c_int), int(varid, c_int), c_loc(cname(1))), i4)
   end function ncw_rename_var
 
+  !> \brief Inquire the type, length, and/or index of a named attribute (32-bit length).
+  !> \details Returns NCW_EINVAL if the attribute length exceeds `huge(i4)`.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inquire_attribute(ncid, varid, name, xtype, len, attnum)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    integer(i4), intent(out), optional :: xtype, len, attnum
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    integer(i4), intent(out), optional :: xtype !< Receives the attribute's NetCDF type.
+    integer(i4), intent(out), optional :: len !< Receives the number of values in the attribute.
+    integer(i4), intent(out), optional :: attnum !< Receives the 1-based attribute index.
     integer(i4) :: ncw_inquire_attribute
 
     integer(i8) :: len64
@@ -1612,11 +1761,15 @@ contains
     end if
   end function ncw_inquire_attribute
 
+  !> \brief Inquire the type, length, and/or index of a named attribute (64-bit length).
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inquire_attribute64(ncid, varid, name, xtype, len, attnum)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    integer(i4), intent(out), optional :: xtype, attnum
-    integer(i8), intent(out), optional :: len
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    integer(i4), intent(out), optional :: xtype !< Receives the attribute's NetCDF type.
+    integer(i8), intent(out), optional :: len !< Receives the number of values in the attribute.
+    integer(i4), intent(out), optional :: attnum !< Receives the 1-based attribute index.
     integer(i4) :: ncw_inquire_attribute64
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1640,9 +1793,13 @@ contains
     end if
   end function ncw_inquire_attribute64
 
+  !> \brief Retrieve the name of an attribute by its 1-based index.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_attname(ncid, varid, attnum, name)
-    integer(i4), intent(in) :: ncid, varid, attnum
-    character(len = *), intent(out) :: name
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    integer(i4), intent(in) :: attnum !< 1-based attribute index.
+    character(len = *), intent(out) :: name !< Receives the attribute name.
     integer(i4) :: ncw_inq_attname
 
     character(kind = c_char, len = 1), target :: cname(NCW_MAX_NAME + 1_i4)
@@ -1652,9 +1809,13 @@ contains
     if (ncw_inq_attname == NCW_NOERR) call c_chars_to_fortran(cname, name)
   end function ncw_inq_attname
 
+  !> \brief Rename an existing attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_rename_att(ncid, varid, name, newname)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name, newname
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Current attribute name.
+    character(len = *), intent(in) :: newname !< New name for the attribute.
     integer(i4) :: ncw_rename_att
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:), cnew(:)
@@ -1664,9 +1825,14 @@ contains
     ncw_rename_att = int(c_nc_rename_att(int(ncid, c_int), int(varid, c_int), c_loc(cname(1)), c_loc(cnew(1))), i4)
   end function ncw_rename_att
 
+  !> \brief Copy an attribute from one variable (or file) to another.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_copy_att(ncid_in, varid_in, name, ncid_out, varid_out)
-    integer(i4), intent(in) :: ncid_in, varid_in, ncid_out, varid_out
-    character(len = *), intent(in) :: name
+    integer(i4), intent(in) :: ncid_in !< Source NetCDF file ID.
+    integer(i4), intent(in) :: varid_in !< Source variable ID, or NCW_GLOBAL.
+    integer(i4), intent(in) :: ncid_out !< Destination NetCDF file ID.
+    integer(i4), intent(in) :: varid_out !< Destination variable ID, or NCW_GLOBAL.
+    character(len = *), intent(in) :: name !< Attribute name to copy.
     integer(i4) :: ncw_copy_att
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1676,9 +1842,12 @@ contains
             int(varid_out, c_int)), i4)
   end function ncw_copy_att
 
+  !> \brief Delete an attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_del_att(ncid, varid, name)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name to delete.
     integer(i4) :: ncw_del_att
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1687,18 +1856,25 @@ contains
     ncw_del_att = int(c_nc_del_att(int(ncid, c_int), int(varid, c_int), c_loc(cname(1))), i4)
   end function ncw_del_att
 
+  !> \brief Set the fill value for a `sp` variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_def_var_fill_sp(ncid, varid, no_fill, fill)
-    integer(i4), intent(in) :: ncid, varid, no_fill
-    real(sp), intent(in), target :: fill
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in) :: no_fill !< 0 to enable fill (use `fill`), non-zero to disable fill mode.
+    real(sp), intent(in), target :: fill !< Fill value of the same type as the variable.
     integer(i4) :: ncw_def_var_fill_sp
 
     ncw_def_var_fill_sp = int(c_nc_def_var_fill(int(ncid, c_int), int(varid, c_int), int(no_fill, c_int), c_loc(fill)), i4)
   end function ncw_def_var_fill_sp
 
+  !> \brief Inquire the fill mode and fill value for a `sp` variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_var_fill_sp(ncid, varid, no_fill, fill)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out) :: no_fill
-    real(sp), intent(out), target :: fill
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out) :: no_fill !< Receives 0 if fill mode is enabled, non-zero otherwise.
+    real(sp), intent(out), target :: fill !< Receives the fill value.
     integer(i4) :: ncw_inq_var_fill_sp
 
     integer(c_int), target :: c_no_fill
@@ -1706,18 +1882,25 @@ contains
     ncw_inq_var_fill_sp = int(c_nc_inq_var_fill(int(ncid, c_int), int(varid, c_int), c_loc(c_no_fill), c_loc(fill)), i4)
     if (ncw_inq_var_fill_sp == NCW_NOERR) no_fill = int(c_no_fill, i4)
   end function ncw_inq_var_fill_sp
+  !> \brief Set the fill value for a `dp` variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_def_var_fill_dp(ncid, varid, no_fill, fill)
-    integer(i4), intent(in) :: ncid, varid, no_fill
-    real(dp), intent(in), target :: fill
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in) :: no_fill !< 0 to enable fill (use `fill`), non-zero to disable fill mode.
+    real(dp), intent(in), target :: fill !< Fill value of the same type as the variable.
     integer(i4) :: ncw_def_var_fill_dp
 
     ncw_def_var_fill_dp = int(c_nc_def_var_fill(int(ncid, c_int), int(varid, c_int), int(no_fill, c_int), c_loc(fill)), i4)
   end function ncw_def_var_fill_dp
 
+  !> \brief Inquire the fill mode and fill value for a `dp` variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_var_fill_dp(ncid, varid, no_fill, fill)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out) :: no_fill
-    real(dp), intent(out), target :: fill
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out) :: no_fill !< Receives 0 if fill mode is enabled, non-zero otherwise.
+    real(dp), intent(out), target :: fill !< Receives the fill value.
     integer(i4) :: ncw_inq_var_fill_dp
 
     integer(c_int), target :: c_no_fill
@@ -1725,18 +1908,25 @@ contains
     ncw_inq_var_fill_dp = int(c_nc_inq_var_fill(int(ncid, c_int), int(varid, c_int), c_loc(c_no_fill), c_loc(fill)), i4)
     if (ncw_inq_var_fill_dp == NCW_NOERR) no_fill = int(c_no_fill, i4)
   end function ncw_inq_var_fill_dp
+  !> \brief Set the fill value for a `i1` variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_def_var_fill_i1(ncid, varid, no_fill, fill)
-    integer(i4), intent(in) :: ncid, varid, no_fill
-    integer(i1), intent(in), target :: fill
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in) :: no_fill !< 0 to enable fill (use `fill`), non-zero to disable fill mode.
+    integer(i1), intent(in), target :: fill !< Fill value of the same type as the variable.
     integer(i4) :: ncw_def_var_fill_i1
 
     ncw_def_var_fill_i1 = int(c_nc_def_var_fill(int(ncid, c_int), int(varid, c_int), int(no_fill, c_int), c_loc(fill)), i4)
   end function ncw_def_var_fill_i1
 
+  !> \brief Inquire the fill mode and fill value for a `i1` variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_var_fill_i1(ncid, varid, no_fill, fill)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out) :: no_fill
-    integer(i1), intent(out), target :: fill
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out) :: no_fill !< Receives 0 if fill mode is enabled, non-zero otherwise.
+    integer(i1), intent(out), target :: fill !< Receives the fill value.
     integer(i4) :: ncw_inq_var_fill_i1
 
     integer(c_int), target :: c_no_fill
@@ -1744,18 +1934,25 @@ contains
     ncw_inq_var_fill_i1 = int(c_nc_inq_var_fill(int(ncid, c_int), int(varid, c_int), c_loc(c_no_fill), c_loc(fill)), i4)
     if (ncw_inq_var_fill_i1 == NCW_NOERR) no_fill = int(c_no_fill, i4)
   end function ncw_inq_var_fill_i1
+  !> \brief Set the fill value for a `i2` variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_def_var_fill_i2(ncid, varid, no_fill, fill)
-    integer(i4), intent(in) :: ncid, varid, no_fill
-    integer(i2), intent(in), target :: fill
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in) :: no_fill !< 0 to enable fill (use `fill`), non-zero to disable fill mode.
+    integer(i2), intent(in), target :: fill !< Fill value of the same type as the variable.
     integer(i4) :: ncw_def_var_fill_i2
 
     ncw_def_var_fill_i2 = int(c_nc_def_var_fill(int(ncid, c_int), int(varid, c_int), int(no_fill, c_int), c_loc(fill)), i4)
   end function ncw_def_var_fill_i2
 
+  !> \brief Inquire the fill mode and fill value for a `i2` variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_var_fill_i2(ncid, varid, no_fill, fill)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out) :: no_fill
-    integer(i2), intent(out), target :: fill
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out) :: no_fill !< Receives 0 if fill mode is enabled, non-zero otherwise.
+    integer(i2), intent(out), target :: fill !< Receives the fill value.
     integer(i4) :: ncw_inq_var_fill_i2
 
     integer(c_int), target :: c_no_fill
@@ -1763,18 +1960,25 @@ contains
     ncw_inq_var_fill_i2 = int(c_nc_inq_var_fill(int(ncid, c_int), int(varid, c_int), c_loc(c_no_fill), c_loc(fill)), i4)
     if (ncw_inq_var_fill_i2 == NCW_NOERR) no_fill = int(c_no_fill, i4)
   end function ncw_inq_var_fill_i2
+  !> \brief Set the fill value for a `i4` variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_def_var_fill_i4(ncid, varid, no_fill, fill)
-    integer(i4), intent(in) :: ncid, varid, no_fill
-    integer(i4), intent(in), target :: fill
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in) :: no_fill !< 0 to enable fill (use `fill`), non-zero to disable fill mode.
+    integer(i4), intent(in), target :: fill !< Fill value of the same type as the variable.
     integer(i4) :: ncw_def_var_fill_i4
 
     ncw_def_var_fill_i4 = int(c_nc_def_var_fill(int(ncid, c_int), int(varid, c_int), int(no_fill, c_int), c_loc(fill)), i4)
   end function ncw_def_var_fill_i4
 
+  !> \brief Inquire the fill mode and fill value for a `i4` variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_var_fill_i4(ncid, varid, no_fill, fill)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out) :: no_fill
-    integer(i4), intent(out), target :: fill
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out) :: no_fill !< Receives 0 if fill mode is enabled, non-zero otherwise.
+    integer(i4), intent(out), target :: fill !< Receives the fill value.
     integer(i4) :: ncw_inq_var_fill_i4
 
     integer(c_int), target :: c_no_fill
@@ -1782,18 +1986,25 @@ contains
     ncw_inq_var_fill_i4 = int(c_nc_inq_var_fill(int(ncid, c_int), int(varid, c_int), c_loc(c_no_fill), c_loc(fill)), i4)
     if (ncw_inq_var_fill_i4 == NCW_NOERR) no_fill = int(c_no_fill, i4)
   end function ncw_inq_var_fill_i4
+  !> \brief Set the fill value for a `i8` variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_def_var_fill_i8(ncid, varid, no_fill, fill)
-    integer(i4), intent(in) :: ncid, varid, no_fill
-    integer(i8), intent(in), target :: fill
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in) :: no_fill !< 0 to enable fill (use `fill`), non-zero to disable fill mode.
+    integer(i8), intent(in), target :: fill !< Fill value of the same type as the variable.
     integer(i4) :: ncw_def_var_fill_i8
 
     ncw_def_var_fill_i8 = int(c_nc_def_var_fill(int(ncid, c_int), int(varid, c_int), int(no_fill, c_int), c_loc(fill)), i4)
   end function ncw_def_var_fill_i8
 
+  !> \brief Inquire the fill mode and fill value for a `i8` variable.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_inq_var_fill_i8(ncid, varid, no_fill, fill)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out) :: no_fill
-    integer(i8), intent(out), target :: fill
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out) :: no_fill !< Receives 0 if fill mode is enabled, non-zero otherwise.
+    integer(i8), intent(out), target :: fill !< Receives the fill value.
     integer(i4) :: ncw_inq_var_fill_i8
 
     integer(c_int), target :: c_no_fill
@@ -1802,10 +2013,13 @@ contains
     if (ncw_inq_var_fill_i8 == NCW_NOERR) no_fill = int(c_no_fill, i4)
   end function ncw_inq_var_fill_i8
 
+  !> \brief Write a scalar `sp` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_att_0d_sp(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    real(sp), intent(in), target :: values
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    real(sp), intent(in), target :: values !< Attribute value(s).
     integer(i4) :: ncw_put_att_0d_sp
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1817,10 +2031,13 @@ contains
             int(NCW_FLOAT, c_int), nvals, c_loc(values)), i4)
   end function ncw_put_att_0d_sp
 
+  !> \brief Read a scalar `sp` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_att_0d_sp(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    real(sp), intent(out), target :: values
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    real(sp), intent(out), target :: values !< Receives the attribute value(s).
     integer(i4) :: ncw_get_att_0d_sp
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1828,10 +2045,13 @@ contains
     cname = to_c_string(name)
     ncw_get_att_0d_sp = int(c_nc_get_att_float(int(ncid, c_int), int(varid, c_int), c_loc(cname(1)), c_loc(values)), i4)
   end function ncw_get_att_0d_sp
+  !> \brief Write a 1-D array `sp` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_att_1d_sp(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    real(sp), intent(in), target :: values(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    real(sp), intent(in), target :: values(:) !< Attribute value(s).
     integer(i4) :: ncw_put_att_1d_sp
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1843,10 +2063,13 @@ contains
             int(NCW_FLOAT, c_int), nvals, c_loc(values)), i4)
   end function ncw_put_att_1d_sp
 
+  !> \brief Read a 1-D array `sp` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_att_1d_sp(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    real(sp), intent(out), target :: values(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    real(sp), intent(out), target :: values(:) !< Receives the attribute value(s).
     integer(i4) :: ncw_get_att_1d_sp
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1854,10 +2077,13 @@ contains
     cname = to_c_string(name)
     ncw_get_att_1d_sp = int(c_nc_get_att_float(int(ncid, c_int), int(varid, c_int), c_loc(cname(1)), c_loc(values)), i4)
   end function ncw_get_att_1d_sp
+  !> \brief Write a scalar `dp` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_att_0d_dp(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    real(dp), intent(in), target :: values
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    real(dp), intent(in), target :: values !< Attribute value(s).
     integer(i4) :: ncw_put_att_0d_dp
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1869,10 +2095,13 @@ contains
             int(NCW_DOUBLE, c_int), nvals, c_loc(values)), i4)
   end function ncw_put_att_0d_dp
 
+  !> \brief Read a scalar `dp` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_att_0d_dp(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    real(dp), intent(out), target :: values
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    real(dp), intent(out), target :: values !< Receives the attribute value(s).
     integer(i4) :: ncw_get_att_0d_dp
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1880,10 +2109,13 @@ contains
     cname = to_c_string(name)
     ncw_get_att_0d_dp = int(c_nc_get_att_double(int(ncid, c_int), int(varid, c_int), c_loc(cname(1)), c_loc(values)), i4)
   end function ncw_get_att_0d_dp
+  !> \brief Write a 1-D array `dp` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_att_1d_dp(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    real(dp), intent(in), target :: values(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    real(dp), intent(in), target :: values(:) !< Attribute value(s).
     integer(i4) :: ncw_put_att_1d_dp
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1895,10 +2127,13 @@ contains
             int(NCW_DOUBLE, c_int), nvals, c_loc(values)), i4)
   end function ncw_put_att_1d_dp
 
+  !> \brief Read a 1-D array `dp` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_att_1d_dp(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    real(dp), intent(out), target :: values(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    real(dp), intent(out), target :: values(:) !< Receives the attribute value(s).
     integer(i4) :: ncw_get_att_1d_dp
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1906,10 +2141,13 @@ contains
     cname = to_c_string(name)
     ncw_get_att_1d_dp = int(c_nc_get_att_double(int(ncid, c_int), int(varid, c_int), c_loc(cname(1)), c_loc(values)), i4)
   end function ncw_get_att_1d_dp
+  !> \brief Write a scalar `i1` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_att_0d_i1(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    integer(i1), intent(in), target :: values
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    integer(i1), intent(in), target :: values !< Attribute value(s).
     integer(i4) :: ncw_put_att_0d_i1
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1921,10 +2159,13 @@ contains
             int(NCW_BYTE, c_int), nvals, c_loc(values)), i4)
   end function ncw_put_att_0d_i1
 
+  !> \brief Read a scalar `i1` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_att_0d_i1(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    integer(i1), intent(out), target :: values
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    integer(i1), intent(out), target :: values !< Receives the attribute value(s).
     integer(i4) :: ncw_get_att_0d_i1
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1932,10 +2173,13 @@ contains
     cname = to_c_string(name)
     ncw_get_att_0d_i1 = int(c_nc_get_att_schar(int(ncid, c_int), int(varid, c_int), c_loc(cname(1)), c_loc(values)), i4)
   end function ncw_get_att_0d_i1
+  !> \brief Write a 1-D array `i1` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_att_1d_i1(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    integer(i1), intent(in), target :: values(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    integer(i1), intent(in), target :: values(:) !< Attribute value(s).
     integer(i4) :: ncw_put_att_1d_i1
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1947,10 +2191,13 @@ contains
             int(NCW_BYTE, c_int), nvals, c_loc(values)), i4)
   end function ncw_put_att_1d_i1
 
+  !> \brief Read a 1-D array `i1` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_att_1d_i1(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    integer(i1), intent(out), target :: values(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    integer(i1), intent(out), target :: values(:) !< Receives the attribute value(s).
     integer(i4) :: ncw_get_att_1d_i1
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1958,10 +2205,13 @@ contains
     cname = to_c_string(name)
     ncw_get_att_1d_i1 = int(c_nc_get_att_schar(int(ncid, c_int), int(varid, c_int), c_loc(cname(1)), c_loc(values)), i4)
   end function ncw_get_att_1d_i1
+  !> \brief Write a scalar `i2` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_att_0d_i2(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    integer(i2), intent(in), target :: values
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    integer(i2), intent(in), target :: values !< Attribute value(s).
     integer(i4) :: ncw_put_att_0d_i2
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1973,10 +2223,13 @@ contains
             int(NCW_SHORT, c_int), nvals, c_loc(values)), i4)
   end function ncw_put_att_0d_i2
 
+  !> \brief Read a scalar `i2` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_att_0d_i2(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    integer(i2), intent(out), target :: values
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    integer(i2), intent(out), target :: values !< Receives the attribute value(s).
     integer(i4) :: ncw_get_att_0d_i2
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1984,10 +2237,13 @@ contains
     cname = to_c_string(name)
     ncw_get_att_0d_i2 = int(c_nc_get_att_short(int(ncid, c_int), int(varid, c_int), c_loc(cname(1)), c_loc(values)), i4)
   end function ncw_get_att_0d_i2
+  !> \brief Write a 1-D array `i2` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_att_1d_i2(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    integer(i2), intent(in), target :: values(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    integer(i2), intent(in), target :: values(:) !< Attribute value(s).
     integer(i4) :: ncw_put_att_1d_i2
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -1999,10 +2255,13 @@ contains
             int(NCW_SHORT, c_int), nvals, c_loc(values)), i4)
   end function ncw_put_att_1d_i2
 
+  !> \brief Read a 1-D array `i2` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_att_1d_i2(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    integer(i2), intent(out), target :: values(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    integer(i2), intent(out), target :: values(:) !< Receives the attribute value(s).
     integer(i4) :: ncw_get_att_1d_i2
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -2010,10 +2269,13 @@ contains
     cname = to_c_string(name)
     ncw_get_att_1d_i2 = int(c_nc_get_att_short(int(ncid, c_int), int(varid, c_int), c_loc(cname(1)), c_loc(values)), i4)
   end function ncw_get_att_1d_i2
+  !> \brief Write a scalar `i4` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_att_0d_i4(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    integer(i4), intent(in), target :: values
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    integer(i4), intent(in), target :: values !< Attribute value(s).
     integer(i4) :: ncw_put_att_0d_i4
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -2025,10 +2287,13 @@ contains
             int(NCW_INT, c_int), nvals, c_loc(values)), i4)
   end function ncw_put_att_0d_i4
 
+  !> \brief Read a scalar `i4` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_att_0d_i4(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    integer(i4), intent(out), target :: values
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    integer(i4), intent(out), target :: values !< Receives the attribute value(s).
     integer(i4) :: ncw_get_att_0d_i4
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -2036,10 +2301,13 @@ contains
     cname = to_c_string(name)
     ncw_get_att_0d_i4 = int(c_nc_get_att_int(int(ncid, c_int), int(varid, c_int), c_loc(cname(1)), c_loc(values)), i4)
   end function ncw_get_att_0d_i4
+  !> \brief Write a 1-D array `i4` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_att_1d_i4(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    integer(i4), intent(in), target :: values(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    integer(i4), intent(in), target :: values(:) !< Attribute value(s).
     integer(i4) :: ncw_put_att_1d_i4
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -2051,10 +2319,13 @@ contains
             int(NCW_INT, c_int), nvals, c_loc(values)), i4)
   end function ncw_put_att_1d_i4
 
+  !> \brief Read a 1-D array `i4` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_att_1d_i4(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    integer(i4), intent(out), target :: values(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    integer(i4), intent(out), target :: values(:) !< Receives the attribute value(s).
     integer(i4) :: ncw_get_att_1d_i4
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -2062,10 +2333,13 @@ contains
     cname = to_c_string(name)
     ncw_get_att_1d_i4 = int(c_nc_get_att_int(int(ncid, c_int), int(varid, c_int), c_loc(cname(1)), c_loc(values)), i4)
   end function ncw_get_att_1d_i4
+  !> \brief Write a scalar `i8` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_att_0d_i8(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    integer(i8), intent(in), target :: values
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    integer(i8), intent(in), target :: values !< Attribute value(s).
     integer(i4) :: ncw_put_att_0d_i8
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -2077,10 +2351,13 @@ contains
             int(NCW_INT64, c_int), nvals, c_loc(values)), i4)
   end function ncw_put_att_0d_i8
 
+  !> \brief Read a scalar `i8` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_att_0d_i8(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    integer(i8), intent(out), target :: values
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    integer(i8), intent(out), target :: values !< Receives the attribute value(s).
     integer(i4) :: ncw_get_att_0d_i8
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -2088,10 +2365,13 @@ contains
     cname = to_c_string(name)
     ncw_get_att_0d_i8 = int(c_nc_get_att_longlong(int(ncid, c_int), int(varid, c_int), c_loc(cname(1)), c_loc(values)), i4)
   end function ncw_get_att_0d_i8
+  !> \brief Write a 1-D array `i8` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_att_1d_i8(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    integer(i8), intent(in), target :: values(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    integer(i8), intent(in), target :: values(:) !< Attribute value(s).
     integer(i4) :: ncw_put_att_1d_i8
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -2103,10 +2383,13 @@ contains
             int(NCW_INT64, c_int), nvals, c_loc(values)), i4)
   end function ncw_put_att_1d_i8
 
+  !> \brief Read a 1-D array `i8` attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_att_1d_i8(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    integer(i8), intent(out), target :: values(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    integer(i8), intent(out), target :: values(:) !< Receives the attribute value(s).
     integer(i4) :: ncw_get_att_1d_i8
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -2115,9 +2398,13 @@ contains
     ncw_get_att_1d_i8 = int(c_nc_get_att_longlong(int(ncid, c_int), int(varid, c_int), c_loc(cname(1)), c_loc(values)), i4)
   end function ncw_get_att_1d_i8
 
+  !> \brief Write a character string attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_att_0d_char(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name, values
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    character(len = *), intent(in) :: values !< Character string value (trailing blanks are not stored).
     integer(i4) :: ncw_put_att_0d_char
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:), cvalue(:)
@@ -2130,10 +2417,13 @@ contains
             nvals, c_loc(cvalue(1))), i4)
   end function ncw_put_att_0d_char
 
+  !> \brief Read a character string attribute.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_att_0d_char(ncid, varid, name, values)
-    integer(i4), intent(in) :: ncid, varid
-    character(len = *), intent(in) :: name
-    character(len = *), intent(out) :: values
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID, or NCW_GLOBAL for a global attribute.
+    character(len = *), intent(in) :: name !< Attribute name.
+    character(len = *), intent(out) :: values !< Receives the attribute string.
     integer(i4) :: ncw_get_att_0d_char
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:), cvalue(:)
@@ -2158,1488 +2448,2845 @@ contains
     if (ncw_get_att_0d_char == NCW_NOERR) call c_chars_to_fortran(cvalue, values, stop_at_null=.false.)
   end function ncw_get_att_0d_char
 
+  !> \brief Write a rank-0 `sp` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_sp_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_0d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target :: values !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_0d_sp
 
     ncw_put_var_0d_sp = ncw_put_data_i4_sp_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_0d_sp
 
+  !> \brief Write a rank-0 `sp` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_sp_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_0d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target :: values !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_0d_sp
 
     ncw_put_var64_0d_sp = ncw_put_data_i8_sp_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_0d_sp
 
+  !> \brief Read a rank-0 `sp` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_sp_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_0d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target :: values !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_0d_sp
 
     ncw_get_var_0d_sp = ncw_get_data_i4_sp_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_0d_sp
 
+  !> \brief Read a rank-0 `sp` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_sp_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_0d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target :: values !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_0d_sp
 
     ncw_get_var64_0d_sp = ncw_get_data_i8_sp_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_0d_sp
+  !> \brief Write a rank-1 `sp` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_sp_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_1d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_1d_sp
 
     ncw_put_var_1d_sp = ncw_put_data_i4_sp_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_1d_sp
 
+  !> \brief Write a rank-1 `sp` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_sp_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_1d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_1d_sp
 
     ncw_put_var64_1d_sp = ncw_put_data_i8_sp_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_1d_sp
 
+  !> \brief Read a rank-1 `sp` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_sp_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_1d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_1d_sp
 
     ncw_get_var_1d_sp = ncw_get_data_i4_sp_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_1d_sp
 
+  !> \brief Read a rank-1 `sp` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_sp_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_1d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_1d_sp
 
     ncw_get_var64_1d_sp = ncw_get_data_i8_sp_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_1d_sp
+  !> \brief Write a rank-2 `sp` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_sp_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_2d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_2d_sp
 
     ncw_put_var_2d_sp = ncw_put_data_i4_sp_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_2d_sp
 
+  !> \brief Write a rank-2 `sp` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_sp_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_2d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_2d_sp
 
     ncw_put_var64_2d_sp = ncw_put_data_i8_sp_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_2d_sp
 
+  !> \brief Read a rank-2 `sp` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_sp_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_2d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_2d_sp
 
     ncw_get_var_2d_sp = ncw_get_data_i4_sp_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_2d_sp
 
+  !> \brief Read a rank-2 `sp` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_sp_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_2d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_2d_sp
 
     ncw_get_var64_2d_sp = ncw_get_data_i8_sp_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_2d_sp
+  !> \brief Write a rank-3 `sp` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_sp_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_3d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_3d_sp
 
     ncw_put_var_3d_sp = ncw_put_data_i4_sp_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_3d_sp
 
+  !> \brief Write a rank-3 `sp` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_sp_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_3d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_3d_sp
 
     ncw_put_var64_3d_sp = ncw_put_data_i8_sp_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_3d_sp
 
+  !> \brief Read a rank-3 `sp` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_sp_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_3d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_3d_sp
 
     ncw_get_var_3d_sp = ncw_get_data_i4_sp_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_3d_sp
 
+  !> \brief Read a rank-3 `sp` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_sp_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_3d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_3d_sp
 
     ncw_get_var64_3d_sp = ncw_get_data_i8_sp_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_3d_sp
+  !> \brief Write a rank-4 `sp` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_sp_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_4d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_4d_sp
 
     ncw_put_var_4d_sp = ncw_put_data_i4_sp_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_4d_sp
 
+  !> \brief Write a rank-4 `sp` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_sp_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_4d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_4d_sp
 
     ncw_put_var64_4d_sp = ncw_put_data_i8_sp_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_4d_sp
 
+  !> \brief Read a rank-4 `sp` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_sp_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_4d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_4d_sp
 
     ncw_get_var_4d_sp = ncw_get_data_i4_sp_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_4d_sp
 
+  !> \brief Read a rank-4 `sp` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_sp_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_4d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_4d_sp
 
     ncw_get_var64_4d_sp = ncw_get_data_i8_sp_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_4d_sp
+  !> \brief Write a rank-5 `sp` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_sp_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_5d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_5d_sp
 
     ncw_put_var_5d_sp = ncw_put_data_i4_sp_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_5d_sp
 
+  !> \brief Write a rank-5 `sp` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_sp_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_5d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_5d_sp
 
     ncw_put_var64_5d_sp = ncw_put_data_i8_sp_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_5d_sp
 
+  !> \brief Read a rank-5 `sp` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_sp_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_5d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_5d_sp
 
     ncw_get_var_5d_sp = ncw_get_data_i4_sp_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_5d_sp
 
+  !> \brief Read a rank-5 `sp` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_sp_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_5d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_5d_sp
 
     ncw_get_var64_5d_sp = ncw_get_data_i8_sp_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_5d_sp
+  !> \brief Write a rank-6 `sp` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_sp_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_6d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_6d_sp
 
     ncw_put_var_6d_sp = ncw_put_data_i4_sp_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_6d_sp
 
+  !> \brief Write a rank-6 `sp` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_sp_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_6d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_6d_sp
 
     ncw_put_var64_6d_sp = ncw_put_data_i8_sp_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_6d_sp
 
+  !> \brief Read a rank-6 `sp` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_sp_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_6d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_6d_sp
 
     ncw_get_var_6d_sp = ncw_get_data_i4_sp_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_6d_sp
 
+  !> \brief Read a rank-6 `sp` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_sp_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_6d_sp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_6d_sp
 
     ncw_get_var64_6d_sp = ncw_get_data_i8_sp_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_6d_sp
+  !> \brief Write a rank-0 `dp` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_dp_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_0d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target :: values !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_0d_dp
 
     ncw_put_var_0d_dp = ncw_put_data_i4_dp_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_0d_dp
 
+  !> \brief Write a rank-0 `dp` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_dp_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_0d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target :: values !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_0d_dp
 
     ncw_put_var64_0d_dp = ncw_put_data_i8_dp_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_0d_dp
 
+  !> \brief Read a rank-0 `dp` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_dp_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_0d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target :: values !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_0d_dp
 
     ncw_get_var_0d_dp = ncw_get_data_i4_dp_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_0d_dp
 
+  !> \brief Read a rank-0 `dp` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_dp_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_0d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target :: values !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_0d_dp
 
     ncw_get_var64_0d_dp = ncw_get_data_i8_dp_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_0d_dp
+  !> \brief Write a rank-1 `dp` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_dp_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_1d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_1d_dp
 
     ncw_put_var_1d_dp = ncw_put_data_i4_dp_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_1d_dp
 
+  !> \brief Write a rank-1 `dp` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_dp_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_1d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_1d_dp
 
     ncw_put_var64_1d_dp = ncw_put_data_i8_dp_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_1d_dp
 
+  !> \brief Read a rank-1 `dp` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_dp_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_1d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_1d_dp
 
     ncw_get_var_1d_dp = ncw_get_data_i4_dp_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_1d_dp
 
+  !> \brief Read a rank-1 `dp` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_dp_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_1d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_1d_dp
 
     ncw_get_var64_1d_dp = ncw_get_data_i8_dp_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_1d_dp
+  !> \brief Write a rank-2 `dp` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_dp_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_2d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_2d_dp
 
     ncw_put_var_2d_dp = ncw_put_data_i4_dp_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_2d_dp
 
+  !> \brief Write a rank-2 `dp` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_dp_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_2d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_2d_dp
 
     ncw_put_var64_2d_dp = ncw_put_data_i8_dp_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_2d_dp
 
+  !> \brief Read a rank-2 `dp` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_dp_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_2d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_2d_dp
 
     ncw_get_var_2d_dp = ncw_get_data_i4_dp_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_2d_dp
 
+  !> \brief Read a rank-2 `dp` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_dp_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_2d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_2d_dp
 
     ncw_get_var64_2d_dp = ncw_get_data_i8_dp_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_2d_dp
+  !> \brief Write a rank-3 `dp` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_dp_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_3d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_3d_dp
 
     ncw_put_var_3d_dp = ncw_put_data_i4_dp_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_3d_dp
 
+  !> \brief Write a rank-3 `dp` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_dp_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_3d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_3d_dp
 
     ncw_put_var64_3d_dp = ncw_put_data_i8_dp_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_3d_dp
 
+  !> \brief Read a rank-3 `dp` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_dp_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_3d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_3d_dp
 
     ncw_get_var_3d_dp = ncw_get_data_i4_dp_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_3d_dp
 
+  !> \brief Read a rank-3 `dp` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_dp_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_3d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_3d_dp
 
     ncw_get_var64_3d_dp = ncw_get_data_i8_dp_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_3d_dp
+  !> \brief Write a rank-4 `dp` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_dp_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_4d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_4d_dp
 
     ncw_put_var_4d_dp = ncw_put_data_i4_dp_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_4d_dp
 
+  !> \brief Write a rank-4 `dp` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_dp_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_4d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_4d_dp
 
     ncw_put_var64_4d_dp = ncw_put_data_i8_dp_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_4d_dp
 
+  !> \brief Read a rank-4 `dp` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_dp_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_4d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_4d_dp
 
     ncw_get_var_4d_dp = ncw_get_data_i4_dp_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_4d_dp
 
+  !> \brief Read a rank-4 `dp` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_dp_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_4d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_4d_dp
 
     ncw_get_var64_4d_dp = ncw_get_data_i8_dp_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_4d_dp
+  !> \brief Write a rank-5 `dp` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_dp_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_5d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_5d_dp
 
     ncw_put_var_5d_dp = ncw_put_data_i4_dp_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_5d_dp
 
+  !> \brief Write a rank-5 `dp` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_dp_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_5d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_5d_dp
 
     ncw_put_var64_5d_dp = ncw_put_data_i8_dp_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_5d_dp
 
+  !> \brief Read a rank-5 `dp` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_dp_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_5d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_5d_dp
 
     ncw_get_var_5d_dp = ncw_get_data_i4_dp_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_5d_dp
 
+  !> \brief Read a rank-5 `dp` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_dp_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_5d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_5d_dp
 
     ncw_get_var64_5d_dp = ncw_get_data_i8_dp_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_5d_dp
+  !> \brief Write a rank-6 `dp` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_dp_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_6d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_6d_dp
 
     ncw_put_var_6d_dp = ncw_put_data_i4_dp_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_6d_dp
 
+  !> \brief Write a rank-6 `dp` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_dp_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_6d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_6d_dp
 
     ncw_put_var64_6d_dp = ncw_put_data_i8_dp_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_6d_dp
 
+  !> \brief Read a rank-6 `dp` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_dp_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_6d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_6d_dp
 
     ncw_get_var_6d_dp = ncw_get_data_i4_dp_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_6d_dp
 
+  !> \brief Read a rank-6 `dp` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_dp_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_6d_dp(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_6d_dp
 
     ncw_get_var64_6d_dp = ncw_get_data_i8_dp_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_6d_dp
+  !> \brief Write a rank-0 `i1` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i1_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_0d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target :: values !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_0d_i1
 
     ncw_put_var_0d_i1 = ncw_put_data_i4_i1_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_0d_i1
 
+  !> \brief Write a rank-0 `i1` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i1_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_0d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target :: values !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_0d_i1
 
     ncw_put_var64_0d_i1 = ncw_put_data_i8_i1_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_0d_i1
 
+  !> \brief Read a rank-0 `i1` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i1_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_0d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target :: values !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_0d_i1
 
     ncw_get_var_0d_i1 = ncw_get_data_i4_i1_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_0d_i1
 
+  !> \brief Read a rank-0 `i1` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i1_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_0d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target :: values !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_0d_i1
 
     ncw_get_var64_0d_i1 = ncw_get_data_i8_i1_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_0d_i1
+  !> \brief Write a rank-1 `i1` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i1_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_1d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_1d_i1
 
     ncw_put_var_1d_i1 = ncw_put_data_i4_i1_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_1d_i1
 
+  !> \brief Write a rank-1 `i1` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i1_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_1d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_1d_i1
 
     ncw_put_var64_1d_i1 = ncw_put_data_i8_i1_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_1d_i1
 
+  !> \brief Read a rank-1 `i1` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i1_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_1d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_1d_i1
 
     ncw_get_var_1d_i1 = ncw_get_data_i4_i1_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_1d_i1
 
+  !> \brief Read a rank-1 `i1` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i1_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_1d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_1d_i1
 
     ncw_get_var64_1d_i1 = ncw_get_data_i8_i1_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_1d_i1
+  !> \brief Write a rank-2 `i1` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i1_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_2d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_2d_i1
 
     ncw_put_var_2d_i1 = ncw_put_data_i4_i1_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_2d_i1
 
+  !> \brief Write a rank-2 `i1` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i1_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_2d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_2d_i1
 
     ncw_put_var64_2d_i1 = ncw_put_data_i8_i1_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_2d_i1
 
+  !> \brief Read a rank-2 `i1` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i1_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_2d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_2d_i1
 
     ncw_get_var_2d_i1 = ncw_get_data_i4_i1_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_2d_i1
 
+  !> \brief Read a rank-2 `i1` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i1_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_2d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_2d_i1
 
     ncw_get_var64_2d_i1 = ncw_get_data_i8_i1_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_2d_i1
+  !> \brief Write a rank-3 `i1` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i1_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_3d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_3d_i1
 
     ncw_put_var_3d_i1 = ncw_put_data_i4_i1_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_3d_i1
 
+  !> \brief Write a rank-3 `i1` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i1_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_3d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_3d_i1
 
     ncw_put_var64_3d_i1 = ncw_put_data_i8_i1_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_3d_i1
 
+  !> \brief Read a rank-3 `i1` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i1_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_3d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_3d_i1
 
     ncw_get_var_3d_i1 = ncw_get_data_i4_i1_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_3d_i1
 
+  !> \brief Read a rank-3 `i1` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i1_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_3d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_3d_i1
 
     ncw_get_var64_3d_i1 = ncw_get_data_i8_i1_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_3d_i1
+  !> \brief Write a rank-4 `i1` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i1_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_4d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_4d_i1
 
     ncw_put_var_4d_i1 = ncw_put_data_i4_i1_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_4d_i1
 
+  !> \brief Write a rank-4 `i1` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i1_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_4d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_4d_i1
 
     ncw_put_var64_4d_i1 = ncw_put_data_i8_i1_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_4d_i1
 
+  !> \brief Read a rank-4 `i1` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i1_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_4d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_4d_i1
 
     ncw_get_var_4d_i1 = ncw_get_data_i4_i1_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_4d_i1
 
+  !> \brief Read a rank-4 `i1` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i1_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_4d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_4d_i1
 
     ncw_get_var64_4d_i1 = ncw_get_data_i8_i1_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_4d_i1
+  !> \brief Write a rank-5 `i1` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i1_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_5d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_5d_i1
 
     ncw_put_var_5d_i1 = ncw_put_data_i4_i1_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_5d_i1
 
+  !> \brief Write a rank-5 `i1` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i1_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_5d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_5d_i1
 
     ncw_put_var64_5d_i1 = ncw_put_data_i8_i1_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_5d_i1
 
+  !> \brief Read a rank-5 `i1` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i1_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_5d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_5d_i1
 
     ncw_get_var_5d_i1 = ncw_get_data_i4_i1_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_5d_i1
 
+  !> \brief Read a rank-5 `i1` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i1_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_5d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_5d_i1
 
     ncw_get_var64_5d_i1 = ncw_get_data_i8_i1_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_5d_i1
+  !> \brief Write a rank-6 `i1` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i1_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_6d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_6d_i1
 
     ncw_put_var_6d_i1 = ncw_put_data_i4_i1_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_6d_i1
 
+  !> \brief Write a rank-6 `i1` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i1_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_6d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_6d_i1
 
     ncw_put_var64_6d_i1 = ncw_put_data_i8_i1_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_6d_i1
 
+  !> \brief Read a rank-6 `i1` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i1_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_6d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_6d_i1
 
     ncw_get_var_6d_i1 = ncw_get_data_i4_i1_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_6d_i1
 
+  !> \brief Read a rank-6 `i1` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i1_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_6d_i1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_6d_i1
 
     ncw_get_var64_6d_i1 = ncw_get_data_i8_i1_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_6d_i1
+  !> \brief Write a rank-0 `i2` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i2_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_0d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target :: values !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_0d_i2
 
     ncw_put_var_0d_i2 = ncw_put_data_i4_i2_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_0d_i2
 
+  !> \brief Write a rank-0 `i2` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i2_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_0d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target :: values !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_0d_i2
 
     ncw_put_var64_0d_i2 = ncw_put_data_i8_i2_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_0d_i2
 
+  !> \brief Read a rank-0 `i2` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i2_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_0d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target :: values !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_0d_i2
 
     ncw_get_var_0d_i2 = ncw_get_data_i4_i2_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_0d_i2
 
+  !> \brief Read a rank-0 `i2` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i2_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_0d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target :: values !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_0d_i2
 
     ncw_get_var64_0d_i2 = ncw_get_data_i8_i2_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_0d_i2
+  !> \brief Write a rank-1 `i2` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i2_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_1d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_1d_i2
 
     ncw_put_var_1d_i2 = ncw_put_data_i4_i2_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_1d_i2
 
+  !> \brief Write a rank-1 `i2` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i2_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_1d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_1d_i2
 
     ncw_put_var64_1d_i2 = ncw_put_data_i8_i2_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_1d_i2
 
+  !> \brief Read a rank-1 `i2` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i2_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_1d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_1d_i2
 
     ncw_get_var_1d_i2 = ncw_get_data_i4_i2_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_1d_i2
 
+  !> \brief Read a rank-1 `i2` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i2_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_1d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_1d_i2
 
     ncw_get_var64_1d_i2 = ncw_get_data_i8_i2_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_1d_i2
+  !> \brief Write a rank-2 `i2` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i2_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_2d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_2d_i2
 
     ncw_put_var_2d_i2 = ncw_put_data_i4_i2_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_2d_i2
 
+  !> \brief Write a rank-2 `i2` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i2_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_2d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_2d_i2
 
     ncw_put_var64_2d_i2 = ncw_put_data_i8_i2_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_2d_i2
 
+  !> \brief Read a rank-2 `i2` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i2_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_2d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_2d_i2
 
     ncw_get_var_2d_i2 = ncw_get_data_i4_i2_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_2d_i2
 
+  !> \brief Read a rank-2 `i2` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i2_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_2d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_2d_i2
 
     ncw_get_var64_2d_i2 = ncw_get_data_i8_i2_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_2d_i2
+  !> \brief Write a rank-3 `i2` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i2_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_3d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_3d_i2
 
     ncw_put_var_3d_i2 = ncw_put_data_i4_i2_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_3d_i2
 
+  !> \brief Write a rank-3 `i2` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i2_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_3d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_3d_i2
 
     ncw_put_var64_3d_i2 = ncw_put_data_i8_i2_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_3d_i2
 
+  !> \brief Read a rank-3 `i2` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i2_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_3d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_3d_i2
 
     ncw_get_var_3d_i2 = ncw_get_data_i4_i2_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_3d_i2
 
+  !> \brief Read a rank-3 `i2` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i2_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_3d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_3d_i2
 
     ncw_get_var64_3d_i2 = ncw_get_data_i8_i2_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_3d_i2
+  !> \brief Write a rank-4 `i2` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i2_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_4d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_4d_i2
 
     ncw_put_var_4d_i2 = ncw_put_data_i4_i2_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_4d_i2
 
+  !> \brief Write a rank-4 `i2` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i2_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_4d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_4d_i2
 
     ncw_put_var64_4d_i2 = ncw_put_data_i8_i2_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_4d_i2
 
+  !> \brief Read a rank-4 `i2` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i2_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_4d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_4d_i2
 
     ncw_get_var_4d_i2 = ncw_get_data_i4_i2_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_4d_i2
 
+  !> \brief Read a rank-4 `i2` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i2_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_4d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_4d_i2
 
     ncw_get_var64_4d_i2 = ncw_get_data_i8_i2_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_4d_i2
+  !> \brief Write a rank-5 `i2` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i2_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_5d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_5d_i2
 
     ncw_put_var_5d_i2 = ncw_put_data_i4_i2_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_5d_i2
 
+  !> \brief Write a rank-5 `i2` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i2_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_5d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_5d_i2
 
     ncw_put_var64_5d_i2 = ncw_put_data_i8_i2_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_5d_i2
 
+  !> \brief Read a rank-5 `i2` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i2_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_5d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_5d_i2
 
     ncw_get_var_5d_i2 = ncw_get_data_i4_i2_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_5d_i2
 
+  !> \brief Read a rank-5 `i2` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i2_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_5d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_5d_i2
 
     ncw_get_var64_5d_i2 = ncw_get_data_i8_i2_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_5d_i2
+  !> \brief Write a rank-6 `i2` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i2_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_6d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_6d_i2
 
     ncw_put_var_6d_i2 = ncw_put_data_i4_i2_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_6d_i2
 
+  !> \brief Write a rank-6 `i2` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i2_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_6d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_6d_i2
 
     ncw_put_var64_6d_i2 = ncw_put_data_i8_i2_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_6d_i2
 
+  !> \brief Read a rank-6 `i2` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i2_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_6d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_6d_i2
 
     ncw_get_var_6d_i2 = ncw_get_data_i4_i2_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_6d_i2
 
+  !> \brief Read a rank-6 `i2` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i2_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_6d_i2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_6d_i2
 
     ncw_get_var64_6d_i2 = ncw_get_data_i8_i2_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_6d_i2
+  !> \brief Write a rank-0 `i4` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i4_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_0d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target :: values !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_0d_i4
 
     ncw_put_var_0d_i4 = ncw_put_data_i4_i4_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_0d_i4
 
+  !> \brief Write a rank-0 `i4` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i4_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_0d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target :: values !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_0d_i4
 
     ncw_put_var64_0d_i4 = ncw_put_data_i8_i4_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_0d_i4
 
+  !> \brief Read a rank-0 `i4` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i4_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_0d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target :: values !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_0d_i4
 
     ncw_get_var_0d_i4 = ncw_get_data_i4_i4_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_0d_i4
 
+  !> \brief Read a rank-0 `i4` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i4_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_0d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target :: values !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_0d_i4
 
     ncw_get_var64_0d_i4 = ncw_get_data_i8_i4_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_0d_i4
+  !> \brief Write a rank-1 `i4` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i4_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_1d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_1d_i4
 
     ncw_put_var_1d_i4 = ncw_put_data_i4_i4_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_1d_i4
 
+  !> \brief Write a rank-1 `i4` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i4_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_1d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_1d_i4
 
     ncw_put_var64_1d_i4 = ncw_put_data_i8_i4_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_1d_i4
 
+  !> \brief Read a rank-1 `i4` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i4_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_1d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_1d_i4
 
     ncw_get_var_1d_i4 = ncw_get_data_i4_i4_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_1d_i4
 
+  !> \brief Read a rank-1 `i4` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i4_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_1d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_1d_i4
 
     ncw_get_var64_1d_i4 = ncw_get_data_i8_i4_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_1d_i4
+  !> \brief Write a rank-2 `i4` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i4_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_2d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_2d_i4
 
     ncw_put_var_2d_i4 = ncw_put_data_i4_i4_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_2d_i4
 
+  !> \brief Write a rank-2 `i4` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i4_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_2d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_2d_i4
 
     ncw_put_var64_2d_i4 = ncw_put_data_i8_i4_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_2d_i4
 
+  !> \brief Read a rank-2 `i4` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i4_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_2d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_2d_i4
 
     ncw_get_var_2d_i4 = ncw_get_data_i4_i4_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_2d_i4
 
+  !> \brief Read a rank-2 `i4` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i4_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_2d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_2d_i4
 
     ncw_get_var64_2d_i4 = ncw_get_data_i8_i4_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_2d_i4
+  !> \brief Write a rank-3 `i4` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i4_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_3d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_3d_i4
 
     ncw_put_var_3d_i4 = ncw_put_data_i4_i4_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_3d_i4
 
+  !> \brief Write a rank-3 `i4` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i4_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_3d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_3d_i4
 
     ncw_put_var64_3d_i4 = ncw_put_data_i8_i4_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_3d_i4
 
+  !> \brief Read a rank-3 `i4` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i4_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_3d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_3d_i4
 
     ncw_get_var_3d_i4 = ncw_get_data_i4_i4_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_3d_i4
 
+  !> \brief Read a rank-3 `i4` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i4_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_3d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_3d_i4
 
     ncw_get_var64_3d_i4 = ncw_get_data_i8_i4_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_3d_i4
+  !> \brief Write a rank-4 `i4` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i4_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_4d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_4d_i4
 
     ncw_put_var_4d_i4 = ncw_put_data_i4_i4_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_4d_i4
 
+  !> \brief Write a rank-4 `i4` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i4_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_4d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_4d_i4
 
     ncw_put_var64_4d_i4 = ncw_put_data_i8_i4_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_4d_i4
 
+  !> \brief Read a rank-4 `i4` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i4_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_4d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_4d_i4
 
     ncw_get_var_4d_i4 = ncw_get_data_i4_i4_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_4d_i4
 
+  !> \brief Read a rank-4 `i4` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i4_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_4d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_4d_i4
 
     ncw_get_var64_4d_i4 = ncw_get_data_i8_i4_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_4d_i4
+  !> \brief Write a rank-5 `i4` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i4_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_5d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_5d_i4
 
     ncw_put_var_5d_i4 = ncw_put_data_i4_i4_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_5d_i4
 
+  !> \brief Write a rank-5 `i4` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i4_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_5d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_5d_i4
 
     ncw_put_var64_5d_i4 = ncw_put_data_i8_i4_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_5d_i4
 
+  !> \brief Read a rank-5 `i4` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i4_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_5d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_5d_i4
 
     ncw_get_var_5d_i4 = ncw_get_data_i4_i4_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_5d_i4
 
+  !> \brief Read a rank-5 `i4` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i4_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_5d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_5d_i4
 
     ncw_get_var64_5d_i4 = ncw_get_data_i8_i4_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_5d_i4
+  !> \brief Write a rank-6 `i4` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i4_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_6d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_6d_i4
 
     ncw_put_var_6d_i4 = ncw_put_data_i4_i4_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_6d_i4
 
+  !> \brief Write a rank-6 `i4` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i4_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_6d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_6d_i4
 
     ncw_put_var64_6d_i4 = ncw_put_data_i8_i4_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_6d_i4
 
+  !> \brief Read a rank-6 `i4` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i4_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_6d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_6d_i4
 
     ncw_get_var_6d_i4 = ncw_get_data_i4_i4_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_6d_i4
 
+  !> \brief Read a rank-6 `i4` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i4_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_6d_i4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_6d_i4
 
     ncw_get_var64_6d_i4 = ncw_get_data_i8_i4_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_6d_i4
+  !> \brief Write a rank-0 `i8` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i8_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_0d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target :: values !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_0d_i8
 
     ncw_put_var_0d_i8 = ncw_put_data_i4_i8_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_0d_i8
 
+  !> \brief Write a rank-0 `i8` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i8_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_0d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target :: values !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_0d_i8
 
     ncw_put_var64_0d_i8 = ncw_put_data_i8_i8_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_0d_i8
 
+  !> \brief Read a rank-0 `i8` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i8_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_0d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target :: values !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_0d_i8
 
     ncw_get_var_0d_i8 = ncw_get_data_i4_i8_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_0d_i8
 
+  !> \brief Read a rank-0 `i8` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i8_0.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_0d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target :: values !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_0d_i8
 
     ncw_get_var64_0d_i8 = ncw_get_data_i8_i8_0(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_0d_i8
+  !> \brief Write a rank-1 `i8` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i8_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_1d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_1d_i8
 
     ncw_put_var_1d_i8 = ncw_put_data_i4_i8_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_1d_i8
 
+  !> \brief Write a rank-1 `i8` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i8_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_1d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_1d_i8
 
     ncw_put_var64_1d_i8 = ncw_put_data_i8_i8_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_1d_i8
 
+  !> \brief Read a rank-1 `i8` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i8_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_1d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_1d_i8
 
     ncw_get_var_1d_i8 = ncw_get_data_i4_i8_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_1d_i8
 
+  !> \brief Read a rank-1 `i8` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i8_1.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_1d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_1d_i8
 
     ncw_get_var64_1d_i8 = ncw_get_data_i8_i8_1(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_1d_i8
+  !> \brief Write a rank-2 `i8` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i8_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_2d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_2d_i8
 
     ncw_put_var_2d_i8 = ncw_put_data_i4_i8_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_2d_i8
 
+  !> \brief Write a rank-2 `i8` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i8_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_2d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_2d_i8
 
     ncw_put_var64_2d_i8 = ncw_put_data_i8_i8_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_2d_i8
 
+  !> \brief Read a rank-2 `i8` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i8_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_2d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_2d_i8
 
     ncw_get_var_2d_i8 = ncw_get_data_i4_i8_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_2d_i8
 
+  !> \brief Read a rank-2 `i8` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i8_2.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_2d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_2d_i8
 
     ncw_get_var64_2d_i8 = ncw_get_data_i8_i8_2(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_2d_i8
+  !> \brief Write a rank-3 `i8` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i8_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_3d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_3d_i8
 
     ncw_put_var_3d_i8 = ncw_put_data_i4_i8_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_3d_i8
 
+  !> \brief Write a rank-3 `i8` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i8_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_3d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_3d_i8
 
     ncw_put_var64_3d_i8 = ncw_put_data_i8_i8_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_3d_i8
 
+  !> \brief Read a rank-3 `i8` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i8_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_3d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_3d_i8
 
     ncw_get_var_3d_i8 = ncw_get_data_i4_i8_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_3d_i8
 
+  !> \brief Read a rank-3 `i8` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i8_3.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_3d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_3d_i8
 
     ncw_get_var64_3d_i8 = ncw_get_data_i8_i8_3(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_3d_i8
+  !> \brief Write a rank-4 `i8` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i8_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_4d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_4d_i8
 
     ncw_put_var_4d_i8 = ncw_put_data_i4_i8_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_4d_i8
 
+  !> \brief Write a rank-4 `i8` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i8_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_4d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_4d_i8
 
     ncw_put_var64_4d_i8 = ncw_put_data_i8_i8_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_4d_i8
 
+  !> \brief Read a rank-4 `i8` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i8_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_4d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_4d_i8
 
     ncw_get_var_4d_i8 = ncw_get_data_i4_i8_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_4d_i8
 
+  !> \brief Read a rank-4 `i8` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i8_4.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_4d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_4d_i8
 
     ncw_get_var64_4d_i8 = ncw_get_data_i8_i8_4(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_4d_i8
+  !> \brief Write a rank-5 `i8` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i8_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_5d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_5d_i8
 
     ncw_put_var_5d_i8 = ncw_put_data_i4_i8_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_5d_i8
 
+  !> \brief Write a rank-5 `i8` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i8_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_5d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_5d_i8
 
     ncw_put_var64_5d_i8 = ncw_put_data_i8_i8_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_5d_i8
 
+  !> \brief Read a rank-5 `i8` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i8_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_5d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_5d_i8
 
     ncw_get_var_5d_i8 = ncw_get_data_i4_i8_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_5d_i8
 
+  !> \brief Read a rank-5 `i8` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i8_5.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_5d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_5d_i8
 
     ncw_get_var64_5d_i8 = ncw_get_data_i8_i8_5(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_5d_i8
+  !> \brief Write a rank-6 `i8` array to a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i4_i8_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var_6d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var_6d_i8
 
     ncw_put_var_6d_i8 = ncw_put_data_i4_i8_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var_6d_i8
 
+  !> \brief Write a rank-6 `i8` array to a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_put_data_i8_i8_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_var64_6d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_put_var64_6d_i8
 
     ncw_put_var64_6d_i8 = ncw_put_data_i8_i8_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_put_var64_6d_i8
 
+  !> \brief Read a rank-6 `i8` array from a variable, using `i4` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i4_i8_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var_6d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var_6d_i8
 
     ncw_get_var_6d_i8 = ncw_get_data_i4_i8_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var_6d_i8
 
+  !> \brief Read a rank-6 `i8` array from a variable, using `i8` index vectors.
+  !> \details Thin wrapper around ncw_get_data_i8_i8_6.
+  !>          `start`, `cnt`, `stride`, and `map` follow FORCES (Fortran) 1-based ordering.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_var64_6d_i8(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices (Fortran order).
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap) per dimension.
     integer(i4) :: ncw_get_var64_6d_i8
 
     ncw_get_var64_6d_i8 = ncw_get_data_i8_i8_6(ncid, varid, values, start, cnt, stride, map)
   end function ncw_get_var64_6d_i8
 
+  !> \brief Internal: write a rank-0 `sp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_0d_sp and
+  !>          ncw_put_var64_0d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_sp_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target :: values !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_sp_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3661,17 +5308,30 @@ contains
     end if
   end function ncw_put_data_i4_sp_0
 
+  !> \brief Internal: read a rank-0 `sp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_0d_sp and
+  !>          ncw_get_var64_0d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_sp_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target :: values !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_sp_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3692,17 +5352,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_sp_0
+  !> \brief Internal: write a rank-1 `sp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_1d_sp and
+  !>          ncw_put_var64_1d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_sp_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_sp_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3725,17 +5398,30 @@ contains
     end if
   end function ncw_put_data_i4_sp_1
 
+  !> \brief Internal: read a rank-1 `sp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_1d_sp and
+  !>          ncw_get_var64_1d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_sp_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_sp_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3757,17 +5443,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_sp_1
+  !> \brief Internal: write a rank-2 `sp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_2d_sp and
+  !>          ncw_put_var64_2d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_sp_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_sp_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3790,17 +5489,30 @@ contains
     end if
   end function ncw_put_data_i4_sp_2
 
+  !> \brief Internal: read a rank-2 `sp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_2d_sp and
+  !>          ncw_get_var64_2d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_sp_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_sp_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3822,17 +5534,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_sp_2
+  !> \brief Internal: write a rank-3 `sp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_3d_sp and
+  !>          ncw_put_var64_3d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_sp_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_sp_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3855,17 +5580,30 @@ contains
     end if
   end function ncw_put_data_i4_sp_3
 
+  !> \brief Internal: read a rank-3 `sp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_3d_sp and
+  !>          ncw_get_var64_3d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_sp_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_sp_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3887,17 +5625,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_sp_3
+  !> \brief Internal: write a rank-4 `sp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_4d_sp and
+  !>          ncw_put_var64_4d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_sp_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_sp_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3920,17 +5671,30 @@ contains
     end if
   end function ncw_put_data_i4_sp_4
 
+  !> \brief Internal: read a rank-4 `sp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_4d_sp and
+  !>          ncw_get_var64_4d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_sp_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_sp_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3952,17 +5716,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_sp_4
+  !> \brief Internal: write a rank-5 `sp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_5d_sp and
+  !>          ncw_put_var64_5d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_sp_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_sp_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -3985,17 +5762,30 @@ contains
     end if
   end function ncw_put_data_i4_sp_5
 
+  !> \brief Internal: read a rank-5 `sp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_5d_sp and
+  !>          ncw_get_var64_5d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_sp_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_sp_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4017,17 +5807,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_sp_5
+  !> \brief Internal: write a rank-6 `sp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_6d_sp and
+  !>          ncw_put_var64_6d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_sp_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_sp_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_sp_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4050,17 +5853,30 @@ contains
     end if
   end function ncw_put_data_i4_sp_6
 
+  !> \brief Internal: read a rank-6 `sp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_6d_sp and
+  !>          ncw_get_var64_6d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_sp_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_sp_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_sp_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4082,17 +5898,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_sp_6
+  !> \brief Internal: write a rank-0 `dp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_0d_dp and
+  !>          ncw_put_var64_0d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_dp_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target :: values !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_dp_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4114,17 +5943,30 @@ contains
     end if
   end function ncw_put_data_i4_dp_0
 
+  !> \brief Internal: read a rank-0 `dp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_0d_dp and
+  !>          ncw_get_var64_0d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_dp_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target :: values !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_dp_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4145,17 +5987,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_dp_0
+  !> \brief Internal: write a rank-1 `dp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_1d_dp and
+  !>          ncw_put_var64_1d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_dp_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_dp_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4178,17 +6033,30 @@ contains
     end if
   end function ncw_put_data_i4_dp_1
 
+  !> \brief Internal: read a rank-1 `dp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_1d_dp and
+  !>          ncw_get_var64_1d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_dp_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_dp_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4210,17 +6078,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_dp_1
+  !> \brief Internal: write a rank-2 `dp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_2d_dp and
+  !>          ncw_put_var64_2d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_dp_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_dp_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4243,17 +6124,30 @@ contains
     end if
   end function ncw_put_data_i4_dp_2
 
+  !> \brief Internal: read a rank-2 `dp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_2d_dp and
+  !>          ncw_get_var64_2d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_dp_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_dp_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4275,17 +6169,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_dp_2
+  !> \brief Internal: write a rank-3 `dp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_3d_dp and
+  !>          ncw_put_var64_3d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_dp_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_dp_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4308,17 +6215,30 @@ contains
     end if
   end function ncw_put_data_i4_dp_3
 
+  !> \brief Internal: read a rank-3 `dp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_3d_dp and
+  !>          ncw_get_var64_3d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_dp_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_dp_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4340,17 +6260,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_dp_3
+  !> \brief Internal: write a rank-4 `dp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_4d_dp and
+  !>          ncw_put_var64_4d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_dp_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_dp_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4373,17 +6306,30 @@ contains
     end if
   end function ncw_put_data_i4_dp_4
 
+  !> \brief Internal: read a rank-4 `dp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_4d_dp and
+  !>          ncw_get_var64_4d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_dp_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_dp_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4405,17 +6351,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_dp_4
+  !> \brief Internal: write a rank-5 `dp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_5d_dp and
+  !>          ncw_put_var64_5d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_dp_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_dp_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4438,17 +6397,30 @@ contains
     end if
   end function ncw_put_data_i4_dp_5
 
+  !> \brief Internal: read a rank-5 `dp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_5d_dp and
+  !>          ncw_get_var64_5d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_dp_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_dp_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4470,17 +6442,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_dp_5
+  !> \brief Internal: write a rank-6 `dp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_6d_dp and
+  !>          ncw_put_var64_6d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_dp_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_dp_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_dp_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4503,17 +6488,30 @@ contains
     end if
   end function ncw_put_data_i4_dp_6
 
+  !> \brief Internal: read a rank-6 `dp` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_6d_dp and
+  !>          ncw_get_var64_6d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_dp_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_dp_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_dp_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4535,17 +6533,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_dp_6
+  !> \brief Internal: write a rank-0 `i1` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_0d_i1 and
+  !>          ncw_put_var64_0d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i1_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target :: values !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i1_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4567,17 +6578,30 @@ contains
     end if
   end function ncw_put_data_i4_i1_0
 
+  !> \brief Internal: read a rank-0 `i1` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_0d_i1 and
+  !>          ncw_get_var64_0d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i1_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target :: values !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i1_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4598,17 +6622,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i1_0
+  !> \brief Internal: write a rank-1 `i1` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_1d_i1 and
+  !>          ncw_put_var64_1d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i1_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i1_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4631,17 +6668,30 @@ contains
     end if
   end function ncw_put_data_i4_i1_1
 
+  !> \brief Internal: read a rank-1 `i1` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_1d_i1 and
+  !>          ncw_get_var64_1d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i1_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i1_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4663,17 +6713,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i1_1
+  !> \brief Internal: write a rank-2 `i1` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_2d_i1 and
+  !>          ncw_put_var64_2d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i1_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i1_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4696,17 +6759,30 @@ contains
     end if
   end function ncw_put_data_i4_i1_2
 
+  !> \brief Internal: read a rank-2 `i1` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_2d_i1 and
+  !>          ncw_get_var64_2d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i1_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i1_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4728,17 +6804,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i1_2
+  !> \brief Internal: write a rank-3 `i1` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_3d_i1 and
+  !>          ncw_put_var64_3d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i1_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i1_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4761,17 +6850,30 @@ contains
     end if
   end function ncw_put_data_i4_i1_3
 
+  !> \brief Internal: read a rank-3 `i1` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_3d_i1 and
+  !>          ncw_get_var64_3d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i1_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i1_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4793,17 +6895,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i1_3
+  !> \brief Internal: write a rank-4 `i1` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_4d_i1 and
+  !>          ncw_put_var64_4d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i1_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i1_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4826,17 +6941,30 @@ contains
     end if
   end function ncw_put_data_i4_i1_4
 
+  !> \brief Internal: read a rank-4 `i1` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_4d_i1 and
+  !>          ncw_get_var64_4d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i1_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i1_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4858,17 +6986,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i1_4
+  !> \brief Internal: write a rank-5 `i1` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_5d_i1 and
+  !>          ncw_put_var64_5d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i1_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i1_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4891,17 +7032,30 @@ contains
     end if
   end function ncw_put_data_i4_i1_5
 
+  !> \brief Internal: read a rank-5 `i1` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_5d_i1 and
+  !>          ncw_get_var64_5d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i1_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i1_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4923,17 +7077,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i1_5
+  !> \brief Internal: write a rank-6 `i1` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_6d_i1 and
+  !>          ncw_put_var64_6d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i1_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i1_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i1_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4956,17 +7123,30 @@ contains
     end if
   end function ncw_put_data_i4_i1_6
 
+  !> \brief Internal: read a rank-6 `i1` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_6d_i1 and
+  !>          ncw_get_var64_6d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i1_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i1_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i1_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -4988,17 +7168,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i1_6
+  !> \brief Internal: write a rank-0 `i2` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_0d_i2 and
+  !>          ncw_put_var64_0d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i2_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target :: values !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i2_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5020,17 +7213,30 @@ contains
     end if
   end function ncw_put_data_i4_i2_0
 
+  !> \brief Internal: read a rank-0 `i2` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_0d_i2 and
+  !>          ncw_get_var64_0d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i2_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target :: values !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i2_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5051,17 +7257,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i2_0
+  !> \brief Internal: write a rank-1 `i2` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_1d_i2 and
+  !>          ncw_put_var64_1d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i2_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i2_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5084,17 +7303,30 @@ contains
     end if
   end function ncw_put_data_i4_i2_1
 
+  !> \brief Internal: read a rank-1 `i2` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_1d_i2 and
+  !>          ncw_get_var64_1d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i2_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i2_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5116,17 +7348,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i2_1
+  !> \brief Internal: write a rank-2 `i2` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_2d_i2 and
+  !>          ncw_put_var64_2d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i2_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i2_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5149,17 +7394,30 @@ contains
     end if
   end function ncw_put_data_i4_i2_2
 
+  !> \brief Internal: read a rank-2 `i2` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_2d_i2 and
+  !>          ncw_get_var64_2d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i2_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i2_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5181,17 +7439,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i2_2
+  !> \brief Internal: write a rank-3 `i2` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_3d_i2 and
+  !>          ncw_put_var64_3d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i2_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i2_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5214,17 +7485,30 @@ contains
     end if
   end function ncw_put_data_i4_i2_3
 
+  !> \brief Internal: read a rank-3 `i2` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_3d_i2 and
+  !>          ncw_get_var64_3d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i2_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i2_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5246,17 +7530,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i2_3
+  !> \brief Internal: write a rank-4 `i2` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_4d_i2 and
+  !>          ncw_put_var64_4d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i2_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i2_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5279,17 +7576,30 @@ contains
     end if
   end function ncw_put_data_i4_i2_4
 
+  !> \brief Internal: read a rank-4 `i2` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_4d_i2 and
+  !>          ncw_get_var64_4d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i2_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i2_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5311,17 +7621,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i2_4
+  !> \brief Internal: write a rank-5 `i2` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_5d_i2 and
+  !>          ncw_put_var64_5d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i2_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i2_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5344,17 +7667,30 @@ contains
     end if
   end function ncw_put_data_i4_i2_5
 
+  !> \brief Internal: read a rank-5 `i2` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_5d_i2 and
+  !>          ncw_get_var64_5d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i2_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i2_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5376,17 +7712,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i2_5
+  !> \brief Internal: write a rank-6 `i2` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_6d_i2 and
+  !>          ncw_put_var64_6d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i2_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i2_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i2_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5409,17 +7758,30 @@ contains
     end if
   end function ncw_put_data_i4_i2_6
 
+  !> \brief Internal: read a rank-6 `i2` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_6d_i2 and
+  !>          ncw_get_var64_6d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i2_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i2_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i2_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5441,17 +7803,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i2_6
+  !> \brief Internal: write a rank-0 `i4` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_0d_i4 and
+  !>          ncw_put_var64_0d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i4_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target :: values !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i4_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5473,17 +7848,30 @@ contains
     end if
   end function ncw_put_data_i4_i4_0
 
+  !> \brief Internal: read a rank-0 `i4` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_0d_i4 and
+  !>          ncw_get_var64_0d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i4_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target :: values !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i4_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5504,17 +7892,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i4_0
+  !> \brief Internal: write a rank-1 `i4` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_1d_i4 and
+  !>          ncw_put_var64_1d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i4_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i4_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5537,17 +7938,30 @@ contains
     end if
   end function ncw_put_data_i4_i4_1
 
+  !> \brief Internal: read a rank-1 `i4` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_1d_i4 and
+  !>          ncw_get_var64_1d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i4_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i4_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5569,17 +7983,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i4_1
+  !> \brief Internal: write a rank-2 `i4` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_2d_i4 and
+  !>          ncw_put_var64_2d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i4_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i4_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5602,17 +8029,30 @@ contains
     end if
   end function ncw_put_data_i4_i4_2
 
+  !> \brief Internal: read a rank-2 `i4` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_2d_i4 and
+  !>          ncw_get_var64_2d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i4_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i4_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5634,17 +8074,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i4_2
+  !> \brief Internal: write a rank-3 `i4` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_3d_i4 and
+  !>          ncw_put_var64_3d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i4_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i4_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5667,17 +8120,30 @@ contains
     end if
   end function ncw_put_data_i4_i4_3
 
+  !> \brief Internal: read a rank-3 `i4` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_3d_i4 and
+  !>          ncw_get_var64_3d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i4_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i4_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5699,17 +8165,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i4_3
+  !> \brief Internal: write a rank-4 `i4` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_4d_i4 and
+  !>          ncw_put_var64_4d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i4_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i4_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5732,17 +8211,30 @@ contains
     end if
   end function ncw_put_data_i4_i4_4
 
+  !> \brief Internal: read a rank-4 `i4` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_4d_i4 and
+  !>          ncw_get_var64_4d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i4_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i4_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5764,17 +8256,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i4_4
+  !> \brief Internal: write a rank-5 `i4` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_5d_i4 and
+  !>          ncw_put_var64_5d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i4_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i4_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5797,17 +8302,30 @@ contains
     end if
   end function ncw_put_data_i4_i4_5
 
+  !> \brief Internal: read a rank-5 `i4` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_5d_i4 and
+  !>          ncw_get_var64_5d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i4_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i4_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5829,17 +8347,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i4_5
+  !> \brief Internal: write a rank-6 `i4` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_6d_i4 and
+  !>          ncw_put_var64_6d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i4_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i4_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i4_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5862,17 +8393,30 @@ contains
     end if
   end function ncw_put_data_i4_i4_6
 
+  !> \brief Internal: read a rank-6 `i4` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_6d_i4 and
+  !>          ncw_get_var64_6d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i4_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i4_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i4_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5894,17 +8438,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i4_6
+  !> \brief Internal: write a rank-0 `i8` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_0d_i8 and
+  !>          ncw_put_var64_0d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i8_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target :: values !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i8_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5926,17 +8483,30 @@ contains
     end if
   end function ncw_put_data_i4_i8_0
 
+  !> \brief Internal: read a rank-0 `i8` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_0d_i8 and
+  !>          ncw_get_var64_0d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i8_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target :: values !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i8_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5957,17 +8527,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i8_0
+  !> \brief Internal: write a rank-1 `i8` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_1d_i8 and
+  !>          ncw_put_var64_1d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i8_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i8_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -5990,17 +8573,30 @@ contains
     end if
   end function ncw_put_data_i4_i8_1
 
+  !> \brief Internal: read a rank-1 `i8` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_1d_i8 and
+  !>          ncw_get_var64_1d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i8_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i8_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6022,17 +8618,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i8_1
+  !> \brief Internal: write a rank-2 `i8` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_2d_i8 and
+  !>          ncw_put_var64_2d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i8_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i8_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6055,17 +8664,30 @@ contains
     end if
   end function ncw_put_data_i4_i8_2
 
+  !> \brief Internal: read a rank-2 `i8` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_2d_i8 and
+  !>          ncw_get_var64_2d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i8_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i8_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6087,17 +8709,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i8_2
+  !> \brief Internal: write a rank-3 `i8` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_3d_i8 and
+  !>          ncw_put_var64_3d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i8_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i8_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6120,17 +8755,30 @@ contains
     end if
   end function ncw_put_data_i4_i8_3
 
+  !> \brief Internal: read a rank-3 `i8` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_3d_i8 and
+  !>          ncw_get_var64_3d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i8_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i8_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6152,17 +8800,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i8_3
+  !> \brief Internal: write a rank-4 `i8` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_4d_i8 and
+  !>          ncw_put_var64_4d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i8_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i8_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6185,17 +8846,30 @@ contains
     end if
   end function ncw_put_data_i4_i8_4
 
+  !> \brief Internal: read a rank-4 `i8` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_4d_i8 and
+  !>          ncw_get_var64_4d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i8_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i8_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6217,17 +8891,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i8_4
+  !> \brief Internal: write a rank-5 `i8` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_5d_i8 and
+  !>          ncw_put_var64_5d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i8_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i8_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6250,17 +8937,30 @@ contains
     end if
   end function ncw_put_data_i4_i8_5
 
+  !> \brief Internal: read a rank-5 `i8` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_5d_i8 and
+  !>          ncw_get_var64_5d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i8_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i8_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6282,17 +8982,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i8_5
+  !> \brief Internal: write a rank-6 `i8` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_6d_i8 and
+  !>          ncw_put_var64_6d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i4_i8_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data buffer to write.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i4_i8_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i4_i8_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6315,17 +9028,30 @@ contains
     end if
   end function ncw_put_data_i4_i8_6
 
+  !> \brief Internal: read a rank-6 `i8` buffer using `i4` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_6d_i8 and
+  !>          ncw_get_var64_6d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i4_i8_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i4_i8_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i4(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i4_i8_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i4(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6347,17 +9073,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i4_i8_6
+  !> \brief Internal: write a rank-0 `sp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_0d_sp and
+  !>          ncw_put_var64_0d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_sp_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target :: values !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_sp_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6379,17 +9118,30 @@ contains
     end if
   end function ncw_put_data_i8_sp_0
 
+  !> \brief Internal: read a rank-0 `sp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_0d_sp and
+  !>          ncw_get_var64_0d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_sp_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target :: values !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_sp_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6410,17 +9162,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_sp_0
+  !> \brief Internal: write a rank-1 `sp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_1d_sp and
+  !>          ncw_put_var64_1d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_sp_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_sp_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6443,17 +9208,30 @@ contains
     end if
   end function ncw_put_data_i8_sp_1
 
+  !> \brief Internal: read a rank-1 `sp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_1d_sp and
+  !>          ncw_get_var64_1d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_sp_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_sp_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6475,17 +9253,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_sp_1
+  !> \brief Internal: write a rank-2 `sp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_2d_sp and
+  !>          ncw_put_var64_2d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_sp_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_sp_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6508,17 +9299,30 @@ contains
     end if
   end function ncw_put_data_i8_sp_2
 
+  !> \brief Internal: read a rank-2 `sp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_2d_sp and
+  !>          ncw_get_var64_2d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_sp_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_sp_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6540,17 +9344,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_sp_2
+  !> \brief Internal: write a rank-3 `sp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_3d_sp and
+  !>          ncw_put_var64_3d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_sp_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_sp_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6573,17 +9390,30 @@ contains
     end if
   end function ncw_put_data_i8_sp_3
 
+  !> \brief Internal: read a rank-3 `sp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_3d_sp and
+  !>          ncw_get_var64_3d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_sp_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_sp_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6605,17 +9435,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_sp_3
+  !> \brief Internal: write a rank-4 `sp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_4d_sp and
+  !>          ncw_put_var64_4d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_sp_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_sp_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6638,17 +9481,30 @@ contains
     end if
   end function ncw_put_data_i8_sp_4
 
+  !> \brief Internal: read a rank-4 `sp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_4d_sp and
+  !>          ncw_get_var64_4d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_sp_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_sp_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6670,17 +9526,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_sp_4
+  !> \brief Internal: write a rank-5 `sp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_5d_sp and
+  !>          ncw_put_var64_5d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_sp_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_sp_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6703,17 +9572,30 @@ contains
     end if
   end function ncw_put_data_i8_sp_5
 
+  !> \brief Internal: read a rank-5 `sp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_5d_sp and
+  !>          ncw_get_var64_5d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_sp_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_sp_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6735,17 +9617,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_sp_5
+  !> \brief Internal: write a rank-6 `sp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_6d_sp and
+  !>          ncw_put_var64_6d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_sp_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_sp_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_sp_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6768,17 +9663,30 @@ contains
     end if
   end function ncw_put_data_i8_sp_6
 
+  !> \brief Internal: read a rank-6 `sp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_6d_sp and
+  !>          ncw_get_var64_6d_sp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_sp_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(sp), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_sp_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_sp_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6800,17 +9708,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_sp_6
+  !> \brief Internal: write a rank-0 `dp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_0d_dp and
+  !>          ncw_put_var64_0d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_dp_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target :: values !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_dp_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6832,17 +9753,30 @@ contains
     end if
   end function ncw_put_data_i8_dp_0
 
+  !> \brief Internal: read a rank-0 `dp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_0d_dp and
+  !>          ncw_get_var64_0d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_dp_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target :: values !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_dp_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6863,17 +9797,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_dp_0
+  !> \brief Internal: write a rank-1 `dp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_1d_dp and
+  !>          ncw_put_var64_1d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_dp_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_dp_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6896,17 +9843,30 @@ contains
     end if
   end function ncw_put_data_i8_dp_1
 
+  !> \brief Internal: read a rank-1 `dp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_1d_dp and
+  !>          ncw_get_var64_1d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_dp_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_dp_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6928,17 +9888,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_dp_1
+  !> \brief Internal: write a rank-2 `dp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_2d_dp and
+  !>          ncw_put_var64_2d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_dp_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_dp_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6961,17 +9934,30 @@ contains
     end if
   end function ncw_put_data_i8_dp_2
 
+  !> \brief Internal: read a rank-2 `dp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_2d_dp and
+  !>          ncw_get_var64_2d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_dp_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_dp_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -6993,17 +9979,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_dp_2
+  !> \brief Internal: write a rank-3 `dp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_3d_dp and
+  !>          ncw_put_var64_3d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_dp_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_dp_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7026,17 +10025,30 @@ contains
     end if
   end function ncw_put_data_i8_dp_3
 
+  !> \brief Internal: read a rank-3 `dp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_3d_dp and
+  !>          ncw_get_var64_3d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_dp_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_dp_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7058,17 +10070,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_dp_3
+  !> \brief Internal: write a rank-4 `dp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_4d_dp and
+  !>          ncw_put_var64_4d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_dp_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_dp_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7091,17 +10116,30 @@ contains
     end if
   end function ncw_put_data_i8_dp_4
 
+  !> \brief Internal: read a rank-4 `dp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_4d_dp and
+  !>          ncw_get_var64_4d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_dp_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_dp_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7123,17 +10161,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_dp_4
+  !> \brief Internal: write a rank-5 `dp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_5d_dp and
+  !>          ncw_put_var64_5d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_dp_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_dp_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7156,17 +10207,30 @@ contains
     end if
   end function ncw_put_data_i8_dp_5
 
+  !> \brief Internal: read a rank-5 `dp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_5d_dp and
+  !>          ncw_get_var64_5d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_dp_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_dp_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7188,17 +10252,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_dp_5
+  !> \brief Internal: write a rank-6 `dp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_6d_dp and
+  !>          ncw_put_var64_6d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_dp_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_dp_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_dp_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7221,17 +10298,30 @@ contains
     end if
   end function ncw_put_data_i8_dp_6
 
+  !> \brief Internal: read a rank-6 `dp` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_6d_dp and
+  !>          ncw_get_var64_6d_dp.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_dp_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    real(dp), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_dp_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_dp_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7253,17 +10343,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_dp_6
+  !> \brief Internal: write a rank-0 `i1` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_0d_i1 and
+  !>          ncw_put_var64_0d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i1_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target :: values !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i1_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7285,17 +10388,30 @@ contains
     end if
   end function ncw_put_data_i8_i1_0
 
+  !> \brief Internal: read a rank-0 `i1` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_0d_i1 and
+  !>          ncw_get_var64_0d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i1_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target :: values !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i1_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7316,17 +10432,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i1_0
+  !> \brief Internal: write a rank-1 `i1` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_1d_i1 and
+  !>          ncw_put_var64_1d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i1_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i1_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7349,17 +10478,30 @@ contains
     end if
   end function ncw_put_data_i8_i1_1
 
+  !> \brief Internal: read a rank-1 `i1` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_1d_i1 and
+  !>          ncw_get_var64_1d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i1_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i1_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7381,17 +10523,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i1_1
+  !> \brief Internal: write a rank-2 `i1` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_2d_i1 and
+  !>          ncw_put_var64_2d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i1_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i1_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7414,17 +10569,30 @@ contains
     end if
   end function ncw_put_data_i8_i1_2
 
+  !> \brief Internal: read a rank-2 `i1` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_2d_i1 and
+  !>          ncw_get_var64_2d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i1_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i1_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7446,17 +10614,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i1_2
+  !> \brief Internal: write a rank-3 `i1` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_3d_i1 and
+  !>          ncw_put_var64_3d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i1_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i1_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7479,17 +10660,30 @@ contains
     end if
   end function ncw_put_data_i8_i1_3
 
+  !> \brief Internal: read a rank-3 `i1` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_3d_i1 and
+  !>          ncw_get_var64_3d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i1_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i1_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7511,17 +10705,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i1_3
+  !> \brief Internal: write a rank-4 `i1` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_4d_i1 and
+  !>          ncw_put_var64_4d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i1_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i1_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7544,17 +10751,30 @@ contains
     end if
   end function ncw_put_data_i8_i1_4
 
+  !> \brief Internal: read a rank-4 `i1` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_4d_i1 and
+  !>          ncw_get_var64_4d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i1_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i1_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7576,17 +10796,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i1_4
+  !> \brief Internal: write a rank-5 `i1` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_5d_i1 and
+  !>          ncw_put_var64_5d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i1_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i1_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7609,17 +10842,30 @@ contains
     end if
   end function ncw_put_data_i8_i1_5
 
+  !> \brief Internal: read a rank-5 `i1` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_5d_i1 and
+  !>          ncw_get_var64_5d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i1_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i1_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7641,17 +10887,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i1_5
+  !> \brief Internal: write a rank-6 `i1` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_6d_i1 and
+  !>          ncw_put_var64_6d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i1_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i1_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i1_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7674,17 +10933,30 @@ contains
     end if
   end function ncw_put_data_i8_i1_6
 
+  !> \brief Internal: read a rank-6 `i1` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_6d_i1 and
+  !>          ncw_get_var64_6d_i1.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i1_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i1), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i1_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i1_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7706,17 +10978,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i1_6
+  !> \brief Internal: write a rank-0 `i2` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_0d_i2 and
+  !>          ncw_put_var64_0d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i2_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target :: values !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i2_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7738,17 +11023,30 @@ contains
     end if
   end function ncw_put_data_i8_i2_0
 
+  !> \brief Internal: read a rank-0 `i2` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_0d_i2 and
+  !>          ncw_get_var64_0d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i2_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target :: values !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i2_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7769,17 +11067,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i2_0
+  !> \brief Internal: write a rank-1 `i2` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_1d_i2 and
+  !>          ncw_put_var64_1d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i2_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i2_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7802,17 +11113,30 @@ contains
     end if
   end function ncw_put_data_i8_i2_1
 
+  !> \brief Internal: read a rank-1 `i2` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_1d_i2 and
+  !>          ncw_get_var64_1d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i2_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i2_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7834,17 +11158,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i2_1
+  !> \brief Internal: write a rank-2 `i2` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_2d_i2 and
+  !>          ncw_put_var64_2d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i2_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i2_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7867,17 +11204,30 @@ contains
     end if
   end function ncw_put_data_i8_i2_2
 
+  !> \brief Internal: read a rank-2 `i2` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_2d_i2 and
+  !>          ncw_get_var64_2d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i2_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i2_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7899,17 +11249,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i2_2
+  !> \brief Internal: write a rank-3 `i2` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_3d_i2 and
+  !>          ncw_put_var64_3d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i2_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i2_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7932,17 +11295,30 @@ contains
     end if
   end function ncw_put_data_i8_i2_3
 
+  !> \brief Internal: read a rank-3 `i2` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_3d_i2 and
+  !>          ncw_get_var64_3d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i2_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i2_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7964,17 +11340,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i2_3
+  !> \brief Internal: write a rank-4 `i2` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_4d_i2 and
+  !>          ncw_put_var64_4d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i2_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i2_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -7997,17 +11386,30 @@ contains
     end if
   end function ncw_put_data_i8_i2_4
 
+  !> \brief Internal: read a rank-4 `i2` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_4d_i2 and
+  !>          ncw_get_var64_4d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i2_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i2_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8029,17 +11431,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i2_4
+  !> \brief Internal: write a rank-5 `i2` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_5d_i2 and
+  !>          ncw_put_var64_5d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i2_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i2_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8062,17 +11477,30 @@ contains
     end if
   end function ncw_put_data_i8_i2_5
 
+  !> \brief Internal: read a rank-5 `i2` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_5d_i2 and
+  !>          ncw_get_var64_5d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i2_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i2_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8094,17 +11522,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i2_5
+  !> \brief Internal: write a rank-6 `i2` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_6d_i2 and
+  !>          ncw_put_var64_6d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i2_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i2_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i2_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8127,17 +11568,30 @@ contains
     end if
   end function ncw_put_data_i8_i2_6
 
+  !> \brief Internal: read a rank-6 `i2` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_6d_i2 and
+  !>          ncw_get_var64_6d_i2.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i2_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i2), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i2_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i2_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8159,17 +11613,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i2_6
+  !> \brief Internal: write a rank-0 `i4` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_0d_i4 and
+  !>          ncw_put_var64_0d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i4_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target :: values !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i4_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8191,17 +11658,30 @@ contains
     end if
   end function ncw_put_data_i8_i4_0
 
+  !> \brief Internal: read a rank-0 `i4` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_0d_i4 and
+  !>          ncw_get_var64_0d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i4_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target :: values !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i4_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8222,17 +11702,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i4_0
+  !> \brief Internal: write a rank-1 `i4` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_1d_i4 and
+  !>          ncw_put_var64_1d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i4_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i4_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8255,17 +11748,30 @@ contains
     end if
   end function ncw_put_data_i8_i4_1
 
+  !> \brief Internal: read a rank-1 `i4` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_1d_i4 and
+  !>          ncw_get_var64_1d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i4_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i4_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8287,17 +11793,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i4_1
+  !> \brief Internal: write a rank-2 `i4` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_2d_i4 and
+  !>          ncw_put_var64_2d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i4_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i4_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8320,17 +11839,30 @@ contains
     end if
   end function ncw_put_data_i8_i4_2
 
+  !> \brief Internal: read a rank-2 `i4` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_2d_i4 and
+  !>          ncw_get_var64_2d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i4_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i4_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8352,17 +11884,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i4_2
+  !> \brief Internal: write a rank-3 `i4` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_3d_i4 and
+  !>          ncw_put_var64_3d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i4_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i4_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8385,17 +11930,30 @@ contains
     end if
   end function ncw_put_data_i8_i4_3
 
+  !> \brief Internal: read a rank-3 `i4` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_3d_i4 and
+  !>          ncw_get_var64_3d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i4_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i4_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8417,17 +11975,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i4_3
+  !> \brief Internal: write a rank-4 `i4` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_4d_i4 and
+  !>          ncw_put_var64_4d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i4_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i4_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8450,17 +12021,30 @@ contains
     end if
   end function ncw_put_data_i8_i4_4
 
+  !> \brief Internal: read a rank-4 `i4` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_4d_i4 and
+  !>          ncw_get_var64_4d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i4_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i4_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8482,17 +12066,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i4_4
+  !> \brief Internal: write a rank-5 `i4` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_5d_i4 and
+  !>          ncw_put_var64_5d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i4_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i4_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8515,17 +12112,30 @@ contains
     end if
   end function ncw_put_data_i8_i4_5
 
+  !> \brief Internal: read a rank-5 `i4` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_5d_i4 and
+  !>          ncw_get_var64_5d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i4_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i4_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8547,17 +12157,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i4_5
+  !> \brief Internal: write a rank-6 `i4` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_6d_i4 and
+  !>          ncw_put_var64_6d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i4_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i4_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i4_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8580,17 +12203,30 @@ contains
     end if
   end function ncw_put_data_i8_i4_6
 
+  !> \brief Internal: read a rank-6 `i4` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_6d_i4 and
+  !>          ncw_get_var64_6d_i4.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i4_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i4), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i4_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i4_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8612,17 +12248,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i4_6
+  !> \brief Internal: write a rank-0 `i8` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_0d_i8 and
+  !>          ncw_put_var64_0d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i8_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target :: values !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i8_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8644,17 +12293,30 @@ contains
     end if
   end function ncw_put_data_i8_i8_0
 
+  !> \brief Internal: read a rank-0 `i8` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_0d_i8 and
+  !>          ncw_get_var64_0d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i8_0(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target :: values
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target :: values !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i8_0
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(0, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_0 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8675,17 +12337,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i8_0
+  !> \brief Internal: write a rank-1 `i8` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_1d_i8 and
+  !>          ncw_put_var64_1d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i8_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i8_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8708,17 +12383,30 @@ contains
     end if
   end function ncw_put_data_i8_i8_1
 
+  !> \brief Internal: read a rank-1 `i8` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_1d_i8 and
+  !>          ncw_get_var64_1d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i8_1(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i8_1
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(1, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_1 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8740,17 +12428,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i8_1
+  !> \brief Internal: write a rank-2 `i8` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_2d_i8 and
+  !>          ncw_put_var64_2d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i8_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i8_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8773,17 +12474,30 @@ contains
     end if
   end function ncw_put_data_i8_i8_2
 
+  !> \brief Internal: read a rank-2 `i8` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_2d_i8 and
+  !>          ncw_get_var64_2d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i8_2(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i8_2
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(2, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_2 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8805,17 +12519,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i8_2
+  !> \brief Internal: write a rank-3 `i8` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_3d_i8 and
+  !>          ncw_put_var64_3d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i8_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i8_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8838,17 +12565,30 @@ contains
     end if
   end function ncw_put_data_i8_i8_3
 
+  !> \brief Internal: read a rank-3 `i8` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_3d_i8 and
+  !>          ncw_get_var64_3d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i8_3(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i8_3
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(3, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_3 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8870,17 +12610,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i8_3
+  !> \brief Internal: write a rank-4 `i8` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_4d_i8 and
+  !>          ncw_put_var64_4d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i8_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i8_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8903,17 +12656,30 @@ contains
     end if
   end function ncw_put_data_i8_i8_4
 
+  !> \brief Internal: read a rank-4 `i8` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_4d_i8 and
+  !>          ncw_get_var64_4d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i8_4(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i8_4
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(4, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_4 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8935,17 +12701,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i8_4
+  !> \brief Internal: write a rank-5 `i8` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_5d_i8 and
+  !>          ncw_put_var64_5d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i8_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i8_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -8968,17 +12747,30 @@ contains
     end if
   end function ncw_put_data_i8_i8_5
 
+  !> \brief Internal: read a rank-5 `i8` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_5d_i8 and
+  !>          ncw_get_var64_5d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i8_5(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i8_5
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(5, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_5 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -9000,17 +12792,30 @@ contains
               c_loc(count_c(1)), c_loc(values)), i4)
     end if
   end function ncw_get_data_i8_i8_5
+  !> \brief Internal: write a rank-6 `i8` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_put_var*` C function. Called by ncw_put_var_6d_i8 and
+  !>          ncw_put_var64_6d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_put_data_i8_i8_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(in), target, contiguous :: values(:,:,:,:,:,:) !< Data buffer to write.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_put_data_i8_i8_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_put_data_i8_i8_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -9033,17 +12838,30 @@ contains
     end if
   end function ncw_put_data_i8_i8_6
 
+  !> \brief Internal: read a rank-6 `i8` buffer using `i8` index vectors.
+  !> \details Builds C-style start/count/stride/map arrays and dispatches to the appropriate
+  !>          `nc_get_var*` C function. Called by ncw_get_var_6d_i8 and
+  !>          ncw_get_var64_6d_i8.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_get_data_i8_i8_6(ncid, varid, values, start, cnt, stride, map)
-    integer(i4), intent(in) :: ncid, varid
-    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:,:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: varid !< Variable ID.
+    integer(i8), intent(out), target, contiguous :: values(:,:,:,:,:,:) !< Receives the data.
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
     integer(i4) :: ncw_get_data_i8_i8_6
     integer(i4) :: slice_rank, status
     integer(c_size_t), allocatable, target :: start_c(:), count_c(:)
     integer(c_ptrdiff_t), allocatable, target :: stride_c(:), map_c(:)
     logical :: use_slice, use_stride, use_map
 
-    slice_rank = ncw_slice_rank_i8(6, start, cnt, stride, map)
+    status = ncw_inquire_variable(ncid, varid, ndims = slice_rank)
+    if (status /= NCW_NOERR) then
+      ncw_get_data_i8_i8_6 = status
+      return
+    end if
     allocate(start_c(max(1, slice_rank)), count_c(max(1, slice_rank)), stride_c(max(1, slice_rank)), map_c(max(1, slice_rank)))
     call ncw_prepare_slicing_i8(shape(values, kind=i8), start, cnt, stride, map, start_c, count_c, stride_c, map_c, &
             use_slice, use_stride, use_map, status)
@@ -9066,15 +12884,29 @@ contains
     end if
   end function ncw_get_data_i8_i8_6
 
+  !> \brief Internal implementation for ncw_def_var_1d and ncw_def_var_nd.
+  !> \details Defines the variable, then conditionally applies chunking, deflate,
+  !>          fletcher32, endianness, and per-variable cache settings.
+  !>          Dimension IDs and chunk sizes are expected in Fortran order and are
+  !>          reversed internally before being passed to the C library.
+  !> \return NetCDF status code; NCW_NOERR on success.
   function ncw_def_var_impl(ncid, name, xtype, dimids, varid, contiguous, chunksizes, deflate_level, shuffle, fletcher32, endianness, &
           cache_size, cache_nelems, cache_preemption, has_chunksizes)
-    integer(i4), intent(in) :: ncid, xtype, dimids(:)
-    character(len = *), intent(in) :: name
-    integer(i4), intent(out) :: varid
-    logical, intent(in), optional :: contiguous, shuffle, fletcher32
-    integer(i4), intent(in) :: chunksizes(:)
-    integer(i4), intent(in), optional :: deflate_level, endianness, cache_size, cache_nelems, cache_preemption
-    logical, intent(in) :: has_chunksizes
+    integer(i4), intent(in) :: ncid !< NetCDF file ID.
+    integer(i4), intent(in) :: xtype !< NetCDF external type.
+    integer(i4), intent(in) :: dimids(:) !< Dimension IDs in Fortran order.
+    character(len = *), intent(in) :: name !< Variable name.
+    integer(i4), intent(out) :: varid !< Receives the new variable ID.
+    logical, intent(in), optional :: contiguous !< Request contiguous storage.
+    logical, intent(in), optional :: shuffle !< Enable shuffle filter.
+    logical, intent(in), optional :: fletcher32 !< Enable fletcher32 checksum.
+    integer(i4), intent(in) :: chunksizes(:) !< Chunk sizes in Fortran order (present iff has_chunksizes).
+    integer(i4), intent(in), optional :: deflate_level !< Zlib deflate level (1–9).
+    integer(i4), intent(in), optional :: endianness !< Endianness constant.
+    integer(i4), intent(in), optional :: cache_size !< Per-variable chunk cache size (bytes).
+    integer(i4), intent(in), optional :: cache_nelems !< Per-variable cache slot count.
+    integer(i4), intent(in), optional :: cache_preemption !< Per-variable cache preemption factor (0–100).
+    logical, intent(in) :: has_chunksizes !< .true. if `chunksizes` was supplied by the caller.
     integer(i4) :: ncw_def_var_impl
 
     character(kind = c_char, len = 1), allocatable, target :: cname(:)
@@ -9163,14 +12995,24 @@ contains
     end if
   end function ncw_def_var_impl
 
+  !> \brief Internal: translate Fortran `i4` slice arguments into C-style index arrays.
+  !> \details Validates the slice parameters and converts 1-based Fortran indices to
+  !>          0-based C indices, reversing dimension order for the NetCDF C library.
   subroutine ncw_prepare_slicing_i4(shape_f, start, cnt, stride, map, start_c, count_c, stride_c, map_c, use_slice, use_stride, use_map, &
           status)
-    integer(i8), intent(in) :: shape_f(:)
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
-    integer(c_size_t), intent(out) :: start_c(:), count_c(:)
-    integer(c_ptrdiff_t), intent(out) :: stride_c(:), map_c(:)
-    logical, intent(out) :: use_slice, use_stride, use_map
-    integer(i4), intent(out) :: status
+    integer(i8), intent(in) :: shape_f(:) !< Shape of the Fortran data array (i8, Fortran order).
+    integer(i4), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i4), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i4), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i4), intent(in), optional :: map(:) !< Mapping vector (imap).
+    integer(c_size_t), intent(out) :: start_c(:) !< 0-based start indices for the C library.
+    integer(c_size_t), intent(out) :: count_c(:) !< Element counts for the C library.
+    integer(c_ptrdiff_t), intent(out) :: stride_c(:) !< Stride array for the C library.
+    integer(c_ptrdiff_t), intent(out) :: map_c(:) !< Mapping vector for the C library.
+    logical, intent(out) :: use_slice !< .true. if any slice argument was supplied.
+    logical, intent(out) :: use_stride !< .true. if `stride` was supplied.
+    logical, intent(out) :: use_map !< .true. if `map` was supplied.
+    integer(i4), intent(out) :: status !< NCW_NOERR on success; error code on validation failure.
 
     integer(i4) :: i, j, rank_c, value_rank
     integer(i8) :: value_i8
@@ -9182,6 +13024,11 @@ contains
     count_c = 1_c_size_t
     stride_c = 1_c_ptrdiff_t
     map_c = 1_c_ptrdiff_t
+
+    if (value_rank > rank_c) then
+      status = NCW_EINVAL
+      return
+    end if
 
     do i = 1, value_rank
       if (.not. ncw_fits_c_size_t(shape_f(i))) then
@@ -9198,6 +13045,13 @@ contains
           status = NCW_EINVAL
           return
         end if
+        if (i > rank_c) then
+          if (start(i) /= 1_i4) then
+            status = NCW_EINVAL
+            return
+          end if
+          cycle
+        end if
         value_i8 = int(start(i) - 1_i4, i8)
         if (.not. ncw_fits_c_size_t(value_i8)) then
           status = NCW_ERANGE
@@ -9213,6 +13067,13 @@ contains
           status = NCW_EINVAL
           return
         end if
+        if (i > rank_c) then
+          if (cnt(i) /= 1_i4) then
+            status = NCW_EEDGE
+            return
+          end if
+          cycle
+        end if
         value_i8 = int(cnt(i), i8)
         if (.not. ncw_fits_c_size_t(value_i8)) then
           status = NCW_ERANGE
@@ -9224,7 +13085,7 @@ contains
               status = NCW_EEDGE
               return
             end if
-          else if (value_i8 > 1_i8) then
+          else if (value_i8 /= 1_i8) then
             status = NCW_EEDGE
             return
           end if
@@ -9238,6 +13099,13 @@ contains
         if (stride(i) <= 0_i4) then
           status = NCW_ESTRIDE
           return
+        end if
+        if (i > rank_c) then
+          if (stride(i) /= 1_i4) then
+            status = NCW_ESTRIDE
+            return
+          end if
+          cycle
         end if
         value_i8 = int(stride(i), i8)
         if (.not. ncw_fits_c_ptrdiff_t(value_i8)) then
@@ -9255,8 +13123,10 @@ contains
           status = NCW_ERANGE
           return
         end if
-        j = rank_c - i + 1
-        map_c(j) = int(value_i8, c_ptrdiff_t)
+        if (i <= rank_c) then
+          j = rank_c - i + 1
+          map_c(j) = int(value_i8, c_ptrdiff_t)
+        end if
       end do
     end if
 
@@ -9265,14 +13135,24 @@ contains
     use_slice = present(start) .or. present(cnt) .or. use_stride .or. use_map
   end subroutine ncw_prepare_slicing_i4
 
+  !> \brief Internal: translate Fortran `i8` slice arguments into C-style index arrays.
+  !> \details Same as ncw_prepare_slicing_i4 but accepts `i8` slice vectors, allowing
+  !>          indices beyond the `i4` range.
   subroutine ncw_prepare_slicing_i8(shape_f, start, cnt, stride, map, start_c, count_c, stride_c, map_c, use_slice, use_stride, use_map, &
           status)
-    integer(i8), intent(in) :: shape_f(:)
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
-    integer(c_size_t), intent(out) :: start_c(:), count_c(:)
-    integer(c_ptrdiff_t), intent(out) :: stride_c(:), map_c(:)
-    logical, intent(out) :: use_slice, use_stride, use_map
-    integer(i4), intent(out) :: status
+    integer(i8), intent(in) :: shape_f(:) !< Shape of the Fortran data array (i8, Fortran order).
+    integer(i8), intent(in), optional :: start(:) !< 1-based start indices.
+    integer(i8), intent(in), optional :: cnt(:) !< Element counts per dimension.
+    integer(i8), intent(in), optional :: stride(:) !< Stride per dimension.
+    integer(i8), intent(in), optional :: map(:) !< Mapping vector (imap).
+    integer(c_size_t), intent(out) :: start_c(:) !< 0-based start indices for the C library.
+    integer(c_size_t), intent(out) :: count_c(:) !< Element counts for the C library.
+    integer(c_ptrdiff_t), intent(out) :: stride_c(:) !< Stride array for the C library.
+    integer(c_ptrdiff_t), intent(out) :: map_c(:) !< Mapping vector for the C library.
+    logical, intent(out) :: use_slice !< .true. if any slice argument was supplied.
+    logical, intent(out) :: use_stride !< .true. if `stride` was supplied.
+    logical, intent(out) :: use_map !< .true. if `map` was supplied.
+    integer(i4), intent(out) :: status !< NCW_NOERR on success; error code on validation failure.
 
     integer(i4) :: i, j, rank_c, value_rank
     integer(i8) :: value_i8
@@ -9284,6 +13164,11 @@ contains
     count_c = 1_c_size_t
     stride_c = 1_c_ptrdiff_t
     map_c = 1_c_ptrdiff_t
+
+    if (value_rank > rank_c) then
+      status = NCW_EINVAL
+      return
+    end if
 
     do i = 1, value_rank
       if (.not. ncw_fits_c_size_t(shape_f(i))) then
@@ -9300,6 +13185,13 @@ contains
           status = NCW_EINVAL
           return
         end if
+        if (i > rank_c) then
+          if (start(i) /= 1_i8) then
+            status = NCW_EINVAL
+            return
+          end if
+          cycle
+        end if
         value_i8 = start(i) - 1_i8
         if (.not. ncw_fits_c_size_t(value_i8)) then
           status = NCW_ERANGE
@@ -9315,6 +13207,13 @@ contains
           status = NCW_EINVAL
           return
         end if
+        if (i > rank_c) then
+          if (cnt(i) /= 1_i8) then
+            status = NCW_EEDGE
+            return
+          end if
+          cycle
+        end if
         value_i8 = cnt(i)
         if (.not. ncw_fits_c_size_t(value_i8)) then
           status = NCW_ERANGE
@@ -9326,7 +13225,7 @@ contains
               status = NCW_EEDGE
               return
             end if
-          else if (value_i8 > 1_i8) then
+          else if (value_i8 /= 1_i8) then
             status = NCW_EEDGE
             return
           end if
@@ -9340,6 +13239,13 @@ contains
         if (stride(i) <= 0_i8) then
           status = NCW_ESTRIDE
           return
+        end if
+        if (i > rank_c) then
+          if (stride(i) /= 1_i8) then
+            status = NCW_ESTRIDE
+            return
+          end if
+          cycle
         end if
         value_i8 = stride(i)
         if (.not. ncw_fits_c_ptrdiff_t(value_i8)) then
@@ -9357,8 +13263,10 @@ contains
           status = NCW_ERANGE
           return
         end if
-        j = rank_c - i + 1
-        map_c(j) = int(value_i8, c_ptrdiff_t)
+        if (i <= rank_c) then
+          j = rank_c - i + 1
+          map_c(j) = int(value_i8, c_ptrdiff_t)
+        end if
       end do
     end if
 
@@ -9367,32 +13275,10 @@ contains
     use_slice = present(start) .or. present(cnt) .or. use_stride .or. use_map
   end subroutine ncw_prepare_slicing_i8
 
-  function ncw_slice_rank_i4(base_rank, start, cnt, stride, map) result(rank_out)
-    integer(i4), intent(in) :: base_rank
-    integer(i4), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
-    integer(i4) :: rank_out
-
-    rank_out = base_rank
-    if (present(start)) rank_out = max(rank_out, size(start))
-    if (present(cnt)) rank_out = max(rank_out, size(cnt))
-    if (present(stride)) rank_out = max(rank_out, size(stride))
-    if (present(map)) rank_out = max(rank_out, size(map))
-  end function ncw_slice_rank_i4
-
-  function ncw_slice_rank_i8(base_rank, start, cnt, stride, map) result(rank_out)
-    integer(i4), intent(in) :: base_rank
-    integer(i8), intent(in), optional :: start(:), cnt(:), stride(:), map(:)
-    integer(i4) :: rank_out
-
-    rank_out = base_rank
-    if (present(start)) rank_out = max(rank_out, size(start))
-    if (present(cnt)) rank_out = max(rank_out, size(cnt))
-    if (present(stride)) rank_out = max(rank_out, size(stride))
-    if (present(map)) rank_out = max(rank_out, size(map))
-  end function ncw_slice_rank_i8
-
+  !> \brief Check whether an `i8` value can be safely represented as `c_size_t`.
+  !> \return .true. if `value >= 0` and fits in `c_size_t`.
   logical function ncw_fits_c_size_t(value)
-    integer(i8), intent(in) :: value
+    integer(i8), intent(in) :: value !< Value to test.
 
     ncw_fits_c_size_t = value >= 0_i8
     if (.not. ncw_fits_c_size_t) return
@@ -9401,8 +13287,10 @@ contains
     end if
   end function ncw_fits_c_size_t
 
+  !> \brief Check whether an `i8` value can be safely represented as `c_ptrdiff_t`.
+  !> \return .true. if `value` is within the range of `c_ptrdiff_t`.
   logical function ncw_fits_c_ptrdiff_t(value)
-    integer(i8), intent(in) :: value
+    integer(i8), intent(in) :: value !< Value to test.
     integer(i8) :: min_value, max_value
 
     if (int(storage_size(0_c_ptrdiff_t), i4) > int(storage_size(0_i8), i4)) then
@@ -9414,9 +13302,11 @@ contains
     ncw_fits_c_ptrdiff_t = (value >= min_value) .and. (value <= max_value)
   end function ncw_fits_c_ptrdiff_t
 
+  !> \brief Return a C pointer to `carg` if the optional `arg` is present, else `c_null_ptr`.
+  !> \return `c_loc(carg)` if `arg` is present, otherwise `c_null_ptr`.
   function maybe_i4_ptr(arg, carg) result(ptr)
-    integer(i4), intent(out), optional :: arg
-    integer(c_int), target, intent(out) :: carg
+    integer(i4), intent(out), optional :: arg !< Optional `i4` output argument from the caller.
+    integer(c_int), target, intent(out) :: carg !< Backing `c_int` storage; used when `arg` is present.
     type(c_ptr) :: ptr
     if (present(arg)) then
       ptr = c_loc(carg)
@@ -9425,8 +13315,10 @@ contains
     end if
   end function maybe_i4_ptr
 
+  !> \brief Convert a Fortran character string to a null-terminated C character array.
+  !> \return Allocatable `c_char` array of length `len_trim(text)+1`, null-terminated.
   function to_c_string(text) result(cbuf)
-    character(len = *), intent(in) :: text
+    character(len = *), intent(in) :: text !< Fortran string (trailing blanks are not included).
     character(kind = c_char, len = 1), allocatable, target :: cbuf(:)
     integer(i4) :: i, n
 
@@ -9438,10 +13330,11 @@ contains
     cbuf(n + 1_i4) = c_null_char
   end function to_c_string
 
+  !> \brief Copy a null-terminated C character array into a Fortran string.
   subroutine c_chars_to_fortran(cbuf, text, stop_at_null)
-    character(kind = c_char, len = 1), intent(in) :: cbuf(:)
-    character(len = *), intent(out) :: text
-    logical, intent(in), optional :: stop_at_null
+    character(kind = c_char, len = 1), intent(in) :: cbuf(:) !< Source C character array.
+    character(len = *), intent(out) :: text !< Destination Fortran string; padded with blanks to its declared length.
+    logical, intent(in), optional :: stop_at_null !< If .false., copy past embedded nulls (default .true.).
     integer(i4) :: i, n
     logical :: stop_on_null
 

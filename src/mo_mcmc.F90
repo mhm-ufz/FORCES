@@ -15,9 +15,12 @@ MODULE mo_mcmc
   USE mo_moment, only : stddev
   !$ USE omp_lib,    only: OMP_GET_NUM_THREADS
   use mo_optimizee, only : optimizee
-  use mo_message, only : error_message
+  use mo_message, only : error_message, warn_message
 #ifdef FORCES_WITH_NETCDF
-  use mo_ncwrite, only : dump_netcdf
+  use mo_netcdf_wrapper, only : &
+          NCW_CLOBBER, NCW_DOUBLE, NCW_GLOBAL, NCW_INT, NCW_NOERR, NCW_UNLIMITED, NCW_WRITE, &
+          ncw_close, ncw_create, ncw_def_dim, ncw_def_var, ncw_enddef, ncw_get_var, ncw_inq_dimid, ncw_inq_varid, &
+          ncw_inquire_dimension, ncw_inquire_variable, ncw_open, ncw_put_att, ncw_put_var, ncw_strerror
 #endif
 
   IMPLICIT NONE
@@ -511,12 +514,6 @@ CONTAINS
     integer(I4) :: idummy
     logical :: oddsSwitch1, oddsSwitch2
     character(100) :: str
-    character(200) :: outputfile
-    integer(i4) :: slash_pos
-    integer(i4) :: len_filename
-    character(200) :: filename
-    character(200) :: path
-
     ! FOR BURN-IN AND MCMC
     REAL(DP), DIMENSION(:, :, :), ALLOCATABLE :: mcmc_paras_3d        ! array to save para values of MCMC runs,
     !                                                                ! dim1=sets, dim2=paras, dim3=chain
@@ -1133,43 +1130,19 @@ CONTAINS
 #ifdef FORCES_WITH_NETCDF
       ! write parameter sets to temporal file
       if (itmp_file) then
-        ! splitting into path and filename
-        slash_pos = index(istmp_file, '/', .true.)
-        len_filename = len_trim(istmp_file)
-        path = istmp_file(1 : slash_pos)
-        filename = istmp_file(slash_pos + 1 : len_filename)
-        !
         do chain = 1, chains
-          write(str, *) chain
-          write(outputfile, *) trim(adjustl(path)), trim(adjustl(str)), '_', trim(adjustl(filename))
           if (present(iter_mcmc_in)) then
-            allocate(tmp(iter_mcmc_in, size(para, 1), 1))
-            tmp(:, :, 1) = mcmc_paras_3d(iter_mcmc - iter_mcmc_in + 1_i4 : iter_mcmc, :, chain)
-            if (iter_mcmc .ne. iter_mcmc_in) then
-              ! append
-              call dump_netcdf(trim(adjustl(outputfile)), tmp, append = .true.)
-            else
-              ! first time of writing
-              call dump_netcdf(trim(adjustl(outputfile)), tmp)
-            end if
-            deallocate(tmp)
+            call write_mcmc_tmp_netcdf(istmp_file, chain, &
+                    mcmc_paras_3d(iter_mcmc - iter_mcmc_in + 1_i4 : iter_mcmc, :, chain))
           else
-            allocate(tmp(1000_i4 * n, size(para, 1), 1))
-            tmp(:, :, 1) = mcmc_paras_3d(iter_mcmc - (1000_i4 * n) + 1_i4 : iter_mcmc, :, chain)
-            if (iter_mcmc .ne. 1000_i4 * n) then
-              ! append
-              call dump_netcdf(trim(adjustl(outputfile)), tmp, append = .true.)
-            else
-              ! first time of writing
-              call dump_netcdf(trim(adjustl(outputfile)), tmp)
-            end if
-            deallocate(tmp)
+            call write_mcmc_tmp_netcdf(istmp_file, chain, &
+                    mcmc_paras_3d(iter_mcmc - (1000_i4 * n) + 1_i4 : iter_mcmc, :, chain))
           end if
         end do
       end if
 #else
       if (itmp_file) &
-        call error_message("MCMC: FORCES was compiled without NetCDF support but you set 'tmp_file'")
+        call warn_message("MCMC: FORCES was compiled without NetCDF support but you set 'tmp_file'; skipping temporary output")
 #endif
 
       ! test for convergence: Gelman et. al: Baysian Data Analysis, p. 331ff
@@ -1355,12 +1328,6 @@ CONTAINS
     integer(I4) :: idummy
     logical :: oddsSwitch1, oddsSwitch2
     character(100) :: str
-    character(200) :: outputfile
-    integer(i4) :: slash_pos
-    integer(i4) :: len_filename
-    character(200) :: filename
-    character(200) :: path
-
     ! FOR BURN-IN AND MCMC
     REAL(DP), DIMENSION(:, :, :), ALLOCATABLE :: mcmc_paras_3d     ! array to save para values of MCMC runs,
     !                                                                   ! dim1=sets, dim2=paras, dim3=chain
@@ -1883,43 +1850,19 @@ CONTAINS
 #ifdef FORCES_WITH_NETCDF
       ! write parameter sets to temporal file
       if (present(tmp_file)) then
-        ! splitting into path and filename
-        slash_pos = index(tmp_file, '/', .true.)
-        len_filename = len_trim(tmp_file)
-        path = tmp_file(1 : slash_pos)
-        filename = tmp_file(slash_pos + 1 : len_filename)
-        !
         do chain = 1, chains
-          write(str, *) chain
-          write(outputfile, *) trim(adjustl(path)), trim(adjustl(str)), '_', trim(adjustl(filename))
           if (present(iter_mcmc_in)) then
-            allocate(tmp(iter_mcmc_in, size(para, 1), 1))
-            tmp(:, :, 1) = mcmc_paras_3d(iter_mcmc - iter_mcmc_in + 1_i4 : iter_mcmc, :, chain)
-            if (iter_mcmc .ne. iter_mcmc_in) then
-              ! append
-              call dump_netcdf(trim(adjustl(outputfile)), tmp, append = .true.)
-            else
-              ! first time of writing
-              call dump_netcdf(trim(adjustl(outputfile)), tmp)
-            end if
-            deallocate(tmp)
+            call write_mcmc_tmp_netcdf(tmp_file, chain, &
+                    mcmc_paras_3d(iter_mcmc - iter_mcmc_in + 1_i4 : iter_mcmc, :, chain))
           else
-            allocate(tmp(1000_i4 * n, size(para, 1), 1))
-            tmp(:, :, 1) = mcmc_paras_3d(iter_mcmc - (1000_i4 * n) + 1_i4 : iter_mcmc, :, chain)
-            if (iter_mcmc .ne. 1000_i4 * n) then
-              ! append
-              call dump_netcdf(trim(adjustl(outputfile)), tmp, append = .true.)
-            else
-              ! first time of writing
-              call dump_netcdf(trim(adjustl(outputfile)), tmp)
-            end if
-            deallocate(tmp)
+            call write_mcmc_tmp_netcdf(tmp_file, chain, &
+                    mcmc_paras_3d(iter_mcmc - (1000_i4 * n) + 1_i4 : iter_mcmc, :, chain))
           end if
         end do
       end if
 #else
       if (present(tmp_file)) &
-        call error_message("MCMC: FORCES was compiled without NetCDF support but you set 'tmp_file'")
+        call warn_message("MCMC: FORCES was compiled without NetCDF support but you set 'tmp_file'; skipping temporary output")
 #endif
 
       ! test for convergence: Gelman et. al: Baysian Data Analysis, p. 331ff
@@ -2080,6 +2023,126 @@ CONTAINS
     parGenNorm_dp = parGenNorm_dp * (oMax - oMin) + oMin
 
   end function parGenNorm_dp
+
+#ifdef FORCES_WITH_NETCDF
+  subroutine write_mcmc_tmp_netcdf(tmp_file, chain, values)
+
+    character(len = *), intent(in) :: tmp_file
+    integer(i4), intent(in) :: chain
+    real(dp), dimension(:, :), intent(in) :: values
+
+    character(len = 1024) :: output_file
+    integer(i4) :: status, ncid, x_dimid, y_dimid, time_dimid, x_varid, y_varid, time_varid, varid
+    integer(i4) :: x_len, y_len, time_len, xtype, ndims, dimids(3), coord_index
+    integer(i4), allocatable :: x_values(:), y_values(:)
+    logical :: exists
+
+    output_file = mcmc_tmp_chain_filename(tmp_file, chain)
+    inquire(file = trim(output_file), exist = exists)
+
+    if (exists) then
+      status = ncw_open(trim(output_file), NCW_WRITE, ncid)
+      call check_mcmc_netcdf(status, "opening " // trim(output_file))
+      status = ncw_inq_dimid(ncid, "x", x_dimid)
+      call check_mcmc_netcdf(status, "inquiring x dimension")
+      status = ncw_inq_dimid(ncid, "y", y_dimid)
+      call check_mcmc_netcdf(status, "inquiring y dimension")
+      status = ncw_inq_dimid(ncid, "time", time_dimid)
+      call check_mcmc_netcdf(status, "inquiring time dimension")
+      status = ncw_inq_varid(ncid, "x", x_varid)
+      call check_mcmc_netcdf(status, "inquiring x variable")
+      status = ncw_inq_varid(ncid, "y", y_varid)
+      call check_mcmc_netcdf(status, "inquiring y variable")
+      status = ncw_inq_varid(ncid, "time", time_varid)
+      call check_mcmc_netcdf(status, "inquiring time variable")
+      status = ncw_inq_varid(ncid, "var", varid)
+      call check_mcmc_netcdf(status, "inquiring var variable")
+      status = ncw_inquire_dimension(ncid, x_dimid, len = x_len)
+      call check_mcmc_netcdf(status, "inquiring x length")
+      status = ncw_inquire_dimension(ncid, y_dimid, len = y_len)
+      call check_mcmc_netcdf(status, "inquiring y length")
+      status = ncw_inquire_dimension(ncid, time_dimid, len = time_len)
+      call check_mcmc_netcdf(status, "inquiring time length")
+      if (x_len /= int(size(values, 1), i4) .or. y_len /= int(size(values, 2), i4)) then
+        call error_message("MCMC NetCDF: x/y dimensions in '", trim(output_file), "' do not match current MCMC output")
+      end if
+      status = ncw_inquire_variable(ncid, varid, xtype = xtype, ndims = ndims, dimids = dimids)
+      call check_mcmc_netcdf(status, "inquiring var variable")
+      if (xtype /= NCW_DOUBLE .or. ndims /= 3_i4 .or. any(dimids /= [x_dimid, y_dimid, time_dimid])) then
+        call error_message("MCMC NetCDF: variable 'var' in '", trim(output_file), "' has an incompatible schema")
+      end if
+    else
+      status = ncw_create(trim(output_file), NCW_CLOBBER, ncid)
+      call check_mcmc_netcdf(status, "creating " // trim(output_file))
+      status = ncw_def_dim(ncid, "x", int(size(values, 1), i4), x_dimid)
+      call check_mcmc_netcdf(status, "defining x dimension")
+      status = ncw_def_dim(ncid, "y", int(size(values, 2), i4), y_dimid)
+      call check_mcmc_netcdf(status, "defining y dimension")
+      status = ncw_def_dim(ncid, "time", NCW_UNLIMITED, time_dimid)
+      call check_mcmc_netcdf(status, "defining time dimension")
+      status = ncw_def_var(ncid, "x", NCW_INT, x_dimid, x_varid)
+      call check_mcmc_netcdf(status, "defining x variable")
+      status = ncw_def_var(ncid, "y", NCW_INT, y_dimid, y_varid)
+      call check_mcmc_netcdf(status, "defining y variable")
+      status = ncw_def_var(ncid, "time", NCW_INT, time_dimid, time_varid)
+      call check_mcmc_netcdf(status, "defining time variable")
+      status = ncw_def_var(ncid, "var", NCW_DOUBLE, [x_dimid, y_dimid, time_dimid], varid)
+      call check_mcmc_netcdf(status, "defining var variable")
+      status = ncw_put_att(ncid, NCW_GLOBAL, "chain_id", chain)
+      call check_mcmc_netcdf(status, "writing chain_id attribute")
+      status = ncw_enddef(ncid)
+      call check_mcmc_netcdf(status, "leaving define mode")
+
+      allocate(x_values(size(values, 1)), y_values(size(values, 2)))
+      x_values = [(coord_index, coord_index = 1_i4, int(size(values, 1), i4))]
+      y_values = [(coord_index, coord_index = 1_i4, int(size(values, 2), i4))]
+      status = ncw_put_var(ncid, x_varid, x_values)
+      call check_mcmc_netcdf(status, "writing x coordinate")
+      status = ncw_put_var(ncid, y_varid, y_values)
+      call check_mcmc_netcdf(status, "writing y coordinate")
+      time_len = 0_i4
+    end if
+
+    status = ncw_put_var(ncid, time_varid, [time_len + 1_i4], start = [time_len + 1_i4], cnt = [1_i4])
+    call check_mcmc_netcdf(status, "writing time coordinate")
+    status = ncw_put_var(ncid, varid, values, &
+            start = [1_i4, 1_i4, time_len + 1_i4], cnt = [int(size(values, 1), i4), int(size(values, 2), i4), 1_i4])
+    call check_mcmc_netcdf(status, "writing MCMC parameters")
+    status = ncw_close(ncid)
+    call check_mcmc_netcdf(status, "closing " // trim(output_file))
+
+  end subroutine write_mcmc_tmp_netcdf
+
+  function mcmc_tmp_chain_filename(tmp_file, chain) result(output_file)
+
+    character(len = *), intent(in) :: tmp_file
+    integer(i4), intent(in) :: chain
+    character(len = 1024) :: output_file
+
+    character(len = 32) :: chain_text
+    integer(i4) :: slash_pos
+
+    write(chain_text, '(I0)') chain
+    slash_pos = index(trim(tmp_file), '/', .true.)
+    if (slash_pos > 0_i4) then
+      output_file = trim(tmp_file(:slash_pos)) // trim(chain_text) // "_" // trim(tmp_file(slash_pos + 1:))
+    else
+      output_file = trim(chain_text) // "_" // trim(tmp_file)
+    end if
+
+  end function mcmc_tmp_chain_filename
+
+  subroutine check_mcmc_netcdf(status, context)
+
+    integer(i4), intent(in) :: status
+    character(len = *), intent(in) :: context
+
+    if (status /= NCW_NOERR) then
+      call error_message("MCMC NetCDF: ", trim(context), ": ", trim(ncw_strerror(status)))
+    end if
+
+  end subroutine check_mcmc_netcdf
+#endif
 
   recursive subroutine GenerateNewParameterset_dp(ParaSelectMode, paraold, truepara, rangePar, stepsize, &
           save_state_2, save_state_3, paranew, ChangePara)

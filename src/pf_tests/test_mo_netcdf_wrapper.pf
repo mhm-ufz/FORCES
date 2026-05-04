@@ -276,4 +276,59 @@ contains
     @assertEqual(NCW_NOERR, status)
   end subroutine test_wrapper_slice_validation
 
+  @test
+  subroutine test_wrapper_oversized_slice_vectors()
+    integer(i4), parameter :: nx = 4_i4, ny = 3_i4, nz = 2_i4
+    integer(i4), parameter :: start_full(5) = [1_i4, 1_i4, 1_i4, 1_i4, 1_i4]
+    integer(i4), parameter :: cnt_full(5) = [nx, ny, nz, 1_i4, 1_i4]
+    integer(i4), parameter :: start_slab(5) = [1_i4, 1_i4, 2_i4, 1_i4, 1_i4]
+    integer(i4), parameter :: cnt_slab(5) = [nx, ny, 1_i4, 1_i4, 1_i4]
+
+    integer(i4) :: status, ncid, dimids(3), varid
+    integer(i4) :: base(nx, ny, nz), full_read(nx, ny, nz)
+    integer(i4) :: slab(nx, ny), slab_read(nx, ny)
+    integer(i4) :: i
+
+    base = reshape([(i, i = 1, size(base))], shape(base))
+    slab = 1000_i4 + reshape([(i, i = 1, size(slab))], shape(slab))
+    full_read = -1_i4
+    slab_read = -1_i4
+
+    status = ncw_create("netcdf_wrapper_oversized_slices.nc", ior(NCW_CLOBBER, NCW_NETCDF4), ncid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_dim(ncid, "x", nx, dimids(1))
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_dim(ncid, "y", ny, dimids(2))
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_dim(ncid, "z", nz, dimids(3))
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_var(ncid, "data", NCW_INT, dimids, varid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_enddef(ncid)
+    @assertEqual(NCW_NOERR, status)
+
+    status = ncw_put_var(ncid, varid, base, start = start_full, cnt = cnt_full)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_get_var(ncid, varid, full_read, start = start_full, cnt = cnt_full)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(base, full_read)
+
+    status = ncw_put_var(ncid, varid, slab, start = start_slab, cnt = cnt_slab)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_get_var(ncid, varid, slab_read, start = start_slab, cnt = cnt_slab)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(slab, slab_read)
+
+    status = ncw_get_var(ncid, varid, full_read, start = [1_i4, 1_i4, 1_i4, 0_i4, 1_i4], cnt = cnt_full)
+    @assertEqual(NCW_EINVAL, status)
+    status = ncw_get_var(ncid, varid, full_read, start = start_full, cnt = [nx, ny, nz, 2_i4, 1_i4])
+    @assertEqual(NCW_EEDGE, status)
+    status = ncw_get_var(ncid, varid, full_read, start = start_full, cnt = cnt_full, &
+            stride = [1_i4, 1_i4, 1_i4, 2_i4, 1_i4])
+    @assertEqual(NCW_ESTRIDE, status)
+
+    status = ncw_close(ncid)
+    @assertEqual(NCW_NOERR, status)
+  end subroutine test_wrapper_oversized_slice_vectors
+
 end module test_mo_netcdf_wrapper

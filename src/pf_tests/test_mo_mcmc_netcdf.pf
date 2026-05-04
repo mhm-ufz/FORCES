@@ -1,0 +1,173 @@
+module test_mo_mcmc_netcdf
+
+  use funit
+  use mo_kind, only : dp, i4, i8
+  use mo_likelihood, only : setmeas, loglikelihood_stddev_dp, model_dp
+  use mo_mcmc, only : mcmc_stddev
+  use mo_netcdf_wrapper, only : &
+          NCW_DOUBLE, NCW_GLOBAL, NCW_INT, NCW_NOERR, NCW_NOWRITE, ncw_close, ncw_get_att, ncw_get_var, ncw_inq_dimid, &
+          ncw_inq_varid, ncw_inquire_dimension, ncw_inquire_variable, ncw_open
+  use mo_optimizee, only : eval_optimizee
+
+  implicit none
+
+contains
+
+  @test
+  subroutine test_mcmc_tmp_file_uses_legacy_netcdf_names()
+
+    type(eval_optimizee) :: objective
+    real(dp), dimension(3) :: para, stepsize
+    real(dp), dimension(3, 2) :: range_par
+    real(dp), dimension(:, :), allocatable :: mcmc_paras, burnin_paras
+    real(dp), dimension(:, :, :), allocatable :: chain1_expected, chain2_expected
+    integer(i4) :: chunk_size, samples_per_chain, records_per_call, record
+
+    call cleanup_file("1_mcmc_netcdf_tmp.nc")
+    call cleanup_file("2_mcmc_netcdf_tmp.nc")
+    call setmeas()
+
+    objective%eval_pointer => model_dp
+    objective%obj_pointer => loglikelihood_stddev_dp
+    para = [0.9999815795293934_dp, 2.0035191695594499_dp, 2.8675479872139675_dp]
+    range_par(:, 1) = -10.0_dp
+    range_par(:, 2) = 10.0_dp
+
+    stepsize = 0.0_dp
+
+    chunk_size = 4_i4
+
+    call mcmc_stddev(objective, para, range_par, mcmc_paras, burnin_paras, &
+            tmp_file = "mcmc_netcdf_tmp.nc", seed_in = 62001519_i8, loglike_in = .true., &
+            iter_mcmc_in = chunk_size, chains_in = 2_i4, stepsize_in = stepsize)
+
+    samples_per_chain = int(size(mcmc_paras, 1) / 2_i4, i4)
+    @assertEqual(0_i4, mod(samples_per_chain, chunk_size))
+    records_per_call = samples_per_chain / chunk_size
+    allocate(chain1_expected(chunk_size, size(mcmc_paras, 2), 2_i4 * records_per_call))
+    allocate(chain2_expected(chunk_size, size(mcmc_paras, 2), 2_i4 * records_per_call))
+    do record = 1_i4, records_per_call
+      chain1_expected(:, :, record) = mcmc_paras((record - 1_i4) * chunk_size + 1_i4 : record * chunk_size, :)
+      chain2_expected(:, :, record) = mcmc_paras(samples_per_chain + (record - 1_i4) * chunk_size + 1_i4 : &
+              samples_per_chain + record * chunk_size, :)
+    end do
+
+    call mcmc_stddev(objective, para, range_par, mcmc_paras, burnin_paras, &
+            tmp_file = "mcmc_netcdf_tmp.nc", seed_in = 62001519_i8, loglike_in = .true., &
+            iter_mcmc_in = chunk_size, chains_in = 2_i4, stepsize_in = stepsize)
+
+    @assertEqual(2_i4 * samples_per_chain, int(size(mcmc_paras, 1), i4))
+    do record = 1_i4, records_per_call
+      chain1_expected(:, :, records_per_call + record) = &
+              mcmc_paras((record - 1_i4) * chunk_size + 1_i4 : record * chunk_size, :)
+      chain2_expected(:, :, records_per_call + record) = &
+              mcmc_paras(samples_per_chain + (record - 1_i4) * chunk_size + 1_i4 : &
+              samples_per_chain + record * chunk_size, :)
+    end do
+
+    call assert_mcmc_file("1_mcmc_netcdf_tmp.nc", 1_i4, chain1_expected)
+    call assert_mcmc_file("2_mcmc_netcdf_tmp.nc", 2_i4, chain2_expected)
+
+    call cleanup_file("1_mcmc_netcdf_tmp.nc")
+    call cleanup_file("2_mcmc_netcdf_tmp.nc")
+
+  end subroutine test_mcmc_tmp_file_uses_legacy_netcdf_names
+
+  subroutine assert_mcmc_file(filename, chain_id, expected)
+
+    character(len = *), intent(in) :: filename
+    integer(i4), intent(in) :: chain_id
+    real(dp), dimension(:, :, :), intent(in) :: expected
+
+    integer(i4) :: status, ncid, x_dimid, y_dimid, time_dimid, x_varid, y_varid, time_varid, varid
+    integer(i4) :: x_len, y_len, time_len, xtype, ndims, dimids(3), chain_id_in, coord_index
+    integer(i4), allocatable :: x_values(:), y_values(:), time_values(:)
+    real(dp), allocatable :: values(:, :, :)
+
+    status = ncw_open(filename, NCW_NOWRITE, ncid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_inq_dimid(ncid, "x", x_dimid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_inq_dimid(ncid, "y", y_dimid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_inq_dimid(ncid, "time", time_dimid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_inquire_dimension(ncid, x_dimid, len = x_len)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_inquire_dimension(ncid, y_dimid, len = y_len)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_inquire_dimension(ncid, time_dimid, len = time_len)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(int(size(expected, 1), i4), x_len)
+    @assertEqual(3_i4, y_len)
+    @assertEqual(int(size(expected, 3), i4), time_len)
+
+    status = ncw_inq_varid(ncid, "x", x_varid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_inq_varid(ncid, "y", y_varid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_inq_varid(ncid, "time", time_varid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_inq_varid(ncid, "var", varid)
+    @assertEqual(NCW_NOERR, status)
+
+    status = ncw_inquire_variable(ncid, x_varid, xtype = xtype, ndims = ndims, dimids = dimids(1:1))
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(NCW_INT, xtype)
+    @assertEqual(1_i4, ndims)
+    @assertEqual(x_dimid, dimids(1))
+    status = ncw_inquire_variable(ncid, y_varid, xtype = xtype, ndims = ndims, dimids = dimids(1:1))
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(NCW_INT, xtype)
+    @assertEqual(1_i4, ndims)
+    @assertEqual(y_dimid, dimids(1))
+    status = ncw_inquire_variable(ncid, time_varid, xtype = xtype, ndims = ndims, dimids = dimids(1:1))
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(NCW_INT, xtype)
+    @assertEqual(1_i4, ndims)
+    @assertEqual(time_dimid, dimids(1))
+    status = ncw_inquire_variable(ncid, varid, xtype = xtype, ndims = ndims, dimids = dimids)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(NCW_DOUBLE, xtype)
+    @assertEqual(3_i4, ndims)
+    @assertEqual([x_dimid, y_dimid, time_dimid], dimids)
+
+    status = ncw_get_att(ncid, NCW_GLOBAL, "chain_id", chain_id_in)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(chain_id, chain_id_in)
+
+    allocate(x_values(size(expected, 1)), y_values(y_len), time_values(size(expected, 3)))
+    allocate(values(size(expected, 1), y_len, size(expected, 3)))
+    status = ncw_get_var(ncid, x_varid, x_values)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_get_var(ncid, y_varid, y_values)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_get_var(ncid, time_varid, time_values)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_get_var(ncid, varid, values)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual([(coord_index, coord_index = 1_i4, int(size(expected, 1), i4))], x_values)
+    @assertEqual([1_i4, 2_i4, 3_i4], y_values)
+    @assertEqual([(coord_index, coord_index = 1_i4, int(size(expected, 3), i4))], time_values)
+    @assertEqual(expected, values, tolerance = 1.0e-12_dp)
+
+    status = ncw_close(ncid)
+    @assertEqual(NCW_NOERR, status)
+
+  end subroutine assert_mcmc_file
+
+  subroutine cleanup_file(filename)
+
+    character(len = *), intent(in) :: filename
+
+    logical :: exists
+
+    inquire(file = filename, exist = exists)
+    if (exists) then
+      open(999, file = filename, status = "old")
+      close(999, status = "delete")
+    end if
+
+  end subroutine cleanup_file
+
+end module test_mo_mcmc_netcdf
