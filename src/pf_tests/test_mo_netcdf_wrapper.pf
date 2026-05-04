@@ -20,6 +20,7 @@ module test_mo_netcdf_wrapper
   character(*), parameter :: fname_redef = "netcdf_wrapper_redef_abort.nc"
   character(*), parameter :: fname_attrs = "netcdf_wrapper_attrs_groups.nc"
   character(*), parameter :: fname_props = "netcdf_wrapper_var_props.nc"
+  character(*), parameter :: fname_scalar = "netcdf_wrapper_scalar_var.nc"
 
 contains
 
@@ -116,6 +117,25 @@ contains
     status = ncw_close(ncid)
     @assertEqual(NCW_NOERR, status)
   end subroutine test_wrapper_redef_enddef_and_abort
+
+  @test
+  subroutine test_wrapper_define_scalar_variable()
+    integer(i4) :: status, ncid, varid, ndims
+
+    status = ncw_create(fname_scalar, ior(NCW_CLOBBER, NCW_NETCDF4), ncid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_def_var(ncid, "scalar", NCW_DOUBLE, varid)
+    @assertEqual(NCW_NOERR, status)
+    status = ncw_enddef(ncid)
+    @assertEqual(NCW_NOERR, status)
+
+    status = ncw_inquire_variable(ncid, varid, ndims = ndims)
+    @assertEqual(NCW_NOERR, status)
+    @assertEqual(0_i4, ndims)
+
+    status = ncw_close(ncid)
+    @assertEqual(NCW_NOERR, status)
+  end subroutine test_wrapper_define_scalar_variable
 
   @test
   subroutine test_wrapper_attribute_and_group_management()

@@ -499,6 +499,7 @@ module mo_netcdf_wrapper
 
   !> \brief Generic interface: define a variable, dispatching on whether chunk sizes are supplied.
   interface ncw_def_var
+    module procedure ncw_def_var_scalar
     module procedure ncw_def_var_1d
     module procedure ncw_def_var_nd
   end interface ncw_def_var
@@ -983,27 +984,15 @@ contains
   !> \details Internal overload dispatched through the `ncw_def_var` generic interface.
   !>          Use `ncw_def_var` rather than calling this directly.
   !> \return NetCDF status code; NCW_NOERR on success.
-  function ncw_def_var_scalar(ncid, name, xtype, varid, contiguous, chunksizes, deflate_level, shuffle, fletcher32, endianness, &
-          cache_size, cache_nelems, cache_preemption)
+  function ncw_def_var_scalar(ncid, name, xtype, varid)
     integer(i4), intent(in) :: ncid !< NetCDF file ID.
     integer(i4), intent(in) :: xtype !< NetCDF external type (e.g. NCW_FLOAT, NCW_DOUBLE).
     character(len = *), intent(in) :: name !< Variable name.
     integer(i4), intent(out) :: varid !< Receives the new variable ID.
-    logical, intent(in), optional :: contiguous !< Request contiguous storage.
-    logical, intent(in), optional :: shuffle !< Enable shuffle filter.
-    logical, intent(in), optional :: fletcher32 !< Enable fletcher32 checksum.
-    integer(i4), intent(in), optional :: chunksizes !< Chunk size (scalar).
-    integer(i4), intent(in), optional :: deflate_level !< Zlib deflate level (1–9).
-    integer(i4), intent(in), optional :: endianness !< Endianness constant.
-    integer(i4), intent(in), optional :: cache_size !< Per-variable chunk cache size (bytes).
-    integer(i4), intent(in), optional :: cache_nelems !< Per-variable cache slot count.
-    integer(i4), intent(in), optional :: cache_preemption !< Per-variable cache preemption factor (0–100).
     integer(i4) :: ncw_def_var_scalar
     integer(i4) :: dimids(1)
-    integer(i4) :: chunk(1)
-    if (present(chunksizes)) chunk(1) = chunksizes
-    ncw_def_var_scalar = ncw_def_var_impl(ncid, name, xtype, dimids(1:0), varid, contiguous, chunk(1:0), deflate_level, shuffle, &
-            fletcher32, endianness, cache_size, cache_nelems, cache_preemption, .false.)
+
+    ncw_def_var_scalar = ncw_def_var_impl(ncid, name, xtype, dimids(1:0), varid, chunksizes = dimids(1:0), has_chunksizes = .false.)
   end function ncw_def_var_scalar
 
   !> \brief Define a 1-D variable in an open NetCDF file.
