@@ -157,6 +157,48 @@ contains
 
   end subroutine test_mcmc_restart
 
+  @test
+  subroutine test_mcmc_stepsize_writes_restart()
+
+    type(eval_optimizee) :: local_objective
+    real(dp), dimension(3) :: para, stepsize
+    real(dp), dimension(3,2) :: range_par
+    real(dp), dimension(:,:), allocatable :: local_mcmc_paras, local_burnin_paras
+    logical :: exists
+
+    call setmeas()
+    call cleanup_file('restart_stepsize_make_check_test_file')
+
+    local_objective%eval_pointer => model_dp
+    local_objective%obj_pointer => loglikelihood_dp
+
+    para = (/ 0.9999815795293934_dp, 2.0035191695594499_dp, 2.8675479872139675_dp /)
+    range_par(:,1) = -10.0_dp
+    range_par(:,2) = 10.0_dp
+    stepsize = 1.0e-6_dp
+
+    call mcmc(local_objective, para, range_par, local_mcmc_paras, local_burnin_paras, &
+        restart=.false., restart_file='restart_stepsize_make_check_test_file', &
+        seed_in=62001519_i8, loglike_in=.true., iter_mcmc_in=4_i4, chains_in=2_i4, &
+        stepsize_in=stepsize)
+
+    @assertTrue(allocated(local_mcmc_paras))
+    @assertTrue(size(local_mcmc_paras, 1) > 0)
+    inquire(file='restart_stepsize_make_check_test_file', exist=exists)
+    @assertTrue(exists)
+
+    call mcmc(local_objective, para, range_par, local_mcmc_paras, local_burnin_paras, &
+        restart=.true., restart_file='restart_stepsize_make_check_test_file', &
+        seed_in=62001519_i8, loglike_in=.true., iter_mcmc_in=4_i4, chains_in=2_i4, &
+        stepsize_in=stepsize)
+
+    @assertTrue(allocated(local_mcmc_paras))
+    @assertTrue(size(local_mcmc_paras, 1) > 0)
+
+    call cleanup_file('restart_stepsize_make_check_test_file')
+
+  end subroutine test_mcmc_stepsize_writes_restart
+
   ! Test MCMC with stddev new
   @test
   subroutine test_mcmc_stddev()
