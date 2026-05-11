@@ -730,6 +730,19 @@ CONTAINS
       ! initialize likelihood
       likelibest = objective%evaluate(parabest)
 
+      ! initialize variables for burn-in
+      accMult = 1.01_dp
+      rejMult = 0.99_dp
+      accratio_stddev = 0.0_dp
+      accratio_n = 0_i4
+      if (skip_burnin) then
+        trial = 0_i4
+        iStop = .true.
+      else
+        trial = 1_i4
+        iStop = .false.
+      end if
+
       !----------------------------------------------------------------------
       ! (1) BURN IN
       !----------------------------------------------------------------------
@@ -756,8 +769,6 @@ CONTAINS
         stepsize = 1.0_dp
         trial = 1_i4
         iStop = .false.
-        accMult = 1.01_dp
-        rejMult = 0.99_dp
 
         if (printflag) then
           write(*, *) ' '
@@ -1181,6 +1192,8 @@ CONTAINS
         if ((w .lt. tiny(1.0_dp)) .and. (b .lt. tiny(1.0_dp))) then
           ! Mathematica says that this is the limit, if w and b both go to zero
           sqrtR(truepara(iPar)) = sqrt(real(n_end - n_start, dp) / real(n_end - n_start + 1_i4, dp))
+        else if (w .lt. tiny(1.0_dp)) then
+          sqrtR(truepara(iPar)) = 2.0_dp ! sentinal failing value, if W is zero but B is not zero
         else
           sqrtR(truepara(iPar)) = real(n_end - n_start, dp) / real(n_end - n_start + 1_i4, dp) * W + &
                   1.0_dp / real(n_end - n_start + 1_i4, dp) * B
@@ -1500,6 +1513,19 @@ CONTAINS
     likelibest = likeli_new
     stddev_data = stddev_new
 
+    ! initialize variables for burn-in
+    accMult = 1.01_dp
+    rejMult = 0.99_dp
+    accratio_stddev = 0.0_dp
+    accratio_n = 0_i4
+    if (present(stepsize_in)) then
+      trial = 0_i4
+      iStop = .true.
+    else
+      trial = 1_i4
+      iStop = .false.
+    end if
+
     !----------------------------------------------------------------------
     ! (1) BURN IN
     !----------------------------------------------------------------------
@@ -1532,8 +1558,6 @@ CONTAINS
         stepsize = 1.0_dp
         trial = 1_i4
         iStop = .false.
-        accMult = 1.01_dp
-        rejMult = 0.99_dp
         !stddev_data = stddev_function(parabest)
         !likelibest  = likelihood(parabest,stddev_data,stddev_new=stddev_new,likeli_new=likeli_new)
         !likelibest  = likeli_new
@@ -1901,6 +1925,8 @@ CONTAINS
         if ((w .lt. tiny(1.0_dp)) .and. (b .lt. tiny(1.0_dp))) then
           ! Mathematica says that this is the limit, if w and b both go to zero
           sqrtR(truepara(iPar)) = sqrt(real(n_end - n_start, dp) / real(n_end - n_start + 1_i4, dp))
+        else if (w .lt. tiny(1.0_dp)) then
+          sqrtR(truepara(iPar)) = 2.0_dp ! sentinal failing value, if W is zero but B is not zero
         else
           sqrtR(truepara(iPar)) = real(n_end - n_start, dp) / real(n_end - n_start + 1_i4, dp) * W + &
                   1.0_dp / real(n_end - n_start + 1_i4, dp) * B
