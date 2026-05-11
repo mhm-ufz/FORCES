@@ -1192,6 +1192,8 @@ CONTAINS
         if ((w .lt. tiny(1.0_dp)) .and. (b .lt. tiny(1.0_dp))) then
           ! Mathematica says that this is the limit, if w and b both go to zero
           sqrtR(truepara(iPar)) = sqrt(real(n_end - n_start, dp) / real(n_end - n_start + 1_i4, dp))
+        else if (w .lt. tiny(1.0_dp)) then
+          sqrtR(truepara(iPar)) = huge(1.0_dp)
         else
           sqrtR(truepara(iPar)) = real(n_end - n_start, dp) / real(n_end - n_start + 1_i4, dp) * W + &
                   1.0_dp / real(n_end - n_start + 1_i4, dp) * B
@@ -1923,6 +1925,8 @@ CONTAINS
         if ((w .lt. tiny(1.0_dp)) .and. (b .lt. tiny(1.0_dp))) then
           ! Mathematica says that this is the limit, if w and b both go to zero
           sqrtR(truepara(iPar)) = sqrt(real(n_end - n_start, dp) / real(n_end - n_start + 1_i4, dp))
+        else if (w .lt. tiny(1.0_dp)) then
+          sqrtR(truepara(iPar)) = huge(1.0_dp)
         else
           sqrtR(truepara(iPar)) = real(n_end - n_start, dp) / real(n_end - n_start + 1_i4, dp) * W + &
                   1.0_dp / real(n_end - n_start + 1_i4, dp) * B
