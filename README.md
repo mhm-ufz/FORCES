@@ -44,7 +44,7 @@ project(MyProject LANGUAGES Fortran)
 add_executable(test test.f90)
 
 # add FORCES dependency
-CPMAddPackage("https://git.ufz.de/chs/forces.git@0.3.1")
+CPMAddPackage("https://git.ufz.de/chs/forces.git@0.10.0")
 
 # link dependencies
 target_link_libraries(test forces)
@@ -106,7 +106,7 @@ cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFORCES_EXE=test.f90
 
 ## Dependencies and Requirements
 
-* Fortran compiler: We support [gfortran](https://gcc.gnu.org/fortran/), [nagfor](https://www.nag.com/content/nag-fortran-compiler) and [ifort](https://www.intel.com/content/www/us/en/developer/tools/oneapi/overview.html)
+* Fortran compiler: We support [gfortran](https://gcc.gnu.org/fortran/), [nagfor](https://www.nag.com/content/nag-fortran-compiler), Intel classic/IntelLLVM ([ifort/ifx](https://www.intel.com/content/www/us/en/developer/tools/oneapi/overview.html)), and LLVM [flang](https://flang.llvm.org/)
 * Build system: We support [make](https://www.gnu.org/software/make/) and [ninja](https://ninja-build.org/)
 * [cmake](https://cmake.org/): Software for build automation
 * [NetCDF-C](https://github.com/Unidata/netcdf-c): NetCDF I/O library

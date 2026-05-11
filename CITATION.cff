@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use FORCES, please cite it using the metadata from this file."
+type: software
+title: "FORCES library"
+authors:
+  - name: "CHS Developers"
+version: "0.10.0"
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.19340736
+    description: "Zenodo concept DOI for all FORCES versions."
+  - type: url
+    value: "https://github.com/mhm-ufz/FORCES"
+    description: "GitHub mirror used by Zenodo."
+url: "https://github.com/mhm-ufz/FORCES"
+repository-code: "https://git.ufz.de/chs/forces"
+license: LGPL-3.0-or-later

@@ -4,6 +4,51 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
+## v0.10.0 - 2026-05
+- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.9.2...v0.10.0) for details.
+
+### Enhancements and Changes
+
+* `mo_os` ([154](https://git.ufz.de/chs/forces/-/merge_requests/154), [157](https://git.ufz.de/chs/forces/-/merge_requests/157))
+  * refactored OS-specific routines to use a small cross-platform C backend
+  * added helpers for converting paths to Windows and native OS representations
+  * improved Windows path handling so UNC-style paths are preserved and plain drive-relative paths such as `C:` are not treated as absolute
+
+* CMake / compiler support ([155](https://git.ufz.de/chs/forces/-/merge_requests/155), [156](https://git.ufz.de/chs/forces/-/merge_requests/156), [161](https://git.ufz.de/chs/forces/-/merge_requests/161))
+  * force-synced CTest's `BUILD_TESTING` option from `FORCES_BUILD_TESTING` for top-level builds and added `FORCES_TESTING_ENABLED` as the internal testing gate
+  * added support for the LLVM-based `flang` compiler
+  * aligned compiler-specific flags with CMake build-type defaults and added Windows IntelLLVM handling with MSVC-style options
+
+* `mo_netcdf_wrapper`, `mo_mcmc` ([158](https://git.ufz.de/chs/forces/-/merge_requests/158), [159](https://git.ufz.de/chs/forces/-/merge_requests/159))
+  * replaced the remaining production `mo_ncwrite::dump_netcdf` use in `mo_mcmc` with a focused writer built directly on `mo_netcdf_wrapper`
+  * preserved the legacy MCMC temporary NetCDF layout with `x`, `y`, unlimited `time`, and `var(x, y, time)` for downstream mHM compatibility
+  * exposed scalar `ncw_def_var` through the generic interface
+  * added `ncw_delete` and standalone NetCDF-4 variable property setters for chunking, deflate, Fletcher32, and endian handling
+  * added group and dimension listing helpers including `ncw_inq_grps`, group path lookup/inquiry, and `ncw_inq_dimids`
+
+* derived-type array handling ([160](https://git.ufz.de/chs/forces/-/merge_requests/160))
+  * added public `add_var(vars, new_var)` helper for `type(var)` arrays
+  * replaced derived-type constructor self-appends in affected code with `tmp` plus `move_alloc` to avoid ifx internal compiler errors with allocatable components
+  * updated examples and grid I/O tests to use the new helper
+
+### Fixes
+
+* `mo_mcmc` ([162](https://git.ufz.de/chs/forces/-/merge_requests/162))
+  * initialized skipped-burn-in restart diagnostics before writing `restartnml1` when `stepsize_in` is provided
+  * added defensive initialization in `mcmc_stddev_dp`
+  * fixed the convergence diagnostic so a tiny `W` alone marks the chain as not converged instead of dividing by zero
+
+* `mo_netcdf_wrapper`, `mo_mcmc` ([158](https://git.ufz.de/chs/forces/-/merge_requests/158))
+  * fixed oversized slice-vector compatibility by deriving the C slice rank from the actual NetCDF variable rank and validating ignored trailing entries
+  * replaced the C wrapper `strncpy` use with bounded `strlen`/`memcpy` plus explicit NUL termination
+  * changed missing-NetCDF MCMC `tmp_file` handling from an error to a warning so no-NetCDF optimization builds can continue
+
+### Compatibility Notes
+
+* `mo_ncread` and `mo_ncwrite` were removed as public modules ([158](https://git.ufz.de/chs/forces/-/merge_requests/158))
+  * use `mo_netcdf_wrapper`, `mo_netcdf`, or focused higher-level module writers for NetCDF I/O
+  * the MCMC public API is unchanged and its temporary NetCDF file layout remains compatible with the previous `dump_netcdf_3d_dp` output
+
 ## v0.9.2 - 2026-04
 - See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.9.1...v0.9.2) for details.
 
