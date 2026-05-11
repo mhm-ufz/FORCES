@@ -139,7 +139,7 @@ elseif(LOG_DEBUG STREQUAL "AUTO")
   target_compile_definitions(${LIB_NAME} PUBLIC $<$<CONFIG:RELEASE>:DISABLE_LOG_DEBUG>)
 endif()
 
-# set compiling flags for debug and relese version
+# set compiler-specific flags
 # gfortran
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   # set the preprocessor
@@ -151,8 +151,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   )
   target_compile_options(${LIB_NAME} PRIVATE
     "$<$<COMPILE_LANGUAGE:Fortran>:-frecursive>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-Og;-g;-Wall;-Wextra;-Wimplicit-interface;-Wsurprising;-fimplicit-none;-fbacktrace;-fcheck=all,no-array-temps;-ffpe-trap=zero,overflow,underflow;-finit-real=snan;-pedantic-errors>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-Og;-Wall;-Wextra;-Wimplicit-interface;-Wsurprising;-fimplicit-none;-fbacktrace;-fcheck=all,no-array-temps;-ffpe-trap=zero,overflow,underflow;-finit-real=snan;-pedantic-errors>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-fbacktrace>"
   )
   if(FORCES_ENABLE_NATIVE)
@@ -175,8 +174,8 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   target_compile_definitions(${LIB_NAME} PRIVATE "INTEL")
   target_compile_options(${LIB_NAME} PRIVATE
     "$<$<COMPILE_LANGUAGE:Fortran>:-nofixed;SHELL:-assume byterecl;SHELL:-assume recursion;-standard-realloc-lhs>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-g;-fp-model=source;SHELL:-warn all;SHELL:-check all;SHELL:-check noarg_temp_created;-debug;-traceback;-fp-stack-check;-O0>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3;-qoverride-limits>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-fp-model=source;SHELL:-warn all;SHELL:-check all;SHELL:-check noarg_temp_created;-debug;-traceback;-fp-stack-check;-O0>"
+    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-qoverride-limits>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-traceback>"
   )
   if(FORCES_ENABLE_NATIVE)
@@ -189,17 +188,32 @@ endif()
 # ifx (IntelLLVM)
 if(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
   target_compile_definitions(${LIB_NAME} PRIVATE "INTEL")
-  target_compile_options(${LIB_NAME} PRIVATE
-    "$<$<COMPILE_LANGUAGE:Fortran>:-nofixed;SHELL:-assume byterecl;SHELL:-assume recursion;-standard-realloc-lhs>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-g;-fp-model=source;SHELL:-warn all;SHELL:-check all;SHELL:-check noarg_temp_created;SHELL:-check nouninit;-traceback;-O0>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-O3;-qoverride-limits>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-traceback>"
-  )
-  if(FORCES_ENABLE_NATIVE)
+  if(WIN32)
     target_compile_options(${LIB_NAME} PRIVATE
-      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-xHost>"
-      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-xHost>"
+      "$<$<COMPILE_LANGUAGE:Fortran>:/nofixed;/assume:byterecl;/assume:recursion;/standard-realloc-lhs;/heap-arrays>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:/fp:source;/warn:all;/check:all;/check:noarg_temp_created;/traceback;/Od>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:/Qoverride-limits>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:/traceback>"
     )
+    if(FORCES_ENABLE_NATIVE)
+      target_compile_options(${LIB_NAME} PRIVATE
+        "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:/QxHost>"
+        "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:/QxHost>"
+      )
+    endif()
+  else()
+    target_compile_options(${LIB_NAME} PRIVATE
+      "$<$<COMPILE_LANGUAGE:Fortran>:-nofixed;SHELL:-assume byterecl;SHELL:-assume recursion;-standard-realloc-lhs>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-fp-model=source;SHELL:-warn all;SHELL:-check all;SHELL:-check noarg_temp_created;SHELL:-check nouninit;-traceback;-O0>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-qoverride-limits>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-traceback>"
+    )
+    if(FORCES_ENABLE_NATIVE)
+      target_compile_options(${LIB_NAME} PRIVATE
+        "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-xHost>"
+        "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-xHost>"
+      )
+    endif()
   endif()
 endif()
 # nagfor
@@ -209,13 +223,11 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
   endif()
   target_compile_definitions(${LIB_NAME} PRIVATE "NAG")
   if(FORCES_WITH_OpenMP)
-    # NAG's -gline traceback instrumentation destabilizes explicit OpenMP calls
-    # into the recursive indmed path in mo_orderpack. Keep debug checks, but
-    # disable -gline for OpenMP builds.
-    set(NAG_DEBUG_FLAGS "-g;-nan;-O0;-C;-C=alias;-C=dangling;-strict95;-ieee=full")
+    # NAG's -gline traceback instrumentation destabilizes explicit OpenMP calls.
+    set(NAG_DEBUG_FLAGS "-nan;-O0;-C;-C=alias;-C=dangling;-strict95;-ieee=full")
     set(NAG_RELWITHDEBINFO_FLAGS "-ieee=full")
   else()
-    set(NAG_DEBUG_FLAGS "-gline;-g;-nan;-O0;-C;-C=alias;-C=dangling;-strict95;-ieee=full")
+    set(NAG_DEBUG_FLAGS "-gline;-nan;-O0;-C;-C=alias;-C=dangling;-strict95;-ieee=full")
     set(NAG_RELWITHDEBINFO_FLAGS "-gline;-ieee=full")
   endif()
   target_compile_options(${LIB_NAME} PRIVATE
