@@ -12,10 +12,124 @@
         "fortran",
         "netcdf"
     ],
+    "programming_language": "Fortran",
     "creators": [
         {
             "affiliation": "UFZ",
             "name": "CHS-Developers"
+        }
+    ],
+    "related_identifiers": [
+        {
+            "identifier": "https://git.ufz.de/chs/forces",
+            "relation": "isSupplementTo",
+            "resource_type": "software"
+        }
+    ],
+    "contributors": [
+        {
+            "name": "Cuntz, Matthias",
+            "orcid": "0000-0002-5966-1829",
+            "type": "ProjectMember"
+        },
+        {
+            "name": "Mai, Juliane",
+            "orcid": "0000-0002-1132-2342",
+            "type": "ProjectMember"
+        },
+        {
+            "name": "Thober, Stephan",
+            "orcid": "0000-0003-3939-1523",
+            "type": "ProjectMember"
+        },
+        {
+            "name": "Zink, Matthias",
+            "orcid": "0000-0003-4085-7626",
+            "type": "ProjectMember"
+        },
+        {
+            "name": "Kumar, Rohini",
+            "orcid": "0000-0002-4396-2037",
+            "type": "ProjectMember"
+        },
+        {
+            "name": "Samaniego, Luis",
+            "orcid": "0000-0002-8449-4428",
+            "type": "ProjectMember"
+        },
+        {
+            "name": "Rakovec, Oldrich",
+            "orcid": "0000-0003-2451-3305",
+            "type": "ProjectMember"
+        },
+        {
+            "name": "Dalmasso, Giovanni",
+            "orcid": "0000-0002-8586-6027",
+            "type": "ProjectMember"
+        },
+        {
+            "name": "Göhler, Maren",
+            "type": "ProjectMember"
+        },
+        {
+            "name": "Schäfer, David",
+            "orcid": "0000-0003-4517-6459",
+            "type": "ProjectMember"
+        },
+        {
+            "name": "Guse, Björn",
+            "orcid": "0000-0001-8749-4362",
+            "type": "ProjectMember"
+        },
+        {
+            "name": "Schrön, Martin",
+            "orcid": "0000-0002-0220-0677",
+            "type": "ProjectMember"
+        },
+        {
+            "name": "Kaluza, Maren",
+            "type": "ProjectMember"
+        },
+        {
+            "name": "Kelbling, Matthias",
+            "orcid": "0000-0001-9303-6712",
+            "type": "ProjectMember"
+        },
+        {
+            "name": "Schweppe, Robert",
+            "orcid": "0000-0002-0671-1415",
+            "type": "ProjectMember"
+        },
+        {
+            "name": "Döring, Nicola",
+            "type": "ProjectMember"
+        },
+        {
+            "name": "Prasetya, Arya",
+            "orcid": "0009-0000-3759-3274",
+            "type": "ProjectMember"
+        },
+        {
+            "name": "Di Dato, Mariaines",
+            "orcid": "0000-0002-6879-3380",
+            "type": "ProjectMember"
+        },
+        {
+            "name": "Shrestha, Pallav Kumar",
+            "orcid": "0000-0001-5529-7460",
+            "type": "ProjectMember"
+        },
+        {
+            "affiliation": "UFZ",
+            "name": "Müller, Sebastian",
+            "orcid": "0000-0001-9060-4008",
+            "type": "ProjectLeader"
+        },
+        {
+            "affiliation": "UFZ",
+            "name": "Attinger, Sabine",
+            "orcid": "0000-0002-7798-7080",
+            "type": "Supervisor"
         }
     ]
 }
