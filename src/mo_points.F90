@@ -38,7 +38,7 @@ module mo_points
   !!          spherical systems, selected by \ref coordsys. The optional id array
   !!          can keep stable station or node identifiers separate from the
   !!          one-based array position used internally.
-  type, public :: points_t
+  type :: points_t
     integer(i4) :: coordsys = cartesian !< Coordinate system, cartesian or spherical.
     integer(i8) :: npoints = 0_i8       !< Number of points.
     real(dp), allocatable :: x(:)       !< Cartesian x or spherical longitude.
