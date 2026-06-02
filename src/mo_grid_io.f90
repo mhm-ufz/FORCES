@@ -36,7 +36,7 @@ module mo_grid_io
   use mo_utils, only: is_close, flip, optval
   implicit none
 
-  public :: var, output_dataset, input_dataset, time_units_delta, time_index, var_index, time_values, add_var
+  public :: var, output_dataset, input_dataset, time_units_delta, time_index, var_index, time_values, time_stepping, add_var
 
   private
 
