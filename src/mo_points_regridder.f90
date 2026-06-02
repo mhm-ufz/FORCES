@@ -102,7 +102,7 @@ contains
     real(dp), intent(out) :: out_data(:) !< mapped target point data
     integer(i8) :: i
     call check_grid_to_points(this, size(in_data, kind=i8), size(out_data, kind=i8))
-    do i = 1_i8, this%target_points%npoints
+    do i = 1_i8, this%target_points%n_points
       out_data(i) = in_data(this%id_map(i))
     end do
   end subroutine grid_to_points_exe_dp
@@ -114,7 +114,7 @@ contains
     integer(i4), intent(out) :: out_data(:) !< mapped target point data
     integer(i8) :: i
     call check_grid_to_points(this, size(in_data, kind=i8), size(out_data, kind=i8))
-    do i = 1_i8, this%target_points%npoints
+    do i = 1_i8, this%target_points%n_points
       out_data(i) = in_data(this%id_map(i))
     end do
   end subroutine grid_to_points_exe_i4
@@ -198,7 +198,7 @@ contains
     real(dp), intent(out) :: out_data(:) !< mapped target point data
     integer(i8) :: i
     call check_points_to_points(this, size(in_data, kind=i8), size(out_data, kind=i8))
-    do i = 1_i8, this%target_points%npoints
+    do i = 1_i8, this%target_points%n_points
       out_data(i) = in_data(this%id_map(i))
     end do
   end subroutine points_to_points_exe_dp
@@ -210,7 +210,7 @@ contains
     integer(i4), intent(out) :: out_data(:) !< mapped target point data
     integer(i8) :: i
     call check_points_to_points(this, size(in_data, kind=i8), size(out_data, kind=i8))
-    do i = 1_i8, this%target_points%npoints
+    do i = 1_i8, this%target_points%n_points
       out_data(i) = in_data(this%id_map(i))
     end do
   end subroutine points_to_points_exe_i4
@@ -243,7 +243,7 @@ contains
     integer(i8), intent(in) :: nsource, ntarget !< source and target data sizes
     if (.not.allocated(this%id_map)) call error_message("nearest_grid_to_points % execute: regridder not initialized")
     if (nsource /= this%source_grid%ncells) call error_message("nearest_grid_to_points % execute: source size mismatch")
-    if (ntarget /= this%target_points%npoints) call error_message("nearest_grid_to_points % execute: target size mismatch")
+    if (ntarget /= this%target_points%n_points) call error_message("nearest_grid_to_points % execute: target size mismatch")
   end subroutine check_grid_to_points
 
   !> \brief Validate data sizes for points-to-grid execution.
@@ -251,7 +251,7 @@ contains
     class(nearest_points_to_grid_t), intent(in) :: this
     integer(i8), intent(in) :: nsource, ntarget !< source and target data sizes
     if (.not.allocated(this%id_map)) call error_message("nearest_points_to_grid % execute: regridder not initialized")
-    if (nsource /= this%source_points%npoints) call error_message("nearest_points_to_grid % execute: source size mismatch")
+    if (nsource /= this%source_points%n_points) call error_message("nearest_points_to_grid % execute: source size mismatch")
     if (ntarget /= this%target_grid%ncells) call error_message("nearest_points_to_grid % execute: target size mismatch")
   end subroutine check_points_to_grid
 
@@ -260,8 +260,8 @@ contains
     class(nearest_points_to_points_t), intent(in) :: this
     integer(i8), intent(in) :: nsource, ntarget !< source and target data sizes
     if (.not.allocated(this%id_map)) call error_message("nearest_points_to_points % execute: regridder not initialized")
-    if (nsource /= this%source_points%npoints) call error_message("nearest_points_to_points % execute: source size mismatch")
-    if (ntarget /= this%target_points%npoints) call error_message("nearest_points_to_points % execute: target size mismatch")
+    if (nsource /= this%source_points%n_points) call error_message("nearest_points_to_points % execute: source size mismatch")
+    if (ntarget /= this%target_points%n_points) call error_message("nearest_points_to_points % execute: target size mismatch")
   end subroutine check_points_to_points
 
 end module mo_points_regridder

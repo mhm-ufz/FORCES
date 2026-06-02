@@ -29,7 +29,7 @@ program points_io_example
   real(dp) :: phase
   integer(i8) :: i
 
-  call gauges%from_netcdf("src/pf_tests/files/scc_gauges.nc", id_name="station")
+  call gauges%from_netcdf("src/pf_tests/files/scc_gauges.nc", var="station")
 
   allocate(vars(0))
   call add_var(vars, var(name="discharge", long_name="synthetic discharge", units="m3 s-1", &
@@ -39,9 +39,9 @@ program points_io_example
   end_time = datetime("2026-01-08")
   model_step = timedelta(hours=1_i4)
 
-  allocate(discharge(gauges%npoints))
+  allocate(discharge(gauges%n_points))
   call ds%init(path="scc_synthetic_discharge.nc", points=gauges, vars=vars, start_time=start_time, &
-               delta=time_units_delta(daily, end_timestamp), timestamp=end_timestamp, point_dim_name="station")
+               delta=time_units_delta(daily, end_timestamp), timestamp=end_timestamp, points_dim_name="station")
 
   current_time = start_time
   phase = 0.0_dp
@@ -49,7 +49,7 @@ program points_io_example
     current_time = current_time + model_step
     phase = phase + 0.25_dp
 
-    do i = 1_i8, gauges%npoints
+    do i = 1_i8, gauges%n_points
       discharge(i) = 10.0_dp * real(i, dp) + sin(phase + real(i, dp))
     end do
     call ds%update("discharge", discharge)

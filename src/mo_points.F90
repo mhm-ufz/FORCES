@@ -3,8 +3,8 @@
 
 !> \brief   Unstructured point-set handling.
 !> \details Provides \ref points_t for data locations that are not arranged on
-!!          a structured grid. A point set stores only coordinates and optional
-!!          point identifiers; mesh topology is intentionally not part of this
+!!          a structured grid. A point set stores only coordinates; mesh
+!!          topology and point identifiers are intentionally not part of this
 !!          representation.
 !> \authors Sebastian Müller
 !> \date Jun 2026
@@ -35,15 +35,12 @@ module mo_points
   !> \class points_t
   !> \brief Unstructured set of point coordinates.
   !> \details Coordinates are stored as x/y for cartesian systems and lon/lat for
-  !!          spherical systems, selected by \ref coordsys. The optional id array
-  !!          can keep stable station or node identifiers separate from the
-  !!          one-based array position used internally.
+  !!          spherical systems, selected by \ref coordsys.
   type :: points_t
     integer(i4) :: coordsys = cartesian !< Coordinate system, cartesian or spherical.
-    integer(i8) :: npoints = 0_i8       !< Number of points.
+    integer(i8) :: n_points = 0_i8      !< Number of points.
     real(dp), allocatable :: x(:)       !< Cartesian x or spherical longitude.
     real(dp), allocatable :: y(:)       !< Cartesian y or spherical latitude.
-    integer(i8), allocatable :: id(:)   !< Optional point identifiers.
   contains
     procedure, public :: init => points_init
 #ifdef FORCES_WITH_NETCDF
@@ -54,7 +51,6 @@ module mo_points
     procedure, private :: to_nc_dataset => points_to_nc_dataset
     generic, public :: to_netcdf => to_nc_file, to_nc_dataset
 #endif
-    procedure, public :: has_id => points_has_id
     procedure, public :: coords => points_coords
     procedure, public :: build_spatial_index => points_build_spatial_index
     procedure, private :: closest_point_id_scalar => points_closest_point_id_scalar
@@ -66,40 +62,28 @@ module mo_points
 contains
 
   !> \brief Initialize a point set from coordinate vectors.
-  subroutine points_init(this, x, y, coordsys, id)
+  subroutine points_init(this, x, y, coordsys)
     class(points_t), intent(inout) :: this
     real(dp), intent(in) :: x(:) !< x or longitude coordinates
     real(dp), intent(in) :: y(:) !< y or latitude coordinates
     integer(i4), optional, intent(in) :: coordsys !< coordinate system, defaults to cartesian
-    integer(i8), optional, intent(in) :: id(:) !< optional stable point identifiers
 
     if (size(x, kind=i8) /= size(y, kind=i8)) call error_message("points % init: x and y size mismatch")
     this%coordsys = optval(coordsys, cartesian)
     if (.not.any(this%coordsys == [cartesian, spherical])) then
       call error_message("points % init: unknown coordsys value: ", num2str(this%coordsys))
     end if
-    this%npoints = size(x, kind=i8)
+    this%n_points = size(x, kind=i8)
     if (allocated(this%x)) deallocate(this%x)
     if (allocated(this%y)) deallocate(this%y)
-    if (allocated(this%id)) deallocate(this%id)
-    allocate(this%x(this%npoints), source=x)
-    allocate(this%y(this%npoints), source=y)
-    if (present(id)) then
-      if (size(id, kind=i8) /= this%npoints) call error_message("points % init: id and coordinate size mismatch")
-      allocate(this%id(this%npoints), source=id)
-    end if
+    allocate(this%x(this%n_points), source=x)
+    allocate(this%y(this%n_points), source=y)
   end subroutine points_init
 
-  !> \brief Check whether stable point identifiers are available.
-  logical function points_has_id(this)
-    class(points_t), intent(in) :: this
-    points_has_id = allocated(this%id)
-  end function points_has_id
-
-  !> \brief Return coordinates as an `(npoints,2)` matrix.
+  !> \brief Return coordinates as an `(n_points,2)` matrix.
   function points_coords(this) result(coords)
     class(points_t), intent(in) :: this
-    real(dp) :: coords(this%npoints, 2)
+    real(dp) :: coords(this%n_points, 2)
     coords(:, 1) = this%x
     coords(:, 2) = this%y
   end function points_coords
@@ -111,8 +95,8 @@ contains
     integer(i8), allocatable :: point_ids(:)
     integer(i8) :: i
 
-    if (this%npoints < 1_i8) call error_message("points % build_spatial_index: points is empty")
-    point_ids = [(i, i=1_i8,this%npoints)]
+    if (this%n_points < 1_i8) call error_message("points % build_spatial_index: points is empty")
+    point_ids = [(i, i=1_i8,this%n_points)]
     if (this%coordsys == spherical) then
       call index%init_lonlat(this%coords(), point_ids)
     else
@@ -161,8 +145,8 @@ contains
     points_is_matching = .false.
     tol_ = optval(tol, 1.0e-7_dp)
     if (this%coordsys /= other%coordsys) return
-    if (this%npoints /= other%npoints) return
-    do i = 1_i8, this%npoints
+    if (this%n_points /= other%n_points) return
+    do i = 1_i8, this%n_points
       if (.not.is_close(this%x(i), other%x(i), tol_, tol_)) return
       if (.not.is_close(this%y(i), other%y(i), tol_, tol_)) return
     end do
@@ -171,43 +155,39 @@ contains
 
 #ifdef FORCES_WITH_NETCDF
   !> \brief Read point coordinates from a NetCDF file path.
-  subroutine points_from_nc_file(this, path, var, x_name, y_name, id_name)
+  subroutine points_from_nc_file(this, path, var, x_name, y_name)
     class(points_t), intent(inout) :: this
     character(*), intent(in) :: path !< NetCDF file path
     character(*), optional, intent(in) :: var !< variable whose dimensions/coordinates identify the point dimension
     character(*), optional, intent(in) :: x_name !< explicit x/lon coordinate variable name
     character(*), optional, intent(in) :: y_name !< explicit y/lat coordinate variable name
-    character(*), optional, intent(in) :: id_name !< explicit point id variable name
     type(NcDataset) :: nc
 
     nc = NcDataset(path, "r")
-    call points_from_nc_dataset(this, nc, var=var, x_name=x_name, y_name=y_name, id_name=id_name)
+    call points_from_nc_dataset(this, nc, var=var, x_name=x_name, y_name=y_name)
     call nc%close()
   end subroutine points_from_nc_file
 
   !> \brief Read point coordinates from an open NetCDF dataset.
-  subroutine points_from_nc_dataset(this, nc, var, x_name, y_name, id_name)
+  subroutine points_from_nc_dataset(this, nc, var, x_name, y_name)
     class(points_t), intent(inout) :: this
     type(NcDataset), intent(in) :: nc !< open NetCDF dataset
     character(*), optional, intent(in) :: var !< variable whose dimensions/coordinates identify the point dimension
     character(*), optional, intent(in) :: x_name !< explicit x/lon coordinate variable name
     character(*), optional, intent(in) :: y_name !< explicit y/lat coordinate variable name
-    character(*), optional, intent(in) :: id_name !< explicit point id variable name
 
-    type(NcVariable) :: xvar, yvar, base_var, idvar
+    type(NcVariable) :: xvar, yvar, base_var
     type(NcDimension), allocatable :: dims(:), xdims(:), ydims(:)
     character(len=256), allocatable :: coord_names(:)
-    character(len=256) :: tmp, xname, yname, idname, base_name
+    character(len=256) :: tmp, xname, yname, base_name
     real(dp), allocatable :: x(:), y(:)
-    integer(i8), allocatable :: ids(:)
     integer(i4) :: coordsys_, i
-    logical :: have_var, have_coord_attr, have_xname, have_yname, have_idname
+    logical :: have_var, have_coord_attr, have_xname, have_yname
 
-    have_var = present(var) .or. present(id_name)
+    have_var = present(var)
     have_coord_attr = .false.
     have_xname = .false.
     have_yname = .false.
-    have_idname = .false.
     if (present(x_name)) then
       xname = trim(x_name)
       have_xname = .true.
@@ -217,17 +197,8 @@ contains
       have_yname = .true.
     end if
 
-    if (present(id_name)) then
-      idname = trim(id_name)
-      have_idname = .true.
-    end if
-
     if (have_var) then
-      if (present(var)) then
-        base_name = trim(var)
-      else
-        base_name = trim(idname)
-      end if
+      base_name = trim(var)
       base_var = nc%getVariable(base_name)
       dims = base_var%getDimensions()
       if (base_var%hasAttribute("coordinates")) then
@@ -282,24 +253,16 @@ contains
     call xvar%getData(x)
     call yvar%getData(y)
 
-    if (have_idname) then
-      idvar = nc%getVariable(idname)
-      if (idvar%getRank() /= 1_i4) call error_message("points % from_netcdf: id variable must be one-dimensional")
-      call idvar%getData(ids)
-      call this%init(x, y, coordsys=coordsys_, id=ids)
-    else
-      call this%init(x, y, coordsys=coordsys_)
-    end if
+    call this%init(x, y, coordsys=coordsys_)
   end subroutine points_from_nc_dataset
 
   !> \brief Write point coordinates to a NetCDF file path.
-  subroutine points_to_nc_file(this, path, point_dim_name, x_name, y_name, id_name, double_precision, append)
+  subroutine points_to_nc_file(this, path, point_dim_name, x_name, y_name, double_precision, append)
     class(points_t), intent(in) :: this
     character(*), intent(in) :: path !< NetCDF file path
     character(*), optional, intent(in) :: point_dim_name !< point dimension name, defaults to "point"
     character(*), optional, intent(in) :: x_name !< x/lon coordinate variable name
     character(*), optional, intent(in) :: y_name !< y/lat coordinate variable name
-    character(*), optional, intent(in) :: id_name !< point id variable name
     logical, optional, intent(in) :: double_precision !< write coordinates as f64 instead of f32
     logical, optional, intent(in) :: append !< append coordinates to an existing file
     type(NcDataset) :: nc
@@ -308,23 +271,21 @@ contains
     fmode = "w"
     if (optval(append, .false.)) fmode = "a"
     nc = NcDataset(path, fmode)
-    call this%to_netcdf(nc, point_dim_name=point_dim_name, x_name=x_name, y_name=y_name, id_name=id_name, &
-                        double_precision=double_precision)
+    call this%to_netcdf(nc, point_dim_name=point_dim_name, x_name=x_name, y_name=y_name, double_precision=double_precision)
     call nc%close()
   end subroutine points_to_nc_file
 
   !> \brief Write point coordinates to an open NetCDF dataset.
-  subroutine points_to_nc_dataset(this, nc, point_dim_name, x_name, y_name, id_name, double_precision)
+  subroutine points_to_nc_dataset(this, nc, point_dim_name, x_name, y_name, double_precision)
     class(points_t), intent(in) :: this
     type(NcDataset), intent(inout) :: nc !< open NetCDF dataset
     character(*), optional, intent(in) :: point_dim_name !< point dimension name, defaults to "point"
     character(*), optional, intent(in) :: x_name !< x/lon coordinate variable name
     character(*), optional, intent(in) :: y_name !< y/lat coordinate variable name
-    character(*), optional, intent(in) :: id_name !< point id variable name
     logical, optional, intent(in) :: double_precision !< write coordinates as f64 instead of f32
     type(NcDimension) :: point_dim
-    type(NcVariable) :: xvar, yvar, idvar
-    character(:), allocatable :: dimname, xname, yname, idname, dtype
+    type(NcVariable) :: xvar, yvar
+    character(:), allocatable :: dimname, xname, yname, dtype
     logical :: double_precision_
 
     dimname = optval(point_dim_name, "point")
@@ -335,12 +296,11 @@ contains
       xname = optval(x_name, "x")
       yname = optval(y_name, "y")
     end if
-    idname = optval(id_name, dimname)
     double_precision_ = optval(double_precision, .true.)
     dtype = "f32"
     if (double_precision_) dtype = "f64"
 
-    point_dim = nc%setDimension(dimname, int(this%npoints, i4))
+    point_dim = nc%setDimension(dimname, int(this%n_points, i4))
     xvar = nc%setVariable(xname, dtype, [point_dim])
     yvar = nc%setVariable(yname, dtype, [point_dim])
 
@@ -368,12 +328,6 @@ contains
       call yvar%setData(real(this%y, sp))
     end if
 
-    if (allocated(this%id)) then
-      idvar = nc%setVariable(idname, "i64", [point_dim])
-      call idvar%setAttribute("long_name", "Point ID")
-      call idvar%setAttribute("coordinates", trim(xname) // " " // trim(yname))
-      call idvar%setData(this%id)
-    end if
   end subroutine points_to_nc_dataset
 #endif
 

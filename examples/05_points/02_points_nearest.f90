@@ -17,6 +17,7 @@ program points_nearest_example
   use mo_grid, only: grid_t, cartesian, bottom_up
   use mo_grid_io, only: var, output_dataset
   use mo_kind, only: dp, i4
+  use mo_netcdf, only: NcDataset, NcVariable
   use mo_points, only: points_t
   use mo_points_regridder, only: nearest_points_to_grid_t
   implicit none
@@ -25,11 +26,17 @@ program points_nearest_example
   type(grid_t), target :: grid
   type(nearest_points_to_grid_t) :: regridder
   type(output_dataset) :: ds
+  type(NcDataset) :: nc
+  type(NcVariable) :: station_var
   integer(i4), allocatable :: gauge_ids(:), closest_gauge_id(:)
   real(dp) :: xmin, xmax, ymin, ymax, cellsize
   integer(i4), parameter :: nx = 5_i4, ny = 5_i4
 
-  call gauges%from_netcdf("src/pf_tests/files/scc_gauges.nc", id_name="station")
+  call gauges%from_netcdf("src/pf_tests/files/scc_gauges.nc", var="station")
+  nc = NcDataset("src/pf_tests/files/scc_gauges.nc", "r")
+  station_var = nc%getVariable("station")
+  call station_var%getData(gauge_ids)
+  call nc%close()
 
   xmin = minval(gauges%x)
   xmax = maxval(gauges%x)
@@ -39,9 +46,6 @@ program points_nearest_example
 
   call grid%init(nx=nx, ny=ny, xllcorner=xmin - 0.5_dp * cellsize, yllcorner=ymin - 0.5_dp * cellsize, &
                  cellsize=cellsize, coordsys=cartesian, y_direction=bottom_up)
-
-  allocate(gauge_ids(gauges%npoints))
-  gauge_ids = int(gauges%id, i4)
 
   call regridder%init(source_points=gauges, target_grid=grid)
   allocate(closest_gauge_id(grid%ncells))

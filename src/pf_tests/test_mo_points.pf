@@ -22,14 +22,12 @@ contains
   subroutine test_read_scc_gauges()
     type(points_t) :: points
 
-    call points%from_netcdf("files/scc_gauges.nc", id_name="station")
+    call points%from_netcdf("files/scc_gauges.nc", var="station")
 
     @assertEqual(points%coordsys, cartesian)
-    @assertEqual(points%npoints, 3_i8)
-    @assertTrue(points%has_id(), message='station ids are read')
+    @assertEqual(points%n_points, 3_i8)
     @assertEqual(size(points%x, kind=i8), 3_i8)
     @assertEqual(size(points%y, kind=i8), 3_i8)
-    @assertEqual(size(points%id, kind=i8), 3_i8)
   end subroutine test_read_scc_gauges
 
   @test
@@ -39,16 +37,15 @@ contains
     type(NcVariable) :: var
     character(len=256) :: attr
 
-    call cart_points%init([1.0_dp, 2.0_dp], [3.0_dp, 4.0_dp], coordsys=cartesian, id=[11_i8, 12_i8])
+    call cart_points%init([1.0_dp, 2.0_dp], [3.0_dp, 4.0_dp], coordsys=cartesian)
     call cart_points%to_netcdf("points_cart.nc")
-    call cart_read%from_netcdf("points_cart.nc", id_name="point")
+    call cart_read%from_netcdf("points_cart.nc")
     @assertEqual(cart_read%coordsys, cartesian)
     @assertTrue(cart_read%is_matching(cart_points))
     @assertEqual(cart_read%x, cart_points%x, tolerance=1.0e-12_dp)
     @assertEqual(cart_read%y, cart_points%y, tolerance=1.0e-12_dp)
-    @assertEqual(cart_read%id, cart_points%id)
 
-    call cart_read%init([1.0_dp + 1.0e-8_dp, 2.0_dp], [3.0_dp, 4.0_dp], coordsys=cartesian, id=[11_i8, 12_i8])
+    call cart_read%init([1.0_dp + 1.0e-8_dp, 2.0_dp], [3.0_dp, 4.0_dp], coordsys=cartesian)
     @assertTrue(cart_read%is_matching(cart_points))
     @assertFalse(cart_read%is_matching(cart_points, tol=1.0e-10_dp))
 
@@ -93,14 +90,14 @@ contains
     call add_var(vars, var(name="discharge", units="m3 s-1", static=.false., dtype="f64", kind="dp"))
 
     start_time = datetime("1990-01-01")
-    call out%init("point_discharge.nc", points=points, vars=vars, start_time=start_time, point_dim_name="node")
+    call out%init("point_discharge.nc", points=points, vars=vars, start_time=start_time, points_dim_name="node")
     values = [10.0_dp, 20.0_dp, 30.0_dp]
     call out%update("discharge", values)
     call out%write(datetime("1990-01-02"))
     call out%close()
 
     call points_read%from_netcdf("point_discharge.nc", var="discharge")
-    @assertEqual(points_read%npoints, 3_i8)
+    @assertEqual(points_read%n_points, 3_i8)
     @assertEqual(points_read%x, points%x, tolerance=1.0e-12_dp)
     call inp%init("point_discharge.nc", vars=vars, points=points_read)
     call inp%read("discharge", read_values, current_time=datetime("1990-01-02"))
