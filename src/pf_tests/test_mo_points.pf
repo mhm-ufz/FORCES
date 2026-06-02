@@ -43,9 +43,14 @@ contains
     call cart_points%to_netcdf("points_cart.nc")
     call cart_read%from_netcdf("points_cart.nc", var="point")
     @assertEqual(cart_read%coordsys, cartesian)
+    @assertTrue(cart_read%is_matching(cart_points))
     @assertEqual(cart_read%x, cart_points%x, tolerance=1.0e-12_dp)
     @assertEqual(cart_read%y, cart_points%y, tolerance=1.0e-12_dp)
     @assertEqual(cart_read%id, cart_points%id)
+
+    call cart_read%init([1.0_dp + 1.0e-8_dp, 2.0_dp], [3.0_dp, 4.0_dp], coordsys=cartesian, id=[11_i8, 12_i8])
+    @assertTrue(cart_read%is_matching(cart_points))
+    @assertFalse(cart_read%is_matching(cart_points, tol=1.0e-10_dp))
 
     nc = NcDataset("points_cart.nc", "r")
     var = nc%getVariable("x")

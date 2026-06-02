@@ -17,7 +17,7 @@ module mo_points
   use mo_message, only: error_message
   use mo_spatial_index, only: spatial_index_t
   use mo_string_utils, only: num2str
-  use mo_utils, only: optval
+  use mo_utils, only: is_close, optval
 #ifdef FORCES_WITH_NETCDF
   use mo_grid_helper, only: is_x_axis, is_y_axis, is_lon_coord, is_lat_coord
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
@@ -151,12 +151,22 @@ contains
   end function points_closest_point_id_batch
 
   !> \brief Check whether two point sets describe the same coordinate locations.
-  logical function points_is_matching(this, other)
+  logical function points_is_matching(this, other, tol)
     class(points_t), intent(in) :: this
     type(points_t), intent(in) :: other !< point set to compare against
-    points_is_matching = this%coordsys == other%coordsys .and. this%npoints == other%npoints
-    if (.not.points_is_matching) return
-    points_is_matching = all(abs(this%x - other%x) <= 0.0_dp) .and. all(abs(this%y - other%y) <= 0.0_dp)
+    real(dp), optional, intent(in) :: tol !< tolerance for comparisson of real values (default: 1.e-7)
+    real(dp) :: tol_
+    integer(i8) :: i
+
+    points_is_matching = .false.
+    tol_ = optval(tol, 1.0e-7_dp)
+    if (this%coordsys /= other%coordsys) return
+    if (this%npoints /= other%npoints) return
+    do i = 1_i8, this%npoints
+      if (.not.is_close(this%x(i), other%x(i), tol_, tol_)) return
+      if (.not.is_close(this%y(i), other%y(i), tol_, tol_)) return
+    end do
+    points_is_matching = .true.
   end function points_is_matching
 
 #ifdef FORCES_WITH_NETCDF
