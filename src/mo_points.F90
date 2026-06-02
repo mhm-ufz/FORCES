@@ -176,13 +176,13 @@ contains
     character(*), optional, intent(in) :: x_name !< explicit x/lon coordinate variable name
     character(*), optional, intent(in) :: y_name !< explicit y/lat coordinate variable name
 
-    type(NcVariable) :: xvar, yvar, base_var
+    type(NcVariable) :: xvar, yvar, base_var, coord_var
     type(NcDimension), allocatable :: dims(:), xdims(:), ydims(:)
     character(len=256), allocatable :: coord_names(:)
     character(len=256) :: tmp, xname, yname, base_name
     real(dp), allocatable :: x(:), y(:)
     integer(i4) :: coordsys_, i
-    logical :: have_var, have_coord_attr, have_xname, have_yname
+    logical :: have_var, have_coord_attr, have_xname, have_yname, found_x, found_y
 
     have_var = present(var)
     have_coord_attr = .false.
@@ -204,9 +204,27 @@ contains
       if (base_var%hasAttribute("coordinates")) then
         call base_var%getAttribute("coordinates", tmp)
         coord_names = splitString(trim(tmp), " ")
-        if (size(coord_names) >= 2) then
-          xname = trim(coord_names(1))
-          yname = trim(coord_names(2))
+        found_x = .false.
+        found_y = .false.
+        do i = 1_i4, size(coord_names)
+          if (.not.nc%hasVariable(trim(coord_names(i)))) cycle
+          coord_var = nc%getVariable(trim(coord_names(i)))
+          if (.not.found_x) then
+            if (is_x_axis(coord_var) .or. is_lon_coord(coord_var) .or. &
+                trim(coord_names(i)) == "x" .or. trim(coord_names(i)) == "lon") then
+              xname = trim(coord_names(i))
+              found_x = .true.
+            end if
+          end if
+          if (.not.found_y) then
+            if (is_y_axis(coord_var) .or. is_lat_coord(coord_var) .or. &
+                trim(coord_names(i)) == "y" .or. trim(coord_names(i)) == "lat") then
+              yname = trim(coord_names(i))
+              found_y = .true.
+            end if
+          end if
+        end do
+        if (found_x .and. found_y) then
           have_xname = .true.
           have_yname = .true.
           have_coord_attr = .true.
