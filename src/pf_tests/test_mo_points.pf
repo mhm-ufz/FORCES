@@ -90,7 +90,7 @@ contains
     call add_var(vars, var(name="discharge", units="m3 s-1", static=.false., dtype="f64", kind="dp"))
 
     start_time = datetime("1990-01-01")
-    call out%init("point_discharge.nc", points=points, vars=vars, start_time=start_time, points_dim_name="node")
+    call out%init("point_discharge.nc", points=points, vars=vars, start_time=start_time, point_dim_name="node")
     values = [10.0_dp, 20.0_dp, 30.0_dp]
     call out%update("discharge", values)
     call out%write(datetime("1990-01-02"))

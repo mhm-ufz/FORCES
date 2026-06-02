@@ -41,7 +41,7 @@ program points_io_example
 
   allocate(discharge(gauges%n_points))
   call ds%init(path="scc_synthetic_discharge.nc", points=gauges, vars=vars, start_time=start_time, &
-               delta=time_units_delta(daily, end_timestamp), timestamp=end_timestamp, points_dim_name="station")
+               delta=time_units_delta(daily, end_timestamp), timestamp=end_timestamp, point_dim_name="station")
 
   current_time = start_time
   phase = 0.0_dp

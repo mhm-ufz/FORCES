@@ -312,7 +312,7 @@ contains
 
   !> \brief Initialize a point-set output dataset.
   subroutine points_output_init(self, path, points, vars, start_time, ref_time, delta, timestamp, deflate_level, &
-                               points_dim_name, points_double_precision)
+                               point_dim_name, points_double_precision)
     class(points_output_dataset), intent(inout) :: self
     character(*), intent(in) :: path !< output file path
     type(points_t), pointer, intent(in) :: points !< point-set geometry
@@ -322,7 +322,7 @@ contains
     character(*), optional, intent(in) :: delta !< time units, for example "hours" or "days"
     integer(i4), optional, intent(in) :: timestamp !< timestamp location selector
     integer(i4), optional, intent(in) :: deflate_level !< NetCDF deflate level
-    character(*), optional, intent(in) :: points_dim_name !< point dimension name
+    character(*), optional, intent(in) :: point_dim_name !< point dimension name
     logical, optional, intent(in) :: points_double_precision !< write point coordinates as double precision
 
     character(:), allocatable :: dimname, units, units_dt
@@ -337,9 +337,9 @@ contains
     self%counter = 0_i4
     self%deflate_level = optval(deflate_level, 6_i4)
     self%timestamp = optval(timestamp, end_timestamp)
-    dimname = optval(points_dim_name, "point")
+    dimname = optval(point_dim_name, "point")
 
-    call self%points%to_netcdf(self%nc, points_dim_name=dimname, double_precision=points_double_precision)
+    call self%points%to_netcdf(self%nc, point_dim_name=dimname, double_precision=points_double_precision)
     points_dim = self%nc%getDimension(dimname)
 
     self%nvars = size(vars)
