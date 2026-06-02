@@ -154,19 +154,19 @@ module mo_points_io
   !> \class points_output_dataset
   !> \brief NetCDF writer for static or temporal variables on a point set.
   type :: points_output_dataset
-    type(points_t), pointer :: points => null()         !< point-set geometry
-    character(:), allocatable :: path                   !< output path
-    type(NcDataset) :: nc                               !< NetCDF dataset
+    type(points_t), pointer :: points => null()          !< point-set geometry
+    character(:), allocatable :: path                    !< output path
+    type(NcDataset) :: nc                                !< NetCDF dataset
     type(points_output_variable), allocatable :: vars(:) !< output variable buffers
-    integer(i4) :: nvars = 0_i4                         !< number of variables
-    logical :: static = .true.                          !< all variables are static
-    integer(i4) :: counter = 0_i4                       !< number of written time steps
-    type(datetime) :: previous_time                     !< previous temporal write time
-    type(datetime) :: start_time                        !< temporal output start time
-    type(datetime) :: ref_time                          !< time-unit reference time
-    type(timedelta) :: delta                            !< time-unit delta
-    integer(i4) :: timestamp = end_timestamp            !< timestamp location selector
-    integer(i4) :: deflate_level = 6_i4                 !< NetCDF deflate level
+    integer(i4) :: nvars = 0_i4                          !< number of variables
+    logical :: static = .true.                           !< all variables are static
+    integer(i4) :: counter = 0_i4                        !< number of written time steps
+    type(datetime) :: previous_time                      !< previous temporal write time
+    type(datetime) :: start_time                         !< temporal output start time
+    type(datetime) :: ref_time                           !< time-unit reference time
+    type(timedelta) :: delta                             !< time-unit delta
+    integer(i4) :: timestamp = end_timestamp             !< timestamp location selector
+    integer(i4) :: deflate_level = 6_i4                  !< NetCDF deflate level
   contains
     procedure, public :: init => points_output_init
 #:set OUTPUT_UPDATE_PROCS = ["points_output_update_{}".format(kind) for kind in POINT_IO_ALL_KINDS]
@@ -200,10 +200,10 @@ module mo_points_io
   !> \class points_input_dataset
   !> \brief NetCDF reader for static or temporal variables on a point set.
   type :: points_input_dataset
-    type(points_t), pointer :: points => null()       !< point-set geometry
+    type(points_t), pointer :: points => null()         !< point-set geometry
     character(:), allocatable :: path                   !< input path
     type(NcDataset) :: nc                               !< NetCDF dataset
-    type(points_input_variable), allocatable :: vars(:)  !< input variable handles
+    type(points_input_variable), allocatable :: vars(:) !< input variable handles
     integer(i4) :: nvars = 0_i4                         !< number of variables
     logical :: static = .true.                          !< all variables are static
     type(datetime) :: start_time                        !< start of time frame in the file

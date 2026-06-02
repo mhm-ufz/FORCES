@@ -61,25 +61,25 @@ module mo_points_io
   !> \class points_output_dataset
   !> \brief NetCDF writer for static or temporal variables on a point set.
   type :: points_output_dataset
-    type(points_t), pointer :: points => null()       !< point-set geometry
-    character(:), allocatable :: path                   !< output path
-    type(NcDataset) :: nc                               !< NetCDF dataset
+    type(points_t), pointer :: points => null()          !< point-set geometry
+    character(:), allocatable :: path                    !< output path
+    type(NcDataset) :: nc                                !< NetCDF dataset
     type(points_output_variable), allocatable :: vars(:) !< output variable buffers
-    integer(i4) :: nvars = 0_i4                         !< number of variables
-    logical :: static = .true.                          !< all variables are static
-    integer(i4) :: counter = 0_i4                       !< number of written time steps
-    type(datetime) :: previous_time                     !< previous temporal write time
-    type(datetime) :: start_time                        !< temporal output start time
-    type(datetime) :: ref_time                          !< time-unit reference time
-    type(timedelta) :: delta                            !< time-unit delta
-    integer(i4) :: timestamp = end_timestamp            !< timestamp location selector
-    integer(i4) :: deflate_level = 6_i4                 !< NetCDF deflate level
+    integer(i4) :: nvars = 0_i4                          !< number of variables
+    logical :: static = .true.                           !< all variables are static
+    integer(i4) :: counter = 0_i4                        !< number of written time steps
+    type(datetime) :: previous_time                      !< previous temporal write time
+    type(datetime) :: start_time                         !< temporal output start time
+    type(datetime) :: ref_time                           !< time-unit reference time
+    type(timedelta) :: delta                             !< time-unit delta
+    integer(i4) :: timestamp = end_timestamp             !< timestamp location selector
+    integer(i4) :: deflate_level = 6_i4                  !< NetCDF deflate level
   contains
     procedure, public :: init => points_output_init
     procedure, private :: points_output_update_sp, points_output_update_dp, points_output_update_i1, points_output_update_i2,&
         & points_output_update_i4, points_output_update_i8
-    generic, public :: update => points_output_update_sp, points_output_update_dp, points_output_update_i1, points_output_update_i2,&
-        & points_output_update_i4, points_output_update_i8
+    generic, public :: update => points_output_update_sp, points_output_update_dp, points_output_update_i1,&
+        & points_output_update_i2, points_output_update_i4, points_output_update_i8
     procedure, public :: write => points_output_write
     procedure, public :: write_static => points_output_write_static
     procedure, public :: close => points_output_close
@@ -110,10 +110,10 @@ module mo_points_io
   !> \class points_input_dataset
   !> \brief NetCDF reader for static or temporal variables on a point set.
   type :: points_input_dataset
-    type(points_t), pointer :: points => null()       !< point-set geometry
+    type(points_t), pointer :: points => null()         !< point-set geometry
     character(:), allocatable :: path                   !< input path
     type(NcDataset) :: nc                               !< NetCDF dataset
-    type(points_input_variable), allocatable :: vars(:)  !< input variable handles
+    type(points_input_variable), allocatable :: vars(:) !< input variable handles
     integer(i4) :: nvars = 0_i4                         !< number of variables
     logical :: static = .true.                          !< all variables are static
     type(datetime) :: start_time                        !< start of time frame in the file
@@ -127,8 +127,8 @@ module mo_points_io
     type(datetime), allocatable :: times(:)             !< timestamps for time-span ends
   contains
     procedure, public :: init => points_input_init
-    procedure, private :: points_input_read_sp, points_input_read_dp, points_input_read_i1, points_input_read_i2, points_input_read_i4,&
-        & points_input_read_i8
+    procedure, private :: points_input_read_sp, points_input_read_dp, points_input_read_i1, points_input_read_i2,&
+        & points_input_read_i4, points_input_read_i8
     generic, public :: read => points_input_read_sp, points_input_read_dp, points_input_read_i1, points_input_read_i2,&
         & points_input_read_i4, points_input_read_i8
     procedure, private :: points_input_read_chunk_sp, points_input_read_chunk_dp, points_input_read_chunk_i1,&
@@ -517,7 +517,8 @@ contains
     class(points_input_variable), intent(inout) :: self
     real(sp), intent(out) :: data(:) !< read point data
     integer(i4), optional, intent(in) :: t_index !< temporal index for non-static variables
-    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ", self%meta%name)
+    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ",&
+        & self%meta%name)
     if (self%static) then
       call self%nc%readInto(data)
     else
@@ -541,7 +542,8 @@ contains
     class(points_input_variable), intent(inout) :: self
     real(dp), intent(out) :: data(:) !< read point data
     integer(i4), optional, intent(in) :: t_index !< temporal index for non-static variables
-    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ", self%meta%name)
+    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ",&
+        & self%meta%name)
     if (self%static) then
       call self%nc%readInto(data)
     else
@@ -565,7 +567,8 @@ contains
     class(points_input_variable), intent(inout) :: self
     integer(i1), intent(out) :: data(:) !< read point data
     integer(i4), optional, intent(in) :: t_index !< temporal index for non-static variables
-    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ", self%meta%name)
+    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ",&
+        & self%meta%name)
     if (self%static) then
       call self%nc%readInto(data)
     else
@@ -589,7 +592,8 @@ contains
     class(points_input_variable), intent(inout) :: self
     integer(i2), intent(out) :: data(:) !< read point data
     integer(i4), optional, intent(in) :: t_index !< temporal index for non-static variables
-    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ", self%meta%name)
+    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ",&
+        & self%meta%name)
     if (self%static) then
       call self%nc%readInto(data)
     else
@@ -613,7 +617,8 @@ contains
     class(points_input_variable), intent(inout) :: self
     integer(i4), intent(out) :: data(:) !< read point data
     integer(i4), optional, intent(in) :: t_index !< temporal index for non-static variables
-    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ", self%meta%name)
+    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ",&
+        & self%meta%name)
     if (self%static) then
       call self%nc%readInto(data)
     else
@@ -637,7 +642,8 @@ contains
     class(points_input_variable), intent(inout) :: self
     integer(i8), intent(out) :: data(:) !< read point data
     integer(i4), optional, intent(in) :: t_index !< temporal index for non-static variables
-    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ", self%meta%name)
+    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ",&
+        & self%meta%name)
     if (self%static) then
       call self%nc%readInto(data)
     else
