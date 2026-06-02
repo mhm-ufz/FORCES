@@ -22,7 +22,7 @@ contains
   subroutine test_read_scc_gauges()
     type(points_t) :: points
 
-    call points%from_netcdf("../../../info/river/scc_gauges.nc", var="station", id_name="station")
+    call points%from_netcdf("files/scc_gauges.nc", var="station", id_name="station")
 
     @assertEqual(points%coordsys, cartesian)
     @assertEqual(points%npoints, 3_i8)
