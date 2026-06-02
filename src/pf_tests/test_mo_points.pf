@@ -1,0 +1,174 @@
+module test_mo_points
+  use funit
+  use mo_kind, only: i1, i2, i4, i8, dp, sp
+  use mo_grid, only: grid_t, cartesian, spherical, bottom_up
+  use mo_netcdf, only: NcDataset, NcVariable
+  use mo_points, only: points_t
+  use mo_points_io, only: add_var, var, points_output_dataset, points_input_dataset
+  use mo_points_regridder, only: nearest_grid_to_points_t, nearest_points_to_grid_t, nearest_points_to_points_t
+  use mo_datetime, only: datetime
+  implicit none
+
+  private
+
+  public :: test_read_scc_gauges
+  public :: test_points_netcdf_roundtrip
+  public :: test_points_output_input
+  public :: test_nearest_regridding
+
+contains
+
+  @test
+  subroutine test_read_scc_gauges()
+    type(points_t) :: points
+
+    call points%from_netcdf("../../../info/river/scc_gauges.nc", var="station")
+
+    @assertEqual(points%coordsys, cartesian)
+    @assertEqual(points%npoints, 3_i8)
+    @assertTrue(points%has_id(), message='station ids are read')
+    @assertEqual(size(points%x, kind=i8), 3_i8)
+    @assertEqual(size(points%y, kind=i8), 3_i8)
+    @assertEqual(size(points%id, kind=i8), 3_i8)
+  end subroutine test_read_scc_gauges
+
+  @test
+  subroutine test_points_netcdf_roundtrip()
+    type(points_t) :: cart_points, sph_points, cart_read, sph_read
+    type(NcDataset) :: nc
+    type(NcVariable) :: var
+    character(len=256) :: attr
+
+    call cart_points%init([1.0_dp, 2.0_dp], [3.0_dp, 4.0_dp], coordsys=cartesian, id=[11_i8, 12_i8])
+    call cart_points%to_netcdf("points_cart.nc")
+    call cart_read%from_netcdf("points_cart.nc", var="point")
+    @assertEqual(cart_read%coordsys, cartesian)
+    @assertEqual(cart_read%x, cart_points%x, tolerance=1.0e-12_dp)
+    @assertEqual(cart_read%y, cart_points%y, tolerance=1.0e-12_dp)
+    @assertEqual(cart_read%id, cart_points%id)
+
+    nc = NcDataset("points_cart.nc", "r")
+    var = nc%getVariable("x")
+    call var%getAttribute("standard_name", attr)
+    @assertEqual(trim(attr), "projection_x_coordinate")
+    call nc%close()
+
+    call sph_points%init([10.0_dp, 11.0_dp], [50.0_dp, 51.0_dp], coordsys=spherical)
+    call sph_points%to_netcdf("points_spherical.nc")
+    call sph_read%from_netcdf("points_spherical.nc")
+    @assertEqual(sph_read%coordsys, spherical)
+    @assertEqual(sph_read%x, sph_points%x, tolerance=1.0e-12_dp)
+    @assertEqual(sph_read%y, sph_points%y, tolerance=1.0e-12_dp)
+    nc = NcDataset("points_spherical.nc", "r")
+    var = nc%getVariable("lon")
+    call var%getAttribute("standard_name", attr)
+    @assertEqual(trim(attr), "longitude")
+    call nc%close()
+  end subroutine test_points_netcdf_roundtrip
+
+  @test
+  subroutine test_points_output_input()
+    type(points_t), target :: points, points_read
+    type(points_output_dataset) :: out
+    type(points_input_dataset) :: inp
+    type(var), allocatable :: vars(:)
+    type(var), allocatable :: static_vars(:)
+    real(dp) :: values(3), read_values(3)
+    real(dp), allocatable :: read_chunk(:, :)
+    real(sp) :: values_sp(3), read_sp(3)
+    integer(i1) :: values_i1(3), read_i1(3)
+    integer(i2) :: values_i2(3), read_i2(3)
+    integer(i4) :: values_i4(3), read_i4(3)
+    integer(i8) :: values_i8(3), read_i8(3)
+    type(datetime) :: start_time, expected_time
+    type(datetime), allocatable :: times(:)
+
+    call points%init([1.0_dp, 2.0_dp, 3.0_dp], [4.0_dp, 5.0_dp, 6.0_dp], coordsys=cartesian)
+    allocate(vars(0))
+    call add_var(vars, var(name="discharge", units="m3 s-1", static=.false., dtype="f64", kind="dp"))
+
+    start_time = datetime("1990-01-01")
+    call out%init("point_discharge.nc", points=points, vars=vars, start_time=start_time, point_dim_name="node")
+    values = [10.0_dp, 20.0_dp, 30.0_dp]
+    call out%update("discharge", values)
+    call out%write(datetime("1990-01-02"))
+    call out%close()
+
+    call points_read%from_netcdf("point_discharge.nc", var="discharge")
+    @assertEqual(points_read%npoints, 3_i8)
+    @assertEqual(points_read%x, points%x, tolerance=1.0e-12_dp)
+    call inp%init("point_discharge.nc", vars=vars, points=points_read)
+    call inp%read("discharge", read_values, current_time=datetime("1990-01-02"))
+    @assertEqual(read_values, values, tolerance=1.0e-12_dp)
+    call inp%read_chunk("discharge", read_chunk, datetime("1990-01-01"), datetime("1990-01-02"), times)
+    call inp%close()
+    @assertEqual(shape(read_chunk), [3_i4, 1_i4])
+    @assertEqual(read_chunk(:, 1), values, tolerance=1.0e-12_dp)
+    @assertEqual(size(times), 1)
+    expected_time = datetime("1990-01-02")
+    @assertEqual(times(1)%str(), expected_time%str())
+
+    allocate(static_vars(0))
+    call add_var(static_vars, var(name="height_sp", static=.true., dtype="f32", kind="sp"))
+    call add_var(static_vars, var(name="code_i1", static=.true., dtype="i8", kind="i1"))
+    call add_var(static_vars, var(name="code_i2", static=.true., dtype="i16", kind="i2"))
+    call add_var(static_vars, var(name="code_i4", static=.true., dtype="i32", kind="i4"))
+    call add_var(static_vars, var(name="code_i8", static=.true., dtype="i64", kind="i8"))
+    call out%init("point_static_kinds.nc", points=points, vars=static_vars)
+    values_sp = [1.0_sp, 2.0_sp, 3.0_sp]
+    values_i1 = [1_i1, 2_i1, 3_i1]
+    values_i2 = [10_i2, 20_i2, 30_i2]
+    values_i4 = [100_i4, 200_i4, 300_i4]
+    values_i8 = [1000_i8, 2000_i8, 3000_i8]
+    call out%update("height_sp", values_sp)
+    call out%update("code_i1", values_i1)
+    call out%update("code_i2", values_i2)
+    call out%update("code_i4", values_i4)
+    call out%update("code_i8", values_i8)
+    call out%write_static()
+    call out%close()
+
+    call inp%init("point_static_kinds.nc", vars=static_vars, points=points)
+    call inp%read("height_sp", read_sp)
+    call inp%read("code_i1", read_i1)
+    call inp%read("code_i2", read_i2)
+    call inp%read("code_i4", read_i4)
+    call inp%read("code_i8", read_i8)
+    call inp%close()
+    @assertEqual(read_sp, values_sp, tolerance=1.0e-6_sp)
+    @assertTrue(all(read_i1 == values_i1))
+    @assertTrue(all(read_i2 == values_i2))
+    @assertTrue(all(read_i4 == values_i4))
+    @assertTrue(all(read_i8 == values_i8))
+  end subroutine test_points_output_input
+
+  @test
+  subroutine test_nearest_regridding()
+    type(grid_t), target :: grid
+    type(points_t), target :: target_points, source_points, target_points_2
+    type(nearest_grid_to_points_t) :: grid_to_points
+    type(nearest_points_to_grid_t) :: points_to_grid
+    type(nearest_points_to_points_t) :: points_to_points
+    real(dp) :: grid_data(4), point_data(3), out_points(3), out_grid(4), out_points_2(2)
+
+    call grid%init(nx=2_i4, ny=2_i4, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                   coordsys=cartesian, y_direction=bottom_up)
+    call target_points%init([0.45_dp, 1.45_dp, 0.45_dp], [0.45_dp, 0.45_dp, 1.45_dp], coordsys=cartesian)
+    grid_data = [1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp]
+    call grid_to_points%init(source_grid=grid, target_points=target_points)
+    call grid_to_points%execute(grid_data, out_points)
+    @assertEqual(out_points, [1.0_dp, 2.0_dp, 3.0_dp], tolerance=1.0e-12_dp)
+
+    call source_points%init([0.0_dp, 2.0_dp, 4.0_dp], [0.0_dp, 0.0_dp, 0.0_dp], coordsys=cartesian)
+    call target_points_2%init([0.2_dp, 3.6_dp], [0.0_dp, 0.0_dp], coordsys=cartesian)
+    point_data = [5.0_dp, 6.0_dp, 7.0_dp]
+    call points_to_points%init(source_points=source_points, target_points=target_points_2)
+    call points_to_points%execute(point_data, out_points_2)
+    @assertEqual(out_points_2, [5.0_dp, 7.0_dp], tolerance=1.0e-12_dp)
+
+    call points_to_grid%init(source_points=source_points, target_grid=grid)
+    call points_to_grid%execute(point_data, out_grid)
+    @assertEqual(out_grid, [5.0_dp, 6.0_dp, 5.0_dp, 6.0_dp], tolerance=1.0e-12_dp)
+  end subroutine test_nearest_regridding
+
+end module test_mo_points
