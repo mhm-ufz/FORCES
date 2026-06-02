@@ -30,7 +30,7 @@ program points_nearest_example
   type(NcVariable) :: station_var
   integer(i4), allocatable :: gauge_ids(:), closest_gauge_id(:)
   real(dp) :: xmin, xmax, ymin, ymax, cellsize
-  integer(i4), parameter :: nx = 5_i4, ny = 5_i4
+  integer(i4), parameter :: res = 10_i4
 
   call gauges%from_netcdf("src/pf_tests/files/scc_gauges.nc", var="station")
   nc = NcDataset("src/pf_tests/files/scc_gauges.nc", "r")
@@ -42,9 +42,9 @@ program points_nearest_example
   xmax = maxval(gauges%x)
   ymin = minval(gauges%y)
   ymax = maxval(gauges%y)
-  cellsize = max(xmax - xmin, ymax - ymin) / real(max(nx, ny) - 1_i4, dp)
+  cellsize = max(xmax - xmin, ymax - ymin) / real(res, dp)
 
-  call grid%init(nx=nx, ny=ny, xllcorner=xmin - 0.5_dp * cellsize, yllcorner=ymin - 0.5_dp * cellsize, &
+  call grid%init(nx=res, ny=res, xllcorner=xmin - 0.5_dp * cellsize, yllcorner=ymin - 0.5_dp * cellsize, &
                  cellsize=cellsize, coordsys=cartesian, y_direction=bottom_up)
 
   call regridder%init(source_points=gauges, target_grid=grid)
