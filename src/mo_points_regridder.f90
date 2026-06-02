@@ -16,7 +16,6 @@ module mo_points_regridder
   use mo_message, only: error_message
   use mo_points, only: points_t
   use mo_spatial_index, only: spatial_index_t
-  use mo_utils, only: optval
 
   implicit none
 
@@ -70,21 +69,24 @@ module mo_points_regridder
 contains
 
   !> \brief Build the nearest-neighbor map from source grid cells to target points.
-  subroutine grid_to_points_init(this, source_grid, target_points, use_aux)
+  subroutine grid_to_points_init(this, source_grid, target_points)
     class(nearest_grid_to_points_t), intent(inout) :: this
     type(grid_t), pointer, intent(in) :: source_grid !< source grid
     type(points_t), pointer, intent(in) :: target_points !< target point set
-    logical, optional, intent(in) :: use_aux !< force auxiliary lon/lat coordinates on the source grid
     type(spatial_index_t) :: index
-    logical :: use_aux_
 
     this%source_grid => source_grid
     this%target_points => target_points
-    use_aux_ = optval(use_aux, .false.)
-    this%source_use_aux = use_aux_
-    if (target_points%coordsys == spherical .and. source_grid%coordsys == cartesian) this%source_use_aux = .true.
-    if (this%source_use_aux .and. .not.source_grid%has_aux_coords()) &
-      call error_message("nearest_grid_to_points % init: source grid has no auxiliary lon/lat coordinates")
+    this%source_use_aux = .false.
+    if (source_grid%coordsys /= target_points%coordsys) then
+      if (source_grid%coordsys == cartesian .and. target_points%coordsys == spherical) then
+        if (.not.source_grid%has_aux_coords()) &
+          call error_message("nearest_grid_to_points % init: source grid has no auxiliary lon/lat coordinates")
+        this%source_use_aux = .true.
+      else
+        call error_message("nearest_grid_to_points % init: source and target coordinate systems differ")
+      end if
+    end if
     call source_grid%build_spatial_index(index, use_aux=this%source_use_aux)
     if (target_points%coordsys == spherical) then
       this%id_map = index%nearest_ids_lonlat(target_points%coords())
@@ -118,22 +120,25 @@ contains
   end subroutine grid_to_points_exe_i4
 
   !> \brief Build the nearest-neighbor map from source points to target grid cells.
-  subroutine points_to_grid_init(this, source_points, target_grid, use_aux)
+  subroutine points_to_grid_init(this, source_points, target_grid)
     class(nearest_points_to_grid_t), intent(inout) :: this
     type(points_t), pointer, intent(in) :: source_points !< source point set
     type(grid_t), pointer, intent(in) :: target_grid !< target grid
-    logical, optional, intent(in) :: use_aux !< force auxiliary lon/lat coordinates on the target grid
     type(spatial_index_t) :: index
     real(dp), allocatable :: target_coords(:, :)
-    logical :: use_aux_
 
     this%source_points => source_points
     this%target_grid => target_grid
-    use_aux_ = optval(use_aux, .false.)
-    this%target_use_aux = use_aux_
-    if (source_points%coordsys == spherical .and. target_grid%coordsys == cartesian) this%target_use_aux = .true.
-    if (this%target_use_aux .and. .not.target_grid%has_aux_coords()) &
-      call error_message("nearest_points_to_grid % init: target grid has no auxiliary lon/lat coordinates")
+    this%target_use_aux = .false.
+    if (source_points%coordsys /= target_grid%coordsys) then
+      if (source_points%coordsys == spherical .and. target_grid%coordsys == cartesian) then
+        if (.not.target_grid%has_aux_coords()) &
+          call error_message("nearest_points_to_grid % init: target grid has no auxiliary lon/lat coordinates")
+        this%target_use_aux = .true.
+      else
+        call error_message("nearest_points_to_grid % init: source and target coordinate systems differ")
+      end if
+    end if
     call source_points%build_spatial_index(index)
     call collect_grid_points(target_grid, this%target_use_aux, target_coords)
     if (source_points%coordsys == spherical) then

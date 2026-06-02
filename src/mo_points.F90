@@ -201,7 +201,6 @@ contains
     real(dp), allocatable :: x(:), y(:)
     integer(i8), allocatable :: ids(:)
     integer(i4) :: coordsys_, i
-    logical :: var_is_coord
     logical :: have_var, have_coord_attr, have_xname, have_yname, have_idname
 
     have_var = present(var)
@@ -276,16 +275,6 @@ contains
     if (present(id_name)) then
       idname = trim(id_name)
       have_idname = .true.
-    else if (have_var) then
-      if (base_var%getRank() == 1_i4) then
-        var_is_coord = .false.
-        if (trim(var) == trim(xname)) var_is_coord = .true.
-        if (trim(var) == trim(yname)) var_is_coord = .true.
-        if (.not.var_is_coord) then
-          idname = trim(var)
-          have_idname = .true.
-        end if
-      end if
     end if
 
     if (have_idname) then
