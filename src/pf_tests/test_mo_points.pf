@@ -22,7 +22,7 @@ contains
   subroutine test_read_scc_gauges()
     type(points_t) :: points
 
-    call points%from_netcdf("files/scc_gauges.nc", var="station", id_name="station")
+    call points%from_netcdf("files/scc_gauges.nc", id_name="station")
 
     @assertEqual(points%coordsys, cartesian)
     @assertEqual(points%npoints, 3_i8)
@@ -41,7 +41,7 @@ contains
 
     call cart_points%init([1.0_dp, 2.0_dp], [3.0_dp, 4.0_dp], coordsys=cartesian, id=[11_i8, 12_i8])
     call cart_points%to_netcdf("points_cart.nc")
-    call cart_read%from_netcdf("points_cart.nc", var="point", id_name="point")
+    call cart_read%from_netcdf("points_cart.nc", id_name="point")
     @assertEqual(cart_read%coordsys, cartesian)
     @assertTrue(cart_read%is_matching(cart_points))
     @assertEqual(cart_read%x, cart_points%x, tolerance=1.0e-12_dp)

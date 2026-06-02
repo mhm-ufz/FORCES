@@ -197,13 +197,13 @@ contains
     type(NcVariable) :: xvar, yvar, base_var, idvar
     type(NcDimension), allocatable :: dims(:), xdims(:), ydims(:)
     character(len=256), allocatable :: coord_names(:)
-    character(len=256) :: tmp, xname, yname, idname
+    character(len=256) :: tmp, xname, yname, idname, base_name
     real(dp), allocatable :: x(:), y(:)
     integer(i8), allocatable :: ids(:)
     integer(i4) :: coordsys_, i
     logical :: have_var, have_coord_attr, have_xname, have_yname, have_idname
 
-    have_var = present(var)
+    have_var = present(var) .or. present(id_name)
     have_coord_attr = .false.
     have_xname = .false.
     have_yname = .false.
@@ -217,8 +217,18 @@ contains
       have_yname = .true.
     end if
 
+    if (present(id_name)) then
+      idname = trim(id_name)
+      have_idname = .true.
+    end if
+
     if (have_var) then
-      base_var = nc%getVariable(var)
+      if (present(var)) then
+        base_name = trim(var)
+      else
+        base_name = trim(idname)
+      end if
+      base_var = nc%getVariable(base_name)
       dims = base_var%getDimensions()
       if (base_var%hasAttribute("coordinates")) then
         call base_var%getAttribute("coordinates", tmp)
@@ -271,11 +281,6 @@ contains
       call error_message("points % from_netcdf: coordinate variables seem to be in wrong order")
     call xvar%getData(x)
     call yvar%getData(y)
-
-    if (present(id_name)) then
-      idname = trim(id_name)
-      have_idname = .true.
-    end if
 
     if (have_idname) then
       idvar = nc%getVariable(idname)

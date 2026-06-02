@@ -1,12 +1,12 @@
-!> \file    02_points/01_points_io.f90
+!> \file    05_points/01_points_io.f90
 !> \copydoc points_io_example
 
-!> \example 02_points/01_points_io.f90
+!> \example 05_points/01_points_io.f90
 !> \copydoc points_io_example
 
 !> \brief   Points NetCDF I/O example.
 !> \details This program reads SCC gauge coordinates from
-!!          `info/river/scc_gauges.nc` and writes a temporal synthetic discharge
+!!          `src/pf_tests/files/scc_gauges.nc` and writes a temporal synthetic discharge
 !!          time series on those gauges to `scc_synthetic_discharge.nc`.
 !> \authors Sebastian Mueller
 !> \date    Jun 2026
@@ -29,7 +29,7 @@ program points_io_example
   real(dp) :: phase
   integer(i8) :: i
 
-  call gauges%from_netcdf("info/river/scc_gauges.nc", var="station")
+  call gauges%from_netcdf("src/pf_tests/files/scc_gauges.nc", id_name="station")
 
   allocate(vars(0))
   call add_var(vars, var(name="discharge", long_name="synthetic discharge", units="m3 s-1", &
