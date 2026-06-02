@@ -153,7 +153,7 @@ module mo_points_io
 
   !> \class points_output_dataset
   !> \brief NetCDF writer for static or temporal variables on a point set.
-  type, public :: points_output_dataset
+  type :: points_output_dataset
     type(points_t), pointer :: points => null()       !< point-set geometry
     character(:), allocatable :: path                   !< output path
     type(NcDataset) :: nc                               !< NetCDF dataset
@@ -199,7 +199,7 @@ module mo_points_io
 
   !> \class points_input_dataset
   !> \brief NetCDF reader for static or temporal variables on a point set.
-  type, public :: points_input_dataset
+  type :: points_input_dataset
     type(points_t), pointer :: points => null()       !< point-set geometry
     character(:), allocatable :: path                   !< input path
     type(NcDataset) :: nc                               !< NetCDF dataset
