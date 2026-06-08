@@ -450,7 +450,7 @@ contains
     type(NcDataset), intent(in) :: nc !< open NetCDF dataset
     type(points_t), pointer, intent(in) :: points !< point-set geometry
     integer(i4), intent(in) :: points_dim_id !< point dimension id
-    integer(i4), optional, intent(in) :: time_dim_id !< unlimited time dimension id
+    integer(i4), intent(in) :: time_dim_id !< unlimited time dimension id, or -1 for static variables
     integer(i4), intent(in) :: deflate_level !< NetCDF deflate level
     logical, optional, intent(in) :: time_series !< use station time-series layout
     integer(i4), allocatable :: dimids(:)
@@ -464,14 +464,18 @@ contains
     self%points => points
     if (.not.associated(self%points)) call error_message("points_output_variable: points pointer not associated")
     if (self%static) then
-      allocate(dimids(1), source=[points_dim_id])
+      allocate(dimids(1))
+      dimids(1) = points_dim_id
       self%nc = nc%setVariable(meta%name, self%dtype, dimids, deflate_level=deflate_level, shuffle=.true.)
     else
-      if (.not.present(time_dim_id)) call error_message("points_output_variable: temporal variable needs time dimension: ", meta%name)
+      if (time_dim_id < 0_i4) call error_message("points_output_variable: temporal variable needs time dimension: ", meta%name)
+      allocate(dimids(2))
       if (self%time_series) then
-        allocate(dimids(2), source=[time_dim_id, points_dim_id])
+        dimids(1) = time_dim_id
+        dimids(2) = points_dim_id
       else
-        allocate(dimids(2), source=[points_dim_id, time_dim_id])
+        dimids(1) = points_dim_id
+        dimids(2) = time_dim_id
       end if
       self%nc = nc%setVariable(meta%name, self%dtype, dimids, deflate_level=deflate_level, shuffle=.true.)
     end if
@@ -600,7 +604,7 @@ contains
     allocate(self%vars(self%nvars))
     do i = 1_i4, self%nvars
       if (self%static) then
-        call self%vars(i)%init(vars(i), self%nc, self%points, points_dim%id, deflate_level=self%deflate_level)
+        call self%vars(i)%init(vars(i), self%nc, self%points, points_dim%id, -1_i4, deflate_level=self%deflate_level)
       else
         call self%vars(i)%init(vars(i), self%nc, self%points, points_dim%id, time_dim%id, self%deflate_level, self%time_series)
       end if
@@ -674,9 +678,12 @@ contains
     self%n_times = n_times
     if (.not.associated(self%points)) call error_message("points_series_output_variable: points pointer not associated")
     if (meta%static) then
-      allocate(dimids(1), source=[points_dim_id])
+      allocate(dimids(1))
+      dimids(1) = points_dim_id
     else
-      allocate(dimids(2), source=[time_dim_id, points_dim_id])
+      allocate(dimids(2))
+      dimids(1) = time_dim_id
+      dimids(2) = points_dim_id
     end if
     self%nc = nc%setVariable(meta%name, self%dtype, dimids, deflate_level=deflate_level, shuffle=.true.)
     if (allocated(meta%long_name)) call self%nc%setAttribute("long_name", meta%long_name)
