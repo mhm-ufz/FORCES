@@ -24,7 +24,10 @@ contains
 
   @test
   subroutine test_read_scc_gauges()
-    type(points_t) :: points
+    type(points_t), target :: points
+    type(points_input_dataset) :: inp
+    type(var), allocatable :: input_vars(:)
+    integer(i4), allocatable :: ids(:)
 
     call points%from_netcdf("files/scc_gauges.nc", var="station")
 
@@ -32,6 +35,12 @@ contains
     @assertEqual(points%n_points, 3_i8)
     @assertEqual(size(points%x, kind=i8), 3_i8)
     @assertEqual(size(points%y, kind=i8), 3_i8)
+
+    allocate(input_vars(0))
+    call inp%init("files/scc_gauges.nc", vars=input_vars, points=points, points_init_var="station")
+    call inp%get_ids(ids)
+    call inp%close()
+    @assertTrue(all(ids == [1_i4, 2_i4, 3_i4]))
   end subroutine test_read_scc_gauges
 
   @test
@@ -86,6 +95,8 @@ contains
     integer(i2) :: values_i2(3), read_i2(3)
     integer(i4) :: values_i4(3), read_i4(3)
     integer(i8) :: values_i8(3), read_i8(3)
+    integer(i4), allocatable :: ids_i4(:)
+    integer(i8), allocatable :: ids_i8(:)
     type(datetime) :: start_time, expected_time
     type(datetime), allocatable :: times(:)
 
@@ -140,12 +151,16 @@ contains
     call inp%read("code_i2", read_i2)
     call inp%read("code_i4", read_i4)
     call inp%read("code_i8", read_i8)
+    call inp%get_ids(ids_i4, id_name="code_i4")
+    call inp%get_ids(ids_i8)
     call inp%close()
     @assertEqual(read_sp, values_sp, tolerance=1.0e-6_sp)
     @assertTrue(all(read_i1 == values_i1))
     @assertTrue(all(read_i2 == values_i2))
     @assertTrue(all(read_i4 == values_i4))
     @assertTrue(all(read_i8 == values_i8))
+    @assertTrue(all(ids_i4 == values_i4))
+    @assertTrue(all(ids_i8 == [1_i8, 2_i8, 3_i8]))
   end subroutine test_points_output_input
 
   @test
@@ -163,8 +178,8 @@ contains
     real(dp) :: values_1(3), values_2(3), read_values(3)
     real(dp), allocatable :: read_chunk(:, :), read_series(:)
     real(dp) :: slice_data(3, 2), series_data(2, 3)
-    integer(i4) :: codes_1(3), codes_2(3)
-    integer(i4), allocatable :: read_codes(:)
+    integer(i4) :: codes_1(3), codes_2(3), station_ids(3)
+    integer(i4), allocatable :: read_codes(:), read_station_ids(:)
     integer(i4) :: tvals(2), tbnds(2, 2)
     character(len=64) :: dim_name
     type(datetime), allocatable :: times(:)
@@ -208,10 +223,13 @@ contains
     tbnds(:, 1) = [0_i4, 1_i4]
     tbnds(:, 2) = [1_i4, 2_i4]
     allocate(mixed_vars(0))
+    call add_var(mixed_vars, var(name="station", static=.true., dtype="i32", kind="i4"))
     call add_var(mixed_vars, var(name="discharge", units="m3 s-1", static=.false., dtype="f64", kind="dp"))
     call add_var(mixed_vars, var(name="code", static=.false., dtype="i32", kind="i4"))
     call series_out%init("point_series_writer.nc", points=points, vars=mixed_vars, time_values=tvals, &
-                         time_units="days since 1990-01-01 00:00:00", time_bnds=tbnds, point_dim_name="node")
+                         time_units="days since 1990-01-01 00:00:00", time_bnds=tbnds, point_dim_name="station")
+    station_ids = [101_i4, 102_i4, 103_i4]
+    call series_out%write_static("station", station_ids)
     call series_out%write_series("discharge", 1_i8, [100.0_dp, 101.0_dp])
     call series_out%write_series("discharge", 2_i8, [200.0_dp, 201.0_dp])
     call series_out%write_series("discharge", 3_i8, [300.0_dp, 301.0_dp])
@@ -227,6 +245,8 @@ contains
     @assertEqual(read_series, [300.0_dp, 301.0_dp], tolerance=1.0e-12_dp)
     call inp%read_series("code", 2_i8, read_codes)
     @assertTrue(all(read_codes == [2_i4, 5_i4]))
+    call inp%get_ids(read_station_ids)
+    @assertTrue(all(read_station_ids == station_ids))
     call inp%close()
 
     nc = NcDataset("point_mixed_layout.nc", "w")

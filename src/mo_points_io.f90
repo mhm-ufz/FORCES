@@ -16,11 +16,12 @@ module mo_points_io
   use mo_datetime, only: datetime, timedelta, delta_from_string
   use mo_grid_io, only: var, add_var, var_index, grid_time_values => time_values, time_stepping, time_units_delta, &
                         hourly, daily, monthly, yearly, varying, end_timestamp, start_timestamp, center_timestamp, no_time
-  use mo_grid_helper, only: is_t_axis
+  use mo_grid_helper, only: is_t_axis, is_x_axis, is_lon_coord
   use mo_kind, only: i1, i2, i4, i8, dp, sp
   use mo_message, only: error_message, warn_message
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable, NF90_NOFILL
   use mo_points, only: points_t, spherical
+  use mo_string_utils, only: splitString
   use mo_utils, only: optval
 
   implicit none
@@ -111,6 +112,7 @@ module mo_points_io
     integer(i8) :: n_times = 0_i8                        !< number of time values
     character(:), allocatable :: dtype                   !< NetCDF dtype
     character(:), allocatable :: kind                    !< Fortran array kind
+    logical :: static_written = .false.                  !< static variable was already written
     logical, allocatable :: written(:)                   !< per-point write status
   contains
     procedure, public :: init => points_series_out_var_init
@@ -118,6 +120,12 @@ module mo_points_io
         & points_series_out_var_write_i2, points_series_out_var_write_i4, points_series_out_var_write_i8
     generic, public :: write => points_series_out_var_write_sp, points_series_out_var_write_dp, points_series_out_var_write_i1,&
         & points_series_out_var_write_i2, points_series_out_var_write_i4, points_series_out_var_write_i8
+    procedure, private :: points_series_out_var_write_static_sp, points_series_out_var_write_static_dp,&
+        & points_series_out_var_write_static_i1, points_series_out_var_write_static_i2, points_series_out_var_write_static_i4,&
+        & points_series_out_var_write_static_i8
+    generic, public :: write_static => points_series_out_var_write_static_sp, points_series_out_var_write_static_dp,&
+        & points_series_out_var_write_static_i1, points_series_out_var_write_static_i2, points_series_out_var_write_static_i4,&
+        & points_series_out_var_write_static_i8
   end type points_series_output_variable
 
   !> \class points_series_output_dataset
@@ -136,6 +144,12 @@ module mo_points_io
         & points_series_output_write_i2, points_series_output_write_i4, points_series_output_write_i8
     generic, public :: write_series => points_series_output_write_sp, points_series_output_write_dp,&
         & points_series_output_write_i1, points_series_output_write_i2, points_series_output_write_i4, points_series_output_write_i8
+    procedure, private :: points_series_output_write_static_sp, points_series_output_write_static_dp,&
+        & points_series_output_write_static_i1, points_series_output_write_static_i2, points_series_output_write_static_i4,&
+        & points_series_output_write_static_i8
+    generic, public :: write_static => points_series_output_write_static_sp, points_series_output_write_static_dp,&
+        & points_series_output_write_static_i1, points_series_output_write_static_i2, points_series_output_write_static_i4,&
+        & points_series_output_write_static_i8
     procedure, public :: close => points_series_output_close
   end type points_series_output_dataset
 
@@ -184,6 +198,7 @@ module mo_points_io
     integer(i4), allocatable :: t_values(:)             !< time-axis values
     integer(i4), allocatable :: t_bounds(:)             !< time-axis bounds
     type(datetime), allocatable :: times(:)             !< timestamps for time-span ends
+    character(:), allocatable :: point_dim_name         !< inferred point dimension name
   contains
     procedure, public :: init => points_input_init
     procedure, private :: points_input_read_sp, points_input_read_dp, points_input_read_i1, points_input_read_i2,&
@@ -200,6 +215,8 @@ module mo_points_io
         & points_input_read_series_i2, points_input_read_series_i4, points_input_read_series_i8
     procedure, public :: time_index => points_input_time_index
     procedure, public :: chunk_times => points_input_chunk_times
+    procedure, private :: points_input_get_ids_i4, points_input_get_ids_i8
+    generic, public :: get_ids => points_input_get_ids_i4, points_input_get_ids_i8
     procedure, public :: close => points_input_close
   end type points_input_dataset
 
@@ -589,14 +606,17 @@ contains
     integer(i8), intent(in) :: n_times !< number of time values
     integer(i4), intent(in) :: deflate_level !< NetCDF deflate level
 
-    if (meta%static) call error_message("points_series_output_variable: static variables are not supported: ", meta%name)
     self%meta = meta
     self%dtype = "f64"
     if (allocated(meta%dtype)) self%dtype = trim(meta%dtype)
     self%points => points
     self%n_times = n_times
     if (.not.associated(self%points)) call error_message("points_series_output_variable: points pointer not associated")
-    self%nc = nc%setVariable(meta%name, self%dtype, [time_dim, points_dim], deflate_level=deflate_level, shuffle=.true.)
+    if (meta%static) then
+      self%nc = nc%setVariable(meta%name, self%dtype, [points_dim], deflate_level=deflate_level, shuffle=.true.)
+    else
+      self%nc = nc%setVariable(meta%name, self%dtype, [time_dim, points_dim], deflate_level=deflate_level, shuffle=.true.)
+    end if
     if (allocated(meta%long_name)) call self%nc%setAttribute("long_name", meta%long_name)
     if (allocated(meta%standard_name)) call self%nc%setAttribute("standard_name", meta%standard_name)
     if (allocated(meta%units)) call self%nc%setAttribute("units", meta%units)
@@ -607,7 +627,7 @@ contains
     end if
     call points_io_dtype_defaults(self%meta%name, self%dtype, self%kind, self%nc)
     if (allocated(meta%kind)) self%kind = meta%kind
-    allocate(self%written(self%points%n_points), source=.false.)
+    if (.not.meta%static) allocate(self%written(self%points%n_points), source=.false.)
   end subroutine points_series_out_var_init
 
   !> \brief Write one complete point time series.
@@ -616,6 +636,8 @@ contains
     integer(i8), intent(in) :: point_index !< one-based point index
     real(sp), intent(in) :: data(:) !< complete point time series
     integer(i4) :: point_index_
+    if (self%meta%static) call error_message("points_series_output_variable: write_series needs temporal variable: ",&
+        & self%meta%name)
     if (self%kind /= "sp") call error_message("points_series_output_variable: wrong kind for write_series: ", self%meta%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_series_output_variable: point index out of range: ", self%meta%name)
@@ -625,12 +647,27 @@ contains
     call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_sp
+
+  !> \brief Write one static point variable.
+  subroutine points_series_out_var_write_static_sp(self, data)
+    class(points_series_output_variable), intent(inout) :: self
+    real(sp), intent(in) :: data(:) !< static point data
+    if (.not.self%meta%static) call error_message("points_series_output_variable: write_static needs static variable: ",&
+        & self%meta%name)
+    if (self%kind /= "sp") call error_message("points_series_output_variable: wrong kind for write_static: ", self%meta%name)
+    if (size(data, kind=i8) /= self%points%n_points) &
+      call error_message("points_series_output_variable: static data size mismatch: ", self%meta%name)
+    call self%nc%setData(data)
+    self%static_written = .true.
+  end subroutine points_series_out_var_write_static_sp
   !> \brief Write one complete point time series.
   subroutine points_series_out_var_write_dp(self, point_index, data)
     class(points_series_output_variable), intent(inout) :: self
     integer(i8), intent(in) :: point_index !< one-based point index
     real(dp), intent(in) :: data(:) !< complete point time series
     integer(i4) :: point_index_
+    if (self%meta%static) call error_message("points_series_output_variable: write_series needs temporal variable: ",&
+        & self%meta%name)
     if (self%kind /= "dp") call error_message("points_series_output_variable: wrong kind for write_series: ", self%meta%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_series_output_variable: point index out of range: ", self%meta%name)
@@ -640,12 +677,27 @@ contains
     call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_dp
+
+  !> \brief Write one static point variable.
+  subroutine points_series_out_var_write_static_dp(self, data)
+    class(points_series_output_variable), intent(inout) :: self
+    real(dp), intent(in) :: data(:) !< static point data
+    if (.not.self%meta%static) call error_message("points_series_output_variable: write_static needs static variable: ",&
+        & self%meta%name)
+    if (self%kind /= "dp") call error_message("points_series_output_variable: wrong kind for write_static: ", self%meta%name)
+    if (size(data, kind=i8) /= self%points%n_points) &
+      call error_message("points_series_output_variable: static data size mismatch: ", self%meta%name)
+    call self%nc%setData(data)
+    self%static_written = .true.
+  end subroutine points_series_out_var_write_static_dp
   !> \brief Write one complete point time series.
   subroutine points_series_out_var_write_i1(self, point_index, data)
     class(points_series_output_variable), intent(inout) :: self
     integer(i8), intent(in) :: point_index !< one-based point index
     integer(i1), intent(in) :: data(:) !< complete point time series
     integer(i4) :: point_index_
+    if (self%meta%static) call error_message("points_series_output_variable: write_series needs temporal variable: ",&
+        & self%meta%name)
     if (self%kind /= "i1") call error_message("points_series_output_variable: wrong kind for write_series: ", self%meta%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_series_output_variable: point index out of range: ", self%meta%name)
@@ -655,12 +707,27 @@ contains
     call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_i1
+
+  !> \brief Write one static point variable.
+  subroutine points_series_out_var_write_static_i1(self, data)
+    class(points_series_output_variable), intent(inout) :: self
+    integer(i1), intent(in) :: data(:) !< static point data
+    if (.not.self%meta%static) call error_message("points_series_output_variable: write_static needs static variable: ",&
+        & self%meta%name)
+    if (self%kind /= "i1") call error_message("points_series_output_variable: wrong kind for write_static: ", self%meta%name)
+    if (size(data, kind=i8) /= self%points%n_points) &
+      call error_message("points_series_output_variable: static data size mismatch: ", self%meta%name)
+    call self%nc%setData(data)
+    self%static_written = .true.
+  end subroutine points_series_out_var_write_static_i1
   !> \brief Write one complete point time series.
   subroutine points_series_out_var_write_i2(self, point_index, data)
     class(points_series_output_variable), intent(inout) :: self
     integer(i8), intent(in) :: point_index !< one-based point index
     integer(i2), intent(in) :: data(:) !< complete point time series
     integer(i4) :: point_index_
+    if (self%meta%static) call error_message("points_series_output_variable: write_series needs temporal variable: ",&
+        & self%meta%name)
     if (self%kind /= "i2") call error_message("points_series_output_variable: wrong kind for write_series: ", self%meta%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_series_output_variable: point index out of range: ", self%meta%name)
@@ -670,12 +737,27 @@ contains
     call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_i2
+
+  !> \brief Write one static point variable.
+  subroutine points_series_out_var_write_static_i2(self, data)
+    class(points_series_output_variable), intent(inout) :: self
+    integer(i2), intent(in) :: data(:) !< static point data
+    if (.not.self%meta%static) call error_message("points_series_output_variable: write_static needs static variable: ",&
+        & self%meta%name)
+    if (self%kind /= "i2") call error_message("points_series_output_variable: wrong kind for write_static: ", self%meta%name)
+    if (size(data, kind=i8) /= self%points%n_points) &
+      call error_message("points_series_output_variable: static data size mismatch: ", self%meta%name)
+    call self%nc%setData(data)
+    self%static_written = .true.
+  end subroutine points_series_out_var_write_static_i2
   !> \brief Write one complete point time series.
   subroutine points_series_out_var_write_i4(self, point_index, data)
     class(points_series_output_variable), intent(inout) :: self
     integer(i8), intent(in) :: point_index !< one-based point index
     integer(i4), intent(in) :: data(:) !< complete point time series
     integer(i4) :: point_index_
+    if (self%meta%static) call error_message("points_series_output_variable: write_series needs temporal variable: ",&
+        & self%meta%name)
     if (self%kind /= "i4") call error_message("points_series_output_variable: wrong kind for write_series: ", self%meta%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_series_output_variable: point index out of range: ", self%meta%name)
@@ -685,12 +767,27 @@ contains
     call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_i4
+
+  !> \brief Write one static point variable.
+  subroutine points_series_out_var_write_static_i4(self, data)
+    class(points_series_output_variable), intent(inout) :: self
+    integer(i4), intent(in) :: data(:) !< static point data
+    if (.not.self%meta%static) call error_message("points_series_output_variable: write_static needs static variable: ",&
+        & self%meta%name)
+    if (self%kind /= "i4") call error_message("points_series_output_variable: wrong kind for write_static: ", self%meta%name)
+    if (size(data, kind=i8) /= self%points%n_points) &
+      call error_message("points_series_output_variable: static data size mismatch: ", self%meta%name)
+    call self%nc%setData(data)
+    self%static_written = .true.
+  end subroutine points_series_out_var_write_static_i4
   !> \brief Write one complete point time series.
   subroutine points_series_out_var_write_i8(self, point_index, data)
     class(points_series_output_variable), intent(inout) :: self
     integer(i8), intent(in) :: point_index !< one-based point index
     integer(i8), intent(in) :: data(:) !< complete point time series
     integer(i4) :: point_index_
+    if (self%meta%static) call error_message("points_series_output_variable: write_series needs temporal variable: ",&
+        & self%meta%name)
     if (self%kind /= "i8") call error_message("points_series_output_variable: wrong kind for write_series: ", self%meta%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_series_output_variable: point index out of range: ", self%meta%name)
@@ -700,6 +797,19 @@ contains
     call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_i8
+
+  !> \brief Write one static point variable.
+  subroutine points_series_out_var_write_static_i8(self, data)
+    class(points_series_output_variable), intent(inout) :: self
+    integer(i8), intent(in) :: data(:) !< static point data
+    if (.not.self%meta%static) call error_message("points_series_output_variable: write_static needs static variable: ",&
+        & self%meta%name)
+    if (self%kind /= "i8") call error_message("points_series_output_variable: wrong kind for write_static: ", self%meta%name)
+    if (size(data, kind=i8) /= self%points%n_points) &
+      call error_message("points_series_output_variable: static data size mismatch: ", self%meta%name)
+    call self%nc%setData(data)
+    self%static_written = .true.
+  end subroutine points_series_out_var_write_static_i8
 
   !> \brief Initialize a point time-series output dataset.
   subroutine points_series_output_init(self, path, points, vars, time_values, time_units, time_bnds, point_dim_name, &
@@ -765,6 +875,14 @@ contains
     real(sp), intent(in) :: data(:) !< complete point time series
     call self%vars(points_series_output_var_index(self, name))%write(point_index, data)
   end subroutine points_series_output_write_sp
+
+  !> \brief Write one static point variable for a variable selected by name.
+  subroutine points_series_output_write_static_sp(self, name, data)
+    class(points_series_output_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    real(sp), intent(in) :: data(:) !< static point data
+    call self%vars(points_series_output_var_index(self, name))%write_static(data)
+  end subroutine points_series_output_write_static_sp
   !> \brief Write one complete point time series for a variable selected by name.
   subroutine points_series_output_write_dp(self, name, point_index, data)
     class(points_series_output_dataset), intent(inout) :: self
@@ -773,6 +891,14 @@ contains
     real(dp), intent(in) :: data(:) !< complete point time series
     call self%vars(points_series_output_var_index(self, name))%write(point_index, data)
   end subroutine points_series_output_write_dp
+
+  !> \brief Write one static point variable for a variable selected by name.
+  subroutine points_series_output_write_static_dp(self, name, data)
+    class(points_series_output_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    real(dp), intent(in) :: data(:) !< static point data
+    call self%vars(points_series_output_var_index(self, name))%write_static(data)
+  end subroutine points_series_output_write_static_dp
   !> \brief Write one complete point time series for a variable selected by name.
   subroutine points_series_output_write_i1(self, name, point_index, data)
     class(points_series_output_dataset), intent(inout) :: self
@@ -781,6 +907,14 @@ contains
     integer(i1), intent(in) :: data(:) !< complete point time series
     call self%vars(points_series_output_var_index(self, name))%write(point_index, data)
   end subroutine points_series_output_write_i1
+
+  !> \brief Write one static point variable for a variable selected by name.
+  subroutine points_series_output_write_static_i1(self, name, data)
+    class(points_series_output_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i1), intent(in) :: data(:) !< static point data
+    call self%vars(points_series_output_var_index(self, name))%write_static(data)
+  end subroutine points_series_output_write_static_i1
   !> \brief Write one complete point time series for a variable selected by name.
   subroutine points_series_output_write_i2(self, name, point_index, data)
     class(points_series_output_dataset), intent(inout) :: self
@@ -789,6 +923,14 @@ contains
     integer(i2), intent(in) :: data(:) !< complete point time series
     call self%vars(points_series_output_var_index(self, name))%write(point_index, data)
   end subroutine points_series_output_write_i2
+
+  !> \brief Write one static point variable for a variable selected by name.
+  subroutine points_series_output_write_static_i2(self, name, data)
+    class(points_series_output_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i2), intent(in) :: data(:) !< static point data
+    call self%vars(points_series_output_var_index(self, name))%write_static(data)
+  end subroutine points_series_output_write_static_i2
   !> \brief Write one complete point time series for a variable selected by name.
   subroutine points_series_output_write_i4(self, name, point_index, data)
     class(points_series_output_dataset), intent(inout) :: self
@@ -797,6 +939,14 @@ contains
     integer(i4), intent(in) :: data(:) !< complete point time series
     call self%vars(points_series_output_var_index(self, name))%write(point_index, data)
   end subroutine points_series_output_write_i4
+
+  !> \brief Write one static point variable for a variable selected by name.
+  subroutine points_series_output_write_static_i4(self, name, data)
+    class(points_series_output_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i4), intent(in) :: data(:) !< static point data
+    call self%vars(points_series_output_var_index(self, name))%write_static(data)
+  end subroutine points_series_output_write_static_i4
   !> \brief Write one complete point time series for a variable selected by name.
   subroutine points_series_output_write_i8(self, name, point_index, data)
     class(points_series_output_dataset), intent(inout) :: self
@@ -806,13 +956,25 @@ contains
     call self%vars(points_series_output_var_index(self, name))%write(point_index, data)
   end subroutine points_series_output_write_i8
 
+  !> \brief Write one static point variable for a variable selected by name.
+  subroutine points_series_output_write_static_i8(self, name, data)
+    class(points_series_output_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i8), intent(in) :: data(:) !< static point data
+    call self%vars(points_series_output_var_index(self, name))%write_static(data)
+  end subroutine points_series_output_write_static_i8
+
   !> \brief Close a point time-series output dataset.
   subroutine points_series_output_close(self)
     class(points_series_output_dataset), intent(inout) :: self
     integer(i4) :: i
     do i = 1_i4, self%nvars
-      if (allocated(self%vars(i)%written)) then
-        if (.not.all(self%vars(i)%written)) call warn_message("points_series_output%close: unwritten point series: ", self%vars(i)%meta%name)
+      if (self%vars(i)%meta%static) then
+        if (.not.self%vars(i)%static_written) &
+          call warn_message("points_series_output%close: unwritten static variable: ", self%vars(i)%meta%name)
+      else if (allocated(self%vars(i)%written)) then
+        if (.not.all(self%vars(i)%written)) &
+          call warn_message("points_series_output%close: unwritten point series: ", self%vars(i)%meta%name)
       end if
     end do
     call self%nc%close()
@@ -863,7 +1025,8 @@ contains
       end if
     end if
     if (meta%static .and. .not.self%static) call error_message("points_input_variable: expected static variable: ", meta%name)
-    if ((.not.meta%static) .and. self%static .and. .not.meta%allow_static) call error_message("points_input_variable: expected temporal variable: ", meta%name)
+    if ((.not.meta%static) .and. self%static .and. .not.meta%allow_static) &
+      call error_message("points_input_variable: expected temporal variable: ", meta%name)
     self%dtype = trim(self%nc%getDtype())
     call points_io_dtype_defaults(self%meta%name, self%dtype, self%kind)
     if (allocated(meta%kind)) self%kind = meta%kind
@@ -1211,8 +1374,8 @@ contains
     self%nc = NcDataset(self%path, "r")
     self%points => points
     if (present(points_init_var)) call self%points%from_netcdf(self%nc, var=points_init_var)
+    self%point_dim_name = points_input_infer_point_dim_name(self%nc, self%points, points_init_var)
     self%nvars = size(vars)
-    if (self%nvars == 0_i4) call error_message("points_input_dataset: no variables selected")
     allocate(self%vars(self%nvars))
     self%static = .true.
     self%timestep = no_time
@@ -1555,6 +1718,66 @@ contains
     call self%vars(var_id)%read_series(point_index, data, t_index=t_index, t_size=t_size)
   end subroutine points_input_read_series_i8
 
+  !> \brief Read point IDs or return default one-based point indices.
+  subroutine points_input_get_ids_i4(self, ids, id_name)
+    class(points_input_dataset), intent(inout) :: self
+    integer(i4), allocatable, intent(out) :: ids(:) !< point IDs
+    character(*), optional, intent(in) :: id_name !< optional ID variable name
+    type(NcVariable) :: id_var
+    type(NcDimension), allocatable :: dims(:)
+    character(:), allocatable :: id_var_name
+    integer(i8) :: i
+    if (.not.allocated(self%point_dim_name)) call error_message("points_input%get_ids: point dimension is unknown")
+    id_var_name = self%point_dim_name
+    if (present(id_name)) id_var_name = trim(id_name)
+    if (.not.self%nc%hasVariable(id_var_name)) then
+      if (present(id_name)) call error_message("points_input%get_ids: ID variable not present: ", id_var_name)
+      allocate(ids(self%points%n_points))
+      do i = 1_i8, self%points%n_points
+        ids(i) = int(i, i4)
+      end do
+      return
+    end if
+    id_var = self%nc%getVariable(id_var_name)
+    if (id_var%getRank() /= 1_i4) call error_message("points_input%get_ids: ID variable must be one-dimensional: ", id_var_name)
+    dims = id_var%getDimensions()
+    if (trim(dims(1)%getName()) /= self%point_dim_name) call error_message("points_input%get_ids: ID variable uses wrong&
+        & dimension: ", id_var_name)
+    if (dims(1)%getLength64() /= self%points%n_points) call error_message("points_input%get_ids: ID variable size mismatch: ",&
+        & id_var_name)
+    call id_var%getData(ids)
+  end subroutine points_input_get_ids_i4
+
+  !> \brief Read point IDs or return default one-based point indices.
+  subroutine points_input_get_ids_i8(self, ids, id_name)
+    class(points_input_dataset), intent(inout) :: self
+    integer(i8), allocatable, intent(out) :: ids(:) !< point IDs
+    character(*), optional, intent(in) :: id_name !< optional ID variable name
+    type(NcVariable) :: id_var
+    type(NcDimension), allocatable :: dims(:)
+    character(:), allocatable :: id_var_name
+    integer(i8) :: i
+    if (.not.allocated(self%point_dim_name)) call error_message("points_input%get_ids: point dimension is unknown")
+    id_var_name = self%point_dim_name
+    if (present(id_name)) id_var_name = trim(id_name)
+    if (.not.self%nc%hasVariable(id_var_name)) then
+      if (present(id_name)) call error_message("points_input%get_ids: ID variable not present: ", id_var_name)
+      allocate(ids(self%points%n_points))
+      do i = 1_i8, self%points%n_points
+        ids(i) = int(i, i8)
+      end do
+      return
+    end if
+    id_var = self%nc%getVariable(id_var_name)
+    if (id_var%getRank() /= 1_i4) call error_message("points_input%get_ids: ID variable must be one-dimensional: ", id_var_name)
+    dims = id_var%getDimensions()
+    if (trim(dims(1)%getName()) /= self%point_dim_name) call error_message("points_input%get_ids: ID variable uses wrong&
+        & dimension: ", id_var_name)
+    if (dims(1)%getLength64() /= self%points%n_points) call error_message("points_input%get_ids: ID variable size mismatch: ",&
+        & id_var_name)
+    call id_var%getData(ids)
+  end subroutine points_input_get_ids_i8
+
   !> \brief Get times and indices for a temporal chunk.
   subroutine points_input_chunk_times(self, timeframe_start, timeframe_end, times, t_index, t_size)
     class(points_input_dataset), intent(inout) :: self
@@ -1622,6 +1845,79 @@ contains
     if (allocated(self%t_values)) deallocate(self%t_values)
     if (allocated(self%t_bounds)) deallocate(self%t_bounds)
   end subroutine points_input_close
+
+  !> \brief Infer the point dimension name from point coordinate variables.
+  function points_input_infer_point_dim_name(nc, points, var) result(dimname)
+    type(NcDataset), intent(in) :: nc !< open NetCDF dataset
+    type(points_t), pointer, intent(in) :: points !< point-set geometry
+    character(*), optional, intent(in) :: var !< optional variable whose coordinates identify point dimension
+    character(:), allocatable :: dimname
+    type(NcVariable) :: coord_var, base_var
+    type(NcDimension), allocatable :: dims(:), coord_dims(:)
+    character(len=256) :: coords_attr
+    character(len=256), allocatable :: coord_names(:)
+    integer(i4) :: i
+
+    if (present(var)) then
+      base_var = nc%getVariable(trim(var))
+      dims = base_var%getDimensions()
+      if (base_var%hasAttribute("coordinates")) then
+        call base_var%getAttribute("coordinates", coords_attr)
+        coord_names = splitString(trim(coords_attr), " ")
+        do i = 1_i4, size(coord_names)
+          if (.not.nc%hasVariable(trim(coord_names(i)))) cycle
+          coord_var = nc%getVariable(trim(coord_names(i)))
+          if (is_x_axis(coord_var) .or. is_lon_coord(coord_var) .or. &
+              trim(coord_names(i)) == "x" .or. trim(coord_names(i)) == "lon") then
+            coord_dims = coord_var%getDimensions()
+            if (size(coord_dims) /= 1_i4) call error_message("points_input: point coordinate variable must be one-dimensional")
+            dimname = trim(coord_dims(1)%getName())
+            call points_input_check_point_dim(nc, points, dimname, var)
+            return
+          end if
+        end do
+      end if
+    end if
+
+    if (nc%hasVariable("x")) then
+      coord_var = nc%getVariable("x")
+    else if (nc%hasVariable("lon")) then
+      coord_var = nc%getVariable("lon")
+    else if (nc%hasVariable("y")) then
+      coord_var = nc%getVariable("y")
+    else if (nc%hasVariable("lat")) then
+      coord_var = nc%getVariable("lat")
+    else
+      call error_message("points_input: could not infer point dimension")
+    end if
+    coord_dims = coord_var%getDimensions()
+    if (size(coord_dims) /= 1_i4) call error_message("points_input: point coordinate variable must be one-dimensional")
+    dimname = trim(coord_dims(1)%getName())
+    if (present(var)) call points_input_check_point_dim(nc, points, dimname, var)
+  end function points_input_infer_point_dim_name
+
+  !> \brief Check that a variable uses the inferred point dimension.
+  subroutine points_input_check_point_dim(nc, points, dimname, var)
+    type(NcDataset), intent(in) :: nc !< open NetCDF dataset
+    type(points_t), pointer, intent(in) :: points !< point-set geometry
+    character(*), intent(in) :: dimname !< inferred point dimension name
+    character(*), intent(in) :: var !< selected variable name
+    type(NcVariable) :: base_var
+    type(NcDimension) :: point_dim
+    type(NcDimension), allocatable :: dims(:)
+    logical :: found
+    integer(i4) :: i
+
+    base_var = nc%getVariable(trim(var))
+    dims = base_var%getDimensions()
+    found = .false.
+    do i = 1_i4, size(dims)
+      if (trim(dims(i)%getName()) == trim(dimname)) found = .true.
+    end do
+    if (.not.found) call error_message("points_input: selected variable does not use point coordinate dimension: ", var)
+    point_dim = nc%getDimension(trim(dimname))
+    if (point_dim%getLength64() /= points%n_points) call error_message("points_input: point dimension size mismatch: ", dimname)
+  end subroutine points_input_check_point_dim
 
   !> \brief Generate integer CF time coordinate values and contiguous bounds.
   subroutine points_time_axis(timeframe_start, timeframe_end, values, bounds, units, timestep, delta, timestamp, ref_time)

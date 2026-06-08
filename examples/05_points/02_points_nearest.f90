@@ -17,26 +17,25 @@ program points_nearest_example
   use mo_grid, only: grid_t, cartesian, bottom_up
   use mo_grid_io, only: var, output_dataset
   use mo_kind, only: dp, i4
-  use mo_netcdf, only: NcDataset, NcVariable
   use mo_points, only: points_t
+  use mo_points_io, only: points_input_dataset
   use mo_points_regridder, only: nearest_points_to_grid_t
   implicit none
 
   type(points_t), target :: gauges
   type(grid_t), target :: grid
   type(nearest_points_to_grid_t) :: regridder
+  type(points_input_dataset) :: inp
   type(output_dataset) :: ds
-  type(NcDataset) :: nc
-  type(NcVariable) :: station_var
+  type(var), allocatable :: input_vars(:)
   integer(i4), allocatable :: gauge_ids(:), closest_gauge_id(:)
   real(dp) :: xmin, xmax, ymin, ymax, cellsize
   integer(i4), parameter :: res = 10_i4
 
-  call gauges%from_netcdf("src/pf_tests/files/scc_gauges.nc", var="station")
-  nc = NcDataset("src/pf_tests/files/scc_gauges.nc", "r")
-  station_var = nc%getVariable("station")
-  call station_var%getData(gauge_ids)
-  call nc%close()
+  allocate(input_vars(0))
+  call inp%init("src/pf_tests/files/scc_gauges.nc", vars=input_vars, points=gauges, points_init_var="station")
+  call inp%get_ids(gauge_ids)
+  call inp%close()
 
   xmin = minval(gauges%x)
   xmax = maxval(gauges%x)
