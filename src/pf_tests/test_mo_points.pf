@@ -2,9 +2,11 @@ module test_mo_points
   use funit
   use mo_kind, only: i1, i2, i4, i8, dp, sp
   use mo_grid, only: grid_t, cartesian, spherical, bottom_up
-  use mo_netcdf, only: NcDataset, NcVariable
+  use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   use mo_points, only: points_t
-  use mo_points_io, only: add_var, var, points_output_dataset, points_input_dataset
+  use mo_points_io, only: add_var, var, points_output_dataset, points_series_output_dataset, points_input_dataset, &
+                          points_time_axis, points_id_index, points_id_indices
+  use mo_grid_io, only: daily, hourly, start_timestamp, center_timestamp, end_timestamp
   use mo_points_regridder, only: nearest_grid_to_points_t, nearest_points_to_grid_t, nearest_points_to_points_t
   use mo_datetime, only: datetime
   implicit none
@@ -14,6 +16,8 @@ module test_mo_points
   public :: test_read_scc_gauges
   public :: test_points_netcdf_roundtrip
   public :: test_points_output_input
+  public :: test_points_time_series_io
+  public :: test_points_time_axis_and_ids
   public :: test_nearest_regridding
 
 contains
@@ -143,6 +147,156 @@ contains
     @assertTrue(all(read_i4 == values_i4))
     @assertTrue(all(read_i8 == values_i8))
   end subroutine test_points_output_input
+
+  @test
+  subroutine test_points_time_series_io()
+    type(points_t), target :: points, points_read
+    type(points_output_dataset) :: out
+    type(points_series_output_dataset) :: series_out
+    type(points_input_dataset) :: inp
+    type(var), allocatable :: vars(:)
+    type(var), allocatable :: mixed_vars(:)
+    type(NcDataset) :: nc
+    type(NcVariable) :: nc_var, time_var, bnds_var
+    type(NcDimension) :: node_dim, time_dim, bnds_dim
+    type(NcDimension), allocatable :: dims(:)
+    real(dp) :: values_1(3), values_2(3), read_values(3)
+    real(dp), allocatable :: read_chunk(:, :), read_series(:)
+    real(dp) :: slice_data(3, 2), series_data(2, 3)
+    integer(i4) :: codes_1(3), codes_2(3)
+    integer(i4), allocatable :: read_codes(:)
+    integer(i4) :: tvals(2), tbnds(2, 2)
+    character(len=64) :: dim_name
+    type(datetime), allocatable :: times(:)
+
+    call points%init([1.0_dp, 2.0_dp, 3.0_dp], [4.0_dp, 5.0_dp, 6.0_dp], coordsys=cartesian)
+    allocate(vars(0))
+    call add_var(vars, var(name="discharge", units="m3 s-1", static=.false., dtype="f64", kind="dp"))
+
+    call out%init("point_discharge_series_layout.nc", points=points, vars=vars, start_time=datetime("1990-01-01"), &
+                  point_dim_name="node", time_series=.true.)
+    values_1 = [10.0_dp, 20.0_dp, 30.0_dp]
+    values_2 = [11.0_dp, 21.0_dp, 31.0_dp]
+    call out%update("discharge", values_1)
+    call out%write(datetime("1990-01-02"))
+    call out%update("discharge", values_2)
+    call out%write(datetime("1990-01-03"))
+    call out%close()
+
+    nc = NcDataset("point_discharge_series_layout.nc", "r")
+    nc_var = nc%getVariable("discharge")
+    dims = nc_var%getDimensions()
+    dim_name = dims(1)%getName()
+    @assertEqual(trim(dim_name), "time")
+    dim_name = dims(2)%getName()
+    @assertEqual(trim(dim_name), "node")
+    call nc%close()
+
+    call points_read%from_netcdf("point_discharge_series_layout.nc", var="discharge")
+    call inp%init("point_discharge_series_layout.nc", vars=vars, points=points_read)
+    call inp%read("discharge", read_values, current_time=datetime("1990-01-02"))
+    @assertEqual(read_values, values_1, tolerance=1.0e-12_dp)
+    call inp%read_chunk("discharge", read_chunk, datetime("1990-01-01"), datetime("1990-01-03"))
+    @assertEqual(shape(read_chunk), [3_i4, 2_i4])
+    @assertEqual(read_chunk(:, 2), values_2, tolerance=1.0e-12_dp)
+    call inp%read_series("discharge", 2_i8, read_series, times=times)
+    call inp%close()
+    @assertEqual(read_series, [20.0_dp, 21.0_dp], tolerance=1.0e-12_dp)
+    @assertEqual(size(times), 2)
+
+    tvals = [1_i4, 2_i4]
+    tbnds(:, 1) = [0_i4, 1_i4]
+    tbnds(:, 2) = [1_i4, 2_i4]
+    allocate(mixed_vars(0))
+    call add_var(mixed_vars, var(name="discharge", units="m3 s-1", static=.false., dtype="f64", kind="dp"))
+    call add_var(mixed_vars, var(name="code", static=.false., dtype="i32", kind="i4"))
+    call series_out%init("point_series_writer.nc", points=points, vars=mixed_vars, time_values=tvals, &
+                         time_units="days since 1990-01-01 00:00:00", time_bnds=tbnds, point_dim_name="node")
+    call series_out%write_series("discharge", 1_i8, [100.0_dp, 101.0_dp])
+    call series_out%write_series("discharge", 2_i8, [200.0_dp, 201.0_dp])
+    call series_out%write_series("discharge", 3_i8, [300.0_dp, 301.0_dp])
+    codes_1 = [1_i4, 2_i4, 3_i4]
+    codes_2 = [4_i4, 5_i4, 6_i4]
+    call series_out%write_series("code", 1_i8, [codes_1(1), codes_2(1)])
+    call series_out%write_series("code", 2_i8, [codes_1(2), codes_2(2)])
+    call series_out%write_series("code", 3_i8, [codes_1(3), codes_2(3)])
+    call series_out%close()
+
+    call inp%init("point_series_writer.nc", vars=mixed_vars, points=points)
+    call inp%read_series("discharge", 3_i8, read_series)
+    @assertEqual(read_series, [300.0_dp, 301.0_dp], tolerance=1.0e-12_dp)
+    call inp%read_series("code", 2_i8, read_codes)
+    @assertTrue(all(read_codes == [2_i4, 5_i4]))
+    call inp%close()
+
+    nc = NcDataset("point_mixed_layout.nc", "w")
+    call points%to_netcdf(nc, point_dim_name="node")
+    node_dim = nc%getDimension("node")
+    time_dim = nc%setDimension("time", 2_i4)
+    bnds_dim = nc%setDimension("bnds", 2_i4)
+    time_var = nc%setVariable("time", "i32", [time_dim])
+    call time_var%setAttribute("standard_name", "time")
+    call time_var%setAttribute("axis", "T")
+    call time_var%setAttribute("units", "days since 1990-01-01 00:00:00")
+    call time_var%setAttribute("bounds", "time_bnds")
+    call time_var%setData(tvals)
+    bnds_var = nc%setVariable("time_bnds", "i32", [bnds_dim, time_dim])
+    call bnds_var%setData(tbnds)
+    nc_var = nc%setVariable("slice", "f64", [node_dim, time_dim])
+    call nc_var%setAttribute("coordinates", "x y")
+    slice_data(:, 1) = [1.0_dp, 2.0_dp, 3.0_dp]
+    slice_data(:, 2) = [4.0_dp, 5.0_dp, 6.0_dp]
+    call nc_var%setData(slice_data)
+    nc_var = nc%setVariable("series", "f64", [time_dim, node_dim])
+    call nc_var%setAttribute("coordinates", "x y")
+    series_data(1, :) = [10.0_dp, 20.0_dp, 30.0_dp]
+    series_data(2, :) = [11.0_dp, 21.0_dp, 31.0_dp]
+    call nc_var%setData(series_data)
+    call nc%close()
+
+    deallocate(mixed_vars)
+    allocate(mixed_vars(0))
+    call add_var(mixed_vars, var(name="slice", static=.false., dtype="f64", kind="dp"))
+    call add_var(mixed_vars, var(name="series", static=.false., dtype="f64", kind="dp"))
+    call inp%init("point_mixed_layout.nc", vars=mixed_vars, points=points)
+    call inp%read("slice", read_values, current_time=datetime("1990-01-03"))
+    @assertEqual(read_values, slice_data(:, 2), tolerance=1.0e-12_dp)
+    call inp%read("series", read_values, current_time=datetime("1990-01-02"))
+    @assertEqual(read_values, series_data(1, :), tolerance=1.0e-12_dp)
+    call inp%read_series("series", 2_i8, read_series)
+    @assertEqual(read_series, [20.0_dp, 21.0_dp], tolerance=1.0e-12_dp)
+    call inp%close()
+  end subroutine test_points_time_series_io
+
+  @test
+  subroutine test_points_time_axis_and_ids()
+    integer(i4), allocatable :: values(:), bounds(:, :)
+    integer(i8) :: idx
+    integer(i8) :: indices(2)
+    character(:), allocatable :: units
+
+    call points_time_axis(datetime("1990-01-01"), datetime("1990-01-03"), values, bounds, units, &
+                          timestep=daily, timestamp=end_timestamp)
+    @assertEqual(values, [1_i4, 2_i4])
+    @assertEqual(bounds(:, 1), [0_i4, 1_i4])
+    @assertEqual(trim(units), "days since 1990-01-01 00:00:00")
+
+    call points_time_axis(datetime("1990-01-01"), datetime("1990-01-01 02:00:00"), values, bounds, units, &
+                          timestep=hourly, timestamp=center_timestamp)
+    @assertEqual(values, [30_i4, 90_i4])
+    @assertEqual(bounds(:, 2), [60_i4, 120_i4])
+    @assertEqual(trim(units), "minutes since 1990-01-01 00:00:00")
+
+    call points_time_axis(datetime("1990-01-01"), datetime("1990-01-03"), values, bounds, units, &
+                          timestep=daily, timestamp=start_timestamp, ref_time=datetime("1989-12-31"))
+    @assertEqual(values, [1_i4, 2_i4])
+    @assertEqual(trim(units), "days since 1989-12-31 00:00:00")
+
+    idx = points_id_index([11_i4, 22_i4, 33_i4], 22_i4)
+    @assertEqual(idx, 2_i8)
+    indices = points_id_indices([11_i8, 22_i8, 33_i8], [33_i8, 11_i8])
+    @assertEqual(indices, [3_i8, 1_i8])
+  end subroutine test_points_time_axis_and_ids
 
   @test
   subroutine test_nearest_regridding()

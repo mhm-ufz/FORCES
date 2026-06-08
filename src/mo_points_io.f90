@@ -3,8 +3,8 @@
 
 !> \brief   NetCDF IO for data on unstructured point sets.
 !> \details This module writes and reads variables defined on a \ref points_t.
-!!          Data variables use a leading point dimension and may optionally use
-!!          a trailing time dimension. The module intentionally does not encode
+!!          Data variables use either a time-slice layout or a station time-series
+!!          layout. The module intentionally does not encode
 !!          UGRID mesh topology; topology can be composed around point sets later.
 !> \authors Sebastian Müller
 !> \date Jun 2026
@@ -14,7 +14,8 @@ module mo_points_io
 
   use mo_constants, only: nodata_dp, nodata_sp, nodata_i1, nodata_i2, nodata_i4, nodata_i8
   use mo_datetime, only: datetime, timedelta, delta_from_string
-  use mo_grid_io, only: var, add_var, var_index, time_values, time_stepping, end_timestamp, no_time
+  use mo_grid_io, only: var, add_var, var_index, grid_time_values => time_values, time_stepping, time_units_delta, &
+                        hourly, daily, monthly, yearly, varying, end_timestamp, start_timestamp, center_timestamp, no_time
   use mo_grid_helper, only: is_t_axis
   use mo_kind, only: i1, i2, i4, i8, dp, sp
   use mo_message, only: error_message, warn_message
@@ -29,7 +30,21 @@ module mo_points_io
   public :: var
   public :: add_var
   public :: points_output_dataset
+  public :: points_series_output_dataset
   public :: points_input_dataset
+  public :: points_time_axis
+  public :: points_id_index
+  public :: points_id_indices
+
+  interface points_id_index
+    module procedure points_id_index_i4
+    module procedure points_id_index_i8
+  end interface points_id_index
+
+  interface points_id_indices
+    module procedure points_id_indices_i4
+    module procedure points_id_indices_i8
+  end interface points_id_indices
 
   !> \class points_output_variable
   !> \brief NetCDF output variable buffer for point-set data.
@@ -46,6 +61,7 @@ module mo_points_io
     character(:), allocatable :: dtype                 !< NetCDF dtype
     character(:), allocatable :: kind                  !< Fortran array kind
     logical :: static = .false.                        !< variable has no time dimension
+    logical :: time_series = .false.                   !< temporal variable uses station time-series layout
     logical :: avg = .false.                           !< average accumulated values before writing
     logical :: static_written = .false.                !< static variable was already written
     integer(i4) :: counter = 0_i4                      !< number of accumulated updates
@@ -74,6 +90,7 @@ module mo_points_io
     type(timedelta) :: delta                             !< time-unit delta
     integer(i4) :: timestamp = end_timestamp             !< timestamp location selector
     integer(i4) :: deflate_level = 6_i4                  !< NetCDF deflate level
+    logical :: time_series = .false.                     !< temporal variables use station time-series layout
   contains
     procedure, public :: init => points_output_init
     procedure, private :: points_output_update_sp, points_output_update_dp, points_output_update_i1, points_output_update_i2,&
@@ -85,6 +102,43 @@ module mo_points_io
     procedure, public :: close => points_output_close
   end type points_output_dataset
 
+  !> \class points_series_output_variable
+  !> \brief NetCDF output variable for complete point time series.
+  type points_series_output_variable
+    type(var) :: meta                                    !< variable metadata
+    type(NcVariable) :: nc                               !< NetCDF variable handle
+    type(points_t), pointer :: points => null()          !< point-set geometry
+    integer(i8) :: n_times = 0_i8                        !< number of time values
+    character(:), allocatable :: dtype                   !< NetCDF dtype
+    character(:), allocatable :: kind                    !< Fortran array kind
+    logical, allocatable :: written(:)                   !< per-point write status
+  contains
+    procedure, public :: init => points_series_out_var_init
+    procedure, private :: points_series_out_var_write_sp, points_series_out_var_write_dp, points_series_out_var_write_i1,&
+        & points_series_out_var_write_i2, points_series_out_var_write_i4, points_series_out_var_write_i8
+    generic, public :: write => points_series_out_var_write_sp, points_series_out_var_write_dp, points_series_out_var_write_i1,&
+        & points_series_out_var_write_i2, points_series_out_var_write_i4, points_series_out_var_write_i8
+  end type points_series_output_variable
+
+  !> \class points_series_output_dataset
+  !> \brief NetCDF writer for complete point time series.
+  type :: points_series_output_dataset
+    type(points_t), pointer :: points => null()                 !< point-set geometry
+    character(:), allocatable :: path                           !< output path
+    type(NcDataset) :: nc                                       !< NetCDF dataset
+    type(points_series_output_variable), allocatable :: vars(:) !< output variable handles
+    integer(i4) :: nvars = 0_i4                                 !< number of variables
+    integer(i8) :: n_times = 0_i8                               !< number of time values
+    integer(i4) :: deflate_level = 6_i4                         !< NetCDF deflate level
+  contains
+    procedure, public :: init => points_series_output_init
+    procedure, private :: points_series_output_write_sp, points_series_output_write_dp, points_series_output_write_i1,&
+        & points_series_output_write_i2, points_series_output_write_i4, points_series_output_write_i8
+    generic, public :: write_series => points_series_output_write_sp, points_series_output_write_dp,&
+        & points_series_output_write_i1, points_series_output_write_i2, points_series_output_write_i4, points_series_output_write_i8
+    procedure, public :: close => points_series_output_close
+  end type points_series_output_dataset
+
   !> \class points_input_variable
   !> \brief NetCDF input variable handle for point-set data.
   type points_input_variable
@@ -95,6 +149,7 @@ module mo_points_io
     character(:), allocatable :: kind              !< Fortran array kind
     integer(i4) :: rank = 0_i4                     !< NetCDF variable rank
     logical :: static = .false.                    !< variable has no time dimension
+    logical :: time_series = .false.               !< temporal variable uses station time-series layout
   contains
     procedure, public :: init => points_in_var_init
     procedure, private :: points_in_var_read_sp, points_in_var_read_dp, points_in_var_read_i1, points_in_var_read_i2,&
@@ -105,6 +160,10 @@ module mo_points_io
         & points_in_var_read_chunk_i2, points_in_var_read_chunk_i4, points_in_var_read_chunk_i8
     generic, public :: read_chunk => points_in_var_read_chunk_sp, points_in_var_read_chunk_dp, points_in_var_read_chunk_i1,&
         & points_in_var_read_chunk_i2, points_in_var_read_chunk_i4, points_in_var_read_chunk_i8
+    procedure, private :: points_in_var_read_series_sp, points_in_var_read_series_dp, points_in_var_read_series_i1,&
+        & points_in_var_read_series_i2, points_in_var_read_series_i4, points_in_var_read_series_i8
+    generic, public :: read_series => points_in_var_read_series_sp, points_in_var_read_series_dp, points_in_var_read_series_i1,&
+        & points_in_var_read_series_i2, points_in_var_read_series_i4, points_in_var_read_series_i8
   end type points_input_variable
 
   !> \class points_input_dataset
@@ -135,6 +194,10 @@ module mo_points_io
         & points_input_read_chunk_i2, points_input_read_chunk_i4, points_input_read_chunk_i8
     generic, public :: read_chunk => points_input_read_chunk_sp, points_input_read_chunk_dp, points_input_read_chunk_i1,&
         & points_input_read_chunk_i2, points_input_read_chunk_i4, points_input_read_chunk_i8
+    procedure, private :: points_input_read_series_sp, points_input_read_series_dp, points_input_read_series_i1,&
+        & points_input_read_series_i2, points_input_read_series_i4, points_input_read_series_i8
+    generic, public :: read_series => points_input_read_series_sp, points_input_read_series_dp, points_input_read_series_i1,&
+        & points_input_read_series_i2, points_input_read_series_i4, points_input_read_series_i8
     procedure, public :: time_index => points_input_time_index
     procedure, public :: chunk_times => points_input_chunk_times
     procedure, public :: close => points_input_close
@@ -143,7 +206,7 @@ module mo_points_io
 contains
 
   !> \brief Initialize a point output variable and create the NetCDF variable.
-  subroutine points_out_var_init(self, meta, nc, points, points_dim, time_dim, deflate_level)
+  subroutine points_out_var_init(self, meta, nc, points, points_dim, time_dim, deflate_level, time_series)
     class(points_output_variable), intent(inout) :: self
     type(var), intent(in) :: meta !< variable metadata
     type(NcDataset), intent(in) :: nc !< open NetCDF dataset
@@ -151,9 +214,11 @@ contains
     type(NcDimension), intent(in) :: points_dim !< point dimension
     type(NcDimension), optional, intent(in) :: time_dim !< unlimited time dimension
     integer(i4), intent(in) :: deflate_level !< NetCDF deflate level
+    logical, optional, intent(in) :: time_series !< use station time-series layout
 
     self%meta = meta
     self%static = meta%static
+    self%time_series = optval(time_series, .false.)
     self%avg = meta%avg
     self%dtype = "f64"
     if (allocated(meta%dtype)) self%dtype = trim(meta%dtype)
@@ -163,7 +228,11 @@ contains
       self%nc = nc%setVariable(meta%name, self%dtype, [points_dim], deflate_level=deflate_level, shuffle=.true.)
     else
       if (.not.present(time_dim)) call error_message("points_output_variable: temporal variable needs time dimension: ", meta%name)
-      self%nc = nc%setVariable(meta%name, self%dtype, [points_dim, time_dim], deflate_level=deflate_level, shuffle=.true.)
+      if (self%time_series) then
+        self%nc = nc%setVariable(meta%name, self%dtype, [time_dim, points_dim], deflate_level=deflate_level, shuffle=.true.)
+      else
+        self%nc = nc%setVariable(meta%name, self%dtype, [points_dim, time_dim], deflate_level=deflate_level, shuffle=.true.)
+      end if
     end if
     if (allocated(meta%long_name)) call self%nc%setAttribute("long_name", meta%long_name)
     if (allocated(meta%standard_name)) call self%nc%setAttribute("standard_name", meta%standard_name)
@@ -274,7 +343,11 @@ contains
           call self%nc%setData(self%data_sp)
         else
           if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%meta%name)
-          call self%nc%setData(self%data_sp, [1_i4, t_index])
+          if (self%time_series) then
+            call self%nc%setData(self%data_sp, [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+          else
+            call self%nc%setData(self%data_sp, [1_i4, t_index])
+          end if
         end if
         self%data_sp = 0.0_sp
       case("dp")
@@ -283,7 +356,11 @@ contains
           call self%nc%setData(self%data_dp)
         else
           if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%meta%name)
-          call self%nc%setData(self%data_dp, [1_i4, t_index])
+          if (self%time_series) then
+            call self%nc%setData(self%data_dp, [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+          else
+            call self%nc%setData(self%data_dp, [1_i4, t_index])
+          end if
         end if
         self%data_dp = 0.0_dp
       case("i1")
@@ -292,7 +369,11 @@ contains
           call self%nc%setData(self%data_i1)
         else
           if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%meta%name)
-          call self%nc%setData(self%data_i1, [1_i4, t_index])
+          if (self%time_series) then
+            call self%nc%setData(self%data_i1, [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+          else
+            call self%nc%setData(self%data_i1, [1_i4, t_index])
+          end if
         end if
         self%data_i1 = 0_i1
       case("i2")
@@ -301,7 +382,11 @@ contains
           call self%nc%setData(self%data_i2)
         else
           if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%meta%name)
-          call self%nc%setData(self%data_i2, [1_i4, t_index])
+          if (self%time_series) then
+            call self%nc%setData(self%data_i2, [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+          else
+            call self%nc%setData(self%data_i2, [1_i4, t_index])
+          end if
         end if
         self%data_i2 = 0_i2
       case("i4")
@@ -310,7 +395,11 @@ contains
           call self%nc%setData(self%data_i4)
         else
           if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%meta%name)
-          call self%nc%setData(self%data_i4, [1_i4, t_index])
+          if (self%time_series) then
+            call self%nc%setData(self%data_i4, [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+          else
+            call self%nc%setData(self%data_i4, [1_i4, t_index])
+          end if
         end if
         self%data_i4 = 0_i4
       case("i8")
@@ -319,7 +408,11 @@ contains
           call self%nc%setData(self%data_i8)
         else
           if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%meta%name)
-          call self%nc%setData(self%data_i8, [1_i4, t_index])
+          if (self%time_series) then
+            call self%nc%setData(self%data_i8, [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+          else
+            call self%nc%setData(self%data_i8, [1_i4, t_index])
+          end if
         end if
         self%data_i8 = 0_i8
       case default
@@ -331,7 +424,7 @@ contains
 
   !> \brief Initialize a point-set output dataset.
   subroutine points_output_init(self, path, points, vars, start_time, ref_time, delta, timestamp, deflate_level, &
-                               point_dim_name, points_double_precision)
+                               point_dim_name, points_double_precision, time_series)
     class(points_output_dataset), intent(inout) :: self
     character(*), intent(in) :: path !< output file path
     type(points_t), pointer, intent(in) :: points !< point-set geometry
@@ -343,6 +436,7 @@ contains
     integer(i4), optional, intent(in) :: deflate_level !< NetCDF deflate level
     character(*), optional, intent(in) :: point_dim_name !< point dimension name
     logical, optional, intent(in) :: points_double_precision !< write point coordinates as double precision
+    logical, optional, intent(in) :: time_series !< use station time-series layout for temporal variables
 
     character(:), allocatable :: dimname, units, units_dt
     type(NcDimension) :: points_dim, time_dim, bnds_dim
@@ -356,6 +450,7 @@ contains
     self%counter = 0_i4
     self%deflate_level = optval(deflate_level, 6_i4)
     self%timestamp = optval(timestamp, end_timestamp)
+    self%time_series = optval(time_series, .false.)
     dimname = optval(point_dim_name, "point")
 
     call self%points%to_netcdf(self%nc, point_dim_name=dimname, double_precision=points_double_precision)
@@ -392,7 +487,7 @@ contains
       if (self%static) then
         call self%vars(i)%init(vars(i), self%nc, self%points, points_dim, deflate_level=self%deflate_level)
       else
-        call self%vars(i)%init(vars(i), self%nc, self%points, points_dim, time_dim, self%deflate_level)
+        call self%vars(i)%init(vars(i), self%nc, self%points, points_dim, time_dim, self%deflate_level, self%time_series)
       end if
     end do
   end subroutine points_output_init
@@ -450,7 +545,7 @@ contains
     self%counter = self%counter + 1_i4
     if (.not.self%static) then
       if (.not.present(current_time)) call error_message("points_output_dataset: missing current_time")
-      call time_values(self%ref_time, self%previous_time, current_time, self%delta, self%timestamp, t_start, t_end, t_stamp)
+      call grid_time_values(self%ref_time, self%previous_time, current_time, self%delta, self%timestamp, t_start, t_end, t_stamp)
       t_var = self%nc%getVariable("time")
       call t_var%setData(t_stamp, [self%counter])
       t_var = self%nc%getVariable("time_bnds")
@@ -483,6 +578,247 @@ contains
     if (allocated(self%vars)) deallocate(self%vars)
   end subroutine points_output_close
 
+  !> \brief Initialize a point time-series output variable.
+  subroutine points_series_out_var_init(self, meta, nc, points, points_dim, time_dim, n_times, deflate_level)
+    class(points_series_output_variable), intent(inout) :: self
+    type(var), intent(in) :: meta !< variable metadata
+    type(NcDataset), intent(in) :: nc !< open NetCDF dataset
+    type(points_t), pointer, intent(in) :: points !< point-set geometry
+    type(NcDimension), intent(in) :: points_dim !< point dimension
+    type(NcDimension), intent(in) :: time_dim !< fixed time dimension
+    integer(i8), intent(in) :: n_times !< number of time values
+    integer(i4), intent(in) :: deflate_level !< NetCDF deflate level
+
+    if (meta%static) call error_message("points_series_output_variable: static variables are not supported: ", meta%name)
+    self%meta = meta
+    self%dtype = "f64"
+    if (allocated(meta%dtype)) self%dtype = trim(meta%dtype)
+    self%points => points
+    self%n_times = n_times
+    if (.not.associated(self%points)) call error_message("points_series_output_variable: points pointer not associated")
+    self%nc = nc%setVariable(meta%name, self%dtype, [time_dim, points_dim], deflate_level=deflate_level, shuffle=.true.)
+    if (allocated(meta%long_name)) call self%nc%setAttribute("long_name", meta%long_name)
+    if (allocated(meta%standard_name)) call self%nc%setAttribute("standard_name", meta%standard_name)
+    if (allocated(meta%units)) call self%nc%setAttribute("units", meta%units)
+    if (self%points%coordsys == spherical) then
+      call self%nc%setAttribute("coordinates", "lon lat")
+    else
+      call self%nc%setAttribute("coordinates", "x y")
+    end if
+    call points_io_dtype_defaults(self%meta%name, self%dtype, self%kind, self%nc)
+    if (allocated(meta%kind)) self%kind = meta%kind
+    allocate(self%written(self%points%n_points), source=.false.)
+  end subroutine points_series_out_var_init
+
+  !> \brief Write one complete point time series.
+  subroutine points_series_out_var_write_sp(self, point_index, data)
+    class(points_series_output_variable), intent(inout) :: self
+    integer(i8), intent(in) :: point_index !< one-based point index
+    real(sp), intent(in) :: data(:) !< complete point time series
+    integer(i4) :: point_index_
+    if (self%kind /= "sp") call error_message("points_series_output_variable: wrong kind for write_series: ", self%meta%name)
+    if (point_index < 1_i8 .or. point_index > self%points%n_points) &
+      call error_message("points_series_output_variable: point index out of range: ", self%meta%name)
+    if (size(data, kind=i8) /= self%n_times) call error_message("points_series_output_variable: time series size mismatch: ",&
+        & self%meta%name)
+    point_index_ = int(point_index, i4)
+    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
+    self%written(point_index_) = .true.
+  end subroutine points_series_out_var_write_sp
+  !> \brief Write one complete point time series.
+  subroutine points_series_out_var_write_dp(self, point_index, data)
+    class(points_series_output_variable), intent(inout) :: self
+    integer(i8), intent(in) :: point_index !< one-based point index
+    real(dp), intent(in) :: data(:) !< complete point time series
+    integer(i4) :: point_index_
+    if (self%kind /= "dp") call error_message("points_series_output_variable: wrong kind for write_series: ", self%meta%name)
+    if (point_index < 1_i8 .or. point_index > self%points%n_points) &
+      call error_message("points_series_output_variable: point index out of range: ", self%meta%name)
+    if (size(data, kind=i8) /= self%n_times) call error_message("points_series_output_variable: time series size mismatch: ",&
+        & self%meta%name)
+    point_index_ = int(point_index, i4)
+    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
+    self%written(point_index_) = .true.
+  end subroutine points_series_out_var_write_dp
+  !> \brief Write one complete point time series.
+  subroutine points_series_out_var_write_i1(self, point_index, data)
+    class(points_series_output_variable), intent(inout) :: self
+    integer(i8), intent(in) :: point_index !< one-based point index
+    integer(i1), intent(in) :: data(:) !< complete point time series
+    integer(i4) :: point_index_
+    if (self%kind /= "i1") call error_message("points_series_output_variable: wrong kind for write_series: ", self%meta%name)
+    if (point_index < 1_i8 .or. point_index > self%points%n_points) &
+      call error_message("points_series_output_variable: point index out of range: ", self%meta%name)
+    if (size(data, kind=i8) /= self%n_times) call error_message("points_series_output_variable: time series size mismatch: ",&
+        & self%meta%name)
+    point_index_ = int(point_index, i4)
+    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
+    self%written(point_index_) = .true.
+  end subroutine points_series_out_var_write_i1
+  !> \brief Write one complete point time series.
+  subroutine points_series_out_var_write_i2(self, point_index, data)
+    class(points_series_output_variable), intent(inout) :: self
+    integer(i8), intent(in) :: point_index !< one-based point index
+    integer(i2), intent(in) :: data(:) !< complete point time series
+    integer(i4) :: point_index_
+    if (self%kind /= "i2") call error_message("points_series_output_variable: wrong kind for write_series: ", self%meta%name)
+    if (point_index < 1_i8 .or. point_index > self%points%n_points) &
+      call error_message("points_series_output_variable: point index out of range: ", self%meta%name)
+    if (size(data, kind=i8) /= self%n_times) call error_message("points_series_output_variable: time series size mismatch: ",&
+        & self%meta%name)
+    point_index_ = int(point_index, i4)
+    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
+    self%written(point_index_) = .true.
+  end subroutine points_series_out_var_write_i2
+  !> \brief Write one complete point time series.
+  subroutine points_series_out_var_write_i4(self, point_index, data)
+    class(points_series_output_variable), intent(inout) :: self
+    integer(i8), intent(in) :: point_index !< one-based point index
+    integer(i4), intent(in) :: data(:) !< complete point time series
+    integer(i4) :: point_index_
+    if (self%kind /= "i4") call error_message("points_series_output_variable: wrong kind for write_series: ", self%meta%name)
+    if (point_index < 1_i8 .or. point_index > self%points%n_points) &
+      call error_message("points_series_output_variable: point index out of range: ", self%meta%name)
+    if (size(data, kind=i8) /= self%n_times) call error_message("points_series_output_variable: time series size mismatch: ",&
+        & self%meta%name)
+    point_index_ = int(point_index, i4)
+    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
+    self%written(point_index_) = .true.
+  end subroutine points_series_out_var_write_i4
+  !> \brief Write one complete point time series.
+  subroutine points_series_out_var_write_i8(self, point_index, data)
+    class(points_series_output_variable), intent(inout) :: self
+    integer(i8), intent(in) :: point_index !< one-based point index
+    integer(i8), intent(in) :: data(:) !< complete point time series
+    integer(i4) :: point_index_
+    if (self%kind /= "i8") call error_message("points_series_output_variable: wrong kind for write_series: ", self%meta%name)
+    if (point_index < 1_i8 .or. point_index > self%points%n_points) &
+      call error_message("points_series_output_variable: point index out of range: ", self%meta%name)
+    if (size(data, kind=i8) /= self%n_times) call error_message("points_series_output_variable: time series size mismatch: ",&
+        & self%meta%name)
+    point_index_ = int(point_index, i4)
+    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
+    self%written(point_index_) = .true.
+  end subroutine points_series_out_var_write_i8
+
+  !> \brief Initialize a point time-series output dataset.
+  subroutine points_series_output_init(self, path, points, vars, time_values, time_units, time_bnds, point_dim_name, &
+                                       points_double_precision, deflate_level)
+    class(points_series_output_dataset), intent(inout) :: self
+    character(*), intent(in) :: path !< output file path
+    type(points_t), pointer, intent(in) :: points !< point-set geometry
+    type(var), intent(in) :: vars(:) !< output variables
+    integer(i4), intent(in) :: time_values(:) !< NetCDF time coordinate values
+    character(*), intent(in) :: time_units !< NetCDF time units
+    integer(i4), optional, intent(in) :: time_bnds(:, :) !< optional time bounds with shape (2,time)
+    character(*), optional, intent(in) :: point_dim_name !< point dimension name
+    logical, optional, intent(in) :: points_double_precision !< write point coordinates as double precision
+    integer(i4), optional, intent(in) :: deflate_level !< NetCDF deflate level
+
+    character(:), allocatable :: dimname
+    type(NcDimension) :: points_dim, time_dim, bnds_dim
+    type(NcVariable) :: t_var, tb_var
+    integer(i4) :: i
+
+    if (size(time_values, kind=i8) < 1_i8) call error_message("points_series_output_dataset: empty time axis")
+    if (present(time_bnds)) then
+      if (size(time_bnds, 1) /= 2_i4 .or. size(time_bnds, 2) /= size(time_values)) &
+        call error_message("points_series_output_dataset: time_bnds must have shape (2,time)")
+    end if
+    self%path = trim(path)
+    self%nc = NcDataset(self%path, "w")
+    call self%nc%setFill(NF90_NOFILL)
+    self%points => points
+    self%n_times = size(time_values, kind=i8)
+    self%deflate_level = optval(deflate_level, 6_i4)
+    dimname = optval(point_dim_name, "point")
+
+    call self%points%to_netcdf(self%nc, point_dim_name=dimname, double_precision=points_double_precision)
+    points_dim = self%nc%getDimension(dimname)
+    time_dim = self%nc%setDimension("time", size(time_values))
+    t_var = self%nc%setVariable("time", "i32", [time_dim])
+    call t_var%setAttribute("long_name", "time")
+    call t_var%setAttribute("standard_name", "time")
+    call t_var%setAttribute("axis", "T")
+    call t_var%setAttribute("units", time_units)
+    call t_var%setData(time_values)
+    if (present(time_bnds)) then
+      bnds_dim = self%nc%setDimension("bnds", 2_i4)
+      call t_var%setAttribute("bounds", "time_bnds")
+      tb_var = self%nc%setVariable("time_bnds", "i32", [bnds_dim, time_dim])
+      call tb_var%setData(time_bnds)
+    end if
+
+    self%nvars = size(vars)
+    if (self%nvars == 0_i4) call error_message("points_series_output_dataset: no variables selected")
+    allocate(self%vars(self%nvars))
+    do i = 1_i4, self%nvars
+      call self%vars(i)%init(vars(i), self%nc, self%points, points_dim, time_dim, self%n_times, self%deflate_level)
+    end do
+  end subroutine points_series_output_init
+
+  !> \brief Write one complete point time series for a variable selected by name.
+  subroutine points_series_output_write_sp(self, name, point_index, data)
+    class(points_series_output_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i8), intent(in) :: point_index !< one-based point index
+    real(sp), intent(in) :: data(:) !< complete point time series
+    call self%vars(points_series_output_var_index(self, name))%write(point_index, data)
+  end subroutine points_series_output_write_sp
+  !> \brief Write one complete point time series for a variable selected by name.
+  subroutine points_series_output_write_dp(self, name, point_index, data)
+    class(points_series_output_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i8), intent(in) :: point_index !< one-based point index
+    real(dp), intent(in) :: data(:) !< complete point time series
+    call self%vars(points_series_output_var_index(self, name))%write(point_index, data)
+  end subroutine points_series_output_write_dp
+  !> \brief Write one complete point time series for a variable selected by name.
+  subroutine points_series_output_write_i1(self, name, point_index, data)
+    class(points_series_output_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i8), intent(in) :: point_index !< one-based point index
+    integer(i1), intent(in) :: data(:) !< complete point time series
+    call self%vars(points_series_output_var_index(self, name))%write(point_index, data)
+  end subroutine points_series_output_write_i1
+  !> \brief Write one complete point time series for a variable selected by name.
+  subroutine points_series_output_write_i2(self, name, point_index, data)
+    class(points_series_output_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i8), intent(in) :: point_index !< one-based point index
+    integer(i2), intent(in) :: data(:) !< complete point time series
+    call self%vars(points_series_output_var_index(self, name))%write(point_index, data)
+  end subroutine points_series_output_write_i2
+  !> \brief Write one complete point time series for a variable selected by name.
+  subroutine points_series_output_write_i4(self, name, point_index, data)
+    class(points_series_output_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i8), intent(in) :: point_index !< one-based point index
+    integer(i4), intent(in) :: data(:) !< complete point time series
+    call self%vars(points_series_output_var_index(self, name))%write(point_index, data)
+  end subroutine points_series_output_write_i4
+  !> \brief Write one complete point time series for a variable selected by name.
+  subroutine points_series_output_write_i8(self, name, point_index, data)
+    class(points_series_output_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i8), intent(in) :: point_index !< one-based point index
+    integer(i8), intent(in) :: data(:) !< complete point time series
+    call self%vars(points_series_output_var_index(self, name))%write(point_index, data)
+  end subroutine points_series_output_write_i8
+
+  !> \brief Close a point time-series output dataset.
+  subroutine points_series_output_close(self)
+    class(points_series_output_dataset), intent(inout) :: self
+    integer(i4) :: i
+    do i = 1_i4, self%nvars
+      if (allocated(self%vars(i)%written)) then
+        if (.not.all(self%vars(i)%written)) call warn_message("points_series_output%close: unwritten point series: ", self%vars(i)%meta%name)
+      end if
+    end do
+    call self%nc%close()
+    if (allocated(self%vars)) deallocate(self%vars)
+  end subroutine points_series_output_close
+
   !> \brief Initialize a point-set input variable.
   subroutine points_in_var_init(self, meta, nc, points)
     class(points_input_variable), intent(inout) :: self
@@ -491,6 +827,7 @@ contains
     type(points_t), pointer, intent(in) :: points !< point-set geometry
     type(NcDimension), allocatable :: dims(:)
     type(NcVariable) :: t_var
+    logical :: first_is_point, second_is_point, first_is_time, second_is_time
 
     self%meta = meta
     self%nc = nc%getVariable(meta%name)
@@ -498,12 +835,32 @@ contains
     dims = self%nc%getDimensions()
     self%rank = size(dims)
     if (self%rank < 1_i4 .or. self%rank > 2_i4) call error_message("points_input_variable: rank mismatch: ", meta%name)
-    if (dims(1)%getLength64() /= points%n_points) call error_message("points_input_variable: point dimension mismatch: ", meta%name)
     self%static = self%rank == 1_i4
-    if (.not.self%static) then
-      if (.not.nc%hasVariable(trim(dims(2)%getName()))) call error_message("points_input_variable: time coordinate missing: ", meta%name)
-      t_var = nc%getVariable(trim(dims(2)%getName()))
-      if (.not.is_t_axis(t_var)) call error_message("points_input_variable: second dimension is not a time axis: ", meta%name)
+    first_is_point = dims(1)%getLength64() == points%n_points
+    if (self%static) then
+      if (.not.first_is_point) call error_message("points_input_variable: point dimension mismatch: ", meta%name)
+      self%time_series = .false.
+    else
+      if (.not.nc%hasVariable(trim(dims(1)%getName()))) then
+        first_is_time = .false.
+      else
+        t_var = nc%getVariable(trim(dims(1)%getName()))
+        first_is_time = is_t_axis(t_var)
+      end if
+      if (.not.nc%hasVariable(trim(dims(2)%getName()))) then
+        second_is_time = .false.
+      else
+        t_var = nc%getVariable(trim(dims(2)%getName()))
+        second_is_time = is_t_axis(t_var)
+      end if
+      second_is_point = dims(2)%getLength64() == points%n_points
+      if (first_is_point .and. second_is_time) then
+        self%time_series = .false.
+      else if (first_is_time .and. second_is_point) then
+        self%time_series = .true.
+      else
+        call error_message("points_input_variable: could not identify point/time dimensions: ", meta%name)
+      end if
     end if
     if (meta%static .and. .not.self%static) call error_message("points_input_variable: expected static variable: ", meta%name)
     if ((.not.meta%static) .and. self%static .and. .not.meta%allow_static) call error_message("points_input_variable: expected temporal variable: ", meta%name)
@@ -524,7 +881,11 @@ contains
     else
       if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
       if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
-      call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      if (self%time_series) then
+        call self%nc%readInto(data, [t_index, 1_i4], [1_i4, int(self%points%n_points, i4)])
+      else
+        call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      end if
     end if
   end subroutine points_in_var_read_sp
 
@@ -534,9 +895,34 @@ contains
     real(sp), allocatable, intent(out) :: data(:,:) !< read point data with shape (point,time)
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
+    real(sp), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%meta%name)
-    call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    if (self%time_series) then
+      call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      allocate(data(self%points%n_points, t_size), source=transpose(tmp))
+    else
+      call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    end if
   end subroutine points_in_var_read_chunk_sp
+
+  !> \brief Read one point time series.
+  subroutine points_in_var_read_series_sp(self, point_index, data, t_index, t_size)
+    class(points_input_variable), intent(inout) :: self
+    integer(i8), intent(in) :: point_index !< one-based point index
+    real(sp), allocatable, intent(out) :: data(:) !< read point time series
+    integer(i4), intent(in) :: t_index !< first temporal index
+    integer(i4), intent(in) :: t_size !< number of temporal indices
+    integer(i4) :: point_index_
+    if (self%static) call error_message("points_input_variable: time series read needs temporal variable: ", self%meta%name)
+    if (point_index < 1_i8 .or. point_index > self%points%n_points) &
+      call error_message("points_input_variable: point index out of range: ", self%meta%name)
+    point_index_ = int(point_index, i4)
+    if (self%time_series) then
+      call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+    else
+      call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+    end if
+  end subroutine points_in_var_read_series_sp
   !> \brief Read one static or temporal point vector.
   subroutine points_in_var_read_dp(self, data, t_index)
     class(points_input_variable), intent(inout) :: self
@@ -549,7 +935,11 @@ contains
     else
       if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
       if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
-      call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      if (self%time_series) then
+        call self%nc%readInto(data, [t_index, 1_i4], [1_i4, int(self%points%n_points, i4)])
+      else
+        call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      end if
     end if
   end subroutine points_in_var_read_dp
 
@@ -559,9 +949,34 @@ contains
     real(dp), allocatable, intent(out) :: data(:,:) !< read point data with shape (point,time)
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
+    real(dp), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%meta%name)
-    call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    if (self%time_series) then
+      call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      allocate(data(self%points%n_points, t_size), source=transpose(tmp))
+    else
+      call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    end if
   end subroutine points_in_var_read_chunk_dp
+
+  !> \brief Read one point time series.
+  subroutine points_in_var_read_series_dp(self, point_index, data, t_index, t_size)
+    class(points_input_variable), intent(inout) :: self
+    integer(i8), intent(in) :: point_index !< one-based point index
+    real(dp), allocatable, intent(out) :: data(:) !< read point time series
+    integer(i4), intent(in) :: t_index !< first temporal index
+    integer(i4), intent(in) :: t_size !< number of temporal indices
+    integer(i4) :: point_index_
+    if (self%static) call error_message("points_input_variable: time series read needs temporal variable: ", self%meta%name)
+    if (point_index < 1_i8 .or. point_index > self%points%n_points) &
+      call error_message("points_input_variable: point index out of range: ", self%meta%name)
+    point_index_ = int(point_index, i4)
+    if (self%time_series) then
+      call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+    else
+      call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+    end if
+  end subroutine points_in_var_read_series_dp
   !> \brief Read one static or temporal point vector.
   subroutine points_in_var_read_i1(self, data, t_index)
     class(points_input_variable), intent(inout) :: self
@@ -574,7 +989,11 @@ contains
     else
       if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
       if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
-      call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      if (self%time_series) then
+        call self%nc%readInto(data, [t_index, 1_i4], [1_i4, int(self%points%n_points, i4)])
+      else
+        call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      end if
     end if
   end subroutine points_in_var_read_i1
 
@@ -584,9 +1003,34 @@ contains
     integer(i1), allocatable, intent(out) :: data(:,:) !< read point data with shape (point,time)
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
+    integer(i1), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%meta%name)
-    call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    if (self%time_series) then
+      call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      allocate(data(self%points%n_points, t_size), source=transpose(tmp))
+    else
+      call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    end if
   end subroutine points_in_var_read_chunk_i1
+
+  !> \brief Read one point time series.
+  subroutine points_in_var_read_series_i1(self, point_index, data, t_index, t_size)
+    class(points_input_variable), intent(inout) :: self
+    integer(i8), intent(in) :: point_index !< one-based point index
+    integer(i1), allocatable, intent(out) :: data(:) !< read point time series
+    integer(i4), intent(in) :: t_index !< first temporal index
+    integer(i4), intent(in) :: t_size !< number of temporal indices
+    integer(i4) :: point_index_
+    if (self%static) call error_message("points_input_variable: time series read needs temporal variable: ", self%meta%name)
+    if (point_index < 1_i8 .or. point_index > self%points%n_points) &
+      call error_message("points_input_variable: point index out of range: ", self%meta%name)
+    point_index_ = int(point_index, i4)
+    if (self%time_series) then
+      call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+    else
+      call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+    end if
+  end subroutine points_in_var_read_series_i1
   !> \brief Read one static or temporal point vector.
   subroutine points_in_var_read_i2(self, data, t_index)
     class(points_input_variable), intent(inout) :: self
@@ -599,7 +1043,11 @@ contains
     else
       if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
       if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
-      call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      if (self%time_series) then
+        call self%nc%readInto(data, [t_index, 1_i4], [1_i4, int(self%points%n_points, i4)])
+      else
+        call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      end if
     end if
   end subroutine points_in_var_read_i2
 
@@ -609,9 +1057,34 @@ contains
     integer(i2), allocatable, intent(out) :: data(:,:) !< read point data with shape (point,time)
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
+    integer(i2), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%meta%name)
-    call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    if (self%time_series) then
+      call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      allocate(data(self%points%n_points, t_size), source=transpose(tmp))
+    else
+      call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    end if
   end subroutine points_in_var_read_chunk_i2
+
+  !> \brief Read one point time series.
+  subroutine points_in_var_read_series_i2(self, point_index, data, t_index, t_size)
+    class(points_input_variable), intent(inout) :: self
+    integer(i8), intent(in) :: point_index !< one-based point index
+    integer(i2), allocatable, intent(out) :: data(:) !< read point time series
+    integer(i4), intent(in) :: t_index !< first temporal index
+    integer(i4), intent(in) :: t_size !< number of temporal indices
+    integer(i4) :: point_index_
+    if (self%static) call error_message("points_input_variable: time series read needs temporal variable: ", self%meta%name)
+    if (point_index < 1_i8 .or. point_index > self%points%n_points) &
+      call error_message("points_input_variable: point index out of range: ", self%meta%name)
+    point_index_ = int(point_index, i4)
+    if (self%time_series) then
+      call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+    else
+      call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+    end if
+  end subroutine points_in_var_read_series_i2
   !> \brief Read one static or temporal point vector.
   subroutine points_in_var_read_i4(self, data, t_index)
     class(points_input_variable), intent(inout) :: self
@@ -624,7 +1097,11 @@ contains
     else
       if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
       if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
-      call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      if (self%time_series) then
+        call self%nc%readInto(data, [t_index, 1_i4], [1_i4, int(self%points%n_points, i4)])
+      else
+        call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      end if
     end if
   end subroutine points_in_var_read_i4
 
@@ -634,9 +1111,34 @@ contains
     integer(i4), allocatable, intent(out) :: data(:,:) !< read point data with shape (point,time)
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
+    integer(i4), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%meta%name)
-    call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    if (self%time_series) then
+      call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      allocate(data(self%points%n_points, t_size), source=transpose(tmp))
+    else
+      call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    end if
   end subroutine points_in_var_read_chunk_i4
+
+  !> \brief Read one point time series.
+  subroutine points_in_var_read_series_i4(self, point_index, data, t_index, t_size)
+    class(points_input_variable), intent(inout) :: self
+    integer(i8), intent(in) :: point_index !< one-based point index
+    integer(i4), allocatable, intent(out) :: data(:) !< read point time series
+    integer(i4), intent(in) :: t_index !< first temporal index
+    integer(i4), intent(in) :: t_size !< number of temporal indices
+    integer(i4) :: point_index_
+    if (self%static) call error_message("points_input_variable: time series read needs temporal variable: ", self%meta%name)
+    if (point_index < 1_i8 .or. point_index > self%points%n_points) &
+      call error_message("points_input_variable: point index out of range: ", self%meta%name)
+    point_index_ = int(point_index, i4)
+    if (self%time_series) then
+      call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+    else
+      call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+    end if
+  end subroutine points_in_var_read_series_i4
   !> \brief Read one static or temporal point vector.
   subroutine points_in_var_read_i8(self, data, t_index)
     class(points_input_variable), intent(inout) :: self
@@ -649,7 +1151,11 @@ contains
     else
       if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
       if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
-      call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      if (self%time_series) then
+        call self%nc%readInto(data, [t_index, 1_i4], [1_i4, int(self%points%n_points, i4)])
+      else
+        call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      end if
     end if
   end subroutine points_in_var_read_i8
 
@@ -659,9 +1165,34 @@ contains
     integer(i8), allocatable, intent(out) :: data(:,:) !< read point data with shape (point,time)
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
+    integer(i8), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%meta%name)
-    call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    if (self%time_series) then
+      call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      allocate(data(self%points%n_points, t_size), source=transpose(tmp))
+    else
+      call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    end if
   end subroutine points_in_var_read_chunk_i8
+
+  !> \brief Read one point time series.
+  subroutine points_in_var_read_series_i8(self, point_index, data, t_index, t_size)
+    class(points_input_variable), intent(inout) :: self
+    integer(i8), intent(in) :: point_index !< one-based point index
+    integer(i8), allocatable, intent(out) :: data(:) !< read point time series
+    integer(i4), intent(in) :: t_index !< first temporal index
+    integer(i4), intent(in) :: t_size !< number of temporal indices
+    integer(i4) :: point_index_
+    if (self%static) call error_message("points_input_variable: time series read needs temporal variable: ", self%meta%name)
+    if (point_index < 1_i8 .or. point_index > self%points%n_points) &
+      call error_message("points_input_variable: point index out of range: ", self%meta%name)
+    point_index_ = int(point_index, i4)
+    if (self%time_series) then
+      call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+    else
+      call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+    end if
+  end subroutine points_in_var_read_series_i8
 
   !> \brief Initialize a point-set input dataset.
   subroutine points_input_init(self, path, vars, points, timestamp, points_init_var)
@@ -690,7 +1221,11 @@ contains
       if (.not.self%vars(i)%static .and. self%static) then
         self%static = .false.
         dims = self%vars(i)%nc%getDimensions()
-        t_var = self%nc%getVariable(trim(dims(size(dims))%getName()))
+        if (self%vars(i)%time_series) then
+          t_var = self%nc%getVariable(trim(dims(1)%getName()))
+        else
+          t_var = self%nc%getVariable(trim(dims(size(dims))%getName()))
+        end if
         call time_stepping(t_var, self%ref_time, self%delta, self%timestep, self%t_values, self%t_bounds, timestamp)
         self%start_time = self%ref_time + self%t_bounds(1) * self%delta
         self%times = [(self%ref_time + self%t_values(i) * self%delta, i=1_i4,size(self%t_values))]
@@ -729,6 +1264,31 @@ contains
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%vars(var_id)%read_chunk(data, t_index=t_index, t_size=t_size)
   end subroutine points_input_read_chunk_sp
+
+  !> \brief Read one point time series selected by an optional time frame.
+  subroutine points_input_read_series_sp(self, name, point_index, data, timeframe_start, timeframe_end, times)
+    class(points_input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i8), intent(in) :: point_index !< one-based point index
+    real(sp), allocatable, intent(out) :: data(:) !< read point time series
+    type(datetime), optional, intent(in) :: timeframe_start !< start of time frame, excluding
+    type(datetime), optional, intent(in) :: timeframe_end !< end of time frame, including
+    type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned series
+    integer(i4) :: t_index, t_size, var_id
+    var_id = points_input_var_index(self, name)
+    if (self%vars(var_id)%static) call error_message("points_input%read_series: need temporal variable: ",&
+        & self%vars(var_id)%meta%name)
+    if (present(timeframe_start) .neqv. present(timeframe_end)) &
+      call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
+    if (present(timeframe_start)) then
+      call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
+    else
+      t_index = 1_i4
+      t_size = size(self%times)
+      if (present(times)) allocate(times(t_size), source=self%times)
+    end if
+    call self%vars(var_id)%read_series(point_index, data, t_index=t_index, t_size=t_size)
+  end subroutine points_input_read_series_sp
   !> \brief Read one point vector from an input dataset.
   subroutine points_input_read_dp(self, name, data, current_time, t_index)
     class(points_input_dataset), intent(inout) :: self
@@ -757,6 +1317,31 @@ contains
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%vars(var_id)%read_chunk(data, t_index=t_index, t_size=t_size)
   end subroutine points_input_read_chunk_dp
+
+  !> \brief Read one point time series selected by an optional time frame.
+  subroutine points_input_read_series_dp(self, name, point_index, data, timeframe_start, timeframe_end, times)
+    class(points_input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i8), intent(in) :: point_index !< one-based point index
+    real(dp), allocatable, intent(out) :: data(:) !< read point time series
+    type(datetime), optional, intent(in) :: timeframe_start !< start of time frame, excluding
+    type(datetime), optional, intent(in) :: timeframe_end !< end of time frame, including
+    type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned series
+    integer(i4) :: t_index, t_size, var_id
+    var_id = points_input_var_index(self, name)
+    if (self%vars(var_id)%static) call error_message("points_input%read_series: need temporal variable: ",&
+        & self%vars(var_id)%meta%name)
+    if (present(timeframe_start) .neqv. present(timeframe_end)) &
+      call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
+    if (present(timeframe_start)) then
+      call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
+    else
+      t_index = 1_i4
+      t_size = size(self%times)
+      if (present(times)) allocate(times(t_size), source=self%times)
+    end if
+    call self%vars(var_id)%read_series(point_index, data, t_index=t_index, t_size=t_size)
+  end subroutine points_input_read_series_dp
   !> \brief Read one point vector from an input dataset.
   subroutine points_input_read_i1(self, name, data, current_time, t_index)
     class(points_input_dataset), intent(inout) :: self
@@ -785,6 +1370,31 @@ contains
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%vars(var_id)%read_chunk(data, t_index=t_index, t_size=t_size)
   end subroutine points_input_read_chunk_i1
+
+  !> \brief Read one point time series selected by an optional time frame.
+  subroutine points_input_read_series_i1(self, name, point_index, data, timeframe_start, timeframe_end, times)
+    class(points_input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i8), intent(in) :: point_index !< one-based point index
+    integer(i1), allocatable, intent(out) :: data(:) !< read point time series
+    type(datetime), optional, intent(in) :: timeframe_start !< start of time frame, excluding
+    type(datetime), optional, intent(in) :: timeframe_end !< end of time frame, including
+    type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned series
+    integer(i4) :: t_index, t_size, var_id
+    var_id = points_input_var_index(self, name)
+    if (self%vars(var_id)%static) call error_message("points_input%read_series: need temporal variable: ",&
+        & self%vars(var_id)%meta%name)
+    if (present(timeframe_start) .neqv. present(timeframe_end)) &
+      call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
+    if (present(timeframe_start)) then
+      call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
+    else
+      t_index = 1_i4
+      t_size = size(self%times)
+      if (present(times)) allocate(times(t_size), source=self%times)
+    end if
+    call self%vars(var_id)%read_series(point_index, data, t_index=t_index, t_size=t_size)
+  end subroutine points_input_read_series_i1
   !> \brief Read one point vector from an input dataset.
   subroutine points_input_read_i2(self, name, data, current_time, t_index)
     class(points_input_dataset), intent(inout) :: self
@@ -813,6 +1423,31 @@ contains
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%vars(var_id)%read_chunk(data, t_index=t_index, t_size=t_size)
   end subroutine points_input_read_chunk_i2
+
+  !> \brief Read one point time series selected by an optional time frame.
+  subroutine points_input_read_series_i2(self, name, point_index, data, timeframe_start, timeframe_end, times)
+    class(points_input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i8), intent(in) :: point_index !< one-based point index
+    integer(i2), allocatable, intent(out) :: data(:) !< read point time series
+    type(datetime), optional, intent(in) :: timeframe_start !< start of time frame, excluding
+    type(datetime), optional, intent(in) :: timeframe_end !< end of time frame, including
+    type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned series
+    integer(i4) :: t_index, t_size, var_id
+    var_id = points_input_var_index(self, name)
+    if (self%vars(var_id)%static) call error_message("points_input%read_series: need temporal variable: ",&
+        & self%vars(var_id)%meta%name)
+    if (present(timeframe_start) .neqv. present(timeframe_end)) &
+      call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
+    if (present(timeframe_start)) then
+      call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
+    else
+      t_index = 1_i4
+      t_size = size(self%times)
+      if (present(times)) allocate(times(t_size), source=self%times)
+    end if
+    call self%vars(var_id)%read_series(point_index, data, t_index=t_index, t_size=t_size)
+  end subroutine points_input_read_series_i2
   !> \brief Read one point vector from an input dataset.
   subroutine points_input_read_i4(self, name, data, current_time, t_index)
     class(points_input_dataset), intent(inout) :: self
@@ -841,6 +1476,31 @@ contains
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%vars(var_id)%read_chunk(data, t_index=t_index, t_size=t_size)
   end subroutine points_input_read_chunk_i4
+
+  !> \brief Read one point time series selected by an optional time frame.
+  subroutine points_input_read_series_i4(self, name, point_index, data, timeframe_start, timeframe_end, times)
+    class(points_input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i8), intent(in) :: point_index !< one-based point index
+    integer(i4), allocatable, intent(out) :: data(:) !< read point time series
+    type(datetime), optional, intent(in) :: timeframe_start !< start of time frame, excluding
+    type(datetime), optional, intent(in) :: timeframe_end !< end of time frame, including
+    type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned series
+    integer(i4) :: t_index, t_size, var_id
+    var_id = points_input_var_index(self, name)
+    if (self%vars(var_id)%static) call error_message("points_input%read_series: need temporal variable: ",&
+        & self%vars(var_id)%meta%name)
+    if (present(timeframe_start) .neqv. present(timeframe_end)) &
+      call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
+    if (present(timeframe_start)) then
+      call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
+    else
+      t_index = 1_i4
+      t_size = size(self%times)
+      if (present(times)) allocate(times(t_size), source=self%times)
+    end if
+    call self%vars(var_id)%read_series(point_index, data, t_index=t_index, t_size=t_size)
+  end subroutine points_input_read_series_i4
   !> \brief Read one point vector from an input dataset.
   subroutine points_input_read_i8(self, name, data, current_time, t_index)
     class(points_input_dataset), intent(inout) :: self
@@ -869,6 +1529,31 @@ contains
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%vars(var_id)%read_chunk(data, t_index=t_index, t_size=t_size)
   end subroutine points_input_read_chunk_i8
+
+  !> \brief Read one point time series selected by an optional time frame.
+  subroutine points_input_read_series_i8(self, name, point_index, data, timeframe_start, timeframe_end, times)
+    class(points_input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i8), intent(in) :: point_index !< one-based point index
+    integer(i8), allocatable, intent(out) :: data(:) !< read point time series
+    type(datetime), optional, intent(in) :: timeframe_start !< start of time frame, excluding
+    type(datetime), optional, intent(in) :: timeframe_end !< end of time frame, including
+    type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned series
+    integer(i4) :: t_index, t_size, var_id
+    var_id = points_input_var_index(self, name)
+    if (self%vars(var_id)%static) call error_message("points_input%read_series: need temporal variable: ",&
+        & self%vars(var_id)%meta%name)
+    if (present(timeframe_start) .neqv. present(timeframe_end)) &
+      call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
+    if (present(timeframe_start)) then
+      call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
+    else
+      t_index = 1_i4
+      t_size = size(self%times)
+      if (present(times)) allocate(times(t_size), source=self%times)
+    end if
+    call self%vars(var_id)%read_series(point_index, data, t_index=t_index, t_size=t_size)
+  end subroutine points_input_read_series_i8
 
   !> \brief Get times and indices for a temporal chunk.
   subroutine points_input_chunk_times(self, timeframe_start, timeframe_end, times, t_index, t_size)
@@ -937,6 +1622,130 @@ contains
     if (allocated(self%t_values)) deallocate(self%t_values)
     if (allocated(self%t_bounds)) deallocate(self%t_bounds)
   end subroutine points_input_close
+
+  !> \brief Generate integer CF time coordinate values and contiguous bounds.
+  subroutine points_time_axis(timeframe_start, timeframe_end, values, bounds, units, timestep, delta, timestamp, ref_time)
+    type(datetime), intent(in) :: timeframe_start !< start of first time frame
+    type(datetime), intent(in) :: timeframe_end !< end of final time frame
+    integer(i4), allocatable, intent(out) :: values(:) !< generated time coordinate values
+    integer(i4), allocatable, intent(out) :: bounds(:, :) !< generated bounds with shape (2,time)
+    character(:), allocatable, intent(out) :: units !< CF time units
+    integer(i4), optional, intent(in) :: timestep !< time step indicator or positive hourly step
+    character(*), optional, intent(in) :: delta !< time units, for example "hours" or "days"
+    integer(i4), optional, intent(in) :: timestamp !< timestamp location selector
+    type(datetime), optional, intent(in) :: ref_time !< reference time, defaults to timeframe_start
+
+    character(:), allocatable :: units_dt
+    type(datetime) :: ref_time_, previous_time, current_time
+    type(timedelta) :: delta_
+    integer(i4) :: timestep_, timestamp_, t_start, t_end, t_stamp, i, n_times
+
+    if (timeframe_end <= timeframe_start) call error_message("points_time_axis: timeframe_end must be after timeframe_start")
+    timestamp_ = optval(timestamp, end_timestamp)
+    timestep_ = optval(timestep, daily)
+    units_dt = trim(optval(delta, time_units_delta(timestep_, timestamp_)))
+    delta_ = delta_from_string(units_dt)
+    ref_time_ = timeframe_start
+    if (present(ref_time)) ref_time_ = ref_time
+    units = units_dt // " since " // ref_time_%str()
+
+    n_times = 0_i4
+    previous_time = timeframe_start
+    do while(previous_time < timeframe_end)
+      current_time = points_time_axis_next(previous_time, timestep_, delta, present(delta))
+      if (current_time > timeframe_end) call error_message("points_time_axis: timestep does not align with timeframe_end")
+      n_times = n_times + 1_i4
+      previous_time = current_time
+    end do
+    allocate(values(n_times), bounds(2, n_times))
+    previous_time = timeframe_start
+    do i = 1_i4, n_times
+      current_time = points_time_axis_next(previous_time, timestep_, delta, present(delta))
+      call grid_time_values(ref_time_, previous_time, current_time, delta_, timestamp_, t_start, t_end, t_stamp)
+      bounds(:, i) = [t_start, t_end]
+      values(i) = t_stamp
+      previous_time = current_time
+    end do
+  end subroutine points_time_axis
+
+  !> \brief Return the next contiguous time-axis edge.
+  type(datetime) function points_time_axis_next(current_time, timestep, delta, use_delta) result(next_time)
+    type(datetime), intent(in) :: current_time !< current time-axis edge
+    integer(i4), intent(in) :: timestep !< time step indicator or positive hourly step
+    character(*), optional, intent(in) :: delta !< explicit timedelta units
+    logical, intent(in) :: use_delta !< use explicit delta instead of timestep
+
+    if (use_delta) then
+      if (.not.present(delta)) call error_message("points_time_axis_next: missing delta")
+      next_time = current_time + delta_from_string(delta)
+      return
+    end if
+    select case(timestep)
+      case(yearly)
+        next_time = current_time%next_new_year()
+      case(monthly)
+        next_time = current_time%next_new_month()
+      case(daily)
+        next_time = current_time%next_new_day()
+      case(varying, no_time)
+        call error_message("points_time_axis: invalid timestep for contiguous axis")
+      case default
+        if (timestep <= 0_i4) call error_message("points_time_axis: invalid timestep")
+        next_time = current_time + timestep * delta_from_string("hours")
+    end select
+  end function points_time_axis_next
+
+  !> \brief Return one-based index of an integer point ID.
+  integer(i8) function points_id_index_i4(ids, id) result(idx)
+    integer(i4), intent(in) :: ids(:) !< point IDs
+    integer(i4), intent(in) :: id !< selected point ID
+    integer(i8) :: i
+    idx = 0_i8
+    do i = 1_i8, size(ids, kind=i8)
+      if (ids(i) == id) then
+        idx = i
+        return
+      end if
+    end do
+    call error_message("points_id_index: ID not found")
+  end function points_id_index_i4
+
+  !> \brief Return one-based index of an integer point ID.
+  integer(i8) function points_id_index_i8(ids, id) result(idx)
+    integer(i8), intent(in) :: ids(:) !< point IDs
+    integer(i8), intent(in) :: id !< selected point ID
+    integer(i8) :: i
+    idx = 0_i8
+    do i = 1_i8, size(ids, kind=i8)
+      if (ids(i) == id) then
+        idx = i
+        return
+      end if
+    end do
+    call error_message("points_id_index: ID not found")
+  end function points_id_index_i8
+
+  !> \brief Return one-based indices of integer point IDs.
+  function points_id_indices_i4(ids, selected_ids) result(indices)
+    integer(i4), intent(in) :: ids(:) !< point IDs
+    integer(i4), intent(in) :: selected_ids(:) !< selected point IDs
+    integer(i8) :: indices(size(selected_ids))
+    integer(i4) :: i
+    do i = 1_i4, size(selected_ids)
+      indices(i) = points_id_index_i4(ids, selected_ids(i))
+    end do
+  end function points_id_indices_i4
+
+  !> \brief Return one-based indices of integer point IDs.
+  function points_id_indices_i8(ids, selected_ids) result(indices)
+    integer(i8), intent(in) :: ids(:) !< point IDs
+    integer(i8), intent(in) :: selected_ids(:) !< selected point IDs
+    integer(i8) :: indices(size(selected_ids))
+    integer(i4) :: i
+    do i = 1_i4, size(selected_ids)
+      indices(i) = points_id_index_i8(ids, selected_ids(i))
+    end do
+  end function points_id_indices_i8
 
   !> \brief Map NetCDF dtype metadata to default Fortran kinds and missing values.
   subroutine points_io_dtype_defaults(name, dtype, kind, nc)
@@ -1020,6 +1829,23 @@ contains
     end do
     call error_message("points_output%var_index: variable not present: ", name)
   end function points_output_var_index
+
+  !> \brief Return the one-based index of a point-series output variable.
+  integer(i4) function points_series_output_var_index(self, name)
+    class(points_series_output_dataset), intent(in) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i4) :: i
+    points_series_output_var_index = 0_i4
+    do i = 1_i4, self%nvars
+      if (allocated(self%vars(i)%meta%name)) then
+        if (self%vars(i)%meta%name == name) then
+          points_series_output_var_index = i
+          return
+        end if
+      end if
+    end do
+    call error_message("points_series_output%var_index: variable not present: ", name)
+  end function points_series_output_var_index
 
   !> \brief Return the one-based index of an input variable.
   integer(i4) function points_input_var_index(self, name)
