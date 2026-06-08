@@ -232,6 +232,7 @@ contains
     type(NcDimension), optional, intent(in) :: time_dim !< unlimited time dimension
     integer(i4), intent(in) :: deflate_level !< NetCDF deflate level
     logical, optional, intent(in) :: time_series !< use station time-series layout
+    integer(i4), allocatable :: dimids(:)
 
     self%meta = meta
     self%static = meta%static
@@ -242,14 +243,16 @@ contains
     self%points => points
     if (.not.associated(self%points)) call error_message("points_output_variable: points pointer not associated")
     if (self%static) then
-      self%nc = nc%setVariable(meta%name, self%dtype, [points_dim], deflate_level=deflate_level, shuffle=.true.)
+      allocate(dimids(1), source=[points_dim%id])
+      self%nc = nc%setVariable(meta%name, self%dtype, dimids, deflate_level=deflate_level, shuffle=.true.)
     else
       if (.not.present(time_dim)) call error_message("points_output_variable: temporal variable needs time dimension: ", meta%name)
       if (self%time_series) then
-        self%nc = nc%setVariable(meta%name, self%dtype, [time_dim, points_dim], deflate_level=deflate_level, shuffle=.true.)
+        allocate(dimids(2), source=[time_dim%id, points_dim%id])
       else
-        self%nc = nc%setVariable(meta%name, self%dtype, [points_dim, time_dim], deflate_level=deflate_level, shuffle=.true.)
+        allocate(dimids(2), source=[points_dim%id, time_dim%id])
       end if
+      self%nc = nc%setVariable(meta%name, self%dtype, dimids, deflate_level=deflate_level, shuffle=.true.)
     end if
     if (allocated(meta%long_name)) call self%nc%setAttribute("long_name", meta%long_name)
     if (allocated(meta%standard_name)) call self%nc%setAttribute("standard_name", meta%standard_name)
@@ -496,13 +499,13 @@ contains
       units = units_dt // " since " // self%ref_time%str()
       time_dim = self%nc%setDimension("time", 0_i4)
       bnds_dim = self%nc%setDimension("bnds", 2_i4)
-      t_var = self%nc%setVariable("time", "i32", [time_dim])
+      t_var = self%nc%setVariable("time", "i32", [time_dim%id])
       call t_var%setAttribute("long_name", "time")
       call t_var%setAttribute("standard_name", "time")
       call t_var%setAttribute("axis", "T")
       call t_var%setAttribute("units", units)
       call t_var%setAttribute("bounds", "time_bnds")
-      t_var = self%nc%setVariable("time_bnds", "i32", [bnds_dim, time_dim])
+      t_var = self%nc%setVariable("time_bnds", "i32", [bnds_dim%id, time_dim%id])
     end if
 
     allocate(self%vars(self%nvars))
@@ -611,6 +614,7 @@ contains
     type(NcDimension), intent(in) :: time_dim !< fixed time dimension
     integer(i8), intent(in) :: n_times !< number of time values
     integer(i4), intent(in) :: deflate_level !< NetCDF deflate level
+    integer(i4), allocatable :: dimids(:)
 
     self%meta = meta
     self%dtype = "f64"
@@ -619,10 +623,11 @@ contains
     self%n_times = n_times
     if (.not.associated(self%points)) call error_message("points_series_output_variable: points pointer not associated")
     if (meta%static) then
-      self%nc = nc%setVariable(meta%name, self%dtype, [points_dim], deflate_level=deflate_level, shuffle=.true.)
+      allocate(dimids(1), source=[points_dim%id])
     else
-      self%nc = nc%setVariable(meta%name, self%dtype, [time_dim, points_dim], deflate_level=deflate_level, shuffle=.true.)
+      allocate(dimids(2), source=[time_dim%id, points_dim%id])
     end if
+    self%nc = nc%setVariable(meta%name, self%dtype, dimids, deflate_level=deflate_level, shuffle=.true.)
     if (allocated(meta%long_name)) call self%nc%setAttribute("long_name", meta%long_name)
     if (allocated(meta%standard_name)) call self%nc%setAttribute("standard_name", meta%standard_name)
     if (allocated(meta%units)) call self%nc%setAttribute("units", meta%units)
@@ -852,7 +857,7 @@ contains
     call self%points%to_netcdf(self%nc, point_dim_name=dimname, double_precision=points_double_precision)
     points_dim = self%nc%getDimension(dimname)
     time_dim = self%nc%setDimension("time", size(time_values))
-    t_var = self%nc%setVariable("time", "i32", [time_dim])
+    t_var = self%nc%setVariable("time", "i32", [time_dim%id])
     call t_var%setAttribute("long_name", "time")
     call t_var%setAttribute("standard_name", "time")
     call t_var%setAttribute("axis", "T")
@@ -861,7 +866,7 @@ contains
     if (present(time_bnds)) then
       bnds_dim = self%nc%setDimension("bnds", 2_i4)
       call t_var%setAttribute("bounds", "time_bnds")
-      tb_var = self%nc%setVariable("time_bnds", "i32", [bnds_dim, time_dim])
+      tb_var = self%nc%setVariable("time_bnds", "i32", [bnds_dim%id, time_dim%id])
       call tb_var%setData(time_bnds)
     end if
 
