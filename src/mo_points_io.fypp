@@ -466,7 +466,6 @@ contains
     if (self%static) then
       allocate(dimids(1))
       dimids(1) = points_dim_id
-      self%nc = nc%setVariable(meta%name, self%dtype, dimids, deflate_level=deflate_level, shuffle=.true.)
     else
       if (time_dim_id < 0_i4) call error_message("points_output_variable: temporal variable needs time dimension: ", meta%name)
       allocate(dimids(2))
@@ -477,8 +476,8 @@ contains
         dimids(1) = points_dim_id
         dimids(2) = time_dim_id
       end if
-      self%nc = nc%setVariable(meta%name, self%dtype, dimids, deflate_level=deflate_level, shuffle=.true.)
     end if
+    self%nc = nc%setVariable(meta%name, self%dtype, dimids, deflate_level=deflate_level, shuffle=.true.)
     if (allocated(meta%long_name)) call self%nc%setAttribute("long_name", meta%long_name)
     if (allocated(meta%standard_name)) call self%nc%setAttribute("standard_name", meta%standard_name)
     if (allocated(meta%units)) call self%nc%setAttribute("units", meta%units)
