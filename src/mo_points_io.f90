@@ -361,7 +361,8 @@ contains
         else
           if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%meta%name)
           if (self%time_series) then
-            call self%nc%setData(self%data_sp, [1_i4, t_index], cnt=[int(self%points%n_points, i4), 1_i4])
+            call self%nc%setData(reshape(self%data_sp, [1_i4, int(self%points%n_points, i4)]), &
+                                 [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
           else
             call self%nc%setData(self%data_sp, [1_i4, t_index])
           end if
@@ -374,7 +375,8 @@ contains
         else
           if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%meta%name)
           if (self%time_series) then
-            call self%nc%setData(self%data_dp, [1_i4, t_index], cnt=[int(self%points%n_points, i4), 1_i4])
+            call self%nc%setData(reshape(self%data_dp, [1_i4, int(self%points%n_points, i4)]), &
+                                 [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
           else
             call self%nc%setData(self%data_dp, [1_i4, t_index])
           end if
@@ -387,7 +389,8 @@ contains
         else
           if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%meta%name)
           if (self%time_series) then
-            call self%nc%setData(self%data_i1, [1_i4, t_index], cnt=[int(self%points%n_points, i4), 1_i4])
+            call self%nc%setData(reshape(self%data_i1, [1_i4, int(self%points%n_points, i4)]), &
+                                 [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
           else
             call self%nc%setData(self%data_i1, [1_i4, t_index])
           end if
@@ -400,7 +403,8 @@ contains
         else
           if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%meta%name)
           if (self%time_series) then
-            call self%nc%setData(self%data_i2, [1_i4, t_index], cnt=[int(self%points%n_points, i4), 1_i4])
+            call self%nc%setData(reshape(self%data_i2, [1_i4, int(self%points%n_points, i4)]), &
+                                 [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
           else
             call self%nc%setData(self%data_i2, [1_i4, t_index])
           end if
@@ -413,7 +417,8 @@ contains
         else
           if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%meta%name)
           if (self%time_series) then
-            call self%nc%setData(self%data_i4, [1_i4, t_index], cnt=[int(self%points%n_points, i4), 1_i4])
+            call self%nc%setData(reshape(self%data_i4, [1_i4, int(self%points%n_points, i4)]), &
+                                 [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
           else
             call self%nc%setData(self%data_i4, [1_i4, t_index])
           end if
@@ -426,7 +431,8 @@ contains
         else
           if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%meta%name)
           if (self%time_series) then
-            call self%nc%setData(self%data_i8, [1_i4, t_index], cnt=[int(self%points%n_points, i4), 1_i4])
+            call self%nc%setData(reshape(self%data_i8, [1_i4, int(self%points%n_points, i4)]), &
+                                 [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
           else
             call self%nc%setData(self%data_i8, [1_i4, t_index])
           end if
@@ -644,7 +650,7 @@ contains
     if (size(data, kind=i8) /= self%n_times) call error_message("points_series_output_variable: time series size mismatch: ",&
         & self%meta%name)
     point_index_ = int(point_index, i4)
-    call self%nc%setData(data, start=[point_index_, 1_i4], cnt=[1_i4, int(self%n_times, i4)])
+    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_sp
 
@@ -674,7 +680,7 @@ contains
     if (size(data, kind=i8) /= self%n_times) call error_message("points_series_output_variable: time series size mismatch: ",&
         & self%meta%name)
     point_index_ = int(point_index, i4)
-    call self%nc%setData(data, start=[point_index_, 1_i4], cnt=[1_i4, int(self%n_times, i4)])
+    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_dp
 
@@ -704,7 +710,7 @@ contains
     if (size(data, kind=i8) /= self%n_times) call error_message("points_series_output_variable: time series size mismatch: ",&
         & self%meta%name)
     point_index_ = int(point_index, i4)
-    call self%nc%setData(data, start=[point_index_, 1_i4], cnt=[1_i4, int(self%n_times, i4)])
+    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_i1
 
@@ -734,7 +740,7 @@ contains
     if (size(data, kind=i8) /= self%n_times) call error_message("points_series_output_variable: time series size mismatch: ",&
         & self%meta%name)
     point_index_ = int(point_index, i4)
-    call self%nc%setData(data, start=[point_index_, 1_i4], cnt=[1_i4, int(self%n_times, i4)])
+    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_i2
 
@@ -764,7 +770,7 @@ contains
     if (size(data, kind=i8) /= self%n_times) call error_message("points_series_output_variable: time series size mismatch: ",&
         & self%meta%name)
     point_index_ = int(point_index, i4)
-    call self%nc%setData(data, start=[point_index_, 1_i4], cnt=[1_i4, int(self%n_times, i4)])
+    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_i4
 
@@ -794,7 +800,7 @@ contains
     if (size(data, kind=i8) /= self%n_times) call error_message("points_series_output_variable: time series size mismatch: ",&
         & self%meta%name)
     point_index_ = int(point_index, i4)
-    call self%nc%setData(data, start=[point_index_, 1_i4], cnt=[1_i4, int(self%n_times, i4)])
+    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_i8
 
@@ -1037,6 +1043,7 @@ contains
     class(points_input_variable), intent(inout) :: self
     real(sp), intent(out) :: data(:) !< read point data
     integer(i4), optional, intent(in) :: t_index !< temporal index for non-static variables
+    real(sp), allocatable :: tmp(:, :)
     if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ",&
         & self%meta%name)
     if (self%static) then
@@ -1044,7 +1051,12 @@ contains
     else
       if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
       if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
-      call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      if (self%time_series) then
+        call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        data = tmp(1, :)
+      else
+        call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      end if
     end if
   end subroutine points_in_var_read_sp
 
@@ -1054,8 +1066,14 @@ contains
     real(sp), allocatable, intent(out) :: data(:,:) !< read point data with shape (point,time)
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
+    real(sp), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%meta%name)
-    call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    if (self%time_series) then
+      call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      allocate(data(self%points%n_points, t_size), source=transpose(tmp))
+    else
+      call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    end if
   end subroutine points_in_var_read_chunk_sp
 
   !> \brief Read one point time series.
@@ -1070,13 +1088,18 @@ contains
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_input_variable: point index out of range: ", self%meta%name)
     point_index_ = int(point_index, i4)
-    call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+    if (self%time_series) then
+      call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+    else
+      call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+    end if
   end subroutine points_in_var_read_series_sp
   !> \brief Read one static or temporal point vector.
   subroutine points_in_var_read_dp(self, data, t_index)
     class(points_input_variable), intent(inout) :: self
     real(dp), intent(out) :: data(:) !< read point data
     integer(i4), optional, intent(in) :: t_index !< temporal index for non-static variables
+    real(dp), allocatable :: tmp(:, :)
     if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ",&
         & self%meta%name)
     if (self%static) then
@@ -1084,7 +1107,12 @@ contains
     else
       if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
       if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
-      call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      if (self%time_series) then
+        call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        data = tmp(1, :)
+      else
+        call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      end if
     end if
   end subroutine points_in_var_read_dp
 
@@ -1094,8 +1122,14 @@ contains
     real(dp), allocatable, intent(out) :: data(:,:) !< read point data with shape (point,time)
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
+    real(dp), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%meta%name)
-    call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    if (self%time_series) then
+      call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      allocate(data(self%points%n_points, t_size), source=transpose(tmp))
+    else
+      call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    end if
   end subroutine points_in_var_read_chunk_dp
 
   !> \brief Read one point time series.
@@ -1110,13 +1144,18 @@ contains
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_input_variable: point index out of range: ", self%meta%name)
     point_index_ = int(point_index, i4)
-    call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+    if (self%time_series) then
+      call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+    else
+      call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+    end if
   end subroutine points_in_var_read_series_dp
   !> \brief Read one static or temporal point vector.
   subroutine points_in_var_read_i1(self, data, t_index)
     class(points_input_variable), intent(inout) :: self
     integer(i1), intent(out) :: data(:) !< read point data
     integer(i4), optional, intent(in) :: t_index !< temporal index for non-static variables
+    integer(i1), allocatable :: tmp(:, :)
     if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ",&
         & self%meta%name)
     if (self%static) then
@@ -1124,7 +1163,12 @@ contains
     else
       if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
       if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
-      call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      if (self%time_series) then
+        call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        data = tmp(1, :)
+      else
+        call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      end if
     end if
   end subroutine points_in_var_read_i1
 
@@ -1134,8 +1178,14 @@ contains
     integer(i1), allocatable, intent(out) :: data(:,:) !< read point data with shape (point,time)
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
+    integer(i1), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%meta%name)
-    call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    if (self%time_series) then
+      call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      allocate(data(self%points%n_points, t_size), source=transpose(tmp))
+    else
+      call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    end if
   end subroutine points_in_var_read_chunk_i1
 
   !> \brief Read one point time series.
@@ -1150,13 +1200,18 @@ contains
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_input_variable: point index out of range: ", self%meta%name)
     point_index_ = int(point_index, i4)
-    call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+    if (self%time_series) then
+      call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+    else
+      call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+    end if
   end subroutine points_in_var_read_series_i1
   !> \brief Read one static or temporal point vector.
   subroutine points_in_var_read_i2(self, data, t_index)
     class(points_input_variable), intent(inout) :: self
     integer(i2), intent(out) :: data(:) !< read point data
     integer(i4), optional, intent(in) :: t_index !< temporal index for non-static variables
+    integer(i2), allocatable :: tmp(:, :)
     if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ",&
         & self%meta%name)
     if (self%static) then
@@ -1164,7 +1219,12 @@ contains
     else
       if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
       if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
-      call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      if (self%time_series) then
+        call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        data = tmp(1, :)
+      else
+        call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      end if
     end if
   end subroutine points_in_var_read_i2
 
@@ -1174,8 +1234,14 @@ contains
     integer(i2), allocatable, intent(out) :: data(:,:) !< read point data with shape (point,time)
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
+    integer(i2), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%meta%name)
-    call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    if (self%time_series) then
+      call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      allocate(data(self%points%n_points, t_size), source=transpose(tmp))
+    else
+      call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    end if
   end subroutine points_in_var_read_chunk_i2
 
   !> \brief Read one point time series.
@@ -1190,13 +1256,18 @@ contains
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_input_variable: point index out of range: ", self%meta%name)
     point_index_ = int(point_index, i4)
-    call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+    if (self%time_series) then
+      call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+    else
+      call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+    end if
   end subroutine points_in_var_read_series_i2
   !> \brief Read one static or temporal point vector.
   subroutine points_in_var_read_i4(self, data, t_index)
     class(points_input_variable), intent(inout) :: self
     integer(i4), intent(out) :: data(:) !< read point data
     integer(i4), optional, intent(in) :: t_index !< temporal index for non-static variables
+    integer(i4), allocatable :: tmp(:, :)
     if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ",&
         & self%meta%name)
     if (self%static) then
@@ -1204,7 +1275,12 @@ contains
     else
       if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
       if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
-      call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      if (self%time_series) then
+        call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        data = tmp(1, :)
+      else
+        call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      end if
     end if
   end subroutine points_in_var_read_i4
 
@@ -1214,8 +1290,14 @@ contains
     integer(i4), allocatable, intent(out) :: data(:,:) !< read point data with shape (point,time)
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
+    integer(i4), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%meta%name)
-    call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    if (self%time_series) then
+      call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      allocate(data(self%points%n_points, t_size), source=transpose(tmp))
+    else
+      call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    end if
   end subroutine points_in_var_read_chunk_i4
 
   !> \brief Read one point time series.
@@ -1230,13 +1312,18 @@ contains
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_input_variable: point index out of range: ", self%meta%name)
     point_index_ = int(point_index, i4)
-    call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+    if (self%time_series) then
+      call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+    else
+      call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+    end if
   end subroutine points_in_var_read_series_i4
   !> \brief Read one static or temporal point vector.
   subroutine points_in_var_read_i8(self, data, t_index)
     class(points_input_variable), intent(inout) :: self
     integer(i8), intent(out) :: data(:) !< read point data
     integer(i4), optional, intent(in) :: t_index !< temporal index for non-static variables
+    integer(i8), allocatable :: tmp(:, :)
     if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ",&
         & self%meta%name)
     if (self%static) then
@@ -1244,7 +1331,12 @@ contains
     else
       if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
       if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%meta%name)
-      call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      if (self%time_series) then
+        call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        data = tmp(1, :)
+      else
+        call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+      end if
     end if
   end subroutine points_in_var_read_i8
 
@@ -1254,8 +1346,14 @@ contains
     integer(i8), allocatable, intent(out) :: data(:,:) !< read point data with shape (point,time)
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
+    integer(i8), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%meta%name)
-    call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    if (self%time_series) then
+      call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      allocate(data(self%points%n_points, t_size), source=transpose(tmp))
+    else
+      call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+    end if
   end subroutine points_in_var_read_chunk_i8
 
   !> \brief Read one point time series.
@@ -1270,7 +1368,11 @@ contains
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_input_variable: point index out of range: ", self%meta%name)
     point_index_ = int(point_index, i4)
-    call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+    if (self%time_series) then
+      call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+    else
+      call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+    end if
   end subroutine points_in_var_read_series_i8
 
   !> \brief Initialize a point-set input dataset.
