@@ -470,7 +470,7 @@ contains
     character(:), allocatable :: dimname, units, units_dt
     type(NcDimension) :: points_dim, time_dim, bnds_dim
     type(NcVariable) :: t_var
-    integer(i4) :: i
+    integer(i4) :: i, points_dim_id, time_dim_id
 
     self%path = trim(path)
     self%nc = NcDataset(self%path, "w")
@@ -484,6 +484,8 @@ contains
 
     call self%points%to_netcdf(self%nc, point_dim_name=dimname, double_precision=points_double_precision)
     points_dim = self%nc%getDimension(dimname)
+    points_dim_id = points_dim%id
+    time_dim_id = -1_i4
 
     self%nvars = size(vars)
     if (self%nvars == 0_i4) call error_message("points_output_dataset: no variables selected")
@@ -501,22 +503,23 @@ contains
       self%delta = delta_from_string(units_dt)
       units = units_dt // " since " // self%ref_time%str()
       time_dim = self%nc%setDimension("time", 0_i4)
+      time_dim_id = time_dim%id
       bnds_dim = self%nc%setDimension("bnds", 2_i4)
-      t_var = self%nc%setVariable("time", "i32", [time_dim%id])
+      t_var = self%nc%setVariable("time", "i32", [time_dim_id])
       call t_var%setAttribute("long_name", "time")
       call t_var%setAttribute("standard_name", "time")
       call t_var%setAttribute("axis", "T")
       call t_var%setAttribute("units", units)
       call t_var%setAttribute("bounds", "time_bnds")
-      t_var = self%nc%setVariable("time_bnds", "i32", [bnds_dim%id, time_dim%id])
+      t_var = self%nc%setVariable("time_bnds", "i32", [bnds_dim%id, time_dim_id])
     end if
 
     allocate(self%vars(self%nvars))
     do i = 1_i4, self%nvars
-      if (self%static) then
-        call self%vars(i)%init(vars(i), self%nc, self%points, points_dim%id, -1_i4, deflate_level=self%deflate_level)
+      if (vars(i)%static) then
+        call self%vars(i)%init(vars(i), self%nc, self%points, points_dim_id, -1_i4, deflate_level=self%deflate_level)
       else
-        call self%vars(i)%init(vars(i), self%nc, self%points, points_dim%id, time_dim%id, self%deflate_level, self%time_series)
+        call self%vars(i)%init(vars(i), self%nc, self%points, points_dim_id, time_dim_id, self%deflate_level, self%time_series)
       end if
     end do
   end subroutine points_output_init
@@ -845,7 +848,7 @@ contains
     character(:), allocatable :: dimname
     type(NcDimension) :: points_dim, time_dim, bnds_dim
     type(NcVariable) :: t_var, tb_var
-    integer(i4) :: i
+    integer(i4) :: i, points_dim_id, time_dim_id
 
     if (size(time_values, kind=i8) < 1_i8) call error_message("points_series_output_dataset: empty time axis")
     if (present(time_bnds)) then
@@ -862,8 +865,10 @@ contains
 
     call self%points%to_netcdf(self%nc, point_dim_name=dimname, double_precision=points_double_precision)
     points_dim = self%nc%getDimension(dimname)
+    points_dim_id = points_dim%id
     time_dim = self%nc%setDimension("time", size(time_values))
-    t_var = self%nc%setVariable("time", "i32", [time_dim%id])
+    time_dim_id = time_dim%id
+    t_var = self%nc%setVariable("time", "i32", [time_dim_id])
     call t_var%setAttribute("long_name", "time")
     call t_var%setAttribute("standard_name", "time")
     call t_var%setAttribute("axis", "T")
@@ -872,7 +877,7 @@ contains
     if (present(time_bnds)) then
       bnds_dim = self%nc%setDimension("bnds", 2_i4)
       call t_var%setAttribute("bounds", "time_bnds")
-      tb_var = self%nc%setVariable("time_bnds", "i32", [bnds_dim%id, time_dim%id])
+      tb_var = self%nc%setVariable("time_bnds", "i32", [bnds_dim%id, time_dim_id])
       call tb_var%setData(time_bnds)
     end if
 
@@ -880,7 +885,7 @@ contains
     if (self%nvars == 0_i4) call error_message("points_series_output_dataset: no variables selected")
     allocate(self%vars(self%nvars))
     do i = 1_i4, self%nvars
-      call self%vars(i)%init(vars(i), self%nc, self%points, points_dim%id, time_dim%id, self%n_times, self%deflate_level)
+      call self%vars(i)%init(vars(i), self%nc, self%points, points_dim_id, time_dim_id, self%n_times, self%deflate_level)
     end do
   end subroutine points_series_output_init
 
