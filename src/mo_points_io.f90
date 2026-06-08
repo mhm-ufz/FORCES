@@ -77,6 +77,8 @@ module mo_points_io
 
   !> \class points_output_dataset
   !> \brief NetCDF writer for static or temporal variables on a point set.
+  !! \par Examples
+  !! - \ref 01_points_io.f90 : \copybrief 01_points_io.f90
   type :: points_output_dataset
     type(points_t), pointer :: points => null()          !< point-set geometry
     character(:), allocatable :: path                    !< output path
@@ -130,6 +132,8 @@ module mo_points_io
 
   !> \class points_series_output_dataset
   !> \brief NetCDF writer for complete point time series.
+  !! \par Examples
+  !! - \ref 03_points_timeseries_io.f90 : \copybrief 03_points_timeseries_io.f90
   type :: points_series_output_dataset
     type(points_t), pointer :: points => null()                 !< point-set geometry
     character(:), allocatable :: path                           !< output path
@@ -182,6 +186,10 @@ module mo_points_io
 
   !> \class points_input_dataset
   !> \brief NetCDF reader for static or temporal variables on a point set.
+  !! \par Examples
+  !! - \ref 01_points_io.f90 : \copybrief 01_points_io.f90
+  !! - \ref 02_points_nearest.f90 : \copybrief 02_points_nearest.f90
+  !! - \ref 03_points_timeseries_io.f90 : \copybrief 03_points_timeseries_io.f90
   type :: points_input_dataset
     type(points_t), pointer :: points => null()         !< point-set geometry
     character(:), allocatable :: path                   !< input path

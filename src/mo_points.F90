@@ -6,6 +6,10 @@
 !!          a structured grid. A point set stores only coordinates; mesh
 !!          topology and point identifiers are intentionally not part of this
 !!          representation.
+!! \par Examples
+!! - \ref 01_points_io.f90 : \copybrief 01_points_io.f90
+!! - \ref 02_points_nearest.f90 : \copybrief 02_points_nearest.f90
+!! - \ref 03_points_timeseries_io.f90 : \copybrief 03_points_timeseries_io.f90
 !> \authors Sebastian Müller
 !> \date Jun 2026
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
@@ -36,6 +40,9 @@ module mo_points
   !> \brief Unstructured set of point coordinates.
   !> \details Coordinates are stored as x/y for cartesian systems and lon/lat for
   !!          spherical systems, selected by \ref coordsys.
+  !! \par Examples
+  !! - \ref 01_points_io.f90 : \copybrief 01_points_io.f90
+  !! - \ref 02_points_nearest.f90 : \copybrief 02_points_nearest.f90
   type :: points_t
     integer(i4) :: coordsys = cartesian !< Coordinate system, cartesian or spherical.
     integer(i8) :: n_points = 0_i8      !< Number of points.

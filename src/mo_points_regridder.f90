@@ -5,6 +5,8 @@
 !> \details Provides nearest-neighbor mappings between structured grids and
 !!          unstructured point sets. These regridders store an index map at
 !!          initialization and apply it to data vectors during execution.
+!! \par Examples
+!! - \ref 02_points_nearest.f90 : \copybrief 02_points_nearest.f90
 !> \authors Sebastian Müller
 !> \date Jun 2026
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
@@ -27,6 +29,8 @@ module mo_points_regridder
 
   !> \class nearest_grid_to_points_t
   !> \brief Nearest-neighbor mapper from grid cells to target points.
+  !! \par Examples
+  !! - \ref 02_points_nearest.f90 : \copybrief 02_points_nearest.f90
   type nearest_grid_to_points_t
     type(grid_t), pointer :: source_grid => null()      !< source grid
     type(points_t), pointer :: target_points => null() !< target point set
@@ -41,6 +45,8 @@ module mo_points_regridder
 
   !> \class nearest_points_to_grid_t
   !> \brief Nearest-neighbor mapper from source points to grid cells.
+  !! \par Examples
+  !! - \ref 02_points_nearest.f90 : \copybrief 02_points_nearest.f90
   type nearest_points_to_grid_t
     type(points_t), pointer :: source_points => null() !< source point set
     type(grid_t), pointer :: target_grid => null()       !< target grid
@@ -55,6 +61,8 @@ module mo_points_regridder
 
   !> \class nearest_points_to_points_t
   !> \brief Nearest-neighbor mapper between two point sets.
+  !! \par Examples
+  !! - \ref 02_points_nearest.f90 : \copybrief 02_points_nearest.f90
   type nearest_points_to_points_t
     type(points_t), pointer :: source_points => null() !< source point set
     type(points_t), pointer :: target_points => null() !< target point set
