@@ -1,0 +1,150 @@
+module test_mo_timeseries
+  use funit
+  use mo_datetime, only: datetime
+  use mo_kind, only: i4, dp
+  use mo_timeseries, only: timeseries_axis_t, timeseries_t, daily, hourly, end_timestamp, ts_instant, ts_interval, &
+                           ts_none, ts_mean, ts_sum, ts_previous, ts_nearest, ts_linear
+
+  implicit none
+
+  private
+
+  public :: test_timeseries_axis_contiguous
+  public :: test_timeseries_axis_cf_roundtrip
+  public :: test_timeseries_window
+  public :: test_timeseries_interval_resample
+  public :: test_timeseries_instant_resample
+
+contains
+
+  @test
+  subroutine test_timeseries_axis_contiguous()
+    type(timeseries_axis_t) :: daily_axis, hourly_axis
+    type(datetime) :: expected, actual
+
+    call daily_axis%init(datetime("1990-01-01"), datetime("1990-01-04"), timestep=daily)
+
+    @assertEqual(daily_axis%n_times(), 3_i4)
+    @assertEqual(daily_axis%values, [1_i4, 2_i4, 3_i4])
+    @assertEqual(daily_axis%bounds(1, :), [0_i4, 1_i4, 2_i4])
+    @assertEqual(daily_axis%bounds(2, :), [1_i4, 2_i4, 3_i4])
+    @assertEqual(daily_axis%timestep, daily)
+    @assertEqual(daily_axis%timestamp, end_timestamp)
+    expected = datetime("1990-01-01")
+    actual = daily_axis%lower(1_i4)
+    @assertEqual(actual%str(), expected%str())
+    expected = datetime("1990-01-02")
+    actual = daily_axis%time(1_i4)
+    @assertEqual(actual%str(), expected%str())
+
+    call hourly_axis%init(datetime("1992-02-01"), datetime("1992-02-01 03:00:00"), timestep=hourly)
+
+    @assertEqual(hourly_axis%n_times(), 3_i4)
+    @assertEqual(hourly_axis%values, [1_i4, 2_i4, 3_i4])
+    @assertEqual(hourly_axis%bounds(1, :), [0_i4, 1_i4, 2_i4])
+    @assertEqual(hourly_axis%bounds(2, :), [1_i4, 2_i4, 3_i4])
+    expected = datetime("1992-02-01 03:00:00")
+    actual = hourly_axis%upper(3_i4)
+    @assertEqual(actual%str(), expected%str())
+  end subroutine test_timeseries_axis_contiguous
+
+  @test
+  subroutine test_timeseries_axis_cf_roundtrip()
+    type(timeseries_axis_t) :: axis
+    integer(i4), allocatable :: values(:), bounds(:, :)
+    character(:), allocatable :: units
+    integer(i4) :: in_values(2), in_bounds(2, 2)
+
+    in_values = [24_i4, 48_i4]
+    in_bounds(:, 1_i4) = [0_i4, 24_i4]
+    in_bounds(:, 2_i4) = [24_i4, 48_i4]
+
+    call axis%init_cf(in_values, "hours since 2000-01-01 00:00:00", bounds=in_bounds)
+    call axis%to_cf(values, bounds, units)
+
+    @assertEqual(values, in_values)
+    @assertEqual(bounds, in_bounds)
+    @assertEqual(trim(units), "hours since 2000-01-01 00:00:00")
+    @assertEqual(axis%timestep, daily)
+  end subroutine test_timeseries_axis_cf_roundtrip
+
+  @test
+  subroutine test_timeseries_window()
+    type(timeseries_axis_t) :: axis
+    type(timeseries_t) :: series, selected
+
+    call axis%init(datetime("1990-01-01"), datetime("1990-01-05"), timestep=daily)
+    call series%init([1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp], axis, support=ts_interval, method=ts_mean)
+    call series%window(datetime("1990-01-02"), datetime("1990-01-04"), selected)
+
+    @assertEqual(selected%axis%n_times(), 2_i4)
+    @assertEqual(selected%axis%values, [2_i4, 3_i4])
+    @assertEqual(selected%values, [2.0_dp, 3.0_dp], tolerance=1.0e-12_dp)
+  end subroutine test_timeseries_window
+
+  @test
+  subroutine test_timeseries_interval_resample()
+    type(timeseries_axis_t) :: hourly_axis, daily_axis, derived_hourly_axis, window_hourly_axis
+    type(timeseries_axis_t) :: start_default_axis, end_default_axis
+    type(timeseries_t) :: hourly_mean, hourly_sum, daily_mean, daily_sum
+    type(timeseries_t) :: daily_from_hourly, hourly_from_daily
+    real(dp) :: hourly_values(48), daily_values(2)
+    integer(i4) :: i
+
+    hourly_values(1_i4:24_i4) = 1.0_dp
+    hourly_values(25_i4:48_i4) = 3.0_dp
+    daily_values = [10.0_dp, 20.0_dp]
+
+    call hourly_axis%init(datetime("1990-01-01"), datetime("1990-01-03"), timestep=hourly)
+    call daily_axis%init(datetime("1990-01-01"), datetime("1990-01-03"), timestep=daily)
+    call daily_axis%resampled(derived_hourly_axis, timestep=hourly)
+    @assertEqual(derived_hourly_axis%values, hourly_axis%values)
+    @assertEqual(derived_hourly_axis%bounds, hourly_axis%bounds)
+    call daily_axis%resampled(window_hourly_axis, timestep=hourly, timeframe_start=datetime("1990-01-02"), &
+                              timeframe_end=datetime("1990-01-03"))
+    @assertEqual(window_hourly_axis%n_times(), 24_i4)
+    @assertEqual(window_hourly_axis%values, [(i, i=25_i4, 48_i4)])
+    call daily_axis%resampled(start_default_axis, timestep=hourly, timeframe_end=datetime("1990-01-02"))
+    @assertEqual(start_default_axis%values, [(i, i=1_i4, 24_i4)])
+    call daily_axis%resampled(end_default_axis, timestep=hourly, timeframe_start=datetime("1990-01-02"))
+    @assertEqual(end_default_axis%values, [(i, i=25_i4, 48_i4)])
+
+    call hourly_mean%init(hourly_values, hourly_axis, support=ts_interval, method=ts_mean)
+    call hourly_mean%resample(daily_axis, daily_from_hourly)
+    @assertEqual(daily_from_hourly%values, [1.0_dp, 3.0_dp], tolerance=1.0e-12_dp)
+
+    call hourly_sum%init([(1.0_dp, i=1_i4, 48_i4)], hourly_axis, support=ts_interval, method=ts_sum)
+    call hourly_sum%resample(daily_axis, daily_sum)
+    @assertEqual(daily_sum%values, [24.0_dp, 24.0_dp], tolerance=1.0e-12_dp)
+
+    call daily_mean%init(daily_values, daily_axis, support=ts_interval, method=ts_mean)
+    call daily_mean%resample(derived_hourly_axis, hourly_from_daily)
+    @assertEqual(hourly_from_daily%values(1_i4:24_i4), [(10.0_dp, i=1_i4, 24_i4)], tolerance=1.0e-12_dp)
+    @assertEqual(hourly_from_daily%values(25_i4:48_i4), [(20.0_dp, i=1_i4, 24_i4)], tolerance=1.0e-12_dp)
+
+    call daily_sum%init([24.0_dp, 48.0_dp], daily_axis, support=ts_interval, method=ts_sum)
+    call daily_sum%resample(hourly_axis, hourly_from_daily)
+    @assertEqual(hourly_from_daily%values(1_i4:24_i4), [(1.0_dp, i=1_i4, 24_i4)], tolerance=1.0e-12_dp)
+    @assertEqual(hourly_from_daily%values(25_i4:48_i4), [(2.0_dp, i=1_i4, 24_i4)], tolerance=1.0e-12_dp)
+  end subroutine test_timeseries_interval_resample
+
+  @test
+  subroutine test_timeseries_instant_resample()
+    type(timeseries_axis_t) :: source_axis, target_axis
+    type(timeseries_t) :: source, previous, nearest, linear
+
+    call source_axis%init_cf([0_i4, 10_i4, 20_i4], "hours since 2000-01-01 00:00:00", timestamp=end_timestamp)
+    call target_axis%init_cf([5_i4, 15_i4, 20_i4], "hours since 2000-01-01 00:00:00", timestamp=end_timestamp)
+    call source%init([0.0_dp, 10.0_dp, 20.0_dp], source_axis, support=ts_instant, method=ts_none)
+
+    call source%resample(target_axis, previous, interpolation=ts_previous)
+    @assertEqual(previous%values, [0.0_dp, 10.0_dp, 20.0_dp], tolerance=1.0e-12_dp)
+
+    call source%resample(target_axis, nearest, interpolation=ts_nearest)
+    @assertEqual(nearest%values, [0.0_dp, 10.0_dp, 20.0_dp], tolerance=1.0e-12_dp)
+
+    call source%resample(target_axis, linear, interpolation=ts_linear)
+    @assertEqual(linear%values, [5.0_dp, 15.0_dp, 20.0_dp], tolerance=1.0e-12_dp)
+  end subroutine test_timeseries_instant_resample
+
+end module test_mo_timeseries
