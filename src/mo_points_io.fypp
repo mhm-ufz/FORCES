@@ -252,13 +252,13 @@
 module mo_points_io
 
   use mo_constants, only: nodata_dp, nodata_sp, nodata_i1, nodata_i2, nodata_i4, nodata_i8
-  use mo_datetime, only: datetime, timedelta, delta_from_string
-  use mo_grid_io, only: var, add_var, var_index, grid_time_values => time_values, time_stepping, time_units_delta, &
-                        hourly, daily, monthly, yearly, varying, end_timestamp, start_timestamp, center_timestamp, no_time
+  use mo_datetime, only: datetime, timedelta, delta_from_string, time_values, time_units_delta, &
+                         hourly, daily, monthly, yearly, varying, end_timestamp, start_timestamp, center_timestamp, no_time
   use mo_grid_helper, only: is_t_axis, is_x_axis, is_lon_coord
   use mo_kind, only: i1, i2, i4, i8, dp, sp
   use mo_message, only: error_message, warn_message
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable, NF90_NOFILL
+  use mo_netcdf_utils, only: var, add_var, var_index, time_stepping
   use mo_points, only: points_t, spherical
   use mo_string_utils, only: splitString
   use mo_utils, only: optval
@@ -1084,7 +1084,7 @@ contains
     previous_time = timeframe_start
     do i = 1_i4, n_times
       current_time = points_time_axis_next(previous_time, timestep_, delta, present(delta))
-      call grid_time_values(ref_time_, previous_time, current_time, delta_, timestamp_, t_start, t_end, t_stamp)
+      call time_values(ref_time_, previous_time, current_time, delta_, timestamp_, t_start, t_end, t_stamp)
       bounds(:, i) = [t_start, t_end]
       values(i) = t_stamp
       previous_time = current_time

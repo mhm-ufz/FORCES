@@ -131,6 +131,8 @@ module mo_datetime
   ! helpers
   public :: decode_cf_time_units
   public :: delta_from_string
+  public :: time_units_delta
+  public :: time_values
 
   private
 
@@ -148,6 +150,24 @@ module mo_datetime
   integer(i4), parameter, public :: WEEK_HOURS = WEEK_DAYS * DAY_HOURS !< hours in week
   integer(i4), parameter, public :: WEEK_MINUTES = WEEK_DAYS * DAY_MINUTES !< minutes in week
   integer(i4), parameter, public :: WEEK_SECONDS = WEEK_DAYS * DAY_SECONDS !< seconds in week
+
+  !> \name Time Step Indicators
+  !> \brief Constants to indicate the time stepping used in time axes.
+  !!@{
+  integer(i4), parameter, public :: hourly = 1_i4 !< hourly
+  integer(i4), parameter, public :: no_time = 0_i4 !< no time dimension available
+  integer(i4), parameter, public :: daily = -1_i4 !< daily
+  integer(i4), parameter, public :: monthly = -2_i4 !< monthly
+  integer(i4), parameter, public :: yearly = -3_i4 !< yearly
+  integer(i4), parameter, public :: varying = -9999_i4 !< no uniform time step
+  !!@}
+  !> \name Time Stamp Locators
+  !> \brief Constants selecting where a timestamp lies in a time interval.
+  !!@{
+  integer(i4), parameter, public :: start_timestamp = 0_i4 !< timestamp at start of time span
+  integer(i4), parameter, public :: center_timestamp = 1_i4 !< timestamp at center of time span
+  integer(i4), parameter, public :: end_timestamp = 2_i4 !< timestamp at end of time span
+  !!@}
   integer(i4), parameter :: MIN_YEAR = 1_i4 !< minimum for year
   integer(i4), parameter :: MAX_YEAR = 9999_i4 !< maximum for year
 
@@ -458,6 +478,54 @@ contains
     if(size(str_arr) > 3_i4) ref_time = t_from_string(str_arr(4))
     ref_datetime = dt_from_date_time(ref_date, ref_time)
   end subroutine decode_cf_time_units
+
+  !> \brief Determine time units delta from time stepping and selected timestamp.
+  !> \return "minutes", "hours" or "days"
+  function time_units_delta(timestep, timestamp) result(res)
+    integer(i4), intent(in), optional :: timestep !< time-step indicator (default: \ref hourly)
+    integer(i4), intent(in), optional :: timestamp !< timestamp location selector (default: \ref end_timestamp)
+    character(:), allocatable :: res
+    integer(i4) :: step
+    integer(i4) :: stamp
+
+    step = hourly
+    if (present(timestep)) step = timestep
+    stamp = end_timestamp
+    if (present(timestamp)) stamp = timestamp
+
+    res = "hours"
+    if (stamp == center_timestamp) then
+      if (step > no_time .and. mod(step, 2_i4) == 1_i4) res = "minutes"
+    else
+      if (step < no_time .and. step >= yearly) res = "days"
+      if (step > no_time .and. mod(step, 24_i4) == 0_i4) res = "days"
+    end if
+  end function time_units_delta
+
+  !> \brief Generate integer time values for one time interval.
+  subroutine time_values(ref_time, previous_time, current_time, delta, timestamp, t_start, t_end, t_stamp)
+    type(datetime), intent(in) :: ref_time !< reference time in units
+    type(datetime), intent(in) :: previous_time !< interval start
+    type(datetime), intent(in) :: current_time !< interval end
+    type(timedelta), intent(in) :: delta !< time delta in units
+    integer(i4), intent(in) :: timestamp !< timestamp location selector
+    integer(i4), intent(out) :: t_start !< value for lower bound
+    integer(i4), intent(out) :: t_end !< value for upper bound
+    integer(i4), intent(out) :: t_stamp !< value for timestamp
+
+    t_start = nint((previous_time - ref_time) / delta, kind=i4)
+    t_end = nint((current_time - ref_time) / delta, kind=i4)
+    select case(timestamp)
+      case(start_timestamp)
+        t_stamp = t_start
+      case(center_timestamp)
+        t_stamp = (t_start + t_end) / 2_i4
+      case(end_timestamp)
+        t_stamp = t_end
+      case default
+        call error_message("time_values: timestamp has no valid value.")
+    end select
+  end subroutine time_values
 
   ! CONSTANT DELTAS
 
