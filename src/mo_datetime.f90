@@ -136,6 +136,9 @@ module mo_datetime
 
   private
 
+  !> \name Time Units Conversion Constants
+  !> \brief Constants to convert between different time units.
+  !!@{
   integer(i4), parameter, public :: YEAR_DAYS = 365_i4 !< days in standard year
   integer(i4), parameter, public :: LEAP_YEAR_DAYS = 366_i4 !< days in leap year
   integer(i4), parameter, public :: YEAR_MONTHS = 12_i4 !< months in year
@@ -150,7 +153,7 @@ module mo_datetime
   integer(i4), parameter, public :: WEEK_HOURS = WEEK_DAYS * DAY_HOURS !< hours in week
   integer(i4), parameter, public :: WEEK_MINUTES = WEEK_DAYS * DAY_MINUTES !< minutes in week
   integer(i4), parameter, public :: WEEK_SECONDS = WEEK_DAYS * DAY_SECONDS !< seconds in week
-
+  !!@}
   !> \name Time Step Indicators
   !> \brief Constants to indicate the time stepping used in time axes.
   !!@{
@@ -168,6 +171,7 @@ module mo_datetime
   integer(i4), parameter, public :: center_timestamp = 1_i4 !< timestamp at center of time span
   integer(i4), parameter, public :: end_timestamp = 2_i4 !< timestamp at end of time span
   !!@}
+
   integer(i4), parameter :: MIN_YEAR = 1_i4 !< minimum for year
   integer(i4), parameter :: MAX_YEAR = 9999_i4 !< maximum for year
 
