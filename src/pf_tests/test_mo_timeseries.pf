@@ -97,16 +97,16 @@ contains
 
     call hourly_axis%init(datetime("1990-01-01"), datetime("1990-01-03"), timestep=hourly)
     call daily_axis%init(datetime("1990-01-01"), datetime("1990-01-03"), timestep=daily)
-    call daily_axis%resampled(derived_hourly_axis, timestep=hourly)
+    derived_hourly_axis = daily_axis%resampled(timestep=hourly)
     @assertEqual(derived_hourly_axis%values, hourly_axis%values)
     @assertEqual(derived_hourly_axis%bounds, hourly_axis%bounds)
-    call daily_axis%resampled(window_hourly_axis, timestep=hourly, timeframe_start=datetime("1990-01-02"), &
-                              timeframe_end=datetime("1990-01-03"))
+    window_hourly_axis = daily_axis%resampled(timestep=hourly, timeframe_start=datetime("1990-01-02"), &
+                                              timeframe_end=datetime("1990-01-03"))
     @assertEqual(window_hourly_axis%n_times(), 24_i4)
     @assertEqual(window_hourly_axis%values, [(i, i=25_i4, 48_i4)])
-    call daily_axis%resampled(start_default_axis, timestep=hourly, timeframe_end=datetime("1990-01-02"))
+    start_default_axis = daily_axis%resampled(timestep=hourly, timeframe_end=datetime("1990-01-02"))
     @assertEqual(start_default_axis%values, [(i, i=1_i4, 24_i4)])
-    call daily_axis%resampled(end_default_axis, timestep=hourly, timeframe_start=datetime("1990-01-02"))
+    end_default_axis = daily_axis%resampled(timestep=hourly, timeframe_start=datetime("1990-01-02"))
     @assertEqual(end_default_axis%values, [(i, i=25_i4, 48_i4)])
 
     call resampler%init(hourly_axis, daily_axis, support=ts_interval, method=ts_mean)

@@ -112,7 +112,6 @@ module mo_points_io
     type(var) :: meta                                    !< variable metadata
     type(NcVariable) :: nc                               !< NetCDF variable handle
     type(points_t), pointer :: points => null()          !< point-set geometry
-    integer(i8) :: n_times = 0_i8                        !< number of time values
     character(:), allocatable :: dtype                   !< NetCDF dtype
     character(:), allocatable :: kind                    !< Fortran array kind
     logical :: static_written = .false.                  !< static variable was already written
@@ -141,7 +140,7 @@ module mo_points_io
     type(NcDataset) :: nc                                       !< NetCDF dataset
     type(points_series_output_variable), allocatable :: vars(:) !< output variable handles
     integer(i4) :: nvars = 0_i4                                 !< number of variables
-    integer(i8) :: n_times = 0_i8                               !< number of time values
+    type(time_t) :: time_axis                                    !< output time axis
     integer(i4) :: deflate_level = 6_i4                         !< NetCDF deflate level
   contains
     procedure, public :: init => points_series_output_init
@@ -613,21 +612,19 @@ contains
   end subroutine points_output_close
 
   !> \brief Initialize a point time-series output variable.
-  subroutine points_series_out_var_init(self, meta, nc, points, points_dim, time_dim, n_times, deflate_level)
+  subroutine points_series_out_var_init(self, meta, nc, points, points_dim, time_dim, deflate_level)
     class(points_series_output_variable), intent(inout) :: self
     type(var), intent(in) :: meta !< variable metadata
     type(NcDataset), intent(in) :: nc !< open NetCDF dataset
     type(points_t), pointer, intent(in) :: points !< point-set geometry
     type(NcDimension), intent(in) :: points_dim !< point dimension
     type(NcDimension), intent(in) :: time_dim !< fixed time dimension
-    integer(i8), intent(in) :: n_times !< number of time values
     integer(i4), intent(in) :: deflate_level !< NetCDF deflate level
 
     self%meta = meta
     self%dtype = "f64"
     if (allocated(meta%dtype)) self%dtype = trim(meta%dtype)
     self%points => points
-    self%n_times = n_times
     if (.not.associated(self%points)) call error_message("points_series_output_variable: points pointer not associated")
     if (meta%static) then
       self%nc = nc%setVariable(meta%name, self%dtype, [points_dim], deflate_level=deflate_level, shuffle=.true.)
@@ -652,16 +649,20 @@ contains
     class(points_series_output_variable), intent(inout) :: self
     integer(i8), intent(in) :: point_index !< one-based point index
     real(sp), intent(in) :: data(:) !< complete point time series
+    type(NcDimension), allocatable :: dims(:)
     integer(i4) :: point_index_
+    integer(i8) :: n_times
     if (self%meta%static) call error_message("points_series_output_variable: write_series needs temporal variable: ",&
         & self%meta%name)
     if (self%kind /= "sp") call error_message("points_series_output_variable: wrong kind for write_series: ", self%meta%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_series_output_variable: point index out of range: ", self%meta%name)
-    if (size(data, kind=i8) /= self%n_times) call error_message("points_series_output_variable: time series size mismatch: ",&
-        & self%meta%name)
+    dims = self%nc%getDimensions()
+    n_times = dims(1_i4)%getLength64()
+    if (size(data, kind=i8) /= n_times) &
+      call error_message("points_series_output_variable: time series size mismatch: ", self%meta%name)
     point_index_ = int(point_index, i4)
-    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
+    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(n_times, i4), 1_i4])
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_sp
 
@@ -682,16 +683,20 @@ contains
     class(points_series_output_variable), intent(inout) :: self
     integer(i8), intent(in) :: point_index !< one-based point index
     real(dp), intent(in) :: data(:) !< complete point time series
+    type(NcDimension), allocatable :: dims(:)
     integer(i4) :: point_index_
+    integer(i8) :: n_times
     if (self%meta%static) call error_message("points_series_output_variable: write_series needs temporal variable: ",&
         & self%meta%name)
     if (self%kind /= "dp") call error_message("points_series_output_variable: wrong kind for write_series: ", self%meta%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_series_output_variable: point index out of range: ", self%meta%name)
-    if (size(data, kind=i8) /= self%n_times) call error_message("points_series_output_variable: time series size mismatch: ",&
-        & self%meta%name)
+    dims = self%nc%getDimensions()
+    n_times = dims(1_i4)%getLength64()
+    if (size(data, kind=i8) /= n_times) &
+      call error_message("points_series_output_variable: time series size mismatch: ", self%meta%name)
     point_index_ = int(point_index, i4)
-    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
+    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(n_times, i4), 1_i4])
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_dp
 
@@ -712,16 +717,20 @@ contains
     class(points_series_output_variable), intent(inout) :: self
     integer(i8), intent(in) :: point_index !< one-based point index
     integer(i1), intent(in) :: data(:) !< complete point time series
+    type(NcDimension), allocatable :: dims(:)
     integer(i4) :: point_index_
+    integer(i8) :: n_times
     if (self%meta%static) call error_message("points_series_output_variable: write_series needs temporal variable: ",&
         & self%meta%name)
     if (self%kind /= "i1") call error_message("points_series_output_variable: wrong kind for write_series: ", self%meta%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_series_output_variable: point index out of range: ", self%meta%name)
-    if (size(data, kind=i8) /= self%n_times) call error_message("points_series_output_variable: time series size mismatch: ",&
-        & self%meta%name)
+    dims = self%nc%getDimensions()
+    n_times = dims(1_i4)%getLength64()
+    if (size(data, kind=i8) /= n_times) &
+      call error_message("points_series_output_variable: time series size mismatch: ", self%meta%name)
     point_index_ = int(point_index, i4)
-    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
+    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(n_times, i4), 1_i4])
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_i1
 
@@ -742,16 +751,20 @@ contains
     class(points_series_output_variable), intent(inout) :: self
     integer(i8), intent(in) :: point_index !< one-based point index
     integer(i2), intent(in) :: data(:) !< complete point time series
+    type(NcDimension), allocatable :: dims(:)
     integer(i4) :: point_index_
+    integer(i8) :: n_times
     if (self%meta%static) call error_message("points_series_output_variable: write_series needs temporal variable: ",&
         & self%meta%name)
     if (self%kind /= "i2") call error_message("points_series_output_variable: wrong kind for write_series: ", self%meta%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_series_output_variable: point index out of range: ", self%meta%name)
-    if (size(data, kind=i8) /= self%n_times) call error_message("points_series_output_variable: time series size mismatch: ",&
-        & self%meta%name)
+    dims = self%nc%getDimensions()
+    n_times = dims(1_i4)%getLength64()
+    if (size(data, kind=i8) /= n_times) &
+      call error_message("points_series_output_variable: time series size mismatch: ", self%meta%name)
     point_index_ = int(point_index, i4)
-    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
+    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(n_times, i4), 1_i4])
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_i2
 
@@ -772,16 +785,20 @@ contains
     class(points_series_output_variable), intent(inout) :: self
     integer(i8), intent(in) :: point_index !< one-based point index
     integer(i4), intent(in) :: data(:) !< complete point time series
+    type(NcDimension), allocatable :: dims(:)
     integer(i4) :: point_index_
+    integer(i8) :: n_times
     if (self%meta%static) call error_message("points_series_output_variable: write_series needs temporal variable: ",&
         & self%meta%name)
     if (self%kind /= "i4") call error_message("points_series_output_variable: wrong kind for write_series: ", self%meta%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_series_output_variable: point index out of range: ", self%meta%name)
-    if (size(data, kind=i8) /= self%n_times) call error_message("points_series_output_variable: time series size mismatch: ",&
-        & self%meta%name)
+    dims = self%nc%getDimensions()
+    n_times = dims(1_i4)%getLength64()
+    if (size(data, kind=i8) /= n_times) &
+      call error_message("points_series_output_variable: time series size mismatch: ", self%meta%name)
     point_index_ = int(point_index, i4)
-    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
+    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(n_times, i4), 1_i4])
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_i4
 
@@ -802,16 +819,20 @@ contains
     class(points_series_output_variable), intent(inout) :: self
     integer(i8), intent(in) :: point_index !< one-based point index
     integer(i8), intent(in) :: data(:) !< complete point time series
+    type(NcDimension), allocatable :: dims(:)
     integer(i4) :: point_index_
+    integer(i8) :: n_times
     if (self%meta%static) call error_message("points_series_output_variable: write_series needs temporal variable: ",&
         & self%meta%name)
     if (self%kind /= "i8") call error_message("points_series_output_variable: wrong kind for write_series: ", self%meta%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_series_output_variable: point index out of range: ", self%meta%name)
-    if (size(data, kind=i8) /= self%n_times) call error_message("points_series_output_variable: time series size mismatch: ",&
-        & self%meta%name)
+    dims = self%nc%getDimensions()
+    n_times = dims(1_i4)%getLength64()
+    if (size(data, kind=i8) /= n_times) &
+      call error_message("points_series_output_variable: time series size mismatch: ", self%meta%name)
     point_index_ = int(point_index, i4)
-    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(self%n_times, i4), 1_i4])
+    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(n_times, i4), 1_i4])
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_i8
 
@@ -829,34 +850,31 @@ contains
   end subroutine points_series_out_var_write_static_i8
 
   !> \brief Initialize a point time-series output dataset.
-  subroutine points_series_output_init(self, path, points, vars, time_values, time_units, time_bnds, point_dim_name, &
+  subroutine points_series_output_init(self, path, points, vars, time_axis, point_dim_name, &
                                        points_double_precision, deflate_level)
     class(points_series_output_dataset), intent(inout) :: self
     character(*), intent(in) :: path !< output file path
     type(points_t), pointer, intent(in) :: points !< point-set geometry
     type(var), intent(in) :: vars(:) !< output variables
-    integer(i4), intent(in) :: time_values(:) !< NetCDF time coordinate values
-    character(*), intent(in) :: time_units !< NetCDF time units
-    integer(i4), optional, intent(in) :: time_bnds(:, :) !< optional time bounds with shape (2,time)
+    type(time_t), intent(in) :: time_axis !< output time axis
     character(*), optional, intent(in) :: point_dim_name !< point dimension name
     logical, optional, intent(in) :: points_double_precision !< write point coordinates as double precision
     integer(i4), optional, intent(in) :: deflate_level !< NetCDF deflate level
 
     character(:), allocatable :: dimname
+    character(:), allocatable :: time_units
     type(NcDimension) :: points_dim, time_dim, bnds_dim
     type(NcVariable) :: t_var, tb_var
+    integer(i4), allocatable :: time_values(:), time_bnds(:, :)
     integer(i4) :: i
 
-    if (size(time_values, kind=i8) < 1_i8) call error_message("points_series_output_dataset: empty time axis")
-    if (present(time_bnds)) then
-      if (size(time_bnds, 1) /= 2_i4 .or. size(time_bnds, 2) /= size(time_values)) &
-        call error_message("points_series_output_dataset: time_bnds must have shape (2,time)")
-    end if
+    if (time_axis%n_times() < 1_i4) call error_message("points_series_output_dataset: empty time axis")
+    call time_axis%to_cf(time_values, time_bnds, time_units)
     self%path = trim(path)
     self%nc = NcDataset(self%path, "w")
     call self%nc%setFill(NF90_NOFILL)
     self%points => points
-    self%n_times = size(time_values, kind=i8)
+    self%time_axis = time_axis
     self%deflate_level = optval(deflate_level, 6_i4)
     dimname = optval(point_dim_name, "point")
 
@@ -869,18 +887,16 @@ contains
     call t_var%setAttribute("axis", "T")
     call t_var%setAttribute("units", time_units)
     call t_var%setData(time_values)
-    if (present(time_bnds)) then
-      bnds_dim = self%nc%setDimension("bnds", 2_i4)
-      call t_var%setAttribute("bounds", "time_bnds")
-      tb_var = self%nc%setVariable("time_bnds", "i32", [bnds_dim, time_dim])
-      call tb_var%setData(time_bnds)
-    end if
+    bnds_dim = self%nc%setDimension("bnds", 2_i4)
+    call t_var%setAttribute("bounds", "time_bnds")
+    tb_var = self%nc%setVariable("time_bnds", "i32", [bnds_dim, time_dim])
+    call tb_var%setData(time_bnds)
 
     self%nvars = size(vars)
     if (self%nvars == 0_i4) call error_message("points_series_output_dataset: no variables selected")
     allocate(self%vars(self%nvars))
     do i = 1_i4, self%nvars
-      call self%vars(i)%init(vars(i), self%nc, self%points, points_dim, time_dim, self%n_times, self%deflate_level)
+      call self%vars(i)%init(vars(i), self%nc, self%points, points_dim, time_dim, self%deflate_level)
     end do
   end subroutine points_series_output_init
 

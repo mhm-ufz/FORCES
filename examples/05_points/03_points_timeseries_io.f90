@@ -14,18 +14,19 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 program points_timeseries_io_example
   use mo_datetime, only: datetime
-  use mo_grid_io, only: add_var, var, daily, end_timestamp
+  use mo_grid_io, only: add_var, var
   use mo_kind, only: dp, i4, i8
   use mo_points, only: points_t
-  use mo_points_io, only: points_input_dataset, points_series_output_dataset, points_time_axis
+  use mo_points_io, only: points_input_dataset, points_series_output_dataset
+  use mo_timeseries, only: time_t, daily
   implicit none
 
   type(points_t), target :: gauges
   type(points_input_dataset) :: inp
   type(points_series_output_dataset) :: out
+  type(time_t) :: time_axis
   type(var), allocatable :: input_vars(:), output_vars(:)
-  integer(i4), allocatable :: station_ids(:), time_values(:), time_bnds(:, :)
-  character(:), allocatable :: time_units
+  integer(i4), allocatable :: station_ids(:)
   real(dp), allocatable :: discharge(:)
   integer(i8) :: i
   integer(i4) :: t
@@ -35,8 +36,7 @@ program points_timeseries_io_example
   call inp%get_ids(station_ids)
   call inp%close()
 
-  call points_time_axis(datetime("2026-01-01"), datetime("2026-01-08"), time_values, time_bnds, time_units, &
-                        timestep=daily, timestamp=end_timestamp)
+  call time_axis%init(datetime("2026-01-01"), datetime("2026-01-08"), timestep=daily)
 
   allocate(output_vars(0))
   call add_var(output_vars, var(name="station", long_name="SCC gauge ID", static=.true., dtype="i32", kind="i4"))
@@ -44,12 +44,12 @@ program points_timeseries_io_example
                                 static=.false., dtype="f64", kind="dp"))
 
   call out%init("scc_synthetic_discharge_timeseries.nc", points=gauges, vars=output_vars, &
-                time_values=time_values, time_units=time_units, time_bnds=time_bnds, point_dim_name="station")
+                time_axis=time_axis, point_dim_name="station")
   call out%write_static("station", station_ids)
 
-  allocate(discharge(size(time_values)))
+  allocate(discharge(time_axis%n_times()))
   do i = 1_i8, gauges%n_points
-    do t = 1_i4, size(time_values)
+    do t = 1_i4, size(discharge)
       discharge(t) = 10.0_dp * real(i, dp) + sin(0.25_dp * real(t, dp) + real(i, dp))
     end do
     call out%write_series("discharge", i, discharge)

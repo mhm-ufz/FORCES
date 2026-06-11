@@ -27,8 +27,7 @@ program points_timeseries_resample_example
   type(time_t) :: daily_axis, hourly_axis
   type(resampler_t) :: resampler
   type(var), allocatable :: input_vars(:), output_vars(:)
-  integer(i4), allocatable :: station_ids(:), time_values(:), time_bnds(:, :)
-  character(:), allocatable :: time_units
+  integer(i4), allocatable :: station_ids(:)
   real(dp) :: daily_values(3), hourly_values(48)
   integer(i8) :: i
   integer(i4) :: t
@@ -39,9 +38,8 @@ program points_timeseries_resample_example
   call inp%close()
 
   call daily_axis%init(datetime("2026-01-01"), datetime("2026-01-04"), timestep=daily)
-  call daily_axis%resampled(hourly_axis, timestep=hourly, timeframe_start=datetime("2026-01-02"))
+  hourly_axis = daily_axis%resampled(timestep=hourly, timeframe_start=datetime("2026-01-02"))
   call resampler%init(daily_axis, hourly_axis, support=ts_interval, method=ts_mean)
-  call hourly_axis%to_cf(time_values, time_bnds, time_units)
 
   allocate(output_vars(0))
   call add_var(output_vars, var(name="station", long_name="SCC gauge ID", static=.true., dtype="i32", kind="i4"))
@@ -49,7 +47,7 @@ program points_timeseries_resample_example
                                 static=.false., dtype="f64", kind="dp"))
 
   call out%init("scc_resampled_hourly_discharge.nc", points=gauges, vars=output_vars, &
-                time_values=time_values, time_units=time_units, time_bnds=time_bnds, point_dim_name="station")
+                time_axis=hourly_axis, point_dim_name="station")
   call out%write_static("station", station_ids)
 
   do i = 1_i8, gauges%n_points

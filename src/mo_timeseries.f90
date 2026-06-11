@@ -255,9 +255,8 @@ contains
   end subroutine time_window_indices
 
   !> \brief Derive a contiguous axis over the same time frame with a new resolution.
-  subroutine time_resampled(self, out, timestep, delta, timestamp, ref_time, timeframe_start, timeframe_end)
+  type(time_t) function time_resampled(self, timestep, delta, timestamp, ref_time, timeframe_start, timeframe_end) result(out)
     class(time_t), intent(in) :: self
-    type(time_t), intent(out) :: out !< derived target axis
     integer(i4), optional, intent(in) :: timestep !< target time-step indicator or positive hourly step (default: \ref daily)
     character(*), optional, intent(in) :: delta !< explicit target unit
     integer(i4), optional, intent(in) :: timestamp !< target timestamp selector (default: current axis timestamp)
@@ -283,7 +282,7 @@ contains
     else
       call out%init(start_time, end_time, timestep=timestep, delta=delta, timestamp=timestamp_, ref_time=self%ref_time)
     end if
-  end subroutine time_resampled
+  end function time_resampled
 
   !> \brief Initialize a reusable resampler between two time axes.
   subroutine resampler_init(self, source_time, target_time, support, method, interpolation)

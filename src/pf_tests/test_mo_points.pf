@@ -231,12 +231,12 @@ contains
     tvals = [1_i4, 2_i4]
     tbnds(:, 1) = [0_i4, 1_i4]
     tbnds(:, 2) = [1_i4, 2_i4]
+    call time_axis%init_cf(tvals, "days since 1990-01-01 00:00:00", bounds=tbnds)
     allocate(mixed_vars(0))
     call add_var(mixed_vars, var(name="station", static=.true., dtype="i32", kind="i4"))
     call add_var(mixed_vars, var(name="discharge", units="m3 s-1", static=.false., dtype="f64", kind="dp"))
     call add_var(mixed_vars, var(name="code", static=.false., dtype="i32", kind="i4"))
-    call series_out%init("point_series_writer.nc", points=points, vars=mixed_vars, time_values=tvals, &
-                         time_units="days since 1990-01-01 00:00:00", time_bnds=tbnds, point_dim_name="station")
+    call series_out%init("point_series_writer.nc", points=points, vars=mixed_vars, time_axis=time_axis, point_dim_name="station")
     station_ids = [101_i4, 102_i4, 103_i4]
     call series_out%write_static("station", station_ids)
     call series_out%write_series("discharge", 1_i8, [100.0_dp, 101.0_dp])
