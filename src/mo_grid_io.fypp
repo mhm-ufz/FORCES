@@ -834,13 +834,9 @@ contains
     integer(i8) :: cache_bytes, target_chunk_bytes, denom, chunk_bytes
     logical :: use_cache, use_static_contiguous
 
-    self%name = meta%name
-    self%static = meta%static
-    self%avg = meta%avg
-    self%layered = meta%layered
+    self%var = meta
     self%nlayers = 0_i4
-    self%dtype = "f64" ! default to double
-    if (allocated(meta%dtype)) self%dtype = trim(meta%dtype)
+    if (.not.allocated(self%dtype)) self%dtype = "f64" ! default to double
     if (.not.associated(grid)) call error_message("output_variable: grid pointer not associated: ", self%name)
     self%grid => grid
     if (.not.associated(self%grid)) call error_message("output_variable: failed to associate grid pointer: ", self%name)
@@ -929,10 +925,6 @@ contains
     else
       self%nc = nc%setVariable(self%name, self%dtype, var_dims, deflate_level=deflate_level, shuffle=.true.)
     end if
-
-    if (allocated(meta%long_name)) self%long_name = meta%long_name
-    if (allocated(meta%standard_name)) self%standard_name = meta%standard_name
-    if (allocated(meta%units)) self%units = meta%units
 
     if (allocated(self%long_name)) call self%nc%setAttribute("long_name", self%long_name)
     if (allocated(self%standard_name)) call self%nc%setAttribute("standard_name", self%standard_name)
@@ -1170,7 +1162,7 @@ contains
     integer(i4) :: nx, ny, rnk, expected_rank
     logical :: detected_static
     character(len=256) :: tmp_str
-    self%name = meta%name
+    self%var = meta
     self%nc = nc%getVariable(self%name)
     self%grid => grid
     dims = self%nc%getDimensions()
@@ -1182,7 +1174,6 @@ contains
     ny = dims(2)%getLength()
     if (nx /= grid%nx .or. ny /= grid%ny) call error_message("input_variable: variable not matching grid: ", self%name)
 
-    self%layered = meta%layered
     self%allow_static = .false.
     self%nlayers = 0_i4
     expected_rank = 2_i4

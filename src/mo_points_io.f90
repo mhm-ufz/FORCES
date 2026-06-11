@@ -243,7 +243,7 @@ contains
     integer(i4), intent(in) :: deflate_level !< NetCDF deflate level
     logical, optional, intent(in) :: time_series !< use station time-series layout
 
-    self%var = meta%meta()
+    self%var = meta
     self%time_series = optval(time_series, .false.)
     self%dtype = "f64"
     if (allocated(meta%dtype)) self%dtype = trim(meta%dtype)
@@ -620,7 +620,7 @@ contains
     type(NcDimension), intent(in) :: time_dim !< fixed time dimension
     integer(i4), intent(in) :: deflate_level !< NetCDF deflate level
 
-    self%var = meta%meta()
+    self%var = meta
     self%dtype = "f64"
     if (allocated(meta%dtype)) self%dtype = trim(meta%dtype)
     self%points => points
@@ -1082,7 +1082,7 @@ contains
     character(len=256) :: tmp_str
     logical :: first_is_point, second_is_point, first_is_time, second_is_time
 
-    self%var = meta%meta()
+    self%var = meta
     self%nc = nc%getVariable(self%name)
     self%points => points
     dims = self%nc%getDimensions()
