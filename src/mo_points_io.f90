@@ -245,8 +245,7 @@ contains
 
     self%var = meta
     self%time_series = optval(time_series, .false.)
-    self%dtype = "f64"
-    if (allocated(meta%dtype)) self%dtype = trim(meta%dtype)
+    if (.not.allocated(self%dtype)) self%dtype = "f64"
     self%points => points
     if (.not.associated(self%points)) call error_message("points_output_variable: points pointer not associated")
     if (self%static) then
@@ -268,7 +267,7 @@ contains
       call self%nc%setAttribute("coordinates", "x y")
     end if
     call points_io_dtype_defaults(self%name, self%dtype, self%kind, self%nc)
-    if (allocated(meta%kind)) self%kind = meta%kind
+    if (allocated(meta%kind)) self%kind = trim(meta%kind)
     call allocate_buffer(self)
   contains
     !> \brief Allocate the kind-specific accumulation buffer.
@@ -621,8 +620,7 @@ contains
     integer(i4), intent(in) :: deflate_level !< NetCDF deflate level
 
     self%var = meta
-    self%dtype = "f64"
-    if (allocated(meta%dtype)) self%dtype = trim(meta%dtype)
+    if (.not.allocated(self%dtype)) self%dtype = "f64"
     self%points => points
     if (.not.associated(self%points)) call error_message("points_series_output_variable: points pointer not associated")
     if (self%static) then
@@ -639,7 +637,7 @@ contains
       call self%nc%setAttribute("coordinates", "x y")
     end if
     call points_io_dtype_defaults(self%name, self%dtype, self%kind, self%nc)
-    if (allocated(meta%kind)) self%kind = meta%kind
+    if (allocated(meta%kind)) self%kind = trim(meta%kind)
     if (.not.self%static) allocate(self%written(self%points%n_points), source=.false.)
   end subroutine points_series_out_var_init
 
@@ -1120,7 +1118,7 @@ contains
       call error_message("points_input_variable: expected temporal variable: ", self%name)
     self%dtype = trim(self%nc%getDtype())
     call points_io_dtype_defaults(self%name, self%dtype, self%kind)
-    if (allocated(meta%kind)) self%kind = meta%kind
+    if (allocated(meta%kind)) self%kind = trim(meta%kind)
     if (self%nc%hasAttribute("standard_name")) then
       call self%nc%getAttribute("standard_name", tmp_str)
       self%standard_name = trim(tmp_str)
