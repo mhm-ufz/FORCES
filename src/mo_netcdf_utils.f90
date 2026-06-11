@@ -11,6 +11,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_netcdf_utils
 
+  use mo_constants, only: nodata_dp, nodata_sp, nodata_i1, nodata_i2, nodata_i4, nodata_i8
   use mo_datetime, only: datetime, timedelta, decode_cf_time_units, one_day, one_hour, &
                          hourly, daily, monthly, yearly, varying, end_timestamp, start_timestamp, &
                          infer_time_timestep_from_bounds, infer_time_timestep_from_values
@@ -28,6 +29,7 @@ module mo_netcdf_utils
   public :: var_index
   public :: time_stepping
   public :: read_units
+  public :: netcdf_dtype_defaults
 
   !> \class var
   !> \brief Variable metadata definition for NetCDF IO variables.
@@ -111,6 +113,59 @@ contains
     call nc_var%getAttribute("units", tmp)
     units = trim(tmp)
   end subroutine read_units
+
+  !> \brief Map NetCDF dtype metadata to FORCES default Fortran kinds and missing values.
+  subroutine netcdf_dtype_defaults(name, dtype, kind, nc, context)
+    character(*), intent(in) :: name !< variable name for diagnostics
+    character(*), intent(in) :: dtype !< NetCDF dtype
+    character(:), allocatable, intent(out) :: kind !< default Fortran kind
+    type(NcVariable), optional, intent(inout) :: nc !< NetCDF variable that receives fill metadata
+    character(*), optional, intent(in) :: context !< diagnostic context (default: netcdf_dtype_defaults)
+    character(:), allocatable :: context_
+
+    context_ = "netcdf_dtype_defaults"
+    if (present(context)) context_ = trim(context)
+    select case(trim(dtype))
+      case("f32")
+        kind = "dp"
+        if (present(nc)) then
+          call nc%setFillValue(nodata_sp)
+          call nc%setAttribute("missing_value", nodata_sp)
+        end if
+      case("f64")
+        kind = "dp"
+        if (present(nc)) then
+          call nc%setFillValue(nodata_dp)
+          call nc%setAttribute("missing_value", nodata_dp)
+        end if
+      case("i8")
+        kind = "i4"
+        if (present(nc)) then
+          call nc%setFillValue(nodata_i1)
+          call nc%setAttribute("missing_value", nodata_i1)
+        end if
+      case("i16")
+        kind = "i4"
+        if (present(nc)) then
+          call nc%setFillValue(nodata_i2)
+          call nc%setAttribute("missing_value", nodata_i2)
+        end if
+      case("i32")
+        kind = "i4"
+        if (present(nc)) then
+          call nc%setFillValue(nodata_i4)
+          call nc%setAttribute("missing_value", nodata_i4)
+        end if
+      case("i64")
+        kind = "i4"
+        if (present(nc)) then
+          call nc%setFillValue(nodata_i8)
+          call nc%setAttribute("missing_value", nodata_i8)
+        end if
+      case default
+        call error_message(context_ // ": unsupported dtype: ", name, ": ", dtype)
+    end select
+  end subroutine netcdf_dtype_defaults
 
   !> \brief Determine time stepping and bounds from a NetCDF time coordinate.
   subroutine time_stepping(t_var, ref_time, delta, timestep, t_values, t_bounds, timestamp)

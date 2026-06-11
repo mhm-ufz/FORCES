@@ -589,7 +589,6 @@
 module mo_grid_io
 
   use mo_kind, only : i1, i2, i4, i8, dp, sp
-  use mo_constants, only : nodata_dp, nodata_sp, nodata_i1, nodata_i2, nodata_i4, nodata_i8
   use mo_grid, only: grid_t, cartesian, bottom_up
   use mo_grid_helper, only: is_t_axis, check_uniform_axis, is_z_axis
   use mo_netcdf, only : NcDataset, NcDimension, NcVariable, NF90_NOFILL
@@ -597,7 +596,7 @@ module mo_grid_io
                           hourly, no_time, daily, monthly, yearly, varying, &
                           start_timestamp, center_timestamp, end_timestamp, instant_timestamp
   use mo_message, only : error_message, warn_message
-  use mo_netcdf_utils, only: var, add_var, var_index, time_stepping, read_units
+  use mo_netcdf_utils, only: var, add_var, var_index, time_stepping, read_units, netcdf_dtype_defaults
   use mo_timeseries, only: time_t
   use mo_string_utils, only : num2str
   use mo_utils, only: is_close, flip, optval
@@ -932,35 +931,7 @@ contains
 
     if (self%grid%has_aux_coords()) call self%nc%setAttribute("coordinates", "lat lon")
 
-    ! default array kind follows the NetCDF dtype unless overridden by metadata
-    select case(self%dtype)
-      case("f32")
-        call self%nc%setFillValue(nodata_sp)
-        call self%nc%setAttribute("missing_value", nodata_sp)
-        self%kind = "dp" ! double precision as default for real data
-      case("f64")
-        call self%nc%setFillValue(nodata_dp)
-        call self%nc%setAttribute("missing_value", nodata_dp)
-        self%kind = "dp" ! double precision as default for real data
-      case("i8")
-        call self%nc%setFillValue(nodata_i1)
-        call self%nc%setAttribute("missing_value", nodata_i1)
-        self%kind = "i4" ! 4 byte integers as default for int data
-      case("i16")
-        call self%nc%setFillValue(nodata_i2)
-        call self%nc%setAttribute("missing_value", nodata_i2)
-        self%kind = "i4" ! 4 byte integers as default for int data
-      case("i32")
-        call self%nc%setFillValue(nodata_i4)
-        call self%nc%setAttribute("missing_value", nodata_i4)
-        self%kind = "i4" ! 4 byte integers as default for int data
-      case("i64")
-        call self%nc%setFillValue(nodata_i8)
-        call self%nc%setAttribute("missing_value", nodata_i8)
-        self%kind = "i4" ! 4 byte integers as default for int data
-      case default
-        call error_message("output_variable: unsupported dtype: ", self%name, ": ", self%dtype)
-    end select
+    call netcdf_dtype_defaults(self%name, self%dtype, self%kind, self%nc, context="output_variable")
     if (allocated(meta%kind)) then
       self%kind = meta%kind
       if ((self%dtype(1:1) == "f" .and. meta%kind(2:2) /= "p") .or. (self%dtype(1:1) == "i" .and. meta%kind(1:1) /= "i")) &
@@ -1217,14 +1188,7 @@ contains
     if (rnk /= expected_rank) call error_message("input_variable: rank mismatch: ", self%name)
 
     self%dtype = trim(self%nc%getDtype())
-    select case(self%dtype(1:1))
-      case("f")
-        self%kind = "dp"
-      case("i")
-        self%kind = "i4"
-      case default
-        call error_message("input_variable: unsupported dtype: ", self%name, ": ", self%dtype)
-    end select
+    call netcdf_dtype_defaults(self%name, self%dtype, self%kind, context="input_variable")
     if (allocated(meta%dtype)) then
       if (meta%dtype/=self%dtype) &
         call warn_message("input_variable: variable dtype not as expected: ", &
