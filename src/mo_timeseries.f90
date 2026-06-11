@@ -458,7 +458,9 @@ contains
     n_source = size(self%source_values)
     j = 1_i4
     do i = 1_i4, size(self%target_values)
-      do while(j < n_source .and. self%source_values(j + 1_i4) <= self%target_values(i))
+      do
+        if (j >= n_source) exit
+        if (self%source_values(j + 1_i4) > self%target_values(i)) exit
         j = j + 1_i4
       end do
       select case(self%interpolation)
@@ -481,7 +483,8 @@ contains
               self%target_values(i) > self%source_values(n_source)) &
             call error_message("resampler%init: target time outside source range")
           self%left(i) = j
-          if (self%source_values(j) /= self%target_values(i) .and. j < n_source) then
+          if (j < n_source) then
+            if (self%source_values(j) == self%target_values(i)) cycle
             self%weight(i) = real(self%target_values(i) - self%source_values(j), dp) / &
                              real(self%source_values(j + 1_i4) - self%source_values(j), dp)
           end if
@@ -508,13 +511,17 @@ contains
     n_source = size(self%source_bounds, 2)
     j = 1_i4
     do i = 1_i4, size(self%target_bounds, 2)
-      do while(j <= n_source .and. self%source_bounds(2_i4, j) <= self%target_bounds(1_i4, i))
+      do
+        if (j > n_source) exit
+        if (self%source_bounds(2_i4, j) > self%target_bounds(1_i4, i)) exit
         j = j + 1_i4
       end do
       total_overlap = 0_i8
       target_width = self%target_bounds(2_i4, i) - self%target_bounds(1_i4, i)
       k = j
-      do while(k <= n_source .and. self%source_bounds(1_i4, k) < self%target_bounds(2_i4, i))
+      do
+        if (k > n_source) exit
+        if (self%source_bounds(1_i4, k) >= self%target_bounds(2_i4, i)) exit
         lower = max(self%source_bounds(1_i4, k), self%target_bounds(1_i4, i))
         upper = min(self%source_bounds(2_i4, k), self%target_bounds(2_i4, i))
         if (upper > lower) then
