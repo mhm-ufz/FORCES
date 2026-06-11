@@ -970,7 +970,6 @@ contains
                           self%name, ", dtype: ", self%dtype, ", kind:", self%kind)
     end if
 
-    if (allocated(meta%standard_name)) self%standard_name = meta%standard_name
     if (self%nc%hasAttribute("standard_name")) then
       call self%nc%getAttribute("standard_name", tmp_str)
       self%standard_name = trim(tmp_str)
@@ -981,7 +980,6 @@ contains
                           self%name, ", ", meta%standard_name, "=/=", self%standard_name)
     end if
 
-    if (allocated(meta%units)) self%units = meta%units
     if (self%nc%hasAttribute("units")) then
       call self%nc%getAttribute("units", tmp_str)
       self%units = trim(tmp_str)
@@ -993,7 +991,6 @@ contains
     end if
 
     ! don't check long-name
-    if (allocated(meta%long_name)) self%long_name = meta%long_name
     if (self%nc%hasAttribute("long_name")) then
       call self%nc%getAttribute("long_name", tmp_str)
       self%long_name = trim(tmp_str)
