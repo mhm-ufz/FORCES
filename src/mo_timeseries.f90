@@ -82,6 +82,7 @@ module mo_timeseries
     procedure, public :: lower => time_lower
     procedure, public :: upper => time_upper
     procedure, public :: to_cf => time_to_cf
+    procedure, public :: copy_to => time_copy_to
     procedure, public :: window_indices => time_window_indices
     procedure, public :: resampled => time_resampled
   end type time_t
@@ -366,8 +367,8 @@ contains
     integer(i4), optional, intent(in) :: method !< interval method (default: \ref ts_mean for intervals, \ref ts_none for instants)
     integer(i4), optional, intent(in) :: interpolation !< instant interpolation selector (default: \ref ts_nearest)
 
-    call copy_time_axis(self%source, source_time)
-    call copy_time_axis(self%target, target_time)
+    call source_time%copy_to(self%source)
+    call target_time%copy_to(self%target)
     self%support = optval(support, ts_interval)
     self%interpolation = optval(interpolation, ts_nearest)
     if (present(method)) then
@@ -694,20 +695,21 @@ contains
     end do
   end subroutine validate_time
 
-  subroutine copy_time_axis(dst, src)
-    type(time_t), intent(inout) :: dst
-    type(time_t), intent(in) :: src
+  !> \brief Copy this axis into another axis without whole-object assignment.
+  subroutine time_copy_to(self, dst)
+    class(time_t), intent(in) :: self
+    type(time_t), intent(inout) :: dst !< copied destination axis
     integer(i4), allocatable :: values(:), bounds(:, :)
     character(:), allocatable :: units
 
-    call src%to_cf(values, bounds, units)
-    if (src%has_bounds()) then
-      call dst%init_cf(values, units, bounds=bounds, timestamp=src%timestamp)
+    call self%to_cf(values, bounds, units)
+    if (self%has_bounds()) then
+      call dst%init_cf(values, units, bounds=bounds, timestamp=self%timestamp)
     else
       call dst%init_cf(values, units, timestamp=instant_timestamp)
     end if
-    dst%timestep = src%timestep
-  end subroutine copy_time_axis
+    dst%timestep = self%timestep
+  end subroutine time_copy_to
 
   subroutine check_time_index(axis, i, context)
     type(time_t), intent(in) :: axis
