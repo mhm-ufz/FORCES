@@ -2181,7 +2181,7 @@ contains
     type(NcVariable), optional, intent(inout) :: nc !< NetCDF variable that receives fill metadata
     select case(trim(dtype))
       case("f32")
-        kind = "sp"
+        kind = "dp"
         if (present(nc)) then
           call nc%setFillValue(nodata_sp)
           call nc%setAttribute("missing_value", nodata_sp)
@@ -2193,13 +2193,13 @@ contains
           call nc%setAttribute("missing_value", nodata_dp)
         end if
       case("i8")
-        kind = "i1"
+        kind = "i4"
         if (present(nc)) then
           call nc%setFillValue(nodata_i1)
           call nc%setAttribute("missing_value", nodata_i1)
         end if
       case("i16")
-        kind = "i2"
+        kind = "i4"
         if (present(nc)) then
           call nc%setFillValue(nodata_i2)
           call nc%setAttribute("missing_value", nodata_i2)
@@ -2211,7 +2211,7 @@ contains
           call nc%setAttribute("missing_value", nodata_i4)
         end if
       case("i64")
-        kind = "i8"
+        kind = "i4"
         if (present(nc)) then
           call nc%setFillValue(nodata_i8)
           call nc%setAttribute("missing_value", nodata_i8)
