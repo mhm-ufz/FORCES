@@ -90,6 +90,7 @@ contains
     type(time_t) :: time_axis
     type(var), allocatable :: vars(:)
     type(var), allocatable :: static_vars(:)
+    type(var) :: meta
     real(dp) :: values(3), read_values(3)
     real(dp), allocatable :: read_chunk(:, :)
     real(sp) :: values_sp(3), read_sp(3)
@@ -108,6 +109,10 @@ contains
 
     start_time = datetime("1990-01-01")
     call out%init("point_discharge.nc", points=points, vars=vars, start_time=start_time, point_dim_name="node")
+    meta = out%meta("discharge")
+    @assertFalse(meta%static)
+    @assertEqual(trim(meta%dtype), "f64")
+    @assertEqual(trim(meta%kind), "dp")
     values = [10.0_dp, 20.0_dp, 30.0_dp]
     call out%update("discharge", values)
     call out%write(datetime("1990-01-02"))
@@ -117,6 +122,11 @@ contains
     @assertEqual(points_read%n_points, 3_i8)
     @assertEqual(points_read%x, points%x, tolerance=1.0e-12_dp)
     call inp%init("point_discharge.nc", vars=vars, points=points_read)
+    meta = inp%meta("discharge")
+    @assertFalse(meta%static)
+    @assertEqual(trim(meta%dtype), "f64")
+    @assertEqual(trim(meta%kind), "dp")
+    @assertEqual(trim(meta%units), "m3 s-1")
     time_axis = inp%time_axis()
     @assertEqual(time_axis%n_times(), 1_i4)
     @assertEqual(time_axis%values, inp%t_values)
@@ -140,6 +150,10 @@ contains
     call add_var(static_vars, var(name="code_i4", static=.true., dtype="i32", kind="i4"))
     call add_var(static_vars, var(name="code_i8", static=.true., dtype="i64", kind="i8"))
     call out%init("point_static_kinds.nc", points=points, vars=static_vars)
+    meta = out%meta("height_sp")
+    @assertTrue(meta%static)
+    @assertEqual(trim(meta%dtype), "f32")
+    @assertEqual(trim(meta%kind), "sp")
     values_sp = [1.0_sp, 2.0_sp, 3.0_sp]
     values_i1 = [1_i1, 2_i1, 3_i1]
     values_i2 = [10_i2, 20_i2, 30_i2]
@@ -184,6 +198,7 @@ contains
     type(NcDimension) :: node_dim, time_dim, bnds_dim
     type(NcDimension), allocatable :: dims(:)
     type(time_t) :: time_axis
+    type(var) :: meta
     real(dp) :: values_1(3), values_2(3), read_values(3)
     real(dp), allocatable :: read_chunk(:, :), read_series(:)
     real(dp) :: slice_data(3, 2), series_data(2, 3)
@@ -236,6 +251,10 @@ contains
     call add_var(mixed_vars, var(name="discharge", units="m3 s-1", static=.false., dtype="f64", kind="dp"))
     call add_var(mixed_vars, var(name="code", static=.false., dtype="i32", kind="i4"))
     call series_out%init("point_series_writer.nc", points=points, vars=mixed_vars, time_axis=time_axis, point_dim_name="station")
+    meta = series_out%meta("code")
+    @assertFalse(meta%static)
+    @assertEqual(trim(meta%dtype), "i32")
+    @assertEqual(trim(meta%kind), "i4")
     station_ids = [101_i4, 102_i4, 103_i4]
     call series_out%set_ids(station_ids, long_name="station ID")
     call series_out%write_series("discharge", 1_i8, [100.0_dp, 101.0_dp])
