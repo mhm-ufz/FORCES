@@ -447,6 +447,7 @@ contains
   subroutine precompute_instant(self)
     class(resampler_t), intent(inout) :: self
     integer(i4) :: i, j
+    integer(i4) :: n_source
 
     call self%source%value_seconds(self%source%ref_time, self%source_values)
     call self%target%value_seconds(self%source%ref_time, self%target_values)
@@ -454,21 +455,33 @@ contains
     if (allocated(self%weight)) deallocate(self%weight)
     allocate(self%left(size(self%target_values)), self%weight(size(self%target_values)))
     self%weight = 0.0_dp
+    n_source = size(self%source_values)
+    j = 1_i4
     do i = 1_i4, size(self%target_values)
+      do while(j < n_source .and. self%source_values(j + 1_i4) <= self%target_values(i))
+        j = j + 1_i4
+      end do
       select case(self%interpolation)
         case(ts_previous)
-          j = previous_index(self%source_values, self%target_values(i))
-          if (j < 1_i4) call error_message("resampler%init: target time before source range")
+          if (self%target_values(i) < self%source_values(1_i4)) call error_message("resampler%init: target time before source range")
           self%left(i) = j
         case(ts_nearest)
-          self%left(i) = nearest_index(self%source_values, self%target_values(i))
+          if (self%target_values(i) <= self%source_values(1_i4)) then
+            self%left(i) = 1_i4
+          else if (self%target_values(i) >= self%source_values(n_source)) then
+            self%left(i) = n_source
+          else if (abs(self%source_values(j + 1_i4) - self%target_values(i)) < &
+                   abs(self%target_values(i) - self%source_values(j))) then
+            self%left(i) = j + 1_i4
+          else
+            self%left(i) = j
+          end if
         case(ts_linear)
           if (self%target_values(i) < self%source_values(1_i4) .or. &
-              self%target_values(i) > self%source_values(size(self%source_values))) &
+              self%target_values(i) > self%source_values(n_source)) &
             call error_message("resampler%init: target time outside source range")
-          j = previous_index(self%source_values, self%target_values(i))
           self%left(i) = j
-          if (self%source_values(j) /= self%target_values(i) .and. j < size(self%source_values)) then
+          if (self%source_values(j) /= self%target_values(i) .and. j < n_source) then
             self%weight(i) = real(self%target_values(i) - self%source_values(j), dp) / &
                              real(self%source_values(j + 1_i4) - self%source_values(j), dp)
           end if
@@ -480,9 +493,9 @@ contains
 
   subroutine precompute_interval(self)
     class(resampler_t), intent(inout) :: self
-    real(dp) :: total_overlap, target_width
-    integer(i4) :: i, j
-    integer(i8) :: lower, upper
+    integer(i4) :: i, j, k
+    integer(i4) :: n_source
+    integer(i8) :: lower, upper, target_width, total_overlap
 
     call self%source%bound_seconds(self%source%ref_time, self%source_bounds)
     call self%target%bound_seconds(self%source%ref_time, self%target_bounds)
@@ -492,18 +505,27 @@ contains
     self%first = 0_i4
     self%last = 0_i4
 
+    n_source = size(self%source_bounds, 2)
+    j = 1_i4
     do i = 1_i4, size(self%target_bounds, 2)
-      total_overlap = 0.0_dp
-      target_width = real(self%target_bounds(2_i4, i) - self%target_bounds(1_i4, i), dp)
-      do j = 1_i4, size(self%source_bounds, 2)
-        lower = max(self%source_bounds(1_i4, j), self%target_bounds(1_i4, i))
-        upper = min(self%source_bounds(2_i4, j), self%target_bounds(2_i4, i))
-        if (upper <= lower) cycle
-        if (self%first(i) == 0_i4) self%first(i) = j
-        self%last(i) = j
-        total_overlap = total_overlap + real(upper - lower, dp)
+      do while(j <= n_source .and. self%source_bounds(2_i4, j) <= self%target_bounds(1_i4, i))
+        j = j + 1_i4
       end do
-      if (total_overlap <= 0.0_dp) call error_message("resampler%init: target interval not covered")
+      total_overlap = 0_i8
+      target_width = self%target_bounds(2_i4, i) - self%target_bounds(1_i4, i)
+      k = j
+      do while(k <= n_source .and. self%source_bounds(1_i4, k) < self%target_bounds(2_i4, i))
+        lower = max(self%source_bounds(1_i4, k), self%target_bounds(1_i4, i))
+        upper = min(self%source_bounds(2_i4, k), self%target_bounds(2_i4, i))
+        if (upper > lower) then
+          if (self%first(i) == 0_i4) self%first(i) = k
+          self%last(i) = k
+          total_overlap = total_overlap + upper - lower
+        end if
+        if (self%source_bounds(2_i4, k) >= self%target_bounds(2_i4, i)) exit
+        k = k + 1_i4
+      end do
+      if (total_overlap <= 0_i8) call error_message("resampler%init: target interval not covered")
       if (total_overlap /= target_width) call error_message("resampler%init: target interval partially covered")
     end do
   end subroutine precompute_interval
@@ -764,33 +786,6 @@ contains
       seconds(2_i4, i) = offset + int(self%bounds(2_i4, i), i8) * delta_seconds
     end do
   end subroutine time_bound_seconds
-
-  integer(i4) function previous_index(values, target) result(ind)
-    integer(i8), intent(in) :: values(:)
-    integer(i8), intent(in) :: target
-    integer(i4) :: i
-    ind = 0_i4
-    do i = 1_i4, size(values)
-      if (values(i) > target) exit
-      ind = i
-    end do
-  end function previous_index
-
-  integer(i4) function nearest_index(values, target) result(ind)
-    integer(i8), intent(in) :: values(:)
-    integer(i8), intent(in) :: target
-    integer(i4) :: i
-    integer(i8) :: best_dist, dist
-    ind = 1_i4
-    best_dist = abs(values(1_i4) - target)
-    do i = 2_i4, size(values)
-      dist = abs(values(i) - target)
-      if (dist < best_dist) then
-        ind = i
-        best_dist = dist
-      end if
-    end do
-  end function nearest_index
 
   integer(i4) function time_integer_value(self, time) result(value)
     class(time_t), intent(in) :: self

@@ -287,9 +287,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_points_io
 
-  use mo_datetime, only: datetime, timedelta, delta_from_string, time_values, time_units_delta, &
-                         hourly, daily, monthly, yearly, varying, end_timestamp, start_timestamp, center_timestamp, &
-                         instant_timestamp, no_time
+  use mo_datetime, only: datetime, timedelta, delta_from_string, time_values, end_timestamp, instant_timestamp, no_time
   use mo_grid_helper, only: is_t_axis, is_x_axis, is_lon_coord
   use mo_kind, only: i1, i2, i4, i8, dp, sp
   use mo_message, only: error_message, warn_message
@@ -309,7 +307,6 @@ module mo_points_io
   public :: points_output_dataset
   public :: points_series_output_dataset
   public :: points_input_dataset
-  public :: points_time_axis
   public :: points_id_index
   public :: points_id_indices
 
@@ -1147,78 +1144,6 @@ contains
     point_dim = nc%getDimension(trim(dimname))
     if (point_dim%getLength64() /= points%n_points) call error_message("points_input: point dimension size mismatch: ", dimname)
   end subroutine points_input_check_point_dim
-
-  !> \brief Generate integer CF time coordinate values and contiguous bounds.
-  subroutine points_time_axis(timeframe_start, timeframe_end, values, bounds, units, timestep, delta, timestamp, ref_time)
-    type(datetime), intent(in) :: timeframe_start !< start of first time frame
-    type(datetime), intent(in) :: timeframe_end !< end of final time frame
-    integer(i4), allocatable, intent(out) :: values(:) !< generated time coordinate values
-    integer(i4), allocatable, intent(out) :: bounds(:, :) !< generated bounds with shape (2,time)
-    character(:), allocatable, intent(out) :: units !< CF time units
-    integer(i4), optional, intent(in) :: timestep !< time step indicator or positive hourly step
-    character(*), optional, intent(in) :: delta !< time units, for example "hours" or "days"
-    integer(i4), optional, intent(in) :: timestamp !< timestamp location selector
-    type(datetime), optional, intent(in) :: ref_time !< reference time, defaults to timeframe_start
-
-    character(:), allocatable :: units_dt
-    type(datetime) :: ref_time_, previous_time, current_time
-    type(timedelta) :: delta_
-    integer(i4) :: timestep_, timestamp_, t_start, t_end, t_stamp, i, n_times
-
-    if (timeframe_end <= timeframe_start) call error_message("points_time_axis: timeframe_end must be after timeframe_start")
-    timestamp_ = optval(timestamp, end_timestamp)
-    timestep_ = optval(timestep, daily)
-    units_dt = trim(optval(delta, time_units_delta(timestep_, timestamp_)))
-    delta_ = delta_from_string(units_dt)
-    ref_time_ = timeframe_start
-    if (present(ref_time)) ref_time_ = ref_time
-    units = units_dt // " since " // ref_time_%str()
-
-    n_times = 0_i4
-    previous_time = timeframe_start
-    do while(previous_time < timeframe_end)
-      current_time = points_time_axis_next(previous_time, timestep_, delta, present(delta))
-      if (current_time > timeframe_end) call error_message("points_time_axis: timestep does not align with timeframe_end")
-      n_times = n_times + 1_i4
-      previous_time = current_time
-    end do
-    allocate(values(n_times), bounds(2, n_times))
-    previous_time = timeframe_start
-    do i = 1_i4, n_times
-      current_time = points_time_axis_next(previous_time, timestep_, delta, present(delta))
-      call time_values(ref_time_, previous_time, current_time, delta_, timestamp_, t_start, t_end, t_stamp)
-      bounds(:, i) = [t_start, t_end]
-      values(i) = t_stamp
-      previous_time = current_time
-    end do
-  end subroutine points_time_axis
-
-  !> \brief Return the next contiguous time-axis edge.
-  type(datetime) function points_time_axis_next(current_time, timestep, delta, use_delta) result(next_time)
-    type(datetime), intent(in) :: current_time !< current time-axis edge
-    integer(i4), intent(in) :: timestep !< time step indicator or positive hourly step
-    character(*), optional, intent(in) :: delta !< explicit timedelta units
-    logical, intent(in) :: use_delta !< use explicit delta instead of timestep
-
-    if (use_delta) then
-      if (.not.present(delta)) call error_message("points_time_axis_next: missing delta")
-      next_time = current_time + delta_from_string(delta)
-      return
-    end if
-    select case(timestep)
-      case(yearly)
-        next_time = current_time%next_new_year()
-      case(monthly)
-        next_time = current_time%next_new_month()
-      case(daily)
-        next_time = current_time%next_new_day()
-      case(varying, no_time)
-        call error_message("points_time_axis: invalid timestep for contiguous axis")
-      case default
-        if (timestep <= 0_i4) call error_message("points_time_axis: invalid timestep")
-        next_time = current_time + timestep * delta_from_string("hours")
-    end select
-  end function points_time_axis_next
 
   !> \brief Return one-based index of an integer point ID.
   integer(i8) function points_id_index_i4(ids, id) result(idx)

@@ -129,6 +129,7 @@ contains
   subroutine test_time_interval_resample()
     type(time_t) :: hourly_axis, daily_axis, derived_hourly_axis, window_hourly_axis
     type(time_t) :: start_default_axis, end_default_axis
+    type(time_t) :: long_daily_axis, long_hourly_axis
     type(resampler_t) :: resampler
     real(dp) :: hourly_values(48), daily_values(2)
     real(dp) :: daily_result(2), hourly_result(48)
@@ -177,6 +178,11 @@ contains
     call resampler%execute(hourly_matrix, daily_matrix)
     @assertEqual(daily_matrix(1_i4, :), [1.0_dp, 3.0_dp], tolerance=1.0e-12_dp)
     @assertEqual(daily_matrix(2_i4, :), [2.0_dp, 6.0_dp], tolerance=1.0e-12_dp)
+
+    call long_daily_axis%init(datetime("1990-01-01"), datetime("2020-01-01"), timestep=daily)
+    long_hourly_axis = long_daily_axis%resampled(timestep=hourly)
+    @assertEqual(long_hourly_axis%n_times(), 24_i4 * long_daily_axis%n_times())
+    call resampler%init(long_daily_axis, long_hourly_axis, support=ts_interval, method=ts_mean)
   end subroutine test_time_interval_resample
 
   @test

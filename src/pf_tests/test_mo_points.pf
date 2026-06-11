@@ -5,7 +5,7 @@ module test_mo_points
   use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   use mo_points, only: points_t
   use mo_points_io, only: add_var, var, points_output_dataset, points_series_output_dataset, points_input_dataset, &
-                          points_time_axis, points_id_index, points_id_indices
+                          points_id_index, points_id_indices
   use mo_grid_io, only: daily, hourly, start_timestamp, center_timestamp, end_timestamp
   use mo_points_regridder, only: nearest_grid_to_points_t, nearest_points_to_grid_t, nearest_points_to_points_t
   use mo_datetime, only: datetime
@@ -18,7 +18,7 @@ module test_mo_points
   public :: test_points_netcdf_roundtrip
   public :: test_points_output_input
   public :: test_points_time_series_io
-  public :: test_points_time_axis_and_ids
+  public :: test_points_time_t_and_ids
   public :: test_nearest_regridding
 
 contains
@@ -344,26 +344,28 @@ contains
   end subroutine test_points_time_series_io
 
   @test
-  subroutine test_points_time_axis_and_ids()
+  subroutine test_points_time_t_and_ids()
+    type(time_t) :: time_axis
     integer(i4), allocatable :: values(:), bounds(:, :)
     integer(i8) :: idx
     integer(i8) :: indices(2)
     character(:), allocatable :: units
 
-    call points_time_axis(datetime("1990-01-01"), datetime("1990-01-03"), values, bounds, units, &
-                          timestep=daily, timestamp=end_timestamp)
+    call time_axis%init(datetime("1990-01-01"), datetime("1990-01-03"), timestep=daily, timestamp=end_timestamp)
+    call time_axis%to_cf(values, bounds, units)
     @assertEqual(values, [1_i4, 2_i4])
     @assertEqual(bounds(:, 1), [0_i4, 1_i4])
     @assertEqual(trim(units), "days since 1990-01-01 00:00:00")
 
-    call points_time_axis(datetime("1990-01-01"), datetime("1990-01-01 02:00:00"), values, bounds, units, &
-                          timestep=hourly, timestamp=center_timestamp)
+    call time_axis%init(datetime("1990-01-01"), datetime("1990-01-01 02:00:00"), timestep=hourly, timestamp=center_timestamp)
+    call time_axis%to_cf(values, bounds, units)
     @assertEqual(values, [30_i4, 90_i4])
     @assertEqual(bounds(:, 2), [60_i4, 120_i4])
     @assertEqual(trim(units), "minutes since 1990-01-01 00:00:00")
 
-    call points_time_axis(datetime("1990-01-01"), datetime("1990-01-03"), values, bounds, units, &
-                          timestep=daily, timestamp=start_timestamp, ref_time=datetime("1989-12-31"))
+    call time_axis%init(datetime("1990-01-01"), datetime("1990-01-03"), timestep=daily, &
+                        timestamp=start_timestamp, ref_time=datetime("1989-12-31"))
+    call time_axis%to_cf(values, bounds, units)
     @assertEqual(values, [1_i4, 2_i4])
     @assertEqual(trim(units), "days since 1989-12-31 00:00:00")
 
@@ -371,7 +373,7 @@ contains
     @assertEqual(idx, 2_i8)
     indices = points_id_indices([11_i8, 22_i8, 33_i8], [33_i8, 11_i8])
     @assertEqual(indices, [3_i8, 1_i8])
-  end subroutine test_points_time_axis_and_ids
+  end subroutine test_points_time_t_and_ids
 
   @test
   subroutine test_nearest_regridding()
