@@ -20,6 +20,7 @@ module mo_points_io
   use mo_message, only: error_message, warn_message
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable, NF90_NOFILL
   use mo_netcdf_utils, only: var, add_var, var_index, time_stepping
+  use mo_timeseries, only: time_t
   use mo_points, only: points_t, spherical
   use mo_string_utils, only: splitString
   use mo_utils, only: optval
@@ -205,6 +206,7 @@ module mo_points_io
     integer(i4) :: timestep = no_time                   !< detected file time step
     integer(i4), allocatable :: t_values(:)             !< time-axis values
     integer(i4), allocatable :: t_bounds(:)             !< time-axis bounds
+    character(:), allocatable :: time_units             !< CF time units string
     type(datetime), allocatable :: times(:)             !< timestamps for time-span ends
     character(:), allocatable :: point_dim_name         !< inferred point dimension name
   contains
@@ -222,6 +224,7 @@ module mo_points_io
     generic, public :: read_series => points_input_read_series_sp, points_input_read_series_dp, points_input_read_series_i1,&
         & points_input_read_series_i2, points_input_read_series_i4, points_input_read_series_i8
     procedure, public :: time_index => points_input_time_index
+    procedure, public :: time_axis => points_input_time_axis
     procedure, public :: chunk_times => points_input_chunk_times
     procedure, private :: points_input_get_ids_i4, points_input_get_ids_i8
     generic, public :: get_ids => points_input_get_ids_i4, points_input_get_ids_i8
@@ -576,7 +579,7 @@ contains
     self%counter = self%counter + 1_i4
     if (.not.self%static) then
       if (.not.present(current_time)) call error_message("points_output_dataset: missing current_time")
-      call grid_time_values(self%ref_time, self%previous_time, current_time, self%delta, self%timestamp, t_start, t_end, t_stamp)
+      call time_values(self%ref_time, self%previous_time, current_time, self%delta, self%timestamp, t_start, t_end, t_stamp)
       t_var = self%nc%getVariable("time")
       call t_var%setData(t_stamp, [self%counter])
       t_var = self%nc%getVariable("time_bnds")
@@ -1416,6 +1419,7 @@ contains
           t_var = self%nc%getVariable(trim(dims(size(dims))%getName()))
         end if
         call time_stepping(t_var, self%ref_time, self%delta, self%timestep, self%t_values, self%t_bounds, timestamp)
+        call points_input_read_time_units(t_var, self%time_units)
         self%start_time = self%ref_time + self%t_bounds(1) * self%delta
         self%times = [(self%ref_time + self%t_values(i) * self%delta, i=1_i4,size(self%t_values))]
         self%delta_sec = self%delta%total_seconds()
@@ -1862,6 +1866,33 @@ contains
     end do
   end function points_input_time_index
 
+  !> \brief Return the parsed input time axis.
+  type(time_t) function points_input_time_axis(self) result(axis)
+    class(points_input_dataset), intent(in) :: self
+    integer(i4), allocatable :: bounds(:, :)
+    integer(i4) :: n_times
+
+    if (self%static .or. .not.allocated(self%t_values)) call error_message("points_input%time_axis: input has no time axis")
+    if (.not.allocated(self%time_units)) call error_message("points_input%time_axis: missing time units")
+    n_times = size(self%t_values)
+    allocate(bounds(2_i4, n_times))
+    bounds(1_i4, :) = self%t_bounds(:n_times)
+    bounds(2_i4, :) = self%t_bounds(2_i4:n_times + 1_i4)
+    call axis%init_cf(self%t_values, self%time_units, bounds=bounds, timestamp=end_timestamp)
+    axis%timestamp = end_timestamp
+    axis%timestep = self%timestep
+  end function points_input_time_axis
+
+  !> \brief Read and trim the CF time units attribute.
+  subroutine points_input_read_time_units(t_var, units)
+    type(NcVariable), intent(in) :: t_var
+    character(:), allocatable, intent(out) :: units
+    character(len=256) :: tmp
+
+    call t_var%getAttribute("units", tmp)
+    units = trim(tmp)
+  end subroutine points_input_read_time_units
+
   !> \brief Close a point-set input dataset.
   subroutine points_input_close(self)
     class(points_input_dataset), intent(inout) :: self
@@ -1870,6 +1901,7 @@ contains
     if (allocated(self%times)) deallocate(self%times)
     if (allocated(self%t_values)) deallocate(self%t_values)
     if (allocated(self%t_bounds)) deallocate(self%t_bounds)
+    if (allocated(self%time_units)) deallocate(self%time_units)
   end subroutine points_input_close
 
   !> \brief Infer the point dimension name from point coordinate variables.

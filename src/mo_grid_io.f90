@@ -35,6 +35,7 @@ module mo_grid_io
                           start_timestamp, center_timestamp, end_timestamp
   use mo_message, only : error_message, warn_message
   use mo_netcdf_utils, only: var, add_var, var_index, time_stepping
+  use mo_timeseries, only: time_t
   use mo_string_utils, only : num2str
   use mo_utils, only: is_close, flip, optval
   implicit none
@@ -184,6 +185,7 @@ module mo_grid_io
     integer(i4) :: timestep                       !< timestep in the file
     integer(i4), allocatable :: t_values(:)       !< time axis values for ends of time spans
     integer(i4), allocatable :: t_bounds(:)       !< time axis bound values
+    character(:), allocatable :: time_units       !< CF time units string
     type(datetime), allocatable :: times(:)       !< times for ends of time spans
     logical :: has_layer = .false.                !< dataset includes vertical layers
     integer(i4) :: nlayers = 0_i4                 !< number of layers in dataset
@@ -297,6 +299,7 @@ module mo_grid_io
     ! others
     procedure, public :: var_index => input_var_index
     procedure, public :: time_index => input_time_index
+    procedure, public :: time_axis => input_time_axis
     procedure, public :: chunk_times => input_chunk_times
     procedure, public :: meta => input_meta
     procedure, public :: close => input_close
@@ -2086,6 +2089,7 @@ contains
         dims = self%vars(i)%nc%getDimensions()
         t_var = self%nc%getVariable(trim(dims(size(dims))%getName()))
         call time_stepping(t_var, self%ref_time, self%delta, self%timestep, self%t_values, self%t_bounds, timestamp)
+        call input_read_time_units(t_var, self%time_units)
         self%start_time = self%ref_time + self%t_bounds(1) * self%delta
         self%times = [(self%ref_time + self%t_values(i) * self%delta, i=1_i4,size(self%t_values))]
         self%delta_sec = self%delta%total_seconds()
@@ -4340,6 +4344,35 @@ contains
     end do
   end function input_time_index
 
+  !> \brief Return the parsed input time axis.
+  type(time_t) function input_time_axis(self) result(axis)
+    implicit none
+    class(input_dataset), intent(in) :: self
+    integer(i4), allocatable :: bounds(:, :)
+    integer(i4) :: n_times
+
+    if (self%static .or. .not.allocated(self%t_values)) call error_message("input_dataset%time_axis: input has no time axis")
+    if (.not.allocated(self%time_units)) call error_message("input_dataset%time_axis: missing time units")
+    n_times = size(self%t_values)
+    allocate(bounds(2_i4, n_times))
+    bounds(1_i4, :) = self%t_bounds(:n_times)
+    bounds(2_i4, :) = self%t_bounds(2_i4:n_times + 1_i4)
+    call axis%init_cf(self%t_values, self%time_units, bounds=bounds, timestamp=end_timestamp)
+    axis%timestamp = end_timestamp
+    axis%timestep = self%timestep
+  end function input_time_axis
+
+  !> \brief Read and trim the CF time units attribute.
+  subroutine input_read_time_units(t_var, units)
+    implicit none
+    type(NcVariable), intent(in) :: t_var
+    character(:), allocatable, intent(out) :: units
+    character(len=256) :: tmp
+
+    call t_var%getAttribute("units", tmp)
+    units = trim(tmp)
+  end subroutine input_read_time_units
+
   !> \brief Get variable meta data.
   !> \return \ref var meta data definition
   type(var) function input_meta(self, name)
@@ -4357,6 +4390,8 @@ contains
     deallocate(self%vars)
     if (allocated(self%times)) deallocate(self%times)
     if (allocated(self%t_values)) deallocate(self%t_values)
+    if (allocated(self%t_bounds)) deallocate(self%t_bounds)
+    if (allocated(self%time_units)) deallocate(self%time_units)
     if (allocated(self%layer)) deallocate(self%layer)
     if (allocated(self%layer_vertices)) deallocate(self%layer_vertices)
   end subroutine input_close

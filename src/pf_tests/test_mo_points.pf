@@ -9,6 +9,7 @@ module test_mo_points
   use mo_grid_io, only: daily, hourly, start_timestamp, center_timestamp, end_timestamp
   use mo_points_regridder, only: nearest_grid_to_points_t, nearest_points_to_grid_t, nearest_points_to_points_t
   use mo_datetime, only: datetime
+  use mo_timeseries, only: time_t
   implicit none
 
   private
@@ -86,6 +87,7 @@ contains
     type(points_t), target :: points, points_read
     type(points_output_dataset) :: out
     type(points_input_dataset) :: inp
+    type(time_t) :: time_axis
     type(var), allocatable :: vars(:)
     type(var), allocatable :: static_vars(:)
     real(dp) :: values(3), read_values(3)
@@ -115,6 +117,10 @@ contains
     @assertEqual(points_read%n_points, 3_i8)
     @assertEqual(points_read%x, points%x, tolerance=1.0e-12_dp)
     call inp%init("point_discharge.nc", vars=vars, points=points_read)
+    time_axis = inp%time_axis()
+    @assertEqual(time_axis%n_times(), 1_i4)
+    @assertEqual(time_axis%values, [1_i4])
+    @assertEqual(time_axis%bounds(:, 1_i4), [0_i4, 1_i4])
     call inp%read("discharge", read_values, current_time=datetime("1990-01-02"))
     @assertEqual(read_values, values, tolerance=1.0e-12_dp)
     call inp%read_chunk("discharge", read_chunk, datetime("1990-01-01"), datetime("1990-01-02"), times)
@@ -175,6 +181,7 @@ contains
     type(NcVariable) :: nc_var, time_var, bnds_var
     type(NcDimension) :: node_dim, time_dim, bnds_dim
     type(NcDimension), allocatable :: dims(:)
+    type(time_t) :: time_axis
     real(dp) :: values_1(3), values_2(3), read_values(3)
     real(dp), allocatable :: read_chunk(:, :), read_series(:)
     real(dp) :: slice_data(3, 2), series_data(2, 3)
@@ -241,6 +248,10 @@ contains
     call series_out%close()
 
     call inp%init("point_series_writer.nc", vars=mixed_vars, points=points)
+    time_axis = inp%time_axis()
+    @assertEqual(time_axis%values, tvals)
+    @assertEqual(time_axis%bounds, tbnds)
+    @assertEqual(trim(time_axis%units), "days since 1990-01-01 00:00:00")
     call inp%read_series("discharge", 3_i8, read_series)
     @assertEqual(read_series, [300.0_dp, 301.0_dp], tolerance=1.0e-12_dp)
     call inp%read_series("code", 2_i8, read_codes)
