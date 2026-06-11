@@ -18,7 +18,8 @@ module mo_timeseries
 
   use mo_datetime, only: datetime, timedelta, delta_from_string, decode_cf_time_units, time_units_delta, time_values, &
                          yearly, monthly, daily, no_time, hourly, varying, &
-                         start_timestamp, center_timestamp, end_timestamp, instant_timestamp
+                         start_timestamp, center_timestamp, end_timestamp, instant_timestamp, &
+                         infer_time_bounds, infer_time_timestep_from_bounds, infer_time_timestep_from_values
   use mo_kind, only: i4, i8, dp
   use mo_message, only: error_message
   use mo_orderpack, only: omedian
@@ -230,14 +231,14 @@ contains
       self%timestamp = optval(timestamp, end_timestamp)
       if (size(bounds, 1) /= 2_i4 .or. size(bounds, 2) /= size(values)) call error_message("time%init_cf: invalid bounds shape")
       allocate(self%bounds(2_i4, size(values)), source=bounds)
-      self%timestep = infer_timestep(self%bounds, self%delta, self%ref_time)
+      self%timestep = infer_time_timestep_from_bounds(self%bounds, self%delta, self%ref_time)
     else if (optval(infer_bounds, .false.)) then
       self%timestamp = optval(timestamp, end_timestamp)
-      call infer_bounds_from_values(self%values, self%timestamp, self%bounds)
-      self%timestep = infer_timestep(self%bounds, self%delta, self%ref_time)
+      call infer_time_bounds(self%values, self%timestamp, self%bounds)
+      self%timestep = infer_time_timestep_from_bounds(self%bounds, self%delta, self%ref_time)
     else
       self%timestamp = instant_timestamp
-      self%timestep = infer_value_timestep(self%values, self%delta, self%ref_time)
+      self%timestep = infer_time_timestep_from_values(self%values, self%delta, self%ref_time)
     end if
     call validate_time(self)
   end subroutine time_init_cf
@@ -811,128 +812,5 @@ contains
         next_time = current_time + timestep * delta_from_string("hours")
     end select
   end function time_next
-
-  subroutine infer_bounds_from_values(values, timestamp, bounds)
-    integer(i4), intent(in) :: values(:)
-    integer(i4), intent(in) :: timestamp
-    integer(i4), allocatable, intent(out) :: bounds(:, :)
-    integer(i4) :: n, dt, i
-
-    n = size(values)
-    allocate(bounds(2_i4, n))
-    if (n == 1_i4) then
-      dt = 1_i4
-    else
-      dt = values(2_i4) - values(1_i4)
-    end if
-    select case(timestamp)
-      case(end_timestamp)
-        bounds(2_i4, :) = values
-        bounds(1_i4, 1_i4) = values(1_i4) - dt
-        if (n > 1_i4) bounds(1_i4, 2_i4:n) = values(1_i4:n - 1_i4)
-      case(start_timestamp)
-        bounds(1_i4, :) = values
-        if (n > 1_i4) bounds(2_i4, 1_i4:n - 1_i4) = values(2_i4:n)
-        bounds(2_i4, n) = values(n) + dt
-      case(center_timestamp)
-        if (mod(dt, 2_i4) /= 0_i4) call error_message("time%init_cf: center bounds need even step")
-        do i = 1_i4, n
-          bounds(1_i4, i) = values(i) - dt / 2_i4
-          bounds(2_i4, i) = values(i) + dt / 2_i4
-        end do
-      case default
-        call error_message("time%init_cf: invalid timestamp")
-    end select
-  end subroutine infer_bounds_from_values
-
-  integer(i4) function infer_value_timestep(values, delta, ref_time) result(timestep)
-    integer(i4), intent(in) :: values(:)
-    type(timedelta), intent(in) :: delta
-    type(datetime), intent(in) :: ref_time
-    integer(i4), allocatable :: diffs(:)
-    type(timedelta) :: loc_delta
-    type(datetime) :: loc_date
-    logical :: is_monthly, is_yearly
-    integer(i4) :: i, dt
-    real(dp) :: dt_dp
-
-    if (size(values) < 2_i4) then
-      timestep = no_time
-      return
-    end if
-    allocate(diffs(size(values) - 1_i4))
-    diffs = values(2_i4:) - values(:size(values) - 1_i4)
-    dt = diffs(1_i4)
-    if (all(diffs == dt)) then
-      loc_delta = dt * delta
-      if (loc_delta%total_seconds() == 86400_i8) then
-        timestep = daily
-      else if (loc_delta%total_seconds() == 3600_i8) then
-        timestep = hourly
-      else
-        dt_dp = loc_delta%total_seconds() / 3600.0_dp
-        timestep = nint(dt_dp, i4)
-        if (abs(dt_dp - real(timestep, dp)) > 1.0e-12_dp) timestep = varying
-      end if
-    else
-      is_monthly = .true.
-      is_yearly = .true.
-      do i = 1_i4, size(values)
-        loc_date = ref_time + values(i) * delta
-        is_monthly = is_monthly .and. loc_date%is_new_month()
-        is_yearly = is_yearly .and. loc_date%is_new_year()
-      end do
-      if (is_yearly) then
-        timestep = yearly
-      else if (is_monthly) then
-        timestep = monthly
-      else
-        timestep = varying
-      end if
-    end if
-  end function infer_value_timestep
-
-  integer(i4) function infer_timestep(bounds, delta, ref_time) result(timestep)
-    integer(i4), intent(in) :: bounds(:, :)
-    type(timedelta), intent(in) :: delta
-    type(datetime), intent(in) :: ref_time
-    integer(i4), allocatable :: diffs(:)
-    type(timedelta) :: loc_delta
-    type(datetime) :: loc_date
-    logical :: is_monthly, is_yearly
-    integer(i4) :: i, dt
-    real(dp) :: dt_dp
-
-    allocate(diffs(size(bounds, 2)))
-    diffs = bounds(2_i4, :) - bounds(1_i4, :)
-    dt = diffs(1_i4)
-    if (all(diffs == dt)) then
-      loc_delta = dt * delta
-      if (loc_delta%total_seconds() == 86400_i8) then
-        timestep = daily
-      else if (loc_delta%total_seconds() == 3600_i8) then
-        timestep = hourly
-      else
-        dt_dp = loc_delta%total_seconds() / 3600.0_dp
-        timestep = nint(dt_dp, i4)
-        if (abs(dt_dp - real(timestep, dp)) > 1.0e-12_dp) timestep = varying
-      end if
-    else
-      is_monthly = .true.
-      is_yearly = .true.
-      do i = 1_i4, size(bounds, 2)
-        loc_date = ref_time + bounds(2_i4, i) * delta
-        is_monthly = is_monthly .and. loc_date%is_new_month()
-        is_yearly = is_yearly .and. loc_date%is_new_year()
-      end do
-      if (is_yearly) then
-        timestep = yearly
-      else if (is_monthly) then
-        timestep = monthly
-      else
-        timestep = varying
-      end if
-    end if
-  end function infer_timestep
 
 end module mo_timeseries

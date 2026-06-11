@@ -113,6 +113,9 @@ module mo_datetime
   ! system time
   public :: today
   public :: now
+  public :: infer_time_bounds
+  public :: infer_time_timestep_from_bounds
+  public :: infer_time_timestep_from_values
   public :: currently
   ! constants
   public :: zero_delta
@@ -2208,6 +2211,109 @@ contains
     integer(i4), intent(in) :: that
     td_mul2 = td_mul1(this, that)
   end function td_mul2
+
+  !> \brief Infer interval bounds from CF time values and a timestamp location.
+  subroutine infer_time_bounds(values, timestamp, bounds)
+    integer(i4), intent(in) :: values(:) !< CF time coordinate values
+    integer(i4), intent(in) :: timestamp !< timestamp location selector
+    integer(i4), allocatable, intent(out) :: bounds(:, :) !< inferred bounds with shape (2,time)
+    integer(i4) :: n, dt, i
+
+    n = size(values)
+    allocate(bounds(2_i4, n))
+    if (n == 1_i4) then
+      dt = 1_i4
+    else
+      dt = values(2_i4) - values(1_i4)
+    end if
+    select case(timestamp)
+      case(end_timestamp)
+        bounds(2_i4, :) = values
+        bounds(1_i4, 1_i4) = values(1_i4) - dt
+        if (n > 1_i4) bounds(1_i4, 2_i4:n) = values(1_i4:n - 1_i4)
+      case(start_timestamp)
+        bounds(1_i4, :) = values
+        if (n > 1_i4) bounds(2_i4, 1_i4:n - 1_i4) = values(2_i4:n)
+        bounds(2_i4, n) = values(n) + dt
+      case(center_timestamp)
+        if (mod(dt, 2_i4) /= 0_i4) call error_message("infer_time_bounds: center bounds need even step")
+        do i = 1_i4, n
+          bounds(1_i4, i) = values(i) - dt / 2_i4
+          bounds(2_i4, i) = values(i) + dt / 2_i4
+        end do
+      case default
+        call error_message("infer_time_bounds: invalid timestamp")
+    end select
+  end subroutine infer_time_bounds
+
+  !> \brief Infer a time-step indicator from CF time values.
+  integer(i4) function infer_time_timestep_from_values(values, delta, ref_time) result(timestep)
+    integer(i4), intent(in) :: values(:) !< CF time coordinate values
+    type(timedelta), intent(in) :: delta !< time delta in units
+    type(datetime), intent(in) :: ref_time !< reference time in units
+    integer(i4), allocatable :: diffs(:)
+
+    if (size(values) < 2_i4) then
+      timestep = no_time
+      return
+    end if
+    allocate(diffs(size(values) - 1_i4))
+    diffs = values(2_i4:) - values(:size(values) - 1_i4)
+    timestep = infer_time_timestep_from_diffs(diffs, values, delta, ref_time)
+  end function infer_time_timestep_from_values
+
+  !> \brief Infer a time-step indicator from CF time bounds.
+  integer(i4) function infer_time_timestep_from_bounds(bounds, delta, ref_time) result(timestep)
+    integer(i4), intent(in) :: bounds(:, :) !< CF time bounds with shape (2,time)
+    type(timedelta), intent(in) :: delta !< time delta in units
+    type(datetime), intent(in) :: ref_time !< reference time in units
+    integer(i4), allocatable :: diffs(:)
+
+    allocate(diffs(size(bounds, 2)))
+    diffs = bounds(2_i4, :) - bounds(1_i4, :)
+    timestep = infer_time_timestep_from_diffs(diffs, bounds(2_i4, :), delta, ref_time)
+  end function infer_time_timestep_from_bounds
+
+  integer(i4) function infer_time_timestep_from_diffs(diffs, values, delta, ref_time) result(timestep)
+    integer(i4), intent(in) :: diffs(:)
+    integer(i4), intent(in) :: values(:)
+    type(timedelta), intent(in) :: delta
+    type(datetime), intent(in) :: ref_time
+    type(timedelta) :: loc_delta
+    type(datetime) :: loc_date
+    logical :: is_monthly, is_yearly
+    integer(i4) :: i, dt
+    real(dp) :: dt_dp
+
+    dt = diffs(1_i4)
+    if (all(diffs == dt)) then
+      loc_delta = dt * delta
+      if (loc_delta == one_day()) then
+        timestep = daily
+      else if (loc_delta == one_hour()) then
+        timestep = hourly
+      else
+        dt_dp = loc_delta / one_hour()
+        timestep = nint(dt_dp, i4)
+        if (abs(dt_dp - real(timestep, dp)) > 1.0e-12_dp) timestep = varying
+      end if
+    else
+      is_yearly = .true.
+      is_monthly = .true.
+      do i = 1_i4, size(values)
+        loc_date = ref_time + values(i) * delta
+        is_monthly = is_monthly .and. loc_date%is_new_month()
+        is_yearly = is_yearly .and. loc_date%is_new_year()
+      end do
+      if (is_yearly) then
+        timestep = yearly
+      else if (is_monthly) then
+        timestep = monthly
+      else
+        timestep = varying
+      end if
+    end if
+  end function infer_time_timestep_from_diffs
 
   !> \brief (*) multiply a timedelta with a real
   pure type(timedelta) function td_mul1_dp(this, that)

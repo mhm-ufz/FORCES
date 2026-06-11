@@ -12,11 +12,12 @@
 module mo_netcdf_utils
 
   use mo_datetime, only: datetime, timedelta, decode_cf_time_units, one_day, one_hour, &
-                         hourly, daily, monthly, yearly, varying, end_timestamp, start_timestamp
-  use mo_kind, only: i4, dp
+                         hourly, daily, monthly, yearly, varying, end_timestamp, start_timestamp, &
+                         infer_time_timestep_from_bounds, infer_time_timestep_from_values
+  use mo_kind, only: i4
   use mo_message, only: error_message
   use mo_netcdf, only: NcVariable
-  use mo_utils, only: is_close, optval
+  use mo_utils, only: optval
 
   implicit none
 
@@ -121,13 +122,10 @@ contains
     integer(i4), allocatable, dimension(:), intent(out) :: t_bounds !< time axis bound values
     integer(i4), optional, intent(in) :: timestamp !< timestamp selector when bounds are missing (default: \ref end_timestamp)
 
-    integer(i4), allocatable, dimension(:) :: tmp_arr, t_diffs
+    integer(i4), allocatable, dimension(:) :: tmp_arr
     type(timedelta) :: loc_delta
     type(datetime) :: loc_date
     integer(i4) :: stamp
-    integer(i4) :: dt, i
-    real(dp) :: dt_dp
-    logical :: is_monthly, is_yearly
     character(len=256) :: tmp_str
     type(NcVariable) :: tb_var
     integer(i4), allocatable, dimension(:, :) :: t_bnds
@@ -171,37 +169,9 @@ contains
       end if
     else
       if (allocated(t_bnds)) then
-        t_diffs = t_bnds(2, :) - t_bnds(1, :)
+        timestep = infer_time_timestep_from_bounds(t_bnds, delta, ref_time)
       else
-        t_diffs = t_values(2:) - t_values(:size(t_values) - 1_i4)
-      end if
-      dt = t_diffs(1)
-      if (all(t_diffs == dt)) then
-        loc_delta = dt * delta
-        if (loc_delta == one_day()) then
-          timestep = daily
-        else if (loc_delta == one_hour()) then
-          timestep = hourly
-        else
-          dt_dp = loc_delta / one_hour()
-          timestep = nint(dt_dp, i4)
-          if (.not. is_close(dt_dp, real(timestep, dp))) call error_message("time_stepping: could not determine time step size")
-        end if
-      else
-        is_yearly = .true.
-        is_monthly = .true.
-        do i = 1_i4, size(t_values)
-          loc_date = ref_time + t_values(i) * delta
-          is_monthly = is_monthly .and. loc_date%is_new_month()
-          is_yearly = is_yearly .and. loc_date%is_new_year()
-        end do
-        if (is_yearly) then
-          timestep = yearly
-        else if (is_monthly) then
-          timestep = monthly
-        else
-          timestep = varying
-        end if
+        timestep = infer_time_timestep_from_values(t_values, delta, ref_time)
       end if
     end if
 
