@@ -545,7 +545,7 @@ contains
 
     do i = 1_i4, size(target)
       j = self%left(i)
-      if (self%weight(i) == 0.0_dp) then
+      if (.not.(self%weight(i) > 0.0_dp)) then
         target(i) = source(j)
       else
         target(i) = source(j) + self%weight(i) * (source(j + 1_i4) - source(j))
@@ -561,7 +561,7 @@ contains
 
     do i = 1_i4, size(target, 2)
       j = self%left(i)
-      if (self%weight(i) == 0.0_dp) then
+      if (.not.(self%weight(i) > 0.0_dp)) then
         target(:, i) = source(:, j)
       else
         target(:, i) = source(:, j) + self%weight(i) * (source(:, j + 1_i4) - source(:, j))
@@ -580,10 +580,10 @@ contains
 
     do i = 1_i4, size(target)
       call self%init_interval_value(i, target(i), target_width)
+      n_overlap = 0_i4
       if (self%method == ts_median) then
         if (allocated(median_values)) deallocate(median_values)
         allocate(median_values(self%last(i) - self%first(i) + 1_i4))
-        n_overlap = 0_i4
       end if
       do j = self%first(i), self%last(i)
         lower = max(self%source_bounds(1_i4, j), self%target_bounds(1_i4, i))
