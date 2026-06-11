@@ -786,7 +786,7 @@ contains
     self%nc = NcDataset(self%path, "w")
     call self%nc%setFill(NF90_NOFILL)
     self%points => points
-    self%time_axis = time_axis
+    call self%time_axis%init_cf(time_values, time_units, bounds=time_bnds, timestamp=time_axis%timestamp)
     self%deflate_level = optval(deflate_level, 6_i4)
     dimname = optval(point_dim_name, "point")
     self%point_dim_name = dimname
