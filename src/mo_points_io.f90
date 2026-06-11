@@ -70,7 +70,6 @@ module mo_points_io
     generic, public :: update => points_out_var_update_sp, points_out_var_update_dp, points_out_var_update_i1,&
         & points_out_var_update_i2, points_out_var_update_i4, points_out_var_update_i8
     procedure, public :: write => points_out_var_write
-    procedure, private :: copy_meta => points_out_var_copy_meta
   end type points_output_variable
 
   !> \class points_output_dataset
@@ -124,7 +123,6 @@ module mo_points_io
     generic, public :: write_static => points_series_out_var_write_static_sp, points_series_out_var_write_static_dp,&
         & points_series_out_var_write_static_i1, points_series_out_var_write_static_i2, points_series_out_var_write_static_i4,&
         & points_series_out_var_write_static_i8
-    procedure, private :: copy_meta => points_series_out_var_copy_meta
   end type points_series_output_variable
 
   !> \class points_series_output_dataset
@@ -181,7 +179,6 @@ module mo_points_io
         & points_in_var_read_series_i2, points_in_var_read_series_i4, points_in_var_read_series_i8
     generic, public :: read_series => points_in_var_read_series_sp, points_in_var_read_series_dp, points_in_var_read_series_i1,&
         & points_in_var_read_series_i2, points_in_var_read_series_i4, points_in_var_read_series_i8
-    procedure, private :: copy_meta => points_in_var_copy_meta
   end type points_input_variable
 
   !> \class points_input_dataset
@@ -235,49 +232,6 @@ module mo_points_io
 
 contains
 
-  !> \brief Copy variable metadata into a concrete point IO variable.
-  subroutine points_copy_var_meta(src, dst)
-    type(var), intent(in) :: src !< source metadata
-    class(var), intent(inout) :: dst !< destination metadata
-    if (allocated(dst%name)) deallocate(dst%name)
-    if (allocated(dst%long_name)) deallocate(dst%long_name)
-    if (allocated(dst%standard_name)) deallocate(dst%standard_name)
-    if (allocated(dst%units)) deallocate(dst%units)
-    if (allocated(dst%dtype)) deallocate(dst%dtype)
-    if (allocated(dst%kind)) deallocate(dst%kind)
-    if (allocated(src%name)) dst%name = src%name
-    if (allocated(src%long_name)) dst%long_name = src%long_name
-    if (allocated(src%standard_name)) dst%standard_name = src%standard_name
-    if (allocated(src%units)) dst%units = src%units
-    if (allocated(src%dtype)) dst%dtype = src%dtype
-    if (allocated(src%kind)) dst%kind = src%kind
-    dst%static = src%static
-    dst%allow_static = src%allow_static
-    dst%avg = src%avg
-    dst%layered = src%layered
-  end subroutine points_copy_var_meta
-
-  !> \brief Copy metadata into a point output variable.
-  subroutine points_out_var_copy_meta(self, meta)
-    class(points_output_variable), intent(inout) :: self
-    type(var), intent(in) :: meta !< source metadata
-    call points_copy_var_meta(meta, self)
-  end subroutine points_out_var_copy_meta
-
-  !> \brief Copy metadata into a point time-series output variable.
-  subroutine points_series_out_var_copy_meta(self, meta)
-    class(points_series_output_variable), intent(inout) :: self
-    type(var), intent(in) :: meta !< source metadata
-    call points_copy_var_meta(meta, self)
-  end subroutine points_series_out_var_copy_meta
-
-  !> \brief Copy metadata into a point input variable.
-  subroutine points_in_var_copy_meta(self, meta)
-    class(points_input_variable), intent(inout) :: self
-    type(var), intent(in) :: meta !< source metadata
-    call points_copy_var_meta(meta, self)
-  end subroutine points_in_var_copy_meta
-
   !> \brief Initialize a point output variable and create the NetCDF variable.
   subroutine points_out_var_init(self, meta, nc, points, points_dim, time_dim, deflate_level, time_series)
     class(points_output_variable), intent(inout) :: self
@@ -289,7 +243,7 @@ contains
     integer(i4), intent(in) :: deflate_level !< NetCDF deflate level
     logical, optional, intent(in) :: time_series !< use station time-series layout
 
-    call self%copy_meta(meta)
+    self%var = meta%meta()
     self%time_series = optval(time_series, .false.)
     self%dtype = "f64"
     if (allocated(meta%dtype)) self%dtype = trim(meta%dtype)
@@ -666,7 +620,7 @@ contains
     type(NcDimension), intent(in) :: time_dim !< fixed time dimension
     integer(i4), intent(in) :: deflate_level !< NetCDF deflate level
 
-    call self%copy_meta(meta)
+    self%var = meta%meta()
     self%dtype = "f64"
     if (allocated(meta%dtype)) self%dtype = trim(meta%dtype)
     self%points => points
@@ -1128,7 +1082,7 @@ contains
     character(len=256) :: tmp_str
     logical :: first_is_point, second_is_point, first_is_time, second_is_time
 
-    call self%copy_meta(meta)
+    self%var = meta%meta()
     self%nc = nc%getVariable(self%name)
     self%points => points
     dims = self%nc%getDimensions()
