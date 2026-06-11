@@ -32,8 +32,7 @@ program points_io_example
   call gauges%from_netcdf("src/pf_tests/files/scc_gauges.nc", var="station")
 
   allocate(vars(0))
-  call add_var(vars, var(name="discharge", long_name="synthetic discharge", units="m3 s-1", &
-                         static=.false., dtype="f64", kind="dp"))
+  call add_var(vars, var(name="discharge", long_name="synthetic discharge", units="m3 s-1"))
 
   start_time = datetime("2026-01-01")
   end_time = datetime("2026-01-08")

@@ -39,8 +39,7 @@ program points_timeseries_io_example
   call time_axis%init(datetime("2026-01-01"), datetime("2026-01-08"), timestep=daily)
 
   allocate(output_vars(0))
-  call add_var(output_vars, var(name="discharge", long_name="synthetic discharge", units="m3 s-1", &
-                                static=.false., dtype="f64", kind="dp"))
+  call add_var(output_vars, var(name="discharge", long_name="synthetic discharge", units="m3 s-1"))
 
   call out%init("scc_synthetic_discharge_timeseries.nc", points=gauges, vars=output_vars, &
                 time_axis=time_axis, point_dim_name="station")

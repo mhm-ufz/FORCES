@@ -7,7 +7,7 @@
 !> \brief   Points time-series resampling example.
 !> \details This program creates synthetic daily interval-mean discharge data
 !!          for SCC gauges, shrinks the time span, resamples it to hourly data,
-!!          and writes the result to `scc_resampled_hourly_discharge.nc`.
+!!          and writes the result to `resampled_hourly_discharge.nc`.
 !> \authors Sebastian Mueller
 !> \date    Jun 2026
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
@@ -42,12 +42,10 @@ program points_timeseries_resample_example
   call resampler%init(daily_axis, hourly_axis, support=ts_interval, method=ts_mean)
 
   allocate(output_vars(0))
-  call add_var(output_vars, var(name="discharge", long_name="hourly resampled synthetic discharge", units="m3 s-1", &
-                                static=.false., dtype="f64", kind="dp"))
+  call add_var(output_vars, var(name="discharge", long_name="hourly resampled synthetic discharge", units="m3 s-1"))
 
-  call out%init("scc_resampled_hourly_discharge.nc", points=gauges, vars=output_vars, &
-                time_axis=hourly_axis, point_dim_name="station")
-  call out%set_ids(station_ids, long_name="SCC gauge ID")
+  call out%init("resampled_hourly_discharge.nc", points=gauges, vars=output_vars, time_axis=hourly_axis, point_dim_name="station")
+  call out%set_ids(station_ids, long_name="gauge ID")
 
   do i = 1_i8, gauges%n_points
     do t = 1_i4, size(daily_values)
