@@ -18,18 +18,18 @@ program points_timeseries_resample_example
   use mo_kind, only: dp, i4, i8
   use mo_points, only: points_t
   use mo_points_io, only: points_input_dataset, points_series_output_dataset
-  use mo_timeseries, only: timeseries_axis_t, timeseries_t, daily, hourly, ts_interval, ts_mean
+  use mo_timeseries, only: time_t, resampler_t, daily, hourly, ts_interval, ts_mean
   implicit none
 
   type(points_t), target :: gauges
   type(points_input_dataset) :: inp
   type(points_series_output_dataset) :: out
-  type(timeseries_axis_t) :: daily_axis, hourly_axis
-  type(timeseries_t) :: daily_series, hourly_series
+  type(time_t) :: daily_axis, hourly_axis
+  type(resampler_t) :: resampler
   type(var), allocatable :: input_vars(:), output_vars(:)
   integer(i4), allocatable :: station_ids(:), time_values(:), time_bnds(:, :)
   character(:), allocatable :: time_units
-  real(dp) :: daily_values(3)
+  real(dp) :: daily_values(3), hourly_values(48)
   integer(i8) :: i
   integer(i4) :: t
 
@@ -40,6 +40,7 @@ program points_timeseries_resample_example
 
   call daily_axis%init(datetime("2026-01-01"), datetime("2026-01-04"), timestep=daily)
   call daily_axis%resampled(hourly_axis, timestep=hourly, timeframe_start=datetime("2026-01-02"))
+  call resampler%init(daily_axis, hourly_axis, support=ts_interval, method=ts_mean)
   call hourly_axis%to_cf(time_values, time_bnds, time_units)
 
   allocate(output_vars(0))
@@ -55,9 +56,8 @@ program points_timeseries_resample_example
     do t = 1_i4, size(daily_values)
       daily_values(t) = 10.0_dp * real(i, dp) + real(t, dp)
     end do
-    call daily_series%init(daily_values, daily_axis, support=ts_interval, method=ts_mean)
-    call daily_series%resample(hourly_axis, hourly_series)
-    call out%write_series("discharge", i, hourly_series%values)
+    call resampler%execute(daily_values, hourly_values)
+    call out%write_series("discharge", i, hourly_values)
   end do
   call out%close()
 end program points_timeseries_resample_example
