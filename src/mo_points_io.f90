@@ -19,7 +19,7 @@ module mo_points_io
   use mo_kind, only: i1, i2, i4, i8, dp, sp
   use mo_message, only: error_message, warn_message
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable, NF90_NOFILL
-  use mo_netcdf_utils, only: var, add_var, var_index, time_stepping
+  use mo_netcdf_utils, only: var, add_var, var_index, time_stepping, read_time_units
   use mo_timeseries, only: time_t
   use mo_points, only: points_t, spherical
   use mo_string_utils, only: splitString
@@ -1419,7 +1419,7 @@ contains
           t_var = self%nc%getVariable(trim(dims(size(dims))%getName()))
         end if
         call time_stepping(t_var, self%ref_time, self%delta, self%timestep, self%t_values, self%t_bounds, timestamp)
-        call points_input_read_time_units(t_var, self%time_units)
+        call read_time_units(t_var, self%time_units)
         self%start_time = self%ref_time + self%t_bounds(1) * self%delta
         self%times = [(self%ref_time + self%t_values(i) * self%delta, i=1_i4,size(self%t_values))]
         self%delta_sec = self%delta%total_seconds()
@@ -1882,16 +1882,6 @@ contains
     axis%timestamp = end_timestamp
     axis%timestep = self%timestep
   end function points_input_time_axis
-
-  !> \brief Read and trim the CF time units attribute.
-  subroutine points_input_read_time_units(t_var, units)
-    type(NcVariable), intent(in) :: t_var
-    character(:), allocatable, intent(out) :: units
-    character(len=256) :: tmp
-
-    call t_var%getAttribute("units", tmp)
-    units = trim(tmp)
-  end subroutine points_input_read_time_units
 
   !> \brief Close a point-set input dataset.
   subroutine points_input_close(self)
