@@ -34,7 +34,7 @@ module mo_grid_io
                           hourly, no_time, daily, monthly, yearly, varying, &
                           start_timestamp, center_timestamp, end_timestamp
   use mo_message, only : error_message, warn_message
-  use mo_netcdf_utils, only: var, add_var, var_index, time_stepping, read_time_units
+  use mo_netcdf_utils, only: var, add_var, var_index, time_stepping, read_units
   use mo_timeseries, only: time_t
   use mo_string_utils, only : num2str
   use mo_utils, only: is_close, flip, optval
@@ -2089,7 +2089,7 @@ contains
         dims = self%vars(i)%nc%getDimensions()
         t_var = self%nc%getVariable(trim(dims(size(dims))%getName()))
         call time_stepping(t_var, self%ref_time, self%delta, self%timestep, self%t_values, self%t_bounds, timestamp)
-        call read_time_units(t_var, self%time_units)
+        call read_units(t_var, self%time_units)
         self%start_time = self%ref_time + self%t_bounds(1) * self%delta
         self%times = [(self%ref_time + self%t_values(i) * self%delta, i=1_i4,size(self%t_values))]
         self%delta_sec = self%delta%total_seconds()

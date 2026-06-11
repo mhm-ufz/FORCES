@@ -26,7 +26,7 @@ module mo_netcdf_utils
   public :: add_var
   public :: var_index
   public :: time_stepping
-  public :: read_time_units
+  public :: read_units
 
   !> \class var
   !> \brief Variable metadata definition for NetCDF IO variables.
@@ -101,15 +101,15 @@ contains
     if (var_index == 0_i4) call error_message(method // ": variable not present: ", name)
   end function var_index
 
-  !> \brief Read and trim the CF time units attribute from a NetCDF time coordinate.
-  subroutine read_time_units(t_var, units)
-    type(NcVariable), intent(in) :: t_var !< time variable
-    character(:), allocatable, intent(out) :: units !< CF time units string
+  !> \brief Read and trim the units attribute from a NetCDF variable.
+  subroutine read_units(nc_var, units)
+    type(NcVariable), intent(in) :: nc_var !< NetCDF variable
+    character(:), allocatable, intent(out) :: units !< units attribute string
     character(len=256) :: tmp
 
-    call t_var%getAttribute("units", tmp)
+    call nc_var%getAttribute("units", tmp)
     units = trim(tmp)
-  end subroutine read_time_units
+  end subroutine read_units
 
   !> \brief Determine time stepping and bounds from a NetCDF time coordinate.
   subroutine time_stepping(t_var, ref_time, delta, timestep, t_values, t_bounds, timestamp)
