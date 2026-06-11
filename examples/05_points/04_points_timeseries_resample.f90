@@ -42,13 +42,12 @@ program points_timeseries_resample_example
   call resampler%init(daily_axis, hourly_axis, support=ts_interval, method=ts_mean)
 
   allocate(output_vars(0))
-  call add_var(output_vars, var(name="station", long_name="SCC gauge ID", static=.true., dtype="i32", kind="i4"))
   call add_var(output_vars, var(name="discharge", long_name="hourly resampled synthetic discharge", units="m3 s-1", &
                                 static=.false., dtype="f64", kind="dp"))
 
   call out%init("scc_resampled_hourly_discharge.nc", points=gauges, vars=output_vars, &
                 time_axis=hourly_axis, point_dim_name="station")
-  call out%write_static("station", station_ids)
+  call out%set_ids(station_ids, long_name="SCC gauge ID")
 
   do i = 1_i8, gauges%n_points
     do t = 1_i4, size(daily_values)

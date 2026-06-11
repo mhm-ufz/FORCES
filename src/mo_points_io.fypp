@@ -55,6 +55,37 @@
   end subroutine points_series_output_write_static_${kind}$
 #:enddef
 #!
+#:def render_series_output_set_ids(kind, type, dtype)
+  !> \brief Write point IDs using the point dimension name as variable name.
+  subroutine points_series_output_set_ids_${kind}$(self, ids, long_name)
+    class(points_series_output_dataset), intent(inout) :: self
+    ${type}$, intent(in) :: ids(:) !< point IDs
+    character(*), optional, intent(in) :: long_name !< optional long name attribute
+
+    type(NcDimension) :: points_dim
+    type(NcVariable) :: id_var
+
+    if (.not.associated(self%points)) call error_message("points_series_output%set_ids: points pointer not associated")
+    if (.not.allocated(self%point_dim_name)) call error_message("points_series_output%set_ids: point dimension is unknown")
+    if (size(ids, kind=i8) /= self%points%n_points) call error_message("points_series_output%set_ids: ID size mismatch")
+    if (points_series_output_has_var(self, self%point_dim_name)) &
+      call error_message("points_series_output%set_ids: ID name already declared as output variable: ", self%point_dim_name)
+    if (self%nc%hasVariable(self%point_dim_name)) &
+      call error_message("points_series_output%set_ids: ID variable already exists: ", self%point_dim_name)
+
+    points_dim = self%nc%getDimension(self%point_dim_name)
+    id_var = self%nc%setVariable(self%point_dim_name, "${dtype}$", [points_dim], &
+                                 deflate_level=self%deflate_level, shuffle=.true.)
+    if (present(long_name)) call id_var%setAttribute("long_name", long_name)
+    if (self%points%coordsys == spherical) then
+      call id_var%setAttribute("coordinates", "lon lat")
+    else
+      call id_var%setAttribute("coordinates", "x y")
+    end if
+    call id_var%setData(ids)
+  end subroutine points_series_output_set_ids_${kind}$
+#:enddef
+#!
 #:def render_series_out_var_write(kind, type)
   !> \brief Write one complete point time series.
   subroutine points_series_out_var_write_${kind}$(self, point_index, data)
@@ -376,15 +407,19 @@ module mo_points_io
     type(points_series_output_variable), allocatable :: vars(:) !< output variable handles
     integer(i4) :: nvars = 0_i4                                 !< number of variables
     type(time_t) :: time_axis                                    !< output time axis
+    character(:), allocatable :: point_dim_name                  !< point dimension name
     integer(i4) :: deflate_level = 6_i4                         !< NetCDF deflate level
   contains
     procedure, public :: init => points_series_output_init
 #:set SERIES_OUTPUT_WRITE_PROCS = ["points_series_output_write_{}".format(kind) for kind in POINT_IO_ALL_KINDS]
     #:set SERIES_OUTPUT_WRITE_STATIC_PROCS = ["points_series_output_write_static_{}".format(kind) for kind in POINT_IO_ALL_KINDS]
+    #:set SERIES_OUTPUT_SET_IDS_PROCS = ["points_series_output_set_ids_{}".format(kind) for kind in ["i4", "i8"]]
     procedure, private :: ${", ".join(SERIES_OUTPUT_WRITE_PROCS)}$
     generic, public :: write_series => ${", ".join(SERIES_OUTPUT_WRITE_PROCS)}$
     procedure, private :: ${", ".join(SERIES_OUTPUT_WRITE_STATIC_PROCS)}$
     generic, public :: write_static => ${", ".join(SERIES_OUTPUT_WRITE_STATIC_PROCS)}$
+    procedure, private :: ${", ".join(SERIES_OUTPUT_SET_IDS_PROCS)}$
+    generic, public :: set_ids => ${", ".join(SERIES_OUTPUT_SET_IDS_PROCS)}$
     procedure, public :: close => points_series_output_close
   end type points_series_output_dataset
 
@@ -736,6 +771,7 @@ contains
     self%time_axis = time_axis
     self%deflate_level = optval(deflate_level, 6_i4)
     dimname = optval(point_dim_name, "point")
+    self%point_dim_name = dimname
 
     call self%points%to_netcdf(self%nc, point_dim_name=dimname, double_precision=points_double_precision)
     points_dim = self%nc%getDimension(dimname)
@@ -766,6 +802,12 @@ contains
   #:call render_series_output_write_static(kind, type)
   #:endcall
 #:endfor
+
+  #:call render_series_output_set_ids("i4", "integer(i4)", "i32")
+  #:endcall
+
+  #:call render_series_output_set_ids("i8", "integer(i8)", "i64")
+  #:endcall
 
   !> \brief Close a point time-series output dataset.
   subroutine points_series_output_close(self)
@@ -1288,6 +1330,22 @@ contains
     end do
     call error_message("points_series_output%var_index: variable not present: ", name)
   end function points_series_output_var_index
+
+  !> \brief Return whether a point-series output variable was declared.
+  logical function points_series_output_has_var(self, name)
+    class(points_series_output_dataset), intent(in) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i4) :: i
+    points_series_output_has_var = .false.
+    do i = 1_i4, self%nvars
+      if (allocated(self%vars(i)%meta%name)) then
+        if (self%vars(i)%meta%name == name) then
+          points_series_output_has_var = .true.
+          return
+        end if
+      end if
+    end do
+  end function points_series_output_has_var
 
   !> \brief Return the one-based index of an input variable.
   integer(i4) function points_input_var_index(self, name)

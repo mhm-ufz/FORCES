@@ -39,13 +39,12 @@ program points_timeseries_io_example
   call time_axis%init(datetime("2026-01-01"), datetime("2026-01-08"), timestep=daily)
 
   allocate(output_vars(0))
-  call add_var(output_vars, var(name="station", long_name="SCC gauge ID", static=.true., dtype="i32", kind="i4"))
   call add_var(output_vars, var(name="discharge", long_name="synthetic discharge", units="m3 s-1", &
                                 static=.false., dtype="f64", kind="dp"))
 
   call out%init("scc_synthetic_discharge_timeseries.nc", points=gauges, vars=output_vars, &
                 time_axis=time_axis, point_dim_name="station")
-  call out%write_static("station", station_ids)
+  call out%set_ids(station_ids, long_name="SCC gauge ID")
 
   allocate(discharge(time_axis%n_times()))
   do i = 1_i8, gauges%n_points
