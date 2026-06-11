@@ -595,7 +595,7 @@ module mo_grid_io
   use mo_netcdf, only : NcDataset, NcDimension, NcVariable, NF90_NOFILL
   use mo_datetime, only : datetime, timedelta, delta_from_string, time_units_delta, time_values, &
                           hourly, no_time, daily, monthly, yearly, varying, &
-                          start_timestamp, center_timestamp, end_timestamp
+                          start_timestamp, center_timestamp, end_timestamp, instant_timestamp
   use mo_message, only : error_message, warn_message
   use mo_netcdf_utils, only: var, add_var, var_index, time_stepping, read_units
   use mo_timeseries, only: time_t
@@ -605,7 +605,7 @@ module mo_grid_io
 
   public :: var, output_dataset, input_dataset, time_units_delta, time_index, var_index, time_values, time_stepping, add_var
   public :: hourly, no_time, daily, monthly, yearly, varying
-  public :: start_timestamp, center_timestamp, end_timestamp
+  public :: start_timestamp, center_timestamp, end_timestamp, instant_timestamp
 
   private
 

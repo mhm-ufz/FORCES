@@ -18,7 +18,7 @@ module mo_timeseries
 
   use mo_datetime, only: datetime, timedelta, delta_from_string, decode_cf_time_units, time_units_delta, time_values, &
                          yearly, monthly, daily, no_time, hourly, varying, &
-                         start_timestamp, center_timestamp, end_timestamp
+                         start_timestamp, center_timestamp, end_timestamp, instant_timestamp
   use mo_kind, only: i4, i8, dp
   use mo_message, only: error_message
   use mo_orderpack, only: omedian
@@ -29,7 +29,7 @@ module mo_timeseries
   private
 
   public :: yearly, monthly, daily, no_time, hourly, varying
-  public :: start_timestamp, center_timestamp, end_timestamp
+  public :: start_timestamp, center_timestamp, end_timestamp, instant_timestamp
 
   !> \name Time-Series Support
   !> \brief Constants selecting whether values represent instants or intervals.
@@ -59,9 +59,10 @@ module mo_timeseries
 
   !> \class time_t
   !> \brief CF-compatible integer time axis.
-  !> \details The axis stores integer time values and bounds together with their
-  !!          reference time and unit delta. Public methods expose datetimes
-  !!          where this is useful, but calculations can use the integer axis.
+  !> \details The axis stores integer time values and optional bounds together
+  !!          with their reference time and unit delta. Public methods expose
+  !!          datetimes where this is useful, but calculations can use the
+  !!          integer axis.
   type, public :: time_t
     integer(i4), allocatable :: values(:)        !< time coordinate values
     integer(i4), allocatable :: bounds(:, :)     !< time bounds with shape (2,n_times)
@@ -72,8 +73,10 @@ module mo_timeseries
     integer(i4) :: timestamp = end_timestamp     !< timestamp location selector
   contains
     procedure, public :: init => time_init
+    procedure, public :: init_discrete => time_init_discrete
     procedure, public :: init_cf => time_init_cf
     procedure, public :: n_times => time_n_times
+    procedure, public :: has_bounds => time_has_bounds
     procedure, public :: time => time_at
     procedure, public :: lower => time_lower
     procedure, public :: upper => time_upper
@@ -156,28 +159,86 @@ contains
     end do
   end subroutine time_init
 
+  !> \brief Initialize a discrete instant time axis from datetimes.
+  subroutine time_init_discrete(self, timeframe_start, timeframe_end, timestep, delta, ref_time, include_start, include_end)
+    class(time_t), intent(inout) :: self
+    type(datetime), intent(in) :: timeframe_start !< first possible timestamp
+    type(datetime), intent(in) :: timeframe_end !< final frame edge
+    integer(i4), optional, intent(in) :: timestep !< time-step indicator or positive hourly step (default: \ref daily)
+    character(*), optional, intent(in) :: delta !< explicit unit, for example "hours" or "days"
+    type(datetime), optional, intent(in) :: ref_time !< reference time, defaults to timeframe_start
+    logical, optional, intent(in) :: include_start !< include timeframe_start as timestamp (default: true)
+    logical, optional, intent(in) :: include_end !< include timeframe_end as timestamp (default: false)
+
+    character(:), allocatable :: units_delta
+    type(datetime) :: current_time
+    logical :: include_start_, include_end_
+    integer(i4), allocatable :: tmp_values(:)
+    integer(i4) :: n_times
+
+    if (timeframe_end <= timeframe_start) call error_message("time%init_discrete: invalid time frame")
+    if (allocated(self%values)) deallocate(self%values)
+    if (allocated(self%bounds)) deallocate(self%bounds)
+    self%timestep = optval(timestep, daily)
+    self%timestamp = instant_timestamp
+    units_delta = trim(optval(delta, time_units_delta(self%timestep, self%timestamp)))
+    self%delta = delta_from_string(units_delta)
+    self%ref_time = timeframe_start
+    if (present(ref_time)) self%ref_time = ref_time
+    self%units = units_delta // " since " // self%ref_time%str()
+    include_start_ = optval(include_start, .true.)
+    include_end_ = optval(include_end, .false.)
+
+    n_times = 0_i4
+    current_time = timeframe_start
+    if (.not.include_start_) current_time = time_next(current_time, self%timestep, delta, present(delta))
+    do while(current_time < timeframe_end .or. (include_end_ .and. current_time == timeframe_end))
+      n_times = n_times + 1_i4
+      current_time = time_next(current_time, self%timestep, delta, present(delta))
+    end do
+    if (n_times < 1_i4) call error_message("time%init_discrete: empty time axis")
+
+    allocate(tmp_values(n_times))
+    current_time = timeframe_start
+    if (.not.include_start_) current_time = time_next(current_time, self%timestep, delta, present(delta))
+    n_times = 0_i4
+    do while(current_time < timeframe_end .or. (include_end_ .and. current_time == timeframe_end))
+      n_times = n_times + 1_i4
+      tmp_values(n_times) = datetime_value(self, current_time)
+      current_time = time_next(current_time, self%timestep, delta, present(delta))
+    end do
+    call move_alloc(tmp_values, self%values)
+    call validate_time(self)
+  end subroutine time_init_discrete
+
   !> \brief Initialize a time axis from CF-style integer values and optional bounds.
-  subroutine time_init_cf(self, values, units, bounds, timestamp)
+  subroutine time_init_cf(self, values, units, bounds, timestamp, infer_bounds)
     class(time_t), intent(inout) :: self
     integer(i4), intent(in) :: values(:) !< CF time coordinate values
     character(*), intent(in) :: units !< CF time units
     integer(i4), optional, intent(in) :: bounds(:, :) !< optional bounds with shape (2,n_times)
-    integer(i4), optional, intent(in) :: timestamp !< timestamp location if bounds are omitted (default: \ref end_timestamp)
+    integer(i4), optional, intent(in) :: timestamp !< timestamp location if bounds are inferred (default: \ref end_timestamp)
+    logical, optional, intent(in) :: infer_bounds !< infer bounds when bounds are omitted (default: false)
 
     if (size(values) < 1_i4) call error_message("time%init_cf: empty time axis")
     if (allocated(self%values)) deallocate(self%values)
     if (allocated(self%bounds)) deallocate(self%bounds)
-    self%timestamp = optval(timestamp, end_timestamp)
     self%units = trim(units)
     call decode_cf_time_units(self%units, self%delta, self%ref_time)
     allocate(self%values(size(values)), source=values)
     if (present(bounds)) then
+      self%timestamp = optval(timestamp, end_timestamp)
       if (size(bounds, 1) /= 2_i4 .or. size(bounds, 2) /= size(values)) call error_message("time%init_cf: invalid bounds shape")
       allocate(self%bounds(2_i4, size(values)), source=bounds)
+      self%timestep = infer_timestep(self%bounds, self%delta, self%ref_time)
+    else if (optval(infer_bounds, .false.)) then
+      self%timestamp = optval(timestamp, end_timestamp)
+      call infer_bounds_from_values(self%values, self%timestamp, self%bounds)
+      self%timestep = infer_timestep(self%bounds, self%delta, self%ref_time)
     else
-      call infer_bounds(self%values, self%timestamp, self%bounds)
+      self%timestamp = instant_timestamp
+      self%timestep = infer_value_timestep(self%values, self%delta, self%ref_time)
     end if
-    self%timestep = infer_timestep(self%bounds, self%delta, self%ref_time)
     call validate_time(self)
   end subroutine time_init_cf
 
@@ -190,6 +251,12 @@ contains
       n_times = size(self%values)
     end if
   end function time_n_times
+
+  !> \brief Return whether the time axis has interval bounds.
+  logical function time_has_bounds(self) result(has_bounds)
+    class(time_t), intent(in) :: self
+    has_bounds = allocated(self%bounds)
+  end function time_has_bounds
 
   !> \brief Return timestamp as datetime.
   type(datetime) function time_at(self, i) result(time)
@@ -204,6 +271,7 @@ contains
     class(time_t), intent(in) :: self
     integer(i4), intent(in) :: i !< one-based time index
     call check_time_index(self, i, "time%lower")
+    if (.not.self%has_bounds()) call error_message("time%lower: axis has no bounds")
     time = self%ref_time + self%bounds(1_i4, i) * self%delta
   end function time_lower
 
@@ -212,6 +280,7 @@ contains
     class(time_t), intent(in) :: self
     integer(i4), intent(in) :: i !< one-based time index
     call check_time_index(self, i, "time%upper")
+    if (.not.self%has_bounds()) call error_message("time%upper: axis has no bounds")
     time = self%ref_time + self%bounds(2_i4, i) * self%delta
   end function time_upper
 
@@ -219,11 +288,14 @@ contains
   subroutine time_to_cf(self, values, bounds, units)
     class(time_t), intent(in) :: self
     integer(i4), allocatable, intent(out) :: values(:) !< CF time coordinate values
-    integer(i4), allocatable, intent(out) :: bounds(:, :) !< CF time bounds
+    integer(i4), allocatable, optional, intent(out) :: bounds(:, :) !< CF time bounds
     character(:), allocatable, intent(out) :: units !< CF time units
     if (.not.allocated(self%values)) call error_message("time%to_cf: uninitialized axis")
     allocate(values(size(self%values)), source=self%values)
-    allocate(bounds(2_i4, size(self%values)), source=self%bounds)
+    if (present(bounds)) then
+      if (allocated(bounds)) deallocate(bounds)
+      if (self%has_bounds()) allocate(bounds(2_i4, size(self%values)), source=self%bounds)
+    end if
     units = self%units
   end subroutine time_to_cf
 
@@ -267,7 +339,7 @@ contains
     integer(i4) :: timestamp_
     type(datetime) :: start_time, end_time, source_start, source_end
 
-    if (.not.allocated(self%bounds)) call error_message("time%resampled: uninitialized axis")
+    if (.not.self%has_bounds()) call error_message("time%resampled: axis has no bounds")
     timestamp_ = optval(timestamp, self%timestamp)
     source_start = self%lower(1_i4)
     source_end = self%upper(self%n_times())
@@ -293,10 +365,8 @@ contains
     integer(i4), optional, intent(in) :: method !< interval method (default: \ref ts_mean for intervals, \ref ts_none for instants)
     integer(i4), optional, intent(in) :: interpolation !< instant interpolation selector (default: \ref ts_nearest)
 
-    call validate_time(source_time)
-    call validate_time(target_time)
-    self%source = source_time
-    self%target = target_time
+    call copy_time_axis(self%source, source_time)
+    call copy_time_axis(self%target, target_time)
     self%support = optval(support, ts_interval)
     self%interpolation = optval(interpolation, ts_nearest)
     if (present(method)) then
@@ -310,8 +380,12 @@ contains
 
     select case(self%support)
       case(ts_instant)
+        call validate_time(self%source)
+        call validate_time(self%target)
         call precompute_instant(self)
       case(ts_interval)
+        call validate_time(self%source, require_bounds=.true.)
+        call validate_time(self%target, require_bounds=.true.)
         call precompute_interval(self)
       case default
         call error_message("resampler%init: invalid support")
@@ -593,24 +667,46 @@ contains
     end select
   end subroutine validate_resampler_config
 
-  subroutine validate_time(axis)
+  subroutine validate_time(axis, require_bounds)
     type(time_t), intent(in) :: axis
+    logical, optional, intent(in) :: require_bounds
     integer(i4) :: i
     if (.not.allocated(axis%values)) call error_message("time: uninitialized values")
-    if (.not.allocated(axis%bounds)) call error_message("time: uninitialized bounds")
-    if (size(axis%bounds, 1) /= 2_i4 .or. size(axis%bounds, 2) /= size(axis%values)) &
-      call error_message("time: invalid bounds shape")
     if (axis%delta%total_seconds() <= 0_i8) call error_message("time: invalid delta")
+    if (optval(require_bounds, .false.) .and. .not.axis%has_bounds()) call error_message("time: uninitialized bounds")
+    if (axis%has_bounds()) then
+      if (size(axis%bounds, 1) /= 2_i4 .or. size(axis%bounds, 2) /= size(axis%values)) &
+        call error_message("time: invalid bounds shape")
+    end if
     do i = 1_i4, size(axis%values)
-      if (axis%bounds(2_i4, i) <= axis%bounds(1_i4, i)) call error_message("time: invalid bounds")
-      if (axis%values(i) < axis%bounds(1_i4, i) .or. axis%values(i) > axis%bounds(2_i4, i)) &
-        call error_message("time: value outside bounds")
+      if (axis%has_bounds()) then
+        if (axis%bounds(2_i4, i) <= axis%bounds(1_i4, i)) call error_message("time: invalid bounds")
+        if (axis%values(i) < axis%bounds(1_i4, i) .or. axis%values(i) > axis%bounds(2_i4, i)) &
+          call error_message("time: value outside bounds")
+      end if
       if (i > 1_i4) then
         if (axis%values(i) <= axis%values(i - 1_i4)) call error_message("time: values not monotonic")
-        if (axis%bounds(1_i4, i) < axis%bounds(2_i4, i - 1_i4)) call error_message("time: overlapping bounds")
+        if (axis%has_bounds()) then
+          if (axis%bounds(1_i4, i) < axis%bounds(2_i4, i - 1_i4)) call error_message("time: overlapping bounds")
+        end if
       end if
     end do
   end subroutine validate_time
+
+  subroutine copy_time_axis(dst, src)
+    type(time_t), intent(inout) :: dst
+    type(time_t), intent(in) :: src
+    integer(i4), allocatable :: values(:), bounds(:, :)
+    character(:), allocatable :: units
+
+    call src%to_cf(values, bounds, units)
+    if (src%has_bounds()) then
+      call dst%init_cf(values, units, bounds=bounds, timestamp=src%timestamp)
+    else
+      call dst%init_cf(values, units, timestamp=instant_timestamp)
+    end if
+    dst%timestep = src%timestep
+  end subroutine copy_time_axis
 
   subroutine check_time_index(axis, i, context)
     type(time_t), intent(in) :: axis
@@ -716,7 +812,7 @@ contains
     end select
   end function time_next
 
-  subroutine infer_bounds(values, timestamp, bounds)
+  subroutine infer_bounds_from_values(values, timestamp, bounds)
     integer(i4), intent(in) :: values(:)
     integer(i4), intent(in) :: timestamp
     integer(i4), allocatable, intent(out) :: bounds(:, :)
@@ -747,7 +843,54 @@ contains
       case default
         call error_message("time%init_cf: invalid timestamp")
     end select
-  end subroutine infer_bounds
+  end subroutine infer_bounds_from_values
+
+  integer(i4) function infer_value_timestep(values, delta, ref_time) result(timestep)
+    integer(i4), intent(in) :: values(:)
+    type(timedelta), intent(in) :: delta
+    type(datetime), intent(in) :: ref_time
+    integer(i4), allocatable :: diffs(:)
+    type(timedelta) :: loc_delta
+    type(datetime) :: loc_date
+    logical :: is_monthly, is_yearly
+    integer(i4) :: i, dt
+    real(dp) :: dt_dp
+
+    if (size(values) < 2_i4) then
+      timestep = no_time
+      return
+    end if
+    allocate(diffs(size(values) - 1_i4))
+    diffs = values(2_i4:) - values(:size(values) - 1_i4)
+    dt = diffs(1_i4)
+    if (all(diffs == dt)) then
+      loc_delta = dt * delta
+      if (loc_delta%total_seconds() == 86400_i8) then
+        timestep = daily
+      else if (loc_delta%total_seconds() == 3600_i8) then
+        timestep = hourly
+      else
+        dt_dp = loc_delta%total_seconds() / 3600.0_dp
+        timestep = nint(dt_dp, i4)
+        if (abs(dt_dp - real(timestep, dp)) > 1.0e-12_dp) timestep = varying
+      end if
+    else
+      is_monthly = .true.
+      is_yearly = .true.
+      do i = 1_i4, size(values)
+        loc_date = ref_time + values(i) * delta
+        is_monthly = is_monthly .and. loc_date%is_new_month()
+        is_yearly = is_yearly .and. loc_date%is_new_year()
+      end do
+      if (is_yearly) then
+        timestep = yearly
+      else if (is_monthly) then
+        timestep = monthly
+      else
+        timestep = varying
+      end if
+    end if
+  end function infer_value_timestep
 
   integer(i4) function infer_timestep(bounds, delta, ref_time) result(timestep)
     integer(i4), intent(in) :: bounds(:, :)

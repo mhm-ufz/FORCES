@@ -289,7 +289,8 @@ module mo_points_io
 
   use mo_constants, only: nodata_dp, nodata_sp, nodata_i1, nodata_i2, nodata_i4, nodata_i8
   use mo_datetime, only: datetime, timedelta, delta_from_string, time_values, time_units_delta, &
-                         hourly, daily, monthly, yearly, varying, end_timestamp, start_timestamp, center_timestamp, no_time
+                         hourly, daily, monthly, yearly, varying, end_timestamp, start_timestamp, center_timestamp, &
+                         instant_timestamp, no_time
   use mo_grid_helper, only: is_t_axis, is_x_axis, is_lon_coord
   use mo_kind, only: i1, i2, i4, i8, dp, sp
   use mo_message, only: error_message, warn_message
@@ -779,14 +780,21 @@ contains
     type(NcVariable) :: t_var, tb_var
     integer(i4), allocatable :: time_values(:), time_bnds(:, :)
     integer(i4) :: i
+    logical :: has_time_bounds
 
     if (time_axis%n_times() < 1_i4) call error_message("points_series_output_dataset: empty time axis")
     call time_axis%to_cf(time_values, time_bnds, time_units)
+    has_time_bounds = time_axis%has_bounds()
     self%path = trim(path)
     self%nc = NcDataset(self%path, "w")
     call self%nc%setFill(NF90_NOFILL)
     self%points => points
-    call self%time_axis%init_cf(time_values, time_units, bounds=time_bnds, timestamp=time_axis%timestamp)
+    if (has_time_bounds) then
+      call self%time_axis%init_cf(time_values, time_units, bounds=time_bnds, timestamp=time_axis%timestamp)
+    else
+      call self%time_axis%init_cf(time_values, time_units, timestamp=instant_timestamp)
+    end if
+    self%time_axis%timestep = time_axis%timestep
     self%deflate_level = optval(deflate_level, 6_i4)
     dimname = optval(point_dim_name, "point")
     self%point_dim_name = dimname
@@ -800,10 +808,12 @@ contains
     call t_var%setAttribute("axis", "T")
     call t_var%setAttribute("units", time_units)
     call t_var%setData(time_values)
-    bnds_dim = self%nc%setDimension("bnds", 2_i4)
-    call t_var%setAttribute("bounds", "time_bnds")
-    tb_var = self%nc%setVariable("time_bnds", "i32", [bnds_dim, time_dim])
-    call tb_var%setData(time_bnds)
+    if (has_time_bounds) then
+      bnds_dim = self%nc%setDimension("bnds", 2_i4)
+      call t_var%setAttribute("bounds", "time_bnds")
+      tb_var = self%nc%setVariable("time_bnds", "i32", [bnds_dim, time_dim])
+      call tb_var%setData(time_bnds)
+    end if
 
     self%nvars = size(vars)
     if (self%nvars == 0_i4) call error_message("points_series_output_dataset: no variables selected")

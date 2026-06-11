@@ -2,14 +2,15 @@ module test_mo_timeseries
   use funit
   use mo_datetime, only: datetime
   use mo_kind, only: i4, dp
-  use mo_timeseries, only: time_t, resampler_t, daily, hourly, end_timestamp, ts_instant, ts_interval, &
-                           ts_none, ts_mean, ts_sum, ts_previous, ts_nearest, ts_linear
+  use mo_timeseries, only: time_t, resampler_t, daily, hourly, end_timestamp, instant_timestamp, ts_instant, &
+                           ts_interval, ts_none, ts_mean, ts_sum, ts_previous, ts_nearest, ts_linear
 
   implicit none
 
   private
 
   public :: test_time_axis_contiguous
+  public :: test_time_axis_discrete
   public :: test_time_axis_cf_roundtrip
   public :: test_time_window_indices
   public :: test_time_interval_resample
@@ -49,6 +50,25 @@ contains
   end subroutine test_time_axis_contiguous
 
   @test
+  subroutine test_time_axis_discrete()
+    type(time_t) :: axis
+
+    call axis%init_discrete(datetime("1990-01-01"), datetime("1990-01-02"), timestep=hourly)
+
+    @assertEqual(axis%n_times(), 24_i4)
+    @assertEqual(axis%values(1_i4), 0_i4)
+    @assertEqual(axis%values(24_i4), 23_i4)
+    @assertEqual(axis%timestamp, instant_timestamp)
+    @assertFalse(axis%has_bounds())
+
+    call axis%init_discrete(datetime("1990-01-01"), datetime("1990-01-02"), timestep=daily, include_end=.true.)
+
+    @assertEqual(axis%n_times(), 2_i4)
+    @assertEqual(axis%values, [0_i4, 1_i4])
+    @assertFalse(axis%has_bounds())
+  end subroutine test_time_axis_discrete
+
+  @test
   subroutine test_time_axis_cf_roundtrip()
     type(time_t) :: axis
     integer(i4), allocatable :: values(:), bounds(:, :)
@@ -66,6 +86,22 @@ contains
     @assertEqual(bounds, in_bounds)
     @assertEqual(trim(units), "hours since 2000-01-01 00:00:00")
     @assertEqual(axis%timestep, daily)
+
+    call axis%init_cf(in_values, "hours since 2000-01-01 00:00:00")
+    call axis%to_cf(values, bounds, units)
+
+    @assertEqual(values, in_values)
+    @assertFalse(allocated(bounds))
+    @assertEqual(axis%timestamp, instant_timestamp)
+    @assertFalse(axis%has_bounds())
+
+    call axis%init_cf(in_values, "hours since 2000-01-01 00:00:00", timestamp=end_timestamp, infer_bounds=.true.)
+    @assertTrue(axis%has_bounds())
+    @assertEqual(axis%bounds, in_bounds)
+
+    call axis%init_cf(in_values, "hours since 2000-01-01 00:00:00", bounds=in_bounds, infer_bounds=.true.)
+    @assertTrue(axis%has_bounds())
+    @assertEqual(axis%bounds, in_bounds)
   end subroutine test_time_axis_cf_roundtrip
 
   @test
@@ -142,8 +178,10 @@ contains
     real(dp) :: source(3), target(3)
 
     source = [0.0_dp, 10.0_dp, 20.0_dp]
-    call source_axis%init_cf([0_i4, 10_i4, 20_i4], "hours since 2000-01-01 00:00:00", timestamp=end_timestamp)
-    call target_axis%init_cf([5_i4, 15_i4, 20_i4], "hours since 2000-01-01 00:00:00", timestamp=end_timestamp)
+    call source_axis%init_cf([0_i4, 10_i4, 20_i4], "hours since 2000-01-01 00:00:00")
+    call target_axis%init_cf([5_i4, 15_i4, 20_i4], "hours since 2000-01-01 00:00:00")
+    @assertFalse(source_axis%has_bounds())
+    @assertFalse(target_axis%has_bounds())
 
     call resampler%init(source_axis, target_axis, support=ts_instant, method=ts_none, interpolation=ts_previous)
     call resampler%execute(source, target)

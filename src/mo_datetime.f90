@@ -170,6 +170,7 @@ module mo_datetime
   integer(i4), parameter, public :: start_timestamp = 0_i4 !< timestamp at start of time span
   integer(i4), parameter, public :: center_timestamp = 1_i4 !< timestamp at center of time span
   integer(i4), parameter, public :: end_timestamp = 2_i4 !< timestamp at end of time span
+  integer(i4), parameter, public :: instant_timestamp = 3_i4 !< timestamp is an instant without interval bounds
   !!@}
 
   integer(i4), parameter :: MIN_YEAR = 1_i4 !< minimum for year
