@@ -70,6 +70,7 @@ module mo_points_io
     generic, public :: update => points_out_var_update_sp, points_out_var_update_dp, points_out_var_update_i1,&
         & points_out_var_update_i2, points_out_var_update_i4, points_out_var_update_i8
     procedure, public :: write => points_out_var_write
+    procedure, private :: copy_meta => points_out_var_copy_meta
   end type points_output_variable
 
   !> \class points_output_dataset
@@ -101,6 +102,7 @@ module mo_points_io
     procedure, public :: write_static => points_output_write_static
     procedure, public :: meta => points_output_meta
     procedure, public :: close => points_output_close
+    procedure, private :: var_index => points_output_var_index
   end type points_output_dataset
 
   !> \class points_series_output_variable
@@ -122,6 +124,7 @@ module mo_points_io
     generic, public :: write_static => points_series_out_var_write_static_sp, points_series_out_var_write_static_dp,&
         & points_series_out_var_write_static_i1, points_series_out_var_write_static_i2, points_series_out_var_write_static_i4,&
         & points_series_out_var_write_static_i8
+    procedure, private :: copy_meta => points_series_out_var_copy_meta
   end type points_series_output_variable
 
   !> \class points_series_output_dataset
@@ -153,6 +156,8 @@ module mo_points_io
     generic, public :: set_ids => points_series_output_set_ids_i4, points_series_output_set_ids_i8
     procedure, public :: meta => points_series_output_meta
     procedure, public :: close => points_series_output_close
+    procedure, private :: var_index => points_series_output_var_index
+    procedure, private :: has_var => points_series_output_has_var
   end type points_series_output_dataset
 
   !> \class points_input_variable
@@ -176,6 +181,7 @@ module mo_points_io
         & points_in_var_read_series_i2, points_in_var_read_series_i4, points_in_var_read_series_i8
     generic, public :: read_series => points_in_var_read_series_sp, points_in_var_read_series_dp, points_in_var_read_series_i1,&
         & points_in_var_read_series_i2, points_in_var_read_series_i4, points_in_var_read_series_i8
+    procedure, private :: copy_meta => points_in_var_copy_meta
   end type points_input_variable
 
   !> \class points_input_dataset
@@ -223,14 +229,16 @@ module mo_points_io
     procedure, private :: points_input_get_ids_i4, points_input_get_ids_i8
     generic, public :: get_ids => points_input_get_ids_i4, points_input_get_ids_i8
     procedure, public :: close => points_input_close
+    procedure, private :: var_index => points_input_var_index
+    procedure, private :: resolve_time_index => points_input_resolve_time_index
   end type points_input_dataset
 
 contains
 
   !> \brief Copy variable metadata into a concrete point IO variable.
-  subroutine points_copy_var_meta(dst, src)
-    class(var), intent(inout) :: dst !< destination metadata
+  subroutine points_copy_var_meta(src, dst)
     type(var), intent(in) :: src !< source metadata
+    class(var), intent(inout) :: dst !< destination metadata
     if (allocated(dst%name)) deallocate(dst%name)
     if (allocated(dst%long_name)) deallocate(dst%long_name)
     if (allocated(dst%standard_name)) deallocate(dst%standard_name)
@@ -249,6 +257,27 @@ contains
     dst%layered = src%layered
   end subroutine points_copy_var_meta
 
+  !> \brief Copy metadata into a point output variable.
+  subroutine points_out_var_copy_meta(self, meta)
+    class(points_output_variable), intent(inout) :: self
+    type(var), intent(in) :: meta !< source metadata
+    call points_copy_var_meta(meta, self)
+  end subroutine points_out_var_copy_meta
+
+  !> \brief Copy metadata into a point time-series output variable.
+  subroutine points_series_out_var_copy_meta(self, meta)
+    class(points_series_output_variable), intent(inout) :: self
+    type(var), intent(in) :: meta !< source metadata
+    call points_copy_var_meta(meta, self)
+  end subroutine points_series_out_var_copy_meta
+
+  !> \brief Copy metadata into a point input variable.
+  subroutine points_in_var_copy_meta(self, meta)
+    class(points_input_variable), intent(inout) :: self
+    type(var), intent(in) :: meta !< source metadata
+    call points_copy_var_meta(meta, self)
+  end subroutine points_in_var_copy_meta
+
   !> \brief Initialize a point output variable and create the NetCDF variable.
   subroutine points_out_var_init(self, meta, nc, points, points_dim, time_dim, deflate_level, time_series)
     class(points_output_variable), intent(inout) :: self
@@ -260,7 +289,7 @@ contains
     integer(i4), intent(in) :: deflate_level !< NetCDF deflate level
     logical, optional, intent(in) :: time_series !< use station time-series layout
 
-    call points_copy_var_meta(self, meta)
+    call self%copy_meta(meta)
     self%time_series = optval(time_series, .false.)
     self%dtype = "f64"
     if (allocated(meta%dtype)) self%dtype = trim(meta%dtype)
@@ -539,42 +568,42 @@ contains
     class(points_output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< variable name
     real(sp), intent(in) :: data(:) !< point data for the current accumulation step
-    call self%vars(points_output_var_index(self, name))%update(data)
+    call self%vars(self%var_index(name))%update(data)
   end subroutine points_output_update_sp
   !> \brief Accumulate one point vector for an output variable selected by name.
   subroutine points_output_update_dp(self, name, data)
     class(points_output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< variable name
     real(dp), intent(in) :: data(:) !< point data for the current accumulation step
-    call self%vars(points_output_var_index(self, name))%update(data)
+    call self%vars(self%var_index(name))%update(data)
   end subroutine points_output_update_dp
   !> \brief Accumulate one point vector for an output variable selected by name.
   subroutine points_output_update_i1(self, name, data)
     class(points_output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< variable name
     integer(i1), intent(in) :: data(:) !< point data for the current accumulation step
-    call self%vars(points_output_var_index(self, name))%update(data)
+    call self%vars(self%var_index(name))%update(data)
   end subroutine points_output_update_i1
   !> \brief Accumulate one point vector for an output variable selected by name.
   subroutine points_output_update_i2(self, name, data)
     class(points_output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< variable name
     integer(i2), intent(in) :: data(:) !< point data for the current accumulation step
-    call self%vars(points_output_var_index(self, name))%update(data)
+    call self%vars(self%var_index(name))%update(data)
   end subroutine points_output_update_i2
   !> \brief Accumulate one point vector for an output variable selected by name.
   subroutine points_output_update_i4(self, name, data)
     class(points_output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< variable name
     integer(i4), intent(in) :: data(:) !< point data for the current accumulation step
-    call self%vars(points_output_var_index(self, name))%update(data)
+    call self%vars(self%var_index(name))%update(data)
   end subroutine points_output_update_i4
   !> \brief Accumulate one point vector for an output variable selected by name.
   subroutine points_output_update_i8(self, name, data)
     class(points_output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< variable name
     integer(i8), intent(in) :: data(:) !< point data for the current accumulation step
-    call self%vars(points_output_var_index(self, name))%update(data)
+    call self%vars(self%var_index(name))%update(data)
   end subroutine points_output_update_i8
 
   !> \brief Write the next temporal point-set output step.
@@ -624,7 +653,7 @@ contains
   type(var) function points_output_meta(self, name)
     class(points_output_dataset), intent(in) :: self
     character(*), intent(in) :: name !< variable name
-    points_output_meta = self%vars(points_output_var_index(self, name))%meta()
+    points_output_meta = self%vars(self%var_index(name))%meta()
   end function points_output_meta
 
   !> \brief Initialize a point time-series output variable.
@@ -637,7 +666,7 @@ contains
     type(NcDimension), intent(in) :: time_dim !< fixed time dimension
     integer(i4), intent(in) :: deflate_level !< NetCDF deflate level
 
-    call points_copy_var_meta(self, meta)
+    call self%copy_meta(meta)
     self%dtype = "f64"
     if (allocated(meta%dtype)) self%dtype = trim(meta%dtype)
     self%points => points
@@ -915,7 +944,7 @@ contains
     character(*), intent(in) :: name !< variable name
     integer(i8), intent(in) :: point_index !< one-based point index
     real(sp), intent(in) :: data(:) !< complete point time series
-    call self%vars(points_series_output_var_index(self, name))%write(point_index, data)
+    call self%vars(self%var_index(name))%write(point_index, data)
   end subroutine points_series_output_write_sp
 
   !> \brief Write one static point variable for a variable selected by name.
@@ -923,7 +952,7 @@ contains
     class(points_series_output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< variable name
     real(sp), intent(in) :: data(:) !< static point data
-    call self%vars(points_series_output_var_index(self, name))%write_static(data)
+    call self%vars(self%var_index(name))%write_static(data)
   end subroutine points_series_output_write_static_sp
   !> \brief Write one complete point time series for a variable selected by name.
   subroutine points_series_output_write_dp(self, name, point_index, data)
@@ -931,7 +960,7 @@ contains
     character(*), intent(in) :: name !< variable name
     integer(i8), intent(in) :: point_index !< one-based point index
     real(dp), intent(in) :: data(:) !< complete point time series
-    call self%vars(points_series_output_var_index(self, name))%write(point_index, data)
+    call self%vars(self%var_index(name))%write(point_index, data)
   end subroutine points_series_output_write_dp
 
   !> \brief Write one static point variable for a variable selected by name.
@@ -939,7 +968,7 @@ contains
     class(points_series_output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< variable name
     real(dp), intent(in) :: data(:) !< static point data
-    call self%vars(points_series_output_var_index(self, name))%write_static(data)
+    call self%vars(self%var_index(name))%write_static(data)
   end subroutine points_series_output_write_static_dp
   !> \brief Write one complete point time series for a variable selected by name.
   subroutine points_series_output_write_i1(self, name, point_index, data)
@@ -947,7 +976,7 @@ contains
     character(*), intent(in) :: name !< variable name
     integer(i8), intent(in) :: point_index !< one-based point index
     integer(i1), intent(in) :: data(:) !< complete point time series
-    call self%vars(points_series_output_var_index(self, name))%write(point_index, data)
+    call self%vars(self%var_index(name))%write(point_index, data)
   end subroutine points_series_output_write_i1
 
   !> \brief Write one static point variable for a variable selected by name.
@@ -955,7 +984,7 @@ contains
     class(points_series_output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< variable name
     integer(i1), intent(in) :: data(:) !< static point data
-    call self%vars(points_series_output_var_index(self, name))%write_static(data)
+    call self%vars(self%var_index(name))%write_static(data)
   end subroutine points_series_output_write_static_i1
   !> \brief Write one complete point time series for a variable selected by name.
   subroutine points_series_output_write_i2(self, name, point_index, data)
@@ -963,7 +992,7 @@ contains
     character(*), intent(in) :: name !< variable name
     integer(i8), intent(in) :: point_index !< one-based point index
     integer(i2), intent(in) :: data(:) !< complete point time series
-    call self%vars(points_series_output_var_index(self, name))%write(point_index, data)
+    call self%vars(self%var_index(name))%write(point_index, data)
   end subroutine points_series_output_write_i2
 
   !> \brief Write one static point variable for a variable selected by name.
@@ -971,7 +1000,7 @@ contains
     class(points_series_output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< variable name
     integer(i2), intent(in) :: data(:) !< static point data
-    call self%vars(points_series_output_var_index(self, name))%write_static(data)
+    call self%vars(self%var_index(name))%write_static(data)
   end subroutine points_series_output_write_static_i2
   !> \brief Write one complete point time series for a variable selected by name.
   subroutine points_series_output_write_i4(self, name, point_index, data)
@@ -979,7 +1008,7 @@ contains
     character(*), intent(in) :: name !< variable name
     integer(i8), intent(in) :: point_index !< one-based point index
     integer(i4), intent(in) :: data(:) !< complete point time series
-    call self%vars(points_series_output_var_index(self, name))%write(point_index, data)
+    call self%vars(self%var_index(name))%write(point_index, data)
   end subroutine points_series_output_write_i4
 
   !> \brief Write one static point variable for a variable selected by name.
@@ -987,7 +1016,7 @@ contains
     class(points_series_output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< variable name
     integer(i4), intent(in) :: data(:) !< static point data
-    call self%vars(points_series_output_var_index(self, name))%write_static(data)
+    call self%vars(self%var_index(name))%write_static(data)
   end subroutine points_series_output_write_static_i4
   !> \brief Write one complete point time series for a variable selected by name.
   subroutine points_series_output_write_i8(self, name, point_index, data)
@@ -995,7 +1024,7 @@ contains
     character(*), intent(in) :: name !< variable name
     integer(i8), intent(in) :: point_index !< one-based point index
     integer(i8), intent(in) :: data(:) !< complete point time series
-    call self%vars(points_series_output_var_index(self, name))%write(point_index, data)
+    call self%vars(self%var_index(name))%write(point_index, data)
   end subroutine points_series_output_write_i8
 
   !> \brief Write one static point variable for a variable selected by name.
@@ -1003,7 +1032,7 @@ contains
     class(points_series_output_dataset), intent(inout) :: self
     character(*), intent(in) :: name !< variable name
     integer(i8), intent(in) :: data(:) !< static point data
-    call self%vars(points_series_output_var_index(self, name))%write_static(data)
+    call self%vars(self%var_index(name))%write_static(data)
   end subroutine points_series_output_write_static_i8
 
   !> \brief Write point IDs using the point dimension name as variable name.
@@ -1018,7 +1047,7 @@ contains
     if (.not.associated(self%points)) call error_message("points_series_output%set_ids: points pointer not associated")
     if (.not.allocated(self%point_dim_name)) call error_message("points_series_output%set_ids: point dimension is unknown")
     if (size(ids, kind=i8) /= self%points%n_points) call error_message("points_series_output%set_ids: ID size mismatch")
-    if (points_series_output_has_var(self, self%point_dim_name)) &
+    if (self%has_var(self%point_dim_name)) &
       call error_message("points_series_output%set_ids: ID name already declared as output variable: ", self%point_dim_name)
     if (self%nc%hasVariable(self%point_dim_name)) &
       call error_message("points_series_output%set_ids: ID variable already exists: ", self%point_dim_name)
@@ -1047,7 +1076,7 @@ contains
     if (.not.associated(self%points)) call error_message("points_series_output%set_ids: points pointer not associated")
     if (.not.allocated(self%point_dim_name)) call error_message("points_series_output%set_ids: point dimension is unknown")
     if (size(ids, kind=i8) /= self%points%n_points) call error_message("points_series_output%set_ids: ID size mismatch")
-    if (points_series_output_has_var(self, self%point_dim_name)) &
+    if (self%has_var(self%point_dim_name)) &
       call error_message("points_series_output%set_ids: ID name already declared as output variable: ", self%point_dim_name)
     if (self%nc%hasVariable(self%point_dim_name)) &
       call error_message("points_series_output%set_ids: ID variable already exists: ", self%point_dim_name)
@@ -1085,7 +1114,7 @@ contains
   type(var) function points_series_output_meta(self, name)
     class(points_series_output_dataset), intent(in) :: self
     character(*), intent(in) :: name !< variable name
-    points_series_output_meta = self%vars(points_series_output_var_index(self, name))%meta()
+    points_series_output_meta = self%vars(self%var_index(name))%meta()
   end function points_series_output_meta
 
   !> \brief Initialize a point-set input variable.
@@ -1099,7 +1128,7 @@ contains
     character(len=256) :: tmp_str
     logical :: first_is_point, second_is_point, first_is_time, second_is_time
 
-    call points_copy_var_meta(self, meta)
+    call self%copy_meta(meta)
     self%nc = nc%getVariable(self%name)
     self%points => points
     dims = self%nc%getDimensions()
@@ -1543,8 +1572,8 @@ contains
     type(datetime), optional, intent(in) :: current_time !< time covered by the requested time interval
     integer(i4), optional, intent(in) :: t_index !< explicit temporal index
     integer(i4) :: var_id, tidx
-    var_id = points_input_var_index(self, name)
-    tidx = points_input_resolve_time_index(self, var_id, current_time, t_index)
+    var_id = self%var_index(name)
+    tidx = self%resolve_time_index(var_id, current_time, t_index)
     call self%vars(var_id)%read(data, t_index=tidx)
   end subroutine points_input_read_sp
 
@@ -1557,7 +1586,7 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame, including
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned chunk
     integer(i4) :: t_index, t_size, var_id
-    var_id = points_input_var_index(self, name)
+    var_id = self%var_index(name)
     if (self%vars(var_id)%static) call error_message("points_input%read_chunk: need temporal variable: ", self%vars(var_id)%name)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%vars(var_id)%read_chunk(data, t_index=t_index, t_size=t_size)
@@ -1573,7 +1602,7 @@ contains
     type(datetime), optional, intent(in) :: timeframe_end !< end of time frame, including
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned series
     integer(i4) :: t_index, t_size, var_id
-    var_id = points_input_var_index(self, name)
+    var_id = self%var_index(name)
     if (self%vars(var_id)%static) call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
     if (present(timeframe_start) .neqv. present(timeframe_end)) &
       call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
@@ -1594,8 +1623,8 @@ contains
     type(datetime), optional, intent(in) :: current_time !< time covered by the requested time interval
     integer(i4), optional, intent(in) :: t_index !< explicit temporal index
     integer(i4) :: var_id, tidx
-    var_id = points_input_var_index(self, name)
-    tidx = points_input_resolve_time_index(self, var_id, current_time, t_index)
+    var_id = self%var_index(name)
+    tidx = self%resolve_time_index(var_id, current_time, t_index)
     call self%vars(var_id)%read(data, t_index=tidx)
   end subroutine points_input_read_dp
 
@@ -1608,7 +1637,7 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame, including
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned chunk
     integer(i4) :: t_index, t_size, var_id
-    var_id = points_input_var_index(self, name)
+    var_id = self%var_index(name)
     if (self%vars(var_id)%static) call error_message("points_input%read_chunk: need temporal variable: ", self%vars(var_id)%name)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%vars(var_id)%read_chunk(data, t_index=t_index, t_size=t_size)
@@ -1624,7 +1653,7 @@ contains
     type(datetime), optional, intent(in) :: timeframe_end !< end of time frame, including
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned series
     integer(i4) :: t_index, t_size, var_id
-    var_id = points_input_var_index(self, name)
+    var_id = self%var_index(name)
     if (self%vars(var_id)%static) call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
     if (present(timeframe_start) .neqv. present(timeframe_end)) &
       call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
@@ -1645,8 +1674,8 @@ contains
     type(datetime), optional, intent(in) :: current_time !< time covered by the requested time interval
     integer(i4), optional, intent(in) :: t_index !< explicit temporal index
     integer(i4) :: var_id, tidx
-    var_id = points_input_var_index(self, name)
-    tidx = points_input_resolve_time_index(self, var_id, current_time, t_index)
+    var_id = self%var_index(name)
+    tidx = self%resolve_time_index(var_id, current_time, t_index)
     call self%vars(var_id)%read(data, t_index=tidx)
   end subroutine points_input_read_i1
 
@@ -1659,7 +1688,7 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame, including
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned chunk
     integer(i4) :: t_index, t_size, var_id
-    var_id = points_input_var_index(self, name)
+    var_id = self%var_index(name)
     if (self%vars(var_id)%static) call error_message("points_input%read_chunk: need temporal variable: ", self%vars(var_id)%name)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%vars(var_id)%read_chunk(data, t_index=t_index, t_size=t_size)
@@ -1675,7 +1704,7 @@ contains
     type(datetime), optional, intent(in) :: timeframe_end !< end of time frame, including
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned series
     integer(i4) :: t_index, t_size, var_id
-    var_id = points_input_var_index(self, name)
+    var_id = self%var_index(name)
     if (self%vars(var_id)%static) call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
     if (present(timeframe_start) .neqv. present(timeframe_end)) &
       call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
@@ -1696,8 +1725,8 @@ contains
     type(datetime), optional, intent(in) :: current_time !< time covered by the requested time interval
     integer(i4), optional, intent(in) :: t_index !< explicit temporal index
     integer(i4) :: var_id, tidx
-    var_id = points_input_var_index(self, name)
-    tidx = points_input_resolve_time_index(self, var_id, current_time, t_index)
+    var_id = self%var_index(name)
+    tidx = self%resolve_time_index(var_id, current_time, t_index)
     call self%vars(var_id)%read(data, t_index=tidx)
   end subroutine points_input_read_i2
 
@@ -1710,7 +1739,7 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame, including
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned chunk
     integer(i4) :: t_index, t_size, var_id
-    var_id = points_input_var_index(self, name)
+    var_id = self%var_index(name)
     if (self%vars(var_id)%static) call error_message("points_input%read_chunk: need temporal variable: ", self%vars(var_id)%name)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%vars(var_id)%read_chunk(data, t_index=t_index, t_size=t_size)
@@ -1726,7 +1755,7 @@ contains
     type(datetime), optional, intent(in) :: timeframe_end !< end of time frame, including
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned series
     integer(i4) :: t_index, t_size, var_id
-    var_id = points_input_var_index(self, name)
+    var_id = self%var_index(name)
     if (self%vars(var_id)%static) call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
     if (present(timeframe_start) .neqv. present(timeframe_end)) &
       call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
@@ -1747,8 +1776,8 @@ contains
     type(datetime), optional, intent(in) :: current_time !< time covered by the requested time interval
     integer(i4), optional, intent(in) :: t_index !< explicit temporal index
     integer(i4) :: var_id, tidx
-    var_id = points_input_var_index(self, name)
-    tidx = points_input_resolve_time_index(self, var_id, current_time, t_index)
+    var_id = self%var_index(name)
+    tidx = self%resolve_time_index(var_id, current_time, t_index)
     call self%vars(var_id)%read(data, t_index=tidx)
   end subroutine points_input_read_i4
 
@@ -1761,7 +1790,7 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame, including
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned chunk
     integer(i4) :: t_index, t_size, var_id
-    var_id = points_input_var_index(self, name)
+    var_id = self%var_index(name)
     if (self%vars(var_id)%static) call error_message("points_input%read_chunk: need temporal variable: ", self%vars(var_id)%name)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%vars(var_id)%read_chunk(data, t_index=t_index, t_size=t_size)
@@ -1777,7 +1806,7 @@ contains
     type(datetime), optional, intent(in) :: timeframe_end !< end of time frame, including
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned series
     integer(i4) :: t_index, t_size, var_id
-    var_id = points_input_var_index(self, name)
+    var_id = self%var_index(name)
     if (self%vars(var_id)%static) call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
     if (present(timeframe_start) .neqv. present(timeframe_end)) &
       call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
@@ -1798,8 +1827,8 @@ contains
     type(datetime), optional, intent(in) :: current_time !< time covered by the requested time interval
     integer(i4), optional, intent(in) :: t_index !< explicit temporal index
     integer(i4) :: var_id, tidx
-    var_id = points_input_var_index(self, name)
-    tidx = points_input_resolve_time_index(self, var_id, current_time, t_index)
+    var_id = self%var_index(name)
+    tidx = self%resolve_time_index(var_id, current_time, t_index)
     call self%vars(var_id)%read(data, t_index=tidx)
   end subroutine points_input_read_i8
 
@@ -1812,7 +1841,7 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame, including
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned chunk
     integer(i4) :: t_index, t_size, var_id
-    var_id = points_input_var_index(self, name)
+    var_id = self%var_index(name)
     if (self%vars(var_id)%static) call error_message("points_input%read_chunk: need temporal variable: ", self%vars(var_id)%name)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%vars(var_id)%read_chunk(data, t_index=t_index, t_size=t_size)
@@ -1828,7 +1857,7 @@ contains
     type(datetime), optional, intent(in) :: timeframe_end !< end of time frame, including
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned series
     integer(i4) :: t_index, t_size, var_id
-    var_id = points_input_var_index(self, name)
+    var_id = self%var_index(name)
     if (self%vars(var_id)%static) call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
     if (present(timeframe_start) .neqv. present(timeframe_end)) &
       call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
@@ -1981,7 +2010,7 @@ contains
   type(var) function points_input_meta(self, name)
     class(points_input_dataset), intent(in) :: self
     character(*), intent(in) :: name !< variable name
-    points_input_meta = self%vars(points_input_var_index(self, name))%meta()
+    points_input_meta = self%vars(self%var_index(name))%meta()
   end function points_input_meta
 
   !> \brief Close a point-set input dataset.

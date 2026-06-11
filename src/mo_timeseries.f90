@@ -85,6 +85,11 @@ module mo_timeseries
     procedure, public :: copy_to => time_copy_to
     procedure, public :: window_indices => time_window_indices
     procedure, public :: resampled => time_resampled
+    procedure, private :: validate => time_validate
+    procedure, private :: check_index => time_check_index
+    procedure, private :: integer_value => time_integer_value
+    procedure, private :: value_seconds => time_value_seconds
+    procedure, private :: bound_seconds => time_bound_seconds
   end type time_t
 
   !> \class resampler_t
@@ -111,6 +116,14 @@ module mo_timeseries
     procedure, private :: resampler_execute_1d
     procedure, private :: resampler_execute_2d
     generic, public :: execute => resampler_execute_1d, resampler_execute_2d
+    procedure, private :: precompute_instant
+    procedure, private :: precompute_interval
+    procedure, private :: execute_instant_1d
+    procedure, private :: execute_instant_2d
+    procedure, private :: execute_interval_1d
+    procedure, private :: execute_interval_2d
+    procedure, private :: init_interval_value
+    procedure, private :: validate_config => resampler_validate_config
   end type resampler_t
 
 contains
@@ -206,11 +219,11 @@ contains
     n_times = 0_i4
     do while(current_time < timeframe_end .or. (include_end_ .and. current_time == timeframe_end))
       n_times = n_times + 1_i4
-      tmp_values(n_times) = datetime_value(self, current_time)
+      tmp_values(n_times) = self%integer_value(current_time)
       current_time = time_next(current_time, self%timestep, delta, present(delta))
     end do
     call move_alloc(tmp_values, self%values)
-    call validate_time(self)
+    call self%validate()
   end subroutine time_init_discrete
 
   !> \brief Initialize a time axis from CF-style integer values and optional bounds.
@@ -241,7 +254,7 @@ contains
       self%timestamp = instant_timestamp
       self%timestep = infer_time_timestep_from_values(self%values, self%delta, self%ref_time)
     end if
-    call validate_time(self)
+    call self%validate()
   end subroutine time_init_cf
 
   !> \brief Return number of time steps.
@@ -264,7 +277,7 @@ contains
   type(datetime) function time_at(self, i) result(time)
     class(time_t), intent(in) :: self
     integer(i4), intent(in) :: i !< one-based time index
-    call check_time_index(self, i, "time%time")
+    call self%check_index(i, "time%time")
     time = self%ref_time + self%values(i) * self%delta
   end function time_at
 
@@ -272,7 +285,7 @@ contains
   type(datetime) function time_lower(self, i) result(time)
     class(time_t), intent(in) :: self
     integer(i4), intent(in) :: i !< one-based time index
-    call check_time_index(self, i, "time%lower")
+    call self%check_index(i, "time%lower")
     if (.not.self%has_bounds()) call error_message("time%lower: axis has no bounds")
     time = self%ref_time + self%bounds(1_i4, i) * self%delta
   end function time_lower
@@ -281,7 +294,7 @@ contains
   type(datetime) function time_upper(self, i) result(time)
     class(time_t), intent(in) :: self
     integer(i4), intent(in) :: i !< one-based time index
-    call check_time_index(self, i, "time%upper")
+    call self%check_index(i, "time%upper")
     if (.not.self%has_bounds()) call error_message("time%upper: axis has no bounds")
     time = self%ref_time + self%bounds(2_i4, i) * self%delta
   end function time_upper
@@ -314,8 +327,8 @@ contains
 
     if (timeframe_end <= timeframe_start) call error_message("time%window_indices: invalid time frame")
     if (.not.allocated(self%values)) call error_message("time%window_indices: uninitialized axis")
-    start_value = datetime_value(self, timeframe_start)
-    end_value = datetime_value(self, timeframe_end)
+    start_value = self%integer_value(timeframe_start)
+    end_value = self%integer_value(timeframe_end)
     n = size(self%values)
     first = 1_i4
     do while(first <= n .and. self%values(first) <= start_value)
@@ -378,17 +391,17 @@ contains
     else
       self%method = ts_none
     end if
-    call validate_resampler_config(self)
+    call self%validate_config()
 
     select case(self%support)
       case(ts_instant)
-        call validate_time(self%source)
-        call validate_time(self%target)
-        call precompute_instant(self)
+        call self%source%validate()
+        call self%target%validate()
+        call self%precompute_instant()
       case(ts_interval)
-        call validate_time(self%source, require_bounds=.true.)
-        call validate_time(self%target, require_bounds=.true.)
-        call precompute_interval(self)
+        call self%source%validate(require_bounds=.true.)
+        call self%target%validate(require_bounds=.true.)
+        call self%precompute_interval()
       case default
         call error_message("resampler%init: invalid support")
     end select
@@ -404,9 +417,9 @@ contains
     if (size(target) /= self%target%n_times()) call error_message("resampler%execute: invalid target size")
     select case(self%support)
       case(ts_instant)
-        call execute_instant_1d(self, source, target)
+        call self%execute_instant_1d(source, target)
       case(ts_interval)
-        call execute_interval_1d(self, source, target)
+        call self%execute_interval_1d(source, target)
       case default
         call error_message("resampler%execute: invalid support")
     end select
@@ -423,9 +436,9 @@ contains
     if (size(source, 1) /= size(target, 1)) call error_message("resampler%execute: invalid series count")
     select case(self%support)
       case(ts_instant)
-        call execute_instant_2d(self, source, target)
+        call self%execute_instant_2d(source, target)
       case(ts_interval)
-        call execute_interval_2d(self, source, target)
+        call self%execute_interval_2d(source, target)
       case default
         call error_message("resampler%execute: invalid support")
     end select
@@ -435,8 +448,8 @@ contains
     class(resampler_t), intent(inout) :: self
     integer(i4) :: i, j
 
-    call axis_value_seconds(self%source, self%source%ref_time, self%source_values)
-    call axis_value_seconds(self%target, self%source%ref_time, self%target_values)
+    call self%source%value_seconds(self%source%ref_time, self%source_values)
+    call self%target%value_seconds(self%source%ref_time, self%target_values)
     if (allocated(self%left)) deallocate(self%left)
     if (allocated(self%weight)) deallocate(self%weight)
     allocate(self%left(size(self%target_values)), self%weight(size(self%target_values)))
@@ -471,8 +484,8 @@ contains
     integer(i4) :: i, j
     integer(i8) :: lower, upper
 
-    call axis_bound_seconds(self%source, self%source%ref_time, self%source_bounds)
-    call axis_bound_seconds(self%target, self%source%ref_time, self%target_bounds)
+    call self%source%bound_seconds(self%source%ref_time, self%source_bounds)
+    call self%target%bound_seconds(self%source%ref_time, self%target_bounds)
     if (allocated(self%first)) deallocate(self%first)
     if (allocated(self%last)) deallocate(self%last)
     allocate(self%first(size(self%target_bounds, 2)), self%last(size(self%target_bounds, 2)))
@@ -537,7 +550,7 @@ contains
     integer(i8) :: lower, upper
 
     do i = 1_i4, size(target)
-      call init_interval_value(self, i, target(i), target_width)
+      call self%init_interval_value(i, target(i), target_width)
       if (self%method == ts_median) then
         if (allocated(median_values)) deallocate(median_values)
         allocate(median_values(self%last(i) - self%first(i) + 1_i4))
@@ -585,7 +598,7 @@ contains
     integer(i8) :: lower, upper
 
     do i = 1_i4, size(target, 2)
-      call init_interval_value(self, i, initial, target_width)
+      call self%init_interval_value(i, initial, target_width)
       target(:, i) = initial
       if (self%method == ts_median) allocate(median_values(self%last(i) - self%first(i) + 1_i4))
       do j = self%first(i), self%last(i)
@@ -648,8 +661,8 @@ contains
     end select
   end subroutine init_interval_value
 
-  subroutine validate_resampler_config(self)
-    type(resampler_t), intent(in) :: self
+  subroutine resampler_validate_config(self)
+    class(resampler_t), intent(in) :: self
     select case(self%support)
       case(ts_instant)
         if (self%method /= ts_none) call error_message("resampler%init: instant series needs ts_none method")
@@ -667,33 +680,33 @@ contains
       case default
         call error_message("resampler%init: invalid support")
     end select
-  end subroutine validate_resampler_config
+  end subroutine resampler_validate_config
 
-  subroutine validate_time(axis, require_bounds)
-    type(time_t), intent(in) :: axis
+  subroutine time_validate(self, require_bounds)
+    class(time_t), intent(in) :: self
     logical, optional, intent(in) :: require_bounds
     integer(i4) :: i
-    if (.not.allocated(axis%values)) call error_message("time: uninitialized values")
-    if (axis%delta%total_seconds() <= 0_i8) call error_message("time: invalid delta")
-    if (optval(require_bounds, .false.) .and. .not.axis%has_bounds()) call error_message("time: uninitialized bounds")
-    if (axis%has_bounds()) then
-      if (size(axis%bounds, 1) /= 2_i4 .or. size(axis%bounds, 2) /= size(axis%values)) &
+    if (.not.allocated(self%values)) call error_message("time: uninitialized values")
+    if (self%delta%total_seconds() <= 0_i8) call error_message("time: invalid delta")
+    if (optval(require_bounds, .false.) .and. .not.self%has_bounds()) call error_message("time: uninitialized bounds")
+    if (self%has_bounds()) then
+      if (size(self%bounds, 1) /= 2_i4 .or. size(self%bounds, 2) /= size(self%values)) &
         call error_message("time: invalid bounds shape")
     end if
-    do i = 1_i4, size(axis%values)
-      if (axis%has_bounds()) then
-        if (axis%bounds(2_i4, i) <= axis%bounds(1_i4, i)) call error_message("time: invalid bounds")
-        if (axis%values(i) < axis%bounds(1_i4, i) .or. axis%values(i) > axis%bounds(2_i4, i)) &
+    do i = 1_i4, size(self%values)
+      if (self%has_bounds()) then
+        if (self%bounds(2_i4, i) <= self%bounds(1_i4, i)) call error_message("time: invalid bounds")
+        if (self%values(i) < self%bounds(1_i4, i) .or. self%values(i) > self%bounds(2_i4, i)) &
           call error_message("time: value outside bounds")
       end if
       if (i > 1_i4) then
-        if (axis%values(i) <= axis%values(i - 1_i4)) call error_message("time: values not monotonic")
-        if (axis%has_bounds()) then
-          if (axis%bounds(1_i4, i) < axis%bounds(2_i4, i - 1_i4)) call error_message("time: overlapping bounds")
+        if (self%values(i) <= self%values(i - 1_i4)) call error_message("time: values not monotonic")
+        if (self%has_bounds()) then
+          if (self%bounds(1_i4, i) < self%bounds(2_i4, i - 1_i4)) call error_message("time: overlapping bounds")
         end if
       end if
     end do
-  end subroutine validate_time
+  end subroutine time_validate
 
   !> \brief Copy this axis into another axis without whole-object assignment.
   subroutine time_copy_to(self, dst)
@@ -711,46 +724,46 @@ contains
     dst%timestep = self%timestep
   end subroutine time_copy_to
 
-  subroutine check_time_index(axis, i, context)
-    type(time_t), intent(in) :: axis
+  subroutine time_check_index(self, i, context)
+    class(time_t), intent(in) :: self
     integer(i4), intent(in) :: i
     character(*), intent(in) :: context
-    if (.not.allocated(axis%values)) call error_message(context // ": uninitialized axis")
-    if (i < 1_i4 .or. i > size(axis%values)) call error_message(context // ": index out of range")
-  end subroutine check_time_index
+    if (.not.allocated(self%values)) call error_message(context // ": uninitialized axis")
+    if (i < 1_i4 .or. i > size(self%values)) call error_message(context // ": index out of range")
+  end subroutine time_check_index
 
-  subroutine axis_value_seconds(axis, ref_time, seconds)
-    type(time_t), intent(in) :: axis
+  subroutine time_value_seconds(self, ref_time, seconds)
+    class(time_t), intent(in) :: self
     type(datetime), intent(in) :: ref_time
     integer(i8), allocatable, intent(out) :: seconds(:)
     type(timedelta) :: offset_delta
     integer(i8) :: offset, delta_seconds
     integer(i4) :: i
-    offset_delta = axis%ref_time - ref_time
+    offset_delta = self%ref_time - ref_time
     offset = offset_delta%total_seconds()
-    delta_seconds = axis%delta%total_seconds()
-    allocate(seconds(size(axis%values)))
-    do i = 1_i4, size(axis%values)
-      seconds(i) = offset + int(axis%values(i), i8) * delta_seconds
+    delta_seconds = self%delta%total_seconds()
+    allocate(seconds(size(self%values)))
+    do i = 1_i4, size(self%values)
+      seconds(i) = offset + int(self%values(i), i8) * delta_seconds
     end do
-  end subroutine axis_value_seconds
+  end subroutine time_value_seconds
 
-  subroutine axis_bound_seconds(axis, ref_time, seconds)
-    type(time_t), intent(in) :: axis
+  subroutine time_bound_seconds(self, ref_time, seconds)
+    class(time_t), intent(in) :: self
     type(datetime), intent(in) :: ref_time
     integer(i8), allocatable, intent(out) :: seconds(:, :)
     type(timedelta) :: offset_delta
     integer(i8) :: offset, delta_seconds
     integer(i4) :: i
-    offset_delta = axis%ref_time - ref_time
+    offset_delta = self%ref_time - ref_time
     offset = offset_delta%total_seconds()
-    delta_seconds = axis%delta%total_seconds()
-    allocate(seconds(2_i4, size(axis%values)))
-    do i = 1_i4, size(axis%values)
-      seconds(1_i4, i) = offset + int(axis%bounds(1_i4, i), i8) * delta_seconds
-      seconds(2_i4, i) = offset + int(axis%bounds(2_i4, i), i8) * delta_seconds
+    delta_seconds = self%delta%total_seconds()
+    allocate(seconds(2_i4, size(self%values)))
+    do i = 1_i4, size(self%values)
+      seconds(1_i4, i) = offset + int(self%bounds(1_i4, i), i8) * delta_seconds
+      seconds(2_i4, i) = offset + int(self%bounds(2_i4, i), i8) * delta_seconds
     end do
-  end subroutine axis_bound_seconds
+  end subroutine time_bound_seconds
 
   integer(i4) function previous_index(values, target) result(ind)
     integer(i8), intent(in) :: values(:)
@@ -779,15 +792,15 @@ contains
     end do
   end function nearest_index
 
-  integer(i4) function datetime_value(axis, time) result(value)
-    type(time_t), intent(in) :: axis
+  integer(i4) function time_integer_value(self, time) result(value)
+    class(time_t), intent(in) :: self
     type(datetime), intent(in) :: time
     type(timedelta) :: diff
     real(dp) :: value_dp
-    diff = time - axis%ref_time
-    value_dp = diff / axis%delta
+    diff = time - self%ref_time
+    value_dp = diff / self%delta
     value = nint(value_dp, i4)
-  end function datetime_value
+  end function time_integer_value
 
   type(datetime) function time_next(current_time, timestep, delta, use_delta) result(next_time)
     type(datetime), intent(in) :: current_time
