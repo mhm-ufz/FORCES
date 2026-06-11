@@ -157,8 +157,10 @@ contains
     time_axis = in_ds%time_axis()
     @assertEqual(time_axis%n_times(), 14_i4, message='input time axis length')
     @assertEqual(time_axis%timestamp, end_timestamp, message='input time axis uses end timestamps')
-    @assertEqual(time_axis%values(1_i4), 1_i4, message='input time axis first value')
-    @assertEqual(time_axis%bounds(:, 1_i4), [0_i4, 1_i4], message='input time axis first bounds')
+    @assertEqual(time_axis%values, in_ds%t_values, message='input time axis values')
+    @assertEqual(time_axis%bounds(1_i4, :), in_ds%t_bounds(:size(in_ds%t_values)), message='input time axis lower bounds')
+    @assertEqual(time_axis%bounds(2_i4, :), in_ds%t_bounds(2_i4:), message='input time axis upper bounds')
+    @assertEqual(trim(time_axis%units), trim(in_ds%time_units), message='input time axis units')
 
     allocate(dem_read(grid%nx, grid%ny))
     allocate(dem_sp(grid%nx, grid%ny))
