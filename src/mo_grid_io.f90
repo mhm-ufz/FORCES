@@ -349,6 +349,7 @@ contains
     logical :: use_cache, use_static_contiguous
 
     self%var = meta
+    self%allow_static = .false.
     self%nlayers = 0_i4
     if (.not.allocated(self%dtype)) self%dtype = "f64" ! default to double
     if (.not.associated(grid)) call error_message("output_variable: grid pointer not associated: ", self%name)

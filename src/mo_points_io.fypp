@@ -501,6 +501,7 @@ contains
     logical, optional, intent(in) :: time_series !< use station time-series layout
 
     self%var = meta
+    self%allow_static = .false.
     self%time_series = optval(time_series, .false.)
     if (.not.allocated(self%dtype)) self%dtype = "f64"
     self%points => points
@@ -713,6 +714,7 @@ contains
     integer(i4), intent(in) :: deflate_level !< NetCDF deflate level
 
     self%var = meta
+    self%allow_static = .false.
     if (.not.allocated(self%dtype)) self%dtype = "f64"
     self%points => points
     if (.not.associated(self%points)) call error_message("points_series_output_variable: points pointer not associated")
