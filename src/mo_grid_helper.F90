@@ -40,6 +40,7 @@ module mo_grid_helper
   public :: read_ascii_grid
   public :: write_ascii_grid
   public :: read_ascii_header
+  public :: nearest_border_id_by_index
   public :: data_t
 #ifdef FORCES_WITH_NETCDF
   public :: check_uniform_axis
@@ -1157,6 +1158,154 @@ contains
       j_ub = fine_ny - temp + 1
     end if
   end subroutine id_bounds
+
+  !> \brief Find nearest border id by regular-grid index distance.
+  integer(i8) function nearest_border_id_by_index(i_query, j_query, nx, ny, periodic_x, row_cnt, row_cum, border_i, border_ids) result(best_id)
+    implicit none
+    integer(i4), intent(in) :: i_query !< Query x index.
+    integer(i4), intent(in) :: j_query !< Query y index.
+    integer(i4), intent(in) :: nx !< Number of grid columns.
+    integer(i4), intent(in) :: ny !< Number of grid rows.
+    logical, intent(in) :: periodic_x !< Whether x-index distance wraps periodically.
+    integer(i8), intent(in) :: row_cnt(:) !< Number of border cells per row, size (ny).
+    integer(i8), intent(in) :: row_cum(:) !< Cumulative border-cell count before each row, size (ny).
+    integer(i4), intent(in) :: border_i(:) !< Border x indices sorted by row and x index.
+    integer(i8), intent(in) :: border_ids(:) !< Packed source cell ids for border_i entries.
+
+    integer(i4) :: row_offset, row_j, max_offset
+    integer(i8) :: best_d2, row_d2, k_lb, k_ub
+
+    best_id = 0_i8
+    best_d2 = huge(1_i8)
+    max_offset = max(j_query - 1_i4, ny - j_query)
+
+    do row_offset = 0_i4, max_offset
+      row_d2 = int(row_offset, i8) * int(row_offset, i8)
+      if (best_id > 0_i8 .and. row_d2 > best_d2) exit
+
+      row_j = j_query - row_offset
+      if (row_j >= 1_i4) then
+        call border_row_bounds(row_j, row_cnt, row_cum, k_lb, k_ub)
+        call update_nearest_border_in_row(i_query, j_query, row_j, nx, periodic_x, k_lb, k_ub, &
+                                          border_i, border_ids, best_id, best_d2)
+      end if
+
+      row_j = j_query + row_offset
+      if (row_offset > 0_i4 .and. row_j <= ny) then
+        call border_row_bounds(row_j, row_cnt, row_cum, k_lb, k_ub)
+        call update_nearest_border_in_row(i_query, j_query, row_j, nx, periodic_x, k_lb, k_ub, &
+                                          border_i, border_ids, best_id, best_d2)
+      end if
+    end do
+  end function nearest_border_id_by_index
+
+  subroutine border_row_bounds(j, row_cnt, row_cum, k_lb, k_ub)
+    implicit none
+    integer(i4), intent(in) :: j !< Row index.
+    integer(i8), intent(in) :: row_cnt(:) !< Number of border cells per row.
+    integer(i8), intent(in) :: row_cum(:) !< Cumulative border-cell count before each row.
+    integer(i8), intent(out) :: k_lb !< Inclusive lower packed border index for the row.
+    integer(i8), intent(out) :: k_ub !< Inclusive upper packed border index for the row.
+
+    if (row_cnt(j) < 1_i8) then
+      k_lb = 1_i8
+      k_ub = 0_i8
+      return
+    end if
+
+    k_lb = row_cum(j) + 1_i8
+    k_ub = row_cum(j) + row_cnt(j)
+  end subroutine border_row_bounds
+
+  subroutine update_nearest_border_in_row(i_query, j_query, row_j, nx, periodic_x, k_lb, k_ub, &
+                                          border_i, border_ids, best_id, best_d2)
+    implicit none
+    integer(i4), intent(in) :: i_query !< Query x index.
+    integer(i4), intent(in) :: j_query !< Query y index.
+    integer(i4), intent(in) :: row_j !< Candidate row index.
+    integer(i4), intent(in) :: nx !< Number of grid columns.
+    logical, intent(in) :: periodic_x !< Whether x-index distance wraps periodically.
+    integer(i8), intent(in) :: k_lb !< Inclusive lower packed border index for row_j.
+    integer(i8), intent(in) :: k_ub !< Inclusive upper packed border index for row_j.
+    integer(i4), intent(in) :: border_i(:) !< Border x indices sorted by row and x index.
+    integer(i8), intent(in) :: border_ids(:) !< Packed source cell ids for border_i entries.
+    integer(i8), intent(inout) :: best_id !< Current best packed source cell id.
+    integer(i8), intent(inout) :: best_d2 !< Current best squared index distance.
+
+    integer(i8) :: left_k, right_k
+
+    if (k_lb > k_ub) return
+
+    call border_row_binary_search(border_i, k_lb, k_ub, i_query, left_k, right_k)
+    call update_nearest_border_candidate(i_query, j_query, row_j, nx, periodic_x, right_k, k_lb, k_ub, &
+                                         border_i, border_ids, best_id, best_d2)
+    call update_nearest_border_candidate(i_query, j_query, row_j, nx, periodic_x, left_k, k_lb, k_ub, &
+                                         border_i, border_ids, best_id, best_d2)
+    if (periodic_x) then
+      call update_nearest_border_candidate(i_query, j_query, row_j, nx, periodic_x, k_lb, k_lb, k_ub, &
+                                           border_i, border_ids, best_id, best_d2)
+      call update_nearest_border_candidate(i_query, j_query, row_j, nx, periodic_x, k_ub, k_lb, k_ub, &
+                                           border_i, border_ids, best_id, best_d2)
+    end if
+  end subroutine update_nearest_border_in_row
+
+  subroutine border_row_binary_search(border_i, k_lb, k_ub, i_query, left_k, right_k)
+    implicit none
+    integer(i4), intent(in) :: border_i(:) !< Border x indices sorted by row and x index.
+    integer(i8), intent(in) :: k_lb !< Inclusive lower packed border index for the searched row.
+    integer(i8), intent(in) :: k_ub !< Inclusive upper packed border index for the searched row.
+    integer(i4), intent(in) :: i_query !< Query x index.
+    integer(i8), intent(out) :: left_k !< Index of nearest candidate at or left of i_query.
+    integer(i8), intent(out) :: right_k !< Index of nearest candidate at or right of i_query.
+
+    integer(i8) :: lo, hi, mid
+
+    lo = k_lb
+    hi = k_ub
+    do while (lo <= hi)
+      mid = lo + (hi - lo) / 2_i8
+      if (border_i(mid) < i_query) then
+        lo = mid + 1_i8
+      else
+        hi = mid - 1_i8
+      end if
+    end do
+
+    right_k = lo
+    left_k = hi
+  end subroutine border_row_binary_search
+
+  subroutine update_nearest_border_candidate(i_query, j_query, row_j, nx, periodic_x, k, k_lb, k_ub, &
+                                             border_i, border_ids, best_id, best_d2)
+    implicit none
+    integer(i4), intent(in) :: i_query !< Query x index.
+    integer(i4), intent(in) :: j_query !< Query y index.
+    integer(i4), intent(in) :: row_j !< Candidate row index.
+    integer(i4), intent(in) :: nx !< Number of grid columns.
+    logical, intent(in) :: periodic_x !< Whether x-index distance wraps periodically.
+    integer(i8), intent(in) :: k !< Candidate packed border index.
+    integer(i8), intent(in) :: k_lb !< Inclusive lower valid packed border index.
+    integer(i8), intent(in) :: k_ub !< Inclusive upper valid packed border index.
+    integer(i4), intent(in) :: border_i(:) !< Border x indices sorted by row and x index.
+    integer(i8), intent(in) :: border_ids(:) !< Packed source cell ids for border_i entries.
+    integer(i8), intent(inout) :: best_id !< Current best packed source cell id.
+    integer(i8), intent(inout) :: best_d2 !< Current best squared index distance.
+
+    integer(i8) :: dx, dy, cand_d2, cand_id
+
+    if (k < k_lb .or. k > k_ub) return
+
+    dx = int(abs(border_i(k) - i_query), i8)
+    if (periodic_x) dx = min(dx, int(nx, i8) - dx)
+    dy = int(abs(row_j - j_query), i8)
+    cand_d2 = dx * dx + dy * dy
+    cand_id = border_ids(k)
+
+    if (best_id < 1_i8 .or. cand_d2 < best_d2 .or. (cand_d2 == best_d2 .and. cand_id < best_id)) then
+      best_id = cand_id
+      best_d2 = cand_d2
+    end if
+  end subroutine update_nearest_border_candidate
 
   !> \brief Compute the spherical great-circle distance between two lon/lat points.
   pure real(dp) function dist_latlon(lat1, lon1, lat2, lon2)

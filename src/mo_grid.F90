@@ -22,7 +22,7 @@ module mo_grid
   use mo_grid_helper, only: value_in_closed_interval, shift_longitude_near_query, quad_contains_point, &
                             arrays_match_2d, append_candidate_id, update_best_metric, intersection, calculate_coarse_extent, &
                             coarse_ij, id_bounds, dist_latlon, check_factor, read_ascii_grid, write_ascii_grid, &
-                            read_ascii_header, data_t
+                            read_ascii_header, nearest_border_id_by_index, data_t
 #ifdef FORCES_WITH_NETCDF
   use mo_grid_helper, only: is_x_axis, is_y_axis, is_z_axis, is_t_axis, is_lon_coord, is_lat_coord, check_uniform_axis, &
                             mask_from_var, data_from_var
@@ -120,6 +120,9 @@ module mo_grid
     generic, public :: closest_cell_id => closest_cell_id_scalar, closest_cell_id_batch
     procedure, public :: closest_cell_id_by_axes => grid_closest_cell_id_by_axes
     procedure, public :: build_spatial_index => grid_build_spatial_index
+    procedure, public :: border_mask => grid_border_mask
+    procedure, public :: copy_to => grid_copy_to
+    procedure, public :: fill_ids => grid_fill_ids
     procedure, public :: in_cell => grid_in_cell
     procedure, public :: x_center => grid_x_center
     procedure, public :: y_center => grid_y_center
@@ -1176,6 +1179,204 @@ contains
     if (.not.this%mask(indices(1), indices(2))) call error_message("grid%cell_id: given indices are masked.") ! LCOV_EXCL_LINE
     cell_id = this%mask_cum_col_cnt(indices(2)) + count(this%mask(1_i4:indices(1), indices(2)), kind=i8)
   end function grid_cell_id
+
+  !> \brief Active cells with an inactive or out-of-domain neighbor in their 3x3 neighborhood.
+  subroutine grid_border_mask(this, border)
+    implicit none
+    class(grid_t), intent(in) :: this !< Grid with source mask.
+    logical, allocatable, intent(out) :: border(:, :) !< Border mask, allocated with shape (nx, ny).
+
+    integer(i4) :: i, j, di, dj, ii, jj
+    logical :: periodic_x
+
+    allocate(border(this%nx, this%ny), source=.false.)
+    periodic_x = this%coordsys == spherical .and. this%is_periodic()
+
+    !$omp parallel do default(shared) private(i,j,di,dj,ii,jj) schedule(static)
+    do j = 1_i4, this%ny
+      do i = 1_i4, this%nx
+        if (.not. this%mask(i, j)) cycle
+
+        do dj = -1_i4, 1_i4
+          jj = j + dj
+          if (jj < 1_i4 .or. jj > this%ny) then
+            border(i, j) = .true.
+            exit
+          end if
+
+          do di = -1_i4, 1_i4
+            ii = i + di
+            if (ii < 1_i4 .or. ii > this%nx) then
+              if (periodic_x) then
+                ii = modulo(ii - 1_i4, this%nx) + 1_i4
+              else
+                border(i, j) = .true.
+                exit
+              end if
+            end if
+
+            if (.not. this%mask(ii, jj)) then
+              border(i, j) = .true.
+              exit
+            end if
+          end do
+
+          if (border(i, j)) exit
+        end do
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine grid_border_mask
+
+  !> \brief Copy grid metadata and optionally replace mask and cell area.
+  subroutine grid_copy_to(this, new_grid, mask, cell_area)
+    implicit none
+    class(grid_t), intent(in) :: this !< Source grid.
+    type(grid_t), intent(out) :: new_grid !< Copied grid.
+    logical, optional, intent(in) :: mask(:, :) !< Optional target mask with shape (nx, ny).
+    real(dp), optional, intent(in) :: cell_area(:, :) !< Optional full-grid cell area with shape (nx, ny).
+
+    logical :: same_mask
+
+    if (.not. allocated(this%mask)) call error_message("grid%copy_to: source grid has no mask.") ! LCOV_EXCL_LINE
+    if (present(mask)) call this%check_shape(shape(mask, kind=i4))
+    if (present(cell_area)) call this%check_shape(shape(cell_area, kind=i4))
+
+    if (present(mask)) then
+      same_mask = all(mask .eqv. this%mask)
+      call new_grid%init(nx=this%nx, ny=this%ny, xllcorner=this%xllcorner, yllcorner=this%yllcorner, &
+                         cellsize=this%cellsize, coordsys=this%coordsys, y_direction=this%y_direction, mask=mask)
+    else
+      same_mask = .true.
+      call new_grid%init(nx=this%nx, ny=this%ny, xllcorner=this%xllcorner, yllcorner=this%yllcorner, &
+                         cellsize=this%cellsize, coordsys=this%coordsys, y_direction=this%y_direction, mask=this%mask)
+    end if
+
+    if (allocated(this%lat)) allocate(new_grid%lat(this%nx, this%ny), source=this%lat)
+    if (allocated(this%lon)) allocate(new_grid%lon(this%nx, this%ny), source=this%lon)
+    if (allocated(this%lat_vertices)) allocate(new_grid%lat_vertices(this%nx + 1_i4, this%ny + 1_i4), source=this%lat_vertices)
+    if (allocated(this%lon_vertices)) allocate(new_grid%lon_vertices(this%nx + 1_i4, this%ny + 1_i4), source=this%lon_vertices)
+
+    if (present(cell_area)) then
+      call new_grid%pack_into(cell_area, new_grid%cell_area)
+    else if (same_mask .and. allocated(this%cell_area)) then
+      new_grid%cell_area = this%cell_area
+    end if
+  end subroutine grid_copy_to
+
+  !> \brief Map a target mask on the same grid to packed source cell ids.
+  subroutine grid_fill_ids(this, mask, ids, use_index_distance)
+    use mo_utils, only: prefix_sum
+    implicit none
+    class(grid_t), intent(in) :: this !< Source grid.
+    logical, intent(in) :: mask(:, :) !< Target mask with shape (nx, ny).
+    integer(i8), allocatable, intent(out) :: ids(:) !< Source packed-cell ids in target packed-mask order.
+    logical, optional, intent(in) :: use_index_distance !< Use regular-grid index distance for fallback nearest border lookup.
+
+    type(spatial_index_t) :: border_index
+    logical, allocatable :: border(:, :)
+    integer(i8), allocatable :: source_ids(:, :), target_col_cnt(:), target_cum_col_cnt(:), border_col_cnt(:), border_cum_col_cnt(:)
+    integer(i8), allocatable :: point_ids(:)
+    integer(i4), allocatable :: border_i(:)
+    real(dp), allocatable :: points(:, :)
+    real(dp) :: query(2)
+    integer(i8) :: target_count, fallback_count, border_count, k, n, kt
+    integer(i4) :: i, j
+    logical :: spherical_space, use_index_distance_, use_index_search, periodic_index_x
+
+    call this%check_shape(shape(mask, kind=i4))
+    use_index_distance_ = optval(use_index_distance, .false.)
+
+    allocate(target_col_cnt(this%ny), target_cum_col_cnt(this%ny))
+    !$omp parallel do default(shared) schedule(static)
+    do j = 1_i4, this%ny
+      target_col_cnt(j) = count(mask(:, j), kind=i8)
+    end do
+    !$omp end parallel do
+
+    call prefix_sum(target_col_cnt, target_cum_col_cnt, shift=1_i8, start=0_i8)
+    target_count = target_cum_col_cnt(this%ny) + target_col_cnt(this%ny)
+    allocate(ids(target_count))
+    if (target_count < 1_i8) return
+
+    if (this%ncells < 1_i8) call error_message("grid%fill_ids: source grid has no active cells.") ! LCOV_EXCL_LINE
+
+    source_ids = this%id_matrix()
+    fallback_count = count(mask .and. .not. this%mask, kind=i8)
+    spherical_space = this%coordsys == spherical
+    use_index_search = use_index_distance_
+    periodic_index_x = spherical_space .and. this%is_periodic()
+
+    if (fallback_count > 0_i8) then
+      call this%border_mask(border)
+      border_count = count(border, kind=i8)
+      if (border_count < 1_i8) call error_message("grid%fill_ids: source grid has no border cells.") ! LCOV_EXCL_LINE
+
+      if (use_index_search) then
+        allocate(border_col_cnt(this%ny), border_cum_col_cnt(this%ny))
+        !$omp parallel do default(shared) schedule(static)
+        do j = 1_i4, this%ny
+          border_col_cnt(j) = count(border(:, j), kind=i8)
+        end do
+        !$omp end parallel do
+        call prefix_sum(border_col_cnt, border_cum_col_cnt, shift=1_i8, start=0_i8)
+
+        allocate(border_i(border_count), point_ids(border_count))
+        !$omp parallel do default(shared) private(k,i) schedule(static)
+        do j = 1_i4, this%ny
+          k = border_cum_col_cnt(j)
+          do i = 1_i4, this%nx
+            if (.not. border(i, j)) cycle
+            k = k + 1_i8
+            border_i(k) = i
+            point_ids(k) = source_ids(i, j)
+          end do
+        end do
+        !$omp end parallel do
+      else
+        allocate(point_ids(border_count), points(border_count, 2))
+        n = 0_i8
+        do k = 1_i8, this%ncells
+          i = this%cell_ij(k, 1)
+          j = this%cell_ij(k, 2)
+          if (.not. border(i, j)) cycle
+          n = n + 1_i8
+          point_ids(n) = k
+          points(n, 1) = this%x_center(i)
+          points(n, 2) = this%y_center(j)
+        end do
+
+        if (spherical_space) then
+          call border_index%init_lonlat(points, point_ids)
+        else
+          call border_index%init(points, point_ids)
+        end if
+      end if
+    end if
+
+    !$omp parallel do default(shared) private(i,j,kt,query) schedule(static)
+    do j = 1_i4, this%ny
+      kt = target_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (.not. mask(i, j)) cycle
+        kt = kt + 1_i8
+        if (this%mask(i, j)) then
+          ids(kt) = source_ids(i, j)
+        else if (use_index_search) then
+          ids(kt) = nearest_border_id_by_index(i, j, this%nx, this%ny, periodic_index_x, &
+                                               border_col_cnt, border_cum_col_cnt, border_i, point_ids)
+        else
+          query = [this%x_center(i), this%y_center(j)]
+          if (spherical_space) then
+            ids(kt) = border_index%nearest_id_lonlat(query(1), query(2))
+          else
+            ids(kt) = border_index%nearest_id(query)
+          end if
+        end if
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine grid_fill_ids
 
   !> \brief Build a spatial index over active grid cell centers.
   !> \details Point ids in the resulting index match packed active-cell ids.
