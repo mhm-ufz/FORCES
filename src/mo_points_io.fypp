@@ -45,6 +45,16 @@
   end subroutine points_series_output_write_${kind}$
 #:enddef
 #!
+#:def render_series_output_write_matrix(kind, type)
+  !> \brief Write one complete time/point matrix for a variable selected by name.
+  subroutine points_series_output_write_matrix_${kind}$(self, name, data)
+    class(points_series_output_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    ${type}$, intent(in) :: data(:, :) !< complete series matrix with shape (time,point)
+    call self%vars(self%var_index(name))%write(data)
+  end subroutine points_series_output_write_matrix_${kind}$
+#:enddef
+#!
 #:def render_series_output_write_static(kind, type)
   !> \brief Write one static point variable for a variable selected by name.
   subroutine points_series_output_write_static_${kind}$(self, name, data)
@@ -109,6 +119,26 @@
   end subroutine points_series_out_var_write_${kind}$
 #:enddef
 #!
+#:def render_series_out_var_write_matrix(kind, type)
+  !> \brief Write one complete time/point matrix.
+  subroutine points_series_out_var_write_matrix_${kind}$(self, data)
+    class(points_series_output_variable), intent(inout) :: self
+    ${type}$, intent(in) :: data(:, :) !< complete series matrix with shape (time,point)
+    type(NcDimension), allocatable :: dims(:)
+    integer(i8) :: n_times
+    if (self%static) call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
+    if (self%kind /= "${kind}$") call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
+    dims = self%nc%getDimensions()
+    n_times = dims(1_i4)%getLength64()
+    if (size(data, 1, kind=i8) /= n_times) &
+      call error_message("points_series_output_variable: time series size mismatch: ", self%name)
+    if (size(data, 2, kind=i8) /= self%points%n_points) &
+      call error_message("points_series_output_variable: point series size mismatch: ", self%name)
+    call self%nc%setData(data, start=[1_i4, 1_i4], cnt=[int(n_times, i4), int(self%points%n_points, i4)])
+    self%written = .true.
+  end subroutine points_series_out_var_write_matrix_${kind}$
+#:enddef
+#!
 #:def render_series_out_var_write_static(kind, type)
   !> \brief Write one static point variable.
   subroutine points_series_out_var_write_static_${kind}$(self, data)
@@ -164,6 +194,24 @@
   end subroutine points_in_var_read_chunk_${kind}$
 #:enddef
 #!
+#:def render_in_var_read_series_matrix(kind, type)
+  !> \brief Read a temporal time/point matrix.
+  subroutine points_in_var_read_series_matrix_${kind}$(self, data, t_index, t_size)
+    class(points_input_variable), intent(inout) :: self
+    ${type}$, allocatable, intent(out) :: data(:,:) !< read point data with shape (time,point)
+    integer(i4), intent(in) :: t_index !< first temporal index
+    integer(i4), intent(in) :: t_size !< number of temporal indices
+    ${type}$, allocatable :: tmp(:, :)
+    if (self%static) call error_message("points_input_variable: series read needs temporal variable: ", self%name)
+    if (self%time_series) then
+      call self%nc%getData(data, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+    else
+      call self%nc%getData(tmp, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      allocate(data(t_size, self%points%n_points), source=transpose(tmp))
+    end if
+  end subroutine points_in_var_read_series_matrix_${kind}$
+#:enddef
+#!
 #:def render_in_var_read_series(kind, type)
   !> \brief Read one point time series.
   subroutine points_in_var_read_series_${kind}$(self, point_index, data, t_index, t_size)
@@ -217,6 +265,32 @@
   end subroutine points_input_read_chunk_${kind}$
 #:enddef
 #!
+#:def render_input_read_series_matrix(kind, type)
+  !> \brief Read a time/point matrix selected by an optional time frame.
+  subroutine points_input_read_series_matrix_${kind}$(self, name, data, timeframe_start, timeframe_end, times)
+    class(points_input_dataset), intent(inout) :: self
+    character(*), intent(in) :: name !< variable name
+    ${type}$, allocatable, intent(out) :: data(:,:) !< read point data with shape (time,point)
+    type(datetime), optional, intent(in) :: timeframe_start !< start of time frame, excluding
+    type(datetime), optional, intent(in) :: timeframe_end !< end of time frame, including
+    type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned matrix
+    integer(i4) :: t_index, t_size, var_id
+    var_id = self%var_index(name)
+    if (self%vars(var_id)%static) &
+      call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
+    if (present(timeframe_start) .neqv. present(timeframe_end)) &
+      call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
+    if (present(timeframe_start)) then
+      call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
+    else
+      t_index = 1_i4
+      t_size = size(self%times)
+      if (present(times)) allocate(times(t_size), source=self%times)
+    end if
+    call self%vars(var_id)%read_series(data, t_index=t_index, t_size=t_size)
+  end subroutine points_input_read_series_matrix_${kind}$
+#:enddef
+#!
 #:def render_input_read_series(kind, type)
   !> \brief Read one point time series selected by an optional time frame.
   subroutine points_input_read_series_${kind}$(self, name, point_index, data, timeframe_start, timeframe_end, times)
@@ -267,8 +341,10 @@
     id_var = self%nc%getVariable(id_var_name)
     if (id_var%getRank() /= 1_i4) call error_message("points_input%get_ids: ID variable must be one-dimensional: ", id_var_name)
     dims = id_var%getDimensions()
-    if (trim(dims(1)%getName()) /= self%point_dim_name) call error_message("points_input%get_ids: ID variable uses wrong dimension: ", id_var_name)
-    if (dims(1)%getLength64() /= self%points%n_points) call error_message("points_input%get_ids: ID variable size mismatch: ", id_var_name)
+    if (trim(dims(1)%getName()) /= self%point_dim_name) &
+      call error_message("points_input%get_ids: ID variable uses wrong dimension: ", id_var_name)
+    if (dims(1)%getLength64() /= self%points%n_points) &
+      call error_message("points_input%get_ids: ID variable size mismatch: ", id_var_name)
     call id_var%getData(ids)
   end subroutine points_input_get_ids_${kind}$
 #:enddef
@@ -380,9 +456,10 @@ module mo_points_io
   contains
     procedure, public :: init => points_series_out_var_init
 #:set SERIES_OUT_VAR_WRITE_PROCS = ["points_series_out_var_write_{}".format(kind) for kind in POINT_IO_ALL_KINDS]
+    #:set SERIES_OUT_VAR_WRITE_MATRIX_PROCS = ["points_series_out_var_write_matrix_{}".format(kind) for kind in POINT_IO_ALL_KINDS]
     #:set SERIES_OUT_VAR_WRITE_STATIC_PROCS = ["points_series_out_var_write_static_{}".format(kind) for kind in POINT_IO_ALL_KINDS]
-    procedure, private :: ${", ".join(SERIES_OUT_VAR_WRITE_PROCS)}$
-    generic, public :: write => ${", ".join(SERIES_OUT_VAR_WRITE_PROCS)}$
+    procedure, private :: ${", ".join(SERIES_OUT_VAR_WRITE_PROCS + SERIES_OUT_VAR_WRITE_MATRIX_PROCS)}$
+    generic, public :: write => ${", ".join(SERIES_OUT_VAR_WRITE_PROCS + SERIES_OUT_VAR_WRITE_MATRIX_PROCS)}$
     procedure, private :: ${", ".join(SERIES_OUT_VAR_WRITE_STATIC_PROCS)}$
     generic, public :: write_static => ${", ".join(SERIES_OUT_VAR_WRITE_STATIC_PROCS)}$
   end type points_series_output_variable
@@ -403,10 +480,11 @@ module mo_points_io
   contains
     procedure, public :: init => points_series_output_init
 #:set SERIES_OUTPUT_WRITE_PROCS = ["points_series_output_write_{}".format(kind) for kind in POINT_IO_ALL_KINDS]
+    #:set SERIES_OUTPUT_WRITE_MATRIX_PROCS = ["points_series_output_write_matrix_{}".format(kind) for kind in POINT_IO_ALL_KINDS]
     #:set SERIES_OUTPUT_WRITE_STATIC_PROCS = ["points_series_output_write_static_{}".format(kind) for kind in POINT_IO_ALL_KINDS]
     #:set SERIES_OUTPUT_SET_IDS_PROCS = ["points_series_output_set_ids_{}".format(kind) for kind in ["i4", "i8"]]
-    procedure, private :: ${", ".join(SERIES_OUTPUT_WRITE_PROCS)}$
-    generic, public :: write_series => ${", ".join(SERIES_OUTPUT_WRITE_PROCS)}$
+    procedure, private :: ${", ".join(SERIES_OUTPUT_WRITE_PROCS + SERIES_OUTPUT_WRITE_MATRIX_PROCS)}$
+    generic, public :: write_series => ${", ".join(SERIES_OUTPUT_WRITE_PROCS + SERIES_OUTPUT_WRITE_MATRIX_PROCS)}$
     procedure, private :: ${", ".join(SERIES_OUTPUT_WRITE_STATIC_PROCS)}$
     generic, public :: write_static => ${", ".join(SERIES_OUTPUT_WRITE_STATIC_PROCS)}$
     procedure, private :: ${", ".join(SERIES_OUTPUT_SET_IDS_PROCS)}$
@@ -428,13 +506,14 @@ module mo_points_io
     procedure, public :: init => points_in_var_init
 #:set IN_VAR_READ_PROCS = ["points_in_var_read_{}".format(kind) for kind in POINT_IO_ALL_KINDS]
 #:set IN_VAR_READ_CHUNK_PROCS = ["points_in_var_read_chunk_{}".format(kind) for kind in POINT_IO_ALL_KINDS]
+#:set IN_VAR_READ_SERIES_MATRIX_PROCS = ["points_in_var_read_series_matrix_{}".format(kind) for kind in POINT_IO_ALL_KINDS]
     procedure, private :: ${", ".join(IN_VAR_READ_PROCS)}$
     generic, public :: read => ${", ".join(IN_VAR_READ_PROCS)}$
     procedure, private :: ${", ".join(IN_VAR_READ_CHUNK_PROCS)}$
     generic, public :: read_chunk => ${", ".join(IN_VAR_READ_CHUNK_PROCS)}$
 #:set IN_VAR_READ_SERIES_PROCS = ["points_in_var_read_series_{}".format(kind) for kind in POINT_IO_ALL_KINDS]
-    procedure, private :: ${", ".join(IN_VAR_READ_SERIES_PROCS)}$
-    generic, public :: read_series => ${", ".join(IN_VAR_READ_SERIES_PROCS)}$
+    procedure, private :: ${", ".join(IN_VAR_READ_SERIES_PROCS + IN_VAR_READ_SERIES_MATRIX_PROCS)}$
+    generic, public :: read_series => ${", ".join(IN_VAR_READ_SERIES_PROCS + IN_VAR_READ_SERIES_MATRIX_PROCS)}$
   end type points_input_variable
 
   !> \class points_input_dataset
@@ -465,17 +544,19 @@ module mo_points_io
     procedure, public :: init => points_input_init
 #:set INPUT_READ_PROCS = ["points_input_read_{}".format(kind) for kind in POINT_IO_ALL_KINDS]
 #:set INPUT_READ_CHUNK_PROCS = ["points_input_read_chunk_{}".format(kind) for kind in POINT_IO_ALL_KINDS]
+#:set INPUT_READ_SERIES_MATRIX_PROCS = ["points_input_read_series_matrix_{}".format(kind) for kind in POINT_IO_ALL_KINDS]
 #:set INPUT_READ_SERIES_PROCS = ["points_input_read_series_{}".format(kind) for kind in POINT_IO_ALL_KINDS]
     procedure, private :: ${", ".join(INPUT_READ_PROCS)}$
     generic, public :: read => ${", ".join(INPUT_READ_PROCS)}$
     procedure, private :: ${", ".join(INPUT_READ_CHUNK_PROCS)}$
     generic, public :: read_chunk => ${", ".join(INPUT_READ_CHUNK_PROCS)}$
-    procedure, private :: ${", ".join(INPUT_READ_SERIES_PROCS)}$
-    generic, public :: read_series => ${", ".join(INPUT_READ_SERIES_PROCS)}$
+    procedure, private :: ${", ".join(INPUT_READ_SERIES_PROCS + INPUT_READ_SERIES_MATRIX_PROCS)}$
+    generic, public :: read_series => ${", ".join(INPUT_READ_SERIES_PROCS + INPUT_READ_SERIES_MATRIX_PROCS)}$
     procedure, public :: time_index => points_input_time_index
     procedure, public :: time_axis => points_input_time_axis
     procedure, public :: chunk_times => points_input_chunk_times
     procedure, public :: meta => points_input_meta
+    procedure, public :: is_time_series_layout => points_input_is_time_series_layout
     #:set INPUT_GET_IDS_PROCS = ["points_input_get_ids_{}".format(kind) for kind in ["i4", "i8"]]
     procedure, private :: ${", ".join(INPUT_GET_IDS_PROCS)}$
     generic, public :: get_ids => ${", ".join(INPUT_GET_IDS_PROCS)}$
@@ -737,6 +818,9 @@ contains
   #:call render_series_out_var_write(kind, type)
   #:endcall
 
+  #:call render_series_out_var_write_matrix(kind, type)
+  #:endcall
+
   #:call render_series_out_var_write_static(kind, type)
   #:endcall
 #:endfor
@@ -799,6 +883,9 @@ contains
 
 #:for kind, type in POINT_IO_ALL_KINDS_TYPES
   #:call render_series_output_write(kind, type)
+  #:endcall
+
+  #:call render_series_output_write_matrix(kind, type)
   #:endcall
 
   #:call render_series_output_write_static(kind, type)
@@ -890,7 +977,8 @@ contains
       self%standard_name = trim(tmp_str)
       if (allocated(meta%standard_name)) then
         if (meta%standard_name /= self%standard_name) &
-          call error_message("points_input_variable: standard_name mismatch: ", self%name, ", ", meta%standard_name, "=/=", self%standard_name)
+          call error_message("points_input_variable: standard_name mismatch: ", self%name, ", ", &
+                             meta%standard_name, "=/=", self%standard_name)
       end if
     end if
     if (self%nc%hasAttribute("units")) then
@@ -913,6 +1001,9 @@ contains
   #:endcall
 
   #:call render_in_var_read_chunk(kind, type)
+  #:endcall
+
+  #:call render_in_var_read_series_matrix(kind, type)
   #:endcall
 
   #:call render_in_var_read_series(kind, type)
@@ -967,6 +1058,9 @@ contains
   #:endcall
 
   #:call render_input_read_chunk(kind, type)
+  #:endcall
+
+  #:call render_input_read_series_matrix(kind, type)
   #:endcall
 
   #:call render_input_read_series(kind, type)
@@ -1060,6 +1154,15 @@ contains
     character(*), intent(in) :: name !< variable name
     points_input_meta = self%vars(self%var_index(name))%meta()
   end function points_input_meta
+
+  !> \brief Return whether a variable uses time-series NetCDF dimension order.
+  logical function points_input_is_time_series_layout(self, name) result(is_time_series_layout)
+    class(points_input_dataset), intent(in) :: self
+    character(*), intent(in) :: name !< variable name
+    integer(i4) :: var_id
+    var_id = self%var_index(name)
+    is_time_series_layout = .not.self%vars(var_id)%static .and. self%vars(var_id)%time_series
+  end function points_input_is_time_series_layout
 
   !> \brief Close a point-set input dataset.
   subroutine points_input_close(self)
