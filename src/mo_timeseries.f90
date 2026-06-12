@@ -22,7 +22,6 @@ module mo_timeseries
                          infer_time_bounds, infer_time_timestep_from_bounds, infer_time_timestep_from_values
   use mo_kind, only: i4, i8, dp
   use mo_message, only: error_message
-  use mo_orderpack, only: omedian
   use mo_utils, only: optval
 
   implicit none
@@ -47,7 +46,6 @@ module mo_timeseries
   integer(i4), public, parameter :: ts_sum = 2_i4 !< interval sum
   integer(i4), public, parameter :: ts_min = 3_i4 !< interval minimum
   integer(i4), public, parameter :: ts_max = 4_i4 !< interval maximum
-  integer(i4), public, parameter :: ts_median = 5_i4 !< interval median
   !!@}
 
   !> \name Instant Interpolation
@@ -96,13 +94,14 @@ module mo_timeseries
   !> \brief Reusable resampler between two time axes.
   !> \details The resampler owns source/target time-axis metadata and
   !!          precomputed integer-time mappings. Values stay caller-owned and
-  !!          are supplied to \ref execute.
+  !!          are supplied to \ref execute or \ref execute_series.
   type, public :: resampler_t
     type(time_t) :: source                         !< source time axis
     type(time_t) :: target                         !< target time axis
     integer(i4) :: support = ts_interval           !< \ref ts_instant or \ref ts_interval
     integer(i4) :: method = ts_mean                !< interval method
     integer(i4) :: interpolation = ts_nearest      !< instant interpolation method
+    integer(i4) :: omp_min = 1024_i4               !< minimum target steps for 1D OpenMP execution
     integer(i8), allocatable :: source_values(:)   !< source timestamps in common seconds
     integer(i8), allocatable :: target_values(:)   !< target timestamps in common seconds
     integer(i8), allocatable :: source_bounds(:, :) !< source bounds in common seconds
@@ -115,13 +114,16 @@ module mo_timeseries
     procedure, public :: init => resampler_init
     procedure, private :: resampler_execute_1d
     procedure, private :: resampler_execute_2d
+    procedure, public :: execute_series => resampler_execute_series
     generic, public :: execute => resampler_execute_1d, resampler_execute_2d
     procedure, private :: precompute_instant
     procedure, private :: precompute_interval
     procedure, private :: execute_instant_1d
     procedure, private :: execute_instant_2d
+    procedure, private :: execute_instant_series
     procedure, private :: execute_interval_1d
     procedure, private :: execute_interval_2d
+    procedure, private :: execute_interval_series
     procedure, private :: init_interval_value
     procedure, private :: validate_config => resampler_validate_config
   end type resampler_t
@@ -444,6 +446,25 @@ contains
     end select
   end subroutine resampler_execute_2d
 
+  !> \brief Resample several caller-owned series stored as time-major columns.
+  subroutine resampler_execute_series(self, source, target)
+    class(resampler_t), intent(in) :: self
+    real(dp), intent(in) :: source(:, :) !< source values with shape (source_time,n_series)
+    real(dp), intent(out) :: target(:, :) !< target values with shape (target_time,n_series)
+
+    if (size(source, 1) /= self%source%n_times()) call error_message("resampler%execute_series: invalid source time size")
+    if (size(target, 1) /= self%target%n_times()) call error_message("resampler%execute_series: invalid target time size")
+    if (size(source, 2) /= size(target, 2)) call error_message("resampler%execute_series: invalid series count")
+    select case(self%support)
+      case(ts_instant)
+        call self%execute_instant_series(source, target)
+      case(ts_interval)
+        call self%execute_interval_series(source, target)
+      case default
+        call error_message("resampler%execute_series: invalid support")
+    end select
+  end subroutine resampler_execute_series
+
   subroutine precompute_instant(self)
     class(resampler_t), intent(inout) :: self
     integer(i4) :: i, j
@@ -465,7 +486,8 @@ contains
       end do
       select case(self%interpolation)
         case(ts_previous)
-          if (self%target_values(i) < self%source_values(1_i4)) call error_message("resampler%init: target time before source range")
+          if (self%target_values(i) < self%source_values(1_i4)) &
+            call error_message("resampler%init: target time before source range")
           self%left(i) = j
         case(ts_nearest)
           if (self%target_values(i) <= self%source_values(1_i4)) then
@@ -542,7 +564,10 @@ contains
     real(dp), intent(in) :: source(:)
     real(dp), intent(out) :: target(:)
     integer(i4) :: i, j
+    logical :: use_omp
 
+    use_omp = size(target) >= self%omp_min
+    !$omp parallel do default(shared) private(i, j) schedule(static) if(use_omp)
     do i = 1_i4, size(target)
       j = self%left(i)
       if (.not.(self%weight(i) > 0.0_dp)) then
@@ -551,6 +576,7 @@ contains
         target(i) = source(j) + self%weight(i) * (source(j + 1_i4) - source(j))
       end if
     end do
+    !$omp end parallel do
   end subroutine execute_instant_1d
 
   subroutine execute_instant_2d(self, source, target)
@@ -559,6 +585,7 @@ contains
     real(dp), intent(out) :: target(:, :)
     integer(i4) :: i, j
 
+    !$omp parallel do default(shared) private(i, j) schedule(static)
     do i = 1_i4, size(target, 2)
       j = self%left(i)
       if (.not.(self%weight(i) > 0.0_dp)) then
@@ -567,24 +594,42 @@ contains
         target(:, i) = source(:, j) + self%weight(i) * (source(:, j + 1_i4) - source(:, j))
       end if
     end do
+    !$omp end parallel do
   end subroutine execute_instant_2d
+
+  subroutine execute_instant_series(self, source, target)
+    class(resampler_t), intent(in) :: self
+    real(dp), intent(in) :: source(:, :)
+    real(dp), intent(out) :: target(:, :)
+    integer(i4) :: i, j, k
+
+    !$omp parallel do default(shared) private(i, j, k) schedule(static)
+    do k = 1_i4, size(target, 2)
+      do i = 1_i4, size(target, 1)
+        j = self%left(i)
+        if (.not.(self%weight(i) > 0.0_dp)) then
+          target(i, k) = source(j, k)
+        else
+          target(i, k) = source(j, k) + self%weight(i) * (source(j + 1_i4, k) - source(j, k))
+        end if
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine execute_instant_series
 
   subroutine execute_interval_1d(self, source, target)
     class(resampler_t), intent(in) :: self
     real(dp), intent(in) :: source(:)
     real(dp), intent(out) :: target(:)
-    real(dp), allocatable :: median_values(:)
     real(dp) :: overlap, source_width, target_width
-    integer(i4) :: i, j, n_overlap
+    integer(i4) :: i, j
     integer(i8) :: lower, upper
+    logical :: use_omp
 
+    use_omp = size(target) >= self%omp_min
+    !$omp parallel do default(shared) private(i, j, lower, upper, overlap, source_width, target_width) schedule(static) if(use_omp)
     do i = 1_i4, size(target)
       call self%init_interval_value(i, target(i), target_width)
-      n_overlap = 0_i4
-      if (self%method == ts_median) then
-        if (allocated(median_values)) deallocate(median_values)
-        allocate(median_values(self%last(i) - self%first(i) + 1_i4))
-      end if
       do j = self%first(i), self%last(i)
         lower = max(self%source_bounds(1_i4, j), self%target_bounds(1_i4, i))
         upper = min(self%source_bounds(2_i4, j), self%target_bounds(2_i4, i))
@@ -601,35 +646,27 @@ contains
             target(i) = min(target(i), source(j))
           case(ts_max)
             target(i) = max(target(i), source(j))
-          case(ts_median)
-            n_overlap = n_overlap + 1_i4
-            median_values(n_overlap) = source(j)
           case default
             call error_message("resampler%execute: unsupported interval method")
         end select
       end do
-      select case(self%method)
-        case(ts_mean)
-          target(i) = target(i) / target_width
-        case(ts_median)
-          target(i) = omedian(median_values(1_i4:n_overlap))
-      end select
+      if (self%method == ts_mean) target(i) = target(i) / target_width
     end do
+    !$omp end parallel do
   end subroutine execute_interval_1d
 
   subroutine execute_interval_2d(self, source, target)
     class(resampler_t), intent(in) :: self
     real(dp), intent(in) :: source(:, :)
     real(dp), intent(out) :: target(:, :)
-    real(dp), allocatable :: median_values(:)
     real(dp) :: overlap, source_width, target_width, initial
-    integer(i4) :: i, j, k, n_overlap
+    integer(i4) :: i, j
     integer(i8) :: lower, upper
 
+    !$omp parallel do default(shared) private(i, j, lower, upper, overlap, source_width, target_width, initial) schedule(static)
     do i = 1_i4, size(target, 2)
       call self%init_interval_value(i, initial, target_width)
       target(:, i) = initial
-      if (self%method == ts_median) allocate(median_values(self%last(i) - self%first(i) + 1_i4))
       do j = self%first(i), self%last(i)
         lower = max(self%source_bounds(1_i4, j), self%target_bounds(1_i4, i))
         upper = min(self%source_bounds(2_i4, j), self%target_bounds(2_i4, i))
@@ -646,28 +683,52 @@ contains
             target(:, i) = min(target(:, i), source(:, j))
           case(ts_max)
             target(:, i) = max(target(:, i), source(:, j))
-          case(ts_median)
           case default
             call error_message("resampler%execute: unsupported interval method")
         end select
       end do
       if (self%method == ts_mean) target(:, i) = target(:, i) / target_width
-      if (self%method == ts_median) then
-        do k = 1_i4, size(target, 1)
-          n_overlap = 0_i4
-          do j = self%first(i), self%last(i)
-            lower = max(self%source_bounds(1_i4, j), self%target_bounds(1_i4, i))
-            upper = min(self%source_bounds(2_i4, j), self%target_bounds(2_i4, i))
-            if (upper <= lower) cycle
-            n_overlap = n_overlap + 1_i4
-            median_values(n_overlap) = source(k, j)
-          end do
-          target(k, i) = omedian(median_values(1_i4:n_overlap))
-        end do
-        deallocate(median_values)
-      end if
     end do
+    !$omp end parallel do
   end subroutine execute_interval_2d
+
+  subroutine execute_interval_series(self, source, target)
+    class(resampler_t), intent(in) :: self
+    real(dp), intent(in) :: source(:, :)
+    real(dp), intent(out) :: target(:, :)
+    real(dp) :: overlap, source_width, target_width
+    integer(i4) :: i, j, k
+    integer(i8) :: lower, upper
+
+    !$omp parallel do default(shared) private(i, j, k, lower, upper, overlap, source_width, target_width) schedule(static)
+    do k = 1_i4, size(target, 2)
+      do i = 1_i4, size(target, 1)
+        call self%init_interval_value(i, target(i, k), target_width)
+        do j = self%first(i), self%last(i)
+          lower = max(self%source_bounds(1_i4, j), self%target_bounds(1_i4, i))
+          upper = min(self%source_bounds(2_i4, j), self%target_bounds(2_i4, i))
+          if (upper <= lower) cycle
+          overlap = real(upper - lower, dp)
+          select case(self%method)
+            case(ts_mean)
+              target(i, k) = target(i, k) + source(j, k) * overlap
+            case(ts_sum)
+              source_width = real(self%source_bounds(2_i4, j) - self%source_bounds(1_i4, j), dp)
+              if (source_width <= 0.0_dp) call error_message("resampler%execute_series: invalid source interval")
+              target(i, k) = target(i, k) + source(j, k) * overlap / source_width
+            case(ts_min)
+              target(i, k) = min(target(i, k), source(j, k))
+            case(ts_max)
+              target(i, k) = max(target(i, k), source(j, k))
+            case default
+              call error_message("resampler%execute_series: unsupported interval method")
+          end select
+        end do
+        if (self%method == ts_mean) target(i, k) = target(i, k) / target_width
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine execute_interval_series
 
   subroutine init_interval_value(self, target_index, value, target_width)
     class(resampler_t), intent(in) :: self
@@ -683,8 +744,6 @@ contains
         value = huge(1.0_dp)
       case(ts_max)
         value = -huge(1.0_dp)
-      case(ts_median)
-        value = 0.0_dp
       case default
         call error_message("resampler%execute: unsupported interval method")
     end select
@@ -702,7 +761,7 @@ contains
         end select
       case(ts_interval)
         select case(self%method)
-          case(ts_mean, ts_sum, ts_min, ts_max, ts_median)
+          case(ts_mean, ts_sum, ts_min, ts_max)
           case default
             call error_message("resampler%init: invalid interval method")
         end select

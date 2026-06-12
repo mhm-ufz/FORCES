@@ -134,6 +134,7 @@ contains
     real(dp) :: hourly_values(48), daily_values(2)
     real(dp) :: daily_result(2), hourly_result(48)
     real(dp) :: hourly_matrix(2, 48), daily_matrix(2, 2)
+    real(dp) :: hourly_series(48, 2), daily_series(2, 2), hourly_series_result(48, 2), daily_series_result(2, 2)
     integer(i4) :: i
 
     hourly_values(1_i4:24_i4) = 1.0_dp
@@ -179,6 +180,22 @@ contains
     @assertEqual(daily_matrix(1_i4, :), [1.0_dp, 3.0_dp], tolerance=1.0e-12_dp)
     @assertEqual(daily_matrix(2_i4, :), [2.0_dp, 6.0_dp], tolerance=1.0e-12_dp)
 
+    daily_series(:, 1_i4) = daily_values
+    daily_series(:, 2_i4) = 2.0_dp * daily_values
+    call resampler%init(daily_axis, hourly_axis, support=ts_interval, method=ts_mean)
+    call resampler%execute_series(daily_series, hourly_series_result)
+    @assertEqual(hourly_series_result(1_i4:24_i4, 1_i4), [(10.0_dp, i=1_i4, 24_i4)], tolerance=1.0e-12_dp)
+    @assertEqual(hourly_series_result(25_i4:48_i4, 1_i4), [(20.0_dp, i=1_i4, 24_i4)], tolerance=1.0e-12_dp)
+    @assertEqual(hourly_series_result(1_i4:24_i4, 2_i4), [(20.0_dp, i=1_i4, 24_i4)], tolerance=1.0e-12_dp)
+    @assertEqual(hourly_series_result(25_i4:48_i4, 2_i4), [(40.0_dp, i=1_i4, 24_i4)], tolerance=1.0e-12_dp)
+
+    hourly_series(:, 1_i4) = 1.0_dp
+    hourly_series(:, 2_i4) = 2.0_dp
+    call resampler%init(hourly_axis, daily_axis, support=ts_interval, method=ts_sum)
+    call resampler%execute_series(hourly_series, daily_series_result)
+    @assertEqual(daily_series_result(:, 1_i4), [24.0_dp, 24.0_dp], tolerance=1.0e-12_dp)
+    @assertEqual(daily_series_result(:, 2_i4), [48.0_dp, 48.0_dp], tolerance=1.0e-12_dp)
+
     call long_daily_axis%init(datetime("1990-01-01"), datetime("2020-01-01"), timestep=daily)
     long_hourly_axis = long_daily_axis%resampled(timestep=hourly)
     @assertEqual(long_hourly_axis%n_times(), 24_i4 * long_daily_axis%n_times())
@@ -190,6 +207,7 @@ contains
     type(time_t) :: source_axis, target_axis
     type(resampler_t) :: resampler
     real(dp) :: source(3), target(3)
+    real(dp) :: source_series(3, 2), target_series(3, 2)
 
     source = [0.0_dp, 10.0_dp, 20.0_dp]
     call source_axis%init_cf([0_i4, 10_i4, 20_i4], "hours since 2000-01-01 00:00:00")
@@ -208,6 +226,22 @@ contains
     call resampler%init(source_axis, target_axis, support=ts_instant, method=ts_none, interpolation=ts_linear)
     call resampler%execute(source, target)
     @assertEqual(target, [5.0_dp, 15.0_dp, 20.0_dp], tolerance=1.0e-12_dp)
+
+    source_series(:, 1_i4) = source
+    source_series(:, 2_i4) = 2.0_dp * source
+    call resampler%execute_series(source_series, target_series)
+    @assertEqual(target_series(:, 1_i4), [5.0_dp, 15.0_dp, 20.0_dp], tolerance=1.0e-12_dp)
+    @assertEqual(target_series(:, 2_i4), [10.0_dp, 30.0_dp, 40.0_dp], tolerance=1.0e-12_dp)
+
+    call resampler%init(source_axis, target_axis, support=ts_instant, method=ts_none, interpolation=ts_previous)
+    call resampler%execute_series(source_series, target_series)
+    @assertEqual(target_series(:, 1_i4), [0.0_dp, 10.0_dp, 20.0_dp], tolerance=1.0e-12_dp)
+    @assertEqual(target_series(:, 2_i4), [0.0_dp, 20.0_dp, 40.0_dp], tolerance=1.0e-12_dp)
+
+    call resampler%init(source_axis, target_axis, support=ts_instant, method=ts_none, interpolation=ts_nearest)
+    call resampler%execute_series(source_series, target_series)
+    @assertEqual(target_series(:, 1_i4), [0.0_dp, 10.0_dp, 20.0_dp], tolerance=1.0e-12_dp)
+    @assertEqual(target_series(:, 2_i4), [0.0_dp, 20.0_dp, 40.0_dp], tolerance=1.0e-12_dp)
   end subroutine test_time_instant_resample
 
 end module test_mo_timeseries

@@ -47,6 +47,7 @@ program points_timeseries_resample_example
   call out%init("resampled_hourly_discharge.nc", points=gauges, vars=output_vars, time_axis=hourly_axis, point_dim_name="station")
   call out%set_ids(station_ids, long_name="gauge ID")
 
+  ! Use resampler%execute_series(source(time, point), target(time, point)) for time-major blocks.
   do i = 1_i8, gauges%n_points
     do t = 1_i4, size(daily_values)
       daily_values(t) = 10.0_dp * real(i, dp) + real(t, dp)
