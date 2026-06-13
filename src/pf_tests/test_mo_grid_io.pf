@@ -32,6 +32,7 @@ contains
     use mo_grid, only: grid_t
     use mo_grid_io, only: add_var, var, output_dataset, center_timestamp, time_units_delta, daily, input_dataset
     use mo_datetime, only: datetime, timedelta
+    use mo_timeseries, only: time_t, end_timestamp
     implicit none
     character(*), intent(in) :: outfile
     integer(i4), intent(in), optional :: cache_size
@@ -41,6 +42,7 @@ contains
     type(grid_t), target :: grid, grd2
     type(output_dataset) :: out_ds
     type(input_dataset) :: in_ds
+    type(time_t) :: time_axis
     type(datetime), allocatable :: times(:)
     real(dp), allocatable :: dem(:,:), height(:), heights(:), dem_read(:,:), height_read(:), h_chunk(:,:)
     real(sp), allocatable :: dem_sp(:,:)
@@ -152,6 +154,13 @@ contains
     @assertFalse(in_dem_meta%allow_static, message='input meta should not expose allow_static as file metadata')
     @assertFalse(in_height_meta%allow_static, message='input meta should not expose allow_static as file metadata')
     @assertFalse(in_ds%static, message='input dataset should detect time dimension')
+    time_axis = in_ds%time_axis()
+    @assertEqual(time_axis%n_times(), 14_i4, message='input time axis length')
+    @assertEqual(time_axis%timestamp, end_timestamp, message='input time axis uses end timestamps')
+    @assertEqual(time_axis%values, in_ds%t_values, message='input time axis values')
+    @assertEqual(time_axis%bounds(1_i4, :), in_ds%t_bounds(:size(in_ds%t_values)), message='input time axis lower bounds')
+    @assertEqual(time_axis%bounds(2_i4, :), in_ds%t_bounds(2_i4:), message='input time axis upper bounds')
+    @assertEqual(trim(time_axis%units), trim(in_ds%time_units), message='input time axis units')
 
     allocate(dem_read(grid%nx, grid%ny))
     allocate(dem_sp(grid%nx, grid%ny))

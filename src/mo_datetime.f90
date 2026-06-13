@@ -131,9 +131,17 @@ module mo_datetime
   ! helpers
   public :: decode_cf_time_units
   public :: delta_from_string
+  public :: time_units_delta
+  public :: time_values
+  public :: infer_time_bounds
+  public :: infer_time_timestep_from_bounds
+  public :: infer_time_timestep_from_values
 
   private
 
+  !> \name Time Units Conversion Constants
+  !> \brief Constants to convert between different time units.
+  !!@{
   integer(i4), parameter, public :: YEAR_DAYS = 365_i4 !< days in standard year
   integer(i4), parameter, public :: LEAP_YEAR_DAYS = 366_i4 !< days in leap year
   integer(i4), parameter, public :: YEAR_MONTHS = 12_i4 !< months in year
@@ -148,6 +156,26 @@ module mo_datetime
   integer(i4), parameter, public :: WEEK_HOURS = WEEK_DAYS * DAY_HOURS !< hours in week
   integer(i4), parameter, public :: WEEK_MINUTES = WEEK_DAYS * DAY_MINUTES !< minutes in week
   integer(i4), parameter, public :: WEEK_SECONDS = WEEK_DAYS * DAY_SECONDS !< seconds in week
+  !!@}
+  !> \name Time Step Indicators
+  !> \brief Constants to indicate the time stepping used in time axes.
+  !!@{
+  integer(i4), parameter, public :: hourly = 1_i4 !< hourly
+  integer(i4), parameter, public :: no_time = 0_i4 !< no time dimension available
+  integer(i4), parameter, public :: daily = -1_i4 !< daily
+  integer(i4), parameter, public :: monthly = -2_i4 !< monthly
+  integer(i4), parameter, public :: yearly = -3_i4 !< yearly
+  integer(i4), parameter, public :: varying = -9999_i4 !< no uniform time step
+  !!@}
+  !> \name Time Stamp Locators
+  !> \brief Constants selecting where a timestamp lies in a time interval.
+  !!@{
+  integer(i4), parameter, public :: start_timestamp = 0_i4 !< timestamp at start of time span
+  integer(i4), parameter, public :: center_timestamp = 1_i4 !< timestamp at center of time span
+  integer(i4), parameter, public :: end_timestamp = 2_i4 !< timestamp at end of time span
+  integer(i4), parameter, public :: instant_timestamp = 3_i4 !< timestamp is an instant without interval bounds
+  !!@}
+
   integer(i4), parameter :: MIN_YEAR = 1_i4 !< minimum for year
   integer(i4), parameter :: MAX_YEAR = 9999_i4 !< maximum for year
 
@@ -370,6 +398,109 @@ module mo_datetime
 
 contains
 
+  !> \brief Infer interval bounds from CF time values and a timestamp location.
+  subroutine infer_time_bounds(values, timestamp, bounds)
+    integer(i4), intent(in) :: values(:) !< CF time coordinate values
+    integer(i4), intent(in) :: timestamp !< timestamp location selector
+    integer(i4), allocatable, intent(out) :: bounds(:, :) !< inferred bounds with shape (2,time)
+    integer(i4) :: n, dt, i
+
+    n = size(values)
+    allocate(bounds(2_i4, n))
+    if (n == 1_i4) then
+      dt = 1_i4
+    else
+      dt = values(2_i4) - values(1_i4)
+    end if
+    select case(timestamp)
+      case(end_timestamp)
+        bounds(2_i4, :) = values
+        bounds(1_i4, 1_i4) = values(1_i4) - dt
+        if (n > 1_i4) bounds(1_i4, 2_i4:n) = values(1_i4:n - 1_i4)
+      case(start_timestamp)
+        bounds(1_i4, :) = values
+        if (n > 1_i4) bounds(2_i4, 1_i4:n - 1_i4) = values(2_i4:n)
+        bounds(2_i4, n) = values(n) + dt
+      case(center_timestamp)
+        if (mod(dt, 2_i4) /= 0_i4) call error_message("infer_time_bounds: center bounds need even step")
+        do i = 1_i4, n
+          bounds(1_i4, i) = values(i) - dt / 2_i4
+          bounds(2_i4, i) = values(i) + dt / 2_i4
+        end do
+      case default
+        call error_message("infer_time_bounds: invalid timestamp")
+    end select
+  end subroutine infer_time_bounds
+
+  !> \brief Infer a time-step indicator from CF time values.
+  integer(i4) function infer_time_timestep_from_values(values, delta, ref_time) result(timestep)
+    integer(i4), intent(in) :: values(:) !< CF time coordinate values
+    type(timedelta), intent(in) :: delta !< time delta in units
+    type(datetime), intent(in) :: ref_time !< reference time in units
+    integer(i4), allocatable :: diffs(:)
+
+    if (size(values) < 2_i4) then
+      timestep = no_time
+      return
+    end if
+    allocate(diffs(size(values) - 1_i4))
+    diffs = values(2_i4:) - values(:size(values) - 1_i4)
+    timestep = infer_time_timestep_from_diffs(diffs, values, delta, ref_time)
+  end function infer_time_timestep_from_values
+
+  !> \brief Infer a time-step indicator from CF time bounds.
+  integer(i4) function infer_time_timestep_from_bounds(bounds, delta, ref_time) result(timestep)
+    integer(i4), intent(in) :: bounds(:, :) !< CF time bounds with shape (2,time)
+    type(timedelta), intent(in) :: delta !< time delta in units
+    type(datetime), intent(in) :: ref_time !< reference time in units
+    integer(i4), allocatable :: diffs(:)
+
+    allocate(diffs(size(bounds, 2)))
+    diffs = bounds(2_i4, :) - bounds(1_i4, :)
+    timestep = infer_time_timestep_from_diffs(diffs, bounds(2_i4, :), delta, ref_time)
+  end function infer_time_timestep_from_bounds
+
+  integer(i4) function infer_time_timestep_from_diffs(diffs, values, delta, ref_time) result(timestep)
+    integer(i4), intent(in) :: diffs(:)
+    integer(i4), intent(in) :: values(:)
+    type(timedelta), intent(in) :: delta
+    type(datetime), intent(in) :: ref_time
+    type(timedelta) :: loc_delta
+    type(datetime) :: loc_date
+    logical :: is_monthly, is_yearly
+    integer(i4) :: i, dt
+    real(dp) :: dt_dp
+
+    dt = diffs(1_i4)
+    if (all(diffs == dt)) then
+      loc_delta = dt * delta
+      if (loc_delta == one_day()) then
+        timestep = daily
+      else if (loc_delta == one_hour()) then
+        timestep = hourly
+      else
+        dt_dp = loc_delta / one_hour()
+        timestep = nint(dt_dp, i4)
+        if (abs(dt_dp - real(timestep, dp)) > 1.0e-12_dp) timestep = varying
+      end if
+    else
+      is_yearly = .true.
+      is_monthly = .true.
+      do i = 1_i4, size(values)
+        loc_date = ref_time + values(i) * delta
+        is_monthly = is_monthly .and. loc_date%is_new_month()
+        is_yearly = is_yearly .and. loc_date%is_new_year()
+      end do
+      if (is_yearly) then
+        timestep = yearly
+      else if (is_monthly) then
+        timestep = monthly
+      else
+        timestep = varying
+      end if
+    end if
+  end function infer_time_timestep_from_diffs
+
   pure integer(i4) function default(component)
     integer(i4), intent(in), optional :: component
     if (present(component)) then
@@ -458,6 +589,54 @@ contains
     if(size(str_arr) > 3_i4) ref_time = t_from_string(str_arr(4))
     ref_datetime = dt_from_date_time(ref_date, ref_time)
   end subroutine decode_cf_time_units
+
+  !> \brief Determine time units delta from time stepping and selected timestamp.
+  !> \return "minutes", "hours" or "days"
+  function time_units_delta(timestep, timestamp) result(res)
+    integer(i4), intent(in), optional :: timestep !< time-step indicator (default: \ref hourly)
+    integer(i4), intent(in), optional :: timestamp !< timestamp location selector (default: \ref end_timestamp)
+    character(:), allocatable :: res
+    integer(i4) :: step
+    integer(i4) :: stamp
+
+    step = hourly
+    if (present(timestep)) step = timestep
+    stamp = end_timestamp
+    if (present(timestamp)) stamp = timestamp
+
+    res = "hours"
+    if (stamp == center_timestamp) then
+      if (step > no_time .and. mod(step, 2_i4) == 1_i4) res = "minutes"
+    else
+      if (step < no_time .and. step >= yearly) res = "days"
+      if (step > no_time .and. mod(step, 24_i4) == 0_i4) res = "days"
+    end if
+  end function time_units_delta
+
+  !> \brief Generate integer time values for one time interval.
+  subroutine time_values(ref_time, previous_time, current_time, delta, timestamp, t_start, t_end, t_stamp)
+    type(datetime), intent(in) :: ref_time !< reference time in units
+    type(datetime), intent(in) :: previous_time !< interval start
+    type(datetime), intent(in) :: current_time !< interval end
+    type(timedelta), intent(in) :: delta !< time delta in units
+    integer(i4), intent(in) :: timestamp !< timestamp location selector
+    integer(i4), intent(out) :: t_start !< value for lower bound
+    integer(i4), intent(out) :: t_end !< value for upper bound
+    integer(i4), intent(out) :: t_stamp !< value for timestamp
+
+    t_start = nint((previous_time - ref_time) / delta, kind=i4)
+    t_end = nint((current_time - ref_time) / delta, kind=i4)
+    select case(timestamp)
+      case(start_timestamp)
+        t_stamp = t_start
+      case(center_timestamp)
+        t_stamp = (t_start + t_end) / 2_i4
+      case(end_timestamp)
+        t_stamp = t_end
+      case default
+        call error_message("time_values: timestamp has no valid value.")
+    end select
+  end subroutine time_values
 
   ! CONSTANT DELTAS
 

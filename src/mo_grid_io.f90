@@ -26,54 +26,24 @@
 module mo_grid_io
 
   use mo_kind, only : i1, i2, i4, i8, dp, sp
-  use mo_constants, only : nodata_dp, nodata_sp, nodata_i1, nodata_i2, nodata_i4, nodata_i8
   use mo_grid, only: grid_t, cartesian, bottom_up
   use mo_grid_helper, only: is_t_axis, check_uniform_axis, is_z_axis
   use mo_netcdf, only : NcDataset, NcDimension, NcVariable, NF90_NOFILL
-  use mo_datetime, only : datetime, timedelta, delta_from_string, decode_cf_time_units, one_day, one_hour
+  use mo_datetime, only : datetime, timedelta, delta_from_string, time_units_delta, time_values, &
+                          hourly, no_time, daily, monthly, yearly, varying, &
+                          start_timestamp, center_timestamp, end_timestamp, instant_timestamp
   use mo_message, only : error_message, warn_message
+  use mo_netcdf_utils, only: var, add_var, var_index, time_stepping, read_units, netcdf_dtype_defaults
+  use mo_timeseries, only: time_t
   use mo_string_utils, only : num2str
   use mo_utils, only: is_close, flip, optval
   implicit none
 
-  public :: var, output_dataset, input_dataset, time_units_delta, time_index, var_index, time_values, add_var
+  public :: var, output_dataset, input_dataset, time_units_delta, time_index, var_index, time_values, time_stepping, add_var
+  public :: hourly, no_time, daily, monthly, yearly, varying
+  public :: start_timestamp, center_timestamp, end_timestamp, instant_timestamp
 
   private
-
-  !> \name Time Step Indicators
-  !> \brief Constants to indicate the time stepping used in the in-/output files.
-  !!@{
-  integer(i4), public, parameter :: hourly = 1_i4 !< hourly
-  integer(i4), public, parameter :: no_time = 0_i4 !< no time dimension available
-  integer(i4), public, parameter :: daily = -1_i4 !< daily
-  integer(i4), public, parameter :: monthly = -2_i4 !< monthly
-  integer(i4), public, parameter :: yearly = -3_i4 !< yearly
-  integer(i4), public, parameter :: varying = -9999_i4 !< no uniform time step
-  !!@}
-  !> \name Time Stamp Locators
-  !> \brief Constants to define the timestamp location for the respective time span the in-/output files.
-  !!@{
-  integer(i4), public, parameter :: start_timestamp = 0_i4 !< timestamp at start of time span
-  integer(i4), public, parameter :: center_timestamp = 1_i4 !< timestamp at center of time span
-  integer(i4), public, parameter :: end_timestamp = 2_i4 !< timestamp at end of time span
-  !!@}
-
-  !> \class var
-  !> \brief variable metadata definition for a 2D variable
-  type var
-    character(:), allocatable :: name          !< variable name in the NetCDF file (required)
-    character(:), allocatable :: long_name     !< descriptive variable name
-    character(:), allocatable :: standard_name !< standard variable name following CF-Conventions
-    character(:), allocatable :: units         !< variable units
-    character(:), allocatable :: dtype         !< variable data type in file ('f32', 'f64' (default), 'i8', 'i16', 'i32', 'i64')
-    character(:), allocatable :: kind          !< kind of array for IO ('sp', 'dp' (real def.), 'i1', 'i2', 'i4' (int def.), 'i8')
-    logical :: static = .false.                !< static variable (without time dimension)
-    logical :: allow_static = .false.          !< accept a static variable on input when static=.false.
-    logical :: avg = .false.                   !< average data (only for writing)
-    logical :: layered = .false.               !< variable is layered
-  contains
-    procedure, public :: meta => var_meta
-  end type var
 
   !> \class scratch_t
   !> \brief Reusable full-grid output scratch buffers.
@@ -214,6 +184,7 @@ module mo_grid_io
     integer(i4) :: timestep                       !< timestep in the file
     integer(i4), allocatable :: t_values(:)       !< time axis values for ends of time spans
     integer(i4), allocatable :: t_bounds(:)       !< time axis bound values
+    character(:), allocatable :: time_units       !< CF time units string
     type(datetime), allocatable :: times(:)       !< times for ends of time spans
     logical :: has_layer = .false.                !< dataset includes vertical layers
     integer(i4) :: nlayers = 0_i4                 !< number of layers in dataset
@@ -327,183 +298,13 @@ module mo_grid_io
     ! others
     procedure, public :: var_index => input_var_index
     procedure, public :: time_index => input_time_index
+    procedure, public :: time_axis => input_time_axis
     procedure, public :: chunk_times => input_chunk_times
     procedure, public :: meta => input_meta
     procedure, public :: close => input_close
   end type input_dataset
 
 contains
-
-  !> \brief Determine time units delta from time stepping and selected timestamp.
-  !> \return "minutes", "hours" or "days"
-  function time_units_delta(timestep, timestamp) result(res)
-    integer(i4), intent(in), optional :: timestep !< time step (-3, -2, -1, 0, 1 (default), >1)
-    integer(i4), intent(in), optional :: timestamp !< time stamp reference (0: begin, 1: center, 2: end of time span (default))
-    character(:), allocatable :: res
-    integer(i4) :: step
-    integer(i4) :: stamp
-    step = optval(timestep, hourly)
-    stamp = optval(timestamp, end_timestamp)
-    res = "hours" ! default
-    if (stamp == center_timestamp) then
-      if (step > no_time .and. mod(step, 2) == 1) res = "minutes"
-    else
-      if (step < no_time .and. step >= yearly ) res = "days"
-      if (step > no_time .and. mod(step, 24) == 0) res = "days"
-    end if
-  end function time_units_delta
-
-  !> \brief generate values for the time-dimension depending on given datetimes.
-  subroutine time_values(ref_time, previous_time, current_time, delta, timestamp, t_start, t_end, t_stamp)
-    type(datetime), intent(in) :: ref_time !< reference time in units
-    type(datetime), intent(in) :: previous_time !< previous write-out time
-    type(datetime), intent(in) :: current_time !< current write-out time
-    type(timedelta), intent(in) :: delta !< time delta in units
-    integer(i4), intent(in) ::  timestamp !< timestamp location selector
-    integer(i4), intent(out) ::  t_start !< value for lower bound in time bounds
-    integer(i4), intent(out) ::  t_end !< value for upper bound in time bounds
-    integer(i4), intent(out) ::  t_stamp !< value for timestamp
-    t_start = nint((previous_time - ref_time) / delta, kind=i4)
-    t_end = nint((current_time - ref_time) / delta, kind=i4)
-    ! maybe check if values are actually close the nearest integer (nint)
-    select case( timestamp )
-      case(start_timestamp)
-        t_stamp = t_start
-      case(center_timestamp)
-        t_stamp = (t_start + t_end) / 2_i4
-      case(end_timestamp)
-        t_stamp = t_end
-      case default
-        call error_message("output_dataset%write: timestamp has no valid value.")
-    end select
-  end subroutine time_values
-
-  !> \brief determine time-stepping time-dimension depending on given datetimes.
-  subroutine time_stepping(t_var, ref_time, delta, timestep, t_values, t_bounds, timestamp)
-    type(NcVariable), intent(in) :: t_var !< time variable
-    type(datetime), intent(out) :: ref_time !< reference time in units
-    type(timedelta), intent(out) :: delta !< time delta in units
-    integer(i4), intent(out) ::  timestep !< time step indicator
-    integer(i4), allocatable, dimension(:), intent(out) :: t_values !< time axis values for end of time spans
-    integer(i4), allocatable, dimension(:), intent(out) :: t_bounds !< time axis bound values
-    !> timestamp location selector in case time axis has no bounds - 0: start, 1: center, 2: end (default)
-    integer(i4), optional, intent(in) :: timestamp
-    integer(i4), allocatable, dimension(:) :: tmp_arr, t_diffs
-    type(timedelta) :: loc_delta ! local time delta in units
-    type(datetime) :: loc_date
-    integer(i4) :: stamp
-    integer(i4) :: dt, i
-    real(dp) :: dt_dp
-    logical :: is_monthly, is_yearly
-    character(len=256) :: tmp_str
-    type(NcVariable) :: tb_var
-    integer(i4), allocatable, dimension(:,:) :: t_bnds
-
-    ! set timestamp
-    stamp = optval(timestamp, end_timestamp)
-
-    call t_var%getAttribute("units", tmp_str)
-    call decode_cf_time_units(trim(tmp_str), delta, ref_time)
-    ! check bounds
-    if (t_var%hasAttribute("bounds")) then
-      call t_var%getAttribute("bounds", tmp_str)
-      tb_var = t_var%parent%getVariable(trim(tmp_str))
-      call tb_var%getData(t_bnds)
-      t_values = t_bnds(2, :) ! upper bound as reference value
-    else if (stamp == end_timestamp) then
-      call t_var%getData(t_values)
-    else if (stamp == start_timestamp) then
-      call t_var%getData(tmp_arr)
-      if (size(tmp_arr) == 1_i4) then
-        ! assume same step as with initial value
-        allocate(t_values(1), source=2*tmp_arr(1))
-      else
-        allocate(t_values(size(tmp_arr)))
-        t_values(:size(tmp_arr)-1) = tmp_arr(2:)
-        ! assume last time-step has same size as second last
-        t_values(size(tmp_arr)) = 2 * tmp_arr(size(tmp_arr)) - tmp_arr(size(tmp_arr)-1)
-      end if
-    else ! center or others
-      call error_message("time_stepping: can't convert center of time-span to output time values")
-    end if
-
-    ! check t_values for stepping
-    if (size(t_values)==1) then
-      if (allocated(t_bnds)) then
-        loc_delta = (t_bnds(2,1) - t_bnds(1,1)) * delta
-      else
-        loc_delta = delta
-      end if
-      if (loc_delta == one_day()) then
-        timestep = daily
-      else if (loc_delta == one_hour()) then
-        timestep = hourly
-      else
-        call error_message("time_stepping: could not determine time step size")
-      end if
-    else
-      if (allocated(t_bnds)) then
-        t_diffs = t_bnds(2,:) - t_bnds(1,:)
-      else
-        t_diffs = t_values(2:) - t_values(:size(t_values)-1)
-      end if
-      dt = t_diffs(1)
-      if (all(t_diffs==dt)) then
-        loc_delta = dt * delta
-        if (loc_delta == one_day()) then
-          timestep = daily
-        else if (loc_delta == one_hour()) then
-          timestep = hourly
-        else
-          dt_dp = loc_delta / one_hour()
-          timestep = nint(dt_dp, i4)
-          if (.not.is_close(dt_dp, real(timestep, dp))) call error_message("time_stepping: could not determine time step size")
-        end if
-      else
-        is_yearly = .true.
-        is_monthly = .true.
-        do i = 1_i4, size(t_values)
-          loc_date = ref_time + t_values(i) * delta
-          is_monthly = is_monthly .and. loc_date%is_new_month()
-          is_yearly = is_yearly .and. loc_date%is_new_year()
-        end do
-        if (is_yearly) then
-          timestep = yearly
-        else if (is_monthly) then
-          timestep = monthly
-        else
-          timestep = varying
-        end if
-      end if
-    end if
-
-    ! generate bounds values
-    allocate(t_bounds(size(t_values) + 1))
-    t_bounds(2:) = t_values
-    if (allocated(t_bnds)) then
-      t_bounds(1) = t_bnds(1,1)
-    else
-      ! guess lower bound
-      loc_date = ref_time + t_values(1) * delta
-      select case(timestep)
-        case(varying)
-          t_bounds(1) = t_values(1) - 1_i4 ! one delta step before
-        case(yearly)
-          loc_delta = loc_date%previous_new_year() - ref_time
-          t_bounds(1) = int(loc_delta%total_seconds() / delta%total_seconds(), i4)
-        case(monthly)
-          loc_delta = loc_date%previous_new_month() - ref_time
-          t_bounds(1) = int(loc_delta%total_seconds() / delta%total_seconds(), i4)
-        case(daily)
-          loc_delta = loc_date%previous_new_day() - ref_time
-          t_bounds(1) = int(loc_delta%total_seconds() / delta%total_seconds(), i4)
-        case default ! hour based delta
-          loc_delta = loc_date - timestep * one_hour() - ref_time
-          t_bounds(1) = int(loc_delta%total_seconds() / delta%total_seconds(), i4)
-      end select
-    end if
-
-  end subroutine time_stepping
 
   !> \brief get time index for current time
   integer(i4) function time_index(times, current_time, raise, found)
@@ -528,58 +329,6 @@ contains
     time_index = i
   end function time_index
 
-  !> \brief Get variable meta data.
-  !> \return \ref var meta data definition
-  type(var) function var_meta(this)
-    class(var), intent(in) :: this
-    if (allocated(this%name)) var_meta%name = this%name
-    if (allocated(this%long_name)) var_meta%long_name = this%long_name
-    if (allocated(this%standard_name)) var_meta%standard_name = this%standard_name
-    if (allocated(this%units)) var_meta%units = this%units
-    if (allocated(this%dtype)) var_meta%dtype = this%dtype
-    if (allocated(this%kind)) var_meta%kind = this%kind
-    var_meta%static = this%static
-    var_meta%allow_static = this%allow_static
-    var_meta%avg = this%avg
-    var_meta%layered = this%layered
-  end function var_meta
-
-  !> \brief Add variable meta data to a variable array.
-  subroutine add_var(vars, new_var)
-    type(var), allocatable, intent(inout) :: vars(:) !< variables array
-    type(var), intent(in) :: new_var !< variable to add
-    type(var), allocatable :: tmp(:)
-    integer(i4) :: i, n
-    if (allocated(vars)) then
-      n = size(vars, kind=i4)
-    else
-      n = 0_i4
-    end if
-    allocate(tmp(n + 1_i4))
-    do i = 1_i4, n
-      tmp(i) = vars(i)
-    end do
-    tmp(n + 1_i4) = new_var
-    call move_alloc(tmp, vars)
-  end subroutine add_var
-
-  !> \brief Get variable index in vars array.
-  !> \return index
-  integer(i4) function var_index(vars, name, method)
-    class(var), dimension(:), intent(in) :: vars !< variables array
-    character(*), intent(in) :: name !< name of the variable
-    character(*), intent(in) :: method !< method calling this
-    integer(i4) :: i
-    var_index = 0_i4
-    do i = 1_i4, size(vars)
-      if (vars(i)%name == name) then
-        var_index = i
-        return
-      end if
-    end do
-    call error_message(method, ": variable not present: ", name)
-  end function var_index
-
   !> \brief initialize output_variable
   subroutine out_var_init(self, meta, nc, grid, dims, deflate_level, cache_size, static_contiguous)
     implicit none
@@ -599,13 +348,10 @@ contains
     integer(i8) :: cache_bytes, target_chunk_bytes, denom, chunk_bytes
     logical :: use_cache, use_static_contiguous
 
-    self%name = meta%name
-    self%static = meta%static
-    self%avg = meta%avg
-    self%layered = meta%layered
+    self%var = meta
+    self%allow_static = .false.
     self%nlayers = 0_i4
-    self%dtype = "f64" ! default to double
-    if (allocated(meta%dtype)) self%dtype = trim(meta%dtype)
+    if (.not.allocated(self%dtype)) self%dtype = "f64" ! default to double
     if (.not.associated(grid)) call error_message("output_variable: grid pointer not associated: ", self%name)
     self%grid => grid
     if (.not.associated(self%grid)) call error_message("output_variable: failed to associate grid pointer: ", self%name)
@@ -695,45 +441,13 @@ contains
       self%nc = nc%setVariable(self%name, self%dtype, var_dims, deflate_level=deflate_level, shuffle=.true.)
     end if
 
-    if (allocated(meta%long_name)) self%long_name = meta%long_name
-    if (allocated(meta%standard_name)) self%standard_name = meta%standard_name
-    if (allocated(meta%units)) self%units = meta%units
-
     if (allocated(self%long_name)) call self%nc%setAttribute("long_name", self%long_name)
     if (allocated(self%standard_name)) call self%nc%setAttribute("standard_name", self%standard_name)
     if (allocated(self%units)) call self%nc%setAttribute("units", self%units)
 
     if (self%grid%has_aux_coords()) call self%nc%setAttribute("coordinates", "lat lon")
 
-    ! default array kind follows the NetCDF dtype unless overridden by metadata
-    select case(self%dtype)
-      case("f32")
-        call self%nc%setFillValue(nodata_sp)
-        call self%nc%setAttribute("missing_value", nodata_sp)
-        self%kind = "dp" ! double precision as default for real data
-      case("f64")
-        call self%nc%setFillValue(nodata_dp)
-        call self%nc%setAttribute("missing_value", nodata_dp)
-        self%kind = "dp" ! double precision as default for real data
-      case("i8")
-        call self%nc%setFillValue(nodata_i1)
-        call self%nc%setAttribute("missing_value", nodata_i1)
-        self%kind = "i4" ! 4 byte integers as default for int data
-      case("i16")
-        call self%nc%setFillValue(nodata_i2)
-        call self%nc%setAttribute("missing_value", nodata_i2)
-        self%kind = "i4" ! 4 byte integers as default for int data
-      case("i32")
-        call self%nc%setFillValue(nodata_i4)
-        call self%nc%setAttribute("missing_value", nodata_i4)
-        self%kind = "i4" ! 4 byte integers as default for int data
-      case("i64")
-        call self%nc%setFillValue(nodata_i8)
-        call self%nc%setAttribute("missing_value", nodata_i8)
-        self%kind = "i4" ! 4 byte integers as default for int data
-      case default
-        call error_message("output_variable: unsupported dtype: ", self%name, ": ", self%dtype)
-    end select
+    call netcdf_dtype_defaults(self%name, self%dtype, self%kind, self%nc, context="output_variable")
     if (allocated(meta%kind)) then
       self%kind = meta%kind
       if ((self%dtype(1:1) == "f" .and. meta%kind(2:2) /= "p") .or. (self%dtype(1:1) == "i" .and. meta%kind(1:1) /= "i")) &
@@ -1152,7 +866,7 @@ contains
     integer(i4) :: nx, ny, rnk, expected_rank
     logical :: detected_static
     character(len=256) :: tmp_str
-    self%name = meta%name
+    self%var = meta
     self%nc = nc%getVariable(self%name)
     self%grid => grid
     dims = self%nc%getDimensions()
@@ -1164,7 +878,6 @@ contains
     ny = dims(2)%getLength()
     if (nx /= grid%nx .or. ny /= grid%ny) call error_message("input_variable: variable not matching grid: ", self%name)
 
-    self%layered = meta%layered
     self%allow_static = .false.
     self%nlayers = 0_i4
     expected_rank = 2_i4
@@ -1208,14 +921,7 @@ contains
     if (rnk /= expected_rank) call error_message("input_variable: rank mismatch: ", self%name)
 
     self%dtype = trim(self%nc%getDtype())
-    select case(self%dtype(1:1))
-      case("f")
-        self%kind = "dp"
-      case("i")
-        self%kind = "i4"
-      case default
-        call error_message("input_variable: unsupported dtype: ", self%name, ": ", self%dtype)
-    end select
+    call netcdf_dtype_defaults(self%name, self%dtype, self%kind, context="input_variable")
     if (allocated(meta%dtype)) then
       if (meta%dtype/=self%dtype) &
         call warn_message("input_variable: variable dtype not as expected: ", &
@@ -1229,7 +935,6 @@ contains
                           self%name, ", dtype: ", self%dtype, ", kind:", self%kind)
     end if
 
-    if (allocated(meta%standard_name)) self%standard_name = meta%standard_name
     if (self%nc%hasAttribute("standard_name")) then
       call self%nc%getAttribute("standard_name", tmp_str)
       self%standard_name = trim(tmp_str)
@@ -1240,7 +945,6 @@ contains
                           self%name, ", ", meta%standard_name, "=/=", self%standard_name)
     end if
 
-    if (allocated(meta%units)) self%units = meta%units
     if (self%nc%hasAttribute("units")) then
       call self%nc%getAttribute("units", tmp_str)
       self%units = trim(tmp_str)
@@ -1252,7 +956,6 @@ contains
     end if
 
     ! don't check long-name
-    if (allocated(meta%long_name)) self%long_name = meta%long_name
     if (self%nc%hasAttribute("long_name")) then
       call self%nc%getAttribute("long_name", tmp_str)
       self%long_name = trim(tmp_str)
@@ -2339,6 +2042,7 @@ contains
         dims = self%vars(i)%nc%getDimensions()
         t_var = self%nc%getVariable(trim(dims(size(dims))%getName()))
         call time_stepping(t_var, self%ref_time, self%delta, self%timestep, self%t_values, self%t_bounds, timestamp)
+        call read_units(t_var, self%time_units)
         self%start_time = self%ref_time + self%t_bounds(1) * self%delta
         self%times = [(self%ref_time + self%t_values(i) * self%delta, i=1_i4,size(self%t_values))]
         self%delta_sec = self%delta%total_seconds()
@@ -4593,6 +4297,24 @@ contains
     end do
   end function input_time_index
 
+  !> \brief Return the parsed input time axis.
+  type(time_t) function input_time_axis(self) result(axis)
+    implicit none
+    class(input_dataset), intent(in) :: self
+    integer(i4), allocatable :: bounds(:, :)
+    integer(i4) :: n_times
+
+    if (self%static .or. .not.allocated(self%t_values)) call error_message("input_dataset%time_axis: input has no time axis")
+    if (.not.allocated(self%time_units)) call error_message("input_dataset%time_axis: missing time units")
+    n_times = size(self%t_values)
+    allocate(bounds(2_i4, n_times))
+    bounds(1_i4, :) = self%t_bounds(:n_times)
+    bounds(2_i4, :) = self%t_bounds(2_i4:n_times + 1_i4)
+    call axis%init_cf(self%t_values, self%time_units, bounds=bounds, timestamp=end_timestamp)
+    axis%timestamp = end_timestamp
+    axis%timestep = self%timestep
+  end function input_time_axis
+
   !> \brief Get variable meta data.
   !> \return \ref var meta data definition
   type(var) function input_meta(self, name)
@@ -4610,6 +4332,8 @@ contains
     deallocate(self%vars)
     if (allocated(self%times)) deallocate(self%times)
     if (allocated(self%t_values)) deallocate(self%t_values)
+    if (allocated(self%t_bounds)) deallocate(self%t_bounds)
+    if (allocated(self%time_units)) deallocate(self%time_units)
     if (allocated(self%layer)) deallocate(self%layer)
     if (allocated(self%layer_vertices)) deallocate(self%layer_vertices)
   end subroutine input_close
