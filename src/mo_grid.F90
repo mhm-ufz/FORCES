@@ -1354,28 +1354,54 @@ contains
       end if
     end if
 
-    !$omp parallel do default(shared) private(i,j,kt,query) schedule(static)
-    do j = 1_i4, this%ny
-      kt = target_cum_col_cnt(j)
-      do i = 1_i4, this%nx
-        if (.not. mask(i, j)) cycle
-        kt = kt + 1_i8
-        if (this%mask(i, j)) then
+    if (fallback_count < 1_i8) then
+      !$omp parallel do default(shared) private(i,j,kt) schedule(static)
+      do j = 1_i4, this%ny
+        kt = target_cum_col_cnt(j)
+        do i = 1_i4, this%nx
+          if (.not. mask(i, j)) cycle
+          kt = kt + 1_i8
           ids(kt) = source_ids(i, j)
-        else if (use_index_search) then
-          ids(kt) = nearest_border_id_by_index(i, j, this%nx, this%ny, periodic_index_x, &
-                                               border_col_cnt, border_cum_col_cnt, border_i, point_ids)
-        else
-          query = [this%x_center(i), this%y_center(j)]
-          if (spherical_space) then
-            ids(kt) = border_index%nearest_id_lonlat(query(1), query(2))
-          else
-            ids(kt) = border_index%nearest_id(query)
-          end if
-        end if
+        end do
       end do
-    end do
-    !$omp end parallel do
+      !$omp end parallel do
+    else if (use_index_search) then
+      !$omp parallel do default(shared) private(i,j,kt) schedule(static)
+      do j = 1_i4, this%ny
+        kt = target_cum_col_cnt(j)
+        do i = 1_i4, this%nx
+          if (.not. mask(i, j)) cycle
+          kt = kt + 1_i8
+          if (this%mask(i, j)) then
+            ids(kt) = source_ids(i, j)
+          else
+            ids(kt) = nearest_border_id_by_index(i, j, this%nx, this%ny, periodic_index_x, &
+                                                 border_col_cnt, border_cum_col_cnt, border_i, point_ids)
+          end if
+        end do
+      end do
+      !$omp end parallel do
+    else
+      !$omp parallel do default(shared) private(i,j,kt,query) schedule(static)
+      do j = 1_i4, this%ny
+        kt = target_cum_col_cnt(j)
+        do i = 1_i4, this%nx
+          if (.not. mask(i, j)) cycle
+          kt = kt + 1_i8
+          if (this%mask(i, j)) then
+            ids(kt) = source_ids(i, j)
+          else
+            query = [this%x_center(i), this%y_center(j)]
+            if (spherical_space) then
+              ids(kt) = border_index%nearest_id_lonlat(query(1), query(2))
+            else
+              ids(kt) = border_index%nearest_id(query)
+            end if
+          end if
+        end do
+      end do
+      !$omp end parallel do
+    end if
   end subroutine grid_fill_ids
 
   !> \brief Build a spatial index over active grid cell centers.
