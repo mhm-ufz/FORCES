@@ -31,7 +31,7 @@ program grid_fill_border
   border_packed = full_grid%pack(border_data)
 
   dem_packed = grid%pack(dem)
-  call grid%fill_ids(full_mask, fill_id)
+  call grid%fill_ids(full_grid, fill_id)
   allocate(dem_filled(full_grid%ncells))
   dem_filled = dem_packed(fill_id)
 

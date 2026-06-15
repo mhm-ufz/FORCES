@@ -154,25 +154,29 @@ contains
   end subroutine data_move_i8
 
   !> \brief Check whether two 2D double-precision arrays match within a tolerance.
-  logical function arrays_match_2d_dp(a, b, tol) result(arrays_match)
+  logical function arrays_match_2d_dp(a, b, tol, flip_y) result(arrays_match)
     implicit none
     real(dp), intent(in) :: a(:, :) !< First array to compare.
     real(dp), intent(in) :: b(:, :) !< Second array to compare.
     real(dp), optional, intent(in) :: tol !< Tolerance for element-wise comparison (default: 1.e-7).
+    logical, optional, intent(in) :: flip_y !< Compare the second array with reversed y-axis order (default: .false.).
 
     real(dp) :: tol_
-    integer(i4) :: j
+    integer(i4) :: j, jb
+    logical :: flip_y_
 
     arrays_match = .false.
     if (any(shape(a, kind=i4) /= shape(b, kind=i4))) return
 
     tol_ = optval(tol, 1.0e-7_dp)
+    flip_y_ = optval(flip_y, .false.)
     arrays_match = .true.
-    !$omp parallel do default(shared) schedule(static)
+    !$omp parallel do default(shared) private(jb) schedule(static)
     do j = 1_i4, size(a, dim=2, kind=i4)
       !$omp flush(arrays_match)
       if (.not. arrays_match) cycle ! no work for rest of the loop (exit not safe with omp)
-      if (.not. all(is_close(a(:, j), b(:, j), tol_, tol_))) then
+      jb = merge(size(b, dim=2, kind=i4) - j + 1_i4, j, flip_y_)
+      if (.not. all(is_close(a(:, j), b(:, jb), tol_, tol_))) then
         !$omp atomic write
         arrays_match = .false.
       end if
@@ -181,22 +185,26 @@ contains
   end function arrays_match_2d_dp
 
   !> \brief Check whether two 2D logical arrays match.
-  logical function arrays_match_2d_lgt(a, b) result(arrays_match)
+  logical function arrays_match_2d_lgt(a, b, flip_y) result(arrays_match)
     implicit none
     logical, intent(in) :: a(:, :) !< First array to compare.
     logical, intent(in) :: b(:, :) !< Second array to compare.
+    logical, optional, intent(in) :: flip_y !< Compare the second array with reversed y-axis order (default: .false.).
 
-    integer(i4) :: j
+    integer(i4) :: j, jb
+    logical :: flip_y_
 
     arrays_match = .false.
     if (any(shape(a, kind=i4) /= shape(b, kind=i4))) return
 
+    flip_y_ = optval(flip_y, .false.)
     arrays_match = .true.
-    !$omp parallel do default(shared) schedule(static)
+    !$omp parallel do default(shared) private(jb) schedule(static)
     do j = 1_i4, size(a, dim=2, kind=i4)
       !$omp flush(arrays_match)
       if (.not. arrays_match) cycle ! no work for rest of the loop (exit not safe with omp)
-      if (any(a(:, j) .neqv. b(:, j))) then
+      jb = merge(size(b, dim=2, kind=i4) - j + 1_i4, j, flip_y_)
+      if (any(a(:, j) .neqv. b(:, jb))) then
         !$omp atomic write
         arrays_match = .false.
       end if
