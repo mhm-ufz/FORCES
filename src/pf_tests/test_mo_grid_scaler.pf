@@ -17,6 +17,8 @@ module test_mo_grid_scaler
   public :: test_stats_and_weight_count
   public :: test_median_masked
   public :: test_laf_masked_direct_and_packed
+  public :: test_fill_missing
+  public :: test_nearest_regridder_matching_flipped
   public :: test_nearest_regridder_cartesian
   public :: test_nearest_regridder_masked_and_aux
   public :: test_nearest_regridder_spherical_and_mixed
@@ -387,6 +389,126 @@ contains
     call scaler%execute(packed_i, out, upscaling_operator=up_laf, vmin=1_i4, vmax=2_i4)
     @assertEqual(out(1), 1_i4)
   end subroutine test_laf_masked_direct_and_packed
+
+  @test
+  subroutine test_fill_missing()
+    implicit none
+    type(grid_t), target :: equal_source, equal_target, equal_flip_source, equal_flip_target
+    type(grid_t), target :: equal_subset_source, equal_subset_target, up_fine, up_coarse
+    type(grid_t), target :: down_coarse, down_fine, periodic_source, periodic_target
+    type(scaler_t) :: equal_scaler, equal_flip_scaler, equal_subset_scaler
+    type(scaler_t) :: up_scaler, down_scaler, periodic_scaler
+    logical :: equal_source_mask(3, 1), equal_target_mask(3, 1)
+    logical :: equal_flip_source_mask(1, 3), equal_subset_target_mask(1, 3)
+    logical :: up_mask(4, 1), down_mask(2, 1)
+    logical :: periodic_source_mask(4, 1), periodic_target_mask(4, 1)
+    real(dp) :: equal_in(2), equal_out(3), up_in(2), up_out(2), mixed_out(2)
+    real(dp) :: equal_flip_in(2), equal_flip_out(3), equal_subset_in(3), equal_subset_out(2)
+    real(dp) :: down_in(1), down_out(4), periodic_in(1), periodic_out(2)
+    integer(i4) :: up_i(2), up_i_out(2)
+
+    equal_source_mask = reshape([.true., .true., .false.], [3, 1])
+    equal_target_mask = .true.
+    call equal_source%init(nx=3, ny=1, cellsize=1.0_dp, coordsys=cartesian, &
+                           y_direction=bottom_up, mask=equal_source_mask)
+    call equal_target%init(nx=3, ny=1, cellsize=1.0_dp, coordsys=cartesian, &
+                           y_direction=bottom_up, mask=equal_target_mask)
+    call equal_scaler%init(equal_source, equal_target, fill_missing=.true.)
+    equal_in = [10.0_dp, 20.0_dp]
+    call equal_scaler%execute(equal_in, equal_out)
+    @assertEqual(equal_out, [10.0_dp, 20.0_dp, 20.0_dp], tolerance=1.0e-12_dp, message='equal-resolution scaling uses spatial filling by default')
+
+    equal_flip_source_mask = reshape([.true., .true., .false.], [1, 3])
+    call equal_flip_source%init(nx=1, ny=3, cellsize=1.0_dp, coordsys=cartesian, &
+                                y_direction=bottom_up, mask=equal_flip_source_mask)
+    call equal_flip_target%init(nx=1, ny=3, cellsize=1.0_dp, coordsys=cartesian, y_direction=top_down)
+    call equal_flip_scaler%init(equal_flip_source, equal_flip_target, fill_missing=.true.)
+    equal_flip_in = [10.0_dp, 20.0_dp]
+    call equal_flip_scaler%execute(equal_flip_in, equal_flip_out)
+    @assertEqual(equal_flip_out, [20.0_dp, 20.0_dp, 10.0_dp], tolerance=1.0e-12_dp, message='equal-resolution filling maps opposite y directions in target order')
+
+    equal_subset_target_mask = reshape([.true., .false., .true.], [1, 3])
+    call equal_subset_source%init(nx=1, ny=3, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    call equal_subset_target%init(nx=1, ny=3, cellsize=1.0_dp, coordsys=cartesian, &
+                                  y_direction=top_down, mask=equal_subset_target_mask)
+    call equal_subset_scaler%init(equal_subset_source, equal_subset_target)
+    equal_subset_in = [10.0_dp, 20.0_dp, 30.0_dp]
+    call equal_subset_scaler%execute(equal_subset_in, equal_subset_out)
+    @assertEqual(equal_subset_out, [30.0_dp, 10.0_dp], tolerance=1.0e-12_dp, message='strict equal-resolution mapping supports opposite y directions and target subsets')
+
+    up_mask = reshape([.true., .true., .false., .false.], [4, 1])
+    call up_fine%init(nx=4, ny=1, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=up_mask)
+    call up_coarse%init(nx=2, ny=1, cellsize=2.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    call up_scaler%init(up_fine, up_coarse, fill_missing=.true., use_index_distance=.true.)
+
+    up_in = [10.0_dp, 20.0_dp]
+    call up_scaler%execute(up_in, up_out, upscaling_operator=up_a_mean)
+    @assertEqual(up_out, [7.5_dp, 7.5_dp], tolerance=1.0e-12_dp, message='upscaling fills an empty coarse target while retaining partial area weights')
+    call up_scaler%execute(up_in, up_out, upscaling_operator=up_sum)
+    @assertEqual(up_out, [30.0_dp, 30.0_dp], tolerance=1.0e-12_dp, message='upscaling fills completed sum results')
+
+    up_i = [1_i4, 3_i4]
+    call up_scaler%execute(up_i, up_i_out, upscaling_operator=up_max)
+    @assertEqual(up_i_out, [3_i4, 3_i4], message='integer upscaling fills completed categorical results')
+    call up_scaler%execute(up_i, mixed_out, upscaling_operator=up_fraction, class_id=1_i4)
+    @assertEqual(mixed_out, [0.25_dp, 0.25_dp], tolerance=1.0e-12_dp, message='mixed upscaling fills completed fraction results')
+
+    down_mask = reshape([.true., .false.], [2, 1])
+    call down_coarse%init(nx=2, ny=1, cellsize=2.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=down_mask)
+    call down_fine%init(nx=4, ny=1, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    call down_scaler%init(down_coarse, down_fine, fill_missing=.true., use_index_distance=.true.)
+
+    down_in = [8.0_dp]
+    call down_scaler%execute(down_in, down_out, downscaling_operator=down_nearest)
+    @assertEqual(down_out, [8.0_dp, 8.0_dp, 8.0_dp, 8.0_dp], tolerance=1.0e-12_dp, message='downscaling fills uncovered fine targets')
+    call down_scaler%execute(down_in, down_out, downscaling_operator=down_split)
+    @assertEqual(down_out, [4.0_dp, 4.0_dp, 4.0_dp, 4.0_dp], tolerance=1.0e-12_dp, message='down_split fills final values without preserving the source sum')
+
+    periodic_source_mask = .false.
+    periodic_source_mask(1, 1) = .true.
+    periodic_target_mask = .false.
+    periodic_target_mask(1, 1) = .true.
+    periodic_target_mask(4, 1) = .true.
+    call periodic_source%init(nx=4, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=90.0_dp, &
+                              coordsys=spherical, y_direction=bottom_up, mask=periodic_source_mask)
+    call periodic_target%init(nx=4, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=90.0_dp, &
+                              coordsys=spherical, y_direction=bottom_up, mask=periodic_target_mask)
+    call periodic_scaler%init(periodic_source, periodic_target, fill_missing=.true., use_index_distance=.true.)
+    periodic_in = [7.0_dp]
+    call periodic_scaler%execute(periodic_in, periodic_out)
+    @assertEqual(periodic_out, [7.0_dp, 7.0_dp], tolerance=1.0e-12_dp, message='periodic index-distance filling wraps longitude')
+  end subroutine test_fill_missing
+
+  @test
+  subroutine test_nearest_regridder_matching_flipped()
+    implicit none
+    type(grid_t), target :: source, target_fill, target_derived
+    type(nearest_regridder_t) :: fill_regridder, derived_regridder
+    logical :: source_mask(1, 3)
+    real(dp) :: source_data(2), filled_packed(3), filled_unpacked(1, 3)
+    real(dp) :: derived_packed(2), derived_unpacked(1, 3)
+
+    source_mask = reshape([.true., .true., .false.], [1, 3])
+    call source%init(nx=1, ny=3, cellsize=1.0_dp, coordsys=cartesian, &
+                     y_direction=bottom_up, mask=source_mask)
+    call target_fill%init(nx=1, ny=3, cellsize=1.0_dp, coordsys=cartesian, y_direction=top_down)
+    call target_derived%init(nx=1, ny=3, cellsize=1.0_dp, coordsys=cartesian, y_direction=top_down)
+    source_data = [10.0_dp, 20.0_dp]
+
+    call fill_regridder%init(source, target_fill)
+    call fill_regridder%execute(source_data, filled_packed)
+    @assertEqual(filled_packed, [20.0_dp, 20.0_dp, 10.0_dp], tolerance=1.0e-12_dp, message='matching-grid regridder fills opposite y directions in target packed order')
+    call fill_regridder%execute(source_data, filled_unpacked)
+    @assertEqual(filled_unpacked(1, :), [20.0_dp, 20.0_dp, 10.0_dp], tolerance=1.0e-12_dp, message='matching-grid regridder preserves target orientation for unpacked output')
+
+    call derived_regridder%init(source, target_derived, derive_target_mask=.true.)
+    @assertTrue(all(target_derived%mask(1, :) .eqv. [.false., .true., .true.]))
+    call derived_regridder%execute(source_data, derived_packed)
+    @assertEqual(derived_packed, [20.0_dp, 10.0_dp], tolerance=1.0e-12_dp, message='derived matching-grid mask intersects physically corresponding rows')
+    call derived_regridder%execute(source_data, derived_unpacked)
+    @assertEqual(derived_unpacked(1, 1), nodata_dp, tolerance=1.0e-12_dp)
+    @assertEqual(derived_unpacked(1, 2:3), [20.0_dp, 10.0_dp], tolerance=1.0e-12_dp)
+  end subroutine test_nearest_regridder_matching_flipped
 
   @test
   subroutine test_nearest_regridder_cartesian()
