@@ -1,26 +1,35 @@
 !> \file    01_grids/05_grid_fill_border.f90
 !> \brief   Write DEM border cells and nearest-filled DEM to NetCDF.
 program grid_fill_border
+  use mo_cli, only: cli_parser
   use mo_grid, only: grid_t
   use mo_grid_io, only: output_dataset, var
-  use mo_kind, only: dp, i4, i8
+  use mo_grid_scaler, only: scaler_t
+  use mo_kind, only: dp, i4
   implicit none
 
+  type(cli_parser) :: parser
   type(grid_t), target :: grid, full_grid
+  type(scaler_t) :: fill_scaler
   type(output_dataset) :: ds
-  character(len=512) :: input_path, output_path
+  character(:), allocatable :: input_path, output_path
   logical, allocatable :: border(:, :), full_mask(:, :)
   integer(i4), allocatable :: border_data(:, :), border_packed(:)
-  integer(i8), allocatable :: fill_id(:)
-  real(dp), allocatable :: dem(:, :), dem_packed(:), dem_filled(:)
+  real(dp), allocatable :: dem(:, :), dem_filled(:)
 
-  input_path = "src/pf_tests/files/dem.asc"
-  output_path = "dem_border_filled.nc"
-  if (command_argument_count() >= 1_i4) call get_command_argument(1, input_path)
-  if (command_argument_count() >= 2_i4) call get_command_argument(2, output_path)
+  parser = cli_parser( &
+    description='Write DEM border cells and nearest-filled DEM to NetCDF.', &
+    add_version_option=.true., version='1.0')
+  call parser%add_option( &
+    'infile', 'i', has_value=.true., default='src/pf_tests/files/dem.asc', help='Input DEM ASCII grid file.')
+  call parser%add_option( &
+    'outfile', 'o', has_value=.true., default='dem_border_filled.nc', help='Output NetCDF file.')
+  call parser%parse()
+  input_path = parser%option_value('infile')
+  output_path = parser%option_value('outfile')
 
-  call grid%from_ascii_file(trim(input_path))
-  call grid%read_data(trim(input_path), dem)
+  call grid%from_ascii_file(input_path)
+  call grid%read_data(input_path, dem)
 
   allocate(full_mask(grid%nx, grid%ny), source=.true.)
   call grid%copy_to(full_grid, mask=full_mask)
@@ -30,13 +39,12 @@ program grid_fill_border
   where (border) border_data = 1_i4
   border_packed = full_grid%pack(border_data)
 
-  dem_packed = grid%pack(dem)
-  call grid%fill_ids(full_grid, fill_id)
   allocate(dem_filled(full_grid%ncells))
-  dem_filled = dem_packed(fill_id)
+  call fill_scaler%init(grid, full_grid, fill_missing=.true., use_index_distance=.true.)
+  call fill_scaler%execute(dem, dem_filled)
 
   call ds%init( &
-    path=trim(output_path), &
+    path=output_path, &
     grid=full_grid, &
     vars=[ &
       var(name="border", long_name="DEM source mask border", units="1", dtype="i32", kind="i4", static=.true.), &
