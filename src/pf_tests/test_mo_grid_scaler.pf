@@ -272,6 +272,7 @@ contains
     integer(i4) :: ci, cj
     real(dp), allocatable :: packed_dp(:)
     integer(i4), allocatable :: packed_i(:)
+    integer(i8), allocatable :: loc_ids(:)
 
     call fine%init(nx=2, ny=2, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up)
     call coarse%init(nx=1, ny=1, cellsize=2.0_dp, coordsys=cartesian, y_direction=bottom_up)
@@ -320,6 +321,16 @@ contains
 
     call scaler%execute(packed_i, out_mat2, upscaling_operator=up_median) ! i4 -> dp 2d
     @assertEqual(out_mat2(1,1), 2.5_dp, tolerance=1.0e-12_dp)
+
+    allocate(loc_ids(coarse%ncells))
+    call scaler%maxloc(data, loc_ids)
+    @assertEqual(loc_ids, [4_i8], message='public maxloc returns fine cell ID for unpacked real input')
+    call scaler%minloc(idata, loc_ids)
+    @assertEqual(loc_ids, [1_i8], message='public minloc returns fine cell ID for unpacked integer input')
+    call scaler%maxloc(packed_dp, loc_ids)
+    @assertEqual(loc_ids, [4_i8], message='public maxloc returns fine cell ID for packed real input')
+    call scaler%minloc(packed_i, loc_ids)
+    @assertEqual(loc_ids, [1_i8], message='public minloc returns fine cell ID for packed integer input')
 
     call scaler%coarse_ij(fine_i=2_i4, fine_j=1_i4, coarse_i=ci, coarse_j=cj)
     @assertEqual([ci, cj], [1_i4, 1_i4])

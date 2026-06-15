@@ -205,10 +205,10 @@ module mo_grid_scaler
     generic, public :: downscale_split => scaler_downscale_split_1d, scaler_downscale_split_2d
     procedure, private :: scaler_maxloc_dp_1d, scaler_maxloc_dp_2d, scaler_maxloc_i4_1d, scaler_maxloc_i4_2d
     !> \brief Find location of maximum value in coarse cell on fine grid by cell id.
-    generic, private :: maxloc => scaler_maxloc_dp_1d, scaler_maxloc_dp_2d, scaler_maxloc_i4_1d, scaler_maxloc_i4_2d
+    generic, public :: maxloc => scaler_maxloc_dp_1d, scaler_maxloc_dp_2d, scaler_maxloc_i4_1d, scaler_maxloc_i4_2d
     procedure, private :: scaler_minloc_dp_1d, scaler_minloc_dp_2d, scaler_minloc_i4_1d, scaler_minloc_i4_2d
     !> \brief Find location of minimum value in coarse cell on fine grid by cell id.
-    generic, private :: minloc => scaler_minloc_dp_1d, scaler_minloc_dp_2d, scaler_minloc_i4_1d, scaler_minloc_i4_2d
+    generic, public :: minloc => scaler_minloc_dp_1d, scaler_minloc_dp_2d, scaler_minloc_i4_1d, scaler_minloc_i4_2d
   end type scaler_t
 
   !> \class nearest_regridder_t
@@ -2292,6 +2292,7 @@ contains
     integer(i8) :: k
     integer(i8), allocatable :: cells(:,:)
     logical :: back_
+    call check_upscaling(this%scaling_mode)
     call this%check_unpacked_fine(size(in_data, 1), size(in_data, 2))
     call this%check_packed_target(size(ids, kind=i8))
     back_ = optval(back, default=.false.)
@@ -2316,6 +2317,7 @@ contains
     integer(i8), intent(out) :: ids(:) !< fine grid cell ids of max values
     logical, intent(in), optional :: back !< start search from back (default: false)
     real(dp), allocatable :: temp_in(:, :)
+    call check_upscaling(this%scaling_mode)
     call this%check_packed_fine(size(in_data, kind=i8))
     call this%check_packed_target(size(ids, kind=i8))
     allocate(temp_in(this%fine_grid%nx, this%fine_grid%ny))
@@ -2333,6 +2335,7 @@ contains
     integer(i8) :: k
     integer(i8), allocatable :: cells(:,:)
     logical :: back_
+    call check_upscaling(this%scaling_mode)
     call this%check_unpacked_fine(size(in_data, 1), size(in_data, 2))
     call this%check_packed_target(size(ids, kind=i8))
     back_ = optval(back, default=.false.)
@@ -2357,6 +2360,7 @@ contains
     integer(i8), intent(out) :: ids(:) !< fine grid cell ids of max values
     logical, intent(in), optional :: back !< start search from back (default: false)
     integer(i4), allocatable :: temp_in(:, :)
+    call check_upscaling(this%scaling_mode)
     call this%check_packed_fine(size(in_data, kind=i8))
     call this%check_packed_target(size(ids, kind=i8))
     allocate(temp_in(this%fine_grid%nx, this%fine_grid%ny))
@@ -2374,6 +2378,7 @@ contains
     integer(i8) :: k
     integer(i8), allocatable :: cells(:,:)
     logical :: back_
+    call check_upscaling(this%scaling_mode)
     call this%check_unpacked_fine(size(in_data, 1), size(in_data, 2))
     call this%check_packed_target(size(ids, kind=i8))
     back_ = optval(back, default=.false.)
@@ -2398,6 +2403,7 @@ contains
     integer(i8), intent(out) :: ids(:) !< fine grid cell ids of min values
     logical, intent(in), optional :: back !< start search from back (default: false)
     real(dp), allocatable :: temp_in(:, :)
+    call check_upscaling(this%scaling_mode)
     call this%check_packed_fine(size(in_data, kind=i8))
     call this%check_packed_target(size(ids, kind=i8))
     allocate(temp_in(this%fine_grid%nx, this%fine_grid%ny))
@@ -2415,6 +2421,7 @@ contains
     integer(i8) :: k
     integer(i8), allocatable :: cells(:,:)
     logical :: back_
+    call check_upscaling(this%scaling_mode)
     call this%check_unpacked_fine(size(in_data, 1), size(in_data, 2))
     call this%check_packed_target(size(ids, kind=i8))
     back_ = optval(back, default=.false.)
@@ -2439,6 +2446,7 @@ contains
     integer(i8), intent(out) :: ids(:) !< fine grid cell ids of min values
     logical, intent(in), optional :: back !< start search from back (default: false)
     integer(i4), allocatable :: temp_in(:, :)
+    call check_upscaling(this%scaling_mode)
     call this%check_packed_fine(size(in_data, kind=i8))
     call this%check_packed_target(size(ids, kind=i8))
     allocate(temp_in(this%fine_grid%nx, this%fine_grid%ny))
