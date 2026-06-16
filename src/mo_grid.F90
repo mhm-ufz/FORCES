@@ -22,7 +22,7 @@ module mo_grid
   use mo_grid_helper, only: value_in_closed_interval, shift_longitude_near_query, quad_contains_point, &
                             arrays_match_2d, append_candidate_id, update_best_metric, intersection, calculate_coarse_extent, &
                             coarse_ij, id_bounds, dist_latlon, check_factor, read_ascii_grid, write_ascii_grid, &
-                            read_ascii_header, nearest_border_id_by_index, data_t
+                            read_ascii_header, nearest_border_id_by_index, helper_connected_mask => connected_mask, data_t
 #ifdef FORCES_WITH_NETCDF
   use mo_grid_helper, only: is_x_axis, is_y_axis, is_z_axis, is_t_axis, is_lon_coord, is_lat_coord, check_uniform_axis, &
                             mask_from_var, data_from_var
@@ -121,6 +121,7 @@ module mo_grid
     procedure, public :: closest_cell_id_by_axes => grid_closest_cell_id_by_axes
     procedure, public :: build_spatial_index => grid_build_spatial_index
     procedure, public :: border_mask => grid_border_mask
+    procedure, public :: connected_mask => grid_connected_mask
     procedure, public :: copy_to => grid_copy_to
     procedure, public :: fill_ids => grid_fill_ids
     procedure, public :: in_cell => grid_in_cell
@@ -1229,6 +1230,26 @@ contains
     end do
     !$omp end parallel do
   end subroutine grid_border_mask
+
+  !> \brief Connected component of the grid mask from nearest seed coordinates.
+  subroutine grid_connected_mask(this, coords, component, use_aux)
+    implicit none
+    class(grid_t), intent(in) :: this !< Grid with source mask.
+    real(dp), intent(in) :: coords(2) !< Seed coordinates (x,y) or (lon,lat with use_aux).
+    logical, allocatable, intent(out) :: component(:, :) !< Connected component mask.
+    logical, optional, intent(in) :: use_aux !< Use auxiliary lon/lat coordinates to find the seed.
+
+    integer(i8) :: seed_id
+
+    if (.not. allocated(this%mask)) call error_message("grid%connected_mask: grid has no mask.") ! LCOV_EXCL_LINE
+
+    seed_id = this%closest_cell_id(coords, use_aux=use_aux)
+    if (seed_id < 1_i8) call error_message("grid%connected_mask: no active seed cell found.") ! LCOV_EXCL_LINE
+
+    call helper_connected_mask( &
+      this%mask, this%cell_ij(seed_id, 1), this%cell_ij(seed_id, 2), component, &
+      periodic_x=this%coordsys == spherical .and. this%is_periodic())
+  end subroutine grid_connected_mask
 
   !> \brief Copy grid metadata and optionally replace mask and cell area.
   subroutine grid_copy_to(this, new_grid, mask, cell_area)

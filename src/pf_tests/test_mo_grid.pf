@@ -7,6 +7,7 @@ module test_mo_grid
   use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   use mo_constants, only: nodata_dp, nodata_sp, nodata_i1, nodata_i2, nodata_i4, nodata_i8, RadiusEarth_dp, deg2rad_dp
   use mo_utils, only: flip, flipped
+  use mo_grid_helper, only: connected_mask
   implicit none
 
   private
@@ -15,6 +16,7 @@ module test_mo_grid
   public :: test_axes_and_extent
   public :: test_mask_ids_and_pack
   public :: test_border_mask
+  public :: test_connected_mask
   public :: test_copy_to
   public :: test_fill_ids
   public :: test_area_and_periodicity
@@ -228,6 +230,75 @@ contains
     expected4(:, 3) = .true.
     @assertEqual(border, expected4, message='periodic spherical grid wraps x-neighbors but keeps y borders')
   end subroutine test_border_mask
+
+  @test
+  subroutine test_connected_mask()
+    implicit none
+    type(grid_t) :: grid, sph_grid
+    logical :: mask(5, 4), expected(5, 4), wrap_mask(4, 2), wrap_expected(4, 2)
+    logical, allocatable :: component(:, :), grid_component(:, :)
+    real(dp) :: coords(2)
+    integer(i4) :: i, j
+
+    mask = .false.
+    mask(1, 1) = .true.
+    mask(2, 2) = .true.
+    mask(3, 2) = .true.
+    mask(5, 3) = .true.
+    mask(5, 4) = .true.
+
+    call connected_mask(mask, 1_i4, 1_i4, component)
+    expected = .false.
+    expected(1, 1) = .true.
+    expected(2, 2) = .true.
+    expected(3, 2) = .true.
+    @assertEqual(component, expected, message='connected_mask follows 8-neighbor diagonal connections')
+
+    call connected_mask(mask, 5_i4, 4_i4, component)
+    expected = .false.
+    expected(5, 3) = .true.
+    expected(5, 4) = .true.
+    @assertEqual(component, expected, message='connected_mask returns the separated component containing the seed')
+
+    wrap_mask = .false.
+    wrap_mask(1, 1) = .true.
+    wrap_mask(4, 1) = .true.
+    call connected_mask(wrap_mask, 1_i4, 1_i4, component)
+    wrap_expected = .false.
+    wrap_expected(1, 1) = .true.
+    @assertEqual(component, wrap_expected, message='connected_mask does not wrap x-neighbors by default')
+    call connected_mask(wrap_mask, 1_i4, 1_i4, component, periodic_x=.true.)
+    wrap_expected(4, 1) = .true.
+    @assertEqual(component, wrap_expected, message='connected_mask connects x-edge neighbors when periodic_x is true')
+
+    call grid%init(nx=5, ny=4, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, coordsys=cartesian, &
+                   mask=mask, y_direction=bottom_up)
+    coords = [0.5_dp, 0.5_dp]
+    call grid%connected_mask(coords, grid_component)
+    expected = .false.
+    expected(1, 1) = .true.
+    expected(2, 2) = .true.
+    expected(3, 2) = .true.
+    @assertEqual(grid_component, expected, message='grid connected_mask resolves regular coordinates through closest_cell_id')
+
+    allocate(grid%lon(5, 4), grid%lat(5, 4))
+    do j = 1_i4, 4_i4
+      do i = 1_i4, 5_i4
+        grid%lon(i, j) = real(10_i4 * i, dp)
+        grid%lat(i, j) = real(50_i4 + j, dp)
+      end do
+    end do
+    coords = [20.0_dp, 52.0_dp]
+    call grid%connected_mask(coords, grid_component, use_aux=.true.)
+    @assertEqual(grid_component, expected, message='grid connected_mask resolves auxiliary lon-lat coordinates')
+
+    call sph_grid%init( &
+      nx=4, ny=2, xllcorner=0.0_dp, yllcorner=-90.0_dp, cellsize=90.0_dp, coordsys=spherical, mask=wrap_mask, &
+      y_direction=bottom_up)
+    coords = [45.0_dp, -45.0_dp]
+    call sph_grid%connected_mask(coords, grid_component)
+    @assertEqual(grid_component, wrap_expected, message='grid connected_mask wraps periodic spherical x-neighbors')
+  end subroutine test_connected_mask
 
   @test
   subroutine test_copy_to()

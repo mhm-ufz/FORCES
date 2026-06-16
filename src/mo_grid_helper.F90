@@ -41,6 +41,7 @@ module mo_grid_helper
   public :: write_ascii_grid
   public :: read_ascii_header
   public :: nearest_border_id_by_index
+  public :: connected_mask
   public :: data_t
 #ifdef FORCES_WITH_NETCDF
   public :: check_uniform_axis
@@ -86,6 +87,111 @@ module mo_grid_helper
   end type data_t
 
 contains
+
+  !> \brief Connected component of a logical mask from a seed cell using 8-neighbor connectivity.
+  subroutine connected_mask(mask, seed_i, seed_j, component, periodic_x)
+    implicit none
+    logical, intent(in) :: mask(:, :) !< Input mask.
+    integer(i4), intent(in) :: seed_i !< Seed x index.
+    integer(i4), intent(in) :: seed_j !< Seed y index.
+    logical, allocatable, intent(out) :: component(:, :) !< Connected component mask.
+    logical, optional, intent(in) :: periodic_x !< Wrap x-neighbors periodically (default: .false.).
+
+    integer(i8), parameter :: omp_frontier_min_n = 2048_i8
+    integer(i4) :: nx, ny
+    integer(i4) :: i, j, ii, jj, di, dj
+    integer(i8) :: nx_i8, n_frontier, n_candidates, n_next, k, pos, id
+    integer(i8), allocatable :: frontier(:), candidates(:)
+    integer(i4), allocatable :: candidate_count(:)
+    logical :: periodic_x_
+
+    nx = size(mask, 1)
+    ny = size(mask, 2)
+    if (seed_i < 1_i4 .or. seed_i > nx .or. seed_j < 1_i4 .or. seed_j > ny) then
+      call error_message("connected_mask: seed index is out of bounds.") ! LCOV_EXCL_LINE
+    end if
+    if (.not. mask(seed_i, seed_j)) then
+      call error_message("connected_mask: seed cell is inactive.") ! LCOV_EXCL_LINE
+    end if
+
+    periodic_x_ = optval(periodic_x, .false.)
+    nx_i8 = int(nx, i8)
+    allocate(component(nx, ny))
+    component = .false.
+    allocate(frontier(1))
+    frontier(1) = linear_id(seed_i, seed_j, nx_i8)
+    component(seed_i, seed_j) = .true.
+    n_frontier = 1_i8
+
+    do while (n_frontier > 0_i8)
+      allocate(candidates(8_i8 * n_frontier))
+      allocate(candidate_count(n_frontier))
+
+      !$omp parallel do default(shared) private(k,id,i,j,di,dj,ii,jj,pos) schedule(static) &
+      !$omp& if(n_frontier >= omp_frontier_min_n)
+      do k = 1_i8, n_frontier
+        id = frontier(k)
+        j = int((id - 1_i8) / nx_i8, i4) + 1_i4
+        i = int(id - int(j - 1_i4, i8) * nx_i8, i4)
+        candidate_count(k) = 0_i4
+        do dj = -1_i4, 1_i4
+          jj = j + dj
+          if (jj < 1_i4 .or. jj > ny) cycle
+          do di = -1_i4, 1_i4
+            if (di == 0_i4 .and. dj == 0_i4) cycle
+            ii = i + di
+            if (ii < 1_i4 .or. ii > nx) then
+              if (periodic_x_) then
+                ii = modulo(ii - 1_i4, nx) + 1_i4
+              else
+                cycle
+              end if
+            end if
+            if (.not. mask(ii, jj)) cycle
+            if (component(ii, jj)) cycle
+            candidate_count(k) = candidate_count(k) + 1_i4
+            pos = 8_i8 * (k - 1_i8) + int(candidate_count(k), i8)
+            candidates(pos) = linear_id(ii, jj, nx_i8)
+          end do
+        end do
+      end do
+      !$omp end parallel do
+
+      n_candidates = sum(int(candidate_count, i8))
+      if (n_candidates < 1_i8) then
+        deallocate(frontier, candidates, candidate_count)
+        exit
+      end if
+
+      n_next = 0_i8
+      do k = 1_i8, n_frontier
+        do pos = 8_i8 * (k - 1_i8) + 1_i8, 8_i8 * (k - 1_i8) + int(candidate_count(k), i8)
+          id = candidates(pos)
+          j = int((id - 1_i8) / nx_i8, i4) + 1_i4
+          i = int(id - int(j - 1_i4, i8) * nx_i8, i4)
+          if (component(i, j)) cycle
+          component(i, j) = .true.
+          n_next = n_next + 1_i8
+          candidates(n_next) = id
+        end do
+      end do
+
+      deallocate(frontier, candidate_count)
+      allocate(frontier(n_next))
+      frontier = candidates(1:n_next)
+      n_frontier = n_next
+      deallocate(candidates)
+    end do
+  end subroutine connected_mask
+
+  !> \brief Linear row-major mask index.
+  pure integer(i8) function linear_id(i, j, nx) result(id)
+    integer(i4), intent(in) :: i !< x index.
+    integer(i4), intent(in) :: j !< y index.
+    integer(i8), intent(in) :: nx !< Number of x cells.
+
+    id = int(i, i8) + int(j - 1_i4, i8) * nx
+  end function linear_id
 
   !> \brief Deallocate all arrays stored in a generic data container.
   subroutine data_deallocate(this)
