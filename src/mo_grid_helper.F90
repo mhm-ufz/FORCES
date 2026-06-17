@@ -40,6 +40,8 @@ module mo_grid_helper
   public :: read_ascii_grid
   public :: write_ascii_grid
   public :: read_ascii_header
+  public :: nearest_border_id_by_index
+  public :: connected_mask
   public :: data_t
 #ifdef FORCES_WITH_NETCDF
   public :: check_uniform_axis
@@ -85,6 +87,111 @@ module mo_grid_helper
   end type data_t
 
 contains
+
+  !> \brief Connected component of a logical mask from a seed cell using 8-neighbor connectivity.
+  subroutine connected_mask(mask, seed_i, seed_j, component, periodic_x)
+    implicit none
+    logical, intent(in) :: mask(:, :) !< Input mask.
+    integer(i4), intent(in) :: seed_i !< Seed x index.
+    integer(i4), intent(in) :: seed_j !< Seed y index.
+    logical, allocatable, intent(out) :: component(:, :) !< Connected component mask.
+    logical, optional, intent(in) :: periodic_x !< Wrap x-neighbors periodically (default: .false.).
+
+    integer(i8), parameter :: omp_frontier_min_n = 2048_i8
+    integer(i4) :: nx, ny
+    integer(i4) :: i, j, ii, jj, di, dj
+    integer(i8) :: nx_i8, n_frontier, n_candidates, n_next, k, pos, id
+    integer(i8), allocatable :: frontier(:), candidates(:)
+    integer(i4), allocatable :: candidate_count(:)
+    logical :: periodic_x_
+
+    nx = size(mask, 1)
+    ny = size(mask, 2)
+    if (seed_i < 1_i4 .or. seed_i > nx .or. seed_j < 1_i4 .or. seed_j > ny) then
+      call error_message("connected_mask: seed index is out of bounds.") ! LCOV_EXCL_LINE
+    end if
+    if (.not. mask(seed_i, seed_j)) then
+      call error_message("connected_mask: seed cell is inactive.") ! LCOV_EXCL_LINE
+    end if
+
+    periodic_x_ = optval(periodic_x, .false.)
+    nx_i8 = int(nx, i8)
+    allocate(component(nx, ny))
+    component = .false.
+    allocate(frontier(1))
+    frontier(1) = linear_id(seed_i, seed_j, nx_i8)
+    component(seed_i, seed_j) = .true.
+    n_frontier = 1_i8
+
+    do while (n_frontier > 0_i8)
+      allocate(candidates(8_i8 * n_frontier))
+      allocate(candidate_count(n_frontier))
+
+      !$omp parallel do default(shared) private(k,id,i,j,di,dj,ii,jj,pos) schedule(static) &
+      !$omp& if(n_frontier >= omp_frontier_min_n)
+      do k = 1_i8, n_frontier
+        id = frontier(k)
+        j = int((id - 1_i8) / nx_i8, i4) + 1_i4
+        i = int(id - int(j - 1_i4, i8) * nx_i8, i4)
+        candidate_count(k) = 0_i4
+        do dj = -1_i4, 1_i4
+          jj = j + dj
+          if (jj < 1_i4 .or. jj > ny) cycle
+          do di = -1_i4, 1_i4
+            if (di == 0_i4 .and. dj == 0_i4) cycle
+            ii = i + di
+            if (ii < 1_i4 .or. ii > nx) then
+              if (periodic_x_) then
+                ii = modulo(ii - 1_i4, nx) + 1_i4
+              else
+                cycle
+              end if
+            end if
+            if (.not. mask(ii, jj)) cycle
+            if (component(ii, jj)) cycle
+            candidate_count(k) = candidate_count(k) + 1_i4
+            pos = 8_i8 * (k - 1_i8) + int(candidate_count(k), i8)
+            candidates(pos) = linear_id(ii, jj, nx_i8)
+          end do
+        end do
+      end do
+      !$omp end parallel do
+
+      n_candidates = sum(int(candidate_count, i8))
+      if (n_candidates < 1_i8) then
+        deallocate(frontier, candidates, candidate_count)
+        exit
+      end if
+
+      n_next = 0_i8
+      do k = 1_i8, n_frontier
+        do pos = 8_i8 * (k - 1_i8) + 1_i8, 8_i8 * (k - 1_i8) + int(candidate_count(k), i8)
+          id = candidates(pos)
+          j = int((id - 1_i8) / nx_i8, i4) + 1_i4
+          i = int(id - int(j - 1_i4, i8) * nx_i8, i4)
+          if (component(i, j)) cycle
+          component(i, j) = .true.
+          n_next = n_next + 1_i8
+          candidates(n_next) = id
+        end do
+      end do
+
+      deallocate(frontier, candidate_count)
+      allocate(frontier(n_next))
+      frontier = candidates(1:n_next)
+      n_frontier = n_next
+      deallocate(candidates)
+    end do
+  end subroutine connected_mask
+
+  !> \brief Linear row-major mask index.
+  pure integer(i8) function linear_id(i, j, nx) result(id)
+    integer(i4), intent(in) :: i !< x index.
+    integer(i4), intent(in) :: j !< y index.
+    integer(i8), intent(in) :: nx !< Number of x cells.
+
+    id = int(i, i8) + int(j - 1_i4, i8) * nx
+  end function linear_id
 
   !> \brief Deallocate all arrays stored in a generic data container.
   subroutine data_deallocate(this)
@@ -153,25 +260,29 @@ contains
   end subroutine data_move_i8
 
   !> \brief Check whether two 2D double-precision arrays match within a tolerance.
-  logical function arrays_match_2d_dp(a, b, tol) result(arrays_match)
+  logical function arrays_match_2d_dp(a, b, tol, flip_y) result(arrays_match)
     implicit none
     real(dp), intent(in) :: a(:, :) !< First array to compare.
     real(dp), intent(in) :: b(:, :) !< Second array to compare.
     real(dp), optional, intent(in) :: tol !< Tolerance for element-wise comparison (default: 1.e-7).
+    logical, optional, intent(in) :: flip_y !< Compare the second array with reversed y-axis order (default: .false.).
 
     real(dp) :: tol_
-    integer(i4) :: j
+    integer(i4) :: j, jb
+    logical :: flip_y_
 
     arrays_match = .false.
     if (any(shape(a, kind=i4) /= shape(b, kind=i4))) return
 
     tol_ = optval(tol, 1.0e-7_dp)
+    flip_y_ = optval(flip_y, .false.)
     arrays_match = .true.
-    !$omp parallel do default(shared) schedule(static)
+    !$omp parallel do default(shared) private(jb) schedule(static)
     do j = 1_i4, size(a, dim=2, kind=i4)
       !$omp flush(arrays_match)
       if (.not. arrays_match) cycle ! no work for rest of the loop (exit not safe with omp)
-      if (.not. all(is_close(a(:, j), b(:, j), tol_, tol_))) then
+      jb = merge(size(b, dim=2, kind=i4) - j + 1_i4, j, flip_y_)
+      if (.not. all(is_close(a(:, j), b(:, jb), tol_, tol_))) then
         !$omp atomic write
         arrays_match = .false.
       end if
@@ -180,22 +291,26 @@ contains
   end function arrays_match_2d_dp
 
   !> \brief Check whether two 2D logical arrays match.
-  logical function arrays_match_2d_lgt(a, b) result(arrays_match)
+  logical function arrays_match_2d_lgt(a, b, flip_y) result(arrays_match)
     implicit none
     logical, intent(in) :: a(:, :) !< First array to compare.
     logical, intent(in) :: b(:, :) !< Second array to compare.
+    logical, optional, intent(in) :: flip_y !< Compare the second array with reversed y-axis order (default: .false.).
 
-    integer(i4) :: j
+    integer(i4) :: j, jb
+    logical :: flip_y_
 
     arrays_match = .false.
     if (any(shape(a, kind=i4) /= shape(b, kind=i4))) return
 
+    flip_y_ = optval(flip_y, .false.)
     arrays_match = .true.
-    !$omp parallel do default(shared) schedule(static)
+    !$omp parallel do default(shared) private(jb) schedule(static)
     do j = 1_i4, size(a, dim=2, kind=i4)
       !$omp flush(arrays_match)
       if (.not. arrays_match) cycle ! no work for rest of the loop (exit not safe with omp)
-      if (any(a(:, j) .neqv. b(:, j))) then
+      jb = merge(size(b, dim=2, kind=i4) - j + 1_i4, j, flip_y_)
+      if (any(a(:, j) .neqv. b(:, jb))) then
         !$omp atomic write
         arrays_match = .false.
       end if
@@ -1157,6 +1272,154 @@ contains
       j_ub = fine_ny - temp + 1
     end if
   end subroutine id_bounds
+
+  !> \brief Find nearest border id by regular-grid index distance.
+  integer(i8) function nearest_border_id_by_index(i_query, j_query, nx, ny, periodic_x, row_cnt, row_cum, border_i, border_ids) result(best_id)
+    implicit none
+    integer(i4), intent(in) :: i_query !< Query x index.
+    integer(i4), intent(in) :: j_query !< Query y index.
+    integer(i4), intent(in) :: nx !< Number of grid columns.
+    integer(i4), intent(in) :: ny !< Number of grid rows.
+    logical, intent(in) :: periodic_x !< Whether x-index distance wraps periodically.
+    integer(i8), intent(in) :: row_cnt(:) !< Number of border cells per row, size (ny).
+    integer(i8), intent(in) :: row_cum(:) !< Cumulative border-cell count before each row, size (ny).
+    integer(i4), intent(in) :: border_i(:) !< Border x indices sorted by row and x index.
+    integer(i8), intent(in) :: border_ids(:) !< Packed source cell ids for border_i entries.
+
+    integer(i4) :: row_offset, row_j, max_offset
+    integer(i8) :: best_d2, row_d2, k_lb, k_ub
+
+    best_id = 0_i8
+    best_d2 = huge(1_i8)
+    max_offset = max(j_query - 1_i4, ny - j_query)
+
+    do row_offset = 0_i4, max_offset
+      row_d2 = int(row_offset, i8) * int(row_offset, i8)
+      if (best_id > 0_i8 .and. row_d2 > best_d2) exit
+
+      row_j = j_query - row_offset
+      if (row_j >= 1_i4) then
+        call border_row_bounds(row_j, row_cnt, row_cum, k_lb, k_ub)
+        call update_nearest_border_in_row(i_query, j_query, row_j, nx, periodic_x, k_lb, k_ub, &
+                                          border_i, border_ids, best_id, best_d2)
+      end if
+
+      row_j = j_query + row_offset
+      if (row_offset > 0_i4 .and. row_j <= ny) then
+        call border_row_bounds(row_j, row_cnt, row_cum, k_lb, k_ub)
+        call update_nearest_border_in_row(i_query, j_query, row_j, nx, periodic_x, k_lb, k_ub, &
+                                          border_i, border_ids, best_id, best_d2)
+      end if
+    end do
+  end function nearest_border_id_by_index
+
+  subroutine border_row_bounds(j, row_cnt, row_cum, k_lb, k_ub)
+    implicit none
+    integer(i4), intent(in) :: j !< Row index.
+    integer(i8), intent(in) :: row_cnt(:) !< Number of border cells per row.
+    integer(i8), intent(in) :: row_cum(:) !< Cumulative border-cell count before each row.
+    integer(i8), intent(out) :: k_lb !< Inclusive lower packed border index for the row.
+    integer(i8), intent(out) :: k_ub !< Inclusive upper packed border index for the row.
+
+    if (row_cnt(j) < 1_i8) then
+      k_lb = 1_i8
+      k_ub = 0_i8
+      return
+    end if
+
+    k_lb = row_cum(j) + 1_i8
+    k_ub = row_cum(j) + row_cnt(j)
+  end subroutine border_row_bounds
+
+  subroutine update_nearest_border_in_row(i_query, j_query, row_j, nx, periodic_x, k_lb, k_ub, &
+                                          border_i, border_ids, best_id, best_d2)
+    implicit none
+    integer(i4), intent(in) :: i_query !< Query x index.
+    integer(i4), intent(in) :: j_query !< Query y index.
+    integer(i4), intent(in) :: row_j !< Candidate row index.
+    integer(i4), intent(in) :: nx !< Number of grid columns.
+    logical, intent(in) :: periodic_x !< Whether x-index distance wraps periodically.
+    integer(i8), intent(in) :: k_lb !< Inclusive lower packed border index for row_j.
+    integer(i8), intent(in) :: k_ub !< Inclusive upper packed border index for row_j.
+    integer(i4), intent(in) :: border_i(:) !< Border x indices sorted by row and x index.
+    integer(i8), intent(in) :: border_ids(:) !< Packed source cell ids for border_i entries.
+    integer(i8), intent(inout) :: best_id !< Current best packed source cell id.
+    integer(i8), intent(inout) :: best_d2 !< Current best squared index distance.
+
+    integer(i8) :: left_k, right_k
+
+    if (k_lb > k_ub) return
+
+    call border_row_binary_search(border_i, k_lb, k_ub, i_query, left_k, right_k)
+    call update_nearest_border_candidate(i_query, j_query, row_j, nx, periodic_x, right_k, k_lb, k_ub, &
+                                         border_i, border_ids, best_id, best_d2)
+    call update_nearest_border_candidate(i_query, j_query, row_j, nx, periodic_x, left_k, k_lb, k_ub, &
+                                         border_i, border_ids, best_id, best_d2)
+    if (periodic_x) then
+      call update_nearest_border_candidate(i_query, j_query, row_j, nx, periodic_x, k_lb, k_lb, k_ub, &
+                                           border_i, border_ids, best_id, best_d2)
+      call update_nearest_border_candidate(i_query, j_query, row_j, nx, periodic_x, k_ub, k_lb, k_ub, &
+                                           border_i, border_ids, best_id, best_d2)
+    end if
+  end subroutine update_nearest_border_in_row
+
+  subroutine border_row_binary_search(border_i, k_lb, k_ub, i_query, left_k, right_k)
+    implicit none
+    integer(i4), intent(in) :: border_i(:) !< Border x indices sorted by row and x index.
+    integer(i8), intent(in) :: k_lb !< Inclusive lower packed border index for the searched row.
+    integer(i8), intent(in) :: k_ub !< Inclusive upper packed border index for the searched row.
+    integer(i4), intent(in) :: i_query !< Query x index.
+    integer(i8), intent(out) :: left_k !< Index of nearest candidate at or left of i_query.
+    integer(i8), intent(out) :: right_k !< Index of nearest candidate at or right of i_query.
+
+    integer(i8) :: lo, hi, mid
+
+    lo = k_lb
+    hi = k_ub
+    do while (lo <= hi)
+      mid = lo + (hi - lo) / 2_i8
+      if (border_i(mid) < i_query) then
+        lo = mid + 1_i8
+      else
+        hi = mid - 1_i8
+      end if
+    end do
+
+    right_k = lo
+    left_k = hi
+  end subroutine border_row_binary_search
+
+  subroutine update_nearest_border_candidate(i_query, j_query, row_j, nx, periodic_x, k, k_lb, k_ub, &
+                                             border_i, border_ids, best_id, best_d2)
+    implicit none
+    integer(i4), intent(in) :: i_query !< Query x index.
+    integer(i4), intent(in) :: j_query !< Query y index.
+    integer(i4), intent(in) :: row_j !< Candidate row index.
+    integer(i4), intent(in) :: nx !< Number of grid columns.
+    logical, intent(in) :: periodic_x !< Whether x-index distance wraps periodically.
+    integer(i8), intent(in) :: k !< Candidate packed border index.
+    integer(i8), intent(in) :: k_lb !< Inclusive lower valid packed border index.
+    integer(i8), intent(in) :: k_ub !< Inclusive upper valid packed border index.
+    integer(i4), intent(in) :: border_i(:) !< Border x indices sorted by row and x index.
+    integer(i8), intent(in) :: border_ids(:) !< Packed source cell ids for border_i entries.
+    integer(i8), intent(inout) :: best_id !< Current best packed source cell id.
+    integer(i8), intent(inout) :: best_d2 !< Current best squared index distance.
+
+    integer(i8) :: dx, dy, cand_d2, cand_id
+
+    if (k < k_lb .or. k > k_ub) return
+
+    dx = int(abs(border_i(k) - i_query), i8)
+    if (periodic_x) dx = min(dx, int(nx, i8) - dx)
+    dy = int(abs(row_j - j_query), i8)
+    cand_d2 = dx * dx + dy * dy
+    cand_id = border_ids(k)
+
+    if (best_id < 1_i8 .or. cand_d2 < best_d2 .or. (cand_d2 == best_d2 .and. cand_id < best_id)) then
+      best_id = cand_id
+      best_d2 = cand_d2
+    end if
+  end subroutine update_nearest_border_candidate
 
   !> \brief Compute the spherical great-circle distance between two lon/lat points.
   pure real(dp) function dist_latlon(lat1, lon1, lat2, lon2)

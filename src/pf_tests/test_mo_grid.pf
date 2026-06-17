@@ -7,6 +7,7 @@ module test_mo_grid
   use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   use mo_constants, only: nodata_dp, nodata_sp, nodata_i1, nodata_i2, nodata_i4, nodata_i8, RadiusEarth_dp, deg2rad_dp
   use mo_utils, only: flip, flipped
+  use mo_grid_helper, only: connected_mask
   implicit none
 
   private
@@ -14,8 +15,13 @@ module test_mo_grid
   public :: test_grid
   public :: test_axes_and_extent
   public :: test_mask_ids_and_pack
+  public :: test_border_mask
+  public :: test_connected_mask
+  public :: test_copy_to
+  public :: test_fill_ids
   public :: test_area_and_periodicity
   public :: test_is_matching
+  public :: test_gap_masks
   public :: test_closest_cell_and_distance
   public :: test_closest_cell_exact_cartesian_batch
   public :: test_closest_cell_exact_sparse_rows
@@ -185,6 +191,208 @@ contains
   end subroutine test_mask_ids_and_pack
 
   @test
+  subroutine test_border_mask()
+    implicit none
+    type(grid_t) :: full_grid, hole_grid, sparse_grid, sph
+    logical :: full(3, 3), hole(3, 3), sparse(3, 3), expected3(3, 3)
+    logical :: sph_mask(4, 3), expected4(4, 3)
+    logical, allocatable :: border(:, :)
+
+    full = .true.
+    call full_grid%init(nx=3, ny=3, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=full)
+    call full_grid%border_mask(border)
+    expected3 = .true.
+    expected3(2, 2) = .false.
+    @assertEqual(border, expected3, message='full Cartesian mask has only the inner cell off the border')
+
+    hole = .true.
+    hole(2, 2) = .false.
+    call hole_grid%init(nx=3, ny=3, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=hole)
+    call hole_grid%border_mask(border)
+    expected3 = .true.
+    expected3(2, 2) = .false.
+    @assertEqual(border, expected3, message='hole makes all active neighbors border cells')
+
+    sparse = .false.
+    sparse(2, 2) = .true.
+    call sparse_grid%init(nx=3, ny=3, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=sparse)
+    call sparse_grid%border_mask(border)
+    expected3 = .false.
+    expected3(2, 2) = .true.
+    @assertEqual(border, expected3, message='isolated active cell is a border cell')
+
+    sph_mask = .true.
+    call sph%init(nx=4, ny=3, xllcorner=0.0_dp, yllcorner=-90.0_dp, cellsize=90.0_dp, &
+                  coordsys=spherical, y_direction=bottom_up, mask=sph_mask)
+    call sph%border_mask(border)
+    expected4 = .false.
+    expected4(:, 1) = .true.
+    expected4(:, 3) = .true.
+    @assertEqual(border, expected4, message='periodic spherical grid wraps x-neighbors but keeps y borders')
+  end subroutine test_border_mask
+
+  @test
+  subroutine test_connected_mask()
+    implicit none
+    type(grid_t) :: grid, sph_grid
+    logical :: mask(5, 4), expected(5, 4), wrap_mask(4, 2), wrap_expected(4, 2)
+    logical, allocatable :: component(:, :), grid_component(:, :)
+    real(dp) :: coords(2)
+    integer(i4) :: i, j
+
+    mask = .false.
+    mask(1, 1) = .true.
+    mask(2, 2) = .true.
+    mask(3, 2) = .true.
+    mask(5, 3) = .true.
+    mask(5, 4) = .true.
+
+    call connected_mask(mask, 1_i4, 1_i4, component)
+    expected = .false.
+    expected(1, 1) = .true.
+    expected(2, 2) = .true.
+    expected(3, 2) = .true.
+    @assertEqual(component, expected, message='connected_mask follows 8-neighbor diagonal connections')
+
+    call connected_mask(mask, 5_i4, 4_i4, component)
+    expected = .false.
+    expected(5, 3) = .true.
+    expected(5, 4) = .true.
+    @assertEqual(component, expected, message='connected_mask returns the separated component containing the seed')
+
+    wrap_mask = .false.
+    wrap_mask(1, 1) = .true.
+    wrap_mask(4, 1) = .true.
+    call connected_mask(wrap_mask, 1_i4, 1_i4, component)
+    wrap_expected = .false.
+    wrap_expected(1, 1) = .true.
+    @assertEqual(component, wrap_expected, message='connected_mask does not wrap x-neighbors by default')
+    call connected_mask(wrap_mask, 1_i4, 1_i4, component, periodic_x=.true.)
+    wrap_expected(4, 1) = .true.
+    @assertEqual(component, wrap_expected, message='connected_mask connects x-edge neighbors when periodic_x is true')
+
+    call grid%init(nx=5, ny=4, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, coordsys=cartesian, &
+                   mask=mask, y_direction=bottom_up)
+    coords = [0.5_dp, 0.5_dp]
+    call grid%connected_mask(coords, grid_component)
+    expected = .false.
+    expected(1, 1) = .true.
+    expected(2, 2) = .true.
+    expected(3, 2) = .true.
+    @assertEqual(grid_component, expected, message='grid connected_mask resolves regular coordinates through closest_cell_id')
+
+    allocate(grid%lon(5, 4), grid%lat(5, 4))
+    do j = 1_i4, 4_i4
+      do i = 1_i4, 5_i4
+        grid%lon(i, j) = real(10_i4 * i, dp)
+        grid%lat(i, j) = real(50_i4 + j, dp)
+      end do
+    end do
+    coords = [20.0_dp, 52.0_dp]
+    call grid%connected_mask(coords, grid_component, use_aux=.true.)
+    @assertEqual(grid_component, expected, message='grid connected_mask resolves auxiliary lon-lat coordinates')
+
+    call sph_grid%init( &
+      nx=4, ny=2, xllcorner=0.0_dp, yllcorner=-90.0_dp, cellsize=90.0_dp, coordsys=spherical, mask=wrap_mask, &
+      y_direction=bottom_up)
+    coords = [45.0_dp, -45.0_dp]
+    call sph_grid%connected_mask(coords, grid_component)
+    @assertEqual(grid_component, wrap_expected, message='grid connected_mask wraps periodic spherical x-neighbors')
+  end subroutine test_connected_mask
+
+  @test
+  subroutine test_copy_to()
+    implicit none
+    type(grid_t) :: grid, same, masked, explicit_area
+    logical :: mask(3, 2), new_mask(3, 2)
+    real(dp) :: area(3, 2)
+    real(dp), allocatable :: area_packed(:), expected_area(:)
+    integer(i8) :: i
+
+    mask = reshape([.true., .false., .true., .true., .true., .false.], [3, 2])
+    call grid%init(nx=3, ny=2, xllcorner=10.0_dp, yllcorner=20.0_dp, cellsize=2.0_dp, &
+                   coordsys=cartesian, y_direction=bottom_up, mask=mask)
+    allocate(grid%lat(3, 2), grid%lon(3, 2), grid%lat_vertices(4, 3), grid%lon_vertices(4, 3))
+    grid%lat = reshape([(real(i, dp), i=1_i8, 6_i8)], [3, 2])
+    grid%lon = grid%lat + 10.0_dp
+    grid%lat_vertices = reshape([(real(i, dp), i=1_i8, 12_i8)], [4, 3])
+    grid%lon_vertices = grid%lat_vertices + 20.0_dp
+
+    call grid%copy_to(same)
+    @assertTrue(grid%is_matching(same, aux=.true.), message='copy_to without mask preserves grid and aux metadata')
+    @assertEqual(same%cell_area, grid%cell_area, tolerance=1.0e-12_dp, message='copy_to without mask preserves packed area')
+
+    new_mask = reshape([.true., .true., .true., .false., .true., .true.], [3, 2])
+    call grid%copy_to(masked, mask=new_mask)
+    @assertEqual(masked%ncells, count(new_mask, kind=i8), message='copy_to with mask updates active-cell count')
+    @assertEqual(masked%mask, new_mask, message='copy_to with mask stores the new mask')
+    allocate(expected_area(masked%ncells), source=4.0_dp)
+    @assertEqual(masked%cell_area, expected_area, tolerance=1.0e-12_dp, message='copy_to with mask recalculates regular cell area')
+    @assertEqual(masked%lat, grid%lat, tolerance=1.0e-12_dp, message='copy_to with mask preserves aux centers')
+    @assertEqual(masked%lat_vertices, grid%lat_vertices, tolerance=1.0e-12_dp, message='copy_to with mask preserves aux vertices')
+
+    area = reshape([(10.0_dp + real(i, dp), i=1_i8, 6_i8)], [3, 2])
+    area_packed = pack(area, new_mask)
+    call grid%copy_to(explicit_area, mask=new_mask, cell_area=area)
+    @assertEqual(explicit_area%cell_area, area_packed, tolerance=1.0e-12_dp, message='copy_to packs explicit 2D area')
+  end subroutine test_copy_to
+
+  @test
+  subroutine test_fill_ids()
+    implicit none
+    type(grid_t) :: grid, target_full, target_shrink, target_empty, target_flip
+    type(grid_t) :: sph, sph_target_grid
+    logical :: source_mask(5, 5), target_mask(5, 5), shrink_mask(5, 5), empty_mask(5, 5)
+    logical :: sph_source(4, 1), sph_target(4, 1)
+    integer(i8), allocatable :: ids(:)
+
+    source_mask = .true.
+    source_mask(3, 3) = .false.
+    call grid%init(nx=5, ny=5, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=source_mask)
+
+    target_mask = .true.
+    call grid%copy_to(target_full, mask=target_mask)
+    call grid%fill_ids(target_full, ids)
+    @assertEqual(size(ids, kind=i8), 25_i8, message='fill_ids returns one id per target active cell')
+    @assertEqual(ids(1:5), [1_i8, 2_i8, 3_i8, 4_i8, 5_i8], message='fill_ids maps overlapping first row directly')
+    @assertEqual(ids(13), 8_i8, message='fill_ids maps interior target-only cell to nearest border source id')
+    call grid%fill_ids(target_full, ids, use_index_distance=.true.)
+    @assertEqual(ids(13), 8_i8, message='fill_ids Cartesian index fallback maps target-only cell to nearest border source id')
+
+    shrink_mask = .false.
+    shrink_mask(1, 1) = .true.
+    shrink_mask(5, 5) = .true.
+    call grid%copy_to(target_shrink, mask=shrink_mask)
+    call grid%fill_ids(target_shrink, ids)
+    @assertEqual(ids, [1_i8, 24_i8], message='fill_ids shrinked mask returns direct ids in target packed order')
+
+    empty_mask = .false.
+    call grid%copy_to(target_empty, mask=empty_mask)
+    call grid%fill_ids(target_empty, ids)
+    @assertEqual(size(ids, kind=i8), 0_i8, message='empty target mask returns an allocated empty id list')
+
+    call target_flip%init(nx=5, ny=5, cellsize=1.0_dp, coordsys=cartesian, &
+                          y_direction=top_down, mask=target_mask)
+    call grid%fill_ids(target_flip, ids, use_index_distance=.true.)
+    @assertEqual(ids(1:5), [20_i8, 21_i8, 22_i8, 23_i8, 24_i8], message='fill_ids writes flipped top target row in target packed order')
+    @assertEqual(ids(21:25), [1_i8, 2_i8, 3_i8, 4_i8, 5_i8], message='fill_ids writes flipped bottom target row in target packed order')
+    @assertEqual(ids(13), 8_i8, message='fill_ids uses source-oriented index distance for flipped targets')
+
+    sph_source = .false.
+    sph_source(1, 1) = .true.
+    sph_target = .false.
+    sph_target(4, 1) = .true.
+    call sph%init(nx=4, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=90.0_dp, &
+                  coordsys=spherical, y_direction=bottom_up, mask=sph_source)
+    call sph_target_grid%init(nx=4, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=90.0_dp, &
+                              coordsys=spherical, y_direction=bottom_up, mask=sph_target)
+    call sph%fill_ids(sph_target_grid, ids)
+    @assertEqual(ids, [1_i8], message='fill_ids spherical fallback uses periodic longitude distance')
+    call sph%fill_ids(sph_target_grid, ids, use_index_distance=.true.)
+    @assertEqual(ids, [1_i8], message='fill_ids spherical index fallback uses periodic i-j distance')
+  end subroutine test_fill_ids
+
+  @test
   subroutine test_area_and_periodicity()
     implicit none
     type(grid_t) :: cart, sph, periodic
@@ -212,7 +420,7 @@ contains
   subroutine test_is_matching()
     implicit none
     type(grid_t) :: base, same, diff_coordsys, diff_shape, diff_ncells, diff_ydir, diff_float
-    type(grid_t) :: masked_a, masked_b, aux_same, aux_diff, aux_alloc, vert_same, vert_diff
+    type(grid_t) :: masked_a, masked_b, masked_flip, aux_same, aux_diff, aux_flip, aux_alloc, vert_same, vert_diff
     logical :: mask_a(2, 2), mask_b(2, 2)
 
     call base%init(nx=2, ny=2, xllcorner=0.0_dp, yllcorner=1.0_dp, cellsize=2.0_dp, &
@@ -237,6 +445,7 @@ contains
     call diff_ydir%init(nx=2, ny=2, xllcorner=0.0_dp, yllcorner=1.0_dp, cellsize=2.0_dp, &
       coordsys=cartesian, y_direction=top_down)
     @assertFalse(base%is_matching(diff_ydir), message='y direction mismatch returns false')
+    @assertTrue(base%is_matching(diff_ydir, compare_y_direction=.false.), message='y direction comparison can be disabled')
 
     diff_float = base
     diff_float%xllcorner = diff_float%xllcorner + 5.0e-8_dp
@@ -250,6 +459,13 @@ contains
       coordsys=cartesian, mask=mask_b, y_direction=bottom_up)
     @assertEqual(masked_a%ncells, masked_b%ncells, message='masked test grids keep the same number of cells')
     @assertFalse(masked_a%is_matching(masked_b), message='mask differences are part of matching')
+    @assertTrue(masked_a%is_matching(masked_b, compare_mask=.false.), message='mask comparison can be disabled')
+    @assertTrue(base%is_matching(diff_ncells, compare_mask=.false.), message='ncells is ignored when mask comparison is disabled')
+    @assertTrue(diff_ydir%is_matching(diff_ncells, compare_mask=.false., compare_y_direction=.false.), message='mask and y direction comparisons can be disabled independently')
+
+    call masked_flip%init(nx=2, ny=2, xllcorner=0.0_dp, yllcorner=1.0_dp, cellsize=2.0_dp, &
+                          coordsys=cartesian, mask=mask_a(:, 2:1:-1), y_direction=top_down)
+    @assertTrue(masked_a%is_matching(masked_flip, compare_y_direction=.false.), message='mask comparison maps physically corresponding rows for opposite y directions')
 
     aux_same = base
     allocate(aux_same%lat(2, 2), aux_same%lon(2, 2))
@@ -275,7 +491,65 @@ contains
     vert_diff%lat_vertices(1, 1) = vert_diff%lat_vertices(1, 1) + 1.0e-3_dp
     @assertFalse(vert_same%is_matching(vert_diff, aux=.true.), message='aux vertex differences fail when requested')
     @assertFalse(aux_same%is_matching(vert_same, aux=.true.), message='aux vertex allocation mismatch returns false')
+
+    aux_flip = vert_same
+    aux_flip%y_direction = top_down
+    aux_flip%lat = aux_flip%lat(:, 2:1:-1)
+    aux_flip%lon = aux_flip%lon(:, 2:1:-1)
+    aux_flip%lat_vertices = aux_flip%lat_vertices(:, 3:1:-1)
+    aux_flip%lon_vertices = aux_flip%lon_vertices(:, 3:1:-1)
+    @assertTrue(vert_same%is_matching(aux_flip, aux=.true., compare_y_direction=.false.), message='aux centers and vertices map physically corresponding rows for opposite y directions')
   end subroutine test_is_matching
+
+  @test
+  subroutine test_gap_masks()
+    implicit none
+    type(grid_t) :: fine_cover, coarse_cover, fine_fill, coarse_fill, coarse_inactive, fine_top, coarse_bottom
+    logical :: fine_mask(4, 2), coarse_mask(2, 1)
+    logical :: fine_top_mask(2, 4), coarse_bottom_mask(1, 2)
+    logical, allocatable :: uncovered(:, :), unfilled(:, :)
+    logical :: expected_fine(4, 2), expected_coarse(2, 1), expected_opposite(1, 2)
+
+    fine_mask = .true.
+    coarse_mask = reshape([.true., .false.], [2, 1])
+    call fine_cover%init(nx=4, ny=2, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=fine_mask)
+    call coarse_cover%init(nx=2, ny=1, cellsize=2.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=coarse_mask)
+
+    call fine_cover%uncovered_mask(coarse_cover, uncovered)
+    expected_fine = .false.
+    expected_fine(3:4, :) = .true.
+    @assertEqual(uncovered, expected_fine, message='uncovered_mask returns active fine cells below inactive coarse cells')
+
+    fine_mask = .false.
+    fine_mask(1:2, :) = .true.
+    call fine_fill%init(nx=4, ny=2, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=fine_mask)
+    coarse_mask = .true.
+    call coarse_fill%init(nx=2, ny=1, cellsize=2.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=coarse_mask)
+
+    call coarse_fill%unfilled_mask(fine_fill, unfilled)
+    expected_coarse = .false.
+    expected_coarse(2, 1) = .true.
+    @assertEqual(unfilled, expected_coarse, message='unfilled_mask returns active coarse cells without active fine subcells')
+
+    coarse_mask = reshape([.true., .false.], [2, 1])
+    call coarse_inactive%init(nx=2, ny=1, cellsize=2.0_dp, coordsys=cartesian, &
+                              y_direction=bottom_up, mask=coarse_mask)
+    call coarse_inactive%unfilled_mask(fine_fill, unfilled)
+    expected_coarse = .false.
+    @assertEqual(unfilled, expected_coarse, message='unfilled_mask ignores inactive coarse cells')
+
+    fine_top_mask = .false.
+    fine_top_mask(:, 1:2) = .true.
+    coarse_bottom_mask = .true.
+    call fine_top%init(nx=2, ny=4, cellsize=1.0_dp, coordsys=cartesian, y_direction=top_down, mask=fine_top_mask)
+    call coarse_bottom%init(nx=1, ny=2, cellsize=2.0_dp, coordsys=cartesian, &
+                            y_direction=bottom_up, mask=coarse_bottom_mask)
+
+    call coarse_bottom%unfilled_mask(fine_top, unfilled)
+    expected_opposite = .false.
+    expected_opposite(1, 1) = .true.
+    @assertEqual(unfilled, expected_opposite, message='unfilled_mask maps opposite y-axis directions')
+  end subroutine test_gap_masks
 
   @test
   subroutine test_closest_cell_and_distance()
