@@ -4,6 +4,34 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
+## v0.11.0 - 2026-06
+- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.10.0...v0.11.0) for details.
+
+### Enhancements and Changes
+
+* `mo_points`, `mo_points_io`, `mo_points_regridder`, `mo_timeseries` ([164](https://git.ufz.de/chs/forces/-/merge_requests/164))
+  * added first-class support for data on unstructured point locations through the new `points_t` geometry type
+  * added NetCDF I/O for static point variables, temporal point slices, and station-style time series
+  * added nearest-neighbor mappings between grids and points, points and grids, and independent point sets
+  * added reusable `time_t` and `resampler_t` utilities for CF-style time axes, interval aggregation, instant interpolation, and rank-1/rank-2 time-series resampling
+  * added point examples and pFUnit coverage for point I/O, regridding, and time-series handling
+
+* shared NetCDF/time I/O utilities ([164](https://git.ufz.de/chs/forces/-/merge_requests/164))
+  * added `mo_netcdf_utils` with shared variable metadata helpers and NetCDF time-axis parsing
+  * moved generic time-step and timestamp constants plus time value helpers to `mo_datetime`
+  * exposed `time_axis()` on grid and point input datasets to return parsed NetCDF time axes
+  * kept `mo_grid_io` compatibility exports for moved public helper names
+
+* `mo_grid`, `mo_grid_helper`, `mo_grid_scaler` ([165](https://git.ufz.de/chs/forces/-/merge_requests/165))
+  * added mask-border and connected-component helpers for active grid masks, including periodic spherical x wrapping
+  * added `grid_t%copy_to` and `grid_t%fill_ids` for efficient same-geometry mask changes, y-direction differences, and nearest border fallback
+  * extended `grid_t%is_matching` with optional mask and y-direction comparison controls
+  * added `grid_t%uncovered_mask` and `grid_t%unfilled_mask` to detect cross-resolution mask gaps
+  * added optional `scaler_t%init(fill_missing, use_index_distance)` support to fill equal-resolution, upscaling, and downscaling target gaps from nearest valid results or donor cells
+  * normalized scaler area/count weights over contributing active fine cells and added public `cell_fraction`, `minloc`, and `maxloc` helpers
+  * added a matching-grid fast path to `nearest_regridder_t` using `fill_ids`
+  * added examples and pFUnit coverage for grid mask filling, scaler gap filling, matching-grid regridding, and normalized weights
+
 ## v0.10.0 - 2026-05
 - See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.9.2...v0.10.0) for details.
 

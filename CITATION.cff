@@ -4,7 +4,6 @@ type: software
 title: "FORCES library"
 authors:
   - name: "CHS Developers"
-version: "0.10.0"
 identifiers:
   - type: doi
     value: 10.5281/zenodo.19340736
