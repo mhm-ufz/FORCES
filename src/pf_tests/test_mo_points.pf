@@ -19,9 +19,38 @@ module test_mo_points
   public :: test_points_output_input
   public :: test_points_time_series_io
   public :: test_points_time_t_and_ids
+  public :: test_points_polygon_mask
   public :: test_nearest_regridding
 
 contains
+
+  @test
+  subroutine test_points_polygon_mask()
+    type(points_t) :: points, sph_points
+    real(dp) :: polygon(4, 2), sph_polygon(4, 2)
+    logical, allocatable :: mask(:)
+
+    call points%init([0.5_dp, 1.5_dp, 2.5_dp, 3.5_dp, 1.5_dp], &
+                     [0.5_dp, 0.5_dp, 1.5_dp, 2.5_dp, 1.5_dp], coordsys=cartesian)
+
+    polygon(1, :) = [1.5_dp, 0.5_dp]
+    polygon(2, :) = [2.5_dp, 0.5_dp]
+    polygon(3, :) = [2.5_dp, 2.5_dp]
+    polygon(4, :) = [1.5_dp, 2.5_dp]
+    call points%polygon_mask(polygon, mask)
+
+    @assertEqual(mask, [.false., .true., .true., .false., .true.], message='points polygon_mask includes inside and on boundary')
+
+    call sph_points%init([-44.5_dp, -42.5_dp, 315.5_dp], [70.0_dp, 70.0_dp, 70.0_dp], coordsys=spherical)
+
+    sph_polygon(1, :) = [-45.0_dp, 69.0_dp]
+    sph_polygon(2, :) = [-43.0_dp, 69.0_dp]
+    sph_polygon(3, :) = [-43.0_dp, 71.0_dp]
+    sph_polygon(4, :) = [-45.0_dp, 71.0_dp]
+    call sph_points%polygon_mask(sph_polygon, mask)
+
+    @assertEqual(mask, [.true., .false., .false.], message='points polygon_mask uses stored spherical longitude convention')
+  end subroutine test_points_polygon_mask
 
   @test
   subroutine test_read_scc_gauges()

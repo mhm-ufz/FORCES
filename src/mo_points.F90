@@ -22,6 +22,7 @@ module mo_points
   use mo_spatial_index, only: spatial_index_t
   use mo_string_utils, only: num2str
   use mo_utils, only: is_close, optval
+  use mo_poly, only: inpoly
 #ifdef FORCES_WITH_NETCDF
   use mo_grid_helper, only: is_x_axis, is_y_axis, is_lon_coord, is_lat_coord
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
@@ -63,6 +64,7 @@ module mo_points
     procedure, private :: closest_point_id_scalar => points_closest_point_id_scalar
     procedure, private :: closest_point_id_batch => points_closest_point_id_batch
     generic, public :: closest_point_id => closest_point_id_scalar, closest_point_id_batch
+    procedure, public :: polygon_mask => points_polygon_mask
     procedure, public :: is_matching => points_is_matching
   end type points_t
 
@@ -94,6 +96,40 @@ contains
     coords(:, 1) = this%x
     coords(:, 2) = this%y
   end function points_coords
+
+  !> \brief Mask points whose coordinates are inside or on a polygon.
+  subroutine points_polygon_mask(this, polygon, mask)
+    class(points_t), intent(in) :: this !< Point set.
+    real(dp), intent(in) :: polygon(:, :) !< Polygon coordinates as (n_vertices, 2): x/lon, y/lat.
+    logical, allocatable, intent(out) :: mask(:) !< Point mask, allocated with size n_points.
+
+    real(dp) :: point(2)
+    real(dp) :: x_min, x_max, y_min, y_max
+    integer(i4) :: in_poly
+    integer(i8) :: i
+
+    if (size(polygon, 2) /= 2_i4) call error_message("points % polygon_mask: polygon must have shape (n, 2).") ! LCOV_EXCL_LINE
+    if (size(polygon, 1) < 3_i4) call error_message("points % polygon_mask: polygon needs at least three vertices.") ! LCOV_EXCL_LINE
+
+    x_min = minval(polygon(:, 1))
+    x_max = maxval(polygon(:, 1))
+    y_min = minval(polygon(:, 2))
+    y_max = maxval(polygon(:, 2))
+
+    allocate(mask(this%n_points))
+
+    !$omp parallel do default(shared) private(i,point,in_poly) schedule(static)
+    do i = 1_i8, this%n_points
+      mask(i) = .false.
+      point = [this%x(i), this%y(i)]
+
+      if (point(1) < x_min .or. point(1) > x_max .or. point(2) < y_min .or. point(2) > y_max) cycle
+
+      call inpoly(point, polygon, in_poly)
+      mask(i) = in_poly >= 0_i4
+    end do
+    !$omp end parallel do
+  end subroutine points_polygon_mask
 
   !> \brief Build a spatial nearest-neighbor index for the point coordinates.
   subroutine points_build_spatial_index(this, index)
