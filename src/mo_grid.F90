@@ -33,6 +33,7 @@ module mo_grid
   use mo_message, only : error_message, warn_message, message
   use mo_spatial_index, only: spatial_index_t
   use mo_string_utils, only : num2str
+  use mo_poly, only: inpoly
 
   implicit none
 
@@ -122,6 +123,7 @@ module mo_grid
     procedure, public :: build_spatial_index => grid_build_spatial_index
     procedure, public :: border_mask => grid_border_mask
     procedure, public :: connected_mask => grid_connected_mask
+    procedure, public :: polygon_mask => grid_polygon_mask
     procedure, public :: copy_to => grid_copy_to
     procedure, public :: fill_ids => grid_fill_ids
     procedure, public :: in_cell => grid_in_cell
@@ -1250,6 +1252,74 @@ contains
       this%mask, this%cell_ij(seed_id, 1), this%cell_ij(seed_id, 2), component, &
       periodic_x=this%coordsys == spherical .and. this%is_periodic())
   end subroutine grid_connected_mask
+
+  !> \brief Mask active grid cells whose centers are inside or on a polygon.
+  subroutine grid_polygon_mask(this, polygon, poly_mask, use_aux)
+    implicit none
+    class(grid_t), intent(in) :: this !< Grid with source mask.
+    real(dp), intent(in) :: polygon(:, :) !< Polygon coordinates as (n_vertices, 2): x/lon, y/lat.
+    logical, allocatable, intent(out) :: poly_mask(:, :) !< Polygon mask, allocated with shape (nx, ny).
+    logical, optional, intent(in) :: use_aux !< Use auxiliary lon/lat cell centers.
+
+    real(dp), allocatable :: polygon_norm(:, :)
+    real(dp) :: point(2)
+    real(dp) :: x_min, x_max, y_min, y_max
+    integer(i4) :: i, j, in_poly
+    integer(i8) :: k
+    logical :: use_aux_, normalize_longitudes
+
+    if (.not. allocated(this%mask)) call error_message("grid%polygon_mask: grid has no mask.") ! LCOV_EXCL_LINE
+    if (size(polygon, 2) /= 2_i4) call error_message("grid%polygon_mask: polygon must have shape (n, 2).") ! LCOV_EXCL_LINE
+    if (size(polygon, 1) < 3_i4) call error_message("grid%polygon_mask: polygon needs at least three vertices.") ! LCOV_EXCL_LINE
+
+    use_aux_ = optval(use_aux, .false.)
+    if (use_aux_ .and. .not. this%has_aux_coords()) then
+      call error_message("grid%polygon_mask: auxiliary coordinates are not allocated.") ! LCOV_EXCL_LINE
+    end if
+
+    normalize_longitudes = this%coordsys == spherical .and. .not. use_aux_
+    allocate(polygon_norm(size(polygon, 1), 2_i4))
+    polygon_norm = polygon
+    if (normalize_longitudes) then
+      do i = 1_i4, size(polygon_norm, 1)
+        polygon_norm(i, 1) = this%map_longitude_for_domain(polygon_norm(i, 1))
+      end do
+    end if
+
+    x_min = minval(polygon_norm(:, 1))
+    x_max = maxval(polygon_norm(:, 1))
+    y_min = minval(polygon_norm(:, 2))
+    y_max = maxval(polygon_norm(:, 2))
+
+    allocate(poly_mask(this%nx, this%ny))
+
+    !$omp parallel default(shared) private(i,j,k,point,in_poly)
+    !$omp do schedule(static)
+    do j = 1_i4, this%ny
+      poly_mask(:, j) = .false.
+    end do
+    !$omp end do
+
+    !$omp do schedule(static)
+    do k = 1_i8, this%ncells
+      i = this%cell_ij(k, 1)
+      j = this%cell_ij(k, 2)
+
+      if (use_aux_) then
+        point = [this%lon(i, j), this%lat(i, j)]
+      else
+        point = [this%x_center(i), this%y_center(j)]
+        if (normalize_longitudes) point(1) = this%map_longitude_for_domain(point(1))
+      end if
+
+      if (point(1) < x_min .or. point(1) > x_max .or. point(2) < y_min .or. point(2) > y_max) cycle
+
+      call inpoly(point, polygon_norm, in_poly)
+      poly_mask(i, j) = in_poly >= 0_i4
+    end do
+    !$omp end do
+    !$omp end parallel
+  end subroutine grid_polygon_mask
 
   !> \brief Copy grid metadata and optionally replace mask and cell area.
   subroutine grid_copy_to(this, new_grid, mask, cell_area)

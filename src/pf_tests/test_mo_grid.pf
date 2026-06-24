@@ -17,6 +17,7 @@ module test_mo_grid
   public :: test_mask_ids_and_pack
   public :: test_border_mask
   public :: test_connected_mask
+  public :: test_polygon_mask
   public :: test_copy_to
   public :: test_fill_ids
   public :: test_area_and_periodicity
@@ -299,6 +300,63 @@ contains
     call sph_grid%connected_mask(coords, grid_component)
     @assertEqual(grid_component, wrap_expected, message='grid connected_mask wraps periodic spherical x-neighbors')
   end subroutine test_connected_mask
+
+  @test
+  subroutine test_polygon_mask()
+    implicit none
+    type(grid_t) :: grid, aux_grid, sph_grid
+    logical :: mask(4, 3), expected(4, 3), aux_expected(3, 2)
+    logical, allocatable :: poly_mask(:, :)
+    logical, allocatable :: sph_expected(:, :)
+    real(dp) :: polygon(4, 2), aux_polygon(4, 2), sph_polygon(4, 2)
+
+    mask = .true.
+    mask(2, 2) = .false.
+    mask(3, 3) = .false.
+    call grid%init(nx=4, ny=3, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=1.0_dp, &
+                   coordsys=cartesian, y_direction=bottom_up, mask=mask)
+
+    polygon(1, :) = [1.5_dp, 0.5_dp]
+    polygon(2, :) = [3.5_dp, 0.5_dp]
+    polygon(3, :) = [3.5_dp, 2.5_dp]
+    polygon(4, :) = [1.5_dp, 2.5_dp]
+    call grid%polygon_mask(polygon, poly_mask)
+
+    expected = .false.
+    expected(2:4, 1:3) = .true.
+    expected(2, 2) = .false.
+    expected(3, 3) = .false.
+    @assertEqual(poly_mask, expected, message='polygon_mask includes boundary centers and intersects the active mask')
+
+    call aux_grid%init(nx=3, ny=2, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    allocate(aux_grid%lon(3, 2), aux_grid%lat(3, 2))
+    aux_grid%lon = reshape([10.0_dp, 20.0_dp, 30.0_dp, 10.0_dp, 20.0_dp, 30.0_dp], [3, 2])
+    aux_grid%lat = reshape([50.0_dp, 50.0_dp, 50.0_dp, 60.0_dp, 60.0_dp, 60.0_dp], [3, 2])
+
+    aux_polygon(1, :) = [15.0_dp, 45.0_dp]
+    aux_polygon(2, :) = [25.0_dp, 45.0_dp]
+    aux_polygon(3, :) = [25.0_dp, 55.0_dp]
+    aux_polygon(4, :) = [15.0_dp, 55.0_dp]
+    call aux_grid%polygon_mask(aux_polygon, poly_mask, use_aux=.true.)
+
+    aux_expected = .false.
+    aux_expected(2, 1) = .true.
+    @assertEqual(poly_mask, aux_expected, message='polygon_mask can use auxiliary lon-lat centers')
+
+    call sph_grid%init(nx=360, ny=1, xllcorner=0.0_dp, yllcorner=69.5_dp, cellsize=1.0_dp, &
+                       coordsys=spherical, y_direction=bottom_up)
+
+    sph_polygon(1, :) = [-45.0_dp, 69.0_dp]
+    sph_polygon(2, :) = [-43.0_dp, 69.0_dp]
+    sph_polygon(3, :) = [-43.0_dp, 71.0_dp]
+    sph_polygon(4, :) = [-45.0_dp, 71.0_dp]
+    call sph_grid%polygon_mask(sph_polygon, poly_mask)
+
+    allocate(sph_expected(360, 1))
+    sph_expected = .false.
+    sph_expected(316:317, 1) = .true.
+    @assertEqual(poly_mask, sph_expected, message='polygon_mask normalizes negative longitudes on regular spherical grids')
+  end subroutine test_polygon_mask
 
   @test
   subroutine test_copy_to()
