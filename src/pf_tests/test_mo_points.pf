@@ -20,6 +20,7 @@ module test_mo_points
   public :: test_points_time_series_io
   public :: test_points_time_t_and_ids
   public :: test_points_polygon_mask
+  public :: test_points_copy_to
   public :: test_nearest_regridding
 
 contains
@@ -51,6 +52,44 @@ contains
 
     @assertEqual(mask, [.true., .false., .false.], message='points polygon_mask uses stored spherical longitude convention')
   end subroutine test_points_polygon_mask
+
+  @test
+  subroutine test_points_copy_to()
+    type(points_t) :: points, same, masked, boxed, both, empty, sph, sph_boxed
+    logical :: point_mask(5), empty_mask(5)
+
+    call points%init([0.0_dp, 1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp], &
+                     [0.0_dp, 1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp], coordsys=cartesian)
+
+    call points%copy_to(same)
+    @assertTrue(points%is_matching(same), message='points copy_to without selection preserves coordinates')
+    @assertEqual(same%coordsys, cartesian, message='points copy_to preserves coordinate system')
+
+    point_mask = [.true., .false., .true., .false., .true.]
+    call points%copy_to(masked, mask=point_mask)
+    @assertEqual(masked%n_points, 3_i8, message='points copy_to mask updates point count')
+    @assertEqual(masked%x, [0.0_dp, 2.0_dp, 4.0_dp], tolerance=1.0e-12_dp, message='points copy_to mask preserves source order')
+    @assertEqual(masked%y, [0.0_dp, 2.0_dp, 4.0_dp], tolerance=1.0e-12_dp, message='points copy_to mask copies y')
+
+    call points%copy_to(boxed, bbox=[1.0_dp, 1.0_dp, 3.0_dp, 3.0_dp])
+    @assertEqual(boxed%x, [1.0_dp, 2.0_dp, 3.0_dp], tolerance=1.0e-12_dp, message='points copy_to bbox includes boundaries')
+    @assertEqual(boxed%y, [1.0_dp, 2.0_dp, 3.0_dp], tolerance=1.0e-12_dp, message='points copy_to bbox copies y')
+
+    call points%copy_to(both, mask=point_mask, bbox=[1.0_dp, 1.0_dp, 3.0_dp, 3.0_dp])
+    @assertEqual(both%n_points, 1_i8, message='points copy_to combines mask and bbox')
+    @assertEqual(both%x, [2.0_dp], tolerance=1.0e-12_dp, message='points copy_to combined selection copies x')
+
+    empty_mask = .false.
+    call points%copy_to(empty, mask=empty_mask)
+    @assertEqual(empty%n_points, 0_i8, message='points copy_to supports empty selections')
+    @assertTrue(allocated(empty%x), message='points copy_to allocates empty x')
+    @assertTrue(allocated(empty%y), message='points copy_to allocates empty y')
+
+    call sph%init([-44.5_dp, -42.5_dp, 315.5_dp], [70.0_dp, 70.0_dp, 70.0_dp], coordsys=spherical)
+    call sph%copy_to(sph_boxed, bbox=[-45.0_dp, 69.0_dp, -43.0_dp, 71.0_dp])
+    @assertEqual(sph_boxed%x, [-44.5_dp], tolerance=1.0e-12_dp, message='points copy_to bbox uses stored longitudes')
+    @assertEqual(sph_boxed%coordsys, spherical, message='points copy_to preserves spherical coordinate system')
+  end subroutine test_points_copy_to
 
   @test
   subroutine test_read_scc_gauges()
