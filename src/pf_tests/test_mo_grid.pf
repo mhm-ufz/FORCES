@@ -361,10 +361,13 @@ contains
   @test
   subroutine test_copy_to()
     implicit none
-    type(grid_t) :: grid, same, masked, explicit_area
-    logical :: mask(3, 2), new_mask(3, 2)
+    type(grid_t) :: grid, same, masked, explicit_area, sub_default, sub_keep, sup_keep, mixed_keep
+    type(grid_t) :: crop, crop_explicit, crop_sub_keep, crop_sup_keep, top_grid, top_crop
+    logical :: mask(3, 2), mixed_mask(3, 2), sub_mask(3, 2), sup_mask(3, 2)
+    logical :: crop_expected_mask(2, 1), crop_sub_mask(3, 2), crop_sup_mask(3, 2), top_expected_mask(1, 1)
     real(dp) :: area(3, 2)
     real(dp), allocatable :: area_packed(:), expected_area(:)
+    real(dp) :: expected_crop_lat(2, 1), expected_crop_vertices(3, 2)
     integer(i8) :: i
 
     mask = reshape([.true., .false., .true., .true., .true., .false.], [3, 2])
@@ -375,24 +378,86 @@ contains
     grid%lon = grid%lat + 10.0_dp
     grid%lat_vertices = reshape([(real(i, dp), i=1_i8, 12_i8)], [4, 3])
     grid%lon_vertices = grid%lat_vertices + 20.0_dp
+    grid%cell_area = [101.0_dp, 102.0_dp, 103.0_dp, 104.0_dp]
 
     call grid%copy_to(same)
     @assertTrue(grid%is_matching(same, aux=.true.), message='copy_to without mask preserves grid and aux metadata')
     @assertEqual(same%cell_area, grid%cell_area, tolerance=1.0e-12_dp, message='copy_to without mask preserves packed area')
 
-    new_mask = reshape([.true., .true., .true., .false., .true., .true.], [3, 2])
-    call grid%copy_to(masked, mask=new_mask)
-    @assertEqual(masked%ncells, count(new_mask, kind=i8), message='copy_to with mask updates active-cell count')
-    @assertEqual(masked%mask, new_mask, message='copy_to with mask stores the new mask')
+    mixed_mask = reshape([.true., .true., .true., .false., .true., .true.], [3, 2])
+    call grid%copy_to(masked, mask=mixed_mask)
+    @assertEqual(masked%ncells, count(mixed_mask, kind=i8), message='copy_to with mask updates active-cell count')
+    @assertEqual(masked%mask, mixed_mask, message='copy_to with mask stores the new mask')
     allocate(expected_area(masked%ncells), source=4.0_dp)
     @assertEqual(masked%cell_area, expected_area, tolerance=1.0e-12_dp, message='copy_to with mask recalculates regular cell area')
     @assertEqual(masked%lat, grid%lat, tolerance=1.0e-12_dp, message='copy_to with mask preserves aux centers')
     @assertEqual(masked%lat_vertices, grid%lat_vertices, tolerance=1.0e-12_dp, message='copy_to with mask preserves aux vertices')
 
+    sub_mask = reshape([.true., .false., .false., .true., .true., .false.], [3, 2])
+    call grid%copy_to(sub_default, mask=sub_mask)
+    deallocate(expected_area)
+    allocate(expected_area(sub_default%ncells), source=4.0_dp)
+    @assertEqual(sub_default%cell_area, expected_area, tolerance=1.0e-12_dp, message='sub-mask recalculates area by default')
+    call grid%copy_to(sub_keep, mask=sub_mask, keep_sub_cell_area=.true.)
+    expected_area = [101.0_dp, 103.0_dp, 104.0_dp]
+    @assertEqual(sub_keep%cell_area, expected_area, tolerance=1.0e-12_dp, message='sub-mask can preserve source area')
+
+    sup_mask = reshape([.true., .true., .true., .true., .true., .false.], [3, 2])
+    call grid%copy_to(sup_keep, mask=sup_mask, keep_sub_cell_area=.true.)
+    deallocate(expected_area)
+    allocate(expected_area(sup_keep%ncells), source=4.0_dp)
+    @assertEqual(sup_keep%cell_area, expected_area, tolerance=1.0e-12_dp, message='sup-mask recalculates area')
+    call grid%copy_to(mixed_keep, mask=mixed_mask, keep_sub_cell_area=.true.)
+    deallocate(expected_area)
+    allocate(expected_area(mixed_keep%ncells), source=4.0_dp)
+    @assertEqual(mixed_keep%cell_area, expected_area, tolerance=1.0e-12_dp, message='mixed-mask recalculates area')
+
     area = reshape([(10.0_dp + real(i, dp), i=1_i8, 6_i8)], [3, 2])
-    area_packed = pack(area, new_mask)
-    call grid%copy_to(explicit_area, mask=new_mask, cell_area=area)
+    area_packed = pack(area, mixed_mask)
+    call grid%copy_to(explicit_area, mask=mixed_mask, cell_area=area, keep_sub_cell_area=.true.)
     @assertEqual(explicit_area%cell_area, area_packed, tolerance=1.0e-12_dp, message='copy_to packs explicit 2D area')
+
+    call grid%copy_to(crop, bbox=[12.0_dp, 20.0_dp, 16.0_dp, 22.0_dp])
+    crop_expected_mask = reshape([.false., .true.], [2, 1])
+    expected_crop_lat = reshape([2.0_dp, 3.0_dp], [2, 1])
+    expected_crop_vertices = reshape([2.0_dp, 3.0_dp, 4.0_dp, 6.0_dp, 7.0_dp, 8.0_dp], [3, 2])
+    @assertEqual(crop%nx, 2_i4, message='bbox crop updates x dimension')
+    @assertEqual(crop%ny, 1_i4, message='bbox crop updates y dimension')
+    @assertEqual(crop%xllcorner, 12.0_dp, tolerance=1.0e-12_dp, message='bbox crop updates x lower-left')
+    @assertEqual(crop%yllcorner, 20.0_dp, tolerance=1.0e-12_dp, message='bbox crop updates y lower-left')
+    @assertEqual(crop%mask, crop_expected_mask, message='bbox crop cuts the source mask')
+    deallocate(expected_area)
+    allocate(expected_area(1), source=102.0_dp)
+    @assertEqual(crop%cell_area, expected_area, tolerance=1.0e-12_dp, message='bbox crop preserves source packed area')
+    @assertEqual(crop%lat, expected_crop_lat, tolerance=1.0e-12_dp, message='bbox crop cuts aux centers')
+    @assertEqual(crop%lat_vertices, expected_crop_vertices, tolerance=1.0e-12_dp, message='bbox crop cuts aux vertices')
+
+    area_packed = [12.0_dp, 13.0_dp, 15.0_dp, 16.0_dp]
+    call grid%copy_to(crop_explicit, mask=mixed_mask, cell_area=area, &
+                      bbox=[12.0_dp, 20.0_dp, 16.0_dp, 24.0_dp])
+    @assertEqual(crop_explicit%cell_area, area_packed, tolerance=1.0e-12_dp, message='bbox packs explicit area slice')
+
+    crop_sub_mask = mask
+    crop_sub_mask(2, 2) = .false.
+    call grid%copy_to(crop_sub_keep, mask=crop_sub_mask, keep_sub_cell_area=.true., bbox=[10.0_dp, 20.0_dp, 14.0_dp, 24.0_dp])
+    deallocate(expected_area)
+    allocate(expected_area(2))
+    expected_area = [101.0_dp, 103.0_dp]
+    @assertEqual(crop_sub_keep%cell_area, expected_area, tolerance=1.0e-12_dp, message='bbox sub-mask can preserve source area')
+
+    crop_sup_mask = mask
+    crop_sup_mask(2, 1) = .true.
+    call grid%copy_to(crop_sup_keep, mask=crop_sup_mask, keep_sub_cell_area=.true., bbox=[12.0_dp, 20.0_dp, 16.0_dp, 22.0_dp])
+    deallocate(expected_area)
+    allocate(expected_area(crop_sup_keep%ncells), source=4.0_dp)
+    @assertEqual(crop_sup_keep%cell_area, expected_area, tolerance=1.0e-12_dp, message='bbox sup-mask recalculates area')
+
+    call top_grid%init(nx=3, ny=2, xllcorner=10.0_dp, yllcorner=20.0_dp, cellsize=2.0_dp, y_direction=top_down, mask=mask)
+    call top_grid%copy_to(top_crop, bbox=[10.0_dp, 22.0_dp, 12.0_dp, 24.0_dp])
+    top_expected_mask = reshape([.true.], [1, 1])
+    @assertEqual(top_crop%y_direction, top_down, message='bbox crop preserves top-down y direction')
+    @assertEqual(top_crop%yllcorner, 22.0_dp, tolerance=1.0e-12_dp, message='bbox crop uses physical y range')
+    @assertEqual(top_crop%mask, top_expected_mask, message='bbox crop maps top-down y rows')
   end subroutine test_copy_to
 
   @test
