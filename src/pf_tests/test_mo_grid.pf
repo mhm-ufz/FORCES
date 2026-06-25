@@ -365,9 +365,12 @@ contains
     type(grid_t) :: crop, crop_explicit, crop_sub_keep, crop_sup_keep, top_grid, top_crop
     logical :: mask(3, 2), mixed_mask(3, 2), sub_mask(3, 2), sup_mask(3, 2)
     logical :: crop_expected_mask(2, 1), crop_sub_mask(3, 2), crop_sup_mask(3, 2), top_expected_mask(1, 1)
+    logical, allocatable :: selection(:, :)
+    logical :: expected_selection(3, 2)
     real(dp) :: area(3, 2)
     real(dp), allocatable :: area_packed(:), expected_area(:)
     real(dp) :: expected_crop_lat(2, 1), expected_crop_vertices(3, 2)
+    integer(i4) :: bbox_ids(4)
     integer(i8) :: i
 
     mask = reshape([.true., .false., .true., .true., .true., .false.], [3, 2])
@@ -417,8 +420,9 @@ contains
     call grid%copy_to(explicit_area, mask=mixed_mask, cell_area=area, keep_sub_cell_area=.true.)
     @assertEqual(explicit_area%cell_area, area_packed, tolerance=1.0e-12_dp, message='copy_to packs explicit 2D area')
 
-    call grid%copy_to(crop, bbox=[12.0_dp, 20.0_dp, 16.0_dp, 22.0_dp])
+    call grid%copy_to(crop, bbox=[12.0_dp, 20.0_dp, 16.0_dp, 22.0_dp], selection=selection, bbox_ids=bbox_ids)
     crop_expected_mask = reshape([.false., .true.], [2, 1])
+    expected_selection = reshape([.false., .false., .true., .false., .false., .false.], [3, 2])
     expected_crop_lat = reshape([2.0_dp, 3.0_dp], [2, 1])
     expected_crop_vertices = reshape([2.0_dp, 3.0_dp, 4.0_dp, 6.0_dp, 7.0_dp, 8.0_dp], [3, 2])
     @assertEqual(crop%nx, 2_i4, message='bbox crop updates x dimension')
@@ -426,6 +430,8 @@ contains
     @assertEqual(crop%xllcorner, 12.0_dp, tolerance=1.0e-12_dp, message='bbox crop updates x lower-left')
     @assertEqual(crop%yllcorner, 20.0_dp, tolerance=1.0e-12_dp, message='bbox crop updates y lower-left')
     @assertEqual(crop%mask, crop_expected_mask, message='bbox crop cuts the source mask')
+    @assertEqual(selection, expected_selection, message='bbox crop returns source-sized selection')
+    @assertEqual(bbox_ids, [2_i4, 1_i4, 3_i4, 1_i4], message='bbox crop returns source storage ids')
     deallocate(expected_area)
     allocate(expected_area(1), source=102.0_dp)
     @assertEqual(crop%cell_area, expected_area, tolerance=1.0e-12_dp, message='bbox crop preserves source packed area')
@@ -453,11 +459,12 @@ contains
     @assertEqual(crop_sup_keep%cell_area, expected_area, tolerance=1.0e-12_dp, message='bbox sup-mask recalculates area')
 
     call top_grid%init(nx=3, ny=2, xllcorner=10.0_dp, yllcorner=20.0_dp, cellsize=2.0_dp, y_direction=top_down, mask=mask)
-    call top_grid%copy_to(top_crop, bbox=[10.0_dp, 22.0_dp, 12.0_dp, 24.0_dp])
+    call top_grid%copy_to(top_crop, bbox=[10.0_dp, 22.0_dp, 12.0_dp, 24.0_dp], bbox_ids=bbox_ids)
     top_expected_mask = reshape([.true.], [1, 1])
     @assertEqual(top_crop%y_direction, top_down, message='bbox crop preserves top-down y direction')
     @assertEqual(top_crop%yllcorner, 22.0_dp, tolerance=1.0e-12_dp, message='bbox crop uses physical y range')
     @assertEqual(top_crop%mask, top_expected_mask, message='bbox crop maps top-down y rows')
+    @assertEqual(bbox_ids, [1_i4, 1_i4, 1_i4, 1_i4], message='top-down bbox ids use source storage order')
   end subroutine test_copy_to
 
   @test

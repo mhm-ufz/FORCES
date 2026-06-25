@@ -133,11 +133,12 @@ contains
   end subroutine points_polygon_mask
 
   !> \brief Copy point metadata and optionally select a subset by mask and/or bounding box.
-  subroutine points_copy_to(this, new_points, mask, bbox)
+  subroutine points_copy_to(this, new_points, mask, bbox, selection)
     class(points_t), intent(in) :: this !< Source point set.
     type(points_t), intent(out) :: new_points !< Copied point set.
     logical, optional, intent(in) :: mask(:) !< Optional source-sized point selection mask.
     real(dp), optional, intent(in) :: bbox(4) !< Optional bounding box [west, south, east, north].
+    logical, allocatable, optional, intent(out) :: selection(:) !< Optional generated source-sized selection mask.
 
     logical, allocatable :: keep(:)
     integer(i8) :: i
@@ -171,6 +172,7 @@ contains
       new_points%x = pack(this%x, keep)
       new_points%y = pack(this%y, keep)
     end if
+    if (present(selection)) call move_alloc(keep, selection)
   end subroutine points_copy_to
 
   !> \brief Build a spatial nearest-neighbor index for the point coordinates.

@@ -57,6 +57,7 @@ contains
   subroutine test_points_copy_to()
     type(points_t) :: points, same, masked, boxed, both, empty, sph, sph_boxed
     logical :: point_mask(5), empty_mask(5)
+    logical, allocatable :: selection(:)
 
     call points%init([0.0_dp, 1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp], &
                      [0.0_dp, 1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp], coordsys=cartesian)
@@ -75,9 +76,10 @@ contains
     @assertEqual(boxed%x, [1.0_dp, 2.0_dp, 3.0_dp], tolerance=1.0e-12_dp, message='points copy_to bbox includes boundaries')
     @assertEqual(boxed%y, [1.0_dp, 2.0_dp, 3.0_dp], tolerance=1.0e-12_dp, message='points copy_to bbox copies y')
 
-    call points%copy_to(both, mask=point_mask, bbox=[1.0_dp, 1.0_dp, 3.0_dp, 3.0_dp])
+    call points%copy_to(both, mask=point_mask, bbox=[1.0_dp, 1.0_dp, 3.0_dp, 3.0_dp], selection=selection)
     @assertEqual(both%n_points, 1_i8, message='points copy_to combines mask and bbox')
     @assertEqual(both%x, [2.0_dp], tolerance=1.0e-12_dp, message='points copy_to combined selection copies x')
+    @assertEqual(selection, [.false., .false., .true., .false., .false.], message='points copy_to returns generated selection')
 
     empty_mask = .false.
     call points%copy_to(empty, mask=empty_mask)

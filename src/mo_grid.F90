@@ -1322,7 +1322,7 @@ contains
   end subroutine grid_polygon_mask
 
   !> \brief Copy grid metadata and optionally replace mask and cell area.
-  subroutine grid_copy_to(this, new_grid, mask, cell_area, keep_sub_cell_area, bbox)
+  subroutine grid_copy_to(this, new_grid, mask, cell_area, keep_sub_cell_area, bbox, selection, bbox_ids)
     implicit none
     class(grid_t), intent(in) :: this !< Source grid.
     type(grid_t), intent(out) :: new_grid !< Copied grid.
@@ -1330,9 +1330,12 @@ contains
     real(dp), optional, intent(in) :: cell_area(:, :) !< Optional full-grid cell area with shape (nx, ny).
     logical, optional, intent(in) :: keep_sub_cell_area !< Preserve source cell areas when target mask is a pure sub-mask.
     real(dp), optional, intent(in) :: bbox(4) !< Optional crop bounding box [west, south, east, north].
+    logical, allocatable, optional, intent(out) :: selection(:, :) !< Optional generated source-grid-sized selection mask.
+    integer(i4), optional, intent(out) :: bbox_ids(4) !< Optional crop ids [i_lb, j_lb, i_ub, j_ub] in source storage order.
 
     integer(i4) :: i, i_new, i_src, i_lb, i_ub, j, j_lb, j_src, j_ub, y_phys_lb, y_phys_ub
     integer(i8) :: k, ks, kt
+    logical, allocatable :: selection_(:, :)
     logical :: col_same_mask, col_sup_mask, cropped, invalid_area, keep_sub_cell_area_, same_mask, sub_mask, sup_mask
 
     if (.not. allocated(this%mask)) call error_message("grid%copy_to: source grid has no mask.") ! LCOV_EXCL_LINE
@@ -1370,6 +1373,7 @@ contains
       y_phys_ub = this%ny
       cropped = .false.
     end if
+    if (present(bbox_ids)) bbox_ids = [i_lb, j_lb, i_ub, j_ub]
 
     keep_sub_cell_area_ = optval(keep_sub_cell_area, .false.)
     new_grid%nx = i_ub - i_lb + 1_i4
@@ -1379,6 +1383,15 @@ contains
     new_grid%cellsize = this%cellsize
     new_grid%coordsys = this%coordsys
     new_grid%y_direction = this%y_direction
+
+    if (present(selection)) then
+      allocate(selection_(this%nx, this%ny))
+      !$omp parallel do default(shared) schedule(static)
+      do j = 1_i4, this%ny
+        selection_(:, j) = .false.
+      end do
+      !$omp end parallel do
+    end if
 
     allocate(new_grid%mask(new_grid%nx, new_grid%ny))
     if (present(mask)) then
@@ -1393,6 +1406,7 @@ contains
         do i = 1_i4, new_grid%nx
           i_src = i + i_lb - 1_i4
           new_grid%mask(i, j) = mask(i_src, j_src)
+          if (present(selection)) selection_(i_src, j_src) = new_grid%mask(i, j)
           col_same_mask = col_same_mask .and. (mask(i_src, j_src) .eqv. this%mask(i_src, j_src))
           col_sup_mask = col_sup_mask .or. (mask(i_src, j_src) .and. .not. this%mask(i_src, j_src))
         end do
@@ -1407,6 +1421,7 @@ contains
       do j = 1_i4, new_grid%ny
         j_src = j + j_lb - 1_i4
         new_grid%mask(:, j) = this%mask(i_lb:i_ub, j_src)
+        if (present(selection)) selection_(i_lb:i_ub, j_src) = new_grid%mask(:, j)
       end do
       !$omp end parallel do
     end if
@@ -1489,6 +1504,7 @@ contains
     else
       call new_grid%calculate_cell_area()
     end if
+    if (present(selection)) call move_alloc(selection_, selection)
   end subroutine grid_copy_to
 
   !> \brief Map a matching target grid to packed source cell ids.
