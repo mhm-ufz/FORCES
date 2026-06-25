@@ -1333,9 +1333,8 @@ contains
     logical, allocatable, optional, intent(out) :: selection(:, :) !< Optional generated source-grid-sized selection mask.
     integer(i4), optional, intent(out) :: bbox_ids(4) !< Optional crop ids [i_lb, j_lb, i_ub, j_ub] in source storage order.
 
-    integer(i4) :: i, i_new, i_src, i_lb, i_ub, j, j_lb, j_src, j_ub, y_phys_lb, y_phys_ub
+    integer(i4) :: i, i_new, i_src, i_lb, i_ub, j, j_lb, j_src, j_ub
     integer(i8) :: k, ks, kt
-    logical, allocatable :: selection_(:, :)
     logical :: col_same_mask, col_sup_mask, cropped, invalid_area, keep_sub_cell_area_, same_mask, sub_mask, sup_mask
 
     if (.not. allocated(this%mask)) call error_message("grid%copy_to: source grid has no mask.") ! LCOV_EXCL_LINE
@@ -1345,32 +1344,62 @@ contains
       if (any(.not. is_finite(bbox)) .or. bbox(1) >= bbox(3) .or. bbox(2) >= bbox(4)) then
         call error_message("grid%copy_to: bbox needs finite values with west < east and south < north.") ! LCOV_EXCL_LINE
       end if
-      i_lb = floor((bbox(1) - this%xllcorner) / this%cellsize, kind=i4) + 1_i4
-      i_ub = ceiling((bbox(3) - this%xllcorner) / this%cellsize, kind=i4)
-      y_phys_lb = floor((bbox(2) - this%yllcorner) / this%cellsize, kind=i4) + 1_i4
-      y_phys_ub = ceiling((bbox(4) - this%yllcorner) / this%cellsize, kind=i4)
-      if (i_ub < 1_i4 .or. i_lb > this%nx .or. y_phys_ub < 1_i4 .or. y_phys_lb > this%ny) then
+      i_lb = this%nx + 1_i4
+      do i = 1_i4, this%nx
+        if (this%x_center(i) >= bbox(1)) then
+          i_lb = i
+          exit
+        end if
+      end do
+      i_ub = 0_i4
+      do i = this%nx, 1_i4, -1_i4
+        if (this%x_center(i) <= bbox(3)) then
+          i_ub = i
+          exit
+        end if
+      end do
+      j_lb = this%ny + 1_i4
+      j_ub = 0_i4
+      if (this%y_direction == top_down) then
+        do j = 1_i4, this%ny
+          if (this%y_center(j) <= bbox(4)) then
+            j_lb = j
+            exit
+          end if
+        end do
+        do j = this%ny, 1_i4, -1_i4
+          if (this%y_center(j) >= bbox(2)) then
+            j_ub = j
+            exit
+          end if
+        end do
+      else
+        do j = 1_i4, this%ny
+          if (this%y_center(j) >= bbox(2)) then
+            j_lb = j
+            exit
+          end if
+        end do
+        do j = this%ny, 1_i4, -1_i4
+          if (this%y_center(j) <= bbox(4)) then
+            j_ub = j
+            exit
+          end if
+        end do
+      end if
+      if (i_ub < 1_i4 .or. i_lb > this%nx .or. j_ub < 1_i4 .or. j_lb > this%ny) then
         call error_message("grid%copy_to: bbox does not overlap source grid.") ! LCOV_EXCL_LINE
       end if
       i_lb = max(1_i4, i_lb)
       i_ub = min(this%nx, i_ub)
-      y_phys_lb = max(1_i4, y_phys_lb)
-      y_phys_ub = min(this%ny, y_phys_ub)
-      if (this%y_direction == top_down) then
-        j_lb = this%ny - y_phys_ub + 1_i4
-        j_ub = this%ny - y_phys_lb + 1_i4
-      else
-        j_lb = y_phys_lb
-        j_ub = y_phys_ub
-      end if
+      j_lb = max(1_i4, j_lb)
+      j_ub = min(this%ny, j_ub)
       cropped = i_lb /= 1_i4 .or. i_ub /= this%nx .or. j_lb /= 1_i4 .or. j_ub /= this%ny
     else
       i_lb = 1_i4
       i_ub = this%nx
       j_lb = 1_i4
       j_ub = this%ny
-      y_phys_lb = 1_i4
-      y_phys_ub = this%ny
       cropped = .false.
     end if
     if (present(bbox_ids)) bbox_ids = [i_lb, j_lb, i_ub, j_ub]
@@ -1379,16 +1408,20 @@ contains
     new_grid%nx = i_ub - i_lb + 1_i4
     new_grid%ny = j_ub - j_lb + 1_i4
     new_grid%xllcorner = this%xllcorner + real(i_lb - 1_i4, dp) * this%cellsize
-    new_grid%yllcorner = this%yllcorner + real(y_phys_lb - 1_i4, dp) * this%cellsize
+    if (this%y_direction == top_down) then
+      new_grid%yllcorner = this%yllcorner + real(this%ny - j_ub, dp) * this%cellsize
+    else
+      new_grid%yllcorner = this%yllcorner + real(j_lb - 1_i4, dp) * this%cellsize
+    end if
     new_grid%cellsize = this%cellsize
     new_grid%coordsys = this%coordsys
     new_grid%y_direction = this%y_direction
 
     if (present(selection)) then
-      allocate(selection_(this%nx, this%ny))
+      allocate(selection(this%nx, this%ny))
       !$omp parallel do default(shared) schedule(static)
       do j = 1_i4, this%ny
-        selection_(:, j) = .false.
+        selection(:, j) = .false.
       end do
       !$omp end parallel do
     end if
@@ -1406,7 +1439,7 @@ contains
         do i = 1_i4, new_grid%nx
           i_src = i + i_lb - 1_i4
           new_grid%mask(i, j) = mask(i_src, j_src)
-          if (present(selection)) selection_(i_src, j_src) = new_grid%mask(i, j)
+          if (present(selection)) selection(i_src, j_src) = new_grid%mask(i, j)
           col_same_mask = col_same_mask .and. (mask(i_src, j_src) .eqv. this%mask(i_src, j_src))
           col_sup_mask = col_sup_mask .or. (mask(i_src, j_src) .and. .not. this%mask(i_src, j_src))
         end do
@@ -1421,7 +1454,7 @@ contains
       do j = 1_i4, new_grid%ny
         j_src = j + j_lb - 1_i4
         new_grid%mask(:, j) = this%mask(i_lb:i_ub, j_src)
-        if (present(selection)) selection_(i_lb:i_ub, j_src) = new_grid%mask(:, j)
+        if (present(selection)) selection(i_lb:i_ub, j_src) = new_grid%mask(:, j)
       end do
       !$omp end parallel do
     end if
@@ -1504,7 +1537,6 @@ contains
     else
       call new_grid%calculate_cell_area()
     end if
-    if (present(selection)) call move_alloc(selection_, selection)
   end subroutine grid_copy_to
 
   !> \brief Map a matching target grid to packed source cell ids.

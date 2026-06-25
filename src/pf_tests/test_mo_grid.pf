@@ -363,10 +363,12 @@ contains
     implicit none
     type(grid_t) :: grid, same, masked, explicit_area, sub_default, sub_keep, sup_keep, mixed_keep
     type(grid_t) :: crop, crop_explicit, crop_sub_keep, crop_sup_keep, top_grid, top_crop
+    type(grid_t) :: edge_grid, edge_crop
     logical :: mask(3, 2), mixed_mask(3, 2), sub_mask(3, 2), sup_mask(3, 2)
     logical :: crop_expected_mask(2, 1), crop_sub_mask(3, 2), crop_sup_mask(3, 2), top_expected_mask(1, 1)
     logical, allocatable :: selection(:, :)
     logical :: expected_selection(3, 2)
+    logical :: edge_expected_selection(5, 1)
     real(dp) :: area(3, 2)
     real(dp), allocatable :: area_packed(:), expected_area(:)
     real(dp) :: expected_crop_lat(2, 1), expected_crop_vertices(3, 2)
@@ -465,6 +467,14 @@ contains
     @assertEqual(top_crop%yllcorner, 22.0_dp, tolerance=1.0e-12_dp, message='bbox crop uses physical y range')
     @assertEqual(top_crop%mask, top_expected_mask, message='bbox crop maps top-down y rows')
     @assertEqual(bbox_ids, [1_i4, 1_i4, 1_i4, 1_i4], message='top-down bbox ids use source storage order')
+
+    call edge_grid%init(nx=5, ny=1, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=0.1_dp, y_direction=bottom_up)
+    call edge_grid%copy_to(edge_crop, bbox=[0.1_dp, 0.0_dp, 0.3_dp, 0.1_dp], selection=selection, bbox_ids=bbox_ids)
+    edge_expected_selection = reshape([.false., .true., .true., .false., .false.], [5, 1])
+    @assertEqual(edge_crop%nx, 2_i4, message='bbox crop uses center-based x selection')
+    @assertEqual(edge_crop%xllcorner, 0.1_dp, tolerance=1.0e-12_dp, message='bbox crop excludes border-touching outside cell')
+    @assertEqual(selection, edge_expected_selection, message='bbox crop selection uses cell centers')
+    @assertEqual(bbox_ids, [2_i4, 1_i4, 3_i4, 1_i4], message='bbox crop center ids exclude border-touching cells')
   end subroutine test_copy_to
 
   @test
