@@ -1661,6 +1661,7 @@ contains
     integer(i4), dimension(:), allocatable :: temp
 
     integer(i4) :: up_operator, down_operator
+    integer(i8) :: k
     call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
     call this%check_packed_target(size(out_data, kind=i8))
     call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
@@ -1684,17 +1685,29 @@ contains
         case (up_min)
           allocate(temp(this%coarse_grid%ncells))
           call this%upscale_min(in_data, temp)
-          out_data = real(temp, dp)
+          !$omp parallel do default(shared) schedule(static)
+          do k = 1_i8, this%coarse_grid%ncells
+            out_data(k) = real(temp(k), dp)
+          end do
+          !$omp end parallel do
           deallocate(temp)
         case (up_max)
           allocate(temp(this%coarse_grid%ncells))
           call this%upscale_max(in_data, temp)
-          out_data = real(temp, dp)
+          !$omp parallel do default(shared) schedule(static)
+          do k = 1_i8, this%coarse_grid%ncells
+            out_data(k) = real(temp(k), dp)
+          end do
+          !$omp end parallel do
           deallocate(temp)
         case (up_sum)
           allocate(temp(this%coarse_grid%ncells))
           call this%upscale_sum(in_data, temp)
-          out_data = real(temp, dp)
+          !$omp parallel do default(shared) schedule(static)
+          do k = 1_i8, this%coarse_grid%ncells
+            out_data(k) = real(temp(k), dp)
+          end do
+          !$omp end parallel do
           deallocate(temp)
         case (up_var)
           call this%upscale_var(real(in_data, dp), out_data)
@@ -1705,7 +1718,11 @@ contains
         case (up_laf)
           allocate(temp(this%coarse_grid%ncells))
           call this%upscale_laf(in_data, temp, vmin, vmax)
-          out_data = real(temp, dp)
+          !$omp parallel do default(shared) schedule(static)
+          do k = 1_i8, this%coarse_grid%ncells
+            out_data(k) = real(temp(k), dp)
+          end do
+          !$omp end parallel do
           deallocate(temp)
         case (up_fraction)
           call this%upscale_fraction(in_data, out_data, class_id)
@@ -2064,10 +2081,15 @@ contains
     class(scaler_t), intent(inout) :: this
     real(dp), intent(in) :: in_data(:, :)
     real(dp), intent(out) :: out_data(:)
+    integer(i8) :: k
     call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
     call this%check_packed_target(size(out_data, kind=i8))
     call this%upscale_var(in_data, out_data)
-    out_data = sqrt(out_data)
+    !$omp parallel do default(shared) schedule(static)
+    do k = 1_i8, size(out_data, kind=i8)
+      out_data(k) = sqrt(out_data(k))
+    end do
+    !$omp end parallel do
   end subroutine scaler_upscale_std
 
   subroutine scaler_upscale_median(this, in_data, out_data)
@@ -2102,7 +2124,7 @@ contains
     integer(i4), intent(out) :: out_data(:)
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up operator
-    integer(i4) :: i, laf_v, cnt_v, cnt_i, min_v, max_v
+    integer(i4) :: i, j, laf_v, cnt_v, cnt_i, min_v, max_v
     integer(i8) :: k
     integer(i4) :: x_lb, x_ub, y_lb, y_ub
     call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
@@ -2112,12 +2134,26 @@ contains
     if (present(vmin)) then
       min_v = vmin
     else
-      min_v = minval(in_data)
+      min_v = huge(min_v)
+      !$omp parallel do default(shared) private(i) reduction(min:min_v) schedule(static)
+      do j = 1_i4, size(in_data, 2)
+        do i = 1_i4, size(in_data, 1)
+          min_v = min(min_v, in_data(i, j))
+        end do
+      end do
+      !$omp end parallel do
     endif
     if (present(vmax)) then
       max_v = vmax
     else
-      max_v = maxval(in_data)
+      max_v = -huge(max_v)
+      !$omp parallel do default(shared) private(i) reduction(max:max_v) schedule(static)
+      do j = 1_i4, size(in_data, 2)
+        do i = 1_i4, size(in_data, 1)
+          max_v = max(max_v, in_data(i, j))
+        end do
+      end do
+      !$omp end parallel do
     endif
     if (min_v > max_v) call error_message("upscale_laf: vmin is bigger than vmax.") ! LCOV_EXCL_LINE
 
