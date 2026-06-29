@@ -18,7 +18,7 @@ module mo_grid_scaler
   use mo_kind, only: i4, i8, dp
   use mo_grid, only: grid_t, cartesian, spherical, top_down, bottom_up
   use mo_grid_helper, only: id_bounds, coarse_ij, check_factor, dist_latlon
-  use mo_utils, only: is_close, eq, flipped, optval, prefix_sum
+  use mo_utils, only: is_close, eq, optval, prefix_sum
   use mo_string_utils, only: num2str
   use mo_message, only: error_message
   use mo_constants, only: nodata_i4
@@ -135,6 +135,8 @@ module mo_grid_scaler
     procedure, private :: cell_fraction_count_value => scaler_cell_fraction_count_value
     procedure, private :: scaler_fill_target_dp, scaler_fill_target_i4
     generic, private :: fill_target => scaler_fill_target_dp, scaler_fill_target_i4
+    procedure, private :: scaler_pack_equal_dp, scaler_pack_equal_i4, scaler_pack_equal_i4_dp
+    generic, private :: pack_equal => scaler_pack_equal_dp, scaler_pack_equal_i4, scaler_pack_equal_i4_dp
     procedure, private :: check_packed_source => scaler_check_packed_source
     procedure, private :: check_packed_target => scaler_check_packed_target
     procedure, private :: check_unpacked_source => scaler_check_unpacked_source
@@ -611,6 +613,72 @@ contains
     end do
     !$omp end parallel do
   end subroutine scaler_fill_target_i4
+
+  !> \brief Pack equal-resolution real data in target order, applying y-direction mapping.
+  subroutine scaler_pack_equal_dp(this, in_data, out_data)
+    class(scaler_t), intent(in) :: this
+    real(dp), intent(in) :: in_data(:, :)
+    real(dp), intent(out) :: out_data(:)
+
+    integer(i8) :: k
+    integer(i4) :: i, j, source_j
+
+    !$omp parallel do default(shared) private(k,i,source_j) schedule(static)
+    do j = 1_i4, this%target_grid%ny
+      source_j = merge(j, this%target_grid%ny - j + 1_i4, this%y_dir_match)
+      k = this%target_grid%mask_cum_col_cnt(j)
+      do i = 1_i4, this%target_grid%nx
+        if (.not. this%target_grid%mask(i, j)) cycle
+        k = k + 1_i8
+        out_data(k) = in_data(i, source_j)
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine scaler_pack_equal_dp
+
+  !> \brief Pack equal-resolution integer data in target order, applying y-direction mapping.
+  subroutine scaler_pack_equal_i4(this, in_data, out_data)
+    class(scaler_t), intent(in) :: this
+    integer(i4), intent(in) :: in_data(:, :)
+    integer(i4), intent(out) :: out_data(:)
+
+    integer(i8) :: k
+    integer(i4) :: i, j, source_j
+
+    !$omp parallel do default(shared) private(k,i,source_j) schedule(static)
+    do j = 1_i4, this%target_grid%ny
+      source_j = merge(j, this%target_grid%ny - j + 1_i4, this%y_dir_match)
+      k = this%target_grid%mask_cum_col_cnt(j)
+      do i = 1_i4, this%target_grid%nx
+        if (.not. this%target_grid%mask(i, j)) cycle
+        k = k + 1_i8
+        out_data(k) = in_data(i, source_j)
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine scaler_pack_equal_i4
+
+  !> \brief Pack equal-resolution integer data as real data, applying y-direction mapping.
+  subroutine scaler_pack_equal_i4_dp(this, in_data, out_data)
+    class(scaler_t), intent(in) :: this
+    integer(i4), intent(in) :: in_data(:, :)
+    real(dp), intent(out) :: out_data(:)
+
+    integer(i8) :: k
+    integer(i4) :: i, j, source_j
+
+    !$omp parallel do default(shared) private(k,i,source_j) schedule(static)
+    do j = 1_i4, this%target_grid%ny
+      source_j = merge(j, this%target_grid%ny - j + 1_i4, this%y_dir_match)
+      k = this%target_grid%mask_cum_col_cnt(j)
+      do i = 1_i4, this%target_grid%nx
+        if (.not. this%target_grid%mask(i, j)) cycle
+        k = k + 1_i8
+        out_data(k) = real(in_data(i, source_j), dp)
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine scaler_pack_equal_i4_dp
 
   !> \brief Setup nearest-neighbor regridder from source and target grids.
   !> \details Builds a transient spatial index over the active source cells and
@@ -1416,11 +1484,7 @@ contains
     call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
     ! shortcut if resolution is equal (only masking and flipping)
     if (this%scaling_mode == no_scaling) then
-      if (this%y_dir_match) then
-        call this%target_grid%pack_into(in_data, out_data)
-      else
-        call this%target_grid%pack_into(flipped(in_data, idim=2), out_data)
-      end if
+      call this%pack_equal(in_data, out_data)
     else if (this%scaling_mode == up_scaling) then
       select case (up_operator)
         case (up_p_mean)
@@ -1540,11 +1604,7 @@ contains
     call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
     ! shortcut if resolution is equal (only masking and flipping)
     if (this%scaling_mode == no_scaling) then
-      if (this%y_dir_match) then
-        call this%target_grid%pack_into(in_data, out_data)
-      else
-        call this%target_grid%pack_into(flipped(in_data, idim=2), out_data)
-      end if
+      call this%pack_equal(in_data, out_data)
     else if (this%scaling_mode == up_scaling) then
       select case (up_operator)
         case (up_p_mean)
@@ -1667,11 +1727,7 @@ contains
     call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
     ! shortcut if resolution is equal (only converting, masking and flipping)
     if (this%scaling_mode == no_scaling) then
-      if (this%y_dir_match) then
-        call this%target_grid%pack_into(real(in_data, dp), out_data)
-      else
-        call this%target_grid%pack_into(flipped(real(in_data, dp), idim=2), out_data)
-      end if
+      call this%pack_equal(in_data, out_data)
     else if (this%scaling_mode == up_scaling) then
       select case (up_operator)
         case (up_p_mean)
