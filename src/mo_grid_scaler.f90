@@ -625,11 +625,9 @@ contains
     logical, intent(in), optional :: derive_target_mask
 
     type(spatial_index_t) :: index
-    integer(i4), allocatable :: old_target_cell_ij(:, :)
     real(dp), allocatable :: target_points(:, :)
     integer(i8), allocatable :: nearest_ids(:)
     logical, allocatable :: target_mask(:, :)
-    integer(i8) :: k
     integer(i4) :: j, js
     logical :: use_aux_, derive_target_mask_, matching_native, y_dir_match, target_mask_changed
 
@@ -686,15 +684,8 @@ contains
       call this%derive_target_mask(target_points, nearest_ids, target_mask, target_mask_changed)
 
       if (target_mask_changed) then
-        allocate(old_target_cell_ij(this%target_grid%ncells, 2))
-        !$omp parallel do default(shared) schedule(static) &
-        !$omp& if(this%target_grid%ncells >= nearest_regridder_loop_parallel_min_n)
-        do k = 1_i8, this%target_grid%ncells
-          old_target_cell_ij(k, :) = this%target_grid%cell_ij(k, :)
-        end do
-        !$omp end parallel do
+        call this%repack_id_map(target_mask, nearest_ids)
         call this%apply_target_mask(target_mask)
-        call this%repack_id_map(old_target_cell_ij, nearest_ids)
       else
         call move_alloc(nearest_ids, this%id_map)
       end if
@@ -1076,37 +1067,57 @@ contains
     call this%query_source_ids(index, target_points, this%id_map)
   end subroutine nearest_regridder_build_id_map
 
-  subroutine nearest_regridder_repack_id_map(this, old_target_cell_ij, nearest_ids)
+  subroutine nearest_regridder_repack_id_map(this, target_mask, nearest_ids)
     class(nearest_regridder_t), intent(inout) :: this
-    integer(i4), intent(in) :: old_target_cell_ij(:, :)
+    logical, intent(in) :: target_mask(:, :)
     integer(i8), intent(in) :: nearest_ids(:)
 
-    integer(i8) :: k
+    integer(i8) :: old_k, new_k, n_new
     integer(i4) :: i, j
-    integer(i8), allocatable :: nearest_id_matrix(:, :)
+    integer(i8), allocatable :: new_col_cnt(:), new_cum_col_cnt(:)
+    logical :: invalid_mask
 
-    if (size(old_target_cell_ij, 1, kind=i8) /= size(nearest_ids, kind=i8) .or. size(old_target_cell_ij, 2) /= 2_i4) then
-      call error_message("nearest_regridder % init: old target cell ids and nearest ids do not match.") ! LCOV_EXCL_LINE
+    if (size(nearest_ids, kind=i8) /= this%target_grid%ncells) then
+      call error_message("nearest_regridder % init: nearest ids do not match old target cells.") ! LCOV_EXCL_LINE
+    end if
+    if (size(target_mask, 1) /= this%target_grid%nx .or. size(target_mask, 2) /= this%target_grid%ny) then
+      call error_message("nearest_regridder % init: target mask buffer has wrong shape.") ! LCOV_EXCL_LINE
     end if
 
-    allocate(nearest_id_matrix(this%target_grid%nx, this%target_grid%ny))
-    !$omp parallel do default(shared) private(k,i,j) schedule(static) &
-    !$omp& if(size(nearest_ids, kind=i8) >= nearest_regridder_loop_parallel_min_n)
-    do k = 1_i8, size(nearest_ids, kind=i8)
-      i = old_target_cell_ij(k, 1)
-      j = old_target_cell_ij(k, 2)
-      nearest_id_matrix(i, j) = nearest_ids(k)
+    allocate(new_col_cnt(this%target_grid%ny), new_cum_col_cnt(this%target_grid%ny))
+    invalid_mask = .false.
+    !$omp parallel do default(shared) private(i) reduction(.or.:invalid_mask) schedule(static) &
+    !$omp& if(int(this%target_grid%nx, i8) * int(this%target_grid%ny, i8) >= nearest_regridder_loop_parallel_min_n)
+    do j = 1_i4, this%target_grid%ny
+      new_col_cnt(j) = 0_i8
+      do i = 1_i4, this%target_grid%nx
+        if (target_mask(i, j)) then
+          new_col_cnt(j) = new_col_cnt(j) + 1_i8
+          invalid_mask = invalid_mask .or. .not. this%target_grid%mask(i, j)
+        end if
+      end do
     end do
     !$omp end parallel do
+    if (invalid_mask) then
+      call error_message("nearest_regridder % init: derived target mask is not a subset of the old target mask.") ! LCOV_EXCL_LINE
+    end if
 
+    call prefix_sum(new_col_cnt, new_cum_col_cnt, shift=1_i8, start=0_i8)
+    n_new = new_cum_col_cnt(this%target_grid%ny) + new_col_cnt(this%target_grid%ny)
     if (allocated(this%id_map)) deallocate(this%id_map)
-    allocate(this%id_map(this%target_grid%ncells))
-    !$omp parallel do default(shared) private(k,i,j) schedule(static) &
-    !$omp& if(this%target_grid%ncells >= nearest_regridder_loop_parallel_min_n)
-    do k = 1_i8, this%target_grid%ncells
-      i = this%target_grid%cell_ij(k, 1)
-      j = this%target_grid%cell_ij(k, 2)
-      this%id_map(k) = nearest_id_matrix(i, j)
+    allocate(this%id_map(n_new))
+    !$omp parallel do default(shared) private(i,old_k,new_k) schedule(static) &
+    !$omp& if(int(this%target_grid%nx, i8) * int(this%target_grid%ny, i8) >= nearest_regridder_loop_parallel_min_n)
+    do j = 1_i4, this%target_grid%ny
+      old_k = this%target_grid%mask_cum_col_cnt(j)
+      new_k = new_cum_col_cnt(j)
+      do i = 1_i4, this%target_grid%nx
+        if (this%target_grid%mask(i, j)) old_k = old_k + 1_i8
+        if (target_mask(i, j)) then
+          new_k = new_k + 1_i8
+          this%id_map(new_k) = nearest_ids(old_k)
+        end if
+      end do
     end do
     !$omp end parallel do
   end subroutine nearest_regridder_repack_id_map
