@@ -22,6 +22,7 @@ MODULE mo_errormeasures
   PUBLIC :: KGEprime                     ! modified (prime) KGE with CV-based variability ratio
   PUBLIC :: KGEnp                        ! non-parametric KGE
   PUBLIC :: KGEweighted                  ! weighted/scaled KGE with adjustable component weights
+  PUBLIC :: JDKGE                        ! Joint Divergence KGE (KGE' + Jensen-Shannon Divergence on log-flows)
   PUBLIC :: LNNSE                        ! Logarithmic Nash Sutcliffe efficiency
   PUBLIC :: MAE                          ! Mean of absolute errors
   PUBLIC :: MSE                          ! Mean of squared errors
@@ -356,6 +357,79 @@ MODULE mo_errormeasures
     MODULE PROCEDURE KGEweighted_dp_1d, KGEweighted_dp_2d, KGEweighted_dp_3d, &
             KGEweighted_sp_1d, KGEweighted_sp_2d, KGEweighted_sp_3d
   END INTERFACE KGEweighted
+
+  ! ------------------------------------------------------------------
+
+  !>        \brief Joint Divergence Kling-Gupta-Efficiency measure.
+
+  !>        \details
+  !!        The Joint Divergence KGE \f$ JDKGE \f$ augments the modified KGE (KGE') with
+  !!        a fourth term based on the Jensen-Shannon Divergence (JSD) between the
+  !!        log-transformed observed and simulated flow distributions:
+  !!            \f[ JDKGE = 1 - \sqrt{( (1-r)^2 + (1-\alpha)^2 + (1-\beta)^2 + JSD^2 )} \f]
+  !!        where \n
+  !!            \f$ r \f$      = Pearson product-moment correlation coefficient \n
+  !!            \f$ \alpha \f$ = ratio of simulated coefficient of variation to
+  !!                             observed coefficient of variation (as in KGEprime) \n
+  !!            \f$ \beta  \f$ = ratio of simulated mean to observed mean \n
+  !!            \f$ JSD \f$    = Jensen-Shannon Divergence (log base 2, bounded in [0,1])
+  !!                             between adaptively-binned histograms of the natural-log-
+  !!                             transformed observed and simulated series \n
+  !!        This four measures are calculated between two 1D arrays (observed vs. simulated
+  !!        time series). Unlike KGE/KGEprime/KGEnp, JDKGE is not generalized to 2D/3D
+  !!        fields, since the JSD component intrinsically requires a single ordered time
+  !!        series (for its adaptive, time-scale-aware histogram binning).\n
+  !!
+  !!        JSD is computed by: (1) discarding timesteps with non-finite or negative values
+  !!        in either series and replacing exact zeros with a small \f$ \epsilon \f$ below
+  !!        the smallest positive value seen in either series; (2) taking the natural log of
+  !!        both series; (3) computing an adaptive number of equal-width bins over the common
+  !!        log-range via the Freedman-Diaconis rule (based on the observed series' IQR),
+  !!        scaled by a time-step invariance factor \f$ (dt/86400)^{1/3} \f$ and clamped to
+  !!        [25, 100] bins; (4) building normalized histograms for both series with additive
+  !!        (Laplace) smoothing; (5) computing the Jensen-Shannon Divergence (log base 2)
+  !!        between the two resulting discrete distributions.\n
+  !!
+  !!        The higher the JDKGE the better the observation and simulation are matching.
+  !!        The upper limit of JDKGE is 1.\n
+  !!
+  !!        Therefore, if you apply a minimization algorithm to calibrate regarding
+  !!        JDKGE you have to use the objective function
+  !!            \f[ obj\_value = 1.0 - JDKGE \f]
+  !!        which has then the optimum at 0.0.
+  !!        (Like for the NSE where you always optimize 1-NSE.)\n
+  !!
+  !!        \b Example
+  !!
+  !!        \code{.f90}
+  !!        para = (/ 1., 2, 3., -999., 5., 6. /)
+  !!        jdkge = jdkge(x, y, mask=mask, dt=86400._dp)
+  !!        \endcode
+  !!
+  !!        \b Literature
+  !!
+  !>        1. Ficchi, A., Bavera, D., Grimaldi, S., Moschini, F., Pistocchi, A., Russo, C.,
+  !!           Salamon, P., & Toreti, A. (2026). Improving low and high flow simulations at
+  !!           once: An enhanced metric for hydrological model calibration.
+  !!           EGUsphere [preprint]. https://doi.org/10.5194/egusphere-2026-43
+  !!
+  !>        \param[in]  "real(sp/dp), dimension(:) :: x, y"   1D-array with observed (x) and
+  !!                                                           simulated (y) values
+  !>        \param[in]  "logical, optional :: mask"           1D-array of logical values with size(x/y)
+  !>        \param[in]  "real(sp/dp), optional :: dt"         timestep of the series in seconds
+  !!                                                           (default 86400, i.e. daily)
+  !>        \retval     "real(sp/dp) :: jdkge"                Joint Divergence KGE (value less equal 1.0)
+
+  !>       \note Input values must be floating points. Timesteps with non-finite or negative
+  !!       values in either series are excluded from the JSD computation only (the r/alpha/beta
+  !!       components still follow the standard mask semantics used elsewhere in this module). \n
+
+  !>        \author Ehsan Modiri
+  !>        \date August 2026
+
+  INTERFACE JDKGE
+    MODULE PROCEDURE JDKGE_dp_1d, JDKGE_sp_1d
+  END INTERFACE JDKGE
 
   ! ------------------------------------------------------------------
 
@@ -2972,6 +3046,245 @@ CONTAINS
             )
 
   END FUNCTION KGEweighted_dp_3d
+
+
+  ! ------------------------------------------------------------------
+
+  !>        \brief Jensen-Shannon Divergence (log base 2) between log-transformed flows.
+  !>        \details Private helper used by JDKGE. Implements the 5-step JSD estimation
+  !!        of Ficchi et al. (2026): drop non-finite/negative pairs, replace exact zeros
+  !!        by a small epsilon, natural-log-transform, adaptively bin (Freedman-Diaconis
+  !!        rule with a time-step invariance factor, clamped to [25,100] bins), apply
+  !!        Laplace smoothing, and compute the Jensen-Shannon Divergence (log base 2,
+  !!        bounded in [0,1]) between the resulting discrete distributions.
+  !!        \param[in] "real(dp), dimension(:) :: x, y" already mask-selected observed/simulated pairs
+  !!        \param[in] "real(dp) :: dt" timestep of the series in seconds
+  FUNCTION jsd_log2_dp(x, y, dt)
+
+    USE mo_percentile, ONLY : percentile
+    USE mo_histogram, ONLY : histogram
+    USE mo_utils, ONLY : is_finite
+
+    IMPLICIT NONE
+
+    REAL(dp), DIMENSION(:), INTENT(IN) :: x, y
+    REAL(dp), INTENT(IN) :: dt
+    REAL(dp) :: jsd_log2_dp
+
+    ! local variables
+    LOGICAL, DIMENSION(size(x)) :: valid
+    REAL(dp), DIMENSION(:), ALLOCATABLE :: xo, xs
+    REAL(dp), DIMENSION(:), ALLOCATABLE :: log_o, log_s
+    REAL(dp), DIMENSION(:), ALLOCATABLE :: p, q, m
+    INTEGER(i4), DIMENSION(:), ALLOCATABLE :: c_o, c_s
+    REAL(dp) :: eps, min_pos
+    REAL(dp) :: x_min, x_max, iqr_o, h_fd, h_min, h, ts_f, w
+    INTEGER(i4) :: n, n_raw, n_bins, i
+    INTEGER(i4), PARAMETER :: n_min_bins = 25_i4, n_max_bins = 100_i4
+    REAL(dp), PARAMETER :: ln2 = 0.69314718055994530942_dp
+
+    ! step 1: keep only finite, non-negative pairs
+    valid = is_finite(x) .and. is_finite(y) .and. (x >= 0.0_dp) .and. (y >= 0.0_dp)
+    xo = PACK(x, valid)
+    xs = PACK(y, valid)
+    n = size(xo)
+    if (n .LE. 1_i4) stop 'jsd_log2_dp: not enough valid, non-negative, finite pairs'
+
+    ! epsilon: below the smallest positive value seen in either series
+    min_pos = huge(1.0_dp)
+    if (any(xo > 0.0_dp)) min_pos = min(min_pos, minval(xo, mask = xo > 0.0_dp))
+    if (any(xs > 0.0_dp)) min_pos = min(min_pos, minval(xs, mask = xs > 0.0_dp))
+    if (min_pos >= huge(1.0_dp)) stop 'jsd_log2_dp: all values are zero, cannot take logarithm'
+    eps = min(1.0e-6_dp, 0.1_dp * min_pos)
+
+    ! replace exact zeros (or any residual non-positive values) with eps
+    where (xo <= 0.0_dp) xo = eps
+    where (xs <= 0.0_dp) xs = eps
+
+    ! step 2: natural-log transform and common support
+    log_o = log(xo)
+    log_s = log(xs)
+    x_min = min(minval(log_o), minval(log_s))
+    x_max = max(maxval(log_o), maxval(log_s))
+
+    ! step 3: Freedman-Diaconis bin width, scaled by the time-step invariance factor
+    iqr_o = percentile(log_o, 75.0_dp) - percentile(log_o, 25.0_dp)
+    if (iqr_o > 0.0_dp) then
+      h_fd = 2.0_dp * iqr_o * real(n, dp)**(-1.0_dp / 3.0_dp)
+    else
+      h_fd = (x_max - x_min) / real(n_min_bins, dp)
+    end if
+    h_min = min(1.0e2_dp * eps, 1.0e-1_dp)
+    h = max(h_fd, h_min)
+
+    ts_f = dt / 86400.0_dp
+    n_raw = NINT(ts_f**(1.0_dp / 3.0_dp) * (x_max - x_min) / h, i4)
+    n_bins = max(min(n_raw, n_max_bins), n_min_bins)
+
+    ! step 4: log-space histograms, densities, Laplace smoothing, renormalization
+    c_o = histogram(log_o, n_bins, x_min, x_max)
+    c_s = histogram(log_s, n_bins, x_min, x_max)
+    w = (x_max - x_min) / real(n_bins, dp)
+
+    allocate(p(n_bins), q(n_bins), m(n_bins))
+    p = real(c_o, dp) / (real(n, dp) * w) + eps
+    q = real(c_s, dp) / (real(n, dp) * w) + eps
+    p = p / sum(p)
+    q = q / sum(q)
+
+    ! step 5: Jensen-Shannon Divergence, log base 2
+    m = 0.5_dp * (p + q)
+    jsd_log2_dp = 0.0_dp
+    do i = 1, n_bins
+      if (p(i) > 0.0_dp) jsd_log2_dp = jsd_log2_dp + 0.5_dp * p(i) * log(p(i) / m(i)) / ln2
+      if (q(i) > 0.0_dp) jsd_log2_dp = jsd_log2_dp + 0.5_dp * q(i) * log(q(i) / m(i)) / ln2
+    end do
+
+    deallocate(xo, xs, log_o, log_s, c_o, c_s, p, q, m)
+
+  END FUNCTION jsd_log2_dp
+
+  ! ------------------------------------------------------------------
+
+  FUNCTION JDKGE_dp_1d(x, y, mask, dt)
+
+    USE mo_moment, ONLY : average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(dp), DIMENSION(:), INTENT(IN) :: x, y
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp), OPTIONAL, INTENT(IN) :: dt
+    REAL(dp) :: JDKGE_dp_1d
+
+    ! local variables
+    INTEGER(i4) :: n
+    INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
+    LOGICAL, DIMENSION(size(x)) :: maske
+
+    REAL(dp) :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(dp) :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+    REAL(dp) :: pearson_coor         ! Pearson Corr. of x and y
+    REAL(dp) :: gamma                ! Ratio of coefficients of variation of y and x
+    REAL(dp) :: jsd                  ! Jensen-Shannon Divergence (log base 2) of log-flows
+    REAL(dp) :: dt_use               ! timestep in seconds
+    REAL(dp), DIMENSION(:), ALLOCATABLE :: x_valid, y_valid
+
+    dt_use = 86400.0_dp
+    if (present(dt)) dt_use = dt
+
+    if (present(mask)) then
+      shapemask = shape(mask)
+    else
+      shapemask = shape(x)
+    end if
+    if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
+            stop 'JDKGE_dp_1d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+      maske = mask
+      n = count(maske)
+    else
+      maske = .true.
+      n = size(x)
+    end if
+    if (n .LE. 1_i4) stop 'JDKGE_dp_1d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average(x, mask = maske)
+    mu_Sim = average(y, mask = maske)
+    ! Standard Deviation
+    sigma_Obs = stddev(x, mask = maske)
+    sigma_Sim = stddev(y, mask = maske)
+    ! Pearson product-moment correlation coefficient is with (N-1) not N
+    pearson_coor = correlation(x, y, mask = maske) * real(n, dp) / real(n - 1, dp)
+    ! Ratio of coefficients of variation (CV = sigma / mu)
+    gamma = (sigma_Sim / mu_Sim) / (sigma_Obs / mu_Obs)
+
+    ! Jensen-Shannon Divergence between log-transformed flow distributions
+    x_valid = PACK(x, maske)
+    y_valid = PACK(y, maske)
+    jsd = jsd_log2_dp(x_valid, y_valid, dt_use)
+
+    !
+    JDKGE_dp_1d = 1.0_dp - SQRT(&
+            (1.0_dp - pearson_coor)**2 + &
+                    (1.0_dp - gamma)**2 + &
+                    (1.0_dp - (mu_Sim / mu_Obs))**2 + &
+                    jsd**2 &
+            )
+
+  END FUNCTION JDKGE_dp_1d
+
+  FUNCTION JDKGE_sp_1d(x, y, mask, dt)
+
+    USE mo_moment, ONLY : average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(sp), DIMENSION(:), INTENT(IN) :: x, y
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(sp), OPTIONAL, INTENT(IN) :: dt
+    REAL(sp) :: JDKGE_sp_1d
+
+    ! local variables
+    INTEGER(i4) :: n
+    INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
+    LOGICAL, DIMENSION(size(x)) :: maske
+
+    REAL(sp) :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(sp) :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+    REAL(sp) :: pearson_coor         ! Pearson Corr. of x and y
+    REAL(sp) :: gamma                ! Ratio of coefficients of variation of y and x
+    REAL(dp) :: jsd                  ! Jensen-Shannon Divergence (log base 2), computed in double precision
+    REAL(dp) :: dt_use               ! timestep in seconds
+    REAL(dp), DIMENSION(:), ALLOCATABLE :: x_valid, y_valid
+
+    dt_use = 86400.0_dp
+    if (present(dt)) dt_use = real(dt, dp)
+
+    if (present(mask)) then
+      shapemask = shape(mask)
+    else
+      shapemask = shape(x)
+    end if
+    if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
+            stop 'JDKGE_sp_1d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+      maske = mask
+      n = count(maske)
+    else
+      maske = .true.
+      n = size(x)
+    end if
+    if (n .LE. 1_i4) stop 'JDKGE_sp_1d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average(x, mask = maske)
+    mu_Sim = average(y, mask = maske)
+    ! Standard Deviation
+    sigma_Obs = stddev(x, mask = maske)
+    sigma_Sim = stddev(y, mask = maske)
+    ! Pearson product-moment correlation coefficient is with (N-1) not N
+    pearson_coor = correlation(x, y, mask = maske) * real(n, sp) / real(n - 1, sp)
+    ! Ratio of coefficients of variation (CV = sigma / mu)
+    gamma = (sigma_Sim / mu_Sim) / (sigma_Obs / mu_Obs)
+
+    ! Jensen-Shannon Divergence between log-transformed flow distributions (computed in double precision)
+    x_valid = real(PACK(x, maske), dp)
+    y_valid = real(PACK(y, maske), dp)
+    jsd = jsd_log2_dp(x_valid, y_valid, dt_use)
+
+    !
+    JDKGE_sp_1d = 1.0_sp - SQRT(&
+            (1.0_sp - pearson_coor)**2 + &
+                    (1.0_sp - gamma)**2 + &
+                    (1.0_sp - (mu_Sim / mu_Obs))**2 + &
+                    real(jsd**2, sp) &
+            )
+
+  END FUNCTION JDKGE_sp_1d
 
 
   ! ------------------------------------------------------------------
