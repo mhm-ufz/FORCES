@@ -2,7 +2,7 @@ module test_mo_errormeasures
 
   use funit
   use mo_kind         , only: i4, sp, dp
-  use mo_errormeasures, only: BIAS, KGE, KGEnocorr, LNNSE, MAE, MSE, NSE, wNSE, RMSE, SAE, SPAEF, SSE, CA
+  use mo_errormeasures, only: BIAS, KGE, KGEnocorr, KGEprime, KGEnp, KGEweighted, LNNSE, MAE, MSE, NSE, wNSE, RMSE, SAE, SPAEF, SSE, CA
   use mo_message, only: error_message
   use mo_moment, only: stddev, average
 
@@ -119,6 +119,78 @@ contains
     @assertEqual(KGEnocorr(arr1, arr2), 0.8307_dp, tolerance = t_dp)
 
   end subroutine test_error_kgenocorr
+
+  ! Test KGEprime (order: sp-dp, 1D-2D-3D)
+  @test
+  subroutine test_error_kgeprime()
+
+    ! With mask
+    @assertEqual(KGEprime(real(vec1, sp), real(vec2, sp), mask=maskvec), 0.2861_sp, tolerance = t_sp)
+    @assertEqual(KGEprime(vec1, vec2, mask=maskvec), 0.2861_dp, tolerance = t_dp)
+    @assertEqual(KGEprime(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1)), -0.5216_sp, tolerance = t_sp)
+    @assertEqual(KGEprime(arr1(:,:,1), arr2(:,:,4), mask=mask(:,:,1)), -0.5216_dp, tolerance = t_dp)
+    @assertEqual(KGEprime(real(arr1, sp), real(arr2, sp), mask=mask), 0.8379_sp, tolerance = t_sp)
+    @assertEqual(KGEprime(arr1, arr2, mask=mask), 0.8379_dp, tolerance = t_dp)
+
+    ! Without mask
+    @assertEqual(KGEprime(real(vec1, sp), real(vec2, sp)), -0.0745_sp, tolerance = t_sp)
+    @assertEqual(KGEprime(vec1, vec2), -0.0745_dp, tolerance = t_dp)
+    @assertEqual(KGEprime(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp)), -0.4522_sp, tolerance = t_sp)
+    @assertEqual(KGEprime(arr1(:,:,1), arr2(:,:,4)), -0.4522_dp, tolerance = t_dp)
+    @assertEqual(KGEprime(real(arr1, sp), real(arr2, sp)), 0.8649_sp, tolerance = t_sp)
+    @assertEqual(KGEprime(arr1, arr2), 0.8649_dp, tolerance = t_dp)
+
+  end subroutine test_error_kgeprime
+
+  ! Test KGEnp (order: sp-dp, 1D-2D-3D)
+  @test
+  subroutine test_error_kgenp()
+
+    ! With mask
+    @assertEqual(KGEnp(real(vec1, sp), real(vec2, sp), mask=maskvec), 0.2919_sp, tolerance = t_sp)
+    @assertEqual(KGEnp(vec1, vec2, mask=maskvec), 0.2919_dp, tolerance = t_dp)
+    @assertEqual(KGEnp(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1)), -0.2651_sp, tolerance = t_sp)
+    @assertEqual(KGEnp(arr1(:,:,1), arr2(:,:,4), mask=mask(:,:,1)), -0.2651_dp, tolerance = t_dp)
+    @assertEqual(KGEnp(real(arr1, sp), real(arr2, sp), mask=mask), 0.8379_sp, tolerance = t_sp)
+    @assertEqual(KGEnp(arr1, arr2, mask=mask), 0.8379_dp, tolerance = t_dp)
+
+    ! Without mask
+    @assertEqual(KGEnp(real(vec1, sp), real(vec2, sp)), -0.0533_sp, tolerance = t_sp)
+    @assertEqual(KGEnp(vec1, vec2), -0.0533_dp, tolerance = t_dp)
+    @assertEqual(KGEnp(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp)), -0.1820_sp, tolerance = t_sp)
+    @assertEqual(KGEnp(arr1(:,:,1), arr2(:,:,4)), -0.1820_dp, tolerance = t_dp)
+    @assertEqual(KGEnp(real(arr1, sp), real(arr2, sp)), 0.8667_sp, tolerance = t_sp)
+    @assertEqual(KGEnp(arr1, arr2), 0.8667_dp, tolerance = t_dp)
+
+  end subroutine test_error_kgenp
+
+  ! Test KGEweighted (order: sp-dp, 1D-2D-3D)
+  ! Default weights (sr=salpha=sbeta=1.0) must reduce exactly to KGE, so the
+  ! reference values below intentionally match test_error_kge() above.
+  @test
+  subroutine test_error_kgeweighted()
+
+    ! With mask, default weights
+    @assertEqual(KGEweighted(real(vec1, sp), real(vec2, sp), mask=maskvec), 0.1783_sp, tolerance = t_sp)
+    @assertEqual(KGEweighted(vec1, vec2, mask=maskvec), 0.1783_dp, tolerance = t_dp)
+    @assertEqual(KGEweighted(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp), mask=mask(:,:,1)), -0.4730_sp, tolerance = t_sp)
+    @assertEqual(KGEweighted(arr1(:,:,1), arr2(:,:,4), mask=mask(:,:,1)), -0.4730_dp, tolerance = t_dp)
+    @assertEqual(KGEweighted(real(arr1, sp), real(arr2, sp), mask=mask), 0.7631_sp, tolerance = t_sp)
+    @assertEqual(KGEweighted(arr1, arr2, mask=mask), 0.7631_dp, tolerance = t_dp)
+
+    ! Without mask, default weights
+    @assertEqual(KGEweighted(real(vec1, sp), real(vec2, sp)), -0.1305_sp, tolerance = t_sp)
+    @assertEqual(KGEweighted(vec1, vec2), -0.1305_dp, tolerance = t_dp)
+    @assertEqual(KGEweighted(real(arr1(:,:,1), sp), real(arr2(:,:,4), sp)), -0.4589_sp, tolerance = t_sp)
+    @assertEqual(KGEweighted(arr1(:,:,1), arr2(:,:,4)), -0.4589_dp, tolerance = t_dp)
+    @assertEqual(KGEweighted(real(arr1, sp), real(arr2, sp)), 0.8306_sp, tolerance = t_sp)
+    @assertEqual(KGEweighted(arr1, arr2), 0.8306_dp, tolerance = t_dp)
+
+    ! With mask, non-default weight on the variability (alpha) term: must differ from KGE
+    @assertEqual(KGEweighted(real(vec1, sp), real(vec2, sp), mask=maskvec, salpha=2.0_sp), -0.0842_sp, tolerance = t_sp)
+    @assertEqual(KGEweighted(vec1, vec2, mask=maskvec, salpha=2.0_dp), -0.0842_dp, tolerance = t_dp)
+
+  end subroutine test_error_kgeweighted
 
   ! Test MAE (order: sp-dp, 1D-2D-3D)
   @test
