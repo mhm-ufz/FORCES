@@ -21,6 +21,7 @@ MODULE mo_errormeasures
   PUBLIC :: KGEnocorr                    ! KGE without correlation
   PUBLIC :: KGEprime                     ! modified (prime) KGE with CV-based variability ratio
   PUBLIC :: KGEnp                        ! non-parametric KGE
+  PUBLIC :: KGEweighted                  ! weighted/scaled KGE with adjustable component weights
   PUBLIC :: LNNSE                        ! Logarithmic Nash Sutcliffe efficiency
   PUBLIC :: MAE                          ! Mean of absolute errors
   PUBLIC :: MSE                          ! Mean of squared errors
@@ -297,6 +298,64 @@ MODULE mo_errormeasures
   INTERFACE KGEnp
     MODULE PROCEDURE KGEnp_dp_1d, KGEnp_dp_2d, KGEnp_dp_3d, KGEnp_sp_1d, KGEnp_sp_2d, KGEnp_sp_3d
   END INTERFACE KGEnp
+
+  ! ------------------------------------------------------------------
+
+  !>        \brief Weighted (scaled) Kling-Gupta-Efficiency measure.
+
+  !>        \details
+  !!        The weighted/scaled Kling-Gupta model efficiency coefficient \f$ KGEweighted \f$ is
+  !!            \f[ KGEweighted = 1 - \sqrt{( (s_r(1-r))^2 + (s_\alpha(1-\alpha))^2 + (s_\beta(1-\beta))^2 )} \f]
+  !!        where \n
+  !!            \f$ r \f$      = Pearson product-moment correlation coefficient \n
+  !!            \f$ \alpha \f$ = ratio of simulated standard deviation to observed standard deviation \n
+  !!            \f$ \beta  \f$ = ratio of simulated mean to observed mean \n
+  !!            \f$ s_r, s_\alpha, s_\beta \f$ = user-supplied scaling (weighting) factors for the
+  !!                             correlation, variability, and bias terms, respectively \n
+  !!        This generalizes the original KGE (Gupta et al., 2009) by allowing each of the three
+  !!        components to be weighted independently, e.g. to emphasize the dynamics (variability)
+  !!        over the water balance (bias), or vice versa. All weights default to 1.0, in which case
+  !!        KGEweighted reduces exactly to the original KGE.\n
+  !!
+  !!        The higher the KGEweighted the better the observation and simulation are matching.
+  !!        The upper limit of KGEweighted is 1.\n
+  !!
+  !!        Therefore, if you apply a minimization algorithm to calibrate regarding
+  !!        KGEweighted you have to use the objective function
+  !!            \f[ obj\_value = 1.0 - KGEweighted \f]
+  !!        which has then the optimum at 0.0.
+  !!        (Like for the NSE where you always optimize 1-NSE.)\n
+  !!
+  !!        \b Example
+  !!
+  !!        \code{.f90}
+  !!        para = (/ 1., 2, 3., -999., 5., 6. /)
+  !!        kgeweighted = kgeweighted(x, y, mask=mask, sr=1.0_dp, salpha=2.0_dp, sbeta=1.0_dp)
+  !!        \endcode
+  !!
+  !!        \b Literature
+  !!
+  !>        1. Gupta, Hoshin V., et al.
+  !!           _"Decomposition of the mean squared error and NSE performance criteria:
+  !!           Implications for improving hydrological modelling"_.
+  !!           Journal of Hydrology 377.1 (2009): 80-91.
+  !!
+  !>        \param[in]  "real(sp/dp)   :: x, y"              1D/2D/3D-array with input numbers
+  !>        \param[in]  "logical, optional     :: mask"      1D/2D/3D-array of logical values with size(x/y).
+  !>        \param[in]  "real(sp/dp), optional :: sr"        weight of the correlation term (default 1.0)
+  !>        \param[in]  "real(sp/dp), optional :: salpha"    weight of the variability term (default 1.0)
+  !>        \param[in]  "real(sp/dp), optional :: sbeta"     weight of the bias term (default 1.0)
+  !>        \retval     "real(sp/dp) :: kgeweighted"         weighted Kling-Gupta-Efficiency (value less equal 1.0)
+
+  !>       \note Input values must be floating points. \n
+
+  !>        \author Ehsan Modiri
+  !>        \date August 2026
+
+  INTERFACE KGEweighted
+    MODULE PROCEDURE KGEweighted_dp_1d, KGEweighted_dp_2d, KGEweighted_dp_3d, &
+            KGEweighted_sp_1d, KGEweighted_sp_2d, KGEweighted_sp_3d
+  END INTERFACE KGEweighted
 
   ! ------------------------------------------------------------------
 
@@ -2494,6 +2553,425 @@ CONTAINS
     deallocate(rank_x, rank_y)
 
   END FUNCTION KGEnp_dp_3d
+
+
+  ! ------------------------------------------------------------------
+
+  FUNCTION KGEweighted_sp_1d(x, y, mask, sr, salpha, sbeta)
+
+    USE mo_moment, ONLY : average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(sp), DIMENSION(:), INTENT(IN) :: x, y
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(sp), OPTIONAL, INTENT(IN) :: sr, salpha, sbeta
+    REAL(sp) :: KGEweighted_sp_1d
+
+    ! local variables
+    INTEGER(i4) :: n
+    INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
+    LOGICAL, DIMENSION(size(x)) :: maske
+
+    REAL(sp) :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(sp) :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+    REAL(sp) :: pearson_coor         ! Pearson Corr. of x and y
+    REAL(sp) :: wr, walpha, wbeta    ! scaling weights of the r, alpha, and beta terms
+
+    wr = 1.0_sp
+    walpha = 1.0_sp
+    wbeta = 1.0_sp
+    if (present(sr)) wr = sr
+    if (present(salpha)) walpha = salpha
+    if (present(sbeta)) wbeta = sbeta
+
+    if (present(mask)) then
+      shapemask = shape(mask)
+    else
+      shapemask = shape(x)
+    end if
+    if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
+            stop 'KGEweighted_sp_1d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+      maske = mask
+      n = count(maske)
+    else
+      maske = .true.
+      n = size(x)
+    end if
+    if (n .LE. 1_i4) stop 'KGEweighted_sp_1d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average(x, mask = maske)
+    mu_Sim = average(y, mask = maske)
+    ! Standard Deviation
+    sigma_Obs = stddev(x, mask = maske)
+    sigma_Sim = stddev(y, mask = maske)
+    ! Pearson product-moment correlation coefficient is with (N-1) not N
+    pearson_coor = correlation(x, y, mask = maske) * real(n, sp) / real(n - 1, sp)
+    !
+    KGEweighted_sp_1d = 1.0 - SQRT(&
+            (wr * (1.0_sp - pearson_coor))**2 + &
+                    (walpha * (1.0_sp - (sigma_Sim / sigma_Obs)))**2 + &
+                    (wbeta * (1.0_sp - (mu_Sim / mu_Obs)))**2          &
+            )
+
+  END FUNCTION KGEweighted_sp_1d
+
+  FUNCTION KGEweighted_sp_2d(x, y, mask, sr, salpha, sbeta)
+
+    USE mo_moment, ONLY : average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(sp), DIMENSION(:, :), INTENT(IN) :: x, y
+    LOGICAL, DIMENSION(:, :), OPTIONAL, INTENT(IN) :: mask
+    REAL(sp), OPTIONAL, INTENT(IN) :: sr, salpha, sbeta
+    REAL(sp) :: KGEweighted_sp_2d
+
+    ! local variables
+    INTEGER(i4) :: n
+    INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
+    LOGICAL, DIMENSION(size(x, dim = 1), size(x, dim = 2)) :: maske
+    REAL(sp) :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(sp) :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+    REAL(sp) :: pearson_coor         ! Pearson Corr. of x and y
+    REAL(sp) :: wr, walpha, wbeta    ! scaling weights of the r, alpha, and beta terms
+
+    wr = 1.0_sp
+    walpha = 1.0_sp
+    wbeta = 1.0_sp
+    if (present(sr)) wr = sr
+    if (present(salpha)) walpha = salpha
+    if (present(sbeta)) wbeta = sbeta
+
+    if (present(mask)) then
+      shapemask = shape(mask)
+    else
+      shapemask = shape(x)
+    end if
+    if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
+            stop 'KGEweighted_sp_2d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+      maske = mask
+      n = count(maske)
+    else
+      maske = .true.
+      n = size(x)
+    end if
+    if (n .LE. 1_i4) stop 'KGEweighted_sp_2d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average(&
+            reshape(x(:, :), (/size(x, dim = 1) * size(x, dim = 2)/)), &
+            mask = reshape(maske(:, :), (/size(x, dim = 1) * size(x, dim = 2)/)))
+    mu_Sim = average(&
+            reshape(y(:, :), (/size(y, dim = 1) * size(y, dim = 2)/)), &
+            mask = reshape(maske(:, :), (/size(y, dim = 1) * size(y, dim = 2)/)))
+    ! Standard Deviation
+    sigma_Obs = stddev(&
+            reshape(x(:, :), (/size(x, dim = 1) * size(x, dim = 2)/)), &
+            mask = reshape(maske(:, :), (/size(x, dim = 1) * size(x, dim = 2)/)))
+    sigma_Sim = stddev(&
+            reshape(y(:, :), (/size(y, dim = 1) * size(y, dim = 2)/)), &
+            mask = reshape(maske(:, :), (/size(y, dim = 1) * size(y, dim = 2)/)))
+    ! Pearson product-moment correlation coefficient is with (N-1) not N
+    pearson_coor = correlation(&
+            reshape(x(:, :), (/size(x, dim = 1) * size(x, dim = 2)/)), &
+            reshape(y(:, :), (/size(y, dim = 1) * size(y, dim = 2)/)), &
+            mask = reshape(maske(:, :), (/size(y, dim = 1) * size(y, dim = 2)/))) * &
+            real(n, sp) / real(n - 1, sp)
+    !
+    KGEweighted_sp_2d = 1.0 - SQRT(&
+            (wr * (1.0_sp - pearson_coor))**2 + &
+                    (walpha * (1.0_sp - (sigma_Sim / sigma_Obs)))**2 + &
+                    (wbeta * (1.0_sp - (mu_Sim / mu_Obs)))**2          &
+            )
+
+  END FUNCTION KGEweighted_sp_2d
+
+  FUNCTION KGEweighted_sp_3d(x, y, mask, sr, salpha, sbeta)
+
+    USE mo_moment, ONLY : average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(sp), DIMENSION(:, :, :), INTENT(IN) :: x, y
+    LOGICAL, DIMENSION(:, :, :), OPTIONAL, INTENT(IN) :: mask
+    REAL(sp), OPTIONAL, INTENT(IN) :: sr, salpha, sbeta
+    REAL(sp) :: KGEweighted_sp_3d
+
+    ! local variables
+    INTEGER(i4) :: n
+    INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
+    LOGICAL, DIMENSION(size(x, dim = 1), size(x, dim = 2), size(x, dim = 3)) :: maske
+    REAL(sp) :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(sp) :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+    REAL(sp) :: pearson_coor         ! Pearson Corr. of x and y
+    REAL(sp) :: wr, walpha, wbeta    ! scaling weights of the r, alpha, and beta terms
+
+    wr = 1.0_sp
+    walpha = 1.0_sp
+    wbeta = 1.0_sp
+    if (present(sr)) wr = sr
+    if (present(salpha)) walpha = salpha
+    if (present(sbeta)) wbeta = sbeta
+
+    if (present(mask)) then
+      shapemask = shape(mask)
+    else
+      shapemask = shape(x)
+    end if
+    if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
+            stop 'KGEweighted_sp_3d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+      maske = mask
+      n = count(maske)
+    else
+      maske = .true.
+      n = size(x)
+    end if
+    if (n .LE. 1_i4) stop 'KGEweighted_sp_3d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average(&
+            reshape(x(:, :, :), (/size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)/)), &
+            mask = reshape(maske(:, :, :), (/size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)/)))
+    mu_Sim = average(&
+            reshape(y(:, :, :), (/size(y, dim = 1) * size(y, dim = 2) * size(y, dim = 3)/)), &
+            mask = reshape(maske(:, :, :), (/size(y, dim = 1) * size(y, dim = 2) * size(y, dim = 3)/)))
+    ! Standard Deviation
+    sigma_Obs = stddev(&
+            reshape(x(:, :, :), (/size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)/)), &
+            mask = reshape(maske(:, :, :), (/size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)/)))
+    sigma_Sim = stddev(&
+            reshape(y(:, :, :), (/size(y, dim = 1) * size(y, dim = 2) * size(y, dim = 3)/)), &
+            mask = reshape(maske(:, :, :), (/size(y, dim = 1) * size(y, dim = 2) * size(y, dim = 3)/)))
+    ! Pearson product-moment correlation coefficient is with (N-1) not N
+    pearson_coor = correlation(&
+            reshape(x(:, :, :), (/size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)/)), &
+            reshape(y(:, :, :), (/size(y, dim = 1) * size(y, dim = 2) * size(y, dim = 3)/)), &
+            mask = reshape(maske(:, :, :), (/size(y, dim = 1) * size(y, dim = 2) * size(y, dim = 3)/))) * &
+            real(n, sp) / real(n - 1, sp)
+    !
+    KGEweighted_sp_3d = 1.0 - SQRT(&
+            (wr * (1.0_sp - pearson_coor))**2 + &
+                    (walpha * (1.0_sp - (sigma_Sim / sigma_Obs)))**2 + &
+                    (wbeta * (1.0_sp - (mu_Sim / mu_Obs)))**2          &
+            )
+
+  END FUNCTION KGEweighted_sp_3d
+
+  FUNCTION KGEweighted_dp_1d(x, y, mask, sr, salpha, sbeta)
+
+    USE mo_moment, ONLY : average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(dp), DIMENSION(:), INTENT(IN) :: x, y
+    LOGICAL, DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp), OPTIONAL, INTENT(IN) :: sr, salpha, sbeta
+    REAL(dp) :: KGEweighted_dp_1d
+
+    ! local variables
+    INTEGER(i4) :: n
+    INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
+    LOGICAL, DIMENSION(size(x)) :: maske
+
+    REAL(dp) :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(dp) :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+    REAL(dp) :: pearson_coor         ! Pearson Corr. of x and y
+    REAL(dp) :: wr, walpha, wbeta    ! scaling weights of the r, alpha, and beta terms
+
+    wr = 1.0_dp
+    walpha = 1.0_dp
+    wbeta = 1.0_dp
+    if (present(sr)) wr = sr
+    if (present(salpha)) walpha = salpha
+    if (present(sbeta)) wbeta = sbeta
+
+    if (present(mask)) then
+      shapemask = shape(mask)
+    else
+      shapemask = shape(x)
+    end if
+    if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
+            stop 'KGEweighted_dp_1d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+      maske = mask
+      n = count(maske)
+    else
+      maske = .true.
+      n = size(x)
+    end if
+    if (n .LE. 1_i4) stop 'KGEweighted_dp_1d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average(x, mask = maske)
+    mu_Sim = average(y, mask = maske)
+    ! Standard Deviation
+    sigma_Obs = stddev(x, mask = maske)
+    sigma_Sim = stddev(y, mask = maske)
+    ! Pearson product-moment correlation coefficient is with (N-1) not N
+    pearson_coor = correlation(x, y, mask = maske) * real(n, dp) / real(n - 1, dp)
+    !
+    KGEweighted_dp_1d = 1.0 - SQRT(&
+            (wr * (1.0_dp - pearson_coor))**2 + &
+                    (walpha * (1.0_dp - (sigma_Sim / sigma_Obs)))**2 + &
+                    (wbeta * (1.0_dp - (mu_Sim / mu_Obs)))**2          &
+            )
+
+  END FUNCTION KGEweighted_dp_1d
+
+  FUNCTION KGEweighted_dp_2d(x, y, mask, sr, salpha, sbeta)
+
+    USE mo_moment, ONLY : average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(dp), DIMENSION(:, :), INTENT(IN) :: x, y
+    LOGICAL, DIMENSION(:, :), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp), OPTIONAL, INTENT(IN) :: sr, salpha, sbeta
+    REAL(dp) :: KGEweighted_dp_2d
+
+    ! local variables
+    INTEGER(i4) :: n
+    INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
+    LOGICAL, DIMENSION(size(x, dim = 1), size(x, dim = 2)) :: maske
+    REAL(dp) :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(dp) :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+    REAL(dp) :: pearson_coor         ! Pearson Corr. of x and y
+    REAL(dp) :: wr, walpha, wbeta    ! scaling weights of the r, alpha, and beta terms
+
+    wr = 1.0_dp
+    walpha = 1.0_dp
+    wbeta = 1.0_dp
+    if (present(sr)) wr = sr
+    if (present(salpha)) walpha = salpha
+    if (present(sbeta)) wbeta = sbeta
+
+    if (present(mask)) then
+      shapemask = shape(mask)
+    else
+      shapemask = shape(x)
+    end if
+    if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
+            stop 'KGEweighted_dp_2d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+      maske = mask
+      n = count(maske)
+    else
+      maske = .true.
+      n = size(x)
+    end if
+    if (n .LE. 1_i4) stop 'KGEweighted_dp_2d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average(&
+            reshape(x(:, :), (/size(x, dim = 1) * size(x, dim = 2)/)), &
+            mask = reshape(maske(:, :), (/size(x, dim = 1) * size(x, dim = 2)/)))
+    mu_Sim = average(&
+            reshape(y(:, :), (/size(y, dim = 1) * size(y, dim = 2)/)), &
+            mask = reshape(maske(:, :), (/size(y, dim = 1) * size(y, dim = 2)/)))
+    ! Standard Deviation
+    sigma_Obs = stddev(&
+            reshape(x(:, :), (/size(x, dim = 1) * size(x, dim = 2)/)), &
+            mask = reshape(maske(:, :), (/size(x, dim = 1) * size(x, dim = 2)/)))
+    sigma_Sim = stddev(&
+            reshape(y(:, :), (/size(y, dim = 1) * size(y, dim = 2)/)), &
+            mask = reshape(maske(:, :), (/size(y, dim = 1) * size(y, dim = 2)/)))
+    ! Pearson product-moment correlation coefficient is with (N-1) not N
+    pearson_coor = correlation(&
+            reshape(x(:, :), (/size(x, dim = 1) * size(x, dim = 2)/)), &
+            reshape(y(:, :), (/size(y, dim = 1) * size(y, dim = 2)/)), &
+            mask = reshape(maske(:, :), (/size(y, dim = 1) * size(y, dim = 2)/))) * &
+            real(n, dp) / real(n - 1, dp)
+    !
+    KGEweighted_dp_2d = 1.0 - SQRT(&
+            (wr * (1.0_dp - pearson_coor))**2 + &
+                    (walpha * (1.0_dp - (sigma_Sim / sigma_Obs)))**2 + &
+                    (wbeta * (1.0_dp - (mu_Sim / mu_Obs)))**2          &
+            )
+
+  END FUNCTION KGEweighted_dp_2d
+
+  FUNCTION KGEweighted_dp_3d(x, y, mask, sr, salpha, sbeta)
+
+    USE mo_moment, ONLY : average, stddev, correlation
+
+    IMPLICIT NONE
+
+    REAL(dp), DIMENSION(:, :, :), INTENT(IN) :: x, y
+    LOGICAL, DIMENSION(:, :, :), OPTIONAL, INTENT(IN) :: mask
+    REAL(dp), OPTIONAL, INTENT(IN) :: sr, salpha, sbeta
+    REAL(dp) :: KGEweighted_dp_3d
+
+    ! local variables
+    INTEGER(i4) :: n
+    INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
+    LOGICAL, DIMENSION(size(x, dim = 1), size(x, dim = 2), size(x, dim = 3)) :: maske
+    REAL(dp) :: mu_Obs, mu_Sim       ! Mean          of x and y
+    REAL(dp) :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
+    REAL(dp) :: pearson_coor         ! Pearson Corr. of x and y
+    REAL(dp) :: wr, walpha, wbeta    ! scaling weights of the r, alpha, and beta terms
+
+    wr = 1.0_dp
+    walpha = 1.0_dp
+    wbeta = 1.0_dp
+    if (present(sr)) wr = sr
+    if (present(salpha)) walpha = salpha
+    if (present(sbeta)) wbeta = sbeta
+
+    if (present(mask)) then
+      shapemask = shape(mask)
+    else
+      shapemask = shape(x)
+    end if
+    if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
+            stop 'KGEweighted_dp_3d: shapes of inputs(x,y) or mask are not matching'
+    !
+    if (present(mask)) then
+      maske = mask
+      n = count(maske)
+    else
+      maske = .true.
+      n = size(x)
+    end if
+    if (n .LE. 1_i4) stop 'KGEweighted_dp_3d: sample size must be at least 2'
+
+    ! Mean
+    mu_Obs = average(&
+            reshape(x(:, :, :), (/size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)/)), &
+            mask = reshape(maske(:, :, :), (/size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)/)))
+    mu_Sim = average(&
+            reshape(y(:, :, :), (/size(y, dim = 1) * size(y, dim = 2) * size(y, dim = 3)/)), &
+            mask = reshape(maske(:, :, :), (/size(y, dim = 1) * size(y, dim = 2) * size(y, dim = 3)/)))
+    ! Standard Deviation
+    sigma_Obs = stddev(&
+            reshape(x(:, :, :), (/size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)/)), &
+            mask = reshape(maske(:, :, :), (/size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)/)))
+    sigma_Sim = stddev(&
+            reshape(y(:, :, :), (/size(y, dim = 1) * size(y, dim = 2) * size(y, dim = 3)/)), &
+            mask = reshape(maske(:, :, :), (/size(y, dim = 1) * size(y, dim = 2) * size(y, dim = 3)/)))
+    ! Pearson product-moment correlation coefficient is with (N-1) not N
+    pearson_coor = correlation(&
+            reshape(x(:, :, :), (/size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)/)), &
+            reshape(y(:, :, :), (/size(y, dim = 1) * size(y, dim = 2) * size(y, dim = 3)/)), &
+            mask = reshape(maske(:, :, :), (/size(y, dim = 1) * size(y, dim = 2) * size(y, dim = 3)/))) * &
+            real(n, dp) / real(n - 1, dp)
+    !
+    KGEweighted_dp_3d = 1.0 - SQRT(&
+            (wr * (1.0_dp - pearson_coor))**2 + &
+                    (walpha * (1.0_dp - (sigma_Sim / sigma_Obs)))**2 + &
+                    (wbeta * (1.0_dp - (mu_Sim / mu_Obs)))**2          &
+            )
+
+  END FUNCTION KGEweighted_dp_3d
 
 
   ! ------------------------------------------------------------------
