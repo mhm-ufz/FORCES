@@ -2,7 +2,7 @@ module test_mo_errormeasures
 
   use funit
   use mo_kind         , only: i4, sp, dp
-  use mo_errormeasures, only: BIAS, KGE, KGEnocorr, KGEprime, KGEnp, KGEweighted, LNNSE, MAE, MSE, NSE, wNSE, RMSE, SAE, SPAEF, SSE, CA
+  use mo_errormeasures, only: BIAS, KGE, KGEnocorr, KGEprime, KGEnp, KGEweighted, JDKGE, LNNSE, MAE, MSE, NSE, wNSE, RMSE, SAE, SPAEF, SSE, CA
   use mo_message, only: error_message
   use mo_moment, only: stddev, average
 
@@ -191,6 +191,20 @@ contains
     @assertEqual(KGEweighted(vec1, vec2, mask=maskvec, salpha=2.0_dp), -0.0842_dp, tolerance = t_dp)
 
   end subroutine test_error_kgeweighted
+
+  ! Test JDKGE (order: sp-dp, 1D only; default dt=daily)
+  @test
+  subroutine test_error_jdkge()
+
+    ! With mask
+    @assertEqual(JDKGE(real(vec1, sp), real(vec2, sp), mask=maskvec), 0.0709_sp, tolerance = t_sp)
+    @assertEqual(JDKGE(vec1, vec2, mask=maskvec), 0.0709_dp, tolerance = t_dp)
+
+    ! Without mask
+    @assertEqual(JDKGE(real(vec1, sp), real(vec2, sp)), -0.1564_sp, tolerance = t_sp)
+    @assertEqual(JDKGE(vec1, vec2), -0.1564_dp, tolerance = t_dp)
+
+  end subroutine test_error_jdkge
 
   ! Test MAE (order: sp-dp, 1D-2D-3D)
   @test
