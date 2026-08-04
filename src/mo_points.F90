@@ -21,7 +21,8 @@ module mo_points
   use mo_message, only: error_message
   use mo_spatial_index, only: spatial_index_t
   use mo_string_utils, only: num2str
-  use mo_utils, only: is_close, optval
+  use mo_utils, only: is_close, is_finite, optval
+  use mo_poly, only: inpoly
 #ifdef FORCES_WITH_NETCDF
   use mo_grid_helper, only: is_x_axis, is_y_axis, is_lon_coord, is_lat_coord
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable
@@ -63,7 +64,9 @@ module mo_points
     procedure, private :: closest_point_id_scalar => points_closest_point_id_scalar
     procedure, private :: closest_point_id_batch => points_closest_point_id_batch
     generic, public :: closest_point_id => closest_point_id_scalar, closest_point_id_batch
+    procedure, public :: polygon_mask => points_polygon_mask
     procedure, public :: is_matching => points_is_matching
+    procedure, public :: copy_to => points_copy_to
   end type points_t
 
 contains
@@ -94,6 +97,83 @@ contains
     coords(:, 1) = this%x
     coords(:, 2) = this%y
   end function points_coords
+
+  !> \brief Mask points whose coordinates are inside or on a polygon.
+  subroutine points_polygon_mask(this, polygon, mask)
+    class(points_t), intent(in) :: this !< Point set.
+    real(dp), intent(in) :: polygon(:, :) !< Polygon coordinates as (n_vertices, 2): x/lon, y/lat.
+    logical, allocatable, intent(out) :: mask(:) !< Point mask, allocated with size n_points.
+
+    real(dp) :: point(2)
+    real(dp) :: x_min, x_max, y_min, y_max
+    integer(i4) :: in_poly
+    integer(i8) :: i
+
+    if (size(polygon, 2) /= 2_i4) call error_message("points % polygon_mask: polygon must have shape (n, 2).") ! LCOV_EXCL_LINE
+    if (size(polygon, 1) < 3_i4) call error_message("points % polygon_mask: polygon needs at least three vertices.") ! LCOV_EXCL_LINE
+
+    x_min = minval(polygon(:, 1))
+    x_max = maxval(polygon(:, 1))
+    y_min = minval(polygon(:, 2))
+    y_max = maxval(polygon(:, 2))
+
+    allocate(mask(this%n_points))
+
+    !$omp parallel do default(shared) private(i,point,in_poly) schedule(static)
+    do i = 1_i8, this%n_points
+      mask(i) = .false.
+      point = [this%x(i), this%y(i)]
+
+      if (point(1) < x_min .or. point(1) > x_max .or. point(2) < y_min .or. point(2) > y_max) cycle
+
+      call inpoly(point, polygon, in_poly)
+      mask(i) = in_poly >= 0_i4
+    end do
+    !$omp end parallel do
+  end subroutine points_polygon_mask
+
+  !> \brief Copy point metadata and optionally select a subset by mask and/or bounding box.
+  subroutine points_copy_to(this, new_points, mask, bbox, selection)
+    class(points_t), intent(in) :: this !< Source point set.
+    type(points_t), intent(out) :: new_points !< Copied point set.
+    logical, optional, intent(in) :: mask(:) !< Optional source-sized point selection mask.
+    real(dp), optional, intent(in) :: bbox(4) !< Optional bounding box [west, south, east, north].
+    logical, allocatable, optional, intent(out) :: selection(:) !< Optional generated source-sized selection mask.
+
+    logical, allocatable :: keep(:)
+    integer(i8) :: i
+
+    if (.not. allocated(this%x) .or. .not. allocated(this%y)) then
+      call error_message("points % copy_to: source point coordinates are not allocated.") ! LCOV_EXCL_LINE
+    end if
+    if (present(mask)) then
+      if (size(mask, kind=i8) /= this%n_points) call error_message("points % copy_to: mask size mismatch.") ! LCOV_EXCL_LINE
+    end if
+    if (present(bbox)) then
+      if (any(.not. is_finite(bbox)) .or. bbox(1) > bbox(3) .or. bbox(2) > bbox(4)) then
+        call error_message("points % copy_to: bbox needs finite values with west <= east and south <= north.") ! LCOV_EXCL_LINE
+      end if
+    end if
+
+    new_points%coordsys = this%coordsys
+    allocate(keep(this%n_points))
+    !$omp parallel do default(shared) private(i) schedule(static)
+    do i = 1_i8, this%n_points
+      keep(i) = .true.
+      if (present(mask)) keep(i) = mask(i)
+      if (present(bbox)) keep(i) = keep(i) .and. this%x(i) >= bbox(1) .and. this%x(i) <= bbox(3) &
+                                           .and. this%y(i) >= bbox(2) .and. this%y(i) <= bbox(4)
+    end do
+    !$omp end parallel do
+
+    new_points%n_points = count(keep, kind=i8)
+    allocate(new_points%x(new_points%n_points), new_points%y(new_points%n_points))
+    if (new_points%n_points > 0_i8) then
+      new_points%x = pack(this%x, keep)
+      new_points%y = pack(this%y, keep)
+    end if
+    if (present(selection)) call move_alloc(keep, selection)
+  end subroutine points_copy_to
 
   !> \brief Build a spatial nearest-neighbor index for the point coordinates.
   subroutine points_build_spatial_index(this, index)

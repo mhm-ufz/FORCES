@@ -18,7 +18,7 @@ module mo_grid_scaler
   use mo_kind, only: i4, i8, dp
   use mo_grid, only: grid_t, cartesian, spherical, top_down, bottom_up
   use mo_grid_helper, only: id_bounds, coarse_ij, check_factor, dist_latlon
-  use mo_utils, only: is_close, eq, flipped, optval, prefix_sum
+  use mo_utils, only: is_close, eq, optval, prefix_sum
   use mo_string_utils, only: num2str
   use mo_message, only: error_message
   use mo_constants, only: nodata_i4
@@ -135,6 +135,8 @@ module mo_grid_scaler
     procedure, private :: cell_fraction_count_value => scaler_cell_fraction_count_value
     procedure, private :: scaler_fill_target_dp, scaler_fill_target_i4
     generic, private :: fill_target => scaler_fill_target_dp, scaler_fill_target_i4
+    procedure, private :: scaler_pack_equal_dp, scaler_pack_equal_i4, scaler_pack_equal_i4_dp
+    generic, private :: pack_equal => scaler_pack_equal_dp, scaler_pack_equal_i4, scaler_pack_equal_i4_dp
     procedure, private :: check_packed_source => scaler_check_packed_source
     procedure, private :: check_packed_target => scaler_check_packed_target
     procedure, private :: check_unpacked_source => scaler_check_unpacked_source
@@ -295,8 +297,8 @@ contains
     integer(i8), dimension(:, :), allocatable :: coarse_id_matrix
     integer(i4), dimension(:, :), allocatable :: down_subcells
     real(dp), allocatable :: fine_cell_area(:, :), area_sums(:)
-    logical, allocatable :: missing_mask(:, :), invalid_area(:)
-    logical :: is_upscaling, down_fill_active
+    logical, allocatable :: missing_mask(:, :)
+    logical :: is_upscaling, down_fill_active, fine_grid_check_invalid, invalid_area_cell
 
     call this%reset()
 
@@ -381,7 +383,12 @@ contains
 
     ! skip further initialization for no scaling
     if (this%scaling_mode == no_scaling) then
-      allocate(this%n_subcells(this%coarse_grid%ncells), source=1_i4)
+      allocate(this%n_subcells(this%coarse_grid%ncells))
+      !$omp parallel do default(shared) schedule(static)
+      do k = 1_i8, this%coarse_grid%ncells
+        this%n_subcells(k) = 1_i4
+      end do
+      !$omp end parallel do
       return
     end if
 
@@ -430,25 +437,38 @@ contains
     if (this%scaling_mode == up_scaling .and. this%weight_mode == weight_area) then
       allocate(fine_cell_area(this%fine_grid%nx, this%fine_grid%ny))
       call this%fine_grid%unpack_into(this%fine_grid%cell_area, fine_cell_area)
-      allocate(area_sums(this%coarse_grid%ncells), source=0.0_dp)
-      allocate(invalid_area(this%coarse_grid%ncells), source=.false.)
-      allocate(this%area_weights(this%fine_grid%nx, this%fine_grid%ny), source=0.0_dp)
 
-      !$omp parallel do default(shared) private(i_lb,i_ub,j_lb,j_ub) schedule(static)
-      do k = 1_i8, this%coarse_grid%ncells
-        if (this%n_subcells(k) < 1_i4) cycle
-        call this%coarse_bounds(k, i_lb, i_ub, j_lb, j_ub)
-        invalid_area(k) = any((.not. ieee_is_finite(fine_cell_area(i_lb:i_ub, j_lb:j_ub))) .and. &
-                              this%fine_grid%mask(i_lb:i_ub, j_lb:j_ub)) .or. &
-                          any((fine_cell_area(i_lb:i_ub, j_lb:j_ub) <= 0.0_dp) .and. &
-                              this%fine_grid%mask(i_lb:i_ub, j_lb:j_ub))
-        area_sums(k) = sum(fine_cell_area(i_lb:i_ub, j_lb:j_ub), &
-                           mask=this%fine_grid%mask(i_lb:i_ub, j_lb:j_ub))
+      allocate(this%area_weights(this%fine_grid%nx, this%fine_grid%ny))
+      !$omp parallel do default(shared) schedule(static)
+      do j = 1_i4, this%fine_grid%ny
+        this%area_weights(:,j) = 0.0_dp
       end do
       !$omp end parallel do
 
-      if (any(invalid_area) .or. any((this%n_subcells > 0_i4) .and. &
-              ((.not. ieee_is_finite(area_sums)) .or. area_sums <= 0.0_dp))) then
+      allocate(area_sums(this%coarse_grid%ncells))
+
+      fine_grid_check_invalid = .false.
+      !$omp parallel do default(shared) private(i_lb,i_ub,j_lb,j_ub,invalid_area_cell) &
+      !$omp& reduction(.or.:fine_grid_check_invalid) schedule(static)
+      do k = 1_i8, this%coarse_grid%ncells
+        if (this%n_subcells(k) < 1_i4) then
+          area_sums(k) = 0.0_dp
+          cycle
+        end if
+        call this%coarse_bounds(k, i_lb, i_ub, j_lb, j_ub)
+        invalid_area_cell = any((.not. ieee_is_finite(fine_cell_area(i_lb:i_ub, j_lb:j_ub))) .and. &
+                                this%fine_grid%mask(i_lb:i_ub, j_lb:j_ub)) .or. &
+                            any((fine_cell_area(i_lb:i_ub, j_lb:j_ub) <= 0.0_dp) .and. &
+                                this%fine_grid%mask(i_lb:i_ub, j_lb:j_ub))
+        area_sums(k) = sum(fine_cell_area(i_lb:i_ub, j_lb:j_ub), &
+                           mask=this%fine_grid%mask(i_lb:i_ub, j_lb:j_ub))
+        fine_grid_check_invalid = fine_grid_check_invalid &
+                                  .or. invalid_area_cell &
+                                  .or. ((.not. ieee_is_finite(area_sums(k))) .or. area_sums(k) <= 0.0_dp)
+      end do
+      !$omp end parallel do
+
+      if (fine_grid_check_invalid) then
         call error_message("scaler % init: contributing fine-grid cell areas need to be finite and positive.") ! LCOV_EXCL_LINE
       end if
 
@@ -510,10 +530,6 @@ contains
     if (allocated(this%fill_target_ids)) deallocate(this%fill_target_ids)
     if (allocated(this%fill_source_ids)) deallocate(this%fill_source_ids)
 
-    n_missing = count(missing_mask, kind=i8)
-    allocate(this%fill_target_ids(n_missing), this%fill_source_ids(n_missing))
-    if (n_missing < 1_i8) return
-
     has_valid = .false.
     allocate(valid_mask(this%target_grid%nx, this%target_grid%ny))
     allocate(missing_col_cnt(this%target_grid%ny), missing_cum_col_cnt(this%target_grid%ny))
@@ -527,6 +543,12 @@ contains
       end do
     end do
     !$omp end parallel do
+
+    call prefix_sum(missing_col_cnt, missing_cum_col_cnt, shift=1_i8, start=0_i8)
+    n_missing = missing_cum_col_cnt(this%target_grid%ny) + missing_col_cnt(this%target_grid%ny)
+    allocate(this%fill_target_ids(n_missing), this%fill_source_ids(n_missing))
+    if (n_missing < 1_i8) return
+
     if (.not. has_valid) then
       call error_message("scaler % init: no valid target result is available to fill missing cells.") ! LCOV_EXCL_LINE
     end if
@@ -534,7 +556,6 @@ contains
     call this%target_grid%copy_to(valid_grid, mask=valid_mask)
     call valid_grid%fill_ids(this%target_grid, valid_ids, use_index_distance=this%use_index_distance)
 
-    call prefix_sum(missing_col_cnt, missing_cum_col_cnt, shift=1_i8, start=0_i8)
     allocate(valid_to_target_ids(valid_grid%ncells))
 
     !$omp parallel do default(shared) private(i,kt,kv,n) schedule(static)
@@ -593,6 +614,72 @@ contains
     !$omp end parallel do
   end subroutine scaler_fill_target_i4
 
+  !> \brief Pack equal-resolution real data in target order, applying y-direction mapping.
+  subroutine scaler_pack_equal_dp(this, in_data, out_data)
+    class(scaler_t), intent(in) :: this
+    real(dp), intent(in) :: in_data(:, :)
+    real(dp), intent(out) :: out_data(:)
+
+    integer(i8) :: k
+    integer(i4) :: i, j, source_j
+
+    !$omp parallel do default(shared) private(k,i,source_j) schedule(static)
+    do j = 1_i4, this%target_grid%ny
+      source_j = merge(j, this%target_grid%ny - j + 1_i4, this%y_dir_match)
+      k = this%target_grid%mask_cum_col_cnt(j)
+      do i = 1_i4, this%target_grid%nx
+        if (.not. this%target_grid%mask(i, j)) cycle
+        k = k + 1_i8
+        out_data(k) = in_data(i, source_j)
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine scaler_pack_equal_dp
+
+  !> \brief Pack equal-resolution integer data in target order, applying y-direction mapping.
+  subroutine scaler_pack_equal_i4(this, in_data, out_data)
+    class(scaler_t), intent(in) :: this
+    integer(i4), intent(in) :: in_data(:, :)
+    integer(i4), intent(out) :: out_data(:)
+
+    integer(i8) :: k
+    integer(i4) :: i, j, source_j
+
+    !$omp parallel do default(shared) private(k,i,source_j) schedule(static)
+    do j = 1_i4, this%target_grid%ny
+      source_j = merge(j, this%target_grid%ny - j + 1_i4, this%y_dir_match)
+      k = this%target_grid%mask_cum_col_cnt(j)
+      do i = 1_i4, this%target_grid%nx
+        if (.not. this%target_grid%mask(i, j)) cycle
+        k = k + 1_i8
+        out_data(k) = in_data(i, source_j)
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine scaler_pack_equal_i4
+
+  !> \brief Pack equal-resolution integer data as real data, applying y-direction mapping.
+  subroutine scaler_pack_equal_i4_dp(this, in_data, out_data)
+    class(scaler_t), intent(in) :: this
+    integer(i4), intent(in) :: in_data(:, :)
+    real(dp), intent(out) :: out_data(:)
+
+    integer(i8) :: k
+    integer(i4) :: i, j, source_j
+
+    !$omp parallel do default(shared) private(k,i,source_j) schedule(static)
+    do j = 1_i4, this%target_grid%ny
+      source_j = merge(j, this%target_grid%ny - j + 1_i4, this%y_dir_match)
+      k = this%target_grid%mask_cum_col_cnt(j)
+      do i = 1_i4, this%target_grid%nx
+        if (.not. this%target_grid%mask(i, j)) cycle
+        k = k + 1_i8
+        out_data(k) = real(in_data(i, source_j), dp)
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine scaler_pack_equal_i4_dp
+
   !> \brief Setup nearest-neighbor regridder from source and target grids.
   !> \details Builds a transient spatial index over the active source cells and
   !! stores the nearest source cell id for every active target cell. When
@@ -606,7 +693,6 @@ contains
     logical, intent(in), optional :: derive_target_mask
 
     type(spatial_index_t) :: index
-    integer(i4), allocatable :: old_target_cell_ij(:, :)
     real(dp), allocatable :: target_points(:, :)
     integer(i8), allocatable :: nearest_ids(:)
     logical, allocatable :: target_mask(:, :)
@@ -643,24 +729,34 @@ contains
 
     if (derive_target_mask_) then
       call this%prepare_source_aux_vertices()
-      allocate(target_mask(this%target_grid%nx, this%target_grid%ny), source=this%target_grid%mask)
+      allocate(target_mask(this%target_grid%nx, this%target_grid%ny))
       if (this%source_grid%ncells < 1_i8) then
-        target_mask = .false.
-        if (any(target_mask .neqv. this%target_grid%mask)) call this%apply_target_mask(target_mask)
+        !$omp parallel do default(shared) schedule(static)
+        do j = 1_i4, this%target_grid%ny
+          target_mask(:, j) = .false.
+        end do
+        !$omp end parallel do
+        if (this%target_grid%ncells > 0_i8) call this%apply_target_mask(target_mask)
         allocate(this%id_map(this%target_grid%ncells))
         return
       end if
 
-      allocate(old_target_cell_ij(this%target_grid%ncells, 2), source=this%target_grid%cell_ij)
+      !$omp parallel do default(shared) schedule(static)
+      do j = 1_i4, this%target_grid%ny
+        target_mask(:, j) = this%target_grid%mask(:, j)
+      end do
+      !$omp end parallel do
       call this%collect_target_points(target_points)
       call this%source_grid%build_spatial_index(index, use_aux=this%source_use_aux)
       call this%query_source_ids(index, target_points, nearest_ids)
-      call this%derive_target_mask(target_points, nearest_ids, target_mask)
+      call this%derive_target_mask(target_points, nearest_ids, target_mask, target_mask_changed)
 
-      if (any(target_mask .neqv. this%target_grid%mask)) then
+      if (target_mask_changed) then
+        call this%repack_id_map(target_mask, nearest_ids)
         call this%apply_target_mask(target_mask)
+      else
+        call move_alloc(nearest_ids, this%id_map)
       end if
-      call this%repack_id_map(old_target_cell_ij, nearest_ids)
       return
     end if
     call this%build_id_map()
@@ -859,16 +955,18 @@ contains
     end if
   end subroutine nearest_regridder_query_source_ids
 
-  subroutine nearest_regridder_derive_target_mask(this, target_points, nearest_ids, target_mask)
+  subroutine nearest_regridder_derive_target_mask(this, target_points, nearest_ids, target_mask, target_mask_changed)
     class(nearest_regridder_t), intent(inout) :: this
     real(dp), intent(in) :: target_points(:, :)
     integer(i8), intent(in) :: nearest_ids(:)
     logical, intent(inout) :: target_mask(:, :)
+    logical, intent(out) :: target_mask_changed
 
     integer(i8) :: k
     integer(i4) :: src_i, src_j, src_i_found, src_j_found, tgt_i, tgt_j
     logical :: found
 
+    target_mask_changed = .false.
     if (this%target_grid%ncells < 1_i8) return
 
     if (size(target_points, 1, kind=i8) /= this%target_grid%ncells .or. size(target_points, 2) /= 2_i4) then
@@ -881,8 +979,9 @@ contains
       call error_message("nearest_regridder % init: target mask buffer has wrong shape.") ! LCOV_EXCL_LINE
     end if
 
-    !$omp parallel do default(shared) private(k,tgt_i,tgt_j,src_i,src_j,found,src_i_found,src_j_found) schedule(static) &
-    !$omp if(this%target_grid%ncells >= nearest_regridder_loop_parallel_min_n)
+    !$omp parallel do default(shared) private(k,tgt_i,tgt_j,src_i,src_j,found,src_i_found,src_j_found) &
+    !$omp& reduction(.or.:target_mask_changed) schedule(static) &
+    !$omp& if(this%target_grid%ncells >= nearest_regridder_loop_parallel_min_n)
     do k = 1_i8, this%target_grid%ncells
       tgt_i = this%target_grid%cell_ij(k, 1)
       tgt_j = this%target_grid%cell_ij(k, 2)
@@ -892,8 +991,10 @@ contains
                                             found, src_i_found, src_j_found)
       if (.not. found) then
         target_mask(tgt_i, tgt_j) = .false.
+        target_mask_changed = .true.
       else if (.not. this%source_grid%mask(src_i_found, src_j_found)) then
         target_mask(tgt_i, tgt_j) = .false.
+        target_mask_changed = .true.
       end if
     end do
     !$omp end parallel do
@@ -1034,37 +1135,57 @@ contains
     call this%query_source_ids(index, target_points, this%id_map)
   end subroutine nearest_regridder_build_id_map
 
-  subroutine nearest_regridder_repack_id_map(this, old_target_cell_ij, nearest_ids)
+  subroutine nearest_regridder_repack_id_map(this, target_mask, nearest_ids)
     class(nearest_regridder_t), intent(inout) :: this
-    integer(i4), intent(in) :: old_target_cell_ij(:, :)
+    logical, intent(in) :: target_mask(:, :)
     integer(i8), intent(in) :: nearest_ids(:)
 
-    integer(i8) :: k
+    integer(i8) :: old_k, new_k, n_new
     integer(i4) :: i, j
-    integer(i8), allocatable :: nearest_id_matrix(:, :)
+    integer(i8), allocatable :: new_col_cnt(:), new_cum_col_cnt(:)
+    logical :: invalid_mask
 
-    if (size(old_target_cell_ij, 1, kind=i8) /= size(nearest_ids, kind=i8) .or. size(old_target_cell_ij, 2) /= 2_i4) then
-      call error_message("nearest_regridder % init: old target cell ids and nearest ids do not match.") ! LCOV_EXCL_LINE
+    if (size(nearest_ids, kind=i8) /= this%target_grid%ncells) then
+      call error_message("nearest_regridder % init: nearest ids do not match old target cells.") ! LCOV_EXCL_LINE
+    end if
+    if (size(target_mask, 1) /= this%target_grid%nx .or. size(target_mask, 2) /= this%target_grid%ny) then
+      call error_message("nearest_regridder % init: target mask buffer has wrong shape.") ! LCOV_EXCL_LINE
     end if
 
-    allocate(nearest_id_matrix(this%target_grid%nx, this%target_grid%ny), source=0_i8)
-    !$omp parallel do default(shared) private(k,i,j) schedule(static) &
-    !$omp& if(size(nearest_ids, kind=i8) >= nearest_regridder_loop_parallel_min_n)
-    do k = 1_i8, size(nearest_ids, kind=i8)
-      i = old_target_cell_ij(k, 1)
-      j = old_target_cell_ij(k, 2)
-      nearest_id_matrix(i, j) = nearest_ids(k)
+    allocate(new_col_cnt(this%target_grid%ny), new_cum_col_cnt(this%target_grid%ny))
+    invalid_mask = .false.
+    !$omp parallel do default(shared) private(i) reduction(.or.:invalid_mask) schedule(static) &
+    !$omp& if(int(this%target_grid%nx, i8) * int(this%target_grid%ny, i8) >= nearest_regridder_loop_parallel_min_n)
+    do j = 1_i4, this%target_grid%ny
+      new_col_cnt(j) = 0_i8
+      do i = 1_i4, this%target_grid%nx
+        if (target_mask(i, j)) then
+          new_col_cnt(j) = new_col_cnt(j) + 1_i8
+          invalid_mask = invalid_mask .or. .not. this%target_grid%mask(i, j)
+        end if
+      end do
     end do
     !$omp end parallel do
+    if (invalid_mask) then
+      call error_message("nearest_regridder % init: derived target mask is not a subset of the old target mask.") ! LCOV_EXCL_LINE
+    end if
 
+    call prefix_sum(new_col_cnt, new_cum_col_cnt, shift=1_i8, start=0_i8)
+    n_new = new_cum_col_cnt(this%target_grid%ny) + new_col_cnt(this%target_grid%ny)
     if (allocated(this%id_map)) deallocate(this%id_map)
-    allocate(this%id_map(this%target_grid%ncells))
-    !$omp parallel do default(shared) private(k,i,j) schedule(static) &
-    !$omp& if(this%target_grid%ncells >= nearest_regridder_loop_parallel_min_n)
-    do k = 1_i8, this%target_grid%ncells
-      i = this%target_grid%cell_ij(k, 1)
-      j = this%target_grid%cell_ij(k, 2)
-      this%id_map(k) = nearest_id_matrix(i, j)
+    allocate(this%id_map(n_new))
+    !$omp parallel do default(shared) private(i,old_k,new_k) schedule(static) &
+    !$omp& if(int(this%target_grid%nx, i8) * int(this%target_grid%ny, i8) >= nearest_regridder_loop_parallel_min_n)
+    do j = 1_i4, this%target_grid%ny
+      old_k = this%target_grid%mask_cum_col_cnt(j)
+      new_k = new_cum_col_cnt(j)
+      do i = 1_i4, this%target_grid%nx
+        if (this%target_grid%mask(i, j)) old_k = old_k + 1_i8
+        if (target_mask(i, j)) then
+          new_k = new_k + 1_i8
+          this%id_map(new_k) = nearest_ids(old_k)
+        end if
+      end do
     end do
     !$omp end parallel do
   end subroutine nearest_regridder_repack_id_map
@@ -1363,11 +1484,7 @@ contains
     call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
     ! shortcut if resolution is equal (only masking and flipping)
     if (this%scaling_mode == no_scaling) then
-      if (this%y_dir_match) then
-        call this%target_grid%pack_into(in_data, out_data)
-      else
-        call this%target_grid%pack_into(flipped(in_data, idim=2), out_data)
-      end if
+      call this%pack_equal(in_data, out_data)
     else if (this%scaling_mode == up_scaling) then
       select case (up_operator)
         case (up_p_mean)
@@ -1487,11 +1604,7 @@ contains
     call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
     ! shortcut if resolution is equal (only masking and flipping)
     if (this%scaling_mode == no_scaling) then
-      if (this%y_dir_match) then
-        call this%target_grid%pack_into(in_data, out_data)
-      else
-        call this%target_grid%pack_into(flipped(in_data, idim=2), out_data)
-      end if
+      call this%pack_equal(in_data, out_data)
     else if (this%scaling_mode == up_scaling) then
       select case (up_operator)
         case (up_p_mean)
@@ -1608,16 +1721,13 @@ contains
     integer(i4), dimension(:), allocatable :: temp
 
     integer(i4) :: up_operator, down_operator
+    integer(i8) :: k
     call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
     call this%check_packed_target(size(out_data, kind=i8))
     call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
     ! shortcut if resolution is equal (only converting, masking and flipping)
     if (this%scaling_mode == no_scaling) then
-      if (this%y_dir_match) then
-        call this%target_grid%pack_into(real(in_data, dp), out_data)
-      else
-        call this%target_grid%pack_into(flipped(real(in_data, dp), idim=2), out_data)
-      end if
+      call this%pack_equal(in_data, out_data)
     else if (this%scaling_mode == up_scaling) then
       select case (up_operator)
         case (up_p_mean)
@@ -1631,17 +1741,29 @@ contains
         case (up_min)
           allocate(temp(this%coarse_grid%ncells))
           call this%upscale_min(in_data, temp)
-          out_data = real(temp, dp)
+          !$omp parallel do default(shared) schedule(static)
+          do k = 1_i8, this%coarse_grid%ncells
+            out_data(k) = real(temp(k), dp)
+          end do
+          !$omp end parallel do
           deallocate(temp)
         case (up_max)
           allocate(temp(this%coarse_grid%ncells))
           call this%upscale_max(in_data, temp)
-          out_data = real(temp, dp)
+          !$omp parallel do default(shared) schedule(static)
+          do k = 1_i8, this%coarse_grid%ncells
+            out_data(k) = real(temp(k), dp)
+          end do
+          !$omp end parallel do
           deallocate(temp)
         case (up_sum)
           allocate(temp(this%coarse_grid%ncells))
           call this%upscale_sum(in_data, temp)
-          out_data = real(temp, dp)
+          !$omp parallel do default(shared) schedule(static)
+          do k = 1_i8, this%coarse_grid%ncells
+            out_data(k) = real(temp(k), dp)
+          end do
+          !$omp end parallel do
           deallocate(temp)
         case (up_var)
           call this%upscale_var(real(in_data, dp), out_data)
@@ -1652,7 +1774,11 @@ contains
         case (up_laf)
           allocate(temp(this%coarse_grid%ncells))
           call this%upscale_laf(in_data, temp, vmin, vmax)
-          out_data = real(temp, dp)
+          !$omp parallel do default(shared) schedule(static)
+          do k = 1_i8, this%coarse_grid%ncells
+            out_data(k) = real(temp(k), dp)
+          end do
+          !$omp end parallel do
           deallocate(temp)
         case (up_fraction)
           call this%upscale_fraction(in_data, out_data, class_id)
@@ -2011,10 +2137,15 @@ contains
     class(scaler_t), intent(inout) :: this
     real(dp), intent(in) :: in_data(:, :)
     real(dp), intent(out) :: out_data(:)
+    integer(i8) :: k
     call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
     call this%check_packed_target(size(out_data, kind=i8))
     call this%upscale_var(in_data, out_data)
-    out_data = sqrt(out_data)
+    !$omp parallel do default(shared) schedule(static)
+    do k = 1_i8, size(out_data, kind=i8)
+      out_data(k) = sqrt(out_data(k))
+    end do
+    !$omp end parallel do
   end subroutine scaler_upscale_std
 
   subroutine scaler_upscale_median(this, in_data, out_data)
@@ -2049,7 +2180,7 @@ contains
     integer(i4), intent(out) :: out_data(:)
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up operator
-    integer(i4) :: i, laf_v, cnt_v, cnt_i, min_v, max_v
+    integer(i4) :: i, j, laf_v, cnt_v, cnt_i, min_v, max_v
     integer(i8) :: k
     integer(i4) :: x_lb, x_ub, y_lb, y_ub
     call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
@@ -2059,12 +2190,26 @@ contains
     if (present(vmin)) then
       min_v = vmin
     else
-      min_v = minval(in_data)
+      min_v = huge(min_v)
+      !$omp parallel do default(shared) private(i) reduction(min:min_v) schedule(static)
+      do j = 1_i4, size(in_data, 2)
+        do i = 1_i4, size(in_data, 1)
+          min_v = min(min_v, in_data(i, j))
+        end do
+      end do
+      !$omp end parallel do
     endif
     if (present(vmax)) then
       max_v = vmax
     else
-      max_v = maxval(in_data)
+      max_v = -huge(max_v)
+      !$omp parallel do default(shared) private(i) reduction(max:max_v) schedule(static)
+      do j = 1_i4, size(in_data, 2)
+        do i = 1_i4, size(in_data, 1)
+          max_v = max(max_v, in_data(i, j))
+        end do
+      end do
+      !$omp end parallel do
     endif
     if (min_v > max_v) call error_message("upscale_laf: vmin is bigger than vmax.") ! LCOV_EXCL_LINE
 

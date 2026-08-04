@@ -29,10 +29,11 @@ module mo_grid
 #endif
   use mo_kind, only: i1, i2, i4, i8, sp, dp
   use mo_constants, only : nodata_i1, nodata_i2, nodata_i4, nodata_i8, nodata_sp, nodata_dp, RadiusEarth_dp, deg2rad_dp
-  use mo_utils, only: flip, optval, is_close
+  use mo_utils, only: flip, optval, is_close, is_finite
   use mo_message, only : error_message, warn_message, message
   use mo_spatial_index, only: spatial_index_t
   use mo_string_utils, only : num2str
+  use mo_poly, only: inpoly
 
   implicit none
 
@@ -122,6 +123,7 @@ module mo_grid
     procedure, public :: build_spatial_index => grid_build_spatial_index
     procedure, public :: border_mask => grid_border_mask
     procedure, public :: connected_mask => grid_connected_mask
+    procedure, public :: polygon_mask => grid_polygon_mask
     procedure, public :: copy_to => grid_copy_to
     procedure, public :: fill_ids => grid_fill_ids
     procedure, public :: in_cell => grid_in_cell
@@ -1251,39 +1253,289 @@ contains
       periodic_x=this%coordsys == spherical .and. this%is_periodic())
   end subroutine grid_connected_mask
 
+  !> \brief Mask active grid cells whose centers are inside or on a polygon.
+  subroutine grid_polygon_mask(this, polygon, poly_mask, use_aux)
+    implicit none
+    class(grid_t), intent(in) :: this !< Grid with source mask.
+    real(dp), intent(in) :: polygon(:, :) !< Polygon coordinates as (n_vertices, 2): x/lon, y/lat.
+    logical, allocatable, intent(out) :: poly_mask(:, :) !< Polygon mask, allocated with shape (nx, ny).
+    logical, optional, intent(in) :: use_aux !< Use auxiliary lon/lat cell centers.
+
+    real(dp), allocatable :: polygon_norm(:, :)
+    real(dp) :: point(2)
+    real(dp) :: x_min, x_max, y_min, y_max
+    integer(i4) :: i, j, in_poly
+    integer(i8) :: k
+    logical :: use_aux_, normalize_longitudes
+
+    if (.not. allocated(this%mask)) call error_message("grid%polygon_mask: grid has no mask.") ! LCOV_EXCL_LINE
+    if (size(polygon, 2) /= 2_i4) call error_message("grid%polygon_mask: polygon must have shape (n, 2).") ! LCOV_EXCL_LINE
+    if (size(polygon, 1) < 3_i4) call error_message("grid%polygon_mask: polygon needs at least three vertices.") ! LCOV_EXCL_LINE
+
+    use_aux_ = optval(use_aux, .false.)
+    if (use_aux_ .and. .not. this%has_aux_coords()) then
+      call error_message("grid%polygon_mask: auxiliary coordinates are not allocated.") ! LCOV_EXCL_LINE
+    end if
+
+    normalize_longitudes = this%coordsys == spherical .and. .not. use_aux_
+    allocate(polygon_norm(size(polygon, 1), 2_i4))
+    polygon_norm = polygon
+    if (normalize_longitudes) then
+      do i = 1_i4, size(polygon_norm, 1)
+        polygon_norm(i, 1) = this%map_longitude_for_domain(polygon_norm(i, 1))
+      end do
+    end if
+
+    x_min = minval(polygon_norm(:, 1))
+    x_max = maxval(polygon_norm(:, 1))
+    y_min = minval(polygon_norm(:, 2))
+    y_max = maxval(polygon_norm(:, 2))
+
+    allocate(poly_mask(this%nx, this%ny))
+
+    !$omp parallel default(shared) private(i,j,k,point,in_poly)
+    !$omp do schedule(static)
+    do j = 1_i4, this%ny
+      poly_mask(:, j) = .false.
+    end do
+    !$omp end do
+
+    !$omp do schedule(static)
+    do k = 1_i8, this%ncells
+      i = this%cell_ij(k, 1)
+      j = this%cell_ij(k, 2)
+
+      if (use_aux_) then
+        point = [this%lon(i, j), this%lat(i, j)]
+      else
+        point = [this%x_center(i), this%y_center(j)]
+        if (normalize_longitudes) point(1) = this%map_longitude_for_domain(point(1))
+      end if
+
+      if (point(1) < x_min .or. point(1) > x_max .or. point(2) < y_min .or. point(2) > y_max) cycle
+
+      call inpoly(point, polygon_norm, in_poly)
+      poly_mask(i, j) = in_poly >= 0_i4
+    end do
+    !$omp end do
+    !$omp end parallel
+  end subroutine grid_polygon_mask
+
   !> \brief Copy grid metadata and optionally replace mask and cell area.
-  subroutine grid_copy_to(this, new_grid, mask, cell_area)
+  subroutine grid_copy_to(this, new_grid, mask, cell_area, keep_sub_cell_area, bbox, selection, bbox_ids)
     implicit none
     class(grid_t), intent(in) :: this !< Source grid.
     type(grid_t), intent(out) :: new_grid !< Copied grid.
     logical, optional, intent(in) :: mask(:, :) !< Optional target mask with shape (nx, ny).
     real(dp), optional, intent(in) :: cell_area(:, :) !< Optional full-grid cell area with shape (nx, ny).
+    logical, optional, intent(in) :: keep_sub_cell_area !< Preserve source cell areas when target mask is a pure sub-mask.
+    real(dp), optional, intent(in) :: bbox(4) !< Optional crop bounding box [west, south, east, north].
+    logical, allocatable, optional, intent(out) :: selection(:, :) !< Optional generated source-grid-sized selection mask.
+    integer(i4), optional, intent(out) :: bbox_ids(4) !< Optional crop ids [i_lb, j_lb, i_ub, j_ub] in source storage order.
 
-    logical :: same_mask
+    integer(i4) :: i, i_new, i_src, i_lb, i_ub, j, j_lb, j_src, j_ub
+    integer(i8) :: k, ks, kt
+    logical :: col_same_mask, col_sup_mask, cropped, invalid_area, keep_sub_cell_area_, same_mask, sub_mask, sup_mask
 
     if (.not. allocated(this%mask)) call error_message("grid%copy_to: source grid has no mask.") ! LCOV_EXCL_LINE
     if (present(mask)) call this%check_shape(shape(mask, kind=i4))
     if (present(cell_area)) call this%check_shape(shape(cell_area, kind=i4))
-
-    if (present(mask)) then
-      same_mask = all(mask .eqv. this%mask)
-      call new_grid%init(nx=this%nx, ny=this%ny, xllcorner=this%xllcorner, yllcorner=this%yllcorner, &
-                         cellsize=this%cellsize, coordsys=this%coordsys, y_direction=this%y_direction, mask=mask)
+    if (present(bbox)) then
+      if (any(.not. is_finite(bbox)) .or. bbox(1) >= bbox(3) .or. bbox(2) >= bbox(4)) then
+        call error_message("grid%copy_to: bbox needs finite values with west < east and south < north.") ! LCOV_EXCL_LINE
+      end if
+      i_lb = this%nx + 1_i4
+      do i = 1_i4, this%nx
+        if (this%x_center(i) >= bbox(1)) then
+          i_lb = i
+          exit
+        end if
+      end do
+      i_ub = 0_i4
+      do i = this%nx, 1_i4, -1_i4
+        if (this%x_center(i) <= bbox(3)) then
+          i_ub = i
+          exit
+        end if
+      end do
+      j_lb = this%ny + 1_i4
+      j_ub = 0_i4
+      if (this%y_direction == top_down) then
+        do j = 1_i4, this%ny
+          if (this%y_center(j) <= bbox(4)) then
+            j_lb = j
+            exit
+          end if
+        end do
+        do j = this%ny, 1_i4, -1_i4
+          if (this%y_center(j) >= bbox(2)) then
+            j_ub = j
+            exit
+          end if
+        end do
+      else
+        do j = 1_i4, this%ny
+          if (this%y_center(j) >= bbox(2)) then
+            j_lb = j
+            exit
+          end if
+        end do
+        do j = this%ny, 1_i4, -1_i4
+          if (this%y_center(j) <= bbox(4)) then
+            j_ub = j
+            exit
+          end if
+        end do
+      end if
+      if (i_ub < 1_i4 .or. i_lb > this%nx .or. j_ub < 1_i4 .or. j_lb > this%ny) then
+        call error_message("grid%copy_to: bbox does not overlap source grid.") ! LCOV_EXCL_LINE
+      end if
+      i_lb = max(1_i4, i_lb)
+      i_ub = min(this%nx, i_ub)
+      j_lb = max(1_i4, j_lb)
+      j_ub = min(this%ny, j_ub)
+      cropped = i_lb /= 1_i4 .or. i_ub /= this%nx .or. j_lb /= 1_i4 .or. j_ub /= this%ny
     else
-      same_mask = .true.
-      call new_grid%init(nx=this%nx, ny=this%ny, xllcorner=this%xllcorner, yllcorner=this%yllcorner, &
-                         cellsize=this%cellsize, coordsys=this%coordsys, y_direction=this%y_direction, mask=this%mask)
+      i_lb = 1_i4
+      i_ub = this%nx
+      j_lb = 1_i4
+      j_ub = this%ny
+      cropped = .false.
+    end if
+    if (present(bbox_ids)) bbox_ids = [i_lb, j_lb, i_ub, j_ub]
+
+    keep_sub_cell_area_ = optval(keep_sub_cell_area, .false.)
+    new_grid%nx = i_ub - i_lb + 1_i4
+    new_grid%ny = j_ub - j_lb + 1_i4
+    new_grid%xllcorner = this%xllcorner + real(i_lb - 1_i4, dp) * this%cellsize
+    if (this%y_direction == top_down) then
+      new_grid%yllcorner = this%yllcorner + real(this%ny - j_ub, dp) * this%cellsize
+    else
+      new_grid%yllcorner = this%yllcorner + real(j_lb - 1_i4, dp) * this%cellsize
+    end if
+    new_grid%cellsize = this%cellsize
+    new_grid%coordsys = this%coordsys
+    new_grid%y_direction = this%y_direction
+
+    if (present(selection)) then
+      allocate(selection(this%nx, this%ny))
+      !$omp parallel do default(shared) schedule(static)
+      do j = 1_i4, this%ny
+        selection(:, j) = .false.
+      end do
+      !$omp end parallel do
     end if
 
-    if (allocated(this%lat)) allocate(new_grid%lat(this%nx, this%ny), source=this%lat)
-    if (allocated(this%lon)) allocate(new_grid%lon(this%nx, this%ny), source=this%lon)
-    if (allocated(this%lat_vertices)) allocate(new_grid%lat_vertices(this%nx + 1_i4, this%ny + 1_i4), source=this%lat_vertices)
-    if (allocated(this%lon_vertices)) allocate(new_grid%lon_vertices(this%nx + 1_i4, this%ny + 1_i4), source=this%lon_vertices)
+    allocate(new_grid%mask(new_grid%nx, new_grid%ny))
+    if (present(mask)) then
+      same_mask = .true.
+      sup_mask = .false.
+      !$omp parallel do default(shared) private(i,i_src,j_src,col_same_mask,col_sup_mask) schedule(static) &
+      !$omp& reduction(.and.:same_mask) reduction(.or.:sup_mask)
+      do j = 1_i4, new_grid%ny
+        j_src = j + j_lb - 1_i4
+        col_same_mask = .true.
+        col_sup_mask = .false.
+        do i = 1_i4, new_grid%nx
+          i_src = i + i_lb - 1_i4
+          new_grid%mask(i, j) = mask(i_src, j_src)
+          if (present(selection)) selection(i_src, j_src) = new_grid%mask(i, j)
+          col_same_mask = col_same_mask .and. (mask(i_src, j_src) .eqv. this%mask(i_src, j_src))
+          col_sup_mask = col_sup_mask .or. (mask(i_src, j_src) .and. .not. this%mask(i_src, j_src))
+        end do
+        same_mask = same_mask .and. col_same_mask
+        sup_mask = sup_mask .or. col_sup_mask
+      end do
+      !$omp end parallel do
+    else
+      same_mask = .true.
+      sup_mask = .false.
+      !$omp parallel do default(shared) private(j_src) schedule(static)
+      do j = 1_i4, new_grid%ny
+        j_src = j + j_lb - 1_i4
+        new_grid%mask(:, j) = this%mask(i_lb:i_ub, j_src)
+        if (present(selection)) selection(i_lb:i_ub, j_src) = new_grid%mask(:, j)
+      end do
+      !$omp end parallel do
+    end if
+    sub_mask = same_mask .or. .not. sup_mask
+    call new_grid%calculate_cell_ids()
+
+    if (allocated(this%lat)) then
+      allocate(new_grid%lat(new_grid%nx, new_grid%ny))
+      !$omp parallel do default(shared) private(j_src) schedule(static)
+      do j = 1_i4, new_grid%ny
+        j_src = j + j_lb - 1_i4
+        new_grid%lat(:, j) = this%lat(i_lb:i_ub, j_src)
+      end do
+      !$omp end parallel do
+    end if
+    if (allocated(this%lon)) then
+      allocate(new_grid%lon(new_grid%nx, new_grid%ny))
+      !$omp parallel do default(shared) private(j_src) schedule(static)
+      do j = 1_i4, new_grid%ny
+        j_src = j + j_lb - 1_i4
+        new_grid%lon(:, j) = this%lon(i_lb:i_ub, j_src)
+      end do
+      !$omp end parallel do
+    end if
+    if (allocated(this%lat_vertices)) then
+      allocate(new_grid%lat_vertices(new_grid%nx + 1_i4, new_grid%ny + 1_i4))
+      !$omp parallel do default(shared) private(j_src) schedule(static)
+      do j = 1_i4, new_grid%ny + 1_i4
+        j_src = j + j_lb - 1_i4
+        new_grid%lat_vertices(:, j) = this%lat_vertices(i_lb:i_ub + 1_i4, j_src)
+      end do
+      !$omp end parallel do
+    end if
+    if (allocated(this%lon_vertices)) then
+      allocate(new_grid%lon_vertices(new_grid%nx + 1_i4, new_grid%ny + 1_i4))
+      !$omp parallel do default(shared) private(j_src) schedule(static)
+      do j = 1_i4, new_grid%ny + 1_i4
+        j_src = j + j_lb - 1_i4
+        new_grid%lon_vertices(:, j) = this%lon_vertices(i_lb:i_ub + 1_i4, j_src)
+      end do
+      !$omp end parallel do
+    end if
 
     if (present(cell_area)) then
-      call new_grid%pack_into(cell_area, new_grid%cell_area)
-    else if (same_mask .and. allocated(this%cell_area)) then
-      new_grid%cell_area = this%cell_area
+      allocate(new_grid%cell_area(new_grid%ncells))
+      call new_grid%pack_into(cell_area(i_lb:i_ub, j_lb:j_ub), new_grid%cell_area)
+      invalid_area = .false.
+      !$omp parallel do default(shared) schedule(static) reduction(.or.:invalid_area)
+      do kt = 1_i8, new_grid%ncells
+        invalid_area = invalid_area .or. (.not. is_finite(new_grid%cell_area(kt))) .or. new_grid%cell_area(kt) < 0.0_dp
+      end do
+      !$omp end parallel do
+      if (invalid_area) then
+        call error_message("grid%copy_to: explicit cell_area values need to be finite and non-negative.") ! LCOV_EXCL_LINE
+      end if
+    else if (same_mask .and. .not. cropped .and. new_grid%ncells == this%ncells .and. allocated(this%cell_area)) then
+      allocate(new_grid%cell_area(new_grid%ncells))
+      !$omp parallel do default(shared) schedule(static)
+      do k = 1_i8, new_grid%ncells
+        new_grid%cell_area(k) = this%cell_area(k)
+      end do
+      !$omp end parallel do
+    else if ((same_mask .or. keep_sub_cell_area_) .and. sub_mask .and. allocated(this%cell_area)) then
+      allocate(new_grid%cell_area(new_grid%ncells))
+      !$omp parallel do default(shared) private(i,i_new,j_src,ks,kt) schedule(static)
+      do j = 1_i4, new_grid%ny
+        j_src = j + j_lb - 1_i4
+        ks = this%mask_cum_col_cnt(j_src)
+        kt = new_grid%mask_cum_col_cnt(j)
+        do i = 1_i4, i_ub
+          if (this%mask(i, j_src)) ks = ks + 1_i8
+          if (i < i_lb) cycle
+          i_new = i - i_lb + 1_i4
+          if (.not. new_grid%mask(i_new, j)) cycle
+          kt = kt + 1_i8
+          new_grid%cell_area(kt) = this%cell_area(ks)
+        end do
+      end do
+      !$omp end parallel do
+    else
+      call new_grid%calculate_cell_area()
     end if
   end subroutine grid_copy_to
 
