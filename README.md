@@ -85,6 +85,7 @@ FORCES uses standard CMake inputs such as `CMAKE_BUILD_TYPE` and a small set of 
 * `FORCES_WITH_NETCDF`: enable NetCDF support.
 * `FORCES_WITH_OPTIMIZATION`: include optimization routines.
 * `FORCES_ENABLE_NATIVE`: enable host-native tuning for `Release` and `RelWithDebInfo` builds.
+* `FORCES_ENABLE_HEAP_ARRAYS`: place compiler-generated Fortran arrays on the heap with Intel Fortran or LLVM Flang. Defaults to `OFF`.
 * `FORCES_EXE`: build a local executable linked against `forces`.
 
 Typical configure commands:
