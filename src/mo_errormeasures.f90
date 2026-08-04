@@ -2149,9 +2149,10 @@ CONTAINS
     idx = sort_index(x)
 
     i = 1_i4
-    do while (i .LE. n)
+    do while (i <= n)
       j = i
-      do while ((j .LT. n) .AND. (x(idx(j + 1)) .EQ. x(idx(i))))
+      do while (j < n)
+        if (x(idx(j + 1)) /= x(idx(i))) exit
         j = j + 1_i4
       end do
       ! tied values share the average of the ranks they span
@@ -2177,9 +2178,10 @@ CONTAINS
     idx = sort_index(x)
 
     i = 1_i4
-    do while (i .LE. n)
+    do while (i <= n)
       j = i
-      do while ((j .LT. n) .AND. (x(idx(j + 1)) .EQ. x(idx(i))))
+      do while (j < n)
+        if (x(idx(j + 1)) /= x(idx(i))) exit
         j = j + 1_i4
       end do
       ! tied values share the average of the ranks they span
@@ -2201,7 +2203,7 @@ CONTAINS
     REAL(sp) :: KGEnp_sp_1d
 
     ! local variables
-    INTEGER(i4) :: n, i
+    INTEGER(i4) :: n
     INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
     LOGICAL, DIMENSION(size(x)) :: maske
 
@@ -2272,7 +2274,7 @@ CONTAINS
     REAL(sp) :: KGEnp_sp_2d
 
     ! local variables
-    INTEGER(i4) :: n, i
+    INTEGER(i4) :: n
     INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
     LOGICAL, DIMENSION(size(x, dim = 1), size(x, dim = 2)) :: maske
 
@@ -2343,7 +2345,7 @@ CONTAINS
     REAL(sp) :: KGEnp_sp_3d
 
     ! local variables
-    INTEGER(i4) :: n, i
+    INTEGER(i4) :: n
     INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
     LOGICAL, DIMENSION(size(x, dim = 1), size(x, dim = 2), size(x, dim = 3)) :: maske
 
@@ -2414,7 +2416,7 @@ CONTAINS
     REAL(dp) :: KGEnp_dp_1d
 
     ! local variables
-    INTEGER(i4) :: n, i
+    INTEGER(i4) :: n
     INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
     LOGICAL, DIMENSION(size(x)) :: maske
 
@@ -2485,7 +2487,7 @@ CONTAINS
     REAL(dp) :: KGEnp_dp_2d
 
     ! local variables
-    INTEGER(i4) :: n, i
+    INTEGER(i4) :: n
     INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
     LOGICAL, DIMENSION(size(x, dim = 1), size(x, dim = 2)) :: maske
 
@@ -2556,7 +2558,7 @@ CONTAINS
     REAL(dp) :: KGEnp_dp_3d
 
     ! local variables
-    INTEGER(i4) :: n, i
+    INTEGER(i4) :: n
     INTEGER(i4), DIMENSION(size(shape(x))) :: shapemask
     LOGICAL, DIMENSION(size(x, dim = 1), size(x, dim = 2), size(x, dim = 3)) :: maske
 
