@@ -3,6 +3,7 @@
 # -DFORCES_BUILD_TESTING=ON      - build FORCES pfUnit tests
 # -DFORCES_WITH_NETCDF=OFF       - build without NetCDF support
 # -DFORCES_WITH_OpenMP=ON        - build with OpenMP support
+# -DFORCES_OpenMP_LINK_PUBLIC=ON - propagate OpenMP to targets linking against FORCES
 # -DFORCES_WITH_MPI=ON           - build with MPI support
 # -DFORCES_ENABLE_NATIVE=ON      - enable host-native release tuning for local/HPC builds
 # -DCMAKE_VERBOSE_MAKEFILE=OFF   - see all the commands
@@ -46,6 +47,9 @@ option(FORCES_WITH_ISO_FORTRAN_ENV
   "Build the module with kind definitions of ISO_FORTRAN_ENV instead of ISO_C_BINDING." OFF)
 option(FORCES_WITH_MPI "Build the module with MPI support." OFF)
 option(FORCES_WITH_OpenMP "Build the module with OpenMP support." OFF)
+cmake_dependent_option(FORCES_OpenMP_LINK_PUBLIC
+  "Propagate OpenMP usage requirements to targets linking against FORCES." OFF
+  "FORCES_WITH_OpenMP" OFF)
 set(FORCES_EXE "" CACHE FILEPATH "Path to an executable linking against forces.")
 set(FORCES_TEST_GLOB "*.pf" CACHE STRING "Globbing expression for pFUnit tests to run.")
 set(LOG_TRACE "AUTO" CACHE STRING "Control log trace level (AUTO (debug - ON), ON, OFF)")

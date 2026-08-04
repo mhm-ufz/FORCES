@@ -80,6 +80,7 @@ FORCES uses standard CMake inputs such as `CMAKE_BUILD_TYPE` and a small set of 
 * `FORCES_BUILD_TESTING`: build the FORCES pfUnit tests. Defaults to `OFF`.
 * `FORCES_WITH_COVERAGE`: enable GNU coverage instrumentation for FORCES test builds.
 * `FORCES_WITH_OpenMP`: enable OpenMP support.
+* `FORCES_OpenMP_LINK_PUBLIC`: propagate OpenMP usage requirements to targets linking against FORCES. Requires `FORCES_WITH_OpenMP=ON` and defaults to `OFF`.
 * `FORCES_WITH_MPI`: enable MPI support.
 * `FORCES_WITH_NETCDF`: enable NetCDF support.
 * `FORCES_WITH_OPTIMIZATION`: include optimization routines.
@@ -94,6 +95,9 @@ cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFORCES_BUILD_TESTING=ON
 
 # OpenMP build
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DFORCES_BUILD_TESTING=ON -DFORCES_WITH_OpenMP=ON
+
+# OpenMP build whose consumers also inherit OpenMP support
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DFORCES_WITH_OpenMP=ON -DFORCES_OpenMP_LINK_PUBLIC=ON
 
 # GNU coverage build
 cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFORCES_BUILD_TESTING=ON -DFORCES_WITH_COVERAGE=ON

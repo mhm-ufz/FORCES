@@ -113,7 +113,6 @@ if (FORCES_WITH_OpenMP)
   if(NOT OpenMP_Fortran_HAVE_OMPLIB_MODULE)
       message(FATAL_ERROR "FORCES: OpenMP found, but the 'omp_lib' module is not available.")
   endif()
-  message(STATUS "FORCES: use OpenMP")
   # Hack for NAG+Cmake+OpenMP
   # See: https://gitlab.kitware.com/cmake/cmake/-/work_items/21280
   if(CMAKE_Fortran_COMPILER_ID STREQUAL "NAG")
@@ -127,7 +126,13 @@ if (FORCES_WITH_OpenMP)
     add_library(project_openmp INTERFACE)
     target_link_libraries(project_openmp INTERFACE OpenMP::OpenMP_Fortran)
   endif()
-  target_link_libraries(${LIB_NAME} PRIVATE project_openmp)
+  if(FORCES_OpenMP_LINK_PUBLIC)
+    message(STATUS "FORCES: use OpenMP and propagate it to downstream targets")
+    target_link_libraries(${LIB_NAME} PUBLIC project_openmp)
+  else()
+    message(STATUS "FORCES: use OpenMP privately")
+    target_link_libraries(${LIB_NAME} PRIVATE project_openmp)
+  endif()
 endif()
 
 # log settings
