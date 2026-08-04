@@ -2,9 +2,10 @@ module test_mo_errormeasures
 
   use funit
   use mo_kind         , only: i4, sp, dp
-  use mo_errormeasures, only: BIAS, KGE, KGEnocorr, KGEprime, KGEnp, KGEweighted, JDKGE, LNNSE, MAE, MSE, NSE, wNSE, RMSE, SAE, SPAEF, SSE, CA
+  use mo_errormeasures, only: BIAS, KGE, KGEnocorr, KGEprime, KGEnp, KGEweighted, JDKGE, JDKGEweighted, LNNSE, MAE, MSE, NSE, wNSE, RMSE, SAE, SPAEF, SSE, CA
   use mo_message, only: error_message
   use mo_moment, only: stddev, average
+  use mo_utils, only: is_nan
 
   implicit none
 
@@ -222,6 +223,10 @@ contains
   @test
   subroutine test_error_jdkge()
 
+    real(dp), dimension(10) :: xc, yc
+    real(dp), dimension(20) :: xd, yd1, yd2
+    integer(i4) :: k
+
     ! With mask
     @assertEqual(JDKGE(real(vec1, sp), real(vec2, sp), mask=maskvec), 0.0709_sp, tolerance = t_sp)
     @assertEqual(JDKGE(vec1, vec2, mask=maskvec), 0.0709_dp, tolerance = t_dp)
@@ -230,7 +235,115 @@ contains
     @assertEqual(JDKGE(real(vec1, sp), real(vec2, sp)), -0.1564_sp, tolerance = t_sp)
     @assertEqual(JDKGE(vec1, vec2), -0.1564_dp, tolerance = t_dp)
 
+    ! Both series equal, non-zero constants: every valid log-value collapses
+    ! to one point, so the JSD histogram would see a zero-width range. This
+    ! used to crash (histogram_dp: min_edge must be less than max_edge); it
+    ! must now return NaN cleanly instead, same as KGE/KGEprime/KGEnp already
+    ! do for any zero-variance series (stddev(x)=0 makes the correlation and
+    ! variability-ratio terms undefined regardless of the JSD term).
+    xc = 5.0_dp
+    yc = 5.0_dp
+    @assertTrue(is_nan(JDKGE(real(xc, sp), real(yc, sp))))
+    @assertTrue(is_nan(JDKGE(xc, yc)))
+
+    ! Both series entirely zero: no positive value exists in either series to
+    ! build an epsilon or take a logarithm from. This used to crash
+    ! (jsd_log2_dp: all values are zero, cannot take logarithm); it must now
+    ! return NaN cleanly too.
+    xc = 0.0_dp
+    yc = 0.0_dp
+    @assertTrue(is_nan(JDKGE(real(xc, sp), real(yc, sp))))
+    @assertTrue(is_nan(JDKGE(xc, yc)))
+
+    ! JDKGE's whole reason to exist beyond KGEprime is catching a mismatch in
+    ! the log-flow *distribution shape* that correlation/CV-ratio/bias-ratio
+    ! alone cannot see. xd/yd1 is a clean straight-line pair (yd1 = xd*1.05).
+    ! yd2 shares yd1's mean, standard deviation, and mean-ratio (beta) exactly
+    ! by construction, and stays a monotonic function of xd's rank order, but
+    ! its values are pulled toward two extremes (a "bathtub" shape) instead of
+    ! spread out like yd1's - a different distribution shape with the same
+    ! first two moments. KGEprime, which only sees correlation/CV-ratio/mean-
+    ! ratio, should barely move between the two; JDKGE, which also sees the
+    ! JSD term, should drop noticeably more.
+    xd = (/ (real(10 + k, dp), k = 1, 20) /)
+    yd1 = xd * 1.05_dp
+    yd2 = (/ &
+            13.9909_dp, 14.2382_dp, 14.5067_dp, 14.8016_dp, 15.1303_dp, &
+            15.5039_dp, 15.9411_dp, 16.4773_dp, 17.1945_dp, 18.4104_dp, &
+            24.6396_dp, 25.8555_dp, 26.5727_dp, 27.1089_dp, 27.5461_dp, &
+            27.9197_dp, 28.2484_dp, 28.5433_dp, 28.8118_dp, 29.0591_dp /)
+
+    @assertEqual(KGEprime(real(xd, sp), real(yd1, sp)), 0.9500_sp, tolerance = t_sp)
+    @assertEqual(KGEprime(xd, yd1), 0.9500_dp, tolerance = t_dp)
+    @assertEqual(KGEprime(real(xd, sp), real(yd2, sp)), 0.9306_sp, tolerance = t_sp)
+    @assertEqual(KGEprime(xd, yd2), 0.9306_dp, tolerance = t_dp)
+
+    @assertEqual(JDKGE(real(xd, sp), real(yd1, sp)), 0.8121_sp, tolerance = t_sp)
+    @assertEqual(JDKGE(xd, yd1), 0.8121_dp, tolerance = t_dp)
+    @assertEqual(JDKGE(real(xd, sp), real(yd2, sp)), 0.6281_sp, tolerance = t_sp)
+    @assertEqual(JDKGE(xd, yd2), 0.6281_dp, tolerance = t_dp)
+
+    ! The actual point: KGEprime moves by less than 0.03 between the two,
+    ! JDKGE moves by more than 0.15 - JDKGE is far more sensitive to the
+    ! distribution-shape mismatch than KGEprime is.
+    @assertTrue(abs(KGEprime(xd, yd1) - KGEprime(xd, yd2)) < 0.03_dp)
+    @assertTrue((JDKGE(xd, yd1) - JDKGE(xd, yd2)) > 0.15_dp)
+
   end subroutine test_error_jdkge
+
+  ! Test JDKGEweighted (order: sp-dp, 1D only; default dt=daily, default weights)
+  @test
+  subroutine test_error_jdkgeweighted()
+
+    real(dp), dimension(10) :: xc, yc
+    real(dp), dimension(20) :: xd, yd1, yd2
+    integer(i4) :: k
+
+    ! Default weights (sr=sgamma=sbeta=sjsd=1.0) must reduce exactly to JDKGE,
+    ! so the reference values below intentionally match test_error_jdkge() above.
+    @assertEqual(JDKGEweighted(real(vec1, sp), real(vec2, sp), mask=maskvec), 0.0709_sp, tolerance = t_sp)
+    @assertEqual(JDKGEweighted(vec1, vec2, mask=maskvec), 0.0709_dp, tolerance = t_dp)
+    @assertEqual(JDKGEweighted(real(vec1, sp), real(vec2, sp)), -0.1564_sp, tolerance = t_sp)
+    @assertEqual(JDKGEweighted(vec1, vec2), -0.1564_dp, tolerance = t_dp)
+
+    ! Same degenerate inputs as test_error_jdkge(): must return NaN cleanly,
+    ! not crash, since JDKGEweighted shares the same jsd_log2_dp guards.
+    xc = 5.0_dp
+    yc = 5.0_dp
+    @assertTrue(is_nan(JDKGEweighted(real(xc, sp), real(yc, sp))))
+    @assertTrue(is_nan(JDKGEweighted(xc, yc)))
+    xc = 0.0_dp
+    yc = 0.0_dp
+    @assertTrue(is_nan(JDKGEweighted(real(xc, sp), real(yc, sp))))
+    @assertTrue(is_nan(JDKGEweighted(xc, yc)))
+
+    ! Same shape-mismatched pair as test_error_jdkge(). sjsd=0 must switch the
+    ! divergence term off entirely and reduce JDKGEweighted exactly to
+    ! KGEprime - this is an exact mathematical identity, not an approximation.
+    xd = (/ (real(10 + k, dp), k = 1, 20) /)
+    yd1 = xd * 1.05_dp
+    yd2 = (/ &
+            13.9909_dp, 14.2382_dp, 14.5067_dp, 14.8016_dp, 15.1303_dp, &
+            15.5039_dp, 15.9411_dp, 16.4773_dp, 17.1945_dp, 18.4104_dp, &
+            24.6396_dp, 25.8555_dp, 26.5727_dp, 27.1089_dp, 27.5461_dp, &
+            27.9197_dp, 28.2484_dp, 28.5433_dp, 28.8118_dp, 29.0591_dp /)
+
+    @assertEqual(JDKGEweighted(real(xd, sp), real(yd1, sp), sjsd=0.0_sp), KGEprime(real(xd, sp), real(yd1, sp)), tolerance = t_sp)
+    @assertEqual(JDKGEweighted(xd, yd1, sjsd=0.0_dp), KGEprime(xd, yd1), tolerance = t_dp)
+    @assertEqual(JDKGEweighted(real(xd, sp), real(yd2, sp), sjsd=0.0_sp), KGEprime(real(xd, sp), real(yd2, sp)), tolerance = t_sp)
+    @assertEqual(JDKGEweighted(xd, yd2, sjsd=0.0_dp), KGEprime(xd, yd2), tolerance = t_dp)
+
+    ! Emphasizing the divergence term (sjsd=2.0) must move the score further
+    ! below the default-weight JDKGE value, and by more for the pair with the
+    ! larger distribution mismatch (yd2) than the aligned one (yd1).
+    @assertEqual(JDKGEweighted(real(xd, sp), real(yd1, sp), sjsd=2.0_sp), 0.6343_sp, tolerance = t_sp)
+    @assertEqual(JDKGEweighted(xd, yd1, sjsd=2.0_dp), 0.6343_dp, tolerance = t_dp)
+    @assertEqual(JDKGEweighted(real(xd, sp), real(yd2, sp), sjsd=2.0_sp), 0.2659_sp, tolerance = t_sp)
+    @assertEqual(JDKGEweighted(xd, yd2, sjsd=2.0_dp), 0.2659_dp, tolerance = t_dp)
+    @assertTrue(JDKGEweighted(xd, yd1, sjsd=2.0_dp) < JDKGE(xd, yd1))
+    @assertTrue(JDKGEweighted(xd, yd2, sjsd=2.0_dp) < JDKGE(xd, yd2))
+
+  end subroutine test_error_jdkgeweighted
 
   ! Test MAE (order: sp-dp, 1D-2D-3D)
   @test
