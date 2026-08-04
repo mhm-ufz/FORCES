@@ -7,9 +7,6 @@
 # -DFORCES_WITH_MPI=ON           - build with MPI support
 # -DFORCES_ENABLE_NATIVE=ON      - enable host-native release tuning for local/HPC builds
 # -DFORCES_ENABLE_HEAP_ARRAYS=ON - place compiler-generated arrays on the heap
-# -DCMAKE_VERBOSE_MAKEFILE=OFF   - see all the commands
-# -DCMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX=64     - find extra library paths on some systems (eve.nag62)
-#         so the build in the build tree works even after a module purge
 cmake_minimum_required(VERSION 3.18)
 # additional cmake-modules
 set(FORCES_CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
