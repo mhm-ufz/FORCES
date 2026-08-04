@@ -113,7 +113,6 @@ if (FORCES_WITH_OpenMP)
   if(NOT OpenMP_Fortran_HAVE_OMPLIB_MODULE)
       message(FATAL_ERROR "FORCES: OpenMP found, but the 'omp_lib' module is not available.")
   endif()
-  message(STATUS "FORCES: use OpenMP")
   # Hack for NAG+Cmake+OpenMP
   # See: https://gitlab.kitware.com/cmake/cmake/-/work_items/21280
   if(CMAKE_Fortran_COMPILER_ID STREQUAL "NAG")
@@ -127,7 +126,13 @@ if (FORCES_WITH_OpenMP)
     add_library(project_openmp INTERFACE)
     target_link_libraries(project_openmp INTERFACE OpenMP::OpenMP_Fortran)
   endif()
-  target_link_libraries(${LIB_NAME} PRIVATE project_openmp)
+  if(FORCES_OpenMP_LINK_PUBLIC)
+    message(STATUS "FORCES: use OpenMP and propagate it to downstream targets")
+    target_link_libraries(${LIB_NAME} PUBLIC project_openmp)
+  else()
+    message(STATUS "FORCES: use OpenMP privately")
+    target_link_libraries(${LIB_NAME} PRIVATE project_openmp)
+  endif()
 endif()
 
 # log settings
@@ -176,29 +181,59 @@ endif()
 # ifort (Classic)
 if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   target_compile_definitions(${LIB_NAME} PRIVATE "INTEL")
-  target_compile_options(${LIB_NAME} PRIVATE
-    "$<$<COMPILE_LANGUAGE:Fortran>:-nofixed;SHELL:-assume byterecl;SHELL:-assume recursion;-standard-realloc-lhs>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-fp-model=source;SHELL:-warn all;SHELL:-check all;SHELL:-check noarg_temp_created;-debug;-traceback;-fp-stack-check;-O0>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-qoverride-limits>"
-    "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-traceback>"
-  )
-  if(FORCES_ENABLE_NATIVE)
+  if(CMAKE_Fortran_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
     target_compile_options(${LIB_NAME} PRIVATE
-      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-xHost>"
-      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-xHost>"
+      "$<$<COMPILE_LANGUAGE:Fortran>:/nofixed;/assume:byterecl;/assume:recursion;/standard-realloc-lhs>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:/fp:source;/warn:all;/check:all;/check:noarg_temp_created;/debug;/traceback;/fp-stack-check;/Od>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:/Qoverride-limits>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:/traceback>"
     )
+    if(FORCES_ENABLE_HEAP_ARRAYS)
+      target_compile_options(${LIB_NAME} PRIVATE
+        "$<$<COMPILE_LANGUAGE:Fortran>:/heap-arrays>"
+      )
+    endif()
+    if(FORCES_ENABLE_NATIVE)
+      target_compile_options(${LIB_NAME} PRIVATE
+        "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:/QxHost>"
+        "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:/QxHost>"
+      )
+    endif()
+  else()
+    target_compile_options(${LIB_NAME} PRIVATE
+      "$<$<COMPILE_LANGUAGE:Fortran>:-nofixed;SHELL:-assume byterecl;SHELL:-assume recursion;-standard-realloc-lhs>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-fp-model=source;SHELL:-warn all;SHELL:-check all;SHELL:-check noarg_temp_created;-debug;-traceback;-fp-stack-check;-O0>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-qoverride-limits>"
+      "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-traceback>"
+    )
+    if(FORCES_ENABLE_HEAP_ARRAYS)
+      target_compile_options(${LIB_NAME} PRIVATE
+        "$<$<COMPILE_LANGUAGE:Fortran>:-heap-arrays>"
+      )
+    endif()
+    if(FORCES_ENABLE_NATIVE)
+      target_compile_options(${LIB_NAME} PRIVATE
+        "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-xHost>"
+        "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-xHost>"
+      )
+    endif()
   endif()
 endif()
 # ifx (IntelLLVM)
 if(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
   target_compile_definitions(${LIB_NAME} PRIVATE "INTEL")
-  if(WIN32)
+  if(CMAKE_Fortran_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
     target_compile_options(${LIB_NAME} PRIVATE
-      "$<$<COMPILE_LANGUAGE:Fortran>:/nofixed;/assume:byterecl;/assume:recursion;/standard-realloc-lhs;/heap-arrays>"
+      "$<$<COMPILE_LANGUAGE:Fortran>:/nofixed;/assume:byterecl;/assume:recursion;/standard-realloc-lhs>"
       "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:/fp:source;/warn:all;/check:all;/check:noarg_temp_created;/traceback;/Od>"
       "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:/Qoverride-limits>"
       "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:/traceback>"
     )
+    if(FORCES_ENABLE_HEAP_ARRAYS)
+      target_compile_options(${LIB_NAME} PRIVATE
+        "$<$<COMPILE_LANGUAGE:Fortran>:/heap-arrays>"
+      )
+    endif()
     if(FORCES_ENABLE_NATIVE)
       target_compile_options(${LIB_NAME} PRIVATE
         "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:/QxHost>"
@@ -212,6 +247,11 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
       "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-qoverride-limits>"
       "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELWITHDEBINFO>>:-traceback>"
     )
+    if(FORCES_ENABLE_HEAP_ARRAYS)
+      target_compile_options(${LIB_NAME} PRIVATE
+        "$<$<COMPILE_LANGUAGE:Fortran>:-heap-arrays>"
+      )
+    endif()
     if(FORCES_ENABLE_NATIVE)
       target_compile_options(${LIB_NAME} PRIVATE
         "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-xHost>"
@@ -251,6 +291,12 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "LLVMFlang")
     "$<$<COMPILE_LANGUAGE:Fortran>:-frealloc-lhs>"
     "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:DEBUG>>:-fimplicit-none;-pedantic;-Wall>"
   )
+  if(FORCES_ENABLE_HEAP_ARRAYS)
+    target_compile_options(${LIB_NAME} PRIVATE
+      "$<$<COMPILE_LANGUAGE:Fortran>:SHELL:-mmlir -fdynamic-heap-array>"
+      "$<$<COMPILE_LANGUAGE:Fortran>:SHELL:-mmlir -fstack-array-size=0>"
+    )
+  endif()
   if(FORCES_ENABLE_NATIVE)
     target_compile_options(${LIB_NAME} PRIVATE
       "$<$<AND:$<COMPILE_LANGUAGE:Fortran>,$<CONFIG:RELEASE>>:-march=native>"
