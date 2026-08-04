@@ -290,7 +290,7 @@ MODULE mo_errormeasures
   !>        \retval     "real(sp/dp) :: kgenp"            non-parametric Kling-Gupta-Efficiency (value less equal 1.0)
 
   !>       \note Input values must be floating points. Ties in the rank correlation are
-  !!       broken by original element order (stable sort), not averaged. \n
+  !!       handled via averaged (midrank) ranks, as required for Spearman's rho. \n
 
   !>        \author Ehsan Modiri
   !>        \date August 2026
@@ -795,6 +795,17 @@ MODULE mo_errormeasures
   INTERFACE CA
     MODULE PROCEDURE CA_dp_2d
   END INTERFACE CA
+
+  ! ------------------------------------------------------------------
+
+  !>      \brief Average (tied) ranks of a real array.
+  !>      \details Ranks are assigned in ascending order of value. Values that are
+  !!               tied (equal) are all assigned the average of the ranks they would
+  !!               occupy, following the standard midrank convention required for
+  !!               Spearman's rank correlation.
+  INTERFACE average_rank
+    MODULE PROCEDURE average_rank_sp, average_rank_dp
+  END INTERFACE average_rank
 
   ! ------------------------------------------------------------------
 
@@ -2122,6 +2133,62 @@ CONTAINS
 
   ! ------------------------------------------------------------------
 
+  FUNCTION average_rank_sp(x) RESULT(ranks)
+
+    USE mo_orderpack, ONLY : sort_index
+
+    IMPLICIT NONE
+
+    REAL(sp), DIMENSION(:), INTENT(IN) :: x
+    REAL(sp), DIMENSION(size(x)) :: ranks
+
+    INTEGER(i4), DIMENSION(size(x)) :: idx
+    INTEGER(i4) :: n, i, j
+
+    n = size(x)
+    idx = sort_index(x)
+
+    i = 1_i4
+    do while (i .LE. n)
+      j = i
+      do while ((j .LT. n) .AND. (x(idx(j + 1)) .EQ. x(idx(i))))
+        j = j + 1_i4
+      end do
+      ! tied values share the average of the ranks they span
+      ranks(idx(i : j)) = real(i + j, sp) / 2.0_sp
+      i = j + 1_i4
+    end do
+
+  END FUNCTION average_rank_sp
+
+  FUNCTION average_rank_dp(x) RESULT(ranks)
+
+    USE mo_orderpack, ONLY : sort_index
+
+    IMPLICIT NONE
+
+    REAL(dp), DIMENSION(:), INTENT(IN) :: x
+    REAL(dp), DIMENSION(size(x)) :: ranks
+
+    INTEGER(i4), DIMENSION(size(x)) :: idx
+    INTEGER(i4) :: n, i, j
+
+    n = size(x)
+    idx = sort_index(x)
+
+    i = 1_i4
+    do while (i .LE. n)
+      j = i
+      do while ((j .LT. n) .AND. (x(idx(j + 1)) .EQ. x(idx(i))))
+        j = j + 1_i4
+      end do
+      ! tied values share the average of the ranks they span
+      ranks(idx(i : j)) = real(i + j, dp) / 2.0_dp
+      i = j + 1_i4
+    end do
+
+  END FUNCTION average_rank_dp
+
   FUNCTION KGEnp_sp_1d(x, y, mask)
 
     USE mo_moment, ONLY : average, correlation
@@ -2171,12 +2238,11 @@ CONTAINS
     mu_Sim = average(y_valid)
     beta = mu_Sim / mu_Obs
 
-    ! Spearman rank correlation (ranks via ascending-sort index; ties broken by order)
+    ! Spearman rank correlation using average (tied) ranks
     idx_x = sort_index(x_valid)
     idx_y = sort_index(y_valid)
-    allocate(rank_x(n), rank_y(n))
-    rank_x(idx_x) = (/ (real(i, sp), i = 1, n) /)
-    rank_y(idx_y) = (/ (real(i, sp), i = 1, n) /)
+    rank_x = average_rank(x_valid)
+    rank_y = average_rank(y_valid)
     spearman_coor = correlation(rank_x, rank_y) * real(n, sp) / real(n - 1, sp)
 
     ! Non-parametric variability measure from ascending-sorted (flow-duration-curve) values
@@ -2243,12 +2309,11 @@ CONTAINS
     mu_Sim = average(y_valid)
     beta = mu_Sim / mu_Obs
 
-    ! Spearman rank correlation (ranks via ascending-sort index; ties broken by order)
+    ! Spearman rank correlation using average (tied) ranks
     idx_x = sort_index(x_valid)
     idx_y = sort_index(y_valid)
-    allocate(rank_x(n), rank_y(n))
-    rank_x(idx_x) = (/ (real(i, sp), i = 1, n) /)
-    rank_y(idx_y) = (/ (real(i, sp), i = 1, n) /)
+    rank_x = average_rank(x_valid)
+    rank_y = average_rank(y_valid)
     spearman_coor = correlation(rank_x, rank_y) * real(n, sp) / real(n - 1, sp)
 
     ! Non-parametric variability measure from ascending-sorted (flow-duration-curve) values
@@ -2315,12 +2380,11 @@ CONTAINS
     mu_Sim = average(y_valid)
     beta = mu_Sim / mu_Obs
 
-    ! Spearman rank correlation (ranks via ascending-sort index; ties broken by order)
+    ! Spearman rank correlation using average (tied) ranks
     idx_x = sort_index(x_valid)
     idx_y = sort_index(y_valid)
-    allocate(rank_x(n), rank_y(n))
-    rank_x(idx_x) = (/ (real(i, sp), i = 1, n) /)
-    rank_y(idx_y) = (/ (real(i, sp), i = 1, n) /)
+    rank_x = average_rank(x_valid)
+    rank_y = average_rank(y_valid)
     spearman_coor = correlation(rank_x, rank_y) * real(n, sp) / real(n - 1, sp)
 
     ! Non-parametric variability measure from ascending-sorted (flow-duration-curve) values
@@ -2387,12 +2451,11 @@ CONTAINS
     mu_Sim = average(y_valid)
     beta = mu_Sim / mu_Obs
 
-    ! Spearman rank correlation (ranks via ascending-sort index; ties broken by order)
+    ! Spearman rank correlation using average (tied) ranks
     idx_x = sort_index(x_valid)
     idx_y = sort_index(y_valid)
-    allocate(rank_x(n), rank_y(n))
-    rank_x(idx_x) = (/ (real(i, dp), i = 1, n) /)
-    rank_y(idx_y) = (/ (real(i, dp), i = 1, n) /)
+    rank_x = average_rank(x_valid)
+    rank_y = average_rank(y_valid)
     spearman_coor = correlation(rank_x, rank_y) * real(n, dp) / real(n - 1, dp)
 
     ! Non-parametric variability measure from ascending-sorted (flow-duration-curve) values
@@ -2459,12 +2522,11 @@ CONTAINS
     mu_Sim = average(y_valid)
     beta = mu_Sim / mu_Obs
 
-    ! Spearman rank correlation (ranks via ascending-sort index; ties broken by order)
+    ! Spearman rank correlation using average (tied) ranks
     idx_x = sort_index(x_valid)
     idx_y = sort_index(y_valid)
-    allocate(rank_x(n), rank_y(n))
-    rank_x(idx_x) = (/ (real(i, dp), i = 1, n) /)
-    rank_y(idx_y) = (/ (real(i, dp), i = 1, n) /)
+    rank_x = average_rank(x_valid)
+    rank_y = average_rank(y_valid)
     spearman_coor = correlation(rank_x, rank_y) * real(n, dp) / real(n - 1, dp)
 
     ! Non-parametric variability measure from ascending-sorted (flow-duration-curve) values
@@ -2531,12 +2593,11 @@ CONTAINS
     mu_Sim = average(y_valid)
     beta = mu_Sim / mu_Obs
 
-    ! Spearman rank correlation (ranks via ascending-sort index; ties broken by order)
+    ! Spearman rank correlation using average (tied) ranks
     idx_x = sort_index(x_valid)
     idx_y = sort_index(y_valid)
-    allocate(rank_x(n), rank_y(n))
-    rank_x(idx_x) = (/ (real(i, dp), i = 1, n) /)
-    rank_y(idx_y) = (/ (real(i, dp), i = 1, n) /)
+    rank_x = average_rank(x_valid)
+    rank_y = average_rank(y_valid)
     spearman_coor = correlation(rank_x, rank_y) * real(n, dp) / real(n - 1, dp)
 
     ! Non-parametric variability measure from ascending-sorted (flow-duration-curve) values

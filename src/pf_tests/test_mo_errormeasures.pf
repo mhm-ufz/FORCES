@@ -164,6 +164,21 @@ contains
 
   end subroutine test_error_kgenp
 
+  ! Test KGEnp with tied values (e.g. repeated zero flows): Spearman correlation
+  ! must use averaged (midrank) ranks, not raw sort-order ranks.
+  @test
+  subroutine test_error_kgenp_ties()
+
+    real(dp), dimension(3) :: xt, yt
+
+    xt = (/ 1.0_dp, 1.0_dp, 2.0_dp /)
+    yt = (/ 1.0_dp, 2.0_dp, 2.0_dp /)
+
+    @assertEqual(KGEnp(real(xt, sp), real(yt, sp)), 0.4212_sp, tolerance = t_sp)
+    @assertEqual(KGEnp(xt, yt), 0.4212_dp, tolerance = t_dp)
+
+  end subroutine test_error_kgenp_ties
+
   ! Test KGEweighted (order: sp-dp, 1D-2D-3D)
   ! Default weights (sr=salpha=sbeta=1.0) must reduce exactly to KGE, so the
   ! reference values below intentionally match test_error_kge() above.
