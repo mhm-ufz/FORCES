@@ -170,12 +170,23 @@ contains
   subroutine test_error_kgenp_ties()
 
     real(dp), dimension(3) :: xt, yt
+    real(dp), dimension(4) :: xt2, yt2
 
     xt = (/ 1.0_dp, 1.0_dp, 2.0_dp /)
+    ! yt ends on a tied pair, so its tie run reaches the very last position -
+    ! this exercises the tie-scan boundary that must never read past the array
     yt = (/ 1.0_dp, 2.0_dp, 2.0_dp /)
 
     @assertEqual(KGEnp(real(xt, sp), real(yt, sp)), 0.4212_sp, tolerance = t_sp)
     @assertEqual(KGEnp(xt, yt), 0.4212_dp, tolerance = t_dp)
+
+    ! Same boundary case, but with a longer tie run (three tied values instead
+    ! of two) ending at the last position
+    xt2 = (/ 1.0_dp, 2.0_dp, 2.0_dp, 2.0_dp /)
+    yt2 = (/ 4.0_dp, 3.0_dp, 2.0_dp, 1.0_dp /)
+
+    @assertEqual(KGEnp(real(xt2, sp), real(yt2, sp)), -0.8301_sp, tolerance = t_sp)
+    @assertEqual(KGEnp(xt2, yt2), -0.8301_dp, tolerance = t_dp)
 
   end subroutine test_error_kgenp_ties
 
