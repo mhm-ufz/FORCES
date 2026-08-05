@@ -137,6 +137,7 @@ module mo_grid_scaler
     generic, private :: fill_target => scaler_fill_target_dp, scaler_fill_target_i4
     procedure, private :: scaler_pack_equal_dp, scaler_pack_equal_i4, scaler_pack_equal_i4_dp
     generic, private :: pack_equal => scaler_pack_equal_dp, scaler_pack_equal_i4, scaler_pack_equal_i4_dp
+    procedure, private :: pack_equal_fraction => scaler_pack_equal_fraction
     procedure, private :: check_packed_source => scaler_check_packed_source
     procedure, private :: check_packed_target => scaler_check_packed_target
     procedure, private :: check_unpacked_source => scaler_check_unpacked_source
@@ -679,6 +680,30 @@ contains
     end do
     !$omp end parallel do
   end subroutine scaler_pack_equal_i4_dp
+
+  !> \brief Pack equal-resolution class fractions in target order, applying y-direction mapping.
+  subroutine scaler_pack_equal_fraction(this, in_data, out_data, class_id)
+    class(scaler_t), intent(in) :: this
+    integer(i4), intent(in) :: in_data(:, :)
+    real(dp), intent(out) :: out_data(:)
+    integer(i4), intent(in), optional :: class_id !< Class ID whose fraction is requested.
+
+    integer(i8) :: k
+    integer(i4) :: i, j, source_j, cls_id
+
+    cls_id = optval(class_id, default=nodata_i4)
+    !$omp parallel do default(shared) private(k,i,source_j) schedule(static)
+    do j = 1_i4, this%target_grid%ny
+      source_j = merge(j, this%target_grid%ny - j + 1_i4, this%y_dir_match)
+      k = this%target_grid%mask_cum_col_cnt(j)
+      do i = 1_i4, this%target_grid%nx
+        if (.not. this%target_grid%mask(i, j)) cycle
+        k = k + 1_i8
+        out_data(k) = merge(1.0_dp, 0.0_dp, in_data(i, source_j) == cls_id)
+      end do
+    end do
+    !$omp end parallel do
+  end subroutine scaler_pack_equal_fraction
 
   !> \brief Setup nearest-neighbor regridder from source and target grids.
   !> \details Builds a transient spatial index over the active source cells and
@@ -1482,9 +1507,16 @@ contains
     call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
     call this%check_packed_target(size(out_data, kind=i8))
     call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
-    ! shortcut if resolution is equal (only masking and flipping)
+    ! shortcut if resolution is equal (only masking and flipping for singleton-preserving operators)
     if (this%scaling_mode == no_scaling) then
-      call this%pack_equal(in_data, out_data)
+      select case (up_operator)
+        case (up_var, up_std)
+          out_data = 0.0_dp
+        case (up_fraction)
+          call error_message("scaler: class fraction upscaling operator not supported for real input data.") ! LCOV_EXCL_LINE
+        case default
+          call this%pack_equal(in_data, out_data)
+      end select
     else if (this%scaling_mode == up_scaling) then
       select case (up_operator)
         case (up_p_mean)
@@ -1604,7 +1636,11 @@ contains
     call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
     ! shortcut if resolution is equal (only masking and flipping)
     if (this%scaling_mode == no_scaling) then
-      call this%pack_equal(in_data, out_data)
+      if (up_operator == up_fraction) then
+        call error_message("scaler: class fraction upscaling operator not supported for integer output data.") ! LCOV_EXCL_LINE
+      else
+        call this%pack_equal(in_data, out_data)
+      end if
     else if (this%scaling_mode == up_scaling) then
       select case (up_operator)
         case (up_p_mean)
@@ -1725,9 +1761,16 @@ contains
     call this%check_unpacked_source(size(in_data, 1), size(in_data, 2))
     call this%check_packed_target(size(out_data, kind=i8))
     call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
-    ! shortcut if resolution is equal (only converting, masking and flipping)
+    ! shortcut if resolution is equal (only converting, masking and flipping for singleton-preserving operators)
     if (this%scaling_mode == no_scaling) then
-      call this%pack_equal(in_data, out_data)
+      select case (up_operator)
+        case (up_fraction)
+          call this%pack_equal_fraction(in_data, out_data, class_id)
+        case (up_var, up_std)
+          out_data = 0.0_dp
+        case default
+          call this%pack_equal(in_data, out_data)
+      end select
     else if (this%scaling_mode == up_scaling) then
       select case (up_operator)
         case (up_p_mean)
