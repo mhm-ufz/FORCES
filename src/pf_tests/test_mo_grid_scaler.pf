@@ -2,7 +2,7 @@ module test_mo_grid_scaler
   use funit
   use mo_grid, only: grid_t, cartesian, spherical, top_down, bottom_up
   use mo_grid_scaler, only: scaler_t, nearest_regridder_t, up_a_mean, up_h_mean, up_p_mean, up_min, up_max, up_sum, &
-                            up_var, up_laf, up_fraction, up_median, down_nearest, down_split, weight_area, weight_count
+                            up_var, up_std, up_laf, up_fraction, up_median, down_nearest, down_split, weight_area, weight_count
   use mo_kind, only: i4, dp, i8
   use mo_utils, only: flip, flipped, is_close
   use mo_constants, only: nodata_dp
@@ -14,6 +14,7 @@ module test_mo_grid_scaler
   public :: test_regrid
   public :: test_downscale_modes
   public :: test_no_scaling_identity
+  public :: test_no_scaling_operators
   public :: test_stats_and_weight_count
   public :: test_area_weight_normalization
   public :: test_scaler_reinitialization
@@ -258,6 +259,50 @@ contains
 
     @assertEqual(unpacked, data_mat, tolerance=1.0e-12_dp)
   end subroutine test_no_scaling_identity
+
+  @test
+  subroutine test_no_scaling_operators()
+    implicit none
+    type(grid_t), target :: source, target
+    type(scaler_t) :: scaler
+    integer(i4) :: classes(2,2)
+    real(dp) :: values(2,2), expected(4), expected_mat(2,2)
+    integer(i4), allocatable :: packed_classes(:)
+    real(dp), allocatable :: out(:), out_mat(:,:)
+
+    call source%init(nx=2, ny=2, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up)
+    call target%init(nx=2, ny=2, cellsize=1.0_dp, coordsys=cartesian, y_direction=top_down)
+    call scaler%init(source, target, upscaling_operator=up_fraction)
+
+    classes = reshape([3_i4, 1_i4, 2_i4, 3_i4], [2,2])
+    allocate(out(target%ncells))
+    call scaler%execute(classes, out, class_id=3_i4)
+    expected = [0.0_dp, 1.0_dp, 1.0_dp, 0.0_dp]
+    @assertEqual(out, expected, tolerance=1.0e-12_dp, message='no-scale fraction is binary and flipped')
+
+    call scaler%execute(classes, out, class_id=4_i4)
+    expected = 0.0_dp
+    @assertEqual(out, expected, tolerance=1.0e-12_dp, message='no-scale fraction is zero for nonmatches')
+
+    packed_classes = source%pack(classes)
+    allocate(out_mat(target%nx, target%ny))
+    call scaler%execute(packed_classes, out_mat, class_id=3_i4)
+    expected = [0.0_dp, 1.0_dp, 1.0_dp, 0.0_dp]
+    expected_mat = reshape(expected, [2,2])
+    @assertEqual(out_mat, expected_mat, tolerance=1.0e-12_dp, message='packed no-scale fraction is binary')
+
+    values = reshape([1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp], [2,2])
+    expected = 0.0_dp
+    expected_mat = 0.0_dp
+    call scaler%execute(values, out, upscaling_operator=up_var)
+    @assertEqual(out, expected, tolerance=1.0e-12_dp, message='no-scale real variance is zero')
+    call scaler%execute(values, out, upscaling_operator=up_std)
+    @assertEqual(out, expected, tolerance=1.0e-12_dp, message='no-scale real standard deviation is zero')
+    call scaler%execute(classes, out, upscaling_operator=up_var)
+    @assertEqual(out, expected, tolerance=1.0e-12_dp, message='no-scale integer variance is zero as real')
+    call scaler%execute(packed_classes, out_mat, upscaling_operator=up_std)
+    @assertEqual(out_mat, expected_mat, tolerance=1.0e-12_dp, message='packed no-scale integer standard deviation is zero')
+  end subroutine test_no_scaling_operators
 
   @test
   subroutine test_stats_and_weight_count()
