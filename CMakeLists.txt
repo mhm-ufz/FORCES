@@ -3,11 +3,10 @@
 # -DFORCES_BUILD_TESTING=ON      - build FORCES pfUnit tests
 # -DFORCES_WITH_NETCDF=OFF       - build without NetCDF support
 # -DFORCES_WITH_OpenMP=ON        - build with OpenMP support
+# -DFORCES_OpenMP_LINK_PUBLIC=ON - propagate OpenMP to targets linking against FORCES
 # -DFORCES_WITH_MPI=ON           - build with MPI support
 # -DFORCES_ENABLE_NATIVE=ON      - enable host-native release tuning for local/HPC builds
-# -DCMAKE_VERBOSE_MAKEFILE=OFF   - see all the commands
-# -DCMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX=64     - find extra library paths on some systems (eve.nag62)
-#         so the build in the build tree works even after a module purge
+# -DFORCES_ENABLE_HEAP_ARRAYS=ON - place compiler-generated arrays on the heap
 cmake_minimum_required(VERSION 3.18)
 # additional cmake-modules
 set(FORCES_CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
@@ -46,6 +45,11 @@ option(FORCES_WITH_ISO_FORTRAN_ENV
   "Build the module with kind definitions of ISO_FORTRAN_ENV instead of ISO_C_BINDING." OFF)
 option(FORCES_WITH_MPI "Build the module with MPI support." OFF)
 option(FORCES_WITH_OpenMP "Build the module with OpenMP support." OFF)
+cmake_dependent_option(FORCES_OpenMP_LINK_PUBLIC
+  "Propagate OpenMP usage requirements to targets linking against FORCES." OFF
+  "FORCES_WITH_OpenMP" OFF)
+option(FORCES_ENABLE_HEAP_ARRAYS
+  "Place compiler-generated Fortran arrays on the heap when supported." OFF)
 set(FORCES_EXE "" CACHE FILEPATH "Path to an executable linking against forces.")
 set(FORCES_TEST_GLOB "*.pf" CACHE STRING "Globbing expression for pFUnit tests to run.")
 set(LOG_TRACE "AUTO" CACHE STRING "Control log trace level (AUTO (debug - ON), ON, OFF)")

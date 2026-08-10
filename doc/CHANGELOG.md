@@ -4,6 +4,29 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
+## v0.11.1 - 2026-08
+- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.11.0...v0.11.1) for details.
+
+### Enhancements and Changes
+
+* spatial subsetting and grid scaling ([167](https://git.ufz.de/chs/forces/-/merge_requests/167))
+  * added polygon masks for grids and point sets
+  * extended grid and point copying with spatial subsetting, including bounding-box grid cropping and source selection outputs
+  * optimized grid-scaler initialization, equal-resolution packing, regridder repacking, and cleanup passes
+
+* `mo_errormeasures` ([169](https://git.ufz.de/chs/forces/-/merge_requests/169))
+  * added modified `KGEprime`, non-parametric `KGEnp`, and adjustable `KGEweighted` Kling-Gupta efficiency measures for single- and double-precision rank-1/rank-2/rank-3 arrays
+  * used averaged ranks for tied values in the `KGEnp` Spearman correlation and added focused pFUnit coverage
+
+* CMake configuration ([170](https://git.ufz.de/chs/forces/-/merge_requests/170))
+  * added `FORCES_OpenMP_LINK_PUBLIC` to optionally propagate OpenMP usage requirements to downstream targets
+  * added `FORCES_ENABLE_HEAP_ARRAYS` for compiler-generated arrays with Intel Fortran and LLVM Flang
+
+### Fixes
+
+* `mo_grid_scaler` ([171](https://git.ufz.de/chs/forces/-/merge_requests/171))
+  * fixed equal-resolution scaling to honor class-fraction, variance, and standard-deviation operators instead of treating them as identity operations
+
 ## v0.11.0 - 2026-06
 - See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.10.0...v0.11.0) for details.
 
