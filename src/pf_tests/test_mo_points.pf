@@ -6,7 +6,7 @@ module test_mo_points
   use mo_points, only: points_t
   use mo_points_io, only: add_var, var, points_output_dataset, points_series_output_dataset, points_input_dataset, &
                           points_id_index, points_id_indices
-  use mo_grid_io, only: daily, hourly, start_timestamp, center_timestamp, end_timestamp
+  use mo_grid_io, only: daily, hourly, monthly, start_timestamp, center_timestamp, end_timestamp
   use mo_points_regridder, only: nearest_grid_to_points_t, nearest_points_to_grid_t, nearest_points_to_points_t
   use mo_datetime, only: datetime
   use mo_timeseries, only: time_t
@@ -369,7 +369,7 @@ contains
     @assertEqual(read_series_matrix, series_data, tolerance=1.0e-12_dp)
     call inp%close()
 
-    call time_axis%init_discrete(datetime("1990-01-01"), datetime("1990-01-01 01:00:00"), timestep=hourly, include_end=.true.)
+    call time_axis%init_cf([372_i4, 1092_i4], "hours since 2000-01-01 00:00:00")
     call series_out%init("point_series_instant_writer.nc", points=points, vars=vars, time_axis=time_axis, point_dim_name="station")
     call series_out%write_series("discharge", 1_i8, [10.0_dp, 11.0_dp])
     call series_out%write_series("discharge", 2_i8, [20.0_dp, 21.0_dp])
@@ -391,6 +391,13 @@ contains
     call inp%init("point_series_instant_writer.nc", vars=vars, points=points)
     call inp%read_series("discharge", 2_i8, read_series)
     @assertEqual(read_series, [20.0_dp, 21.0_dp], tolerance=1.0e-12_dp)
+    call inp%close()
+
+    call inp%init("point_series_instant_writer.nc", vars=vars, points=points, timestamp=center_timestamp)
+    time_axis = inp%time_axis()
+    @assertEqual(time_axis%timestep, monthly)
+    @assertEqual(time_axis%bounds(:, 1_i4), [0_i4, 744_i4])
+    @assertEqual(time_axis%bounds(:, 2_i4), [744_i4, 1440_i4])
     call inp%close()
 
     nc = NcDataset("point_mixed_layout.nc", "w")

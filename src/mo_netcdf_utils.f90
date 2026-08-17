@@ -15,9 +15,9 @@ module mo_netcdf_utils
 
   use mo_constants, only: nodata_dp, nodata_sp, nodata_i1, nodata_i2, nodata_i4, nodata_i8
   use mo_datetime, only: datetime, timedelta, decode_cf_time_units, one_hour, &
-                         daily, monthly, yearly, varying, end_timestamp, start_timestamp, &
+                         daily, monthly, yearly, varying, start_timestamp, center_timestamp, end_timestamp, &
                          infer_time_timestep_from_bounds, infer_time_timestep_from_values
-  use mo_kind, only: i4, dp
+  use mo_kind, only: i4, i8, dp
   use mo_message, only: error_message
   use mo_netcdf, only: NcVariable
   use mo_string_utils, only: num2str
@@ -265,6 +265,82 @@ contains
     end do
   end subroutine convert_integral_time_data
 
+  subroutine infer_center_time_bounds(values, delta, ref_time, bounds)
+    integer(i4), intent(in) :: values(:)
+    type(timedelta), intent(in) :: delta
+    type(datetime), intent(in) :: ref_time
+    integer(i4), allocatable, intent(out) :: bounds(:, :)
+    integer(i4) :: dt
+
+    if (size(values) < 2_i4) &
+      call error_message("time_stepping: can't infer bounds from a single center timestamp")
+    if (calendar_center_bounds(values, delta, ref_time, yearly, bounds)) return
+    if (calendar_center_bounds(values, delta, ref_time, monthly, bounds)) return
+
+    dt = values(2_i4) - values(1_i4)
+    if (dt <= 0_i4 .or. any(values(2_i4:) - values(:size(values) - 1_i4) /= dt)) &
+      call error_message("time_stepping: can't infer bounds from varying center timestamps")
+    if (mod(dt, 2_i4) /= 0_i4) &
+      call error_message("time_stepping: center bounds need finer CF time units")
+    if (allocated(bounds)) deallocate(bounds)
+    allocate(bounds(2_i4, size(values)))
+    bounds(1_i4, :) = values - dt / 2_i4
+    bounds(2_i4, :) = values + dt / 2_i4
+  end subroutine infer_center_time_bounds
+
+  logical function calendar_center_bounds(values, delta, ref_time, timestep, bounds) result(valid)
+    integer(i4), intent(in) :: values(:)
+    type(timedelta), intent(in) :: delta
+    type(datetime), intent(in) :: ref_time
+    integer(i4), intent(in) :: timestep
+    integer(i4), allocatable, intent(out) :: bounds(:, :)
+    type(datetime) :: center_date, lower_date, upper_date
+    integer(i4) :: i, lower, upper
+
+    valid = .false.
+    allocate(bounds(2_i4, size(values)))
+    do i = 1_i4, size(values)
+      center_date = ref_time + values(i) * delta
+      select case(timestep)
+        case(yearly)
+          lower_date = center_date%year_start()
+          upper_date = lower_date%next_new_year()
+        case(monthly)
+          lower_date = center_date%month_start()
+          upper_date = lower_date%next_new_month()
+        case default
+          return
+      end select
+      if (.not.datetime_to_time_value(lower_date, ref_time, delta, lower)) return
+      if (.not.datetime_to_time_value(upper_date, ref_time, delta, upper)) return
+      if (2_i8 * int(values(i), i8) /= int(lower, i8) + int(upper, i8)) return
+      if (i > 1_i4) then
+        if (lower /= bounds(2_i4, i - 1_i4)) return
+      end if
+      bounds(:, i) = [lower, upper]
+    end do
+    valid = .true.
+  end function calendar_center_bounds
+
+  logical function datetime_to_time_value(time, ref_time, delta, value) result(valid)
+    type(datetime), intent(in) :: time
+    type(datetime), intent(in) :: ref_time
+    type(timedelta), intent(in) :: delta
+    integer(i4), intent(out) :: value
+    type(timedelta) :: offset
+    integer(i8) :: delta_seconds, seconds, value_i8
+
+    valid = .false.
+    offset = time - ref_time
+    seconds = offset%total_seconds()
+    delta_seconds = delta%total_seconds()
+    if (mod(seconds, delta_seconds) /= 0_i8) return
+    value_i8 = seconds / delta_seconds
+    if (value_i8 < -int(huge(0_i4), i8) - 1_i8 .or. value_i8 > int(huge(0_i4), i8)) return
+    value = int(value_i8, i4)
+    valid = .true.
+  end function datetime_to_time_value
+
   !> \brief Determine time stepping and bounds from a NetCDF time coordinate.
   subroutine time_stepping(t_var, ref_time, delta, timestep, t_values, t_bounds, timestamp)
     type(NcVariable), intent(in) :: t_var !< time variable
@@ -315,8 +391,12 @@ contains
             t_values(size(tmp_arr)) = 2_i4 * tmp_arr(size(tmp_arr)) - tmp_arr(size(tmp_arr) - 1_i4)
         end select
       end if
+    else if (stamp == center_timestamp) then
+      call infer_center_time_bounds(tmp_arr, delta, ref_time, t_bnds)
+      timestep = infer_time_timestep_from_bounds(t_bnds, delta, ref_time)
+      t_values = t_bnds(2_i4, :)
     else
-      call error_message("time_stepping: can't convert center of time-span to output time values")
+      call error_message("time_stepping: invalid timestamp selector")
     end if
 
     allocate(t_bounds(size(t_values) + 1_i4))
