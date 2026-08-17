@@ -4,7 +4,7 @@ module test_mo_grid_io
 
   private
 
-  public :: test_output, test_output_cache, test_output_cache_static_contiguous
+  public :: test_output, test_output_cache, test_output_cache_static_contiguous, test_single_month_input
 
 contains
 
@@ -26,6 +26,39 @@ contains
     implicit none
     call run_output_case("height_cache_static.nc", cache_size=16_i4, static_contiguous=.true.)
   end subroutine test_output_cache_static_contiguous
+
+  @test
+  subroutine test_single_month_input()
+    use mo_grid, only: grid_t
+    use mo_grid_io, only: add_var, var, output_dataset, input_dataset, monthly
+    use mo_datetime, only: datetime
+    use mo_kind, only: dp, i4
+    use mo_timeseries, only: time_t
+    implicit none
+    type(grid_t), target :: grid
+    type(output_dataset) :: out_ds
+    type(input_dataset) :: in_ds
+    type(time_t) :: axis
+    type(var), allocatable :: vars(:)
+    real(dp), allocatable :: height(:)
+
+    call grid%from_ascii_file("./files/dem.asc")
+    allocate(height(grid%ncells), source=1.0_dp)
+    allocate(vars(0))
+    call add_var(vars, var(name="height", units="m", static=.false.))
+
+    call out_ds%init("single_month.nc", grid=grid, vars=vars, start_time=datetime("2000-01-01"), delta="days")
+    call out_ds%update("height", height)
+    call out_ds%write(datetime("2000-02-01"))
+    call out_ds%close()
+
+    call in_ds%init("single_month.nc", grid=grid, vars=vars)
+    axis = in_ds%time_axis()
+    @assertEqual(in_ds%timestep, monthly, message="single bounded input month")
+    @assertEqual(axis%timestep, monthly, message="single bounded time axis month")
+    @assertEqual(axis%bounds(:, 1_i4), [0_i4, 31_i4], message="single bounded time axis bounds")
+    call in_ds%close()
+  end subroutine test_single_month_input
 
   subroutine run_output_case(outfile, cache_size, static_contiguous)
     use mo_kind, only: dp, i4, sp, i8

@@ -2,8 +2,9 @@ module test_mo_timeseries
   use funit
   use mo_datetime, only: datetime
   use mo_kind, only: i4, dp
-  use mo_timeseries, only: time_t, resampler_t, daily, hourly, end_timestamp, instant_timestamp, ts_instant, &
-                           ts_interval, ts_none, ts_mean, ts_sum, ts_previous, ts_nearest, ts_linear
+  use mo_timeseries, only: time_t, resampler_t, daily, hourly, monthly, yearly, varying, end_timestamp, &
+                           instant_timestamp, ts_instant, ts_interval, ts_none, ts_mean, ts_sum, ts_previous, &
+                           ts_nearest, ts_linear
 
   implicit none
 
@@ -12,6 +13,7 @@ module test_mo_timeseries
   public :: test_time_axis_contiguous
   public :: test_time_axis_discrete
   public :: test_time_axis_cf_roundtrip
+  public :: test_time_axis_cf_timestep_inference
   public :: test_time_window_indices
   public :: test_time_interval_resample
   public :: test_time_instant_resample
@@ -111,6 +113,35 @@ contains
     @assertTrue(axis%has_bounds())
     @assertEqual(axis%bounds, in_bounds)
   end subroutine test_time_axis_cf_roundtrip
+
+  @test
+  subroutine test_time_axis_cf_timestep_inference()
+    type(time_t) :: axis
+    integer(i4) :: values(2), bounds(2, 2)
+
+    call axis%init_cf([31_i4], "days since 2000-01-01 00:00:00", bounds=reshape([0_i4, 31_i4], [2_i4, 1_i4]))
+    @assertEqual(axis%timestep, monthly, message="single calendar month")
+
+    call axis%init_cf([366_i4], "days since 2000-01-01 00:00:00", bounds=reshape([0_i4, 366_i4], [2_i4, 1_i4]))
+    @assertEqual(axis%timestep, yearly, message="single calendar year")
+
+    values = [212_i4, 243_i4]
+    bounds = reshape([181_i4, 212_i4, 212_i4, 243_i4], [2_i4, 2_i4])
+    call axis%init_cf(values, "days since 2001-01-01 00:00:00", bounds=bounds)
+    @assertEqual(axis%timestep, monthly, message="equal-duration calendar months")
+
+    call axis%init_cf([32_i4], "days since 2000-01-01 00:00:00", bounds=reshape([1_i4, 32_i4], [2_i4, 1_i4]))
+    @assertEqual(axis%timestep, 744_i4, message="non-calendar 31-day interval")
+
+    call axis%init_cf([91_i4], "days since 2000-01-01 00:00:00", bounds=reshape([0_i4, 91_i4], [2_i4, 1_i4]))
+    @assertEqual(axis%timestep, varying, message="multi-month interval")
+
+    call axis%init_cf([731_i4], "days since 2000-01-01 00:00:00", bounds=reshape([0_i4, 731_i4], [2_i4, 1_i4]))
+    @assertEqual(axis%timestep, varying, message="multi-year interval")
+
+    call axis%init_cf([31_i4], "days since 2000-01-01 00:00:00")
+    @assertEqual(axis%timestep, varying, message="single unbounded entry")
+  end subroutine test_time_axis_cf_timestep_inference
 
   @test
   subroutine test_time_window_indices()
