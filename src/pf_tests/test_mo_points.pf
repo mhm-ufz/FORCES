@@ -22,6 +22,7 @@ module test_mo_points
   public :: test_points_polygon_mask
   public :: test_points_copy_to
   public :: test_nearest_regridding
+  public :: test_points_cf_packing
 
 contains
 
@@ -478,6 +479,140 @@ contains
     indices = points_id_indices([11_i8, 22_i8, 33_i8], [33_i8, 11_i8])
     @assertEqual(indices, [3_i8, 1_i8])
   end subroutine test_points_time_t_and_ids
+
+  @test
+  subroutine test_points_cf_packing()
+    use, intrinsic :: ieee_arithmetic, only: ieee_quiet_nan, ieee_value
+    use mo_constants, only: nodata_dp, nodata_sp, nodata_i4
+    implicit none
+    type(points_t), target :: points
+    type(points_output_dataset) :: out
+    type(points_series_output_dataset) :: series_out
+    type(points_input_dataset) :: inp
+    type(NcDataset) :: nc
+    type(NcVariable) :: nc_var
+    type(NcDimension) :: point_dim
+    type(time_t) :: axis
+    type(var), allocatable :: vars(:), series_vars(:), integer_vars(:)
+    type(var) :: meta
+    real(sp) :: sp_factor(3), sp_double(3), read_sp(3)
+    real(dp) :: dp_offset(3), dp_double(3), read_dp(3)
+    real(dp) :: expected_validity(3)
+    real(dp) :: series_data(2, 3)
+    real(dp), allocatable :: series_read(:, :)
+    integer(i2) :: raw(3)
+    integer(i4) :: read_i4(3), tvals(2), tbnds(2, 2)
+    integer(i4), allocatable :: series_read_i4(:, :), series_one_i4(:)
+
+    call points%init([1.0_dp, 2.0_dp, 3.0_dp], [4.0_dp, 5.0_dp, 6.0_dp], coordsys=cartesian)
+    allocate(vars(0))
+    call add_var(vars, var(name="sp_f32", static=.true., dtype="i16", kind="sp", &
+                           scale_factor=0.5_dp))
+    call add_var(vars, var(name="sp_f64", static=.true., dtype="i16", kind="sp", scale_dtype="f64", &
+                           scale_factor=0.5_dp, add_offset=10.0_dp))
+    call add_var(vars, var(name="dp_f32", static=.true., dtype="i16", scale_dtype="f32", &
+                           add_offset=10.0_dp))
+    call add_var(vars, var(name="dp_f64", static=.true., dtype="i32", &
+                           scale_factor=0.25_dp, add_offset=100.0_dp))
+
+    sp_factor = [1.0_sp, 2.0_sp, nodata_sp]
+    sp_double = [10.0_sp, 10.5_sp, 11.0_sp]
+    dp_offset = [10.0_dp, 11.0_dp, 12.0_dp]
+    dp_double = [100.0_dp, 100.25_dp, ieee_value(0.0_dp, ieee_quiet_nan)]
+    call out%init("point_cf_packing.nc", points=points, vars=vars)
+    meta = out%meta("sp_f32")
+    @assertEqual(trim(meta%scale_dtype), "f32")
+    meta = out%meta("dp_f32")
+    @assertEqual(trim(meta%kind), "dp", message="explicit scale dtype does not change omitted kind")
+    meta = out%meta("dp_f64")
+    @assertEqual(trim(meta%scale_dtype), "f64", message="scale dtype follows default dp kind")
+    call out%update("sp_f32", sp_factor)
+    call out%update("sp_f64", sp_double)
+    call out%update("dp_f32", dp_offset)
+    call out%update("dp_f64", dp_double)
+    call out%write_static()
+    call out%close()
+
+    nc = NcDataset("point_cf_packing.nc", "r")
+    nc_var = nc%getVariable("sp_f32")
+    @assertEqual(trim(nc_var%getAttributeDtype("scale_factor")), "f32")
+    @assertFalse(nc_var%hasAttribute("add_offset"), message="factor-only output omits add_offset")
+    call nc_var%readInto(raw)
+    @assertTrue(all(raw == [2_i2, 4_i2, -9999_i2]), message="point writer stores raw integer codes")
+    nc_var = nc%getVariable("sp_f64")
+    @assertEqual(trim(nc_var%getAttributeDtype("scale_factor")), "f64")
+    nc_var = nc%getVariable("dp_f32")
+    @assertFalse(nc_var%hasAttribute("scale_factor"), message="offset-only output omits scale_factor")
+    @assertEqual(trim(nc_var%getAttributeDtype("add_offset")), "f32")
+    call nc%close()
+
+    call inp%init("point_cf_packing.nc", vars=vars, points=points)
+    meta = inp%meta("dp_f32")
+    @assertEqual(trim(meta%kind), "dp")
+    @assertEqual(trim(meta%scale_dtype), "f32")
+    call inp%read("sp_f32", read_dp)
+    @assertEqual(read_dp, real(sp_factor, dp), tolerance=1.0e-12_dp)
+    @assertEqual(read_dp(3), nodata_dp)
+    call inp%read("sp_f64", read_dp)
+    @assertEqual(read_dp, real(sp_double, dp), tolerance=1.0e-12_dp)
+    call inp%read("dp_f32", read_sp)
+    @assertEqual(read_sp, real(dp_offset, sp), tolerance=1.0e-6_sp)
+    call inp%read("dp_f64", read_sp)
+    @assertEqual(read_sp, [100.0_sp, 100.25_sp, nodata_sp], tolerance=1.0e-6_sp)
+    call inp%read("sp_f64", read_i4)
+    @assertEqual(read_i4, [10_i4, 10_i4, 11_i4], message="packed point values truncate toward zero into integers")
+    call inp%read("dp_f64", read_i4)
+    @assertEqual(read_i4, [100_i4, 100_i4, nodata_i4], message="packed point missing maps to integer nodata")
+    call inp%close()
+
+    allocate(integer_vars(0))
+    call add_var(integer_vars, var(name="sp_f64", static=.true., kind="i4"))
+    call inp%init("point_cf_packing.nc", vars=integer_vars, points=points)
+    meta = inp%meta("sp_f64")
+    @assertEqual(trim(meta%kind), "i4", message="packed input permits integer metadata kind")
+    call inp%read("sp_f64", read_i4)
+    call inp%close()
+    @assertEqual(read_i4, [10_i4, 10_i4, 11_i4])
+
+    tvals = [1_i4, 2_i4]
+    tbnds(:, 1) = [0_i4, 1_i4]
+    tbnds(:, 2) = [1_i4, 2_i4]
+    call axis%init_cf(tvals, "days since 2000-01-01 00:00:00", bounds=tbnds)
+    allocate(series_vars(0))
+    call add_var(series_vars, var(name="series", dtype="i16", scale_factor=0.5_dp, add_offset=0.0_dp))
+    series_data(1, :) = [1.0_dp, 2.0_dp, 3.0_dp]
+    series_data(2, :) = [1.5_dp, 2.5_dp, 3.5_dp]
+    call series_out%init("point_cf_packing_series.nc", points=points, vars=series_vars, time_axis=axis)
+    call series_out%write_series("series", series_data)
+    call series_out%close()
+    call inp%init("point_cf_packing_series.nc", vars=series_vars, points=points)
+    call inp%read_series("series", series_read)
+    call inp%read_series("series", series_read_i4)
+    call inp%read_series("series", 2_i8, series_one_i4)
+    call inp%close()
+    @assertEqual(series_read, series_data, tolerance=1.0e-12_dp)
+    @assertEqual(series_read_i4, reshape([1_i4, 1_i4, 2_i4, 2_i4, 3_i4, 3_i4], [2_i4, 3_i4]))
+    @assertEqual(series_one_i4, [2_i4, 2_i4], message="packed single-point series read into integers")
+
+    nc = NcDataset("point_cf_packing_validity.nc", "w")
+    call points%to_netcdf(nc)
+    point_dim = nc%getDimension("point")
+    nc_var = nc%setVariable("validity", "i16", [point_dim])
+    call nc_var%setAttribute("scale_factor", 0.5_sp)
+    call nc_var%setAttribute("add_offset", 100.0_sp)
+    call nc_var%setAttribute("valid_min", 0_i2)
+    raw = [-10_i2, 0_i2, 10_i2]
+    call nc_var%setData(raw)
+    call nc%close()
+    deallocate(vars)
+    allocate(vars(0))
+    call add_var(vars, var(name="validity", static=.true.))
+    call inp%init("point_cf_packing_validity.nc", vars=vars, points=points)
+    call inp%read("validity", read_dp)
+    call inp%close()
+    expected_validity = [nodata_dp, 100.0_dp, 105.0_dp]
+    @assertEqual(read_dp, expected_validity, tolerance=1.0e-12_dp, message="packed validity limits apply before unpacking")
+  end subroutine test_points_cf_packing
 
   @test
   subroutine test_nearest_regridding()
