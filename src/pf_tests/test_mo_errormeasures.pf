@@ -236,24 +236,32 @@ contains
     @assertEqual(JDKGE(vec1, vec2), -0.1564_dp, tolerance = t_dp)
 
     ! Both series equal, non-zero constants: every valid log-value collapses
-    ! to one point, so the JSD histogram would see a zero-width range. This
-    ! used to crash (histogram_dp: min_edge must be less than max_edge); it
-    ! must now return NaN cleanly instead, same as KGE/KGEprime/KGEnp already
-    ! do for any zero-variance series (stddev(x)=0 makes the correlation and
-    ! variability-ratio terms undefined regardless of the JSD term).
+    ! to one point, so the JSD histogram would see a zero-width range (jsd=0,
+    ! guarded separately). Zero variance also makes the correlation and CV-
+    ! ratio terms undefined (0/0), and zero variance here coincides with
+    ! equal, matching means (beta=1 trivially). Following Knoben et al.
+    ! (2019, HESS, doi:10.5194/hess-23-4323-2019), the correlation is treated
+    ! as r=0 (a constant series carries no fluctuation to correlate against);
+    ! the CV-ratio is treated as gamma=1 (no variability in either series, so
+    ! no mismatch to report). This used to crash under strict FP-exception
+    ! trapping (e.g. NAG) on the 0/0 divisions; it now evaluates cleanly to a
+    ! well-defined, finite, distinctly-bad-but-not-NaN score.
     xc = 5.0_dp
     yc = 5.0_dp
-    @assertTrue(is_nan(JDKGE(real(xc, sp), real(yc, sp))))
-    @assertTrue(is_nan(JDKGE(xc, yc)))
+    @assertEqual(JDKGE(real(xc, sp), real(yc, sp)), 0.0_sp, tolerance = t_sp)
+    @assertEqual(JDKGE(xc, yc), 0.0_dp, tolerance = t_dp)
 
     ! Both series entirely zero: no positive value exists in either series to
-    ! build an epsilon or take a logarithm from. This used to crash
-    ! (jsd_log2_dp: all values are zero, cannot take logarithm); it must now
-    ! return NaN cleanly too.
+    ! build an epsilon or take a logarithm from (jsd=0, guarded separately).
+    ! Same zero-variance corner case as above, plus the mean-ratio (beta) term
+    ! is also 0/0 here (both means exactly zero); treated as beta=1 (both
+    ! exactly zero mean, so no bias to report). This used to crash
+    ! (jsd_log2_dp: all values are zero, cannot take logarithm, plus the same
+    ! FP-exception issue as above); it now evaluates cleanly too.
     xc = 0.0_dp
     yc = 0.0_dp
-    @assertTrue(is_nan(JDKGE(real(xc, sp), real(yc, sp))))
-    @assertTrue(is_nan(JDKGE(xc, yc)))
+    @assertEqual(JDKGE(real(xc, sp), real(yc, sp)), 0.0_sp, tolerance = t_sp)
+    @assertEqual(JDKGE(xc, yc), 0.0_dp, tolerance = t_dp)
 
     ! JDKGE's whole reason to exist beyond KGEprime is catching a mismatch in
     ! the log-flow *distribution shape* that correlation/CV-ratio/bias-ratio
