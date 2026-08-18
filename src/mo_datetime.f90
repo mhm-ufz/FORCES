@@ -437,15 +437,12 @@ contains
     integer(i4), intent(in) :: values(:) !< CF time coordinate values
     type(timedelta), intent(in) :: delta !< time delta in units
     type(datetime), intent(in) :: ref_time !< reference time in units
-    integer(i4), allocatable :: diffs(:)
 
     if (size(values) < 2_i4) then
-      timestep = no_time
+      timestep = varying
       return
     end if
-    allocate(diffs(size(values) - 1_i4))
-    diffs = values(2_i4:) - values(:size(values) - 1_i4)
-    timestep = infer_time_timestep_from_diffs(diffs, values, delta, ref_time)
+    timestep = infer_time_timestep_from_intervals(values(:size(values) - 1_i4), values(2_i4:), delta, ref_time)
   end function infer_time_timestep_from_values
 
   !> \brief Infer a time-step indicator from CF time bounds.
@@ -453,24 +450,46 @@ contains
     integer(i4), intent(in) :: bounds(:, :) !< CF time bounds with shape (2,time)
     type(timedelta), intent(in) :: delta !< time delta in units
     type(datetime), intent(in) :: ref_time !< reference time in units
-    integer(i4), allocatable :: diffs(:)
-
-    allocate(diffs(size(bounds, 2)))
-    diffs = bounds(2_i4, :) - bounds(1_i4, :)
-    timestep = infer_time_timestep_from_diffs(diffs, bounds(2_i4, :), delta, ref_time)
+    if (size(bounds, 1) /= 2_i4 .or. size(bounds, 2) < 1_i4) &
+      call error_message("infer_time_timestep_from_bounds: invalid bounds shape")
+    timestep = infer_time_timestep_from_intervals(bounds(1_i4, :), bounds(2_i4, :), delta, ref_time)
   end function infer_time_timestep_from_bounds
 
-  integer(i4) function infer_time_timestep_from_diffs(diffs, values, delta, ref_time) result(timestep)
-    integer(i4), intent(in) :: diffs(:)
-    integer(i4), intent(in) :: values(:)
+  integer(i4) function infer_time_timestep_from_intervals(lower, upper, delta, ref_time) result(timestep)
+    integer(i4), intent(in) :: lower(:)
+    integer(i4), intent(in) :: upper(:)
     type(timedelta), intent(in) :: delta
     type(datetime), intent(in) :: ref_time
     type(timedelta) :: loc_delta
-    type(datetime) :: loc_date
-    logical :: is_monthly, is_yearly
+    type(datetime) :: lower_date, upper_date
+    integer(i4), allocatable :: diffs(:)
+    logical :: is_calendar_aligned, is_monthly, is_yearly
     integer(i4) :: i, dt
     real(dp) :: dt_dp
 
+    is_calendar_aligned = .true.
+    is_monthly = .true.
+    is_yearly = .true.
+    do i = 1_i4, size(lower)
+      lower_date = ref_time + lower(i) * delta
+      upper_date = ref_time + upper(i) * delta
+      is_calendar_aligned = is_calendar_aligned .and. lower_date%is_new_month() .and. upper_date%is_new_month()
+      is_monthly = is_monthly .and. lower_date%is_new_month() .and. upper_date == lower_date%next_new_month()
+      is_yearly = is_yearly .and. lower_date%is_new_year() .and. upper_date == lower_date%next_new_year()
+    end do
+    if (is_yearly) then
+      timestep = yearly
+      return
+    else if (is_monthly) then
+      timestep = monthly
+      return
+    else if (is_calendar_aligned) then
+      timestep = varying
+      return
+    end if
+
+    allocate(diffs(size(lower)))
+    diffs = upper - lower
     dt = diffs(1_i4)
     if (all(diffs == dt)) then
       loc_delta = dt * delta
@@ -484,22 +503,9 @@ contains
         if (abs(dt_dp - real(timestep, dp)) > 1.0e-12_dp) timestep = varying
       end if
     else
-      is_yearly = .true.
-      is_monthly = .true.
-      do i = 1_i4, size(values)
-        loc_date = ref_time + values(i) * delta
-        is_monthly = is_monthly .and. loc_date%is_new_month()
-        is_yearly = is_yearly .and. loc_date%is_new_year()
-      end do
-      if (is_yearly) then
-        timestep = yearly
-      else if (is_monthly) then
-        timestep = monthly
-      else
-        timestep = varying
-      end if
+      timestep = varying
     end if
-  end function infer_time_timestep_from_diffs
+  end function infer_time_timestep_from_intervals
 
   pure integer(i4) function default(component)
     integer(i4), intent(in), optional :: component
