@@ -5,7 +5,6 @@ module test_mo_errormeasures
   use mo_errormeasures, only: BIAS, KGE, KGEnocorr, KGEprime, KGEnp, KGEweighted, JDKGE, JDKGEweighted, LNNSE, MAE, MSE, NSE, wNSE, RMSE, SAE, SPAEF, SSE, CA
   use mo_message, only: error_message
   use mo_moment, only: stddev, average
-  use mo_utils, only: is_nan
 
   implicit none
 
@@ -314,16 +313,18 @@ contains
     @assertEqual(JDKGEweighted(real(vec1, sp), real(vec2, sp)), -0.1564_sp, tolerance = t_sp)
     @assertEqual(JDKGEweighted(vec1, vec2), -0.1564_dp, tolerance = t_dp)
 
-    ! Same degenerate inputs as test_error_jdkge(): must return NaN cleanly,
-    ! not crash, since JDKGEweighted shares the same jsd_log2_dp guards.
+    ! Same degenerate inputs as test_error_jdkge(): with default weights this
+    ! reduces exactly to JDKGE, so it must evaluate to the same well-defined
+    ! 0.0 rather than crash or return NaN (see test_error_jdkge() for the full
+    ! reasoning behind r=0/gamma=1/beta=1 in these zero-variance corner cases).
     xc = 5.0_dp
     yc = 5.0_dp
-    @assertTrue(is_nan(JDKGEweighted(real(xc, sp), real(yc, sp))))
-    @assertTrue(is_nan(JDKGEweighted(xc, yc)))
+    @assertEqual(JDKGEweighted(real(xc, sp), real(yc, sp)), 0.0_sp, tolerance = t_sp)
+    @assertEqual(JDKGEweighted(xc, yc), 0.0_dp, tolerance = t_dp)
     xc = 0.0_dp
     yc = 0.0_dp
-    @assertTrue(is_nan(JDKGEweighted(real(xc, sp), real(yc, sp))))
-    @assertTrue(is_nan(JDKGEweighted(xc, yc)))
+    @assertEqual(JDKGEweighted(real(xc, sp), real(yc, sp)), 0.0_sp, tolerance = t_sp)
+    @assertEqual(JDKGEweighted(xc, yc), 0.0_dp, tolerance = t_dp)
 
     ! Same shape-mismatched pair as test_error_jdkge(). sjsd=0 must switch the
     ! divergence term off entirely and reduce JDKGEweighted exactly to

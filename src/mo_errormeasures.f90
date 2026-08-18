@@ -493,6 +493,17 @@ MODULE mo_errormeasures
   !!        which has then the optimum at 0.0.
   !!        (Like for the NSE where you always optimize 1-NSE.)\n
   !!
+  !!        \b Degenerate \b (zero-variance) \b series \n
+  !!        \f$ r \f$ and \f$ \gamma \f$ are mathematically undefined (0/0) when
+  !!        either series is constant, and \f$ \beta \f$ is undefined (0/0) when
+  !!        both means are exactly zero. Following Knoben et al. (2019, HESS,
+  !!        doi:10.5194/hess-23-4323-2019) - who need the same convention to
+  !!        derive KGE's mean-flow-benchmark value - these are resolved as r=0
+  !!        (a constant series has no fluctuation to correlate against the
+  !!        other), \f$ \gamma \f$=1 and \f$ \beta \f$=1 when *both* series are
+  !!        degenerate, so JDKGEweighted returns a well-defined, finite value
+  !!        instead of NaN in these corner cases.\n
+  !!
   !!        \b Example
   !!
   !!        \code{.f90}
@@ -509,6 +520,10 @@ MODULE mo_errormeasures
   !!           Salamon, P., & Toreti, A. (2026). Improving low and high flow simulations at
   !!           once: An enhanced metric for hydrological model calibration.
   !!           EGUsphere [preprint]. https://doi.org/10.5194/egusphere-2026-43
+  !!        3. Knoben, W.J.M., Freer, J.E., & Woods, R.A. (2019). Technical note:
+  !!           Inherent benchmark or not? Comparing Nash-Sutcliffe and Kling-Gupta
+  !!           efficiency scores. Hydrology and Earth System Sciences, 23, 4323-4331.
+  !!           https://doi.org/10.5194/hess-23-4323-2019
   !!
   !>        \param[in]  "real(sp/dp), dimension(:) :: x, y"   1D-array with observed (x) and
   !!                                                           simulated (y) values
@@ -3531,6 +3546,7 @@ CONTAINS
     REAL(dp) :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
     REAL(dp) :: pearson_coor         ! Pearson Corr. of x and y
     REAL(dp) :: gamma                ! Ratio of coefficients of variation of y and x
+    REAL(dp) :: beta                 ! Ratio of simulated mean to observed mean
     REAL(dp) :: jsd                  ! Jensen-Shannon Divergence (log base 2) of log-flows
     REAL(dp) :: dt_use               ! timestep in seconds
     REAL(dp) :: wr, wgamma, wbeta, wjsd ! scaling weights of the r, gamma, beta, and jsd terms
@@ -3571,10 +3587,31 @@ CONTAINS
     ! Standard Deviation
     sigma_Obs = stddev(x, mask = maske)
     sigma_Sim = stddev(y, mask = maske)
-    ! Pearson product-moment correlation coefficient is with (N-1) not N
-    pearson_coor = correlation(x, y, mask = maske) * real(n, dp) / real(n - 1, dp)
-    ! Ratio of coefficients of variation (CV = sigma / mu)
-    gamma = (sigma_Sim / mu_Sim) / (sigma_Obs / mu_Obs)
+    ! Pearson product-moment correlation coefficient is with (N-1) not N.
+    ! Undefined (0/0) when either series has zero variance; following Knoben
+    ! et al. (2019, HESS, doi:10.5194/hess-23-4323-2019) r=0 is used in that
+    ! case, since a constant series carries no fluctuation to correlate
+    ! against the other.
+    if (sigma_Obs <= 0.0_dp .or. sigma_Sim <= 0.0_dp) then
+      pearson_coor = 0.0_dp
+    else
+      pearson_coor = correlation(x, y, mask = maske) * real(n, dp) / real(n - 1, dp)
+    end if
+    ! Ratio of coefficients of variation (CV = sigma / mu). Undefined (0/0)
+    ! only when both series are constant; treated as gamma=1 (no variability
+    ! in either series, so no variability mismatch to report).
+    if (sigma_Obs <= 0.0_dp .and. sigma_Sim <= 0.0_dp) then
+      gamma = 1.0_dp
+    else
+      gamma = (sigma_Sim / mu_Sim) / (sigma_Obs / mu_Obs)
+    end if
+    ! Bias (mean) ratio. Undefined (0/0) only when both means are exactly
+    ! zero; treated as beta=1 (both exactly zero mean, so no bias to report).
+    if (mu_Obs == 0.0_dp .and. mu_Sim == 0.0_dp) then
+      beta = 1.0_dp
+    else
+      beta = mu_Sim / mu_Obs
+    end if
 
     ! Jensen-Shannon Divergence between log-transformed flow distributions
     x_valid = PACK(x, maske)
@@ -3585,7 +3622,7 @@ CONTAINS
     JDKGEweighted_dp_1d = 1.0_dp - SQRT(&
             (wr * (1.0_dp - pearson_coor))**2 + &
                     (wgamma * (1.0_dp - gamma))**2 + &
-                    (wbeta * (1.0_dp - (mu_Sim / mu_Obs)))**2 + &
+                    (wbeta * (1.0_dp - beta))**2 + &
                     (wjsd * jsd)**2 &
             )
 
@@ -3612,6 +3649,7 @@ CONTAINS
     REAL(sp) :: sigma_Obs, sigma_Sim ! Standard dev. of x and y
     REAL(sp) :: pearson_coor         ! Pearson Corr. of x and y
     REAL(sp) :: gamma                ! Ratio of coefficients of variation of y and x
+    REAL(sp) :: beta                 ! Ratio of simulated mean to observed mean
     REAL(dp) :: jsd                  ! Jensen-Shannon Divergence (log base 2), computed in double precision
     REAL(dp) :: dt_use               ! timestep in seconds
     REAL(sp) :: wr, wgamma, wbeta, wjsd ! scaling weights of the r, gamma, beta, and jsd terms
@@ -3652,10 +3690,31 @@ CONTAINS
     ! Standard Deviation
     sigma_Obs = stddev(x, mask = maske)
     sigma_Sim = stddev(y, mask = maske)
-    ! Pearson product-moment correlation coefficient is with (N-1) not N
-    pearson_coor = correlation(x, y, mask = maske) * real(n, sp) / real(n - 1, sp)
-    ! Ratio of coefficients of variation (CV = sigma / mu)
-    gamma = (sigma_Sim / mu_Sim) / (sigma_Obs / mu_Obs)
+    ! Pearson product-moment correlation coefficient is with (N-1) not N.
+    ! Undefined (0/0) when either series has zero variance; following Knoben
+    ! et al. (2019, HESS, doi:10.5194/hess-23-4323-2019) r=0 is used in that
+    ! case, since a constant series carries no fluctuation to correlate
+    ! against the other.
+    if (sigma_Obs <= 0.0_sp .or. sigma_Sim <= 0.0_sp) then
+      pearson_coor = 0.0_sp
+    else
+      pearson_coor = correlation(x, y, mask = maske) * real(n, sp) / real(n - 1, sp)
+    end if
+    ! Ratio of coefficients of variation (CV = sigma / mu). Undefined (0/0)
+    ! only when both series are constant; treated as gamma=1 (no variability
+    ! in either series, so no variability mismatch to report).
+    if (sigma_Obs <= 0.0_sp .and. sigma_Sim <= 0.0_sp) then
+      gamma = 1.0_sp
+    else
+      gamma = (sigma_Sim / mu_Sim) / (sigma_Obs / mu_Obs)
+    end if
+    ! Bias (mean) ratio. Undefined (0/0) only when both means are exactly
+    ! zero; treated as beta=1 (both exactly zero mean, so no bias to report).
+    if (mu_Obs == 0.0_sp .and. mu_Sim == 0.0_sp) then
+      beta = 1.0_sp
+    else
+      beta = mu_Sim / mu_Obs
+    end if
 
     ! Jensen-Shannon Divergence between log-transformed flow distributions (computed in double precision)
     x_valid = real(PACK(x, maske), dp)
@@ -3666,7 +3725,7 @@ CONTAINS
     JDKGEweighted_sp_1d = 1.0_sp - SQRT(&
             (wr * (1.0_sp - pearson_coor))**2 + &
                     (wgamma * (1.0_sp - gamma))**2 + &
-                    (wbeta * (1.0_sp - (mu_Sim / mu_Obs)))**2 + &
+                    (wbeta * (1.0_sp - beta))**2 + &
                     (wjsd * real(jsd, sp))**2 &
             )
 
