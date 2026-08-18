@@ -116,6 +116,8 @@ module mo_netcdf
     procedure, public :: renameAttribute !< rename attribute
     procedure, private :: getAttributableIds
     procedure, public :: getAttributeNames
+    procedure, public :: getAttributeDtype !< get attribute data type
+    procedure, public :: getAttributeLength !< get attribute length
 
     procedure, private :: setAttribute_0d_sp
     generic, public :: setAttribute => setAttribute_0d_sp !< set attribute
@@ -1558,6 +1560,31 @@ contains
     attributeNames = attributeNames(1:nAtts)
 
   end function getAttributeNames
+
+  !> \brief Get the NetCDF data type of an attribute.
+  function getAttributeDtype(self, name) result(dtype)
+    class(NcAttributable), intent(in) :: self
+    character(*), intent(in) :: name
+    character(4) :: dtype
+    integer(i4) :: ids(2), xtype
+
+    ids = self%getAttributableIds()
+    call check(nf90_inquire_attribute(ids(1), ids(2), name, xtype=xtype), &
+               "Could not inquire attribute " // name)
+    dtype = getDtypeFromInteger(xtype)
+  end function getAttributeDtype
+
+  !> \brief Get the number of values stored in an attribute.
+  function getAttributeLength(self, name) result(length)
+    class(NcAttributable), intent(in) :: self
+    character(*), intent(in) :: name
+    integer(i4) :: length
+    integer(i4) :: ids(2)
+
+    ids = self%getAttributableIds()
+    call check(nf90_inquire_attribute(ids(1), ids(2), name, len=length), &
+               "Could not inquire attribute " // name)
+  end function getAttributeLength
 
 
 
