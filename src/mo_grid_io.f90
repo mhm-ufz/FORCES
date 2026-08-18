@@ -25,6 +25,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_grid_io
 
+  use mo_constants, only: nodata_dp, nodata_i1, nodata_i2, nodata_i4, nodata_i8
   use mo_kind, only : i1, i2, i4, i8, dp, sp
   use mo_grid, only: grid_t, cartesian, bottom_up
   use mo_grid_helper, only: is_t_axis, check_uniform_axis, is_z_axis
@@ -33,7 +34,9 @@ module mo_grid_io
                           hourly, no_time, daily, monthly, yearly, varying, &
                           start_timestamp, center_timestamp, end_timestamp, instant_timestamp
   use mo_message, only : error_message, warn_message
-  use mo_netcdf_utils, only: var, add_var, var_index, time_stepping, read_units, netcdf_dtype_defaults
+  use mo_netcdf_utils, only: var, add_var, var_index, time_stepping, read_units, netcdf_dtype_defaults, &
+                             netcdf_packing, configure_output_packing, write_packing_attributes, &
+                             discover_input_packing, read_cf_packed, write_cf_packed, validate_cf_integer
   use mo_timeseries, only: time_t
   use mo_string_utils, only : num2str
   use mo_utils, only: is_close, flip, optval
@@ -60,6 +63,7 @@ module mo_grid_io
   !> \brief netcdf output variable container for a 2D variable
   type, extends(var) :: output_variable
     type(NcVariable) :: nc                           !< nc variable which contains the variable
+    type(netcdf_packing) :: packing                  !< effective CF packing metadata
     type(grid_t), pointer :: grid => null()          !< horizontal grid the data is defined on
     real(sp), allocatable :: data_sp(:)              !< store the data between writes (real)
     real(sp), allocatable :: data_layered_sp(:,:)    !< store layered data between writes (real)
@@ -94,6 +98,7 @@ module mo_grid_io
   !> \brief netcdf input variable container for a 2D variable
   type, extends(var) :: input_variable
     type(NcVariable) :: nc                     !< nc variable which contains the variable
+    type(netcdf_packing) :: packing            !< discovered CF packing metadata
     type(grid_t), pointer :: grid => null()    !< horizontal grid the data is defined on
     integer(i4) :: nlayers = 0_i4              !< number of layers (0 for none)
     integer(i4) :: rank = 0_i4                 !< rank of the variable
@@ -351,6 +356,7 @@ contains
     self%var = meta
     self%allow_static = .false.
     self%nlayers = 0_i4
+    call configure_output_packing(self, self%packing, context="output_variable")
     if (.not.allocated(self%dtype)) self%dtype = "f64" ! default to double
     if (.not.associated(grid)) call error_message("output_variable: grid pointer not associated: ", self%name)
     self%grid => grid
@@ -448,7 +454,10 @@ contains
     if (self%grid%has_aux_coords()) call self%nc%setAttribute("coordinates", "lat lon")
 
     call netcdf_dtype_defaults(self%name, self%dtype, self%kind, self%nc, context="output_variable")
-    if (allocated(meta%kind)) then
+    if (self%packing%enabled) then
+      self%kind = self%packing%kind
+      call write_packing_attributes(self, self%nc, self%packing)
+    else if (allocated(meta%kind)) then
       self%kind = meta%kind
       if ((self%dtype(1:1) == "f" .and. meta%kind(2:2) /= "p") .or. (self%dtype(1:1) == "i" .and. meta%kind(1:1) /= "i")) &
         call warn_message("output_variable: variable dtype and array kind will result in conversion: ", &
@@ -759,13 +768,21 @@ contains
           do i = 1_i4, self%nlayers
             start(3) = i
             call self%grid%unpack_into(self%data_layered_sp(:,i), scratch%data_sp)
-            call self%nc%setData(scratch%data_sp, start=start, cnt=cnt)
+            if (self%packing%enabled) then
+              call write_cf_packed(self%packing, self%nc, scratch%data_sp, start=start, cnt=cnt)
+            else
+              call self%nc%setData(scratch%data_sp, start=start, cnt=cnt)
+            end if
           end do
           self%data_layered_sp = 0.0_sp
         else
           if (self%avg.and.self%counter>1_i4) self%data_sp = self%data_sp / real(self%counter, sp)
           call self%grid%unpack_into(self%data_sp, scratch%data_sp)
-          call self%nc%setData(scratch%data_sp, start=start, cnt=cnt)
+          if (self%packing%enabled) then
+            call write_cf_packed(self%packing, self%nc, scratch%data_sp, start=start, cnt=cnt)
+          else
+            call self%nc%setData(scratch%data_sp, start=start, cnt=cnt)
+          end if
           self%data_sp = 0.0_sp
         end if
       case("dp")
@@ -775,13 +792,21 @@ contains
           do i = 1_i4, self%nlayers
             start(3) = i
             call self%grid%unpack_into(self%data_layered_dp(:,i), scratch%data_dp)
-            call self%nc%setData(scratch%data_dp, start=start, cnt=cnt)
+            if (self%packing%enabled) then
+              call write_cf_packed(self%packing, self%nc, scratch%data_dp, start=start, cnt=cnt)
+            else
+              call self%nc%setData(scratch%data_dp, start=start, cnt=cnt)
+            end if
           end do
           self%data_layered_dp = 0.0_dp
         else
           if (self%avg.and.self%counter>1_i4) self%data_dp = self%data_dp / real(self%counter, dp)
           call self%grid%unpack_into(self%data_dp, scratch%data_dp)
-          call self%nc%setData(scratch%data_dp, start=start, cnt=cnt)
+          if (self%packing%enabled) then
+            call write_cf_packed(self%packing, self%nc, scratch%data_dp, start=start, cnt=cnt)
+          else
+            call self%nc%setData(scratch%data_dp, start=start, cnt=cnt)
+          end if
           self%data_dp = 0.0_dp
         end if
       case("i1")
@@ -921,7 +946,9 @@ contains
     if (rnk /= expected_rank) call error_message("input_variable: rank mismatch: ", self%name)
 
     self%dtype = trim(self%nc%getDtype())
+    call discover_input_packing(self, self%nc, self%packing, context="input_variable")
     call netcdf_dtype_defaults(self%name, self%dtype, self%kind, context="input_variable")
+    if (self%packing%enabled) self%kind = "dp"
     if (allocated(meta%dtype)) then
       if (meta%dtype/=self%dtype) &
         call warn_message("input_variable: variable dtype not as expected: ", &
@@ -930,11 +957,12 @@ contains
 
     if (allocated(meta%kind)) then
       self%kind = meta%kind
-      if ((self%dtype(1:1) == "f" .and. meta%kind(2:2) /= "p") .or. (self%dtype(1:1) == "i" .and. meta%kind(1:1) /= "i")) &
+      if (.not.self%packing%enabled .and. &
+          ((self%dtype(1:1) == "f" .and. meta%kind(2:2) /= "p") .or. &
+           (self%dtype(1:1) == "i" .and. meta%kind(1:1) /= "i"))) &
         call warn_message("input_variable: variable dtype and array kind will result in conversion: ", &
                           self%name, ", dtype: ", self%dtype, ", kind:", self%kind)
     end if
-
     if (self%nc%hasAttribute("standard_name")) then
       call self%nc%getAttribute("standard_name", tmp_str)
       self%standard_name = trim(tmp_str)
@@ -980,7 +1008,11 @@ contains
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
     if (.not.self%static) start(3) = t_index
-    call self%nc%readInto(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      call read_cf_packed(self%packing, self%nc, data, start=start, cnt=cnt)
+    else
+      call self%nc%readInto(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_sp
@@ -1003,7 +1035,11 @@ contains
     cnt(2) = self%grid%ny
     cnt(3) = self%nlayers
     if (.not.self%static) start(4) = t_index
-    call self%nc%readInto(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      call read_cf_packed(self%packing, self%nc, data, start=start, cnt=cnt)
+    else
+      call self%nc%readInto(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_layered_sp
@@ -1026,7 +1062,11 @@ contains
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
     if (.not.self%static) start(3) = t_index
-    call self%nc%readInto(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      call read_cf_packed(self%packing, self%nc, data, start=start, cnt=cnt)
+    else
+      call self%nc%readInto(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_dp
@@ -1049,7 +1089,11 @@ contains
     cnt(2) = self%grid%ny
     cnt(3) = self%nlayers
     if (.not.self%static) start(4) = t_index
-    call self%nc%readInto(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      call read_cf_packed(self%packing, self%nc, data, start=start, cnt=cnt)
+    else
+      call self%nc%readInto(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_layered_dp
@@ -1062,6 +1106,7 @@ contains
     integer(i4), intent(in), optional :: t_index !< current time step
     integer(i1), dimension(:, :), intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :)
     if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
@@ -1072,7 +1117,18 @@ contains
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
     if (.not.self%static) start(3) = t_index
-    call self%nc%readInto(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(unpacked_dp(size(data, 1), size(data, 2)))
+      call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
+      call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i1", self%name)
+      where (unpacked_dp == nodata_dp)
+        data = nodata_i1
+      elsewhere
+        data = int(unpacked_dp, i1)
+      end where
+    else
+      call self%nc%readInto(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_i1
@@ -1084,6 +1140,7 @@ contains
     integer(i4), intent(in), optional :: t_index !< current time step
     integer(i1), dimension(:,:,:), intent(out) :: data !< read data (nx, ny, layer)
     integer(i4), allocatable :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :, :)
     if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
@@ -1095,7 +1152,18 @@ contains
     cnt(2) = self%grid%ny
     cnt(3) = self%nlayers
     if (.not.self%static) start(4) = t_index
-    call self%nc%readInto(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(unpacked_dp(size(data, 1), size(data, 2), size(data, 3)))
+      call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
+      call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i1", self%name)
+      where (unpacked_dp == nodata_dp)
+        data = nodata_i1
+      elsewhere
+        data = int(unpacked_dp, i1)
+      end where
+    else
+      call self%nc%readInto(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_layered_i1
@@ -1108,6 +1176,7 @@ contains
     integer(i4), intent(in), optional :: t_index !< current time step
     integer(i2), dimension(:, :), intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :)
     if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
@@ -1118,7 +1187,18 @@ contains
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
     if (.not.self%static) start(3) = t_index
-    call self%nc%readInto(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(unpacked_dp(size(data, 1), size(data, 2)))
+      call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
+      call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i2", self%name)
+      where (unpacked_dp == nodata_dp)
+        data = nodata_i2
+      elsewhere
+        data = int(unpacked_dp, i2)
+      end where
+    else
+      call self%nc%readInto(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_i2
@@ -1130,6 +1210,7 @@ contains
     integer(i4), intent(in), optional :: t_index !< current time step
     integer(i2), dimension(:,:,:), intent(out) :: data !< read data (nx, ny, layer)
     integer(i4), allocatable :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :, :)
     if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
@@ -1141,7 +1222,18 @@ contains
     cnt(2) = self%grid%ny
     cnt(3) = self%nlayers
     if (.not.self%static) start(4) = t_index
-    call self%nc%readInto(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(unpacked_dp(size(data, 1), size(data, 2), size(data, 3)))
+      call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
+      call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i2", self%name)
+      where (unpacked_dp == nodata_dp)
+        data = nodata_i2
+      elsewhere
+        data = int(unpacked_dp, i2)
+      end where
+    else
+      call self%nc%readInto(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_layered_i2
@@ -1154,6 +1246,7 @@ contains
     integer(i4), intent(in), optional :: t_index !< current time step
     integer(i4), dimension(:, :), intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :)
     if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
@@ -1164,7 +1257,18 @@ contains
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
     if (.not.self%static) start(3) = t_index
-    call self%nc%readInto(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(unpacked_dp(size(data, 1), size(data, 2)))
+      call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
+      call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i4", self%name)
+      where (unpacked_dp == nodata_dp)
+        data = nodata_i4
+      elsewhere
+        data = int(unpacked_dp, i4)
+      end where
+    else
+      call self%nc%readInto(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_i4
@@ -1176,6 +1280,7 @@ contains
     integer(i4), intent(in), optional :: t_index !< current time step
     integer(i4), dimension(:,:,:), intent(out) :: data !< read data (nx, ny, layer)
     integer(i4), allocatable :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :, :)
     if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
@@ -1187,7 +1292,18 @@ contains
     cnt(2) = self%grid%ny
     cnt(3) = self%nlayers
     if (.not.self%static) start(4) = t_index
-    call self%nc%readInto(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(unpacked_dp(size(data, 1), size(data, 2), size(data, 3)))
+      call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
+      call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i4", self%name)
+      where (unpacked_dp == nodata_dp)
+        data = nodata_i4
+      elsewhere
+        data = int(unpacked_dp, i4)
+      end where
+    else
+      call self%nc%readInto(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_layered_i4
@@ -1200,6 +1316,7 @@ contains
     integer(i4), intent(in), optional :: t_index !< current time step
     integer(i8), dimension(:, :), intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :)
     if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
@@ -1210,7 +1327,18 @@ contains
     cnt(1) = self%grid%nx
     cnt(2) = self%grid%ny
     if (.not.self%static) start(3) = t_index
-    call self%nc%readInto(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(unpacked_dp(size(data, 1), size(data, 2)))
+      call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
+      call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i8", self%name)
+      where (unpacked_dp == nodata_dp)
+        data = nodata_i8
+      elsewhere
+        data = int(unpacked_dp, i8)
+      end where
+    else
+      call self%nc%readInto(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_i8
@@ -1222,6 +1350,7 @@ contains
     integer(i4), intent(in), optional :: t_index !< current time step
     integer(i8), dimension(:,:,:), intent(out) :: data !< read data (nx, ny, layer)
     integer(i4), allocatable :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :, :)
     if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
       if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
@@ -1233,7 +1362,18 @@ contains
     cnt(2) = self%grid%ny
     cnt(3) = self%nlayers
     if (.not.self%static) start(4) = t_index
-    call self%nc%readInto(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(unpacked_dp(size(data, 1), size(data, 2), size(data, 3)))
+      call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
+      call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i8", self%name)
+      where (unpacked_dp == nodata_dp)
+        data = nodata_i8
+      elsewhere
+        data = int(unpacked_dp, i8)
+      end where
+    else
+      call self%nc%readInto(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_layered_i8
@@ -1255,7 +1395,12 @@ contains
     cnt(2) = self%grid%ny
     start(3) = t_index
     cnt(3) = t_size
-    call self%nc%getData(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(data(cnt(1), cnt(2), cnt(3)))
+      call read_cf_packed(self%packing, self%nc, data, start=start, cnt=cnt)
+    else
+      call self%nc%getData(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_sp
@@ -1278,7 +1423,12 @@ contains
     cnt(3) = self%nlayers
     start(4) = t_index
     cnt(4) = t_size
-    call self%nc%getData(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(data(cnt(1), cnt(2), cnt(3), cnt(4)))
+      call read_cf_packed(self%packing, self%nc, data, start=start, cnt=cnt)
+    else
+      call self%nc%getData(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_layered_sp
@@ -1300,7 +1450,12 @@ contains
     cnt(2) = self%grid%ny
     start(3) = t_index
     cnt(3) = t_size
-    call self%nc%getData(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(data(cnt(1), cnt(2), cnt(3)))
+      call read_cf_packed(self%packing, self%nc, data, start=start, cnt=cnt)
+    else
+      call self%nc%getData(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_dp
@@ -1323,7 +1478,12 @@ contains
     cnt(3) = self%nlayers
     start(4) = t_index
     cnt(4) = t_size
-    call self%nc%getData(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(data(cnt(1), cnt(2), cnt(3), cnt(4)))
+      call read_cf_packed(self%packing, self%nc, data, start=start, cnt=cnt)
+    else
+      call self%nc%getData(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_layered_dp
@@ -1337,6 +1497,7 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i1), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :, :)
     if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
     if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
     allocate(start(self%rank), source=1_i4)
@@ -1345,7 +1506,19 @@ contains
     cnt(2) = self%grid%ny
     start(3) = t_index
     cnt(3) = t_size
-    call self%nc%getData(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(data(cnt(1), cnt(2), cnt(3)))
+      allocate(unpacked_dp(cnt(1), cnt(2), cnt(3)))
+      call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
+      call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i1", self%name)
+      where (unpacked_dp == nodata_dp)
+        data = nodata_i1
+      elsewhere
+        data = int(unpacked_dp, i1)
+      end where
+    else
+      call self%nc%getData(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_i1
@@ -1358,6 +1531,7 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i1), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
     integer(i4), allocatable :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :, :, :)
     if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
     if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
     if (self%nlayers <= 0_i4) call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
@@ -1368,7 +1542,19 @@ contains
     cnt(3) = self%nlayers
     start(4) = t_index
     cnt(4) = t_size
-    call self%nc%getData(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(data(cnt(1), cnt(2), cnt(3), cnt(4)))
+      allocate(unpacked_dp(cnt(1), cnt(2), cnt(3), cnt(4)))
+      call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
+      call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i1", self%name)
+      where (unpacked_dp == nodata_dp)
+        data = nodata_i1
+      elsewhere
+        data = int(unpacked_dp, i1)
+      end where
+    else
+      call self%nc%getData(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_layered_i1
@@ -1382,6 +1568,7 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i2), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :, :)
     if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
     if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
     allocate(start(self%rank), source=1_i4)
@@ -1390,7 +1577,19 @@ contains
     cnt(2) = self%grid%ny
     start(3) = t_index
     cnt(3) = t_size
-    call self%nc%getData(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(data(cnt(1), cnt(2), cnt(3)))
+      allocate(unpacked_dp(cnt(1), cnt(2), cnt(3)))
+      call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
+      call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i2", self%name)
+      where (unpacked_dp == nodata_dp)
+        data = nodata_i2
+      elsewhere
+        data = int(unpacked_dp, i2)
+      end where
+    else
+      call self%nc%getData(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_i2
@@ -1403,6 +1602,7 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i2), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
     integer(i4), allocatable :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :, :, :)
     if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
     if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
     if (self%nlayers <= 0_i4) call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
@@ -1413,7 +1613,19 @@ contains
     cnt(3) = self%nlayers
     start(4) = t_index
     cnt(4) = t_size
-    call self%nc%getData(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(data(cnt(1), cnt(2), cnt(3), cnt(4)))
+      allocate(unpacked_dp(cnt(1), cnt(2), cnt(3), cnt(4)))
+      call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
+      call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i2", self%name)
+      where (unpacked_dp == nodata_dp)
+        data = nodata_i2
+      elsewhere
+        data = int(unpacked_dp, i2)
+      end where
+    else
+      call self%nc%getData(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_layered_i2
@@ -1427,6 +1639,7 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i4), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :, :)
     if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
     if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
     allocate(start(self%rank), source=1_i4)
@@ -1435,7 +1648,19 @@ contains
     cnt(2) = self%grid%ny
     start(3) = t_index
     cnt(3) = t_size
-    call self%nc%getData(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(data(cnt(1), cnt(2), cnt(3)))
+      allocate(unpacked_dp(cnt(1), cnt(2), cnt(3)))
+      call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
+      call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i4", self%name)
+      where (unpacked_dp == nodata_dp)
+        data = nodata_i4
+      elsewhere
+        data = int(unpacked_dp, i4)
+      end where
+    else
+      call self%nc%getData(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_i4
@@ -1448,6 +1673,7 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i4), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
     integer(i4), allocatable :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :, :, :)
     if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
     if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
     if (self%nlayers <= 0_i4) call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
@@ -1458,7 +1684,19 @@ contains
     cnt(3) = self%nlayers
     start(4) = t_index
     cnt(4) = t_size
-    call self%nc%getData(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(data(cnt(1), cnt(2), cnt(3), cnt(4)))
+      allocate(unpacked_dp(cnt(1), cnt(2), cnt(3), cnt(4)))
+      call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
+      call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i4", self%name)
+      where (unpacked_dp == nodata_dp)
+        data = nodata_i4
+      elsewhere
+        data = int(unpacked_dp, i4)
+      end where
+    else
+      call self%nc%getData(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_layered_i4
@@ -1472,6 +1710,7 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i8), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :, :)
     if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
     if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
     allocate(start(self%rank), source=1_i4)
@@ -1480,7 +1719,19 @@ contains
     cnt(2) = self%grid%ny
     start(3) = t_index
     cnt(3) = t_size
-    call self%nc%getData(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(data(cnt(1), cnt(2), cnt(3)))
+      allocate(unpacked_dp(cnt(1), cnt(2), cnt(3)))
+      call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
+      call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i8", self%name)
+      where (unpacked_dp == nodata_dp)
+        data = nodata_i8
+      elsewhere
+        data = int(unpacked_dp, i8)
+      end where
+    else
+      call self%nc%getData(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_i8
@@ -1493,6 +1744,7 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i8), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
     integer(i4), allocatable :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :, :, :)
     if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
     if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
     if (self%nlayers <= 0_i4) call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
@@ -1503,7 +1755,19 @@ contains
     cnt(3) = self%nlayers
     start(4) = t_index
     cnt(4) = t_size
-    call self%nc%getData(data, start=start, cnt=cnt)
+    if (self%packing%enabled) then
+      allocate(data(cnt(1), cnt(2), cnt(3), cnt(4)))
+      allocate(unpacked_dp(cnt(1), cnt(2), cnt(3), cnt(4)))
+      call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
+      call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i8", self%name)
+      where (unpacked_dp == nodata_dp)
+        data = nodata_i8
+      elsewhere
+        data = int(unpacked_dp, i8)
+      end where
+    else
+      call self%nc%getData(data, start=start, cnt=cnt)
+    end if
     deallocate(start, cnt)
     if (flip_y) call flip(data, idim=2)
   end subroutine in_var_read_chunk_layered_i8
