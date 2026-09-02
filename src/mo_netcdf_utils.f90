@@ -84,13 +84,13 @@ module mo_netcdf_utils
     character(:), allocatable :: units         !< variable units
     character(:), allocatable :: dtype         !< variable data type in file ('f32', 'f64' (default), 'i8', 'i16', 'i32', 'i64')
     character(:), allocatable :: kind          !< kind of array for IO ('sp', 'dp' (real def.), 'i1', 'i2', 'i4' (int def.), 'i8')
-    real(dp), allocatable :: scale_factor      !< CF scale factor for packed integer data
-    real(dp), allocatable :: add_offset        !< CF offset for packed integer data
-    character(:), allocatable :: scale_dtype   !< arithmetic and attribute precision ('f32' or 'f64')
     logical :: static = .false.                !< static variable (without time dimension)
     logical :: allow_static = .false.          !< accept a static variable on input when static=.false.
     logical :: avg = .false.                   !< average data (only for writing)
     logical :: layered = .false.               !< variable is layered
+    real(dp), allocatable :: scale_factor      !< CF scale factor for packed integer data
+    real(dp), allocatable :: add_offset        !< CF offset for packed integer data
+    character(:), allocatable :: scale_dtype   !< arithmetic and attribute precision ('f32' or 'f64')
   contains
     procedure, public :: meta => var_meta
   end type var
