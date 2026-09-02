@@ -1552,10 +1552,10 @@ contains
       do i = ilow + 1_i8, ihigh
         if ( ivec(i) < ivec(ilow) ) then
           ii = ii + 1_i8
-          call swap(ivec(ii),ivec(i))
+          if (ii /= i) call swap(ivec(ii),ivec(i))
         end if
       end do
-      call swap(ivec(ilow),ivec(ii))
+      if (ilow /= ii) call swap(ivec(ilow),ivec(ii))
       ipivot = ii
     end subroutine partition
 
