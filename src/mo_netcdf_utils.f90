@@ -17,7 +17,7 @@ module mo_netcdf_utils
   use mo_datetime, only: datetime, timedelta, decode_cf_time_units, one_hour, &
                          daily, monthly, yearly, varying, start_timestamp, center_timestamp, end_timestamp, &
                          infer_time_timestep_from_bounds, infer_time_timestep_from_values
-  use mo_kind, only: i4, i8, dp, sp
+  use mo_kind, only: i1, i2, i4, i8, dp, sp
   use mo_message, only: error_message, warn_message
   use mo_netcdf, only: NcVariable
   use mo_string_utils, only: num2str
@@ -40,6 +40,10 @@ module mo_netcdf_utils
   public :: read_cf_packed
   public :: write_cf_packed
   public :: validate_cf_integer
+  public :: convert_cf_integer
+  public :: cf_packing_omp_min
+
+  integer(i8), parameter :: cf_packing_omp_min = 65536_i8
 
   interface read_integral_time_data
     module procedure read_integral_time_data_1d
@@ -63,6 +67,13 @@ module mo_netcdf_utils
     module procedure write_cf_packed_2d_sp
     module procedure write_cf_packed_2d_dp
   end interface write_cf_packed
+
+  interface convert_cf_integer
+    module procedure convert_cf_integer_i1
+    module procedure convert_cf_integer_i2
+    module procedure convert_cf_integer_i4
+    module procedure convert_cf_integer_i8
+  end interface convert_cf_integer
 
   !> \class var
   !> \brief Variable metadata definition for NetCDF IO variables.
@@ -699,6 +710,50 @@ contains
         call error_message("CF unpacking: value converts to reserved destination nodata: ", name)
     end do
   end subroutine validate_cf_integer
+
+  !> \brief Convert an unpacked value to an integer while preserving the target nodata value.
+  pure elemental integer(i1) function convert_cf_integer_i1(value, mold)
+    real(dp), intent(in) :: value
+    integer(i1), intent(in) :: mold
+    if (value == nodata_dp) then
+      convert_cf_integer_i1 = nodata_i1
+    else
+      convert_cf_integer_i1 = int(value, kind(mold))
+    end if
+  end function convert_cf_integer_i1
+
+  !> \brief Convert an unpacked value to an integer while preserving the target nodata value.
+  pure elemental integer(i2) function convert_cf_integer_i2(value, mold)
+    real(dp), intent(in) :: value
+    integer(i2), intent(in) :: mold
+    if (value == nodata_dp) then
+      convert_cf_integer_i2 = nodata_i2
+    else
+      convert_cf_integer_i2 = int(value, kind(mold))
+    end if
+  end function convert_cf_integer_i2
+
+  !> \brief Convert an unpacked value to an integer while preserving the target nodata value.
+  pure elemental integer(i4) function convert_cf_integer_i4(value, mold)
+    real(dp), intent(in) :: value
+    integer(i4), intent(in) :: mold
+    if (value == nodata_dp) then
+      convert_cf_integer_i4 = nodata_i4
+    else
+      convert_cf_integer_i4 = int(value, kind(mold))
+    end if
+  end function convert_cf_integer_i4
+
+  !> \brief Convert an unpacked value to an integer while preserving the target nodata value.
+  pure elemental integer(i8) function convert_cf_integer_i8(value, mold)
+    real(dp), intent(in) :: value
+    integer(i8), intent(in) :: mold
+    if (value == nodata_dp) then
+      convert_cf_integer_i8 = nodata_i8
+    else
+      convert_cf_integer_i8 = int(value, kind(mold))
+    end if
+  end function convert_cf_integer_i8
 
   subroutine write_cf_packed_1d_sp(packing, nc_var, data, start, cnt)
     type(netcdf_packing), intent(in) :: packing

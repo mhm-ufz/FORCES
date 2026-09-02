@@ -36,7 +36,8 @@ module mo_grid_io
   use mo_message, only : error_message, warn_message
   use mo_netcdf_utils, only: var, add_var, var_index, time_stepping, read_units, netcdf_dtype_defaults, &
                              netcdf_packing, configure_output_packing, write_packing_attributes, &
-                             discover_input_packing, read_cf_packed, write_cf_packed, validate_cf_integer
+                             discover_input_packing, read_cf_packed, write_cf_packed, validate_cf_integer, &
+                             convert_cf_integer, cf_packing_omp_min
   use mo_timeseries, only: time_t
   use mo_string_utils, only : num2str
   use mo_utils, only: is_close, flip, optval
@@ -1121,11 +1122,9 @@ contains
       allocate(unpacked_dp(size(data, 1), size(data, 2)))
       call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
       call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i1", self%name)
-      where (unpacked_dp == nodata_dp)
-        data = nodata_i1
-      elsewhere
-        data = int(unpacked_dp, i1)
-      end where
+      !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+      data = convert_cf_integer(unpacked_dp, 0_i1)
+      !$omp end parallel workshare
     else
       call self%nc%readInto(data, start=start, cnt=cnt)
     end if
@@ -1156,11 +1155,9 @@ contains
       allocate(unpacked_dp(size(data, 1), size(data, 2), size(data, 3)))
       call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
       call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i1", self%name)
-      where (unpacked_dp == nodata_dp)
-        data = nodata_i1
-      elsewhere
-        data = int(unpacked_dp, i1)
-      end where
+      !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+      data = convert_cf_integer(unpacked_dp, 0_i1)
+      !$omp end parallel workshare
     else
       call self%nc%readInto(data, start=start, cnt=cnt)
     end if
@@ -1191,11 +1188,9 @@ contains
       allocate(unpacked_dp(size(data, 1), size(data, 2)))
       call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
       call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i2", self%name)
-      where (unpacked_dp == nodata_dp)
-        data = nodata_i2
-      elsewhere
-        data = int(unpacked_dp, i2)
-      end where
+      !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+      data = convert_cf_integer(unpacked_dp, 0_i2)
+      !$omp end parallel workshare
     else
       call self%nc%readInto(data, start=start, cnt=cnt)
     end if
@@ -1226,11 +1221,9 @@ contains
       allocate(unpacked_dp(size(data, 1), size(data, 2), size(data, 3)))
       call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
       call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i2", self%name)
-      where (unpacked_dp == nodata_dp)
-        data = nodata_i2
-      elsewhere
-        data = int(unpacked_dp, i2)
-      end where
+      !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+      data = convert_cf_integer(unpacked_dp, 0_i2)
+      !$omp end parallel workshare
     else
       call self%nc%readInto(data, start=start, cnt=cnt)
     end if
@@ -1261,11 +1254,9 @@ contains
       allocate(unpacked_dp(size(data, 1), size(data, 2)))
       call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
       call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i4", self%name)
-      where (unpacked_dp == nodata_dp)
-        data = nodata_i4
-      elsewhere
-        data = int(unpacked_dp, i4)
-      end where
+      !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+      data = convert_cf_integer(unpacked_dp, 0_i4)
+      !$omp end parallel workshare
     else
       call self%nc%readInto(data, start=start, cnt=cnt)
     end if
@@ -1296,11 +1287,9 @@ contains
       allocate(unpacked_dp(size(data, 1), size(data, 2), size(data, 3)))
       call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
       call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i4", self%name)
-      where (unpacked_dp == nodata_dp)
-        data = nodata_i4
-      elsewhere
-        data = int(unpacked_dp, i4)
-      end where
+      !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+      data = convert_cf_integer(unpacked_dp, 0_i4)
+      !$omp end parallel workshare
     else
       call self%nc%readInto(data, start=start, cnt=cnt)
     end if
@@ -1331,11 +1320,9 @@ contains
       allocate(unpacked_dp(size(data, 1), size(data, 2)))
       call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
       call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i8", self%name)
-      where (unpacked_dp == nodata_dp)
-        data = nodata_i8
-      elsewhere
-        data = int(unpacked_dp, i8)
-      end where
+      !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+      data = convert_cf_integer(unpacked_dp, 0_i8)
+      !$omp end parallel workshare
     else
       call self%nc%readInto(data, start=start, cnt=cnt)
     end if
@@ -1366,11 +1353,9 @@ contains
       allocate(unpacked_dp(size(data, 1), size(data, 2), size(data, 3)))
       call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
       call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i8", self%name)
-      where (unpacked_dp == nodata_dp)
-        data = nodata_i8
-      elsewhere
-        data = int(unpacked_dp, i8)
-      end where
+      !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+      data = convert_cf_integer(unpacked_dp, 0_i8)
+      !$omp end parallel workshare
     else
       call self%nc%readInto(data, start=start, cnt=cnt)
     end if
@@ -1511,11 +1496,9 @@ contains
       allocate(unpacked_dp(cnt(1), cnt(2), cnt(3)))
       call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
       call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i1", self%name)
-      where (unpacked_dp == nodata_dp)
-        data = nodata_i1
-      elsewhere
-        data = int(unpacked_dp, i1)
-      end where
+      !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+      data = convert_cf_integer(unpacked_dp, 0_i1)
+      !$omp end parallel workshare
     else
       call self%nc%getData(data, start=start, cnt=cnt)
     end if
@@ -1547,11 +1530,9 @@ contains
       allocate(unpacked_dp(cnt(1), cnt(2), cnt(3), cnt(4)))
       call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
       call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i1", self%name)
-      where (unpacked_dp == nodata_dp)
-        data = nodata_i1
-      elsewhere
-        data = int(unpacked_dp, i1)
-      end where
+      !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+      data = convert_cf_integer(unpacked_dp, 0_i1)
+      !$omp end parallel workshare
     else
       call self%nc%getData(data, start=start, cnt=cnt)
     end if
@@ -1582,11 +1563,9 @@ contains
       allocate(unpacked_dp(cnt(1), cnt(2), cnt(3)))
       call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
       call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i2", self%name)
-      where (unpacked_dp == nodata_dp)
-        data = nodata_i2
-      elsewhere
-        data = int(unpacked_dp, i2)
-      end where
+      !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+      data = convert_cf_integer(unpacked_dp, 0_i2)
+      !$omp end parallel workshare
     else
       call self%nc%getData(data, start=start, cnt=cnt)
     end if
@@ -1618,11 +1597,9 @@ contains
       allocate(unpacked_dp(cnt(1), cnt(2), cnt(3), cnt(4)))
       call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
       call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i2", self%name)
-      where (unpacked_dp == nodata_dp)
-        data = nodata_i2
-      elsewhere
-        data = int(unpacked_dp, i2)
-      end where
+      !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+      data = convert_cf_integer(unpacked_dp, 0_i2)
+      !$omp end parallel workshare
     else
       call self%nc%getData(data, start=start, cnt=cnt)
     end if
@@ -1653,11 +1630,9 @@ contains
       allocate(unpacked_dp(cnt(1), cnt(2), cnt(3)))
       call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
       call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i4", self%name)
-      where (unpacked_dp == nodata_dp)
-        data = nodata_i4
-      elsewhere
-        data = int(unpacked_dp, i4)
-      end where
+      !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+      data = convert_cf_integer(unpacked_dp, 0_i4)
+      !$omp end parallel workshare
     else
       call self%nc%getData(data, start=start, cnt=cnt)
     end if
@@ -1689,11 +1664,9 @@ contains
       allocate(unpacked_dp(cnt(1), cnt(2), cnt(3), cnt(4)))
       call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
       call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i4", self%name)
-      where (unpacked_dp == nodata_dp)
-        data = nodata_i4
-      elsewhere
-        data = int(unpacked_dp, i4)
-      end where
+      !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+      data = convert_cf_integer(unpacked_dp, 0_i4)
+      !$omp end parallel workshare
     else
       call self%nc%getData(data, start=start, cnt=cnt)
     end if
@@ -1724,11 +1697,9 @@ contains
       allocate(unpacked_dp(cnt(1), cnt(2), cnt(3)))
       call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
       call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i8", self%name)
-      where (unpacked_dp == nodata_dp)
-        data = nodata_i8
-      elsewhere
-        data = int(unpacked_dp, i8)
-      end where
+      !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+      data = convert_cf_integer(unpacked_dp, 0_i8)
+      !$omp end parallel workshare
     else
       call self%nc%getData(data, start=start, cnt=cnt)
     end if
@@ -1760,11 +1731,9 @@ contains
       allocate(unpacked_dp(cnt(1), cnt(2), cnt(3), cnt(4)))
       call read_cf_packed(self%packing, self%nc, unpacked_dp, start=start, cnt=cnt)
       call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i8", self%name)
-      where (unpacked_dp == nodata_dp)
-        data = nodata_i8
-      elsewhere
-        data = int(unpacked_dp, i8)
-      end where
+      !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+      data = convert_cf_integer(unpacked_dp, 0_i8)
+      !$omp end parallel workshare
     else
       call self%nc%getData(data, start=start, cnt=cnt)
     end if

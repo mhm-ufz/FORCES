@@ -1,7 +1,7 @@
 module test_mo_netcdf
   
   use funit
-  use mo_kind  , only : i2, i4, i8, sp, dp
+  use mo_kind  , only : i1, i2, i4, i8, sp, dp
   use mo_netcdf, only : NcDataset, NcDimension, NcVariable, NF90_FILL, NF90_NOFILL
   use mo_utils , only : equal
   use mo_message, only: error_message
@@ -39,7 +39,8 @@ contains
 
   @test
   subroutine test_netcdf_attribute_metadata_and_raw_packing()
-    use mo_netcdf_utils, only: discover_input_packing, netcdf_packing, var
+    use mo_constants, only: nodata_dp, nodata_i1, nodata_i2, nodata_i4, nodata_i8
+    use mo_netcdf_utils, only: discover_input_packing, netcdf_packing, var, convert_cf_integer
     type(NcDataset) :: local_nc
     type(NcDimension) :: dim
     type(NcVariable) :: packed_var
@@ -67,6 +68,10 @@ contains
     @assertEqual(metadata%scale_factor, 0.25_dp)
     @assertEqual(metadata%add_offset, 10.0_dp)
     @assertEqual(trim(metadata%scale_dtype), "f32")
+    @assertEqual(convert_cf_integer([1.0_dp, nodata_dp], 0_i1), [1_i1, nodata_i1])
+    @assertEqual(convert_cf_integer([1.0_dp, nodata_dp], 0_i2), [1_i2, nodata_i2])
+    @assertEqual(convert_cf_integer([1.0_dp, nodata_dp], 0_i4), [1_i4, nodata_i4])
+    @assertEqual(convert_cf_integer([1.0_dp, nodata_dp], 0_i8), [1_i8, nodata_i8])
     call local_nc%close()
   end subroutine test_netcdf_attribute_metadata_and_raw_packing
 

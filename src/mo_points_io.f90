@@ -20,7 +20,8 @@ module mo_points_io
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable, NF90_NOFILL
   use mo_netcdf_utils, only: var, add_var, var_index, time_stepping, read_units, netcdf_dtype_defaults, &
                              netcdf_packing, configure_output_packing, write_packing_attributes, &
-                             discover_input_packing, read_cf_packed, write_cf_packed, validate_cf_integer
+                             discover_input_packing, read_cf_packed, write_cf_packed, validate_cf_integer, &
+                             convert_cf_integer, cf_packing_omp_min
   use mo_timeseries, only: time_t
   use mo_points, only: points_t, spherical
   use mo_string_utils, only: splitString
@@ -263,11 +264,9 @@ contains
     allocate(unpacked_dp(size(data)))
     call read_cf_packed(packing, nc_var, unpacked_dp, start=start, cnt=cnt)
     call validate_cf_integer(unpacked_dp, "i1", name)
-    where (unpacked_dp == nodata_dp)
-      data = nodata_i1
-    elsewhere
-      data = int(unpacked_dp, i1)
-    end where
+    !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+    data = convert_cf_integer(unpacked_dp, 0_i1)
+    !$omp end parallel workshare
   end subroutine points_read_cf_integer_1d_i1
 
   !> \brief Read and unpack CF data into a two-dimensional i1 integer array.
@@ -281,11 +280,9 @@ contains
     allocate(unpacked_dp(size(data, 1), size(data, 2)))
     call read_cf_packed(packing, nc_var, unpacked_dp, start=start, cnt=cnt)
     call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i1", name)
-    where (unpacked_dp == nodata_dp)
-      data = nodata_i1
-    elsewhere
-      data = int(unpacked_dp, i1)
-    end where
+    !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+    data = convert_cf_integer(unpacked_dp, 0_i1)
+    !$omp end parallel workshare
   end subroutine points_read_cf_integer_2d_i1
   !> \brief Read and unpack CF data into a one-dimensional i2 integer array.
   subroutine points_read_cf_integer_1d_i2(packing, nc_var, data, name, start, cnt)
@@ -298,11 +295,9 @@ contains
     allocate(unpacked_dp(size(data)))
     call read_cf_packed(packing, nc_var, unpacked_dp, start=start, cnt=cnt)
     call validate_cf_integer(unpacked_dp, "i2", name)
-    where (unpacked_dp == nodata_dp)
-      data = nodata_i2
-    elsewhere
-      data = int(unpacked_dp, i2)
-    end where
+    !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+    data = convert_cf_integer(unpacked_dp, 0_i2)
+    !$omp end parallel workshare
   end subroutine points_read_cf_integer_1d_i2
 
   !> \brief Read and unpack CF data into a two-dimensional i2 integer array.
@@ -316,11 +311,9 @@ contains
     allocate(unpacked_dp(size(data, 1), size(data, 2)))
     call read_cf_packed(packing, nc_var, unpacked_dp, start=start, cnt=cnt)
     call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i2", name)
-    where (unpacked_dp == nodata_dp)
-      data = nodata_i2
-    elsewhere
-      data = int(unpacked_dp, i2)
-    end where
+    !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+    data = convert_cf_integer(unpacked_dp, 0_i2)
+    !$omp end parallel workshare
   end subroutine points_read_cf_integer_2d_i2
   !> \brief Read and unpack CF data into a one-dimensional i4 integer array.
   subroutine points_read_cf_integer_1d_i4(packing, nc_var, data, name, start, cnt)
@@ -333,11 +326,9 @@ contains
     allocate(unpacked_dp(size(data)))
     call read_cf_packed(packing, nc_var, unpacked_dp, start=start, cnt=cnt)
     call validate_cf_integer(unpacked_dp, "i4", name)
-    where (unpacked_dp == nodata_dp)
-      data = nodata_i4
-    elsewhere
-      data = int(unpacked_dp, i4)
-    end where
+    !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+    data = convert_cf_integer(unpacked_dp, 0_i4)
+    !$omp end parallel workshare
   end subroutine points_read_cf_integer_1d_i4
 
   !> \brief Read and unpack CF data into a two-dimensional i4 integer array.
@@ -351,11 +342,9 @@ contains
     allocate(unpacked_dp(size(data, 1), size(data, 2)))
     call read_cf_packed(packing, nc_var, unpacked_dp, start=start, cnt=cnt)
     call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i4", name)
-    where (unpacked_dp == nodata_dp)
-      data = nodata_i4
-    elsewhere
-      data = int(unpacked_dp, i4)
-    end where
+    !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+    data = convert_cf_integer(unpacked_dp, 0_i4)
+    !$omp end parallel workshare
   end subroutine points_read_cf_integer_2d_i4
   !> \brief Read and unpack CF data into a one-dimensional i8 integer array.
   subroutine points_read_cf_integer_1d_i8(packing, nc_var, data, name, start, cnt)
@@ -368,11 +357,9 @@ contains
     allocate(unpacked_dp(size(data)))
     call read_cf_packed(packing, nc_var, unpacked_dp, start=start, cnt=cnt)
     call validate_cf_integer(unpacked_dp, "i8", name)
-    where (unpacked_dp == nodata_dp)
-      data = nodata_i8
-    elsewhere
-      data = int(unpacked_dp, i8)
-    end where
+    !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+    data = convert_cf_integer(unpacked_dp, 0_i8)
+    !$omp end parallel workshare
   end subroutine points_read_cf_integer_1d_i8
 
   !> \brief Read and unpack CF data into a two-dimensional i8 integer array.
@@ -386,11 +373,9 @@ contains
     allocate(unpacked_dp(size(data, 1), size(data, 2)))
     call read_cf_packed(packing, nc_var, unpacked_dp, start=start, cnt=cnt)
     call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i8", name)
-    where (unpacked_dp == nodata_dp)
-      data = nodata_i8
-    elsewhere
-      data = int(unpacked_dp, i8)
-    end where
+    !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+    data = convert_cf_integer(unpacked_dp, 0_i8)
+    !$omp end parallel workshare
   end subroutine points_read_cf_integer_2d_i8
 
   !> \brief Initialize a point output variable and create the NetCDF variable.
