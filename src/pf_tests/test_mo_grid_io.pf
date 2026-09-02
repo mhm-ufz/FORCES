@@ -5,6 +5,7 @@ module test_mo_grid_io
   private
 
   public :: test_output, test_output_cache, test_output_cache_static_contiguous, test_single_month_input
+  public :: test_cf_packing_roundtrip
 
 contains
 
@@ -59,6 +60,118 @@ contains
     @assertEqual(axis%bounds(:, 1_i4), [0_i4, 31_i4], message="single bounded time axis bounds")
     call in_ds%close()
   end subroutine test_single_month_input
+
+  @test
+  subroutine test_cf_packing_roundtrip()
+    use mo_datetime, only: datetime
+    use mo_grid, only: grid_t
+    use mo_grid_io, only: add_var, var, output_dataset, input_dataset
+    use mo_kind, only: dp, i1, i2, i4, i8, sp
+    use mo_netcdf, only: NcDataset, NcVariable
+    implicit none
+    type(grid_t), target :: grid
+    type(output_dataset) :: out_ds
+    type(input_dataset) :: in_ds
+    type(NcDataset) :: nc
+    type(NcVariable) :: nc_var
+    type(var), allocatable :: vars(:)
+    type(var) :: meta
+    real(dp), allocatable :: static_values(:), static_read(:), temporal_read(:), temporal_chunk(:, :)
+    real(dp), allocatable :: layered_values(:, :), layered_read(:, :), layered_chunk(:, :, :)
+    real(sp), allocatable :: static_read_sp(:), temporal_values(:)
+    integer(i1), allocatable :: static_read_i1(:)
+    integer(i2), allocatable :: raw(:, :)
+    integer(i2), allocatable :: static_read_i2(:)
+    integer(i4), allocatable :: static_read_i4(:), temporal_read_i4(:), temporal_chunk_i4(:, :)
+    integer(i4), allocatable :: layered_read_i4(:, :), layered_chunk_i4(:, :, :)
+    integer(i8), allocatable :: static_read_i8(:)
+
+    call grid%from_ascii_file("./files/dem.asc")
+    allocate(static_values(grid%ncells), source=11.0_dp)
+    allocate(temporal_values(grid%ncells), source=2.0_sp)
+    allocate(vars(0))
+    call add_var(vars, var(name="packed_static", static=.true., allow_static=.true., dtype="i16", kind="dp", &
+                           scale_dtype="f32", scale_factor=0.5_dp, add_offset=10.0_dp))
+    call add_var(vars, var(name="packed_temporal", dtype="i16", kind="sp", scale_dtype="f64", &
+                           scale_factor=0.25_dp))
+    call add_var(vars, var(name="packed_layered", dtype="i16", kind="dp", scale_dtype="f64", layered=.true., &
+                           scale_factor=0.5_dp, add_offset=0.0_dp))
+    allocate(layered_values(grid%ncells, 2_i4))
+    layered_values(:, 1) = 5.0_dp
+    layered_values(:, 2) = 6.0_dp
+
+    call out_ds%init("grid_cf_packing.nc", grid=grid, vars=vars, start_time=datetime("2000-01-01"), delta="days", &
+                     layer=[1.0_dp, 2.0_dp], layer_vertices=[0.5_dp, 1.5_dp, 2.5_dp])
+    call out_ds%update("packed_static", static_values)
+    call out_ds%write_static()
+    call out_ds%update("packed_temporal", temporal_values)
+    call out_ds%update_layered("packed_layered", layered_values)
+    call out_ds%write(datetime("2000-01-02"))
+    temporal_values = 2.25_sp
+    layered_values = layered_values + 0.5_dp
+    call out_ds%update("packed_temporal", temporal_values)
+    call out_ds%update_layered("packed_layered", layered_values)
+    call out_ds%write(datetime("2000-01-03"))
+    call out_ds%close()
+
+    nc = NcDataset("grid_cf_packing.nc", "r")
+    nc_var = nc%getVariable("packed_static")
+    @assertEqual(trim(nc_var%getAttributeDtype("scale_factor")), "f32")
+    call nc_var%getData(raw)
+    @assertTrue(all(raw == 2_i2 .or. raw == -9999_i2), message="grid writer stores packed codes and fill")
+    nc_var = nc%getVariable("packed_temporal")
+    @assertEqual(trim(nc_var%getAttributeDtype("scale_factor")), "f64")
+    @assertFalse(nc_var%hasAttribute("add_offset"), message="grid factor-only output omits add_offset")
+    call nc%close()
+
+    call in_ds%init("grid_cf_packing.nc", grid=grid, vars=vars)
+    meta = in_ds%meta("packed_static")
+    @assertEqual(trim(meta%dtype), "i16")
+    @assertEqual(trim(meta%kind), "dp")
+    @assertEqual(trim(meta%scale_dtype), "f32")
+    allocate(static_read(grid%ncells), static_read_sp(grid%ncells), temporal_read(grid%ncells))
+    allocate(layered_read(grid%ncells, 2_i4))
+    allocate(static_read_i1(grid%ncells), static_read_i2(grid%ncells), static_read_i4(grid%ncells), &
+             static_read_i8(grid%ncells), temporal_read_i4(grid%ncells), layered_read_i4(grid%ncells, 2_i4))
+    call in_ds%read("packed_static", static_read)
+    call in_ds%read("packed_static", static_read_sp)
+    call in_ds%read("packed_static", static_read_i1)
+    call in_ds%read("packed_static", static_read_i2)
+    call in_ds%read("packed_static", static_read_i4)
+    call in_ds%read("packed_static", static_read_i8)
+    call in_ds%read("packed_temporal", temporal_read, current_time=datetime("2000-01-03"))
+    call in_ds%read("packed_temporal", temporal_read_i4, current_time=datetime("2000-01-03"))
+    call in_ds%read_layered("packed_layered", layered_read, current_time=datetime("2000-01-03"))
+    call in_ds%read_layered("packed_layered", layered_read_i4, current_time=datetime("2000-01-03"))
+    call in_ds%read_chunk("packed_temporal", temporal_chunk, &
+                          timeframe_start=datetime("2000-01-01"), timeframe_end=datetime("2000-01-03"))
+    call in_ds%read_chunk("packed_temporal", temporal_chunk_i4, &
+                          timeframe_start=datetime("2000-01-01"), timeframe_end=datetime("2000-01-03"))
+    call in_ds%read_chunk_layered("packed_layered", layered_chunk, &
+                                  timeframe_start=datetime("2000-01-01"), timeframe_end=datetime("2000-01-03"))
+    call in_ds%read_chunk_layered("packed_layered", layered_chunk_i4, &
+                                  timeframe_start=datetime("2000-01-01"), timeframe_end=datetime("2000-01-03"))
+    call in_ds%close()
+    @assertEqual(static_read, static_values, tolerance=1.0e-12_dp)
+    @assertEqual(static_read_sp, real(static_values, sp), tolerance=1.0e-6_sp)
+    @assertTrue(all(static_read_i1 == 11_i1), message="packed static read into i1")
+    @assertTrue(all(static_read_i2 == 11_i2), message="packed static read into i2")
+    @assertTrue(all(static_read_i4 == 11_i4), message="packed static read into i4")
+    @assertTrue(all(static_read_i8 == 11_i8), message="packed static read into i8")
+    @assertEqual(temporal_read, real(temporal_values, dp), tolerance=1.0e-12_dp)
+    @assertTrue(all(temporal_read_i4 == 2_i4), message="packed real values truncate toward zero into integers")
+    @assertEqual(layered_read, layered_values, tolerance=1.0e-12_dp)
+    @assertTrue(all(layered_read_i4(:, 1) == 5_i4), message="packed layered first layer into integers")
+    @assertTrue(all(layered_read_i4(:, 2) == 6_i4), message="packed layered second layer into integers")
+    @assertEqual(shape(temporal_chunk), [int(grid%ncells, i4), 2_i4])
+    @assertTrue(all(abs(temporal_chunk(:, 1) - 2.0_dp) < 1.0e-12_dp))
+    @assertTrue(all(abs(temporal_chunk(:, 2) - 2.25_dp) < 1.0e-12_dp))
+    @assertTrue(all(temporal_chunk_i4 == 2_i4), message="packed chunk read into integers")
+    @assertEqual(shape(layered_chunk), [int(grid%ncells, i4), 2_i4, 2_i4])
+    @assertTrue(all(abs(layered_chunk(:, :, 2) - layered_values) < 1.0e-12_dp))
+    @assertTrue(all(layered_chunk_i4(:, 1, :) == 5_i4), message="packed layered first-layer chunk into integers")
+    @assertTrue(all(layered_chunk_i4(:, 2, :) == 6_i4), message="packed layered second-layer chunk into integers")
+  end subroutine test_cf_packing_roundtrip
 
   subroutine run_output_case(outfile, cache_size, static_contiguous)
     use mo_kind, only: dp, i4, sp, i8

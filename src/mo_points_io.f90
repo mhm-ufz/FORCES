@@ -12,12 +12,16 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 module mo_points_io
 
+  use mo_constants, only: nodata_dp, nodata_i1, nodata_i2, nodata_i4, nodata_i8
   use mo_datetime, only: datetime, timedelta, delta_from_string, time_values, end_timestamp, instant_timestamp, no_time
   use mo_grid_helper, only: is_t_axis, is_x_axis, is_lon_coord
   use mo_kind, only: i1, i2, i4, i8, dp, sp
   use mo_message, only: error_message, warn_message
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable, NF90_NOFILL
-  use mo_netcdf_utils, only: var, add_var, var_index, time_stepping, read_units, netcdf_dtype_defaults
+  use mo_netcdf_utils, only: var, add_var, var_index, time_stepping, read_units, netcdf_dtype_defaults, &
+                             netcdf_packing, configure_output_packing, write_packing_attributes, &
+                             discover_input_packing, read_cf_packed, write_cf_packed, validate_cf_integer, &
+                             convert_cf_integer, cf_packing_omp_min
   use mo_timeseries, only: time_t
   use mo_points, only: points_t, spherical
   use mo_string_utils, only: splitString
@@ -49,6 +53,7 @@ module mo_points_io
   !> \brief NetCDF output variable buffer for point-set data.
   type, extends(var) :: points_output_variable
     type(NcVariable) :: nc                             !< NetCDF variable handle
+    type(netcdf_packing) :: packing                    !< effective CF packing metadata
     type(points_t), pointer :: points => null()      !< point-set geometry
     real(sp), allocatable :: data_sp(:)          !< accumulated sp point data
     real(dp), allocatable :: data_dp(:)          !< accumulated dp point data
@@ -104,6 +109,7 @@ module mo_points_io
   !> \brief NetCDF output variable for complete point time series.
   type, extends(var) :: points_series_output_variable
     type(NcVariable) :: nc                               !< NetCDF variable handle
+    type(netcdf_packing) :: packing                      !< effective CF packing metadata
     type(points_t), pointer :: points => null()          !< point-set geometry
     logical :: static_written = .false.                  !< static variable was already written
     logical, allocatable :: written(:)                   !< per-point write status
@@ -167,6 +173,7 @@ module mo_points_io
   !> \brief NetCDF input variable handle for point-set data.
   type, extends(var) :: points_input_variable
     type(NcVariable) :: nc                         !< NetCDF variable handle
+    type(netcdf_packing) :: packing                !< discovered CF packing metadata
     type(points_t), pointer :: points => null()  !< point-set geometry
     integer(i4) :: rank = 0_i4                     !< NetCDF variable rank
     logical :: time_series = .false.               !< temporal variable uses station time-series layout
@@ -246,6 +253,131 @@ module mo_points_io
 
 contains
 
+  !> \brief Read and unpack CF data into a one-dimensional i1 integer array.
+  subroutine points_read_cf_integer_1d_i1(packing, nc_var, data, name, start, cnt)
+    type(netcdf_packing), intent(in) :: packing
+    type(NcVariable), intent(in) :: nc_var
+    integer(i1), intent(out) :: data(:)
+    character(*), intent(in) :: name
+    integer(i4), optional, intent(in) :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:)
+    allocate(unpacked_dp(size(data)))
+    call read_cf_packed(packing, nc_var, unpacked_dp, start=start, cnt=cnt)
+    call validate_cf_integer(unpacked_dp, "i1", name)
+    !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+    data = convert_cf_integer(unpacked_dp, 0_i1)
+    !$omp end parallel workshare
+  end subroutine points_read_cf_integer_1d_i1
+
+  !> \brief Read and unpack CF data into a two-dimensional i1 integer array.
+  subroutine points_read_cf_integer_2d_i1(packing, nc_var, data, name, start, cnt)
+    type(netcdf_packing), intent(in) :: packing
+    type(NcVariable), intent(in) :: nc_var
+    integer(i1), intent(out) :: data(:, :)
+    character(*), intent(in) :: name
+    integer(i4), optional, intent(in) :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :)
+    allocate(unpacked_dp(size(data, 1), size(data, 2)))
+    call read_cf_packed(packing, nc_var, unpacked_dp, start=start, cnt=cnt)
+    call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i1", name)
+    !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+    data = convert_cf_integer(unpacked_dp, 0_i1)
+    !$omp end parallel workshare
+  end subroutine points_read_cf_integer_2d_i1
+  !> \brief Read and unpack CF data into a one-dimensional i2 integer array.
+  subroutine points_read_cf_integer_1d_i2(packing, nc_var, data, name, start, cnt)
+    type(netcdf_packing), intent(in) :: packing
+    type(NcVariable), intent(in) :: nc_var
+    integer(i2), intent(out) :: data(:)
+    character(*), intent(in) :: name
+    integer(i4), optional, intent(in) :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:)
+    allocate(unpacked_dp(size(data)))
+    call read_cf_packed(packing, nc_var, unpacked_dp, start=start, cnt=cnt)
+    call validate_cf_integer(unpacked_dp, "i2", name)
+    !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+    data = convert_cf_integer(unpacked_dp, 0_i2)
+    !$omp end parallel workshare
+  end subroutine points_read_cf_integer_1d_i2
+
+  !> \brief Read and unpack CF data into a two-dimensional i2 integer array.
+  subroutine points_read_cf_integer_2d_i2(packing, nc_var, data, name, start, cnt)
+    type(netcdf_packing), intent(in) :: packing
+    type(NcVariable), intent(in) :: nc_var
+    integer(i2), intent(out) :: data(:, :)
+    character(*), intent(in) :: name
+    integer(i4), optional, intent(in) :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :)
+    allocate(unpacked_dp(size(data, 1), size(data, 2)))
+    call read_cf_packed(packing, nc_var, unpacked_dp, start=start, cnt=cnt)
+    call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i2", name)
+    !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+    data = convert_cf_integer(unpacked_dp, 0_i2)
+    !$omp end parallel workshare
+  end subroutine points_read_cf_integer_2d_i2
+  !> \brief Read and unpack CF data into a one-dimensional i4 integer array.
+  subroutine points_read_cf_integer_1d_i4(packing, nc_var, data, name, start, cnt)
+    type(netcdf_packing), intent(in) :: packing
+    type(NcVariable), intent(in) :: nc_var
+    integer(i4), intent(out) :: data(:)
+    character(*), intent(in) :: name
+    integer(i4), optional, intent(in) :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:)
+    allocate(unpacked_dp(size(data)))
+    call read_cf_packed(packing, nc_var, unpacked_dp, start=start, cnt=cnt)
+    call validate_cf_integer(unpacked_dp, "i4", name)
+    !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+    data = convert_cf_integer(unpacked_dp, 0_i4)
+    !$omp end parallel workshare
+  end subroutine points_read_cf_integer_1d_i4
+
+  !> \brief Read and unpack CF data into a two-dimensional i4 integer array.
+  subroutine points_read_cf_integer_2d_i4(packing, nc_var, data, name, start, cnt)
+    type(netcdf_packing), intent(in) :: packing
+    type(NcVariable), intent(in) :: nc_var
+    integer(i4), intent(out) :: data(:, :)
+    character(*), intent(in) :: name
+    integer(i4), optional, intent(in) :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :)
+    allocate(unpacked_dp(size(data, 1), size(data, 2)))
+    call read_cf_packed(packing, nc_var, unpacked_dp, start=start, cnt=cnt)
+    call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i4", name)
+    !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+    data = convert_cf_integer(unpacked_dp, 0_i4)
+    !$omp end parallel workshare
+  end subroutine points_read_cf_integer_2d_i4
+  !> \brief Read and unpack CF data into a one-dimensional i8 integer array.
+  subroutine points_read_cf_integer_1d_i8(packing, nc_var, data, name, start, cnt)
+    type(netcdf_packing), intent(in) :: packing
+    type(NcVariable), intent(in) :: nc_var
+    integer(i8), intent(out) :: data(:)
+    character(*), intent(in) :: name
+    integer(i4), optional, intent(in) :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:)
+    allocate(unpacked_dp(size(data)))
+    call read_cf_packed(packing, nc_var, unpacked_dp, start=start, cnt=cnt)
+    call validate_cf_integer(unpacked_dp, "i8", name)
+    !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+    data = convert_cf_integer(unpacked_dp, 0_i8)
+    !$omp end parallel workshare
+  end subroutine points_read_cf_integer_1d_i8
+
+  !> \brief Read and unpack CF data into a two-dimensional i8 integer array.
+  subroutine points_read_cf_integer_2d_i8(packing, nc_var, data, name, start, cnt)
+    type(netcdf_packing), intent(in) :: packing
+    type(NcVariable), intent(in) :: nc_var
+    integer(i8), intent(out) :: data(:, :)
+    character(*), intent(in) :: name
+    integer(i4), optional, intent(in) :: start(:), cnt(:)
+    real(dp), allocatable :: unpacked_dp(:, :)
+    allocate(unpacked_dp(size(data, 1), size(data, 2)))
+    call read_cf_packed(packing, nc_var, unpacked_dp, start=start, cnt=cnt)
+    call validate_cf_integer(reshape(unpacked_dp, [size(unpacked_dp)]), "i8", name)
+    !$omp parallel workshare default(shared) if(size(data, kind=i8) >= cf_packing_omp_min)
+    data = convert_cf_integer(unpacked_dp, 0_i8)
+    !$omp end parallel workshare
+  end subroutine points_read_cf_integer_2d_i8
+
   !> \brief Initialize a point output variable and create the NetCDF variable.
   subroutine points_out_var_init(self, meta, nc, points, points_dim, time_dim, deflate_level, time_series)
     class(points_output_variable), intent(inout) :: self
@@ -260,6 +392,7 @@ contains
     self%var = meta
     self%allow_static = .false.
     self%time_series = optval(time_series, .false.)
+    call configure_output_packing(self, self%packing, context="points_output_variable")
     if (.not.allocated(self%dtype)) self%dtype = "f64"
     self%points => points
     if (.not.associated(self%points)) call error_message("points_output_variable: points pointer not associated")
@@ -282,7 +415,12 @@ contains
       call self%nc%setAttribute("coordinates", "x y")
     end if
     call netcdf_dtype_defaults(self%name, self%dtype, self%kind, self%nc, context="points_io")
-    if (allocated(meta%kind)) self%kind = trim(meta%kind)
+    if (self%packing%enabled) then
+      self%kind = self%packing%kind
+      call write_packing_attributes(self, self%nc, self%packing)
+    else if (allocated(meta%kind)) then
+      self%kind = trim(meta%kind)
+    end if
     call allocate_buffer(self)
   contains
     !> \brief Allocate the kind-specific accumulation buffer.
@@ -373,28 +511,56 @@ contains
       case("sp")
         if (self%avg) self%data_sp = self%data_sp / real(self%counter, sp)
         if (self%static) then
-          call self%nc%setData(self%data_sp)
+          if (self%packing%enabled) then
+            call write_cf_packed(self%packing, self%nc, self%data_sp)
+          else
+            call self%nc%setData(self%data_sp)
+          end if
         else
           if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%name)
           if (self%time_series) then
-            call self%nc%setData(reshape(self%data_sp, [1_i4, int(self%points%n_points, i4)]), &
-                                 [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+            if (self%packing%enabled) then
+              call write_cf_packed(self%packing, self%nc, &
+                                   reshape(self%data_sp, [1_i4, int(self%points%n_points, i4)]), &
+                                   [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+            else
+              call self%nc%setData(reshape(self%data_sp, [1_i4, int(self%points%n_points, i4)]), &
+                                   [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+            end if
           else
-            call self%nc%setData(self%data_sp, [1_i4, t_index])
+            if (self%packing%enabled) then
+              call write_cf_packed(self%packing, self%nc, self%data_sp, [1_i4, t_index])
+            else
+              call self%nc%setData(self%data_sp, [1_i4, t_index])
+            end if
           end if
         end if
         self%data_sp = 0.0_sp
       case("dp")
         if (self%avg) self%data_dp = self%data_dp / real(self%counter, dp)
         if (self%static) then
-          call self%nc%setData(self%data_dp)
+          if (self%packing%enabled) then
+            call write_cf_packed(self%packing, self%nc, self%data_dp)
+          else
+            call self%nc%setData(self%data_dp)
+          end if
         else
           if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%name)
           if (self%time_series) then
-            call self%nc%setData(reshape(self%data_dp, [1_i4, int(self%points%n_points, i4)]), &
-                                 [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+            if (self%packing%enabled) then
+              call write_cf_packed(self%packing, self%nc, &
+                                   reshape(self%data_dp, [1_i4, int(self%points%n_points, i4)]), &
+                                   [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+            else
+              call self%nc%setData(reshape(self%data_dp, [1_i4, int(self%points%n_points, i4)]), &
+                                   [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+            end if
           else
-            call self%nc%setData(self%data_dp, [1_i4, t_index])
+            if (self%packing%enabled) then
+              call write_cf_packed(self%packing, self%nc, self%data_dp, [1_i4, t_index])
+            else
+              call self%nc%setData(self%data_dp, [1_i4, t_index])
+            end if
           end if
         end if
         self%data_dp = 0.0_dp
@@ -636,6 +802,7 @@ contains
 
     self%var = meta
     self%allow_static = .false.
+    call configure_output_packing(self, self%packing, context="points_series_output_variable")
     if (.not.allocated(self%dtype)) self%dtype = "f64"
     self%points => points
     if (.not.associated(self%points)) call error_message("points_series_output_variable: points pointer not associated")
@@ -653,7 +820,12 @@ contains
       call self%nc%setAttribute("coordinates", "x y")
     end if
     call netcdf_dtype_defaults(self%name, self%dtype, self%kind, self%nc, context="points_io")
-    if (allocated(meta%kind)) self%kind = trim(meta%kind)
+    if (self%packing%enabled) then
+      self%kind = self%packing%kind
+      call write_packing_attributes(self, self%nc, self%packing)
+    else if (allocated(meta%kind)) then
+      self%kind = trim(meta%kind)
+    end if
     if (.not.self%static) allocate(self%written(self%points%n_points), source=.false.)
   end subroutine points_series_out_var_init
 
@@ -674,7 +846,11 @@ contains
     if (size(data, kind=i8) /= n_times) &
       call error_message("points_series_output_variable: time series size mismatch: ", self%name)
     point_index_ = int(point_index, i4)
-    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(n_times, i4), 1_i4])
+    if (self%packing%enabled) then
+      call write_cf_packed(self%packing, self%nc, data, start=[1_i4, point_index_], cnt=[int(n_times, i4), 1_i4])
+    else
+      call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(n_times, i4), 1_i4])
+    end if
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_sp
 
@@ -692,7 +868,12 @@ contains
       call error_message("points_series_output_variable: time series size mismatch: ", self%name)
     if (size(data, 2, kind=i8) /= self%points%n_points) &
       call error_message("points_series_output_variable: point series size mismatch: ", self%name)
-    call self%nc%setData(data, start=[1_i4, 1_i4], cnt=[int(n_times, i4), int(self%points%n_points, i4)])
+    if (self%packing%enabled) then
+      call write_cf_packed(self%packing, self%nc, data, start=[1_i4, 1_i4], &
+                           cnt=[int(n_times, i4), int(self%points%n_points, i4)])
+    else
+      call self%nc%setData(data, start=[1_i4, 1_i4], cnt=[int(n_times, i4), int(self%points%n_points, i4)])
+    end if
     self%written = .true.
   end subroutine points_series_out_var_write_matrix_sp
 
@@ -704,7 +885,11 @@ contains
     if (self%kind /= "sp") call error_message("points_series_output_variable: wrong kind for write_static: ", self%name)
     if (size(data, kind=i8) /= self%points%n_points) &
       call error_message("points_series_output_variable: static data size mismatch: ", self%name)
-    call self%nc%setData(data)
+    if (self%packing%enabled) then
+      call write_cf_packed(self%packing, self%nc, data)
+    else
+      call self%nc%setData(data)
+    end if
     self%static_written = .true.
   end subroutine points_series_out_var_write_static_sp
   !> \brief Write one complete point time series.
@@ -724,7 +909,11 @@ contains
     if (size(data, kind=i8) /= n_times) &
       call error_message("points_series_output_variable: time series size mismatch: ", self%name)
     point_index_ = int(point_index, i4)
-    call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(n_times, i4), 1_i4])
+    if (self%packing%enabled) then
+      call write_cf_packed(self%packing, self%nc, data, start=[1_i4, point_index_], cnt=[int(n_times, i4), 1_i4])
+    else
+      call self%nc%setData(data, start=[1_i4, point_index_], cnt=[int(n_times, i4), 1_i4])
+    end if
     self%written(point_index_) = .true.
   end subroutine points_series_out_var_write_dp
 
@@ -742,7 +931,12 @@ contains
       call error_message("points_series_output_variable: time series size mismatch: ", self%name)
     if (size(data, 2, kind=i8) /= self%points%n_points) &
       call error_message("points_series_output_variable: point series size mismatch: ", self%name)
-    call self%nc%setData(data, start=[1_i4, 1_i4], cnt=[int(n_times, i4), int(self%points%n_points, i4)])
+    if (self%packing%enabled) then
+      call write_cf_packed(self%packing, self%nc, data, start=[1_i4, 1_i4], &
+                           cnt=[int(n_times, i4), int(self%points%n_points, i4)])
+    else
+      call self%nc%setData(data, start=[1_i4, 1_i4], cnt=[int(n_times, i4), int(self%points%n_points, i4)])
+    end if
     self%written = .true.
   end subroutine points_series_out_var_write_matrix_dp
 
@@ -754,7 +948,11 @@ contains
     if (self%kind /= "dp") call error_message("points_series_output_variable: wrong kind for write_static: ", self%name)
     if (size(data, kind=i8) /= self%points%n_points) &
       call error_message("points_series_output_variable: static data size mismatch: ", self%name)
-    call self%nc%setData(data)
+    if (self%packing%enabled) then
+      call write_cf_packed(self%packing, self%nc, data)
+    else
+      call self%nc%setData(data)
+    end if
     self%static_written = .true.
   end subroutine points_series_out_var_write_static_dp
   !> \brief Write one complete point time series.
@@ -1289,7 +1487,9 @@ contains
     if ((.not.meta%static) .and. self%static .and. .not.meta%allow_static) &
       call error_message("points_input_variable: expected temporal variable: ", self%name)
     self%dtype = trim(self%nc%getDtype())
+    call discover_input_packing(self, self%nc, self%packing, context="points_input_variable")
     call netcdf_dtype_defaults(self%name, self%dtype, self%kind, context="points_io")
+    if (self%packing%enabled) self%kind = "dp"
     if (allocated(meta%kind)) self%kind = trim(meta%kind)
     if (self%nc%hasAttribute("standard_name")) then
       call self%nc%getAttribute("standard_name", tmp_str)
@@ -1323,15 +1523,30 @@ contains
     real(sp), allocatable :: tmp(:, :)
     if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ", self%name)
     if (self%static) then
-      call self%nc%readInto(data)
+      if (self%packing%enabled) then
+        call read_cf_packed(self%packing, self%nc, data)
+      else
+        call self%nc%readInto(data)
+      end if
     else
       if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
       if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
       if (self%time_series) then
-        call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        if (self%packing%enabled) then
+          allocate(tmp(1_i4, int(self%points%n_points, i4)))
+          call read_cf_packed(self%packing, self%nc, tmp, start=[t_index, 1_i4], &
+                              cnt=[1_i4, int(self%points%n_points, i4)])
+        else
+          call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        end if
         data = tmp(1, :)
       else
-        call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+        if (self%packing%enabled) then
+          call read_cf_packed(self%packing, self%nc, data, [1_i4, t_index], &
+                              [int(self%points%n_points, i4), 1_i4])
+        else
+          call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+        end if
       end if
     end if
   end subroutine points_in_var_read_sp
@@ -1345,10 +1560,22 @@ contains
     real(sp), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%name)
     if (self%time_series) then
-      call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      if (self%packing%enabled) then
+        allocate(tmp(t_size, int(self%points%n_points, i4)))
+        call read_cf_packed(self%packing, self%nc, tmp, start=[t_index, 1_i4], &
+                            cnt=[t_size, int(self%points%n_points, i4)])
+      else
+        call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      end if
       allocate(data(self%points%n_points, t_size), source=transpose(tmp))
     else
-      call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      if (self%packing%enabled) then
+        allocate(data(int(self%points%n_points, i4), t_size))
+        call read_cf_packed(self%packing, self%nc, data, start=[1_i4, t_index], &
+                            cnt=[int(self%points%n_points, i4), t_size])
+      else
+        call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      end if
     end if
   end subroutine points_in_var_read_chunk_sp
 
@@ -1361,9 +1588,21 @@ contains
     real(sp), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: series read needs temporal variable: ", self%name)
     if (self%time_series) then
-      call self%nc%getData(data, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      if (self%packing%enabled) then
+        allocate(data(t_size, int(self%points%n_points, i4)))
+        call read_cf_packed(self%packing, self%nc, data, start=[t_index, 1_i4], &
+                            cnt=[t_size, int(self%points%n_points, i4)])
+      else
+        call self%nc%getData(data, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      end if
     else
-      call self%nc%getData(tmp, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      if (self%packing%enabled) then
+        allocate(tmp(int(self%points%n_points, i4), t_size))
+        call read_cf_packed(self%packing, self%nc, tmp, start=[1_i4, t_index], &
+                            cnt=[int(self%points%n_points, i4), t_size])
+      else
+        call self%nc%getData(tmp, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      end if
       allocate(data(t_size, self%points%n_points), source=transpose(tmp))
     end if
   end subroutine points_in_var_read_series_matrix_sp
@@ -1381,9 +1620,19 @@ contains
       call error_message("points_input_variable: point index out of range: ", self%name)
     point_index_ = int(point_index, i4)
     if (self%time_series) then
-      call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+      if (self%packing%enabled) then
+        allocate(data(t_size))
+        call read_cf_packed(self%packing, self%nc, data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+      else
+        call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+      end if
     else
-      call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+      if (self%packing%enabled) then
+        allocate(data(t_size))
+        call read_cf_packed(self%packing, self%nc, data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+      else
+        call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+      end if
     end if
   end subroutine points_in_var_read_series_sp
   !> \brief Read one static or temporal point vector.
@@ -1394,15 +1643,30 @@ contains
     real(dp), allocatable :: tmp(:, :)
     if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ", self%name)
     if (self%static) then
-      call self%nc%readInto(data)
+      if (self%packing%enabled) then
+        call read_cf_packed(self%packing, self%nc, data)
+      else
+        call self%nc%readInto(data)
+      end if
     else
       if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
       if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
       if (self%time_series) then
-        call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        if (self%packing%enabled) then
+          allocate(tmp(1_i4, int(self%points%n_points, i4)))
+          call read_cf_packed(self%packing, self%nc, tmp, start=[t_index, 1_i4], &
+                              cnt=[1_i4, int(self%points%n_points, i4)])
+        else
+          call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        end if
         data = tmp(1, :)
       else
-        call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+        if (self%packing%enabled) then
+          call read_cf_packed(self%packing, self%nc, data, [1_i4, t_index], &
+                              [int(self%points%n_points, i4), 1_i4])
+        else
+          call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+        end if
       end if
     end if
   end subroutine points_in_var_read_dp
@@ -1416,10 +1680,22 @@ contains
     real(dp), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%name)
     if (self%time_series) then
-      call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      if (self%packing%enabled) then
+        allocate(tmp(t_size, int(self%points%n_points, i4)))
+        call read_cf_packed(self%packing, self%nc, tmp, start=[t_index, 1_i4], &
+                            cnt=[t_size, int(self%points%n_points, i4)])
+      else
+        call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      end if
       allocate(data(self%points%n_points, t_size), source=transpose(tmp))
     else
-      call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      if (self%packing%enabled) then
+        allocate(data(int(self%points%n_points, i4), t_size))
+        call read_cf_packed(self%packing, self%nc, data, start=[1_i4, t_index], &
+                            cnt=[int(self%points%n_points, i4), t_size])
+      else
+        call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      end if
     end if
   end subroutine points_in_var_read_chunk_dp
 
@@ -1432,9 +1708,21 @@ contains
     real(dp), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: series read needs temporal variable: ", self%name)
     if (self%time_series) then
-      call self%nc%getData(data, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      if (self%packing%enabled) then
+        allocate(data(t_size, int(self%points%n_points, i4)))
+        call read_cf_packed(self%packing, self%nc, data, start=[t_index, 1_i4], &
+                            cnt=[t_size, int(self%points%n_points, i4)])
+      else
+        call self%nc%getData(data, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      end if
     else
-      call self%nc%getData(tmp, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      if (self%packing%enabled) then
+        allocate(tmp(int(self%points%n_points, i4), t_size))
+        call read_cf_packed(self%packing, self%nc, tmp, start=[1_i4, t_index], &
+                            cnt=[int(self%points%n_points, i4), t_size])
+      else
+        call self%nc%getData(tmp, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      end if
       allocate(data(t_size, self%points%n_points), source=transpose(tmp))
     end if
   end subroutine points_in_var_read_series_matrix_dp
@@ -1452,9 +1740,19 @@ contains
       call error_message("points_input_variable: point index out of range: ", self%name)
     point_index_ = int(point_index, i4)
     if (self%time_series) then
-      call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+      if (self%packing%enabled) then
+        allocate(data(t_size))
+        call read_cf_packed(self%packing, self%nc, data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+      else
+        call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+      end if
     else
-      call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+      if (self%packing%enabled) then
+        allocate(data(t_size))
+        call read_cf_packed(self%packing, self%nc, data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+      else
+        call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+      end if
     end if
   end subroutine points_in_var_read_series_dp
   !> \brief Read one static or temporal point vector.
@@ -1465,15 +1763,30 @@ contains
     integer(i1), allocatable :: tmp(:, :)
     if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ", self%name)
     if (self%static) then
-      call self%nc%readInto(data)
+      if (self%packing%enabled) then
+        call points_read_cf_integer_1d_i1(self%packing, self%nc, data, self%name)
+      else
+        call self%nc%readInto(data)
+      end if
     else
       if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
       if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
       if (self%time_series) then
-        call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        if (self%packing%enabled) then
+          allocate(tmp(1_i4, int(self%points%n_points, i4)))
+          call points_read_cf_integer_2d_i1(self%packing, self%nc, tmp, self%name, &
+                                                start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        else
+          call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        end if
         data = tmp(1, :)
       else
-        call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+        if (self%packing%enabled) then
+          call points_read_cf_integer_1d_i1(self%packing, self%nc, data, self%name, &
+                                                [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+        else
+          call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+        end if
       end if
     end if
   end subroutine points_in_var_read_i1
@@ -1487,10 +1800,22 @@ contains
     integer(i1), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%name)
     if (self%time_series) then
-      call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      if (self%packing%enabled) then
+        allocate(tmp(t_size, int(self%points%n_points, i4)))
+        call points_read_cf_integer_2d_i1(self%packing, self%nc, tmp, self%name, &
+                                              start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      else
+        call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      end if
       allocate(data(self%points%n_points, t_size), source=transpose(tmp))
     else
-      call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      if (self%packing%enabled) then
+        allocate(data(int(self%points%n_points, i4), t_size))
+        call points_read_cf_integer_2d_i1(self%packing, self%nc, data, self%name, &
+                                              start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      else
+        call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      end if
     end if
   end subroutine points_in_var_read_chunk_i1
 
@@ -1503,9 +1828,21 @@ contains
     integer(i1), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: series read needs temporal variable: ", self%name)
     if (self%time_series) then
-      call self%nc%getData(data, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      if (self%packing%enabled) then
+        allocate(data(t_size, int(self%points%n_points, i4)))
+        call points_read_cf_integer_2d_i1(self%packing, self%nc, data, self%name, &
+                                              start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      else
+        call self%nc%getData(data, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      end if
     else
-      call self%nc%getData(tmp, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      if (self%packing%enabled) then
+        allocate(tmp(int(self%points%n_points, i4), t_size))
+        call points_read_cf_integer_2d_i1(self%packing, self%nc, tmp, self%name, &
+                                              start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      else
+        call self%nc%getData(tmp, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      end if
       allocate(data(t_size, self%points%n_points), source=transpose(tmp))
     end if
   end subroutine points_in_var_read_series_matrix_i1
@@ -1523,9 +1860,21 @@ contains
       call error_message("points_input_variable: point index out of range: ", self%name)
     point_index_ = int(point_index, i4)
     if (self%time_series) then
-      call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+      if (self%packing%enabled) then
+        allocate(data(t_size))
+        call points_read_cf_integer_1d_i1(self%packing, self%nc, data, self%name, &
+                                              start=[t_index, point_index_], cnt=[t_size, 1_i4])
+      else
+        call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+      end if
     else
-      call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+      if (self%packing%enabled) then
+        allocate(data(t_size))
+        call points_read_cf_integer_1d_i1(self%packing, self%nc, data, self%name, &
+                                              start=[point_index_, t_index], cnt=[1_i4, t_size])
+      else
+        call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+      end if
     end if
   end subroutine points_in_var_read_series_i1
   !> \brief Read one static or temporal point vector.
@@ -1536,15 +1885,30 @@ contains
     integer(i2), allocatable :: tmp(:, :)
     if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ", self%name)
     if (self%static) then
-      call self%nc%readInto(data)
+      if (self%packing%enabled) then
+        call points_read_cf_integer_1d_i2(self%packing, self%nc, data, self%name)
+      else
+        call self%nc%readInto(data)
+      end if
     else
       if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
       if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
       if (self%time_series) then
-        call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        if (self%packing%enabled) then
+          allocate(tmp(1_i4, int(self%points%n_points, i4)))
+          call points_read_cf_integer_2d_i2(self%packing, self%nc, tmp, self%name, &
+                                                start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        else
+          call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        end if
         data = tmp(1, :)
       else
-        call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+        if (self%packing%enabled) then
+          call points_read_cf_integer_1d_i2(self%packing, self%nc, data, self%name, &
+                                                [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+        else
+          call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+        end if
       end if
     end if
   end subroutine points_in_var_read_i2
@@ -1558,10 +1922,22 @@ contains
     integer(i2), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%name)
     if (self%time_series) then
-      call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      if (self%packing%enabled) then
+        allocate(tmp(t_size, int(self%points%n_points, i4)))
+        call points_read_cf_integer_2d_i2(self%packing, self%nc, tmp, self%name, &
+                                              start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      else
+        call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      end if
       allocate(data(self%points%n_points, t_size), source=transpose(tmp))
     else
-      call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      if (self%packing%enabled) then
+        allocate(data(int(self%points%n_points, i4), t_size))
+        call points_read_cf_integer_2d_i2(self%packing, self%nc, data, self%name, &
+                                              start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      else
+        call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      end if
     end if
   end subroutine points_in_var_read_chunk_i2
 
@@ -1574,9 +1950,21 @@ contains
     integer(i2), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: series read needs temporal variable: ", self%name)
     if (self%time_series) then
-      call self%nc%getData(data, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      if (self%packing%enabled) then
+        allocate(data(t_size, int(self%points%n_points, i4)))
+        call points_read_cf_integer_2d_i2(self%packing, self%nc, data, self%name, &
+                                              start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      else
+        call self%nc%getData(data, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      end if
     else
-      call self%nc%getData(tmp, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      if (self%packing%enabled) then
+        allocate(tmp(int(self%points%n_points, i4), t_size))
+        call points_read_cf_integer_2d_i2(self%packing, self%nc, tmp, self%name, &
+                                              start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      else
+        call self%nc%getData(tmp, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      end if
       allocate(data(t_size, self%points%n_points), source=transpose(tmp))
     end if
   end subroutine points_in_var_read_series_matrix_i2
@@ -1594,9 +1982,21 @@ contains
       call error_message("points_input_variable: point index out of range: ", self%name)
     point_index_ = int(point_index, i4)
     if (self%time_series) then
-      call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+      if (self%packing%enabled) then
+        allocate(data(t_size))
+        call points_read_cf_integer_1d_i2(self%packing, self%nc, data, self%name, &
+                                              start=[t_index, point_index_], cnt=[t_size, 1_i4])
+      else
+        call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+      end if
     else
-      call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+      if (self%packing%enabled) then
+        allocate(data(t_size))
+        call points_read_cf_integer_1d_i2(self%packing, self%nc, data, self%name, &
+                                              start=[point_index_, t_index], cnt=[1_i4, t_size])
+      else
+        call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+      end if
     end if
   end subroutine points_in_var_read_series_i2
   !> \brief Read one static or temporal point vector.
@@ -1607,15 +2007,30 @@ contains
     integer(i4), allocatable :: tmp(:, :)
     if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ", self%name)
     if (self%static) then
-      call self%nc%readInto(data)
+      if (self%packing%enabled) then
+        call points_read_cf_integer_1d_i4(self%packing, self%nc, data, self%name)
+      else
+        call self%nc%readInto(data)
+      end if
     else
       if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
       if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
       if (self%time_series) then
-        call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        if (self%packing%enabled) then
+          allocate(tmp(1_i4, int(self%points%n_points, i4)))
+          call points_read_cf_integer_2d_i4(self%packing, self%nc, tmp, self%name, &
+                                                start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        else
+          call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        end if
         data = tmp(1, :)
       else
-        call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+        if (self%packing%enabled) then
+          call points_read_cf_integer_1d_i4(self%packing, self%nc, data, self%name, &
+                                                [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+        else
+          call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+        end if
       end if
     end if
   end subroutine points_in_var_read_i4
@@ -1629,10 +2044,22 @@ contains
     integer(i4), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%name)
     if (self%time_series) then
-      call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      if (self%packing%enabled) then
+        allocate(tmp(t_size, int(self%points%n_points, i4)))
+        call points_read_cf_integer_2d_i4(self%packing, self%nc, tmp, self%name, &
+                                              start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      else
+        call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      end if
       allocate(data(self%points%n_points, t_size), source=transpose(tmp))
     else
-      call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      if (self%packing%enabled) then
+        allocate(data(int(self%points%n_points, i4), t_size))
+        call points_read_cf_integer_2d_i4(self%packing, self%nc, data, self%name, &
+                                              start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      else
+        call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      end if
     end if
   end subroutine points_in_var_read_chunk_i4
 
@@ -1645,9 +2072,21 @@ contains
     integer(i4), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: series read needs temporal variable: ", self%name)
     if (self%time_series) then
-      call self%nc%getData(data, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      if (self%packing%enabled) then
+        allocate(data(t_size, int(self%points%n_points, i4)))
+        call points_read_cf_integer_2d_i4(self%packing, self%nc, data, self%name, &
+                                              start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      else
+        call self%nc%getData(data, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      end if
     else
-      call self%nc%getData(tmp, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      if (self%packing%enabled) then
+        allocate(tmp(int(self%points%n_points, i4), t_size))
+        call points_read_cf_integer_2d_i4(self%packing, self%nc, tmp, self%name, &
+                                              start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      else
+        call self%nc%getData(tmp, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      end if
       allocate(data(t_size, self%points%n_points), source=transpose(tmp))
     end if
   end subroutine points_in_var_read_series_matrix_i4
@@ -1665,9 +2104,21 @@ contains
       call error_message("points_input_variable: point index out of range: ", self%name)
     point_index_ = int(point_index, i4)
     if (self%time_series) then
-      call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+      if (self%packing%enabled) then
+        allocate(data(t_size))
+        call points_read_cf_integer_1d_i4(self%packing, self%nc, data, self%name, &
+                                              start=[t_index, point_index_], cnt=[t_size, 1_i4])
+      else
+        call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+      end if
     else
-      call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+      if (self%packing%enabled) then
+        allocate(data(t_size))
+        call points_read_cf_integer_1d_i4(self%packing, self%nc, data, self%name, &
+                                              start=[point_index_, t_index], cnt=[1_i4, t_size])
+      else
+        call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+      end if
     end if
   end subroutine points_in_var_read_series_i4
   !> \brief Read one static or temporal point vector.
@@ -1678,15 +2129,30 @@ contains
     integer(i8), allocatable :: tmp(:, :)
     if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ", self%name)
     if (self%static) then
-      call self%nc%readInto(data)
+      if (self%packing%enabled) then
+        call points_read_cf_integer_1d_i8(self%packing, self%nc, data, self%name)
+      else
+        call self%nc%readInto(data)
+      end if
     else
       if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
       if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
       if (self%time_series) then
-        call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        if (self%packing%enabled) then
+          allocate(tmp(1_i4, int(self%points%n_points, i4)))
+          call points_read_cf_integer_2d_i8(self%packing, self%nc, tmp, self%name, &
+                                                start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        else
+          call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
+        end if
         data = tmp(1, :)
       else
-        call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+        if (self%packing%enabled) then
+          call points_read_cf_integer_1d_i8(self%packing, self%nc, data, self%name, &
+                                                [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+        else
+          call self%nc%readInto(data, [1_i4, t_index], [int(self%points%n_points, i4), 1_i4])
+        end if
       end if
     end if
   end subroutine points_in_var_read_i8
@@ -1700,10 +2166,22 @@ contains
     integer(i8), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%name)
     if (self%time_series) then
-      call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      if (self%packing%enabled) then
+        allocate(tmp(t_size, int(self%points%n_points, i4)))
+        call points_read_cf_integer_2d_i8(self%packing, self%nc, tmp, self%name, &
+                                              start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      else
+        call self%nc%getData(tmp, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      end if
       allocate(data(self%points%n_points, t_size), source=transpose(tmp))
     else
-      call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      if (self%packing%enabled) then
+        allocate(data(int(self%points%n_points, i4), t_size))
+        call points_read_cf_integer_2d_i8(self%packing, self%nc, data, self%name, &
+                                              start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      else
+        call self%nc%getData(data, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      end if
     end if
   end subroutine points_in_var_read_chunk_i8
 
@@ -1716,9 +2194,21 @@ contains
     integer(i8), allocatable :: tmp(:, :)
     if (self%static) call error_message("points_input_variable: series read needs temporal variable: ", self%name)
     if (self%time_series) then
-      call self%nc%getData(data, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      if (self%packing%enabled) then
+        allocate(data(t_size, int(self%points%n_points, i4)))
+        call points_read_cf_integer_2d_i8(self%packing, self%nc, data, self%name, &
+                                              start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      else
+        call self%nc%getData(data, start=[t_index, 1_i4], cnt=[t_size, int(self%points%n_points, i4)])
+      end if
     else
-      call self%nc%getData(tmp, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      if (self%packing%enabled) then
+        allocate(tmp(int(self%points%n_points, i4), t_size))
+        call points_read_cf_integer_2d_i8(self%packing, self%nc, tmp, self%name, &
+                                              start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      else
+        call self%nc%getData(tmp, start=[1_i4, t_index], cnt=[int(self%points%n_points, i4), t_size])
+      end if
       allocate(data(t_size, self%points%n_points), source=transpose(tmp))
     end if
   end subroutine points_in_var_read_series_matrix_i8
@@ -1736,9 +2226,21 @@ contains
       call error_message("points_input_variable: point index out of range: ", self%name)
     point_index_ = int(point_index, i4)
     if (self%time_series) then
-      call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+      if (self%packing%enabled) then
+        allocate(data(t_size))
+        call points_read_cf_integer_1d_i8(self%packing, self%nc, data, self%name, &
+                                              start=[t_index, point_index_], cnt=[t_size, 1_i4])
+      else
+        call self%nc%getData(data, start=[t_index, point_index_], cnt=[t_size, 1_i4])
+      end if
     else
-      call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+      if (self%packing%enabled) then
+        allocate(data(t_size))
+        call points_read_cf_integer_1d_i8(self%packing, self%nc, data, self%name, &
+                                              start=[point_index_, t_index], cnt=[1_i4, t_size])
+      else
+        call self%nc%getData(data, start=[point_index_, t_index], cnt=[1_i4, t_size])
+      end if
     end if
   end subroutine points_in_var_read_series_i8
 

@@ -1,7 +1,7 @@
 module test_mo_netcdf
   
   use funit
-  use mo_kind  , only : i4, i8, sp, dp
+  use mo_kind  , only : i1, i2, i4, i8, sp, dp
   use mo_netcdf, only : NcDataset, NcDimension, NcVariable, NF90_FILL, NF90_NOFILL
   use mo_utils , only : equal
   use mo_message, only: error_message
@@ -36,6 +36,44 @@ module test_mo_netcdf
   real(dp),    allocatable :: rdata(:,:,:)
 
 contains
+
+  @test
+  subroutine test_netcdf_attribute_metadata_and_raw_packing()
+    use mo_constants, only: nodata_dp, nodata_i1, nodata_i2, nodata_i4, nodata_i8
+    use mo_netcdf_utils, only: discover_input_packing, netcdf_packing, var, convert_cf_integer
+    type(NcDataset) :: local_nc
+    type(NcDimension) :: dim
+    type(NcVariable) :: packed_var
+    type(netcdf_packing) :: packing
+    type(var) :: metadata
+    integer(i2) :: codes(3), raw(3)
+
+    codes = [1_i2, 2_i2, -9999_i2]
+    local_nc = NcDataset("netcdf_raw_packing.nc", "w")
+    dim = local_nc%setDimension("x", 3_i4)
+    packed_var = local_nc%setVariable("packed", "i16", [dim])
+    call packed_var%setAttribute("scale_factor", 0.25_sp)
+    call packed_var%setAttribute("add_offset", 10.0_sp)
+    call packed_var%setData(codes)
+    call local_nc%close()
+
+    local_nc = NcDataset("netcdf_raw_packing.nc", "r")
+    packed_var = local_nc%getVariable("packed")
+    @assertEqual(trim(packed_var%getAttributeDtype("scale_factor")), "f32")
+    @assertEqual(packed_var%getAttributeLength("scale_factor"), 1_i4)
+    call packed_var%readInto(raw)
+    @assertTrue(all(raw == codes), message="mo_netcdf data access remains raw")
+    metadata = var(name="packed", dtype="i16", scale_factor=2.0_dp, add_offset=-3.0_dp, scale_dtype="f64")
+    call discover_input_packing(metadata, packed_var, packing, context="test_netcdf")
+    @assertEqual(metadata%scale_factor, 0.25_dp)
+    @assertEqual(metadata%add_offset, 10.0_dp)
+    @assertEqual(trim(metadata%scale_dtype), "f32")
+    @assertEqual(convert_cf_integer([1.0_dp, nodata_dp], 0_i1), [1_i1, nodata_i1])
+    @assertEqual(convert_cf_integer([1.0_dp, nodata_dp], 0_i2), [1_i2, nodata_i2])
+    @assertEqual(convert_cf_integer([1.0_dp, nodata_dp], 0_i4), [1_i4, nodata_i4])
+    @assertEqual(convert_cf_integer([1.0_dp, nodata_dp], 0_i8), [1_i8, nodata_i8])
+    call local_nc%close()
+  end subroutine test_netcdf_attribute_metadata_and_raw_packing
 
   ! ------------------------------------------
   ! 0. Initialization ...
