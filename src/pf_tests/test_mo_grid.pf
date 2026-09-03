@@ -20,6 +20,7 @@ module test_mo_grid
   public :: test_polygon_mask
   public :: test_copy_to
   public :: test_fill_ids
+  public :: test_gen_id_map
   public :: test_area_and_periodicity
   public :: test_is_matching
   public :: test_gap_masks
@@ -531,6 +532,52 @@ contains
     call sph%fill_ids(sph_target_grid, ids, use_index_distance=.true.)
     @assertEqual(ids, [1_i8], message='fill_ids spherical index fallback uses periodic i-j distance')
   end subroutine test_fill_ids
+
+  @test
+  subroutine test_gen_id_map()
+    implicit none
+    type(grid_t) :: source, same, submask, overlap, full, empty
+    logical :: source_mask(3, 3), target_mask(3, 3)
+    integer(i8) :: id_map(6), sub_to_source(4)
+
+    source_mask = reshape([.true., .false., .true., &
+                           .true., .true., .false., &
+                           .false., .true., .true.], [3, 3])
+    call source%init(nx=3, ny=3, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=source_mask)
+
+    call same%init(nx=3, ny=3, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=source_mask)
+    allocate(source%lat(3, 3), source%lon(3, 3))
+    source%lat = 1.0_dp
+    source%lon = 2.0_dp
+    call source%gen_id_map(same, id_map, check_cover=.true., check_fill=.true.)
+    @assertEqual(id_map, [1_i8, 2_i8, 3_i8, 4_i8, 5_i8, 6_i8], message='id map preserves irregular identical mask ids')
+
+    target_mask = source_mask
+    target_mask(3, 1) = .false.
+    target_mask(1, 2) = .false.
+    call submask%init(nx=3, ny=3, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=target_mask)
+    call source%gen_id_map(submask, id_map, check_cover=.true.)
+    @assertEqual(id_map, [1_i8, 0_i8, 0_i8, 2_i8, 3_i8, 4_i8], message='id map writes target ids and zero submask sentinels')
+    call submask%gen_id_map(source, sub_to_source, check_fill=.true.)
+    @assertEqual(sub_to_source, [1_i8, 4_i8, 5_i8, 6_i8], message='id map supports reverse filled-mask mapping')
+
+    target_mask = reshape([.true., .true., .false., &
+                           .false., .true., .true., &
+                           .false., .false., .true.], [3, 3])
+    call overlap%init(nx=3, ny=3, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=target_mask)
+    call source%gen_id_map(overlap, id_map)
+    @assertEqual(id_map, [1_i8, 0_i8, 0_i8, 3_i8, 0_i8, 5_i8], message='id map preserves packed ids across partial overlap')
+
+    target_mask = .true.
+    call full%init(nx=3, ny=3, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=target_mask)
+    call source%gen_id_map(full, id_map)
+    @assertEqual(id_map, [1_i8, 3_i8, 4_i8, 5_i8, 8_i8, 9_i8], message='id map reuses caller buffer for full target')
+
+    target_mask = .false.
+    call empty%init(nx=3, ny=3, cellsize=1.0_dp, coordsys=cartesian, y_direction=bottom_up, mask=target_mask)
+    call source%gen_id_map(empty, id_map)
+    @assertEqual(id_map, [0_i8, 0_i8, 0_i8, 0_i8, 0_i8, 0_i8], message='id map writes zero for empty target mask')
+  end subroutine test_gen_id_map
 
   @test
   subroutine test_area_and_periodicity()
