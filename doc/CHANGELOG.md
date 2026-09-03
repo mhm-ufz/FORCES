@@ -4,6 +4,38 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
+## v0.11.2 - 2026-09
+- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.11.1...v0.11.2) for details.
+
+### Enhancements and Changes
+
+* NetCDF time axes ([174](https://git.ufz.de/chs/forces/-/merge_requests/174))
+  * added support for center-stamped time axes without explicit bounds
+  * inferred bounds for regular fixed, monthly, and yearly center-stamped axes and added stricter validation of time coordinates and bounds
+
+* contributors ([175](https://git.ufz.de/chs/forces/-/merge_requests/175))
+  * added Ehsan Modiri to `AUTHORS` and the Zenodo metadata
+
+* `mo_errormeasures` ([176](https://git.ufz.de/chs/forces/-/merge_requests/176))
+  * added single- and double-precision `JDKGE` and `JDKGEweighted` for rank-1 time series
+  * combined modified KGE components with a Jensen-Shannon divergence term on log-transformed flows, including configurable component weights and time-step-aware histogram binning
+
+* NetCDF I/O ([177](https://git.ufz.de/chs/forces/-/merge_requests/177))
+  * added CF `scale_factor` and `add_offset` packing and unpacking for grid and point input/output
+  * added packing metadata discovery and validation, missing-value and valid-range handling, integer conversion checks, and parallel conversion for large arrays
+
+* `mo_grid` ([179](https://git.ufz.de/chs/forces/-/merge_requests/179))
+  * added `grid_t%gen_id_map` to map packed source-grid cell IDs to packed target-grid cell IDs for matching grid geometries
+  * added optional coverage and fill assertions for differing active-cell masks
+
+### Fixes
+
+* NetCDF time axes ([173](https://git.ufz.de/chs/forces/-/merge_requests/173))
+  * fixed time-step inference for bounded singleton axes, including monthly and yearly intervals
+
+* `mo_dag` ([178](https://git.ufz.de/chs/forces/-/merge_requests/178))
+  * prevented the DAG sorting partition from swapping an array element with itself
+
 ## v0.11.1 - 2026-08
 - See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.11.0...v0.11.1) for details.
 
