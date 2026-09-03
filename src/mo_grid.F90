@@ -115,6 +115,7 @@ module mo_grid
     procedure, public :: total_area => grid_total_area
     procedure, public :: id_matrix => grid_id_matrix
     procedure, public :: gen_id_matrix => grid_gen_id_matrix
+    procedure, public :: gen_id_map => grid_gen_id_map
     procedure, public :: cell_id => grid_cell_id
     procedure, private :: closest_cell_id_scalar => grid_closest_cell_id_scalar
     procedure, private :: closest_cell_id_batch => grid_closest_cell_id_batch
@@ -1170,6 +1171,71 @@ contains
     end do
     !$omp end parallel do
   end subroutine grid_gen_id_matrix
+
+  !> \brief Generate a map from source packed-cell ids to target packed-cell ids.
+  !> \details The grids must have coincident regular geometry.  Active source
+  !! cells that are inactive in the target receive the zero sentinel.
+  subroutine grid_gen_id_map(this, target_grid, id_map, check_cover, check_fill)
+    implicit none
+    class(grid_t), intent(in) :: this !< Source grid.
+    type(grid_t), intent(in) :: target_grid !< Target grid with coincident geometry.
+    integer(i8), intent(out) :: id_map(:) !< Target packed-cell ids, indexed by source packed-cell id.
+    logical, optional, intent(in) :: check_cover !< Require every target active cell to be active in the source.
+    logical, optional, intent(in) :: check_fill !< Require every source active cell to be active in the target.
+
+    integer(i8) :: ks, kt
+    integer(i4) :: i, j
+    logical :: check_cover_, check_fill_, cover_failed, fill_failed
+
+    if (.not. allocated(this%mask) .or. .not. allocated(this%mask_col_cnt) .or. &
+        .not. allocated(this%mask_cum_col_cnt) .or. .not. allocated(this%cell_ij)) then
+      call error_message("grid%gen_id_map: source grid is not initialized.") ! LCOV_EXCL_LINE
+    end if
+    if (.not. allocated(target_grid%mask) .or. .not. allocated(target_grid%mask_col_cnt) .or. &
+        .not. allocated(target_grid%mask_cum_col_cnt) .or. .not. allocated(target_grid%cell_ij)) then
+      call error_message("grid%gen_id_map: target grid is not initialized.") ! LCOV_EXCL_LINE
+    end if
+    if (size(id_map, kind=i8) /= this%ncells) then
+      call error_message("grid%gen_id_map: output size does not match source grid ncells.") ! LCOV_EXCL_LINE
+    end if
+    if (.not. this%is_matching(target_grid, aux=.false., compare_mask=.false.)) then
+      call error_message("grid%gen_id_map: source and target grid geometry does not match.") ! LCOV_EXCL_LINE
+    end if
+
+    check_cover_ = optval(check_cover, .false.)
+    check_fill_ = optval(check_fill, .false.)
+    cover_failed = .false.
+    fill_failed = .false.
+
+    !$omp parallel do default(shared) private(ks,kt,i) schedule(static) reduction(.or.:cover_failed,fill_failed)
+    do j = 1_i4, this%ny
+      ks = this%mask_cum_col_cnt(j)
+      kt = target_grid%mask_cum_col_cnt(j)
+      do i = 1_i4, this%nx
+        if (target_grid%mask(i, j)) then
+          kt = kt + 1_i8
+          cover_failed = cover_failed .or. (check_cover_ .and. .not. this%mask(i, j))
+        end if
+        if (.not. this%mask(i, j)) cycle
+        ks = ks + 1_i8
+        if (target_grid%mask(i, j)) then
+          id_map(ks) = kt
+        else
+          id_map(ks) = 0_i8
+          fill_failed = fill_failed .or. check_fill_
+        end if
+      end do
+    end do
+    !$omp end parallel do
+
+    if (cover_failed .and. fill_failed) then
+      call error_message("grid%gen_id_map: cover and fill assertions failed.") ! LCOV_EXCL_LINE
+    else if (cover_failed) then
+      call error_message("grid%gen_id_map: cover assertion failed.") ! LCOV_EXCL_LINE
+    else if (fill_failed) then
+      call error_message("grid%gen_id_map: fill assertion failed.") ! LCOV_EXCL_LINE
+    end if
+  end subroutine grid_gen_id_map
 
   !> \brief Cell ID for given matrix indices.
   !> \return `integer(i8) :: cell_id`
