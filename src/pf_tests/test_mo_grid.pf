@@ -28,6 +28,10 @@ module test_mo_grid
   public :: test_closest_cell_exact_cartesian_batch
   public :: test_closest_cell_exact_sparse_rows
   public :: test_closest_cell_exact_spherical
+  public :: test_closest_cell_regular_cartesian_boundaries
+  public :: test_closest_cell_regular_spherical_boundaries
+  public :: test_closest_cell_regular_periodic_sparse
+  public :: test_closest_cell_regular_spherical_reference
   public :: test_closest_cell_exact_aux_batch
   public :: test_closest_cell_exact_wide_grid
   public :: test_build_spatial_index
@@ -759,6 +763,11 @@ contains
     ! trigger spherical distance helper
     d = dist_latlon(0.0_dp, 0.0_dp, 0.0_dp, 1.0_dp)
     @assertGreaterThan(d, 0.0_dp)
+    @assertEqual(dist_latlon(0.0_dp, 0.0_dp, 0.0_dp, 360.0_dp), 0.0_dp, tolerance=1.0e-12_dp)
+    d = dist_latlon(0.0_dp, 0.0_dp, 0.0_dp, 180.0_dp)
+    @assertEqual(d, RadiusEarth_dp * acos(-1.0_dp), tolerance=1.0e-6_dp)
+    d = dist_latlon(50.0_dp, 10.0_dp, 50.0_dp + 5.0e-6_dp / (RadiusEarth_dp * deg2rad_dp), 10.0_dp)
+    @assertEqual(d, 5.0e-6_dp, tolerance=2.0e-9_dp, message='great-circle distance resolves micrometre separations')
   end subroutine test_closest_cell_and_distance
 
   @test
@@ -829,6 +838,179 @@ contains
 
     @assertEqual(cids, [2_i8, 1_i8, 3_i8], message='exact spherical lookup handles dateline wrap and masked nearest rows')
   end subroutine test_closest_cell_exact_spherical
+
+  @test
+  subroutine test_closest_cell_regular_cartesian_boundaries()
+    implicit none
+    type(grid_t) :: bottom_grid, top_grid, sparse_grid
+    logical :: mask(2, 2)
+    real(dp) :: coords(9, 2), masked_coords(1, 2)
+    integer(i8) :: ids(9)
+
+    call bottom_grid%init(nx=2, ny=2, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=2.0_dp, &
+      coordsys=cartesian, y_direction=bottom_up)
+    call top_grid%init(nx=2, ny=2, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=2.0_dp, &
+      coordsys=cartesian, y_direction=top_down)
+
+    coords(1,:) = [2.0_dp, 1.0_dp]
+    coords(2,:) = [2.0_dp + 0.2e-6_dp, 1.0_dp]
+    coords(3,:) = [2.0_dp + 5.0e-6_dp, 1.0_dp]
+    coords(4,:) = [1.0_dp, 2.0_dp]
+    coords(5,:) = [1.0_dp, 2.0_dp + 5.0e-6_dp]
+    coords(6,:) = [0.0_dp, 0.0_dp]
+    coords(7,:) = [4.0_dp, 4.0_dp]
+    coords(8,:) = [1.0_dp, 2.0_dp - 5.0e-6_dp]
+    coords(9,:) = [2.0_dp + 0.4e-6_dp, 2.0_dp + 0.4e-6_dp]
+
+    ids = bottom_grid%closest_cell_id(coords)
+    @assertEqual(ids, [1_i8, 1_i8, 2_i8, 1_i8, 3_i8, 1_i8, 4_i8, 1_i8, 2_i8], message='Cartesian metre ties')
+    ids = top_grid%closest_cell_id(coords)
+    @assertEqual(ids, [3_i8, 3_i8, 4_i8, 1_i8, 1_i8, 3_i8, 2_i8, 3_i8, 1_i8], message='top-down Cartesian ids')
+
+    mask = .true.
+    mask(2, 1) = .false.
+    call sparse_grid%init(nx=2, ny=2, xllcorner=0.0_dp, yllcorner=0.0_dp, cellsize=2.0_dp, &
+      coordsys=cartesian, mask=mask, y_direction=bottom_up)
+    masked_coords(1,:) = [3.0_dp, 1.0_dp]
+    @assertEqual(sparse_grid%closest_cell_id(masked_coords(1,:)), 1_i8, message='nearest skips masked cell')
+    @assertEqual(sparse_grid%closest_cell_id_by_axes(masked_coords), [nodata_i8], message='masked axis cell')
+  end subroutine test_closest_cell_regular_cartesian_boundaries
+
+  @test
+  subroutine test_closest_cell_regular_spherical_boundaries()
+    implicit none
+    type(grid_t) :: bottom_grid, top_grid
+    real(dp), parameter :: cellsize = 1.0_dp / 1200.0_dp
+    real(dp) :: coords(6, 2), boundary, micron_deg
+    integer(i8) :: ids(6), axis_ids(6)
+
+    boundary = 50.0_dp + cellsize
+    micron_deg = 1.0e-6_dp / (RadiusEarth_dp * deg2rad_dp)
+    coords(:,1) = 10.0_dp + 0.5_dp * cellsize
+    coords(:,2) = [boundary, boundary + 0.2_dp * micron_deg, boundary + 5.0_dp * micron_deg, &
+                   boundary - 5.0_dp * micron_deg, 50.0_dp, 50.0_dp + 2.0_dp * cellsize]
+
+    call bottom_grid%init(nx=1, ny=2, xllcorner=10.0_dp, yllcorner=50.0_dp, cellsize=cellsize, &
+      coordsys=spherical, y_direction=bottom_up)
+    ids = bottom_grid%closest_cell_id(coords)
+    @assertEqual(ids, [1_i8, 1_i8, 2_i8, 1_i8, 1_i8, 2_i8], message='spherical micrometre ties')
+    axis_ids = bottom_grid%closest_cell_id_by_axes(coords)
+    @assertEqual(axis_ids(2:3), [2_i8, 2_i8], message='axis lookup selects the containing northern row')
+
+    call top_grid%init(nx=1, ny=2, xllcorner=10.0_dp, yllcorner=50.0_dp, cellsize=cellsize, &
+      coordsys=spherical, y_direction=top_down)
+    ids = top_grid%closest_cell_id(coords)
+    @assertEqual(ids, [1_i8, 1_i8, 1_i8, 2_i8, 2_i8, 1_i8], message='top-down spherical ties')
+    axis_ids = top_grid%closest_cell_id_by_axes(coords)
+    @assertEqual(axis_ids(3:4), [1_i8, 2_i8], message='axis lookup retains top-down containment')
+  end subroutine test_closest_cell_regular_spherical_boundaries
+
+  @test
+  subroutine test_closest_cell_regular_periodic_sparse()
+    implicit none
+    type(grid_t) :: grid
+    logical :: mask(360, 2)
+    real(dp) :: coords(5, 2), masked_coords(1, 2)
+    integer(i8) :: ids(5)
+
+    mask = .false.
+    mask(1, 1) = .true.
+    mask(360, 1) = .true.
+    mask(1, 2) = .true.
+    call grid%init(nx=360, ny=2, xllcorner=0.0_dp, yllcorner=-1.0_dp, cellsize=1.0_dp, &
+      coordsys=spherical, mask=mask, y_direction=bottom_up)
+
+    coords(1,:) = [0.0_dp, -0.5_dp]
+    coords(2,:) = [360.0_dp, -0.5_dp]
+    coords(3,:) = [359.5_dp, -0.5_dp]
+    coords(4,:) = [0.5_dp, -1.0_dp]
+    coords(5,:) = [0.5_dp, 1.0_dp]
+    ids = grid%closest_cell_id(coords)
+    @assertEqual(ids, [1_i8, 1_i8, 2_i8, 1_i8, 3_i8], message='periodic sparse-grid edges')
+
+    masked_coords(1,:) = [359.5_dp, 0.5_dp]
+    @assertEqual(grid%closest_cell_id_by_axes(masked_coords), [nodata_i8], message='periodic masked axis cell')
+    @assertEqual(grid%closest_cell_id(masked_coords(1,:)), 3_i8, message='periodic nearest active cell')
+  end subroutine test_closest_cell_regular_periodic_sparse
+
+  @test
+  subroutine test_closest_cell_regular_spherical_reference()
+    implicit none
+    type(grid_t), target :: grids(6)
+    type(grid_t), pointer :: grid
+    logical :: mask(7, 5)
+    real(dp) :: coords(30, 2), xll, yll, cellsize, best, candidate, tolerance
+    integer(i8) :: expected(30), actual(30), k, seed
+    integer(i4) :: variant, i, j, iq, y_direction
+
+    seed = 87123_i8
+    do variant = 1_i4, 6_i4
+      select case ((variant + 1_i4) / 2_i4)
+        case (1_i4)
+          cellsize = 1.0_dp / 1200.0_dp
+          yll = 50.0_dp
+        case (2_i4)
+          cellsize = 0.1_dp
+          yll = -5.0_dp
+        case default
+          cellsize = 1.0_dp
+          yll = -70.0_dp
+      end select
+      xll = 12.0_dp + 17.0_dp * real(variant, dp)
+      y_direction = bottom_up
+      if (modulo(variant, 2_i4) == 0_i4) y_direction = top_down
+      do j = 1_i4, 5_i4
+        do i = 1_i4, 7_i4
+          mask(i, j) = modulo(i + 2_i4 * j + variant, 5_i4) /= 0_i4
+        end do
+      end do
+      if (variant >= 5_i4) mask(:, 3) = .false.
+      call grids(variant)%init(nx=7, ny=5, xllcorner=xll, yllcorner=yll, cellsize=cellsize, &
+        coordsys=spherical, mask=mask, y_direction=y_direction)
+
+      grid => grids(variant)
+      do iq = 1_i4, 30_i4
+        seed = modulo(1664525_i8 * seed + 1013904223_i8, 2147483647_i8)
+        coords(iq, 1) = xll + cellsize * (9.0_dp * real(seed, dp) / 2147483647.0_dp - 1.0_dp)
+        seed = modulo(1664525_i8 * seed + 1013904223_i8, 2147483647_i8)
+        coords(iq, 2) = yll + cellsize * (7.0_dp * real(seed, dp) / 2147483647.0_dp - 1.0_dp)
+        expected(iq) = 0_i8
+        best = huge(1.0_dp)
+        do k = 1_i8, grid%ncells
+          i = grid%cell_ij(k, 1)
+          j = grid%cell_ij(k, 2)
+          candidate = reference_great_circle(grid%y_center(j), grid%x_center(i), coords(iq, 2), coords(iq, 1))
+          tolerance = max(1.0e-12_dp * max(candidate, best), 1.0e-6_dp)
+          if (expected(iq) == 0_i8) then
+            expected(iq) = k
+            best = candidate
+          else if (abs(candidate - best) <= tolerance) then
+            if (k < expected(iq)) then
+              expected(iq) = k
+              best = candidate
+            end if
+          else if (candidate < best) then
+            expected(iq) = k
+            best = candidate
+          end if
+        end do
+      end do
+      actual = grid%closest_cell_id(coords)
+      @assertEqual(actual, expected, message='regular spherical lookup matches stable brute-force nearest centres')
+    end do
+  end subroutine test_closest_cell_regular_spherical_reference
+
+  ! Independent stable reference for the regular spherical nearest-cell tests.
+  pure real(dp) function reference_great_circle(lat1, lon1, lat2, lon2) result(distance)
+    implicit none
+    real(dp), intent(in) :: lat1, lon1, lat2, lon2
+    real(dp) :: half_dlat, half_dlon, haversine
+
+    half_dlat = 0.5_dp * deg2rad_dp * (lat2 - lat1)
+    half_dlon = 0.5_dp * deg2rad_dp * (lon2 - lon1)
+    haversine = sin(half_dlat)**2 + cos(deg2rad_dp * lat1) * cos(deg2rad_dp * lat2) * sin(half_dlon)**2
+    distance = 2.0_dp * RadiusEarth_dp * asin(sqrt(min(1.0_dp, max(0.0_dp, haversine))))
+  end function reference_great_circle
 
   @test
   subroutine test_closest_cell_exact_aux_batch()

@@ -1427,19 +1427,15 @@ contains
     real(dp), intent(in) :: lon1 !< Longitude of the first point in degrees.
     real(dp), intent(in) :: lat2 !< Latitude of the second point in degrees.
     real(dp), intent(in) :: lon2 !< Longitude of the second point in degrees.
-    real(dp) :: theta1, phi1, theta2, phi2
-    real(dp) :: term1, term2, term3, temp
+    real(dp) :: dlon, half_dlat, half_dlon, haversine
 
-    theta1 = deg2rad_dp * lon1
-    phi1 = deg2rad_dp * lat1
-    theta2 = deg2rad_dp * lon2
-    phi2 = deg2rad_dp * lat2
-
-    term1 = cos(phi1) * cos(theta1) * cos(phi2) * cos(theta2)
-    term2 = cos(phi1) * sin(theta1) * cos(phi2) * sin(theta2)
-    term3 = sin(phi1) * sin(phi2)
-    temp = min(term1 + term2 + term3, 1.0_dp)
-    dist_latlon = RadiusEarth_dp * acos(temp)
+    dlon = lon2 - lon1
+    if (abs(dlon) > 180.0_dp) dlon = modulo(dlon + 180.0_dp, 360.0_dp) - 180.0_dp
+    half_dlat = 0.5_dp * deg2rad_dp * (lat2 - lat1)
+    half_dlon = 0.5_dp * deg2rad_dp * dlon
+    haversine = sin(half_dlat)**2 + cos(deg2rad_dp * lat1) * cos(deg2rad_dp * lat2) * sin(half_dlon)**2
+    haversine = min(1.0_dp, max(0.0_dp, haversine))
+    dist_latlon = 2.0_dp * RadiusEarth_dp * atan2(sqrt(haversine), sqrt(1.0_dp - haversine))
   end function dist_latlon
 
 end module mo_grid_helper
