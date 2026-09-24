@@ -17,6 +17,7 @@ module test_mo_timeseries
   public :: test_time_window_indices
   public :: test_time_interval_resample
   public :: test_time_instant_resample
+  public :: test_resampler_destroy
 
 contains
 
@@ -274,5 +275,55 @@ contains
     @assertEqual(target_series(:, 1_i4), [0.0_dp, 10.0_dp, 20.0_dp], tolerance=1.0e-12_dp)
     @assertEqual(target_series(:, 2_i4), [0.0_dp, 20.0_dp, 40.0_dp], tolerance=1.0e-12_dp)
   end subroutine test_time_instant_resample
+
+  @test
+  subroutine test_resampler_destroy()
+    type(time_t) :: instant_source, instant_target, interval_axis
+    type(resampler_t) :: resampler
+    real(dp) :: result(2)
+
+    call resampler%destroy()
+    call resampler%destroy()
+    @assertFalse(allocated(resampler%source%values))
+    @assertFalse(allocated(resampler%target%values))
+
+    call instant_source%init_cf([0_i4, 1_i4], "days since 2000-01-01")
+    call instant_target%init_cf([0_i4, 1_i4], "days since 2000-01-01")
+    call interval_axis%init(datetime("2000-01-01"), datetime("2000-01-03"), timestep=daily)
+
+    resampler%omp_min = 3_i4
+    call resampler%init(instant_source, instant_target, support=ts_instant, method=ts_none)
+    @assertEqual(resampler%omp_min, 3_i4)
+    @assertTrue(allocated(resampler%left))
+    @assertFalse(allocated(resampler%source_bounds))
+    call resampler%init(interval_axis, interval_axis, support=ts_interval, method=ts_mean)
+    @assertFalse(allocated(resampler%left))
+    @assertFalse(allocated(resampler%weight))
+    @assertFalse(allocated(resampler%source_values))
+    @assertFalse(allocated(resampler%target_values))
+    @assertTrue(allocated(resampler%first))
+    call resampler%execute([2.0_dp, 4.0_dp], result)
+    @assertEqual(result, [2.0_dp, 4.0_dp], tolerance=0.0_dp)
+
+    call resampler%init(instant_source, instant_target, support=ts_instant, method=ts_none)
+    @assertFalse(allocated(resampler%first))
+    @assertFalse(allocated(resampler%last))
+    @assertFalse(allocated(resampler%source_bounds))
+    @assertFalse(allocated(resampler%target_bounds))
+    call resampler%execute([3.0_dp, 5.0_dp], result)
+    @assertEqual(result, [3.0_dp, 5.0_dp], tolerance=0.0_dp)
+
+    call resampler%destroy()
+    call resampler%destroy()
+    @assertFalse(allocated(resampler%source%values))
+    @assertFalse(allocated(resampler%target%values))
+    @assertFalse(allocated(resampler%source%units))
+    @assertFalse(allocated(resampler%target%units))
+    @assertFalse(allocated(resampler%left))
+    @assertFalse(allocated(resampler%weight))
+    @assertEqual(resampler%omp_min, 1024_i4)
+    @assertEqual(instant_source%n_times(), 2_i4)
+    @assertEqual(interval_axis%n_times(), 2_i4)
+  end subroutine test_resampler_destroy
 
 end module test_mo_timeseries

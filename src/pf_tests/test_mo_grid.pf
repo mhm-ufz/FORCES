@@ -13,6 +13,7 @@ module test_mo_grid
   private
 
   public :: test_grid
+  public :: test_grid_destroy
   public :: test_axes_and_extent
   public :: test_mask_ids_and_pack
   public :: test_border_mask
@@ -1436,5 +1437,41 @@ contains
     @assertEqual(data%data_dp(1,1), 1.0_dp, tolerance=1.0e-4_dp)
     call nc%close()
   end subroutine test_netcdf_helpers
+
+  @test
+  subroutine test_grid_destroy()
+    type(grid_t) :: grid
+
+    call grid%destroy()
+    call grid%destroy()
+    @assertEqual(grid%ncells, 0_i8)
+
+    call grid%init(nx=2_i4, ny=2_i4, cellsize=1.0_dp, coordsys=cartesian)
+    allocate(grid%lat(2, 2), grid%lon(2, 2))
+    allocate(grid%lat_vertices(3, 3), grid%lon_vertices(3, 3))
+    call grid%init(nx=1_i4, ny=1_i4, cellsize=2.0_dp, coordsys=cartesian)
+    @assertFalse(allocated(grid%lat))
+    @assertFalse(allocated(grid%lon))
+    @assertFalse(allocated(grid%lat_vertices))
+    @assertFalse(allocated(grid%lon_vertices))
+    @assertEqual(grid%ncells, 1_i8)
+
+    call grid%destroy()
+    call grid%destroy()
+    @assertEqual(grid%nx, 0_i4)
+    @assertEqual(grid%ny, 0_i4)
+    @assertEqual(grid%ncells, 0_i8)
+    @assertEqual(grid%coordsys, cartesian)
+    @assertEqual(grid%y_direction, top_down)
+    @assertEqual(grid%cellsize, 0.0_dp, tolerance=0.0_dp)
+    @assertFalse(allocated(grid%cell_area))
+    @assertFalse(allocated(grid%cell_ij))
+    @assertFalse(allocated(grid%mask))
+    @assertFalse(allocated(grid%mask_col_cnt))
+    @assertFalse(allocated(grid%mask_cum_col_cnt))
+
+    call grid%init(nx=2_i4, ny=1_i4, cellsize=1.0_dp)
+    @assertEqual(grid%ncells, 2_i8)
+  end subroutine test_grid_destroy
 
 end module test_mo_grid

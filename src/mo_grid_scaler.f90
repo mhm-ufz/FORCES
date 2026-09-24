@@ -96,7 +96,7 @@ module mo_grid_scaler
   !! - \ref 01_regridding.f90 : \copybrief 01_regridding.f90
   !! - \ref 03_nc_regridder.f90 : \copybrief 03_nc_regridder.f90
   type, public :: scaler_t
-    integer(i4) :: scaling_mode                             !< \ref up_scaling (0), \ref down_scaling (1) or \ref no_scaling (-1)
+    integer(i4) :: scaling_mode = no_scaling                !< \ref up_scaling (0), \ref down_scaling (1) or \ref no_scaling (-1)
     type(grid_t), pointer :: source_grid => null()          !< source grid
     type(grid_t), pointer :: target_grid => null()          !< target grid
     type(grid_t), pointer :: fine_grid => null()            !< high resolution grid (target when downscaling, source otherwise)
@@ -104,9 +104,9 @@ module mo_grid_scaler
     integer(i4) :: upscaling_operator = up_a_mean           !< default upscaling operator when executing (default: arithmetic mean)
     integer(i4) :: downscaling_operator = down_nearest      !< default downscaling operator when executing (default: nearest)
     integer(i4) :: weight_mode = weight_area                !< upscaling weight mode (default: normalized area based)
-    integer(i4) :: factor                                   !< coarse_grid % cellsize / fine_grid % cellsize
-    logical :: y_dir_match                                  !< coarse_grid % y_direction == fine_grid % y_direction
-    logical :: cache_bounds                                 !< flag to cache bounds for coarse cells
+    integer(i4) :: factor = 0_i4                            !< coarse_grid % cellsize / fine_grid % cellsize
+    logical :: y_dir_match = .false.                        !< coarse_grid % y_direction == fine_grid % y_direction
+    logical :: cache_bounds = .false.                       !< flag to cache bounds for coarse cells
     logical :: fill_missing = .false.                       !< Fill missing target results from nearest valid target results.
     logical :: use_index_distance = .false.                 !< Use regular-grid index distance when filling missing target results.
     integer(i4), private, dimension(:), allocatable :: y_lb !< cached lower bound for y-id on fine grid (coarse\%ncells)
@@ -122,6 +122,7 @@ module mo_grid_scaler
     integer(i8), private, allocatable :: fill_source_ids(:) !< Packed valid target IDs used to fill missing results.
   contains
     procedure, public :: init => scaler_init
+    procedure, public :: destroy => scaler_destroy
     procedure, private :: reset => scaler_reset
     procedure, private :: scaler_coarse_ij, scaler_coarse_ij_cell
     generic, public :: coarse_ij => scaler_coarse_ij, scaler_coarse_ij_cell
@@ -228,6 +229,7 @@ module mo_grid_scaler
     logical, private :: target_use_aux = .false.       !< Use auxiliary lon/lat on the target grid.
   contains
     procedure, public :: init => nearest_regridder_init
+    procedure, public :: destroy => nearest_regridder_destroy
     procedure, private :: nearest_regridder_exe_dp_1d_1d, nearest_regridder_exe_dp_1d_2d
     procedure, private :: nearest_regridder_exe_dp_2d_1d, nearest_regridder_exe_dp_2d_2d
     procedure, private :: nearest_regridder_exe_i4_1d_1d, nearest_regridder_exe_i4_1d_2d
@@ -278,6 +280,34 @@ contains
     if (allocated(this%fill_source_ids)) deallocate(this%fill_source_ids)
   end subroutine scaler_reset
 
+  !> \brief Release cached mappings and forget borrowed grids.
+  subroutine scaler_destroy(this)
+    class(scaler_t), intent(inout) :: this
+
+    call this%reset()
+    nullify(this%source_grid, this%target_grid, this%fine_grid, this%coarse_grid)
+    this%scaling_mode = no_scaling
+    this%upscaling_operator = up_a_mean
+    this%downscaling_operator = down_nearest
+    this%weight_mode = weight_area
+    this%factor = 0_i4
+    this%y_dir_match = .false.
+    this%cache_bounds = .false.
+    this%fill_missing = .false.
+    this%use_index_distance = .false.
+  end subroutine scaler_destroy
+
+  !> \brief Release the nearest-neighbor mapping and forget borrowed grids.
+  subroutine nearest_regridder_destroy(this)
+    class(nearest_regridder_t), intent(inout) :: this
+
+    if (allocated(this%id_map)) deallocate(this%id_map)
+    nullify(this%source_grid, this%target_grid)
+    this%mapping_coordsys = cartesian
+    this%source_use_aux = .false.
+    this%target_use_aux = .false.
+  end subroutine nearest_regridder_destroy
+
   !> \brief Setup scaler from given source and target grids
   subroutine scaler_init(this, source_grid, target_grid, upscaling_operator, downscaling_operator, weight_mode, cache_bounds, tol, &
                          fill_missing, use_index_distance)
@@ -301,7 +331,7 @@ contains
     logical, allocatable :: missing_mask(:, :)
     logical :: is_upscaling, down_fill_active, fine_grid_check_invalid, invalid_area_cell
 
-    call this%reset()
+    call this%destroy()
 
     this%upscaling_operator = optval(upscaling_operator, default=up_a_mean)
     this%downscaling_operator = optval(downscaling_operator, default=down_nearest)
@@ -727,9 +757,9 @@ contains
     use_aux_ = optval(use_aux, .false.)
     derive_target_mask_ = optval(derive_target_mask, .false.)
 
+    call this%destroy()
     this%source_grid => source_grid
     this%target_grid => target_grid
-    if (allocated(this%id_map)) deallocate(this%id_map)
 
     call this%select_space(use_aux_)
     matching_native = .not. this%source_use_aux .and. .not. this%target_use_aux .and. &

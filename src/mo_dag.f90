@@ -188,7 +188,6 @@ module mo_dag
     procedure :: src_view                   => dag_src_view
     procedure :: tgt_view                   => dag_tgt_view
     procedure, private :: rebuild_tag_map   => dag_rebuild_tag_map
-    final :: dag_final
   end type dag
 
   !> \class branching
@@ -213,7 +212,6 @@ module mo_dag
     procedure :: src_view        => branching_src_view
     procedure :: tgt_view        => branching_tgt_view
     procedure :: levelsort       => branching_levelsort
-    final     :: branching_final
   end type branching
 
 contains
@@ -1084,12 +1082,6 @@ contains
     call dag_base_destroy(this)
   end subroutine dag_destroy
 
-  !> \brief Fortran FINAL procedure to ensure cleanup when `dag` goes out of scope.
-  subroutine dag_final(this)
-    type(dag) :: this
-    call this%destroy()
-  end subroutine dag_final
-
   !> \brief Set the number of nodes in the dag.
   subroutine dag_set_nodes(this, n, tags)
     use mo_message, only: error_message
@@ -1496,12 +1488,6 @@ contains
     if (.not. optval(reverse, .false.)) call order%reverse()
 
   end subroutine branching_levelsort_root
-
-  !> \brief Ensure branching DAG resources are freed when going out of scope.
-  subroutine branching_final(this)
-    type(branching) :: this
-    call this%destroy()
-  end subroutine branching_final
 
   !> \brief Sorts an array `ivec` in increasing order.
   !> \details Uses a basic recursive quicksort (with insertion sort for partitions with <= 20 elements).

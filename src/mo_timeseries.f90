@@ -112,6 +112,7 @@ module mo_timeseries
     integer(i4), allocatable :: last(:)            !< last overlapping source interval per target
   contains
     procedure, public :: init => resampler_init
+    procedure, public :: destroy => resampler_destroy
     procedure, private :: resampler_execute_1d
     procedure, private :: resampler_execute_2d
     procedure, public :: execute_series => resampler_execute_series
@@ -373,6 +374,39 @@ contains
     end if
   end function time_resampled
 
+  !> \brief Reset a time axis owned by a resampler.
+  subroutine reset_time_axis(axis)
+    type(time_t), intent(inout) :: axis
+
+    if (allocated(axis%values)) deallocate(axis%values)
+    if (allocated(axis%bounds)) deallocate(axis%bounds)
+    if (allocated(axis%units)) deallocate(axis%units)
+    axis%ref_time = datetime()
+    axis%delta = timedelta()
+    axis%timestep = daily
+    axis%timestamp = end_timestamp
+  end subroutine reset_time_axis
+
+  !> \brief Release time axes and all precomputed mappings.
+  subroutine resampler_destroy(self)
+    class(resampler_t), intent(inout) :: self
+
+    call reset_time_axis(self%source)
+    call reset_time_axis(self%target)
+    if (allocated(self%source_values)) deallocate(self%source_values)
+    if (allocated(self%target_values)) deallocate(self%target_values)
+    if (allocated(self%source_bounds)) deallocate(self%source_bounds)
+    if (allocated(self%target_bounds)) deallocate(self%target_bounds)
+    if (allocated(self%left)) deallocate(self%left)
+    if (allocated(self%weight)) deallocate(self%weight)
+    if (allocated(self%first)) deallocate(self%first)
+    if (allocated(self%last)) deallocate(self%last)
+    self%support = ts_interval
+    self%method = ts_mean
+    self%interpolation = ts_nearest
+    self%omp_min = 1024_i4
+  end subroutine resampler_destroy
+
   !> \brief Initialize a reusable resampler between two time axes.
   subroutine resampler_init(self, source_time, target_time, support, method, interpolation)
     class(resampler_t), intent(inout) :: self
@@ -381,7 +415,11 @@ contains
     integer(i4), optional, intent(in) :: support !< \ref ts_instant or \ref ts_interval (default: \ref ts_interval)
     integer(i4), optional, intent(in) :: method !< interval method (default: \ref ts_mean for intervals, \ref ts_none for instants)
     integer(i4), optional, intent(in) :: interpolation !< instant interpolation selector (default: \ref ts_nearest)
+    integer(i4) :: omp_min
 
+    omp_min = self%omp_min
+    call self%destroy()
+    self%omp_min = omp_min
     call source_time%copy_to(self%source)
     call target_time%copy_to(self%target)
     self%support = optval(support, ts_interval)

@@ -16,6 +16,7 @@ module test_mo_dag
   public :: test_dag_tag_to_id
   public :: test_dag_levelsort_with_root
   public :: test_branching_basic
+  public :: test_dag_destroy
 
 contains
 
@@ -263,5 +264,32 @@ contains
     @assertEqual(istat, 0_i8, message='dag: check levelsort istat with root')
     @assertEqual(ord%n_levels, 5_i8, message='dag: check levelsort number of levels with root')
   end subroutine test_dag_levelsort_with_root
+
+  @test
+  subroutine test_dag_destroy()
+    type(dag) :: network
+    type(branching) :: river
+
+    call network%destroy()
+    call river%destroy()
+    call network%init(2_i8)
+    call river%init([2_i8, 0_i8])
+    call network%destroy()
+    call river%destroy()
+    call network%destroy()
+    call river%destroy()
+    @assertEqual(network%n_nodes, 0_i8)
+    @assertEqual(river%n_nodes, 0_i8)
+    @assertFalse(allocated(network%tags))
+    @assertFalse(allocated(network%nodes))
+    @assertFalse(allocated(river%tags))
+    @assertFalse(allocated(river%down))
+    @assertFalse(allocated(river%up))
+
+    call network%init(1_i8)
+    call river%init([0_i8])
+    @assertEqual(network%tag_to_id(1_i8), 1_i8)
+    @assertEqual(river%n_nodes, 1_i8)
+  end subroutine test_dag_destroy
 
 end module test_mo_dag

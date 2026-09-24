@@ -80,12 +80,12 @@ module mo_grid
     integer(i4) :: coordsys = cartesian !< Coordinate system for x and y. 0 -> Cartesian (default), 1 -> Spherical
     integer(i4) :: y_direction = top_down !< y-axis direction (either top_down (0, default) or bottom_up (1))
     ! general domain information
-    integer(i4) :: nx        !< size of x-axis (number of cols in ascii grid file)
-    integer(i4) :: ny        !< size of y-axis (number of rows in ascii grid file)
-    integer(i8) :: ncells    !< number of cells in mask
-    real(dp) :: xllcorner    !< x coordinate of the lowerleft corner
-    real(dp) :: yllcorner    !< y coordinate of the lowerleft corner
-    real(dp) :: cellsize     !< cellsize x = cellsize y
+    integer(i4) :: nx = 0_i4        !< size of x-axis (number of cols in ascii grid file)
+    integer(i4) :: ny = 0_i4        !< size of y-axis (number of rows in ascii grid file)
+    integer(i8) :: ncells = 0_i8    !< number of cells in mask
+    real(dp) :: xllcorner = 0.0_dp  !< x coordinate of the lowerleft corner
+    real(dp) :: yllcorner = 0.0_dp  !< y coordinate of the lowerleft corner
+    real(dp) :: cellsize = 0.0_dp   !< cellsize x = cellsize y
     real(dp), dimension(:), allocatable :: cell_area           !< area of the cell in sqare m, size (ncells)
     real(dp), dimension(:, :), allocatable :: lat              !< 2d longitude array (auxiliary coordinate for X axis), size (nx,ny)
     real(dp), dimension(:, :), allocatable :: lon              !< 2d latitude  array (auxiliary coordinate for Y axis), size (nx,ny)
@@ -97,6 +97,7 @@ module mo_grid
     integer(i8), dimension(:), allocatable :: mask_cum_col_cnt !< cumulative number of valid cells prior to mask column, size (ny)
   contains
     procedure, public :: init => grid_init
+    procedure, public :: destroy => grid_destroy
     procedure, public :: from_ascii_file => grid_from_ascii_file
     procedure, public :: to_ascii_file => grid_to_ascii_file
 #ifdef FORCES_WITH_NETCDF
@@ -208,6 +209,29 @@ contains
 
   ! ------------------------------------------------------------------
 
+  !> \brief Release grid data and reset its geometry.
+  subroutine grid_destroy(this)
+    class(grid_t), intent(inout) :: this
+
+    if (allocated(this%cell_area)) deallocate(this%cell_area)
+    if (allocated(this%lat)) deallocate(this%lat)
+    if (allocated(this%lon)) deallocate(this%lon)
+    if (allocated(this%lat_vertices)) deallocate(this%lat_vertices)
+    if (allocated(this%lon_vertices)) deallocate(this%lon_vertices)
+    if (allocated(this%cell_ij)) deallocate(this%cell_ij)
+    if (allocated(this%mask)) deallocate(this%mask)
+    if (allocated(this%mask_col_cnt)) deallocate(this%mask_col_cnt)
+    if (allocated(this%mask_cum_col_cnt)) deallocate(this%mask_cum_col_cnt)
+    this%coordsys = cartesian
+    this%y_direction = top_down
+    this%nx = 0_i4
+    this%ny = 0_i4
+    this%ncells = 0_i8
+    this%xllcorner = 0.0_dp
+    this%yllcorner = 0.0_dp
+    this%cellsize = 0.0_dp
+  end subroutine grid_destroy
+
   ! ------------------------------------------------------------------
 
   !> \brief initialize grid from ascii header content
@@ -227,6 +251,7 @@ contains
     integer(i4), optional, intent(in) :: y_direction !< y-axis direction (0 (default) for top-down, 1 for bottom-up)
     integer(i4) :: j
 
+    call this%destroy()
     this%nx = nx
     this%ny = ny
     this%xllcorner = optval(xllcorner, 0.0_dp)
@@ -459,6 +484,7 @@ contains
     character(:), allocatable :: lat_name, lon_name
     logical :: y_inc, read_mask_, read_aux_, x_sph, y_sph, x_cart, y_cart, flip_y, found_lat, found_lon
 
+    call this%destroy()
     this%y_direction = optval(y_direction, keep_y)
 
     tol_ = optval(tol, 1.0e-7_dp)
@@ -856,6 +882,7 @@ contains
     integer(i8) :: k
     type(data_t) :: data
 
+    call this%destroy()
     pre = optval(prefix, "")
     x_name = pre//"x"
     y_name = pre//"y"
