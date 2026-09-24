@@ -51,6 +51,7 @@ module mo_points
     real(dp), allocatable :: y(:)       !< Cartesian y or spherical latitude.
   contains
     procedure, public :: init => points_init
+    procedure, public :: destroy => points_destroy
 #ifdef FORCES_WITH_NETCDF
     procedure, private :: from_nc_file => points_from_nc_file
     procedure, private :: from_nc_dataset => points_from_nc_dataset
@@ -71,6 +72,16 @@ module mo_points
 
 contains
 
+  !> \brief Release coordinates and reset the point set.
+  subroutine points_destroy(this)
+    class(points_t), intent(inout) :: this
+
+    if (allocated(this%x)) deallocate(this%x)
+    if (allocated(this%y)) deallocate(this%y)
+    this%coordsys = cartesian
+    this%n_points = 0_i8
+  end subroutine points_destroy
+
   !> \brief Initialize a point set from coordinate vectors.
   subroutine points_init(this, x, y, coordsys)
     class(points_t), intent(inout) :: this
@@ -79,13 +90,12 @@ contains
     integer(i4), optional, intent(in) :: coordsys !< coordinate system, defaults to cartesian
 
     if (size(x, kind=i8) /= size(y, kind=i8)) call error_message("points % init: x and y size mismatch")
+    call this%destroy()
     this%coordsys = optval(coordsys, cartesian)
     if (.not.any(this%coordsys == [cartesian, spherical])) then
       call error_message("points % init: unknown coordsys value: ", num2str(this%coordsys))
     end if
     this%n_points = size(x, kind=i8)
-    if (allocated(this%x)) deallocate(this%x)
-    if (allocated(this%y)) deallocate(this%y)
     allocate(this%x(this%n_points), source=x)
     allocate(this%y(this%n_points), source=y)
   end subroutine points_init

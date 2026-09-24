@@ -18,6 +18,7 @@ module test_mo_grid_scaler
   public :: test_stats_and_weight_count
   public :: test_area_weight_normalization
   public :: test_scaler_reinitialization
+  public :: test_mapping_destroy
   public :: test_median_masked
   public :: test_laf_masked_direct_and_packed
   public :: test_fill_missing
@@ -858,5 +859,47 @@ contains
     @assertEqual(aux_out(1,1), nodata_dp, tolerance=1.0e-12_dp)
     @assertEqual(aux_out(2,1), 20.0_dp, tolerance=1.0e-12_dp)
   end subroutine test_nearest_regridder_derived_mask_spherical_aux
+
+  @test
+  subroutine test_mapping_destroy()
+    type(grid_t), target :: fine, coarse
+    type(scaler_t) :: scaler
+    type(nearest_regridder_t) :: regridder
+    real(dp) :: coarse_result(1), fine_result(4)
+
+    call scaler%destroy()
+    call regridder%destroy()
+    call fine%init(nx=2_i4, ny=2_i4, cellsize=1.0_dp, y_direction=bottom_up)
+    call coarse%init(nx=1_i4, ny=1_i4, cellsize=2.0_dp, y_direction=bottom_up)
+
+    call scaler%init(fine, coarse, cache_bounds=.true.)
+    @assertTrue(allocated(scaler%id_map))
+    call scaler%destroy()
+    call scaler%destroy()
+    @assertFalse(allocated(scaler%id_map))
+    @assertFalse(allocated(scaler%n_subcells))
+    @assertFalse(associated(scaler%source_grid))
+    @assertFalse(associated(scaler%target_grid))
+    @assertFalse(associated(scaler%fine_grid))
+    @assertFalse(associated(scaler%coarse_grid))
+    @assertEqual(scaler%factor, 0_i4)
+    @assertEqual(fine%ncells, 4_i8)
+    @assertEqual(coarse%ncells, 1_i8)
+    call scaler%init(fine, coarse)
+    call scaler%execute([1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp], coarse_result)
+    @assertEqual(coarse_result, [2.5_dp], tolerance=1.0e-12_dp)
+
+    call regridder%init(fine, fine)
+    @assertTrue(allocated(regridder%id_map))
+    call regridder%destroy()
+    call regridder%destroy()
+    @assertFalse(allocated(regridder%id_map))
+    @assertFalse(associated(regridder%source_grid))
+    @assertFalse(associated(regridder%target_grid))
+    @assertEqual(fine%ncells, 4_i8)
+    call regridder%init(fine, fine)
+    call regridder%execute([1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp], fine_result)
+    @assertEqual(fine_result, [1.0_dp, 2.0_dp, 3.0_dp, 4.0_dp], tolerance=0.0_dp)
+  end subroutine test_mapping_destroy
 
 end module test_mo_grid_scaler

@@ -21,6 +21,8 @@ module test_mo_points
   public :: test_points_time_t_and_ids
   public :: test_points_polygon_mask
   public :: test_points_copy_to
+  public :: test_points_destroy
+  public :: test_point_regridder_destroy
   public :: test_nearest_regridding
   public :: test_points_cf_packing
 
@@ -642,5 +644,77 @@ contains
     call points_to_grid%execute(point_data, out_grid)
     @assertEqual(out_grid, [5.0_dp, 6.0_dp, 5.0_dp, 6.0_dp], tolerance=1.0e-12_dp)
   end subroutine test_nearest_regridding
+
+  @test
+  subroutine test_points_destroy()
+    type(points_t) :: points
+
+    call points%destroy()
+    call points%destroy()
+    @assertEqual(points%n_points, 0_i8)
+
+    call points%init([1.0_dp, 2.0_dp], [3.0_dp, 4.0_dp], coordsys=spherical)
+    call points%destroy()
+    call points%destroy()
+    @assertEqual(points%n_points, 0_i8)
+    @assertEqual(points%coordsys, cartesian)
+    @assertFalse(allocated(points%x))
+    @assertFalse(allocated(points%y))
+
+    call points%init([5.0_dp], [6.0_dp])
+    @assertEqual(points%n_points, 1_i8)
+    @assertEqual(points%x(1), 5.0_dp, tolerance=0.0_dp)
+  end subroutine test_points_destroy
+
+  @test
+  subroutine test_point_regridder_destroy()
+    type(grid_t), target :: grid
+    type(points_t), target :: points
+    type(nearest_grid_to_points_t) :: grid_to_points
+    type(nearest_points_to_grid_t) :: points_to_grid
+    type(nearest_points_to_points_t) :: points_to_points
+    real(dp) :: result(1)
+
+    call grid_to_points%destroy()
+    call points_to_grid%destroy()
+    call points_to_points%destroy()
+    call grid%init(nx=1_i4, ny=1_i4, cellsize=1.0_dp)
+    call points%init([0.5_dp], [0.5_dp])
+
+    call grid_to_points%init(grid, points)
+    call points_to_grid%init(points, grid)
+    call points_to_points%init(points, points)
+    @assertTrue(allocated(grid_to_points%id_map))
+    @assertTrue(allocated(points_to_grid%id_map))
+    @assertTrue(allocated(points_to_points%id_map))
+
+    call grid_to_points%destroy()
+    call points_to_grid%destroy()
+    call points_to_points%destroy()
+    call grid_to_points%destroy()
+    call points_to_grid%destroy()
+    call points_to_points%destroy()
+    @assertFalse(allocated(grid_to_points%id_map))
+    @assertFalse(allocated(points_to_grid%id_map))
+    @assertFalse(allocated(points_to_points%id_map))
+    @assertFalse(associated(grid_to_points%source_grid))
+    @assertFalse(associated(grid_to_points%target_points))
+    @assertFalse(associated(points_to_grid%source_points))
+    @assertFalse(associated(points_to_grid%target_grid))
+    @assertFalse(associated(points_to_points%source_points))
+    @assertFalse(associated(points_to_points%target_points))
+    @assertEqual(grid%ncells, 1_i8)
+    @assertEqual(points%n_points, 1_i8)
+
+    call grid_to_points%init(grid, points)
+    call grid_to_points%execute([2.0_dp], result)
+    @assertEqual(result, [2.0_dp], tolerance=0.0_dp)
+    call points_to_grid%init(points, grid)
+    call points_to_grid%execute([3.0_dp], result)
+    @assertEqual(result, [3.0_dp], tolerance=0.0_dp)
+    call points_to_points%init(points, points)
+    call points_to_points%execute([4.0_dp], result)
+    @assertEqual(result, [4.0_dp], tolerance=0.0_dp)
+  end subroutine test_point_regridder_destroy
 
 end module test_mo_points

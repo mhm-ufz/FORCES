@@ -38,6 +38,7 @@ module mo_points_regridder
     logical :: source_use_aux = .false.                 !< use auxiliary lon/lat grid coordinates
   contains
     procedure, public :: init => grid_to_points_init
+    procedure, public :: destroy => grid_to_points_destroy
     procedure, private :: grid_to_points_exe_dp
     procedure, private :: grid_to_points_exe_i4
     generic, public :: execute => grid_to_points_exe_dp, grid_to_points_exe_i4
@@ -54,6 +55,7 @@ module mo_points_regridder
     logical :: target_use_aux = .false.                  !< use auxiliary lon/lat grid coordinates
   contains
     procedure, public :: init => points_to_grid_init
+    procedure, public :: destroy => points_to_grid_destroy
     procedure, private :: points_to_grid_exe_dp
     procedure, private :: points_to_grid_exe_i4
     generic, public :: execute => points_to_grid_exe_dp, points_to_grid_exe_i4
@@ -69,12 +71,39 @@ module mo_points_regridder
     integer(i8), allocatable :: id_map(:)                !< source point id for each target point
   contains
     procedure, public :: init => points_to_points_init
+    procedure, public :: destroy => points_to_points_destroy
     procedure, private :: points_to_points_exe_dp
     procedure, private :: points_to_points_exe_i4
     generic, public :: execute => points_to_points_exe_dp, points_to_points_exe_i4
   end type nearest_points_to_points_t
 
 contains
+
+  !> \brief Release the mapping without destroying its source or target.
+  subroutine grid_to_points_destroy(this)
+    class(nearest_grid_to_points_t), intent(inout) :: this
+
+    if (allocated(this%id_map)) deallocate(this%id_map)
+    nullify(this%source_grid, this%target_points)
+    this%source_use_aux = .false.
+  end subroutine grid_to_points_destroy
+
+  !> \brief Release the mapping without destroying its source or target.
+  subroutine points_to_grid_destroy(this)
+    class(nearest_points_to_grid_t), intent(inout) :: this
+
+    if (allocated(this%id_map)) deallocate(this%id_map)
+    nullify(this%source_points, this%target_grid)
+    this%target_use_aux = .false.
+  end subroutine points_to_grid_destroy
+
+  !> \brief Release the mapping without destroying its source or target.
+  subroutine points_to_points_destroy(this)
+    class(nearest_points_to_points_t), intent(inout) :: this
+
+    if (allocated(this%id_map)) deallocate(this%id_map)
+    nullify(this%source_points, this%target_points)
+  end subroutine points_to_points_destroy
 
   !> \brief Build the nearest-neighbor map from source grid cells to target points.
   subroutine grid_to_points_init(this, source_grid, target_points)
@@ -83,6 +112,7 @@ contains
     type(points_t), pointer, intent(in) :: target_points !< target point set
     type(spatial_index_t) :: index
 
+    call this%destroy()
     this%source_grid => source_grid
     this%target_points => target_points
     this%source_use_aux = .false.
@@ -135,6 +165,7 @@ contains
     type(spatial_index_t) :: index
     real(dp), allocatable :: target_coords(:, :)
 
+    call this%destroy()
     this%source_points => source_points
     this%target_grid => target_grid
     this%target_use_aux = .false.
@@ -187,6 +218,7 @@ contains
     type(points_t), pointer, intent(in) :: target_points !< target point set
     type(spatial_index_t) :: index
 
+    call this%destroy()
     if (source_points%coordsys /= target_points%coordsys) &
       call error_message("nearest_points_to_points % init: coordinate systems differ")
     this%source_points => source_points
