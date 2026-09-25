@@ -4,6 +4,22 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
+## v0.11.3 - 2026-09
+- See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.11.2...v0.11.3) for details.
+
+### Enhancements and Changes
+
+* spatial and time-series types ([181](https://git.ufz.de/chs/forces/-/merge_requests/181))
+  * added explicit `destroy` methods for grids, point sets, grid scalers, nearest-neighbor regridders, and time-series resamplers
+  * reset owned data, cached mappings, and borrowed references on destruction and before reinitialization
+  * removed `FINAL` procedures from `dag` and `branching`; their explicit `destroy` methods remain available
+
+### Fixes
+
+* `mo_grid`, `mo_grid_helper` ([182](https://git.ufz.de/chs/forces/-/merge_requests/182))
+  * made regular-grid nearest-cell selection use a consistent distance tolerance and stable cell-ID ordering for near ties
+  * improved great-circle distance precision for very close points and periodic longitudes
+
 ## v0.11.2 - 2026-09
 - See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.11.1...v0.11.2) for details.
 
