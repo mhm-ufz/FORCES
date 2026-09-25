@@ -67,6 +67,8 @@ module mo_grid
 
   private
   integer(i8), parameter :: grid_spatial_index_parallel_min_n = 2048_i8
+  real(dp), parameter :: nearest_cell_rtol = 1.0e-12_dp
+  real(dp), parameter :: nearest_cell_atol = 1.0e-6_dp ! metres
 
   !> \class   grid_t
   !> \brief   2D grid description with data in xy order.
@@ -1932,8 +1934,8 @@ contains
     real(dp), intent(in) :: x_query_raw
     real(dp), intent(in) :: y_query
 
-    logical :: is_spherical, is_periodic
-    integer(i4) :: nearest_j, max_offset, row_offset, nrows, row_order(2), row_ids(2), irow, row_j, ncand, icand
+    logical :: is_spherical, is_periodic, tie_seen
+    integer(i4) :: nearest_j, max_offset, row_offset, nrows, row_order(2), row_ids(2), irow, row_j, ncand, icand, pass
     integer(i8) :: cand_ids(4), k_lb, k_ub
     real(dp) :: x_query, best_metric, row_metric(2), cand_metric
 
@@ -1950,48 +1952,71 @@ contains
     max_offset = max(nearest_j - 1_i4, this%ny - nearest_j)
     best_metric = huge(1.0_dp)
 
-    search_rows: do row_offset = 0_i4, max_offset
-      nrows = 0_i4
+    ! Find the true minimum first; revisit near ties only when needed so chained ties cannot drift from it.
+    tie_seen = .false.
+    do pass = 1_i4, 2_i4
+      if (pass == 2_i4 .and. .not. tie_seen) exit
 
-      if (nearest_j - row_offset >= 1_i4) then
-        nrows = nrows + 1_i4
-        row_ids(nrows) = nearest_j - row_offset
-        row_metric(nrows) = this%row_lower_bound(row_ids(nrows), y_query, is_spherical)
-      end if
-      if (row_offset > 0_i4 .and. nearest_j + row_offset <= this%ny) then
-        nrows = nrows + 1_i4
-        row_ids(nrows) = nearest_j + row_offset
-        row_metric(nrows) = this%row_lower_bound(row_ids(nrows), y_query, is_spherical)
-      end if
+      search_rows: do row_offset = 0_i4, max_offset
+        nrows = 0_i4
 
-      row_order(1) = 1_i4
-      row_order(2) = 2_i4
-      if (nrows == 2_i4) then
-        if (row_metric(2) < row_metric(1) .or. (is_close(row_metric(2), row_metric(1)) .and. row_ids(2) < row_ids(1))) then
-          row_order = [2_i4, 1_i4]
+        if (nearest_j - row_offset >= 1_i4) then
+          nrows = nrows + 1_i4
+          row_ids(nrows) = nearest_j - row_offset
+          row_metric(nrows) = this%row_lower_bound(row_ids(nrows), y_query, is_spherical)
         end if
-      end if
-
-      do irow = 1_i4, nrows
-        row_j = row_ids(row_order(irow))
-        if (closest_cell_id > 0_i8) then
-          if (row_metric(row_order(irow)) > best_metric .and. .not. is_close(row_metric(row_order(irow)), best_metric)) exit search_rows
+        if (row_offset > 0_i4 .and. nearest_j + row_offset <= this%ny) then
+          nrows = nrows + 1_i4
+          row_ids(nrows) = nearest_j + row_offset
+          row_metric(nrows) = this%row_lower_bound(row_ids(nrows), y_query, is_spherical)
         end if
 
-        call this%row_k_bounds(row_j, k_lb, k_ub)
-        if (k_lb > k_ub) cycle
+        row_order(1) = 1_i4
+        row_order(2) = 2_i4
+        if (nrows == 2_i4) then
+          if (row_metric(2) < row_metric(1)) row_order = [2_i4, 1_i4]
+        end if
 
-        call this%row_candidate_ids(k_lb, k_ub, x_query, is_periodic, cand_ids, ncand)
-        do icand = 1_i4, ncand
-          if (is_spherical) then
-            cand_metric = this%spherical_cell_metric(cand_ids(icand), x_query, y_query)
-          else
-            cand_metric = this%cartesian_cell_metric(cand_ids(icand), x_query, y_query)
+        do irow = 1_i4, nrows
+          row_j = row_ids(row_order(irow))
+          if (closest_cell_id > 0_i8) then
+            if (row_metric(row_order(irow)) > best_metric .and. &
+                .not. is_close(row_metric(row_order(irow)), best_metric, &
+                               rtol=nearest_cell_rtol, atol=nearest_cell_atol)) exit search_rows
           end if
-          call update_best_metric(closest_cell_id, best_metric, cand_ids(icand), cand_metric)
+
+          call this%row_k_bounds(row_j, k_lb, k_ub)
+          if (k_lb > k_ub) cycle
+
+          call this%row_candidate_ids(k_lb, k_ub, x_query, is_periodic, cand_ids, ncand)
+          do icand = 1_i4, ncand
+            if (is_spherical) then
+              cand_metric = this%spherical_cell_metric(cand_ids(icand), x_query, y_query)
+            else
+              cand_metric = this%cartesian_cell_metric(cand_ids(icand), x_query, y_query)
+            end if
+
+            if (pass == 1_i4) then
+              if (closest_cell_id < 1_i8) then
+                closest_cell_id = cand_ids(icand)
+                best_metric = cand_metric
+              else
+                if (is_close(cand_metric, best_metric, rtol=nearest_cell_rtol, &
+                             atol=nearest_cell_atol)) tie_seen = .true.
+                if (cand_metric < best_metric .or. &
+                    (cand_metric == best_metric .and. cand_ids(icand) < closest_cell_id)) then
+                  closest_cell_id = cand_ids(icand)
+                  best_metric = cand_metric
+                end if
+              end if
+            else if (cand_ids(icand) < closest_cell_id) then
+              if (is_close(cand_metric, best_metric, rtol=nearest_cell_rtol, atol=nearest_cell_atol)) &
+                closest_cell_id = cand_ids(icand)
+            end if
+          end do
         end do
-      end do
-    end do search_rows
+      end do search_rows
+    end do
   end function grid_closest_cell_id_regular_xy
 
   subroutine grid_row_k_bounds(this, j, k_lb, k_ub)
@@ -2095,7 +2120,7 @@ contains
     if (is_spherical) then
       metric = RadiusEarth_dp * deg2rad_dp * dy
     else
-      metric = dy * dy
+      metric = dy
     end if
   end function grid_row_lower_bound
 
@@ -2110,7 +2135,7 @@ contains
 
     dx = this%x_center(this%cell_ij(k, 1)) - x_query
     dy = this%y_center(this%cell_ij(k, 2)) - y_query
-    metric = dx * dx + dy * dy
+    metric = sqrt(dx * dx + dy * dy)
   end function grid_cartesian_cell_metric
 
   pure real(dp) function grid_spherical_cell_metric(this, k, x_query, y_query) result(metric)
