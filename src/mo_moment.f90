@@ -326,7 +326,7 @@ MODULE mo_moment
   !>    \details
   !!    Calculates the average value of a vector, i.e. the first moment of a series of numbers:
   !!
-  !!    \f[\bar x = sum_i \frac{x_i}{N}
+  !!    \f[\bar x = \sum_i \frac{x_i}{N}\f]
   !!
   !!    If an optional mask is given, the mean is only over those locations that correspond to true values in the mask.
   !!    \f$x\f$ can be single or double precision. The result will have the same numerical precision.

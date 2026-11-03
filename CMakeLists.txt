@@ -117,9 +117,11 @@ if(FORCES_TESTING_ENABLED)
       EXECUTABLE_ARGS --output-on-failure
       DEPENDENCIES ${LIB_NAME}
       EXCLUDE "src/pf_tests/*" "${CMAKE_CURRENT_BINARY_DIR}/*"
+      # Exclusions may match nothing (pFUnit sources are not instrumented).
+      # LCOV_ARGS also reach reset/merge/filter commands, so omit capture-only flags.
       # GNU Fortran can map distinct functions to overlapping source lines.
       # Retain their original counters instead of applying LCOV consistency checks.
-      LCOV_ARGS --no-external --rc check_data_consistency=0
+      LCOV_ARGS --ignore-errors unused --rc check_data_consistency=0
       GENHTML_ARGS --rc check_data_consistency=0 -t "${LIB_NAME} coverage"
         --prefix ${CMAKE_CURRENT_SOURCE_DIR}
         --html-prolog ${CMAKE_CURRENT_SOURCE_DIR}/doc/html_files/cov_header.prolog
