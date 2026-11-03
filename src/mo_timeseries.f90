@@ -14,6 +14,7 @@
 !> \date    Jun 2026
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_time
 module mo_timeseries
 
   use mo_datetime, only: datetime, timedelta, delta_from_string, decode_cf_time_units, time_units_delta, time_values, &

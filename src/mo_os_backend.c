@@ -1,3 +1,14 @@
+/**
+ * \file mo_os_backend.c
+ * \ingroup f_io
+ * \brief Portable C backend for the Fortran mo_os module.
+ * \details Implements working-directory operations and path classification
+ * through the POSIX or Windows APIs. Arguments use null-terminated C strings;
+ * mo_os handles conversion to and from Fortran character variables.
+ * \see mo_os
+ * \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
+ * FORCES is released under the LGPLv3+ license \license_note
+ */
 #include <errno.h>
 #include <stddef.h>
 #include <string.h>
@@ -12,13 +23,18 @@
 #include <unistd.h>
 #endif
 
+/** \brief Path classifications returned by forces_os_path_kind(). */
 enum {
-    FORCES_OS_PATH_MISSING = 0,
-    FORCES_OS_PATH_FILE = 1,
-    FORCES_OS_PATH_DIR = 2
+    FORCES_OS_PATH_MISSING = 0, /**< Missing path or failed path lookup. */
+    FORCES_OS_PATH_FILE = 1, /**< Existing entry that is not a directory. */
+    FORCES_OS_PATH_DIR = 2 /**< Existing directory. */
 };
 
 #ifdef _WIN32
+/**
+ * \brief Replace Windows backslashes with FORCES' forward-slash separators.
+ * \param[in,out] path Null-terminated path to modify; NULL is ignored.
+ */
 static void forces_os_normalize_separators(char *path)
 {
     size_t i;
@@ -34,6 +50,10 @@ static void forces_os_normalize_separators(char *path)
     }
 }
 
+/**
+ * \brief Replace forward slashes with native Windows path separators.
+ * \param[in,out] path Null-terminated path to modify; NULL is ignored.
+ */
 static void forces_os_to_windows_path(char *path)
 {
     size_t i;
@@ -50,6 +70,17 @@ static void forces_os_to_windows_path(char *path)
 }
 #endif
 
+/**
+ * \brief Copy the current working directory into a caller-owned buffer.
+ * \param[out] buffer Destination for a null-terminated path on success.
+ * \param[in] buffer_len Buffer capacity in bytes, including the terminator.
+ * \return Zero on success, EINVAL for a NULL or zero-capacity buffer, or the
+ * underlying system error from errno.
+ * \details On POSIX, an insufficient buffer is reported by getcwd(). On Windows,
+ * the path is converted to forward slashes and truncated to buffer_len - 1 bytes
+ * if necessary; truncation still returns success. The caller retains ownership
+ * of the destination buffer.
+ */
 int forces_os_getcwd(char *buffer, size_t buffer_len)
 {
     if (buffer == NULL || buffer_len == 0) {
@@ -85,6 +116,14 @@ int forces_os_getcwd(char *buffer, size_t buffer_len)
     return 0;
 }
 
+/**
+ * \brief Change the process-wide current working directory.
+ * \param[in] path Null-terminated path to the destination directory.
+ * \return Zero on success, EINVAL for a NULL or empty path, ENOMEM if the Windows
+ * path copy cannot be allocated, or the underlying system error from errno.
+ * \details Windows paths are copied and converted to native separators without
+ * modifying the caller's string. Relative paths use the current working directory.
+ */
 int forces_os_chdir(const char *path)
 {
     int code;
@@ -114,6 +153,15 @@ int forces_os_chdir(const char *path)
     return (code == 0) ? 0 : errno;
 }
 
+/**
+ * \brief Classify an existing path as a directory or a non-directory entry.
+ * \param[in] path Null-terminated path to query.
+ * \return FORCES_OS_PATH_DIR for a directory, FORCES_OS_PATH_FILE for another
+ * existing entry, or FORCES_OS_PATH_MISSING for a missing path or failed lookup.
+ * \details NULL and empty paths, and Windows path-allocation failures, also
+ * return FORCES_OS_PATH_MISSING. Windows queries a native-separator copy using
+ * GetFileAttributesA(); POSIX uses stat(), following symbolic links.
+ */
 int forces_os_path_kind(const char *path)
 {
     if (path == NULL || path[0] == '\0') {

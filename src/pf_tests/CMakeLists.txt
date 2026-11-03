@@ -1,5 +1,10 @@
 set (LIB_NAME forces)
-find_package(PFUNIT QUIET)
+# Coverage must include the pFUnit suites rather than silently skip them.
+if(FORCES_WITH_COVERAGE)
+  find_package(PFUNIT REQUIRED)
+else()
+  find_package(PFUNIT QUIET)
+endif()
 # copy files
 file ( COPY ./files DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 

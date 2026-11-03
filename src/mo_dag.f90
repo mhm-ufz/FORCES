@@ -40,6 +40,7 @@
 !> \date    May 2025
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_core
 module mo_dag
   use mo_kind, only : i8
   use mo_utils, only: optval, swap, prefix_sum

@@ -556,6 +556,7 @@
 !> \date Jun 2026
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_io
 module mo_points_io
 
   use mo_constants, only: nodata_dp, nodata_i1, nodata_i2, nodata_i4, nodata_i8
@@ -585,11 +586,13 @@ module mo_points_io
   public :: points_id_index
   public :: points_id_indices
 
+  !> \brief Return the one-based index of an integer point ID.
   interface points_id_index
     module procedure points_id_index_i4
     module procedure points_id_index_i8
   end interface points_id_index
 
+  !> \brief Return one-based indices for selected integer point IDs in selection order.
   interface points_id_indices
     module procedure points_id_indices_i4
     module procedure points_id_indices_i8

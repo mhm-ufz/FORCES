@@ -1,13 +1,4 @@
-!> \dir src
-!> \brief Forces source files.
-
-!> \dir examples
-!> \brief Forces examples files.
-
-!> \dir examples/01_grids
-!> \brief Forces grid example files.
-
-!> \file    mo_forces_info.f90
+!> \file    mo_forces_info.F90
 !> \copydoc mo_forces_info
 
 #ifndef FORCESVERSION
@@ -30,6 +21,7 @@
 !> \date    May 2021
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_core
 module mo_forces_info
 
   implicit none

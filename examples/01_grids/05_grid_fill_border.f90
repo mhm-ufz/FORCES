@@ -1,4 +1,9 @@
 !> \file    01_grids/05_grid_fill_border.f90
+!> \copydoc grid_fill_border
+
+!> \example 01_grids/05_grid_fill_border.f90
+!> \copydoc grid_fill_border
+
 !> \brief   Write DEM border cells and nearest-filled DEM to NetCDF.
 program grid_fill_border
   use mo_cli, only: cli_parser

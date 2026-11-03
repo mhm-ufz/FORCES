@@ -7,6 +7,7 @@
 !> \date Mar 2011
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_statistics
 MODULE mo_linfit
 
   USE mo_kind, ONLY : sp, dp

@@ -17,6 +17,7 @@
 !> \date Jul 2012
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_spatial
 module mo_poly
 
   use mo_kind, only: i4, sp, dp
@@ -26,7 +27,7 @@ module mo_poly
 
   public :: areapoly
 
-  !> \copydoc mo_poly::areapoly_sp
+  !> \copydoc mo_poly::areapoly::areapoly_sp
   interface areapoly
     module procedure areapoly_sp
     module procedure areapoly_dp
@@ -34,7 +35,7 @@ module mo_poly
 
   public :: center_of_mass
 
-  !> \copydoc mo_poly::center_of_mass_sp
+  !> \copydoc mo_poly::center_of_mass::center_of_mass_sp
   interface center_of_mass
     module procedure center_of_mass_sp
     module procedure center_of_mass_dp
@@ -42,7 +43,7 @@ module mo_poly
 
   public :: inpoly
 
-  !> \copydoc mo_poly::inpoly_sp
+  !> \copydoc mo_poly::inpoly::inpoly_sp
   interface inpoly
     module procedure inpoly_sp
     module procedure inpoly_dp
@@ -50,7 +51,7 @@ module mo_poly
 
   public :: orientpoly
 
-  !> \copydoc mo_poly::orientpoly_sp
+  !> \copydoc mo_poly::orientpoly::orientpoly_sp
   interface orientpoly
     module procedure orientpoly_sp
     module procedure orientpoly_dp
@@ -58,7 +59,7 @@ module mo_poly
 
   public :: mod_pole
 
-  !> \copydoc mo_poly::mod_pole_sp
+  !> \copydoc mo_poly::mod_pole::mod_pole_sp
   interface mod_pole
     module procedure mod_pole_sp
     module procedure mod_pole_dp
@@ -66,7 +67,7 @@ module mo_poly
 
   public :: mod_shift
 
-  !> \copydoc mo_poly::mod_shift_sp
+  !> \copydoc mo_poly::mod_shift::mod_shift_sp
   interface mod_shift
     module procedure mod_shift_sp
     module procedure mod_shift_dp

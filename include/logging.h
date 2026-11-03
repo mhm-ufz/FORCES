@@ -1,5 +1,6 @@
 /**
  * @file logging.h
+ * @ingroup f_core
  * @author Daan van Vugt
  * @brief This file was taken from the flogging library (https://github.com/DaanVanVugt/flogging).
  * @version 0.1

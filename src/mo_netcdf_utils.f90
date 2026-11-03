@@ -9,6 +9,7 @@
 !> \date    Jun 2026
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_io
 module mo_netcdf_utils
 
   use, intrinsic :: ieee_arithmetic, only: ieee_is_finite, ieee_is_nan
@@ -50,6 +51,7 @@ module mo_netcdf_utils
     module procedure read_integral_time_data_2d
   end interface read_integral_time_data
 
+  !> \brief Read CF-packed NetCDF values into an unpacked real array.
   interface read_cf_packed
     module procedure read_cf_packed_1d_sp
     module procedure read_cf_packed_1d_dp
@@ -61,6 +63,7 @@ module mo_netcdf_utils
     module procedure read_cf_packed_4d_dp
   end interface read_cf_packed
 
+  !> \brief Validate and pack real values before writing them to NetCDF.
   interface write_cf_packed
     module procedure write_cf_packed_1d_sp
     module procedure write_cf_packed_1d_dp
@@ -68,6 +71,7 @@ module mo_netcdf_utils
     module procedure write_cf_packed_2d_dp
   end interface write_cf_packed
 
+  !> \brief Convert an unpacked real value to an integer kind, preserving nodata.
   interface convert_cf_integer
     module procedure convert_cf_integer_i1
     module procedure convert_cf_integer_i2

@@ -11,6 +11,7 @@
 !> \date Jun 2026
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_spatial
 module mo_points_regridder
 
   use mo_grid, only: grid_t, cartesian, spherical

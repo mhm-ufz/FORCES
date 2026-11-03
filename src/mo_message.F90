@@ -8,6 +8,7 @@
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
 #include "logging.h"
+!> \ingroup f_core
 MODULE mo_message
   use mo_logging
   USE mo_constants, ONLY : nout, nerr

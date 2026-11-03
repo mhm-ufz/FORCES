@@ -27,6 +27,7 @@
 !> \date Mar 2013
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_statistics
 MODULE mo_kernel
 
   !$ USE omp_lib
@@ -405,36 +406,44 @@ MODULE mo_kernel
 
   ! ------------------------------------------------------------------
 
+  !> \brief Evaluate a Gaussian kernel density or Nadaraya-Watson regression estimate.
   INTERFACE nadaraya_watson
      MODULE PROCEDURE nadaraya_watson_2d_dp, nadaraya_watson_2d_sp, &
           nadaraya_watson_1d_dp, nadaraya_watson_1d_sp
   END INTERFACE nadaraya_watson
 
+  !> \brief Store input and evaluation data for kernel bandwidth cross-validation.
   INTERFACE allocate_globals
      MODULE PROCEDURE allocate_globals_2d_dp, allocate_globals_2d_sp, &
           allocate_globals_1d_dp, allocate_globals_1d_sp
   END INTERFACE allocate_globals
 
+  !> \brief Evaluate the cross-validation objective for a density bandwidth.
   INTERFACE cross_valid_density
      MODULE PROCEDURE cross_valid_density_1d_dp, cross_valid_density_1d_sp
   END INTERFACE cross_valid_density
 
+  !> \brief Evaluate the leave-one-out regression error for kernel bandwidths.
   INTERFACE cross_valid_regression
      MODULE PROCEDURE cross_valid_regression_dp, cross_valid_regression_sp
   END INTERFACE cross_valid_regression
 
+  !> \brief Generate an evenly spaced integration mesh and return its spacing.
   INTERFACE mesh
      MODULE PROCEDURE mesh_dp, mesh_sp
   END INTERFACE mesh
 
+  !> \brief Minimize a bracketed scalar function using golden-section search.
   INTERFACE golden
      MODULE PROCEDURE golden_dp, golden_sp
   END INTERFACE golden
 
+  !> \brief Refine a trapezoidal integration estimate.
   INTERFACE trapzd
      MODULE PROCEDURE trapzd_dp, trapzd_sp
   END INTERFACE trapzd
 
+  !> \brief Interpolate tabulated values with a polynomial and estimate the error.
   INTERFACE polint
      MODULE PROCEDURE polint_dp, polint_sp
   END INTERFACE polint

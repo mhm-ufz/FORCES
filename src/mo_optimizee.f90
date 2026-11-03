@@ -13,6 +13,7 @@
 !!
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_optimization
 module mo_optimizee
 
   use mo_kind, only : dp

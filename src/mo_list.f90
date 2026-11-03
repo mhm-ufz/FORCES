@@ -86,6 +86,7 @@
 !> \date    Apr 2025
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_core
 module mo_list
 
   use mo_kind, only: i4

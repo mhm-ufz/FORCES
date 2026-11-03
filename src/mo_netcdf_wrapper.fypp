@@ -12,6 +12,7 @@
 !> \details This module exposes the subset of the nf90-style API used inside FORCES,
 !! but implements it directly on top of the C library. Public callers should use the
 !! `ncw_*` procedures and constants defined here rather than importing `netcdf`.
+!> \ingroup f_io
 module mo_netcdf_wrapper
 
   use, intrinsic :: iso_c_binding, only : &

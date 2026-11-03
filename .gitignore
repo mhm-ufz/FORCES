@@ -2,6 +2,13 @@
 html
 latex
 doxygen_warn.txt
+/_readthedocs/
+/doxygen_log.txt
+/doxygen_latex.txt
+/doxygen_latex_make.log
+/forces_doc.pdf
+/coverage/
+/build_coverage*/
 forces_env/
 info
 *.bak
