@@ -36,6 +36,40 @@ if(PFUNIT_FOUND)
       LINK_LIBRARIES ${LIB_NAME})
     list(APPEND testnames ${testname})
   endforeach()
+
+  if("test_mo_grid.pf" IN_LIST testsourcefiles OR "test_mo_grid_scaler.pf" IN_LIST testsourcefiles)
+    add_executable(grid_offset_error grid_offset_error.f90)
+    target_link_libraries(grid_offset_error PRIVATE ${LIB_NAME})
+    foreach(suite test_mo_grid test_mo_grid_scaler)
+      if(TARGET ${suite})
+        add_dependencies(${suite} grid_offset_error)
+      endif()
+    endforeach()
+    set(offset_error_cases
+      "fractional|check_offset: lower-left displacement must be an integer"
+      "offset_range|check_offset: displacement is outside"
+      "offset_nonfinite|check_offset: origins, cell size and tolerance must be finite"
+      "lost_coverage|active fine cell outside coarse extent"
+      "fine_padding|derive_fine_grid: fine extent must lie inside"
+      "fine_excludes|derive_fine_grid: offset excludes required source cells"
+      "coarse_empty|derive_coarse_grid: each coarse cell must overlap"
+      "coarse_excludes|derive_coarse_grid: offset excludes required source cells"
+      "no_overlap|active coarse cell outside fine extent"
+      "coordinate_system|grids don't use the same coordinate system"
+      "resolution_ratio|check_factor: Two resolutions"
+      "fill_geometry|active fine cell outside coarse extent")
+    foreach(error_case IN LISTS offset_error_cases)
+      string(REPLACE "|" ";" case_parts "${error_case}")
+      list(GET case_parts 0 case_name)
+      list(GET case_parts 1 expected)
+      add_test(NAME test_mo_grid_offset_${case_name}
+        COMMAND ${CMAKE_COMMAND}
+          "-DPROGRAM=$<TARGET_FILE:grid_offset_error>"
+          "-DCASE=${case_name}"
+          "-DEXPECTED=${expected}"
+          -P "${CMAKE_CURRENT_SOURCE_DIR}/expect_grid_offset_error.cmake")
+    endforeach()
+  endif()
 else()
   message(STATUS "FORCES: No test program found, install pFUnit")
 endif()

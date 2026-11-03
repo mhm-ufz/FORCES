@@ -51,7 +51,146 @@ module test_mo_grid
   public :: test_ascii_roundtrip
   public :: test_netcdf_helpers
 
+  public :: test_integer_offset_helpers
+  public :: test_offset_derivation
+  public :: test_offset_aux_directions
+
 contains
+  @test
+  subroutine test_integer_offset_helpers()
+    use mo_grid_helper, only: check_offset, coarse_ij, id_bounds, calculate_coarse_extent
+    integer(i4) :: shift(2), fd, cd, fj, cj, ci, xl, xu, yl, yu, nx, ny
+    real(dp) :: xll, yll, h
+
+    call check_offset([100.0_dp, 200.0_dp], [97.0_dp, 205.0_dp], 1.0_dp, shift)
+    @assertEqual(shift, [-3_i4, 5_i4])
+    call check_offset([0.0_dp, 0.0_dp], [2.0_dp + 1.e-8_dp, -1.0_dp], 1.0_dp, shift)
+    @assertEqual(shift, [2_i4, -1_i4])
+    do fd = top_down, bottom_up
+      do cd = top_down, bottom_up
+        fj = 6_i4
+        if (fd == top_down) fj = 1_i4
+        call coarse_ij(4_i4, 5_i4, fj, fd, 6_i4, cd, 2_i4, ci, cj, [-1_i4, -2_i4])
+        @assertEqual(ci, 2_i4)
+        @assertEqual(cj, merge(2_i4, 1_i4, cd == bottom_up))
+        cj = merge(1_i4, 2_i4, cd == bottom_up)
+        call id_bounds(4_i4, 1_i4, cj, cd, 2_i4, fd, 5_i4, 6_i4, xl, xu, yl, yu, [-1_i4, -2_i4])
+        @assertEqual([xl, xu], [1_i4, 3_i4])
+        if (fd == bottom_up) then
+          @assertEqual([yl, yu], [1_i4, 2_i4])
+        else
+          @assertEqual([yl, yu], [5_i4, 6_i4])
+        end if
+      end do
+    end do
+    call coarse_ij(4_i4, 2_i4, 1_i4, bottom_up, 1_i4, bottom_up, 1_i4, ci, cj, [2_i4, 0_i4])
+    @assertEqual(ci, 0_i4, message='negative coordinates require floor division')
+    call id_bounds(4_i4, 5_i4, 1_i4, bottom_up, 2_i4, bottom_up, 5_i4, 6_i4, xl, xu, yl, yu, [-1_i4, -2_i4])
+    @assertEqual([xl, xu, yl, yu], [1_i4, 0_i4, 1_i4, 0_i4])
+    call id_bounds(huge(0_i4), huge(0_i4), 1_i4, bottom_up, 1_i4, bottom_up, &
+                   5_i4, 6_i4, xl, xu, yl, yu, [huge(0_i4), 0_i4])
+    @assertEqual([xl, xu, yl, yu], [1_i4, 0_i4, 1_i4, 0_i4])
+    call calculate_coarse_extent(5_i4, 6_i4, 0.0_dp, 0.0_dp, 1.0_dp, 4.0_dp, &
+                                 nx, ny, xll, yll, h, offset=[-1_i4, -2_i4])
+    @assertEqual([nx, ny], [2_i4, 2_i4])
+    @assertEqual([xll, yll, h], [-1.0_dp, -2.0_dp, 4.0_dp], tolerance=1.e-12_dp)
+  end subroutine test_integer_offset_helpers
+
+  @test
+  subroutine test_offset_derivation()
+    type(grid_t) :: fine, coarse, plain, masked, refined, empty
+    integer(i4) :: d, i, j, jb
+    logical :: mask(5,5)
+
+    do d = top_down, bottom_up
+      call fine%init(5_i4, 4_i4, xllcorner=100.0_dp, yllcorner=200.0_dp, cellsize=1.0_dp, y_direction=d)
+      allocate(fine%lon(5,4), fine%lat(5,4))
+      do j = 1_i4, 4_i4
+        fine%lat(:,j) = fine%y_center(j)
+        do i = 1_i4, 5_i4
+          fine%lon(i,j) = fine%x_center(i)
+        end do
+      end do
+      coarse = fine%derive_grid(upscaling_factor=3_i4, offset=[-1_i4, -2_i4])
+      @assertEqual([coarse%nx, coarse%ny], [2_i4, 2_i4])
+      @assertEqual(fine%get_offset(coarse), [-1_i4, -2_i4])
+      @assertEqual(coarse%total_area(), fine%total_area(), tolerance=1.e-12_dp)
+      @assertEqual(coarse%lon(:,1), [101.0_dp, 103.5_dp], tolerance=1.e-12_dp)
+      jb = merge(1_i4, 2_i4, d == bottom_up)
+      @assertEqual(coarse%lat(1,jb), 200.5_dp, tolerance=1.e-12_dp)
+      @assertEqual(coarse%lat(1,3_i4-jb), 202.5_dp, tolerance=1.e-12_dp)
+      coarse = fine%derive_coarse_grid(3.0_dp, offset=[-1_i4, -2_i4], area_method=area_count)
+      @assertEqual(coarse%total_area(), fine%total_area(), tolerance=1.e-12_dp)
+      coarse = fine%derive_coarse_grid(3.0_dp, offset=[-1_i4, -2_i4], area_method=area_full)
+      @assertEqual(coarse%total_area(), 36.0_dp, tolerance=1.e-12_dp)
+      plain = fine%derive_coarse_grid(3.0_dp)
+      @assertEqual([plain%xllcorner, plain%yllcorner], [100.0_dp, 200.0_dp], tolerance=1.e-12_dp)
+      @assertEqual(plain%total_area(), fine%total_area(), tolerance=1.e-12_dp)
+
+      mask = .false.
+      do j = 2_i4, 3_i4
+        jb = merge(j, 6_i4-j, d == bottom_up)
+        mask(2:3,jb) = .true.
+      end do
+      call masked%init(5_i4, 5_i4, cellsize=2.0_dp, mask=mask, y_direction=d)
+      allocate(masked%lon(5,5), masked%lat(5,5))
+      do j = 1_i4, 5_i4
+        masked%lat(:,j) = masked%y_center(j)
+        do i = 1_i4, 5_i4
+          masked%lon(i,j) = masked%x_center(i)
+        end do
+      end do
+      plain = masked%derive_fine_grid(1.0_dp)
+      @assertEqual([plain%nx, plain%ny], [10_i4, 10_i4], message='default derivation preserves source extent')
+      refined = masked%derive_grid(downscaling_factor=2_i4, offset=[-2_i4, -2_i4], mask_extent=.true.)
+      @assertEqual([refined%nx, refined%ny], [4_i4, 4_i4])
+      @assertEqual([refined%xllcorner, refined%yllcorner], [2.0_dp, 2.0_dp], tolerance=1.e-12_dp)
+      @assertTrue(all(refined%mask))
+      @assertEqual(refined%total_area(), masked%total_area(), tolerance=1.e-12_dp)
+      @assertEqual(refined%lon(:,1), [2.5_dp, 3.5_dp, 4.5_dp, 5.5_dp], tolerance=1.e-12_dp)
+      jb = merge(1_i4, 4_i4, d == bottom_up)
+      @assertEqual(refined%lat(1,jb), 2.5_dp, tolerance=1.e-12_dp)
+      coarse = masked%derive_coarse_grid(4.0_dp, offset=[1_i4, 1_i4], mask_extent=.true.)
+      @assertEqual([coarse%nx, coarse%ny], [1_i4, 1_i4])
+      @assertEqual([coarse%xllcorner, coarse%yllcorner], [2.0_dp, 2.0_dp], tolerance=1.e-12_dp)
+      @assertEqual(coarse%total_area(), masked%total_area(), tolerance=1.e-12_dp)
+    end do
+
+    call empty%init(3_i4, 2_i4, cellsize=2.0_dp, mask=reshape([(.false., i=1,6)], [3,2]))
+    coarse = empty%derive_coarse_grid(4.0_dp, mask_extent=.true.)
+    @assertEqual([coarse%nx, coarse%ny], [2_i4, 1_i4])
+    @assertEqual(coarse%ncells, 0_i8)
+    refined = empty%derive_fine_grid(1.0_dp, mask_extent=.true.)
+    @assertEqual([refined%nx, refined%ny], [6_i4, 4_i4])
+    @assertEqual(refined%ncells, 0_i8)
+  end subroutine test_offset_derivation
+
+  @test
+  subroutine test_offset_aux_directions()
+    type(grid_t) :: fine, coarse
+    integer(i4) :: fd, cd, i, j
+
+    do cd = top_down, bottom_up
+      do fd = top_down, bottom_up
+        call coarse%init(2_i4, 2_i4, cellsize=2.0_dp, y_direction=cd)
+        allocate(coarse%lon(2,2), coarse%lat(2,2))
+        do j = 1_i4, 2_i4
+          coarse%lat(:,j) = coarse%y_center(j)
+          do i = 1_i4, 2_i4
+            coarse%lon(i,j) = coarse%x_center(i)
+          end do
+        end do
+        call fine%init(2_i4, 2_i4, xllcorner=1.0_dp, yllcorner=1.0_dp, cellsize=1.0_dp, y_direction=fd)
+        call fine%downscale_aux_coords(coarse)
+        @assertEqual(fine%lon(:,1), [1.5_dp, 2.5_dp], tolerance=1.e-12_dp)
+        do j = 1_i4, 2_i4
+          @assertEqual(fine%lat(1,j), fine%y_center(j), tolerance=1.e-12_dp)
+        end do
+        @assertFalse(coarse%has_aux_vertices(), message='temporary source vertices are released')
+      end do
+    end do
+  end subroutine test_offset_aux_directions
+
 
   @test
   subroutine test_grid()
