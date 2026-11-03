@@ -90,7 +90,7 @@ contains
     real(dp) :: source(6,4), weights(6,4), out(2)
     logical :: mask(6,4)
     integer(i4) :: d, i, j, jg, cache
-    integer(i8) :: loc(2)
+    integer(i8) :: loc(2), expected_loc(2)
 
     do d = top_down, bottom_up
       call fine%init(6_i4, 4_i4, cellsize=1.0_dp, y_direction=d)
@@ -117,8 +117,9 @@ contains
         call scaler%execute(int(source,i4), out, upscaling_operator=up_median)
         @assertEqual(out, [27.5_dp, 29.5_dp], tolerance=1.e-12_dp)
         call scaler%maxloc(source, loc)
-        @assertEqual(loc, [fine%cell_id([3_i4, merge(3_i4, 2_i4, d == bottom_up)]), &
-                           fine%cell_id([5_i4, merge(3_i4, 2_i4, d == bottom_up)])])
+        expected_loc = [fine%cell_id([3_i4, merge(3_i4, 2_i4, d == bottom_up)]), &
+                        fine%cell_id([5_i4, merge(3_i4, 2_i4, d == bottom_up)])]
+        @assertEqual(loc, expected_loc)
         call scaler%init(fine, coarse, weight_mode=weight_area, cache_bounds=cache == 1_i4)
         call scaler%execute(source, out)
         @assertEqual(out, [154.0_dp/6.0_dp, 29.5_dp], tolerance=1.e-12_dp)
