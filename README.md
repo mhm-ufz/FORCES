@@ -224,6 +224,13 @@ It retains coverage artifacts for 14 days and uploads LCOV through the Coveralls
 GitHub Action using the built-in GitHub token. Enable the FORCES GitHub mirror in
 Coveralls to receive reports; no additional repository token secret is needed.
 
+## Development
+
+Read the [developer guide](doc/development-guide.md) for module relationships,
+generated-source workflows, data ownership, regression coverage, and documentation
+conventions. [AGENTS.md](AGENTS.md) contains the repository-wide coding and workflow
+rules used by developers and coding agents.
+
 ## Documentation
 
 Generate HTML and LaTeX from the repository root with:

@@ -40,11 +40,13 @@ module mo_points_io
   public :: points_id_index
   public :: points_id_indices
 
+  !> \brief Return the one-based index of an integer point ID.
   interface points_id_index
     module procedure points_id_index_i4
     module procedure points_id_index_i8
   end interface points_id_index
 
+  !> \brief Return one-based indices for selected integer point IDs in selection order.
   interface points_id_indices
     module procedure points_id_indices_i4
     module procedure points_id_indices_i8

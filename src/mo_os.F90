@@ -81,17 +81,20 @@ module mo_os
   integer(i4), parameter :: OS_PATH_DIR = 2_i4
 
   interface
+    !> \brief C binding to copy the current working directory into a caller-owned buffer.
     integer(c_int) function forces_os_getcwd(buffer, buffer_len) bind(C, name="forces_os_getcwd")
       import :: c_char, c_int, c_size_t
       character(kind=c_char, len=1), intent(out) :: buffer(*)
       integer(c_size_t), value :: buffer_len
     end function forces_os_getcwd
 
+    !> \brief C binding to change the working directory using a null-terminated path.
     integer(c_int) function forces_os_chdir(path) bind(C, name="forces_os_chdir")
       import :: c_char, c_int
       character(kind=c_char, len=1), intent(in) :: path(*)
     end function forces_os_chdir
 
+    !> \brief C binding to classify a null-terminated path as missing, a file, or a directory.
     integer(c_int) function forces_os_path_kind(path) bind(C, name="forces_os_path_kind")
       import :: c_char, c_int
       character(kind=c_char, len=1), intent(in) :: path(*)
