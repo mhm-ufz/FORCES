@@ -4,6 +4,7 @@
 !>  \brief Added for testing purposes of test_mo_anneal
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_optimization
 Module mo_cost
 
   use mo_kind, only: sp, dp

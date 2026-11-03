@@ -1,0 +1,158 @@
+/**
+\dir src
+\brief FORCES library sources.
+\details Fortran modules provide numerical methods, spatial and temporal data
+handling, file I/O, and application utilities. The C backends support operating
+system operations in mo_os and error-message copying in mo_netcdf_wrapper.
+Browse the library by purpose through \ref f_core, \ref f_spatial, \ref f_time,
+\ref f_io, \ref f_statistics, and \ref f_optimization.
+*/
+
+/**
+\defgroup f_core Core utilities and data structures
+\brief Numeric kinds, constants, arrays, strings, graphs, and application support.
+\details Common building blocks include array operations and sorting, linked
+lists and directed acyclic graphs, sentinel values, command-line parsing,
+logging, timing, and library version information.
+\par Examples
+- \ref 02_dag/01_dag_sort.f90 constructs and sorts a directed acyclic graph.
+- \ref 02_dag/02_branching.f90 traverses a branching graph from leaves or roots.
+- \ref 03_log/01_logging_cli.F90 configures logging from command-line options.
+- \ref 04_utils/01_prefix_sum.f90 compares cumulative sums and prefix sums.
+*/
+
+/**
+\defgroup f_spatial Spatial data and regridding
+\brief Structured grids, point sets, polygons, spatial indexing, and mapping.
+\details Grid and point representations support packing and masking, geometric
+operations, nearest-neighbor searches, spatial scaling, and comparison of
+spatial patterns. Dataset readers and writers are collected in \ref f_io.
+\par Examples
+- \ref 01_grids/01_regridding.f90 regrids a DEM read from an ASCII file.
+- \ref 01_grids/03_nc_regridder.f90 regrids data read from NetCDF.
+- \ref 01_grids/04_nc_nearest.f90 demonstrates nearest-neighbor grid mapping.
+- \ref 01_grids/05_grid_fill_border.f90 fills missing DEM cells from its border.
+- \ref 05_points/02_points_nearest.f90 maps the nearest gauge onto a grid.
+*/
+
+/**
+\defgroup f_time Dates and time series
+\brief Calendars, time axes, temporal aggregation, resampling, and filtering.
+\details Date and time types and Julian conversions support time-axis handling.
+Temporal aggregation and resampling operate on time-series values, while the
+Eckhardt filter separates baseflow from discharge series. Dataset I/O belongs to
+\ref f_io; general statistical analysis belongs to \ref f_statistics.
+\par Example
+\ref 05_points/04_points_timeseries_resample.f90 resamples daily interval-mean
+discharge to hourly values and writes a point time-series dataset.
+*/
+
+/**
+\defgroup f_io File I/O and operating system support
+\brief Text, namelist, and NetCDF I/O, file patterns, paths, and directories.
+\details Dataset abstractions read and write gridded and point data, including
+time series. Shared NetCDF helpers and the C interoperability backends support
+these interfaces. Path utilities and glob matching locate files and directories.
+\par Examples
+- \ref 01_grids/02_nc_output.f90 writes gridded variables to NetCDF.
+- \ref 05_points/01_points_io.f90 writes discharge at gauge locations.
+- \ref 05_points/03_points_timeseries_io.f90 writes station IDs and time series.
+*/
+
+/**
+\defgroup f_statistics Statistics and numerical methods
+\brief Descriptive statistics, transformations, regression, errors, and integration.
+\details Statistical routines provide moments, percentiles, histograms,
+autocorrelation, normalization, outlier detection, and random number generation.
+Numerical tools cover polynomial operations and integration, linear and kernel
+regression, density estimation, and error measures. Parameter optimization and
+posterior sampling are collected in \ref f_optimization.
+*/
+
+/**
+\defgroup f_optimization Optimization and sampling
+\brief Parameter search algorithms, objective interfaces, and posterior sampling.
+\details Simulated annealing, Dynamically Dimensioned Search, Nelder-Mead, and
+Shuffled Complex Evolution minimize objective functions. Markov chain Monte
+Carlo samples posterior distributions. Shared objective types, evaluation
+helpers, and benchmark cost and likelihood functions support these algorithms.
+*/
+
+/**
+\dir include
+\brief Preprocessor headers for FORCES applications.
+\details The logging.h header supplies the logging macros used with mo_logging.
+*/
+
+/**
+\dir doc
+\brief FORCES documentation and presentation assets.
+\details Doxygen configuration, directory descriptions, HTML customizations,
+PDF styles, figures, release history, and Read the Docs build support.
+*/
+
+/**
+\dir examples
+\brief Standalone programs demonstrating the FORCES library.
+\details Examples cover structured grids, directed acyclic graphs, logging,
+array utilities, and point time series. Build and run a program from the
+repository root, for example:
+\code{.sh}
+cmake -S . -B build_example -DFORCES_EXE=examples/04_utils/01_prefix_sum.f90
+cmake --build build_example --parallel 4
+./build_example/main
+\endcode
+Use the repository root as the working directory for examples that read fixtures
+from \c src/pf_tests/files. NetCDF examples require FORCES_WITH_NETCDF=ON.
+*/
+
+/**
+\dir examples/01_grids
+\brief Structured grid regridding, NetCDF output, and border filling.
+\details
+- \ref 01_grids/01_regridding.f90 demonstrates DEM regridding from an ASCII input.
+- \ref 01_grids/02_nc_output.f90 writes grid variables to NetCDF.
+- \ref 01_grids/03_nc_regridder.f90 regrids NetCDF data between structured grids.
+- \ref 01_grids/04_nc_nearest.f90 demonstrates nearest-neighbor grid mapping.
+- \ref 01_grids/05_grid_fill_border.f90 writes a DEM border mask and fills missing
+  cells using nearest source border cells.
+*/
+
+/**
+\dir examples/02_dag
+\brief Directed acyclic graph construction and ordering.
+\details
+- \ref 02_dag/01_dag_sort.f90 demonstrates topological and level-based sorting.
+- \ref 02_dag/02_branching.f90 builds a branching graph from downstream links
+  and traverses its levels from either roots or leaves.
+*/
+
+/**
+\dir examples/03_log
+\brief Command-line configuration of application logging.
+\details \ref 03_log/01_logging_cli.F90 combines mo_cli with the logging.h macros
+and mo_logging. It demonstrates log-level options and redirection to a log file.
+The uppercase \c .F90 extension enables preprocessing of the logging macros.
+*/
+
+/**
+\dir examples/04_utils
+\brief Array utility examples.
+\details \ref 04_utils/01_prefix_sum.f90 compares mo_utils prefix sums and
+cumulative sums, including shifted output and a starting offset. With OpenMP
+enabled, it also reports timings for larger arrays.
+*/
+
+/**
+\dir examples/05_points
+\brief Point data, nearest-neighbor mapping, and time-series NetCDF I/O.
+\details
+- \ref 05_points/01_points_io.f90 writes synthetic discharge on gauge locations.
+- \ref 05_points/02_points_nearest.f90 maps the nearest gauge onto a regular grid.
+- \ref 05_points/03_points_timeseries_io.f90 writes station IDs and discharge
+  using a point time-series output dataset.
+- \ref 05_points/04_points_timeseries_resample.f90 resamples daily interval means
+  to hourly values and writes the resulting point time series.
+These examples read gauge coordinates from \c src/pf_tests/files/scc_gauges.nc
+and require NetCDF support.
+*/

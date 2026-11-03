@@ -1,10 +1,12 @@
 !> \file    02_dag/02_branching.f90
+!> \copydoc dag_branching
 
 !> \example 02_dag/02_branching.f90
+!> \copydoc dag_branching
 
 !> \brief   Example for using the branching DAG representation.
 !> \details Demonstrates how to initialize a branching DAG with a downstream
-!! linkage array and how to perform a topological sort.
+!! linkage array and sort its levels from either leaves or roots.
 !> \authors Sebastian Mueller
 !> \date    Sep 2025
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.

@@ -107,7 +107,8 @@ cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFORCES_BUILD_TESTING=ON -DFORCES_WITH_
 cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFORCES_EXE=test.f90
 ```
 
-`FORCES_WITH_COVERAGE` is only meaningful for test builds and requires GNU Fortran.
+`FORCES_WITH_COVERAGE` is only meaningful for test builds and requires GNU Fortran,
+pFUnit, and LCOV 2.0 or newer.
 
 ## Dependencies and Requirements
 
@@ -132,7 +133,7 @@ With this you could now proceed with the example given above.
 
 ## Testing with pFUnit
 
-FORCES uses [pFUnit](https://github.com/Goddard-Fortran-Ecosystem/pFUnit) for its unit tests. When `FORCES_BUILD_TESTING=ON`, CMake will look for `PFUNIT`. If pFUnit is not available, configuration still succeeds, but no FORCES tests are added.
+FORCES uses [pFUnit](https://github.com/Goddard-Fortran-Ecosystem/pFUnit) for its unit tests. When `FORCES_BUILD_TESTING=ON`, CMake will look for `PFUNIT`. If pFUnit is not available, ordinary test configuration still succeeds, but no FORCES tests are added. Coverage builds require pFUnit and fail configuration if it is missing.
 
 You need to provide `pFUnit` to run the tests. It is unfortunately not available on conda yet. To compile it by hand in the current conda environment, you can do the following:
 
@@ -145,13 +146,12 @@ cmake --install pFUnit/build --prefix $CONDA_PREFIX
 rm -rf pFUnit
 ```
 
-Then you can compile and run the tests and/or calculate coverage in the same environment:
+Then you can compile and run the tests in the same environment:
 
 ```bash
-cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFORCES_BUILD_TESTING=ON -DFORCES_WITH_COVERAGE=ON
+cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFORCES_BUILD_TESTING=ON
 cmake --build build --parallel
 cmake --build build --target test
-cmake --build build --target coverage
 ```
 
 Run all configured tests with:
@@ -174,7 +174,115 @@ cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFORCES_BUILD_TESTING=ON -DFORCES_TEST_
 
 This is useful when iterating on one module or when you want to avoid configuring optional suites such as NetCDF- or optimization-related tests.
 
-The `coverage` target additionally requires `lcov` to be available on `PATH`.
+## Coverage reports
+
+Coverage uses a serial GNU Debug build with pFUnit installed. Install LCOV 2.0 or
+newer (`lcov` and `genhtml`) and Python's `lcov_cobertura` before collecting reports.
+Use the `gcov` executable matching the compiler's GCC version; set CMake's
+`GCOV_PATH` if the default differs.
+
+```bash
+cmake -S . -B build_coverage -DCMAKE_BUILD_TYPE=Debug \
+  -DFORCES_BUILD_TESTING=ON -DFORCES_WITH_COVERAGE=ON \
+  -DFORCES_WITH_OpenMP=OFF
+cmake --build build_coverage --parallel 4
+cmake --build build_coverage --target coverage
+mkdir -p coverage
+cp -a build_coverage/coverage/. coverage/
+lcov --rc check_data_consistency=0 --add-tracefile build_coverage/coverage.info \
+  --substitute "s#^(\Q$PWD\E|\Q$(pwd -P)\E)/##" --output-file coverage/coverage.info
+lcov_cobertura coverage/coverage.info --base-dir . --output coverage/coverage.xml
+```
+
+The `coverage` target runs CTest and retains unexecuted compiled code in its LCOV
+baseline. It excludes test sources, external files, and build-tree sources.
+Function/line consistency checks are disabled because GNU Fortran can map distinct
+functions to overlapping source lines; the original counters are retained.
+Report normalization strips both logical and physical checkout prefixes while
+preserving Fortran filename case. The commands stage HTML, LCOV, and Cobertura XML
+under `coverage/`; open `coverage/index.html` for the HTML report.
+
+GitLab's `coverage` job uses `chs-fortran-conda/0.6.0` and exposes the HTML report as
+a CI artifact. Its Cobertura XML supplies merge-request diff annotations. The
+`conditional_coverage` job repeats coverage with NetCDF and optimization disabled,
+using a separate build directory and artifact archive. Only the full-feature job
+supplies diff annotations. Coverage is not copied to GitLab Pages; artifact expiry
+uses the GitLab instance default and the project's latest-successful-artifact policy.
+
+To check the reduced-feature configuration locally:
+
+```bash
+cmake -S . -B build_coverage_conditional -DCMAKE_BUILD_TYPE=Debug \
+  -DFORCES_BUILD_TESTING=ON -DFORCES_WITH_COVERAGE=ON \
+  -DFORCES_WITH_OpenMP=OFF -DFORCES_WITH_NETCDF=OFF -DFORCES_WITH_OPTIMIZATION=OFF
+cmake --build build_coverage_conditional --parallel 4
+cmake --build build_coverage_conditional --target coverage
+```
+
+The GitHub Coverage workflow uses GNU Fortran 13 and builds serial pFUnit 4.12.0.
+It retains coverage artifacts for 14 days and uploads LCOV through the Coveralls
+GitHub Action using the built-in GitHub token. Enable the FORCES GitHub mirror in
+Coveralls to receive reports; no additional repository token secret is needed.
+
+## Documentation
+
+Generate HTML and LaTeX from the repository root with:
+
+```bash
+PROJECT_NUMBER="$(cat version.txt)" doxygen doc/doxygen.config
+make -C latex
+```
+
+Open `html/index.html` to browse the manual or `latex/refman.pdf` for the PDF.
+The Topics view organizes the API by purpose: core utilities and data structures,
+spatial data and regridding, dates and time series, file I/O and operating system
+support, statistics and numerical methods, and optimization and sampling.
+Definitions live in `doc/directories.dox`; module headers declare their topic
+with `\ingroup`, and topic pages link to relevant examples.
+
+Documentation builds need a Fortran compiler for `doc/pre-proc.sh`, Graphviz, and
+Doxygen 1.18.0, pinned in `doc/rtd-environment.yml`. Export `FC` to select a compiler;
+the preprocessor otherwise uses `gfortran` when available. System TeX Live provides
+the PDF tools, including `makeindex`, and the `newunicodechar`, `xltabular`, and
+`tabularray` packages. The extra stylesheet `doc/forces_api_tables.sty` uses
+`longtable` for API parameter tables and `xltabular` for simple documentation tables
+to reduce PDF build time; merged cells, captions, and labels retain Doxygen's
+standard renderer. The manual retains its source listings and index.
+
+The vendored theme is [doxygen-awesome v2.5.0](https://github.com/jothepro/doxygen-awesome-css/releases/tag/v2.5.0),
+copied unchanged under `doc/doxygen-awesome-css/`. The header displays the project
+version from `version.txt`. Local and GitLab builds retain Doxygen's local search.
+
+GitLab builds the checked-out commit once for HTML and LaTeX. PDF generation uses
+Tectonic, TeX Live's `makeindex`, and a second Tectonic compilation to include the
+index. The job loads `GCC/13.3.0`, `texlive/20250308`, and
+`chs-fortran-conda/0.6.0`, taking `FC` from the Conda module. HTML, `forces_doc.pdf`,
+and Doxygen/PDF logs are exposed as job artifacts, including logs on failure.
+GitLab Pages publishes the `main` branch HTML at its root; the former `stable/`,
+`latest/`, and `coverage/` subdirectories are no longer published.
+
+[Read the Docs](https://forces.readthedocs.io/) provides versioned HTML/PDF manuals
+and hosted search. Its navigation dropdown offers version selection and the
+current version's PDF download on desktop and mobile, preserving the current page
+and anchor when switching versions. Connect the FORCES repository to the RTD
+project with slug `forces` and activate the desired branches/tags. Disable the
+floating flyout under **Settings > Addons > Flyout menu**; the dropdown still
+receives its Addons data.
+
+RTD runs the environment, Doxygen, PDF, and publishing phases separately through
+`doc/readthedocs_build.sh`. With no argument, the script runs all phases, including
+creating the Conda environment. Set `FORCES_DOCS_ENV` to override its default name
+`forces-docs`. PDF generation uses system `latexmk -pdf` to schedule compiler,
+bibliography, and index passes. The complete log is `doxygen_latex_make.log`; the
+last 80 lines are printed on failure. The script stages HTML and `pdf/forces.pdf`
+under `$READTHEDOCS_OUTPUT` (or `_readthedocs` locally). Run individual phases with:
+
+```bash
+bash doc/readthedocs_build.sh environment
+bash doc/readthedocs_build.sh doxygen
+bash doc/readthedocs_build.sh pdf
+bash doc/readthedocs_build.sh publish
+```
 
 For a more complex project, prepared for unit-tests, documentation and modules, have a look at the [Fortran Template](https://git.ufz.de/chs/fortran-template).
 

@@ -9,6 +9,7 @@
 !> \date Jul 2012
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_optimization
 module mo_dds
 
   use mo_optimizee, only : optimizee

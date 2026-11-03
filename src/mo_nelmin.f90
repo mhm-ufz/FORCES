@@ -10,6 +10,7 @@
 !> \date 2012
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_optimization
 MODULE mo_nelmin
 
   USE mo_kind,  ONLY: i4, sp, dp

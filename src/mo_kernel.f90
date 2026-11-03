@@ -27,6 +27,7 @@
 !> \date Mar 2013
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_statistics
 MODULE mo_kernel
 
   !$ USE omp_lib

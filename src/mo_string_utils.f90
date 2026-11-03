@@ -7,6 +7,7 @@
 !> \date Dec 2011
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_core
 MODULE mo_string_utils
 
   USE mo_kind, ONLY: i4, i8, sp, dp

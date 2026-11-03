@@ -1,0 +1,68 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{forces_api_tables}
+% Avoid tabularray's repeated measurements for the manual's simple tables.
+% Fixed parameter columns wrap long names and descriptions without measuring
+% every row again. Ordinary tables retain flexible columns and repeated heads.
+% Merged cells, captions and labels continue to use the standard renderer.
+\RequirePackage{xltabular}
+\NewDocumentCommand{\forcesDoxyParamsTable}{m m +m +m}{%
+  \begin{longtable}[l]{#2}%
+  \multicolumn{#1}{@{}l@{}}{\textbf{#3}}\\*[1ex]%
+  \hline%
+  #4%
+  \end{longtable}%
+  \par\addvspace{6pt}%
+}
+\RenewDocumentEnvironment{DoxyParams}{O{0} m +b}{%
+  \ifcase#1\relax
+    \forcesDoxyParamsTable{2}{|p{.25\linewidth}|p{\dimexpr.75\linewidth-4\tabcolsep-3\arrayrulewidth\relax}|}{#2}{#3}%
+  \or
+    \forcesDoxyParamsTable{3}{|p{.08\linewidth}|p{.25\linewidth}|p{\dimexpr.67\linewidth-6\tabcolsep-4\arrayrulewidth\relax}|}{#2}{#3}%
+  \else
+    \forcesDoxyParamsTable{4}{|p{.08\linewidth}|p{.17\linewidth}|p{.25\linewidth}|p{\dimexpr.50\linewidth-8\tabcolsep-5\arrayrulewidth\relax}|}{#2}{#3}%
+  \fi
+}{}
+
+\long\def\forcesRepeatTableHeader#1\\\hline#2\forcesTableEnd{%
+  \hline#1\\\hline\endfirsthead
+  \hline#1\\\hline\endhead
+  #2%
+}
+\ExplSyntaxOn
+\tl_new:N \l_forces_table_body_tl
+\NewDocumentCommand{\forcesStandardTable}{m +m m m +m}{
+  \tl_if_blank:nTF {#2}
+    {\SetTblrOuter[longtblr]{theme=DoxyTableBareTheme,entry=none}}
+    {
+      \DefTblrTemplate{firsthead}{default}{\UseTblrTemplate{caption}{default}}
+      \SetTblrOuter[longtblr]{theme=DoxyTableCaptionTheme,caption={#2}}
+    }
+  \tl_if_blank:nF {#3}
+    {\SetTblrOuter[longtblr]{label={#3}}}
+  \begin{longtblr}{hlines,vlines,measure=vbox,colspec={*{#1}{X[-1]}},rowhead=#4}
+    #5
+  \end{longtblr}
+}
+\NewDocumentCommand{\forcesSimpleTable}{m m +m}{
+  \RenewDocumentCommand{\SetCell}{m}
+    {\cellcolor{\tableheadbgcolor}\centering\arraybackslash\bfseries}
+  \tl_set:Nn \l_forces_table_body_tl {#3}
+  \tl_replace_all:Nnn \l_forces_table_body_tl {\\} {\\\hline}
+  \begin{xltabular}[l]{\linewidth}{|*{#1}{X|}}
+    \ifnum#2=1
+      \exp_after:wN \forcesRepeatTableHeader \l_forces_table_body_tl \forcesTableEnd
+    \else
+      \hline\tl_use:N \l_forces_table_body_tl
+    \fi
+  \end{xltabular}
+}
+\RenewDocumentEnvironment{DoxyTable}{m +m m m +b}{
+  \tl_if_in:nnTF {#5} {\SetCell[}
+    {\forcesStandardTable{#1}{#2}{#3}{#4}{#5}}
+    {
+      \tl_if_blank:nTF {#2#3}
+        {\forcesSimpleTable{#1}{#4}{#5}}
+        {\forcesStandardTable{#1}{#2}{#3}{#4}{#5}}
+    }
+}{}
+\ExplSyntaxOff

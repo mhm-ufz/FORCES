@@ -6,6 +6,7 @@
 !> \date Nov 2019
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_optimization
 MODULE mo_opt_eval_utils
   use mo_kind, only : i4, dp
   use mo_message, only : error_message

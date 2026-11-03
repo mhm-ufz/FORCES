@@ -1,7 +1,10 @@
-!> \file    04_utils/compare_prefix_sum.f90
-!> \example 04_utils/compare_prefix_sum.f90
+!> \file    04_utils/01_prefix_sum.f90
+!> \copydoc compare_prefix_sum
 
-!> \brief   Compare mo_utils prefix_sum against intrinsic cumsum with optional shift/start.
+!> \example 04_utils/01_prefix_sum.f90
+!> \copydoc compare_prefix_sum
+
+!> \brief   Compare mo_utils prefix_sum and cumsum with optional shift/start.
 !> \details Runs small correctness cases and (with OpenMP) optional timing of large arrays.
 !> \authors Sebastian Mueller
 !> \date    Nov 2025

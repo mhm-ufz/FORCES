@@ -30,6 +30,7 @@
 !! - \ref 01_logging_cli.F90 : \copybrief 01_logging_cli.F90
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_core
 module mo_logging
   ! Copyright (c) 2016 Daan van Vugt
   !

@@ -270,6 +270,7 @@
 !!   - median -> omedian
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_core
 MODULE mo_orderpack
 
   USE mo_kind, ONLY : i4, i8, sp, dp

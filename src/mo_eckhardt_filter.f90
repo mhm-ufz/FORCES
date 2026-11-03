@@ -10,6 +10,7 @@
 !> \date    Apr 2022
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_time
 module mo_eckhardt_filter
 
   use mo_kind,       only: i4, dp

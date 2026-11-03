@@ -10,6 +10,7 @@
 !> \date Jun 2026
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_io
 module mo_points_io
 
   use mo_constants, only: nodata_dp, nodata_i1, nodata_i2, nodata_i4, nodata_i8

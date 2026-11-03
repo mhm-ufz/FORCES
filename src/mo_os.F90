@@ -12,6 +12,7 @@
 !!   - simplify inquire logic
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_io
 module mo_os
 
   use, intrinsic :: iso_c_binding, only: c_char, c_int, c_null_char, c_size_t

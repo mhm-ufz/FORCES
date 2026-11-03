@@ -10,6 +10,7 @@
 !> \date October 2015
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_time
 MODULE mo_temporal_aggregation
 
   use mo_kind, ONLY : i4, dp

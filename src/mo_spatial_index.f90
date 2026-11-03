@@ -12,6 +12,7 @@
 !> \date    Mar 2026
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
 !! FORCES is released under the LGPLv3+ license \license_note
+!> \ingroup f_spatial
 module mo_spatial_index
 
   use mo_kind, only: i4, i8, dp
