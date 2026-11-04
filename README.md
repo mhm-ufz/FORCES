@@ -263,8 +263,9 @@ version from `version.txt`. Local and GitLab builds retain Doxygen's local searc
 GitLab builds the checked-out commit once for HTML and LaTeX. PDF generation uses
 Tectonic, TeX Live's `makeindex`, and a second Tectonic compilation to include the
 index. The job loads `GCC/13.3.0`, `texlive/20250308`, and
-`chs-fortran-conda/0.6.0`, taking `FC` from the Conda module. HTML, `forces_doc.pdf`,
-and Doxygen/PDF logs are exposed as job artifacts, including logs on failure.
+`chs-fortran-conda/0.6.0`, taking `FC` from the Conda module. Graphviz rendering is
+limited to four workers. HTML, `forces_doc.pdf`, and Doxygen/PDF logs (including
+`latex/refman.log`) are exposed as job artifacts, including on failure.
 GitLab Pages publishes the `main` branch HTML at its root; the former `stable/`,
 `latest/`, and `coverage/` subdirectories are no longer published.
 

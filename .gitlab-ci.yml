@@ -157,6 +157,7 @@ show-env-vars:
     paths:
       - html/
       - forces_doc.pdf
+      - latex/refman.log
       - doxygen_log.txt
       - doxygen_warn.txt
       - doxygen_latex.txt
