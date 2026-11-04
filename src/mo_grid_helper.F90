@@ -940,7 +940,12 @@ contains
       call error_message("check_offset: cell size must be positive and tolerance nonnegative.")
     displacement = (coarse_ll - fine_ll) / fine_cellsize
     if (.not. all(ieee_is_finite(displacement))) call error_message("check_offset: displacement is not finite.")
-    rounded = anint(displacement)
+    ! Reject out-of-range values before rounding or integer conversion.
+    ! Half-cell ties round away from zero and would exceed the i4 range here.
+    if (any(displacement >= real(huge(0_i4), dp) + 0.5_dp) .or. &
+        any(displacement <= -real(huge(0_i4), dp) - 1.5_dp)) &
+      call error_message("check_offset: displacement is outside the integer(i4) range.")
+    rounded = real(nint(displacement, kind=i8), dp)
     if (any(abs(displacement - rounded) > tol_)) &
       call error_message("check_offset: lower-left displacement must be an integer number of fine cells.")
     if (any(rounded > real(huge(0_i4), dp)) .or. any(rounded < -real(huge(0_i4), dp) - 1.0_dp)) &

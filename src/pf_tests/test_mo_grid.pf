@@ -66,6 +66,13 @@ contains
     @assertEqual(shift, [-3_i4, 5_i4])
     call check_offset([0.0_dp, 0.0_dp], [2.0_dp + 1.e-8_dp, -1.0_dp], 1.0_dp, shift)
     @assertEqual(shift, [2_i4, -1_i4])
+    call check_offset([0.0_dp, 0.0_dp], &
+      [real(huge(0_i4), dp), -real(huge(0_i4), dp) - 1.0_dp], 1.0_dp, shift)
+    @assertEqual(shift, [huge(0_i4), -huge(0_i4) - 1_i4])
+    ! Values just beyond the endpoints can still round to a representable offset.
+    call check_offset([0.0_dp, 0.0_dp], &
+      [real(huge(0_i4), dp) + 0.25_dp, -real(huge(0_i4), dp) - 1.25_dp], 1.0_dp, shift, tol=0.25_dp)
+    @assertEqual(shift, [huge(0_i4), -huge(0_i4) - 1_i4])
     do fd = top_down, bottom_up
       do cd = top_down, bottom_up
         fj = 6_i4

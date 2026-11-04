@@ -48,6 +48,8 @@ if(PFUNIT_FOUND)
     set(offset_error_cases
       "fractional|check_offset: lower-left displacement must be an integer"
       "offset_range|check_offset: displacement is outside"
+      "offset_range_negative|check_offset: displacement is outside"
+      "offset_range_large|check_offset: displacement is outside"
       "offset_nonfinite|check_offset: origins, cell size and tolerance must be finite"
       "lost_coverage|active fine cell outside coarse extent"
       "fine_padding|derive_fine_grid: fine extent must lie inside"
