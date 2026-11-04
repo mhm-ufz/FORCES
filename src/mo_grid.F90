@@ -2902,24 +2902,31 @@ contains
     logical, optional, intent(in) :: check_mask
     integer(i4) :: factor, offset(2), ic, jc
     integer(i8) :: k
-    logical :: check_mask_
+    logical :: check_mask_, outside_extent, outside_mask
 
     offset = this%get_offset(coarse_grid, tol)
     call check_factor(this%cellsize, coarse_grid%cellsize, factor=factor, tol=tol)
     check_mask_ = optval(check_mask, .true.)
-    !$omp parallel do default(shared) private(ic,jc) schedule(static)
+    outside_extent = .false.
+    outside_mask = .false.
+    !$omp parallel do default(shared) private(ic,jc) reduction(.or.:outside_extent,outside_mask) schedule(static)
     do k = 1_i8, this%ncells
       call coarse_ij(factor, this%cell_ij(k,1), this%cell_ij(k,2), this%y_direction, this%ny, &
                      coarse_grid%y_direction, coarse_grid%ny, ic, jc, offset)
       if (ic < 1_i4 .or. ic > coarse_grid%nx .or. jc < 1_i4 .or. jc > coarse_grid%ny) then
-        call error_message("grid % check_is_covered_by: active fine cell outside coarse extent.")
+        outside_extent = .true.
+        cycle
       end if
       if (check_mask_) then
-        if (.not. coarse_grid%mask(ic,jc)) &
-          call error_message("grid % check_is_covered_by: fine cells outside of coarse mask.")
+        outside_mask = outside_mask .or. (.not. coarse_grid%mask(ic,jc))
       end if
     end do
     !$omp end parallel do
+    ! Report once, after all workers have left the parallel region.
+    if (outside_extent) &
+      call error_message("grid % check_is_covered_by: active fine cell outside coarse extent.")
+    if (outside_mask) &
+      call error_message("grid % check_is_covered_by: fine cells outside of coarse mask.")
   end subroutine grid_check_is_covered_by
 
   !> \brief check if given grid is covering finer grid
@@ -2948,23 +2955,32 @@ contains
     logical, optional, intent(in) :: check_mask
     integer(i4) :: factor, offset(2), i_lb, i_ub, j_lb, j_ub
     integer(i8) :: k
-    logical :: check_mask_
+    logical :: check_mask_, outside_extent, outside_mask
 
     offset = fine_grid%get_offset(this, tol)
     call check_factor(fine_grid%cellsize, this%cellsize, factor=factor, tol=tol)
     check_mask_ = optval(check_mask, .true.)
-    !$omp parallel do default(shared) private(i_lb,i_ub,j_lb,j_ub) schedule(static)
+    outside_extent = .false.
+    outside_mask = .false.
+    !$omp parallel do default(shared) private(i_lb,i_ub,j_lb,j_ub) &
+    !$omp& reduction(.or.:outside_extent,outside_mask) schedule(static)
     do k = 1_i8, this%ncells
       call id_bounds(factor, this%cell_ij(k,1), this%cell_ij(k,2), this%y_direction, this%ny, &
                      fine_grid%y_direction, fine_grid%nx, fine_grid%ny, i_lb, i_ub, j_lb, j_ub, offset)
-      if (i_lb > i_ub .or. j_lb > j_ub) &
-        call error_message("grid % check_is_filled_by: active coarse cell outside fine extent.")
+      if (i_lb > i_ub .or. j_lb > j_ub) then
+        outside_extent = .true.
+        cycle
+      end if
       if (check_mask_) then
-        if (.not. any(fine_grid%mask(i_lb:i_ub, j_lb:j_ub))) &
-          call error_message("grid % check_is_filled_by: coarse cells without any filling fine cells found.")
+        outside_mask = outside_mask .or. (.not. any(fine_grid%mask(i_lb:i_ub, j_lb:j_ub)))
       end if
     end do
     !$omp end parallel do
+    ! Report once, after all workers have left the parallel region.
+    if (outside_extent) &
+      call error_message("grid % check_is_filled_by: active coarse cell outside fine extent.")
+    if (outside_mask) &
+      call error_message("grid % check_is_filled_by: coarse cells without any filling fine cells found.")
   end subroutine grid_check_is_filled_by
 
   !> \brief check if given grid is filling coarser grid

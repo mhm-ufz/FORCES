@@ -52,6 +52,8 @@ if(PFUNIT_FOUND)
       "offset_range_large|check_offset: displacement is outside"
       "offset_nonfinite|check_offset: origins, cell size and tolerance must be finite"
       "lost_coverage|active fine cell outside coarse extent"
+      "uncovered_mask|fine cells outside of coarse mask"
+      "unfilled_mask|coarse cells without any filling fine cells found"
       "fine_padding|derive_fine_grid: fine extent must lie inside"
       "fine_excludes|derive_fine_grid: offset excludes required source cells"
       "coarse_empty|derive_coarse_grid: each coarse cell must overlap"

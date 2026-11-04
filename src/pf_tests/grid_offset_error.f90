@@ -9,6 +9,7 @@ program grid_offset_error
   type(grid_t), target :: fine, coarse
   type(scaler_t) :: scaler
   integer(i4) :: offset(2)
+  logical :: fine_mask(4,4), coarse_mask(2,2)
   character(len=40) :: scenario
 
   call get_command_argument(1, scenario)
@@ -29,6 +30,14 @@ program grid_offset_error
   case ('lost_coverage')
     fine%xllcorner = -1.0_dp
     call fine%check_is_covered_by(coarse)
+  case ('uncovered_mask')
+    coarse_mask = .false.
+    call coarse%init(2_i4, 2_i4, cellsize=2.0_dp, coordsys=cartesian, mask=coarse_mask)
+    call fine%check_is_covered_by(coarse)
+  case ('unfilled_mask')
+    fine_mask = .false.
+    call fine%init(4_i4, 4_i4, cellsize=1.0_dp, coordsys=cartesian, mask=fine_mask)
+    call coarse%check_is_filled_by(fine)
   case ('fine_padding')
     fine = coarse%derive_fine_grid(1.0_dp, offset=[1_i4, 0_i4])
   case ('fine_excludes')
