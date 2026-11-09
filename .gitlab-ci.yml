@@ -137,14 +137,15 @@ show-env-vars:
     - module use /global/apps/modulefiles
     - module load chs-fortran-conda/0.6.0
     - export PROJECT_NUMBER="$(cat version.txt)"
-    - doxygen doc/doxygen.config > doxygen_log.txt 2>&1
+    # Avoid Cairo PDF object streams, which fail intermittently in Tectonic's reader.
+    - CAIRO_DEBUG_PDF=1 doxygen doc/doxygen.config > doxygen_log.txt 2>&1
     - |
       printf 'Building PDF with Tectonic...\n'
       if ! (
         cd latex &&
-        tectonic -X compile --keep-intermediates --keep-logs refman.tex &&
+        tectonic -X compile -Z continue-on-errors --keep-intermediates --keep-logs refman.tex &&
         makeindex refman.idx &&
-        tectonic -X compile --keep-intermediates --keep-logs refman.tex
+        tectonic -X compile -Z continue-on-errors --keep-intermediates --keep-logs refman.tex
       ) > "doxygen_latex.txt" 2>&1; then
         tail -n 80 "doxygen_latex.txt"
         exit 1
@@ -157,6 +158,7 @@ show-env-vars:
     paths:
       - html/
       - forces_doc.pdf
+      - latex/refman.log
       - doxygen_log.txt
       - doxygen_warn.txt
       - doxygen_latex.txt

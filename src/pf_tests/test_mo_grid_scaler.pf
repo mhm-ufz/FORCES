@@ -29,7 +29,316 @@ module test_mo_grid_scaler
   public :: test_nearest_regridder_derived_mask_cartesian
   public :: test_nearest_regridder_derived_mask_spherical_aux
 
+  public :: test_offset_meteo_downscaling
+  public :: test_offset_upscaling
+  public :: test_offset_equal_resolution
+  public :: test_derived_rectangle_scaling
+  public :: test_offset_masked_downscaling
+  public :: test_periodic_regional_scaling
+
 contains
+  @test
+  subroutine test_periodic_regional_scaling()
+    type(grid_t), target :: source_grid, target_grid
+    type(scaler_t) :: scaler
+    integer(i4) :: sd, td, mode, cache, i, j, jg
+    real(dp) :: source(12,2), expected(14,2)
+    real(dp), allocatable :: result(:)
+    logical :: padded_mask(14,2)
+
+    do sd = top_down, bottom_up
+      do td = top_down, bottom_up
+        call source_grid%init(12_i4, 2_i4, yllcorner=-30.0_dp, cellsize=30.0_dp, &
+                              coordsys=spherical, y_direction=sd)
+        do j = 1_i4, 2_i4
+          jg = merge(j, 3_i4-j, sd == bottom_up)
+          do i = 1_i4, 12_i4
+            source(i,j) = real(100_i4*jg+i, dp)
+          end do
+        end do
+        do mode = 1_i4, 3_i4
+          select case (mode)
+          case (1_i4)
+            call target_grid%init(3_i4, 2_i4, xllcorner=315.0_dp, yllcorner=-15.0_dp, &
+                                  cellsize=15.0_dp, coordsys=spherical, y_direction=td)
+            do j = 1_i4, 2_i4
+              jg = merge(j, 3_i4-j, td == bottom_up)
+              expected(1:3,j) = real(100_i4*jg, dp) + [11.0_dp,12.0_dp,12.0_dp]
+            end do
+          case (2_i4)
+            call target_grid%init(2_i4, 2_i4, xllcorner=300.0_dp, yllcorner=-30.0_dp, &
+                                  cellsize=30.0_dp, coordsys=spherical, y_direction=td)
+            do j = 1_i4, 2_i4
+              jg = merge(j, 3_i4-j, td == bottom_up)
+              expected(1:2,j) = real(100_i4*jg, dp) + [11.0_dp,12.0_dp]
+            end do
+          case (3_i4)
+            call target_grid%init(1_i4, 1_i4, xllcorner=300.0_dp, yllcorner=-30.0_dp, &
+                                  cellsize=60.0_dp, coordsys=spherical, y_direction=td)
+            expected(1,1) = 161.5_dp
+          end select
+          @assertTrue(source_grid%is_periodic())
+          @assertFalse(target_grid%is_periodic())
+          allocate(result(target_grid%ncells))
+          do cache = 0_i4, 1_i4
+            call scaler%init(source_grid, target_grid, cache_bounds=cache == 1_i4)
+            call scaler%execute(source, result)
+            @assertEqual(result, target_grid%pack(expected(1:target_grid%nx,1:target_grid%ny)), tolerance=1.e-12_dp)
+            call scaler%execute(source_grid%pack(source), result)
+            @assertEqual(result, target_grid%pack(expected(1:target_grid%nx,1:target_grid%ny)), tolerance=1.e-12_dp)
+          end do
+          call scaler%destroy()
+          deallocate(result)
+        end do
+
+        call target_grid%init(6_i4, 1_i4, yllcorner=-30.0_dp, cellsize=60.0_dp, &
+                              coordsys=spherical, y_direction=td)
+        allocate(result(target_grid%ncells))
+        call scaler%init(source_grid, target_grid)
+        call scaler%execute(source, result)
+        @assertEqual(result, [151.5_dp,153.5_dp,155.5_dp,157.5_dp,159.5_dp,161.5_dp], tolerance=1.e-12_dp)
+        call scaler%destroy()
+        deallocate(result)
+
+        ! Inactive padding does not require source support or seam wrapping.
+        padded_mask = .true.
+        padded_mask(1,:) = .false.
+        padded_mask(14,:) = .false.
+        call target_grid%init(14_i4, 2_i4, xllcorner=-30.0_dp, yllcorner=-30.0_dp, &
+                              cellsize=30.0_dp, coordsys=spherical, mask=padded_mask, y_direction=td)
+        do j = 1_i4, 2_i4
+          jg = merge(j, 3_i4-j, td == bottom_up)
+          do i = 2_i4, 13_i4
+            expected(i,j) = real(100_i4*jg+i-1_i4, dp)
+          end do
+        end do
+        allocate(result(target_grid%ncells))
+        call scaler%init(source_grid, target_grid)
+        call scaler%execute(source, result)
+        @assertEqual(result, target_grid%pack(expected), tolerance=1.e-12_dp)
+        call scaler%destroy()
+        deallocate(result)
+        call target_grid%init(1_i4, 1_i4, xllcorner=390.0_dp, cellsize=30.0_dp, &
+                              coordsys=spherical, mask=reshape([.false.],[1,1]))
+        call scaler%init(source_grid, target_grid)
+        @assertEqual(target_grid%ncells, 0_i8, message='empty regional targets need no longitude support')
+        call scaler%destroy()
+      end do
+    end do
+  end subroutine test_periodic_regional_scaling
+
+  @test
+  subroutine test_offset_meteo_downscaling()
+    type(grid_t), target :: coarse, fine
+    type(scaler_t) :: scaler
+    real(dp) :: source(6,5), expected(3,3), result(3,3), packed(9), split(9)
+    integer(i4) :: integers(3,3), fd, cd, cache, i, j, jg, xl, xu, yl, yu
+
+    do cd = top_down, bottom_up
+      do fd = top_down, bottom_up
+        call coarse%init(6_i4, 5_i4, cellsize=4.0_dp, y_direction=cd)
+        call fine%init(3_i4, 3_i4, xllcorner=9.0_dp, yllcorner=7.0_dp, cellsize=1.0_dp, y_direction=fd)
+        do j = 1_i4, 5_i4
+          jg = merge(j, 6_i4-j, cd == bottom_up)
+          do i = 1_i4, 6_i4
+            source(i,j) = real(100_i4*jg+i, dp)
+          end do
+        end do
+        do j = 1_i4, 3_i4
+          jg = merge(j, 4_i4-j, fd == bottom_up)
+          expected(:,j) = merge(203.0_dp, 303.0_dp, jg == 1_i4)
+        end do
+        do cache = 0_i4, 1_i4
+          call scaler%init(coarse, fine, cache_bounds=cache == 1_i4)
+          @assertEqual(scaler%offset, [-9_i4, -7_i4])
+          call scaler%execute(source, result)
+          @assertEqual(result, expected, tolerance=1.e-12_dp)
+          call scaler%execute(coarse%pack(source), packed)
+          @assertEqual(packed, fine%pack(expected), tolerance=1.e-12_dp)
+          call scaler%execute(int(source,i4), integers)
+          @assertEqual(integers, int(expected,i4))
+          call scaler%execute(coarse%pack(int(source,i4)), result)
+          @assertEqual(result, expected, tolerance=1.e-12_dp)
+          call scaler%coarse_bounds(1_i4, 1_i4, xl, xu, yl, yu)
+          @assertEqual([xl, xu, yl, yu], [1_i4, 0_i4, 1_i4, 0_i4])
+          call scaler%execute(coarse%pack(source), split, downscaling_operator=down_split)
+          @assertEqual(sum(split), 506.0_dp, tolerance=1.e-12_dp)
+          do j = 1_i4, 3_i4
+            jg = merge(j, 4_i4-j, fd == bottom_up)
+            result(:,j) = expected(:,j) / merge(3.0_dp, 6.0_dp, jg == 1_i4)
+          end do
+          @assertEqual(split, fine%pack(result), tolerance=1.e-12_dp)
+        end do
+        call scaler%destroy()
+        @assertEqual(scaler%offset, [0_i4, 0_i4])
+      end do
+    end do
+  end subroutine test_offset_meteo_downscaling
+
+  @test
+  subroutine test_offset_upscaling()
+    type(grid_t), target :: fine, coarse
+    type(scaler_t) :: scaler
+    real(dp) :: source(6,4), weights(6,4), out(2)
+    logical :: mask(6,4)
+    integer(i4) :: d, i, j, jg, cache
+    integer(i8) :: loc(2), expected_loc(2)
+
+    do d = top_down, bottom_up
+      call fine%init(6_i4, 4_i4, cellsize=1.0_dp, y_direction=d)
+      call coarse%init(2_i4, 1_i4, xllcorner=1.0_dp, yllcorner=1.0_dp, cellsize=2.0_dp)
+      weights = 1.0_dp
+      do j = 1_i4, 4_i4
+        jg = merge(j, 5_i4-j, d == bottom_up)
+        do i = 1_i4, 6_i4
+          source(i,j) = real(i+10_i4*jg, dp)
+        end do
+        if (jg == 2_i4) weights(2,j) = 3.0_dp
+      end do
+      fine%cell_area = fine%pack(weights)
+      do cache = 0_i4, 1_i4
+        call scaler%init(fine, coarse, weight_mode=weight_count, cache_bounds=cache == 1_i4)
+        @assertEqual(scaler%offset, [1_i4, 1_i4])
+        @assertTrue(scaler%id_map(1) < 1_i8, message='source cells outside the target are unmapped')
+        call scaler%execute(source, out)
+        @assertEqual(out, [27.5_dp, 29.5_dp], tolerance=1.e-12_dp)
+        call scaler%execute(fine%pack(source), out, upscaling_operator=up_sum)
+        @assertEqual(out, [110.0_dp, 118.0_dp], tolerance=1.e-12_dp)
+        call scaler%execute(source, out, upscaling_operator=up_var)
+        @assertEqual(out, [25.25_dp, 25.25_dp], tolerance=1.e-12_dp)
+        call scaler%execute(int(source,i4), out, upscaling_operator=up_median)
+        @assertEqual(out, [27.5_dp, 29.5_dp], tolerance=1.e-12_dp)
+        call scaler%maxloc(source, loc)
+        expected_loc = [fine%cell_id([3_i4, merge(3_i4, 2_i4, d == bottom_up)]), &
+                        fine%cell_id([5_i4, merge(3_i4, 2_i4, d == bottom_up)])]
+        @assertEqual(loc, expected_loc)
+        call scaler%init(fine, coarse, weight_mode=weight_area, cache_bounds=cache == 1_i4)
+        call scaler%execute(source, out)
+        @assertEqual(out, [154.0_dp/6.0_dp, 29.5_dp], tolerance=1.e-12_dp)
+      end do
+      mask = .true.
+      mask(4:5,:) = .false.
+      call fine%init(6_i4, 4_i4, cellsize=1.0_dp, mask=mask, y_direction=d)
+      call scaler%init(fine, coarse, fill_missing=.true., weight_mode=weight_count)
+      call scaler%execute(fine%pack(source), out)
+      @assertEqual(out, [27.5_dp, 27.5_dp], tolerance=1.e-12_dp)
+    end do
+  end subroutine test_offset_upscaling
+
+  @test
+  subroutine test_derived_rectangle_scaling()
+    type(grid_t), target :: source_grid, target_grid
+    type(scaler_t) :: scaler
+    integer(i4) :: direction, mode, i, j, jg, si, sj
+    integer(i8) :: k
+    real(dp) :: source(2,2), resolution
+    real(dp), allocatable :: result(:), expected(:)
+    logical :: mask(2,2)
+
+    do direction = top_down, bottom_up
+      mask = .true.
+      mask(2,merge(1_i4,2_i4,direction == bottom_up)) = .false.
+      call source_grid%init(2_i4,2_i4,cellsize=2.0_dp,mask=mask,y_direction=direction)
+      do j = 1_i4, 2_i4
+        jg = merge(j,3_i4-j,direction == bottom_up)
+        do i = 1_i4, 2_i4
+          source(i,j) = real(10_i4*jg+i,dp)
+        end do
+      end do
+      do mode = 1_i4, 3_i4
+        resolution = real(2_i4 ** (mode-1_i4),dp)
+        call source_grid%gen_grid(target_grid,target_resolution=resolution, &
+          llcorner=[-4.0_dp,-4.0_dp],dims=[12_i4,12_i4],estimate_aux=.false.)
+        allocate(result(target_grid%ncells),expected(target_grid%ncells))
+        do k = 1_i8, target_grid%ncells
+          if (mode == 3_i4) then
+            expected(k) = 18.0_dp
+          else
+            si = int(target_grid%x_center(target_grid%cell_ij(k,1))/2.0_dp,i4) + 1_i4
+            sj = int(target_grid%y_center(target_grid%cell_ij(k,2))/2.0_dp,i4) + 1_i4
+            expected(k) = real(10_i4*sj+si,dp)
+          end if
+        end do
+        call scaler%init(source_grid,target_grid)
+        call scaler%execute(source,result)
+        @assertEqual(result, expected, tolerance=1.e-12_dp)
+        call scaler%execute(source_grid%pack(source),result)
+        @assertEqual(result, expected, tolerance=1.e-12_dp)
+        call scaler%destroy()
+        deallocate(result,expected)
+      end do
+    end do
+  end subroutine test_derived_rectangle_scaling
+
+  @test
+  subroutine test_offset_equal_resolution()
+    type(grid_t), target :: source_grid, target_grid
+    type(scaler_t) :: scaler
+    real(dp) :: source(5,4), expected(2,2), result(2,2), packed(4)
+    integer(i4) :: integers(2,2), sd, td, i, j, jg
+
+    do sd = top_down, bottom_up
+      do td = top_down, bottom_up
+        call source_grid%init(5_i4, 4_i4, cellsize=1.0_dp, y_direction=sd)
+        call target_grid%init(2_i4, 2_i4, xllcorner=2.0_dp, yllcorner=1.0_dp, cellsize=1.0_dp, y_direction=td)
+        do j = 1_i4, 4_i4
+          jg = merge(j, 5_i4-j, sd == bottom_up)
+          do i = 1_i4, 5_i4
+            source(i,j) = real(i+10_i4*jg, dp)
+          end do
+        end do
+        do j = 1_i4, 2_i4
+          jg = merge(j, 3_i4-j, td == bottom_up) + 1_i4
+          expected(:,j) = real([3_i4, 4_i4] + 10_i4*jg, dp)
+        end do
+        call scaler%init(source_grid, target_grid)
+        call scaler%execute(source, result)
+        @assertEqual(result, expected, tolerance=1.e-12_dp)
+        call scaler%execute(source_grid%pack(source), packed)
+        @assertEqual(packed, target_grid%pack(expected), tolerance=1.e-12_dp)
+        call scaler%execute(int(source,i4), integers)
+        @assertEqual(integers, int(expected,i4))
+        call scaler%execute(source_grid%pack(int(source,i4)), result)
+        @assertEqual(result, expected, tolerance=1.e-12_dp)
+        call scaler%execute(int(source,i4), result, upscaling_operator=up_fraction, class_id=23_i4)
+        @assertEqual(result, merge(1.0_dp, 0.0_dp, int(expected,i4) == 23_i4), tolerance=1.e-12_dp)
+        call scaler%execute(source, packed, upscaling_operator=up_var)
+        @assertEqual(packed, [0.0_dp, 0.0_dp, 0.0_dp, 0.0_dp], tolerance=1.e-12_dp)
+      end do
+    end do
+    call scaler%init(source_grid, source_grid)
+    @assertEqual(scaler%offset, [0_i4, 0_i4], message='reinitialization clears the previous offset')
+  end subroutine test_offset_equal_resolution
+
+  @test
+  subroutine test_offset_masked_downscaling()
+    type(grid_t), target :: coarse, fine
+    type(scaler_t) :: scaler
+    real(dp) :: out(2)
+    logical, allocatable :: missing(:,:)
+
+    call coarse%init(3_i4, 1_i4, cellsize=2.0_dp, mask=reshape([.true., .false., .false.], [3,1]))
+    call fine%init(2_i4, 1_i4, xllcorner=2.0_dp, cellsize=1.0_dp)
+    call fine%uncovered_mask(coarse, missing)
+    @assertTrue(all(missing))
+    call scaler%init(coarse, fine, fill_missing=.true.)
+    call scaler%execute([10.0_dp], out)
+    @assertEqual(out, [10.0_dp, 10.0_dp], tolerance=1.e-12_dp)
+    call scaler%execute([10.0_dp], out, downscaling_operator=down_split)
+    @assertEqual(out, [5.0_dp, 5.0_dp], tolerance=1.e-12_dp)
+    call fine%init(2_i4, 1_i4, xllcorner=2.0_dp, cellsize=1.0_dp, mask=reshape([.true., .false.], [2,1]))
+    call scaler%init(coarse, fine, fill_missing=.true.)
+    call scaler%execute([10.0_dp], out(1:1), downscaling_operator=down_split)
+    @assertEqual(out(1), 10.0_dp, tolerance=1.e-12_dp, message='split counts participating active fine cells')
+
+    call coarse%init(3_i4, 1_i4, cellsize=2.0_dp)
+    call fine%init(3_i4, 1_i4, xllcorner=-1.0_dp, cellsize=1.0_dp, &
+                   mask=reshape([.false., .true., .true.], [3,1]))
+    call scaler%init(coarse, fine)
+    call scaler%execute([10.0_dp, 20.0_dp, 30.0_dp], out)
+    @assertEqual(out, [10.0_dp, 10.0_dp], tolerance=1.e-12_dp, message='inactive target borders need no coverage')
+  end subroutine test_offset_masked_downscaling
+
 
   @test
   subroutine test_regrid()

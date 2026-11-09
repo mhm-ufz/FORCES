@@ -51,7 +51,460 @@ module test_mo_grid
   public :: test_ascii_roundtrip
   public :: test_netcdf_helpers
 
+  public :: test_integer_offset_helpers
+  public :: test_offset_derivation
+  public :: test_offset_aux_directions
+  public :: test_derivation_rectangles
+  public :: test_derivation_crop_aux
+  public :: test_derivation_padded_origins
+  public :: test_mask_extent
+  public :: test_periodic_derivation_rectangles
+
 contains
+  @test
+  subroutine test_integer_offset_helpers()
+    use mo_grid_helper, only: check_offset, coarse_ij, id_bounds, calculate_coarse_extent
+    integer(i4) :: shift(2), fd, cd, fj, cj, ci, xl, xu, yl, yu, nx, ny
+    real(dp) :: xll, yll, h
+
+    call check_offset([100.0_dp, 200.0_dp], [97.0_dp, 205.0_dp], 1.0_dp, shift)
+    @assertEqual(shift, [-3_i4, 5_i4])
+    call check_offset([0.0_dp, 0.0_dp], [2.0_dp + 1.e-8_dp, -1.0_dp], 1.0_dp, shift)
+    @assertEqual(shift, [2_i4, -1_i4])
+    call check_offset([0.0_dp, 0.0_dp], &
+      [real(huge(0_i4), dp), -real(huge(0_i4), dp) - 1.0_dp], 1.0_dp, shift)
+    @assertEqual(shift, [huge(0_i4), -huge(0_i4) - 1_i4])
+    ! Values just beyond the endpoints can still round to a representable offset.
+    call check_offset([0.0_dp, 0.0_dp], &
+      [real(huge(0_i4), dp) + 0.25_dp, -real(huge(0_i4), dp) - 1.25_dp], 1.0_dp, shift, tol=0.25_dp)
+    @assertEqual(shift, [huge(0_i4), -huge(0_i4) - 1_i4])
+    do fd = top_down, bottom_up
+      do cd = top_down, bottom_up
+        fj = 6_i4
+        if (fd == top_down) fj = 1_i4
+        call coarse_ij(4_i4, 5_i4, fj, fd, 6_i4, cd, 2_i4, ci, cj, [-1_i4, -2_i4])
+        @assertEqual(ci, 2_i4)
+        @assertEqual(cj, merge(2_i4, 1_i4, cd == bottom_up))
+        cj = merge(1_i4, 2_i4, cd == bottom_up)
+        call id_bounds(4_i4, 1_i4, cj, cd, 2_i4, fd, 5_i4, 6_i4, xl, xu, yl, yu, [-1_i4, -2_i4])
+        @assertEqual([xl, xu], [1_i4, 3_i4])
+        if (fd == bottom_up) then
+          @assertEqual([yl, yu], [1_i4, 2_i4])
+        else
+          @assertEqual([yl, yu], [5_i4, 6_i4])
+        end if
+      end do
+    end do
+    call coarse_ij(4_i4, 2_i4, 1_i4, bottom_up, 1_i4, bottom_up, 1_i4, ci, cj, [2_i4, 0_i4])
+    @assertEqual(ci, 0_i4, message='negative coordinates require floor division')
+    call id_bounds(4_i4, 5_i4, 1_i4, bottom_up, 2_i4, bottom_up, 5_i4, 6_i4, xl, xu, yl, yu, [-1_i4, -2_i4])
+    @assertEqual([xl, xu, yl, yu], [1_i4, 0_i4, 1_i4, 0_i4])
+    call id_bounds(huge(0_i4), huge(0_i4), 1_i4, bottom_up, 1_i4, bottom_up, &
+                   5_i4, 6_i4, xl, xu, yl, yu, [huge(0_i4), 0_i4])
+    @assertEqual([xl, xu, yl, yu], [1_i4, 0_i4, 1_i4, 0_i4])
+    call calculate_coarse_extent(5_i4, 6_i4, 0.0_dp, 0.0_dp, 1.0_dp, 4.0_dp, &
+                                 nx, ny, xll, yll, h, llcorner=[-1.0_dp,-2.0_dp])
+    @assertEqual([nx, ny], [2_i4, 2_i4])
+    @assertEqual([xll, yll, h], [-1.0_dp, -2.0_dp, 4.0_dp], tolerance=1.e-12_dp)
+  end subroutine test_integer_offset_helpers
+
+  @test
+  subroutine test_offset_derivation()
+    type(grid_t) :: fine, coarse, plain, masked, refined, empty
+    integer(i4) :: d, i, j, jb, dims(2)
+    real(dp) :: corner(2)
+    logical :: mask(5,5)
+
+    do d = top_down, bottom_up
+      call fine%init(5_i4, 4_i4, xllcorner=100.0_dp, yllcorner=200.0_dp, cellsize=1.0_dp, y_direction=d)
+      allocate(fine%lon(5,4), fine%lat(5,4))
+      do j = 1_i4, 4_i4
+        fine%lat(:,j) = fine%y_center(j)
+        do i = 1_i4, 5_i4
+          fine%lon(i,j) = fine%x_center(i)
+        end do
+      end do
+      coarse = fine%derive_grid(upscaling_factor=3_i4, llcorner=[99.0_dp,198.0_dp])
+      @assertEqual([coarse%nx, coarse%ny], [2_i4, 2_i4])
+      @assertEqual(fine%get_offset(coarse), [-1_i4, -2_i4])
+      @assertEqual(coarse%total_area(), fine%total_area(), tolerance=1.e-12_dp)
+      @assertEqual(coarse%lon(:,1), [101.0_dp, 103.5_dp], tolerance=1.e-12_dp)
+      jb = merge(1_i4, 2_i4, d == bottom_up)
+      @assertEqual(coarse%lat(1,jb), 200.5_dp, tolerance=1.e-12_dp)
+      @assertEqual(coarse%lat(1,3_i4-jb), 202.5_dp, tolerance=1.e-12_dp)
+      coarse = fine%derive_coarse_grid(3.0_dp, llcorner=[99.0_dp,198.0_dp], area_method=area_count)
+      @assertEqual(coarse%total_area(), fine%total_area(), tolerance=1.e-12_dp)
+      coarse = fine%derive_coarse_grid(3.0_dp, llcorner=[99.0_dp,198.0_dp], area_method=area_full)
+      @assertEqual(coarse%total_area(), 36.0_dp, tolerance=1.e-12_dp)
+      plain = fine%derive_coarse_grid(3.0_dp)
+      @assertEqual([plain%xllcorner, plain%yllcorner], [100.0_dp, 200.0_dp], tolerance=1.e-12_dp)
+      @assertEqual(plain%total_area(), fine%total_area(), tolerance=1.e-12_dp)
+
+      mask = .false.
+      do j = 2_i4, 3_i4
+        jb = merge(j, 6_i4-j, d == bottom_up)
+        mask(2:3,jb) = .true.
+      end do
+      call masked%init(5_i4, 5_i4, cellsize=2.0_dp, mask=mask, y_direction=d)
+      allocate(masked%lon(5,5), masked%lat(5,5))
+      do j = 1_i4, 5_i4
+        masked%lat(:,j) = masked%y_center(j)
+        do i = 1_i4, 5_i4
+          masked%lon(i,j) = masked%x_center(i)
+        end do
+      end do
+      plain = masked%derive_fine_grid(1.0_dp)
+      @assertEqual([plain%nx, plain%ny], [10_i4, 10_i4], message='default derivation preserves source extent')
+      call masked%mask_extent(1.0_dp, dims, llcorner=corner)
+      refined = masked%derive_grid(downscaling_factor=2_i4, llcorner=corner, dims=dims)
+      @assertEqual([refined%nx, refined%ny], [4_i4, 4_i4])
+      @assertEqual([refined%xllcorner, refined%yllcorner], [2.0_dp, 2.0_dp], tolerance=1.e-12_dp)
+      @assertTrue(all(refined%mask))
+      @assertEqual(refined%total_area(), masked%total_area(), tolerance=1.e-12_dp)
+      @assertEqual(refined%lon(:,1), [2.5_dp, 3.5_dp, 4.5_dp, 5.5_dp], tolerance=1.e-12_dp)
+      jb = merge(1_i4, 4_i4, d == bottom_up)
+      @assertEqual(refined%lat(1,jb), 2.5_dp, tolerance=1.e-12_dp)
+      call masked%mask_extent(4.0_dp, dims, llcorner=corner)
+      coarse = masked%derive_coarse_grid(4.0_dp, llcorner=corner, dims=dims)
+      @assertEqual([coarse%nx, coarse%ny], [1_i4, 1_i4])
+      @assertEqual([coarse%xllcorner, coarse%yllcorner], [2.0_dp, 2.0_dp], tolerance=1.e-12_dp)
+      @assertEqual(coarse%total_area(), masked%total_area(), tolerance=1.e-12_dp)
+    end do
+
+    call empty%init(3_i4, 2_i4, cellsize=2.0_dp, mask=reshape([(.false., i=1,6)], [3,2]))
+    call empty%mask_extent(4.0_dp, dims)
+    coarse = empty%derive_coarse_grid(4.0_dp, dims=dims)
+    @assertEqual([coarse%nx, coarse%ny], [2_i4, 1_i4])
+    @assertEqual(coarse%ncells, 0_i8)
+    call empty%mask_extent(1.0_dp, dims)
+    refined = empty%derive_fine_grid(1.0_dp, dims=dims)
+    @assertEqual([refined%nx, refined%ny], [6_i4, 4_i4])
+    @assertEqual(refined%ncells, 0_i8)
+  end subroutine test_offset_derivation
+
+  @test
+  subroutine test_mask_extent()
+    type(grid_t) :: source, target
+    integer(i4) :: direction, mode, i, j, dims(2), expected_auto(2,4), expected_source(2,4), expected_fixed(2,4)
+    real(dp) :: resolutions(4), corner(2)
+    logical :: mask(6,5)
+
+    resolutions = [1.0_dp, 2.0_dp, 4.0_dp, 6.0_dp]
+    ! Source bounds: (100,200)-(112,210); mask bounds: (102,202)-(112,210).
+    expected_auto = reshape([10_i4,8_i4, 5_i4,4_i4, 3_i4,2_i4, 2_i4,2_i4], [2,4])
+    expected_source = reshape([12_i4,10_i4, 6_i4,5_i4, 3_i4,3_i4, 2_i4,2_i4], [2,4])
+    expected_fixed = reshape([14_i4,12_i4, 7_i4,6_i4, 4_i4,3_i4, 3_i4,2_i4], [2,4])
+    do direction = top_down, bottom_up
+      mask = .false.
+      j = merge(2_i4, 4_i4, direction == bottom_up)
+      mask(2,j) = .true.
+      j = merge(5_i4, 1_i4, direction == bottom_up)
+      mask(6,j) = .true.
+      call source%init(6_i4, 5_i4, xllcorner=100.0_dp, yllcorner=200.0_dp, cellsize=2.0_dp, &
+                       mask=mask, y_direction=direction)
+      allocate(source%lon(6,5), source%lat(6,5))
+      do j = 1_i4, 5_i4
+        source%lat(:,j) = source%y_center(j)
+        do i = 1_i4, 6_i4
+          source%lon(i,j) = source%x_center(i)
+        end do
+      end do
+      do mode = 1_i4, 4_i4
+        call source%mask_extent(resolutions(mode), dims)
+        @assertEqual(dims, expected_source(:,mode), message='without optional corners keep the source origin')
+        call source%mask_extent(resolutions(mode), dims, llcorner=corner)
+        @assertEqual(corner, [102.0_dp,202.0_dp], tolerance=1.e-12_dp, message='use the exact geographic mask bbox corner')
+        @assertEqual(dims, expected_auto(:,mode))
+        target = source%derive_grid(target_resolution=resolutions(mode), dims=dims, llcorner=corner)
+        @assertEqual(target%total_area(), 8.0_dp, tolerance=1.e-12_dp, message='automatic mask sizing retains all active source cells')
+        @assertTrue(target%has_aux_coords(), message='automatic mask sizing supports auxiliary estimation including partial edges')
+        if (mode == 3_i4) then
+          @assertEqual(target%lon(3,1), 111.0_dp, tolerance=1.e-12_dp, message='partial edge coordinates use available source cells')
+        end if
+        call source%mask_extent(resolutions(mode), dims, origin=[98.0_dp,198.0_dp])
+        @assertEqual(dims, expected_fixed(:,mode))
+        corner = 0.0_dp
+        call source%mask_extent(resolutions(mode), dims, llcorner=corner, origin=[98.0_dp,198.0_dp])
+        @assertEqual(corner, [98.0_dp,198.0_dp], tolerance=1.e-12_dp, message='an explicit origin overrides bbox estimation')
+        @assertEqual(dims, expected_fixed(:,mode))
+      end do
+      ! Alignment tolerance is expressed in fine cells, consistently with grid derivation.
+      call source%mask_extent(4.0_dp, dims, origin=[102.00001_dp,202.0_dp], tol=1.e-4_dp)
+      @assertEqual(dims, [3_i4,2_i4])
+
+      ! With inactive upper/right borders, helper sizing differs from default full-grid derivation.
+      mask = .false.
+      j = merge(2_i4, 4_i4, direction == bottom_up)
+      mask(2,j) = .true.
+      mask(4,3) = .true.
+      call source%init(6_i4, 5_i4, xllcorner=100.0_dp, yllcorner=200.0_dp, cellsize=2.0_dp, &
+                       mask=mask, y_direction=direction)
+      call source%mask_extent(2.0_dp, dims)
+      @assertEqual(dims, [4_i4,3_i4], message='default helper origin retains inactive lower/left borders only')
+      target = source%derive_coarse_grid(2.0_dp)
+      @assertEqual([target%nx,target%ny], [6_i4,5_i4], message='derivation without dims always covers the full source')
+      call source%mask_extent(2.0_dp, dims, llcorner=corner)
+      @assertEqual(corner, [102.0_dp,202.0_dp], tolerance=1.e-12_dp)
+      @assertEqual(dims, [3_i4,2_i4])
+
+      mask = .false.
+      call source%init(6_i4, 5_i4, xllcorner=100.0_dp, yllcorner=200.0_dp, cellsize=2.0_dp, &
+                       mask=mask, y_direction=direction)
+      do mode = 1_i4, 4_i4
+        call source%mask_extent(resolutions(mode), dims)
+        @assertEqual(dims, expected_source(:,mode))
+        call source%mask_extent(resolutions(mode), dims, llcorner=corner)
+        @assertEqual(corner, [100.0_dp,200.0_dp], tolerance=1.e-12_dp, message='empty mask uses the full source corner')
+        @assertEqual(dims, expected_source(:,mode))
+        call source%mask_extent(resolutions(mode), dims, origin=[98.0_dp,198.0_dp])
+        @assertEqual(dims, expected_fixed(:,mode))
+        call source%mask_extent(resolutions(mode), dims, llcorner=corner, origin=[98.0_dp,198.0_dp])
+        @assertEqual(corner, [98.0_dp,198.0_dp], tolerance=1.e-12_dp)
+        @assertEqual(dims, expected_fixed(:,mode))
+      end do
+    end do
+  end subroutine test_mask_extent
+
+  @test
+  subroutine test_derivation_rectangles()
+    type(grid_t) :: source, target
+    integer(i4) :: direction, mode, i, j, si, sj, source_j
+    real(dp) :: resolution, x0, y0, sx0, sy0, overlap
+    logical :: mask(4,3), expected_mask(20,18)
+    real(dp) :: expected_area(20,18)
+
+    do direction = top_down, bottom_up
+      mask = .false.
+      do j = 1_i4, 3_i4
+        source_j = merge(j, 4_i4-j, direction == bottom_up)
+        do i = 1_i4, 4_i4
+          mask(i,source_j) = mod(i+j, 3_i4) /= 0_i4
+        end do
+      end do
+      call source%init(4_i4, 3_i4, xllcorner=10.0_dp, yllcorner=20.0_dp, cellsize=2.0_dp, &
+                       mask=mask, y_direction=direction)
+      do mode = 1_i4, 3_i4
+        resolution = real(2_i4 ** (mode-1_i4), dp)
+        call source%gen_grid(target, target_resolution=resolution, llcorner=[2.0_dp,12.0_dp], &
+                             dims=[20_i4,18_i4], estimate_aux=.false.)
+        ! Independent rectangle intersections in geographic coordinates; edge-only contact has zero area.
+        expected_area = 0.0_dp
+        do j = 1_i4, 18_i4
+          y0 = 12.0_dp + real(merge(j-1_i4,18_i4-j,direction == bottom_up),dp) * resolution
+          do i = 1_i4, 20_i4
+            x0 = 2.0_dp + real(i-1_i4,dp) * resolution
+            do sj = 1_i4, 3_i4
+              source_j = merge(sj,4_i4-sj,direction == bottom_up)
+              sy0 = 20.0_dp + real(sj-1_i4,dp) * 2.0_dp
+              do si = 1_i4, 4_i4
+                if (.not. mask(si,source_j)) cycle
+                sx0 = 10.0_dp + real(si-1_i4,dp) * 2.0_dp
+                overlap = max(0.0_dp,min(x0+resolution,sx0+2.0_dp)-max(x0,sx0)) * &
+                          max(0.0_dp,min(y0+resolution,sy0+2.0_dp)-max(y0,sy0))
+                expected_area(i,j) = expected_area(i,j) + overlap
+              end do
+            end do
+          end do
+        end do
+        expected_mask = expected_area > 0.0_dp
+        @assertEqual([target%nx,target%ny], [20_i4,18_i4])
+        @assertEqual([target%xllcorner,target%yllcorner], [2.0_dp,12.0_dp], tolerance=1.e-12_dp)
+        @assertEqual(target%mask, expected_mask)
+        @assertEqual(target%cell_area, pack(expected_area,expected_mask), tolerance=1.e-12_dp)
+        @assertEqual(target%total_area(), source%total_area(), tolerance=1.e-12_dp)
+        @assertFalse(target%has_aux_coords())
+        if (mode == 3_i4) then
+          target = source%derive_coarse_grid(resolution, llcorner=[2.0_dp,12.0_dp], &
+            dims=[20_i4,18_i4], estimate_aux=.false., area_method=area_count)
+          @assertEqual(target%cell_area, pack(expected_area,expected_mask), tolerance=1.e-12_dp)
+          target = source%derive_coarse_grid(resolution, llcorner=[2.0_dp,12.0_dp], &
+            dims=[20_i4,18_i4], estimate_aux=.false., area_method=area_full)
+          @assertEqual(target%total_area(), real(count(expected_mask),dp)*resolution**2, tolerance=1.e-12_dp)
+        end if
+      end do
+
+      target = source%derive_coarse_grid(4.0_dp, llcorner=[100.0_dp,100.0_dp], &
+                                         dims=[3_i4,2_i4], estimate_aux=.false.)
+      @assertEqual(target%ncells, 0_i8, message='a disjoint coarse rectangle is entirely inactive')
+      @assertEqual(size(target%cell_area), 0)
+      target = source%derive_fine_grid(1.0_dp, llcorner=[-100.0_dp,-100.0_dp], &
+                                       dims=[3_i4,2_i4], estimate_aux=.false.)
+      @assertEqual(target%ncells, 0_i8, message='a disjoint fine rectangle is entirely inactive')
+      @assertEqual(size(target%cell_area), 0)
+      target = source%derive_grid(target_resolution=2.0_dp, llcorner=[12.0_dp,22.0_dp], &
+                                  dims=[1_i4,1_i4], estimate_aux=.false., estimate_area=.false.)
+      @assertEqual([target%nx,target%ny], [1_i4,1_i4], message='explicit dimensions allow source cropping')
+      @assertFalse(allocated(target%cell_area))
+      target = source%derive_fine_grid(2.0_dp,llcorner=[12.0_dp,22.0_dp],dims=[1_i4,1_i4],estimate_aux=.false.)
+      @assertEqual([target%xllcorner,target%yllcorner], [12.0_dp,22.0_dp], tolerance=1.e-12_dp, message='fine-grid entrypoint retains its mapping convention at equal resolution')
+      @assertEqual(target%ncells, 1_i8)
+      @assertEqual(target%cell_area(1), 4.0_dp, tolerance=1.e-12_dp)
+    end do
+  end subroutine test_derivation_rectangles
+
+  @test
+  subroutine test_periodic_derivation_rectangles()
+    type(grid_t) :: source, target
+    integer(i4) :: direction, dims(2)
+    real(dp) :: corner(2)
+    logical :: mask(12,2)
+
+    do direction = top_down, bottom_up
+      call source%init(12_i4, 2_i4, yllcorner=-30.0_dp, cellsize=30.0_dp, &
+                       coordsys=spherical, y_direction=direction)
+      target = source%derive_grid(upscaling_factor=2_i4)
+      @assertTrue(target%is_periodic())
+      @assertEqual([target%nx,target%ny], [6_i4,1_i4])
+      @assertEqual(target%total_area(), source%total_area(), tolerance=1.0_dp)
+      target = source%derive_grid(downscaling_factor=2_i4)
+      @assertTrue(target%is_periodic())
+      @assertEqual([target%nx,target%ny], [24_i4,4_i4])
+      @assertEqual(target%total_area(), source%total_area(), tolerance=1.0_dp)
+      target = source%derive_grid(target_resolution=30.0_dp)
+      @assertTrue(target%is_periodic())
+      @assertEqual([target%nx,target%ny], [12_i4,2_i4])
+
+      target = source%derive_coarse_grid(60.0_dp, llcorner=[300.0_dp,-30.0_dp], dims=[1_i4,1_i4])
+      @assertFalse(target%is_periodic())
+      @assertTrue(all(target%mask))
+      @assertEqual(target%cell_area(1), 4.0_dp*source%cell_area(1), tolerance=1.0_dp)
+      target = source%derive_fine_grid(15.0_dp, llcorner=[315.0_dp,-15.0_dp], dims=[3_i4,2_i4])
+      @assertFalse(target%is_periodic())
+      @assertTrue(all(target%mask))
+      target = source%derive_coarse_grid(60.0_dp, llcorner=[0.0_dp,-90.0_dp], &
+                                         dims=[6_i4,2_i4], estimate_aux=.false.)
+      @assertTrue(target%is_periodic(), message='latitude padding remains supported')
+      @assertEqual(target%ncells, 6_i8)
+      target = source%derive_fine_grid(15.0_dp, llcorner=[0.0_dp,-60.0_dp], &
+                                       dims=[24_i4,6_i4], estimate_aux=.false.)
+      @assertTrue(target%is_periodic())
+      @assertEqual(target%ncells, 96_i8)
+
+      mask = .false.
+      mask(11:12,:) = .true.
+      call source%init(12_i4, 2_i4, yllcorner=-30.0_dp, cellsize=30.0_dp, &
+                       coordsys=spherical, y_direction=direction, mask=mask)
+      call source%mask_extent(60.0_dp, dims, llcorner=corner)
+      @assertEqual(corner, [300.0_dp,-30.0_dp], tolerance=1.e-12_dp)
+      @assertEqual(dims, [1_i4,1_i4])
+      target = source%derive_coarse_grid(60.0_dp, llcorner=corner, dims=dims)
+      @assertFalse(target%is_periodic())
+      @assertEqual(target%total_area(), source%total_area(), tolerance=1.0_dp)
+    end do
+  end subroutine test_periodic_derivation_rectangles
+
+  @test
+  subroutine test_derivation_crop_aux()
+    type(grid_t) :: source, target
+    integer(i4) :: direction, i, j
+
+    do direction = top_down, bottom_up
+      call source%init(6_i4, 4_i4, cellsize=1.0_dp, y_direction=direction)
+      allocate(source%lon(6,4),source%lat(6,4))
+      do j = 1_i4, 4_i4
+        source%lat(:,j) = source%y_center(j)
+        do i = 1_i4, 6_i4
+          source%lon(i,j) = source%x_center(i)
+        end do
+      end do
+      source%cell_area = 2.0_dp
+      call source%gen_coarse_grid(target, 2.0_dp, llcorner=[1.0_dp,1.0_dp], dims=[2_i4,1_i4])
+      @assertEqual(target%cell_area, [8.0_dp,8.0_dp], tolerance=1.e-12_dp, message='sum areas use only cropped source cells')
+      @assertEqual(target%lon(:,1), [2.0_dp,4.0_dp], tolerance=1.e-12_dp)
+      @assertEqual(target%lat(:,1), [2.0_dp,2.0_dp], tolerance=1.e-12_dp)
+      target = source%derive_coarse_grid(2.0_dp, llcorner=[1.0_dp,1.0_dp], dims=[2_i4,1_i4], area_method=area_full)
+      @assertEqual(target%cell_area, [4.0_dp,4.0_dp], tolerance=1.e-12_dp)
+      target = source%derive_coarse_grid(2.0_dp, llcorner=[1.0_dp,1.0_dp], dims=[2_i4,1_i4], area_method=area_count)
+      @assertEqual(target%cell_area, [4.0_dp,4.0_dp], tolerance=1.e-12_dp)
+      target = source%derive_coarse_grid(2.0_dp,llcorner=[-4.0_dp,-4.0_dp],dims=[5_i4,4_i4],estimate_aux=.false.)
+      @assertFalse(target%has_aux_coords(), message='explicitly disabling aux estimation permits padding with source aux present')
+      @assertEqual(target%total_area(), 48.0_dp, tolerance=1.e-12_dp)
+
+      call source%init(4_i4, 3_i4, cellsize=2.0_dp, y_direction=direction)
+      allocate(source%lon(4,3),source%lat(4,3))
+      do j = 1_i4, 3_i4
+        source%lat(:,j) = source%y_center(j)
+        do i = 1_i4, 4_i4
+          source%lon(i,j) = source%x_center(i)
+        end do
+      end do
+      call source%gen_fine_grid(target, 1.0_dp, llcorner=[1.0_dp,1.0_dp], dims=[3_i4,2_i4])
+      @assertEqual(target%lon(:,1), [1.5_dp,2.5_dp,3.5_dp], tolerance=1.e-12_dp)
+      do j = 1_i4, 2_i4
+        @assertEqual(target%lat(:,j), [(target%y_center(j),i=1,3)], tolerance=1.e-12_dp)
+      end do
+      @assertEqual(target%total_area(), 6.0_dp, tolerance=1.e-12_dp)
+      @assertFalse(source%has_aux_vertices())
+      target = source%derive_fine_grid(1.0_dp,llcorner=[-4.0_dp,-4.0_dp],dims=[16_i4,14_i4],estimate_aux=.false.)
+      @assertFalse(target%has_aux_coords())
+      @assertEqual(target%total_area(), 48.0_dp, tolerance=1.e-12_dp)
+    end do
+  end subroutine test_derivation_crop_aux
+
+  @test
+  subroutine test_derivation_padded_origins()
+    type(grid_t) :: source, target
+    integer(i4) :: direction, dims(2)
+    logical :: empty_mask(4,3)
+
+    empty_mask = .false.
+    do direction = top_down, bottom_up
+      call source%init(4_i4, 3_i4, cellsize=1.0_dp, y_direction=direction)
+      target = source%derive_coarse_grid(2.0_dp, llcorner=[-6.0_dp,-4.0_dp], estimate_aux=.false.)
+      @assertEqual([target%xllcorner,target%yllcorner], [-6.0_dp,-4.0_dp], tolerance=1.e-12_dp)
+      @assertEqual(source%get_offset(target), [-6_i4,-4_i4])
+      @assertEqual([target%nx,target%ny], [5_i4,4_i4])
+      @assertEqual(target%total_area(), 12.0_dp, tolerance=1.e-12_dp)
+      @assertEqual(target%ncells, 4_i8)
+      @assertFalse(any(target%mask(1:3,:)))
+
+      call source%init(4_i4, 3_i4, cellsize=2.0_dp, y_direction=direction)
+      target = source%derive_fine_grid(1.0_dp, llcorner=[-6.0_dp,-4.0_dp], estimate_aux=.false.)
+      @assertEqual([target%xllcorner,target%yllcorner], [-6.0_dp,-4.0_dp], tolerance=1.e-12_dp)
+      @assertEqual(target%get_offset(source), [6_i4,4_i4])
+      @assertEqual([target%nx,target%ny], [14_i4,10_i4])
+      @assertEqual(target%ncells, 48_i8)
+      @assertEqual(target%total_area(), 48.0_dp, tolerance=1.e-12_dp)
+      @assertFalse(any(target%mask(1:6,:)))
+
+      call source%init(4_i4, 3_i4, cellsize=2.0_dp, mask=empty_mask, y_direction=direction)
+      call source%mask_extent(4.0_dp, dims, origin=[-8.0_dp,-8.0_dp])
+      target = source%derive_coarse_grid(4.0_dp, llcorner=[-8.0_dp,-8.0_dp], dims=dims, estimate_aux=.false.)
+      @assertEqual([target%nx,target%ny], [4_i4,4_i4], message='empty masks retain full-source automatic bounds')
+      @assertEqual(target%ncells, 0_i8)
+      call source%mask_extent(1.0_dp, dims, origin=[-4.0_dp,-4.0_dp])
+      target = source%derive_fine_grid(1.0_dp, llcorner=[-4.0_dp,-4.0_dp], dims=dims, estimate_aux=.false.)
+      @assertEqual([target%nx,target%ny], [12_i4,10_i4])
+      @assertEqual(target%ncells, 0_i8)
+    end do
+  end subroutine test_derivation_padded_origins
+
+  @test
+  subroutine test_offset_aux_directions()
+    type(grid_t) :: fine, coarse
+    integer(i4) :: fd, cd, i, j
+
+    do cd = top_down, bottom_up
+      do fd = top_down, bottom_up
+        call coarse%init(2_i4, 2_i4, cellsize=2.0_dp, y_direction=cd)
+        allocate(coarse%lon(2,2), coarse%lat(2,2))
+        do j = 1_i4, 2_i4
+          coarse%lat(:,j) = coarse%y_center(j)
+          do i = 1_i4, 2_i4
+            coarse%lon(i,j) = coarse%x_center(i)
+          end do
+        end do
+        call fine%init(2_i4, 2_i4, xllcorner=1.0_dp, yllcorner=1.0_dp, cellsize=1.0_dp, y_direction=fd)
+        call fine%downscale_aux_coords(coarse)
+        @assertEqual(fine%lon(:,1), [1.5_dp, 2.5_dp], tolerance=1.e-12_dp)
+        do j = 1_i4, 2_i4
+          @assertEqual(fine%lat(1,j), fine%y_center(j), tolerance=1.e-12_dp)
+        end do
+        @assertFalse(coarse%has_aux_vertices(), message='temporary source vertices are released')
+      end do
+    end do
+  end subroutine test_offset_aux_directions
+
 
   @test
   subroutine test_grid()

@@ -38,6 +38,7 @@ module mo_grid_helper
   public :: id_bounds
   public :: dist_latlon
   public :: check_factor
+  public :: check_offset
   public :: read_ascii_grid
   public :: write_ascii_grid
   public :: read_ascii_header
@@ -461,7 +462,7 @@ contains
 
   !> \brief Derive the outer extent of a coarsened grid from a finer grid.
   subroutine calculate_coarse_extent(nx_in,  ny_in,  xllcorner_in,  yllcorner_in,  cellsize_in,  target_resolution, &
-                                     nx_out, ny_out, xllcorner_out, yllcorner_out, cellsize_out, tol)
+                                     nx_out, ny_out, xllcorner_out, yllcorner_out, cellsize_out, tol, llcorner)
     implicit none
 
     integer(i4), intent(in) :: nx_in                  !< Number of cells along x on the input grid.
@@ -476,21 +477,23 @@ contains
     real(dp), intent(out) :: yllcorner_out            !< Lower-left y coordinate of the coarse grid.
     real(dp), intent(out) :: cellsize_out             !< Cell size of the coarse grid.
     real(dp), intent(in), optional :: tol             !< Tolerance for the resolution ratio check.
+    real(dp), optional, intent(in) :: llcorner(2) !< Coarse lower-left coordinates (default: source origin).
+    integer(i4) :: factor, shift(2)
+    integer(i8) :: dims(2)
 
-    real(dp) :: cellFactor, rounded
-    integer(i4) :: factor
-
-    call check_factor(cellsize_in, target_resolution, cellFactor, rounded, factor, tol)
-
+    call check_factor(cellsize_in, target_resolution, factor=factor, tol=tol)
+    shift = 0_i4
+    if (present(llcorner)) call check_offset([xllcorner_in, yllcorner_in], llcorner, cellsize_in, shift, tol)
+    if (any(shift > 0_i4) .or. any(int(shift, i8) <= -int(factor, i8))) &
+      call error_message("calculate_coarse_extent: llcorner must cover the source and overlap every coarse cell.")
+    dims = (int([nx_in, ny_in], i8) - int(shift, i8) + int(factor, i8) - 1_i8) / int(factor, i8)
+    if (any(dims < 1_i8) .or. any(dims > int(huge(0_i4), i8))) &
+      call error_message("calculate_coarse_extent: derived dimensions are out of range.")
+    nx_out = int(dims(1), i4)
+    ny_out = int(dims(2), i4)
     cellsize_out = target_resolution
-    ny_out = nint(real(ny_in, dp) / cellFactor)
-    nx_out = nint(real(nx_in, dp) / cellFactor)
-
-    if (ny_out * factor < ny_in) ny_out = ny_out + 1_i4
-    if (nx_out * factor < nx_in) nx_out = nx_out + 1_i4
-
-    yllcorner_out = yllcorner_in
-    xllcorner_out = xllcorner_in
+    xllcorner_out = xllcorner_in + real(shift(1), dp) * cellsize_in
+    yllcorner_out = yllcorner_in + real(shift(2), dp) * cellsize_in
   end subroutine calculate_coarse_extent
 
 #ifdef FORCES_WITH_NETCDF
@@ -886,6 +889,7 @@ contains
 
   !> \brief Check that two cell sizes differ by an integer scaling factor.
   subroutine check_factor(fine_cellsize, coarse_cellsize, cellfactor, rounded, factor, tol)
+    use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
     real(dp), intent(in) :: fine_cellsize               !< Cell size of the fine grid.
     real(dp), intent(in) :: coarse_cellsize             !< Cell size of the coarse grid.
     real(dp), optional, intent(out) :: cellfactor       !< Exact floating-point cell-size ratio.
@@ -897,21 +901,57 @@ contains
 
     tol_ = optval(tol, 1.e-7_dp)
 
+    if (.not. ieee_is_finite(fine_cellsize) .or. .not. ieee_is_finite(coarse_cellsize) .or. &
+        .not. ieee_is_finite(tol_)) call error_message("check_factor: cell sizes and tolerance must be finite.")
+    if (fine_cellsize <= 0.0_dp .or. coarse_cellsize <= 0.0_dp .or. tol_ < 0.0_dp) &
+      call error_message("check_factor: cell sizes must be positive and tolerance nonnegative.")
     cellfactor_ = coarse_cellsize / fine_cellsize
+    if (.not. ieee_is_finite(cellfactor_)) call error_message("check_factor: resolution ratio is not finite.")
     rounded_ = anint(cellfactor_)
-    factor_ = nint(cellfactor_)
+    if (rounded_ < 1.0_dp .or. rounded_ > real(huge(0_i4), dp)) &
+      call error_message("check_factor: cell factor must be representable as a positive integer(i4).")
+    factor_ = int(rounded_, i4)
 
     if (abs(rounded_ - cellfactor_) > tol_) then
       call error_message( &
         'check_factor: Two resolutions size do not confirm (need to have an integer ratio): ', &
-        trim(adjustl(num2str(nint(coarse_cellsize)))), &
-        trim(adjustl(num2str(nint(fine_cellsize))))) ! LCOV_EXCL_LINE
+        trim(adjustl(num2str(coarse_cellsize))), &
+        trim(adjustl(num2str(fine_cellsize)))) ! LCOV_EXCL_LINE
     end if
-    if (factor_ < 1_i4) call error_message("check_factor: cell factor needs to be >= 1 to setup an upscaler.") ! LCOV_EXCL_LINE
     if (present(cellfactor)) cellfactor = cellfactor_
     if (present(rounded)) rounded = rounded_
     if (present(factor)) factor = factor_
   end subroutine check_factor
+
+  !> \brief Derive the coarse lower-left displacement in fine-grid cells.
+  !! Positive offsets point east/north, independently of array storage direction.
+  subroutine check_offset(fine_ll, coarse_ll, fine_cellsize, offset, tol)
+    use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+    real(dp), intent(in) :: fine_ll(2), coarse_ll(2), fine_cellsize
+    integer(i4), intent(out) :: offset(2)
+    real(dp), optional, intent(in) :: tol
+    real(dp) :: displacement(2), rounded(2), tol_
+
+    tol_ = optval(tol, 1.e-7_dp)
+    if (.not. all(ieee_is_finite(fine_ll)) .or. .not. all(ieee_is_finite(coarse_ll)) .or. &
+        .not. ieee_is_finite(fine_cellsize) .or. .not. ieee_is_finite(tol_)) &
+      call error_message("check_offset: origins, cell size and tolerance must be finite.")
+    if (fine_cellsize <= 0.0_dp .or. tol_ < 0.0_dp) &
+      call error_message("check_offset: cell size must be positive and tolerance nonnegative.")
+    displacement = (coarse_ll - fine_ll) / fine_cellsize
+    if (.not. all(ieee_is_finite(displacement))) call error_message("check_offset: displacement is not finite.")
+    ! Reject out-of-range values before rounding or integer conversion.
+    ! Half-cell ties round away from zero and would exceed the i4 range here.
+    if (any(displacement >= real(huge(0_i4), dp) + 0.5_dp) .or. &
+        any(displacement <= -real(huge(0_i4), dp) - 1.5_dp)) &
+      call error_message("check_offset: displacement is outside the integer(i4) range.")
+    rounded = real(nint(displacement, kind=i8), dp)
+    if (any(abs(displacement - rounded) > tol_)) &
+      call error_message("check_offset: lower-left displacement must be an integer number of fine cells.")
+    if (any(rounded > real(huge(0_i4), dp)) .or. any(rounded < -real(huge(0_i4), dp) - 1.0_dp)) &
+      call error_message("check_offset: displacement is outside the integer(i4) range.")
+    offset = int(rounded, i4)
+  end subroutine check_offset
 
   !> \brief Read a double-precision ESRI ASCII grid into an xy-ordered array.
   subroutine read_ascii_grid_dp(path, data, mask, ref_ncols, ref_nrows, ref_xllcorner, ref_yllcorner, ref_cellsize, y_direction)
@@ -1223,7 +1263,7 @@ contains
   end subroutine write_ascii_grid_i4
 
   !> \brief Map one fine-grid cell index pair to its containing coarse-grid cell.
-  pure subroutine coarse_ij(factor, fine_i, fine_j, fine_y_dir, fine_ny, coarse_y_dir, coarse_ny, coarse_i, coarse_j)
+  pure subroutine coarse_ij(factor, fine_i, fine_j, fine_y_dir, fine_ny, coarse_y_dir, coarse_ny, coarse_i, coarse_j, offset)
     integer(i4), intent(in) :: factor        !< Integer coarsening factor.
     integer(i4), intent(in) :: fine_i        !< Fine-grid x index.
     integer(i4), intent(in) :: fine_j        !< Fine-grid y index.
@@ -1233,17 +1273,26 @@ contains
     integer(i4), intent(in) :: coarse_ny     !< Number of rows on the coarse grid.
     integer(i4), intent(out) :: coarse_i     !< Containing coarse-grid x index.
     integer(i4), intent(out) :: coarse_j     !< Containing coarse-grid y index.
-    integer(i4) :: j
+    integer(i4), optional, intent(in) :: offset(2) !< Coarse origin relative to fine origin, in fine cells.
+    integer(i8) :: ij(2), shift(2), coarse(2), f
 
-    j = fine_j
-    if (fine_y_dir == top_down) j = fine_ny - j + 1_i4
-    coarse_j = (j - 1_i4) / factor + 1_i4
-    coarse_i = (fine_i - 1_i4) / factor + 1_i4
-    if (coarse_y_dir == top_down) coarse_j = coarse_ny - coarse_j + 1_i4
+    shift = 0_i8
+    if (present(offset)) shift = int(offset, i8)
+    ij = int([fine_i, fine_j], i8) - 1_i8
+    if (fine_y_dir == top_down) ij(2) = int(fine_ny, i8) - int(fine_j, i8)
+    ij = ij - shift
+    f = int(factor, i8)
+    coarse = (ij - modulo(ij, f)) / f + 1_i8
+    if (coarse_y_dir == top_down) coarse(2) = int(coarse_ny, i8) - coarse(2) + 1_i8
+    ! Preserve an out-of-domain indication without overflowing the public index kind.
+    where (coarse < -int(huge(0_i4), i8) .or. coarse > int(huge(0_i4), i8)) coarse = 0_i8
+    coarse_i = int(coarse(1), i4)
+    coarse_j = int(coarse(2), i4)
   end subroutine coarse_ij
 
   !> \brief Compute fine-grid index bounds covered by one coarse-grid cell.
-  pure subroutine id_bounds(factor, coarse_i, coarse_j, coarse_y_dir, coarse_ny, fine_y_dir, fine_nx, fine_ny, i_lb, i_ub, j_lb, j_ub)
+  !! Bounds are clipped to the fine extent; no overlap returns (1,0) on both axes.
+  pure subroutine id_bounds(factor, coarse_i, coarse_j, coarse_y_dir, coarse_ny, fine_y_dir, fine_nx, fine_ny, i_lb, i_ub, j_lb, j_ub, offset)
     integer(i4), intent(in) :: factor         !< Integer coarsening factor.
     integer(i4), intent(in) :: coarse_i       !< Coarse-grid x index.
     integer(i4), intent(in) :: coarse_j       !< Coarse-grid y index.
@@ -1256,22 +1305,34 @@ contains
     integer(i4), intent(out) :: i_ub          !< Inclusive upper fine-grid x bound.
     integer(i4), intent(out) :: j_lb          !< Inclusive lower fine-grid y bound.
     integer(i4), intent(out) :: j_ub          !< Inclusive upper fine-grid y bound.
-    integer(i4) :: temp, ic, jc
+    integer(i4), optional, intent(in) :: offset(2) !< Coarse origin relative to fine origin, in fine cells.
+    integer(i8) :: ij(2), shift(2), lb(2), ub(2), dims(2), temp
 
-    ic = coarse_i
-    i_lb = (ic - 1) * factor + 1
-    i_ub = min(ic * factor, fine_nx)
-
-    jc = coarse_j
-    if (coarse_y_dir == top_down) jc = coarse_ny - coarse_j + 1
-    j_lb = (jc - 1) * factor + 1
-    j_ub = min(jc * factor, fine_ny)
-
-    if (fine_y_dir == top_down) then
-      temp = j_lb
-      j_lb = fine_ny - j_ub + 1
-      j_ub = fine_ny - temp + 1
+    shift = 0_i8
+    if (present(offset)) shift = int(offset, i8)
+    ij = int([coarse_i, coarse_j], i8)
+    if (coarse_y_dir == top_down) ij(2) = int(coarse_ny, i8) - ij(2) + 1_i8
+    dims = int([fine_nx, fine_ny], i8)
+    lb = shift + (ij - 1_i8) * int(factor, i8) + 1_i8
+    ub = shift + ij * int(factor, i8)
+    lb = max(1_i8, lb)
+    ub = min(dims, ub)
+    if (any(lb > ub)) then
+      i_lb = 1_i4
+      j_lb = 1_i4
+      i_ub = 0_i4
+      j_ub = 0_i4
+      return
     end if
+    if (fine_y_dir == top_down) then
+      temp = lb(2)
+      lb(2) = dims(2) - ub(2) + 1_i8
+      ub(2) = dims(2) - temp + 1_i8
+    end if
+    i_lb = int(lb(1), i4)
+    i_ub = int(ub(1), i4)
+    j_lb = int(lb(2), i4)
+    j_ub = int(ub(2), i4)
   end subroutine id_bounds
 
   !> \brief Find nearest border id by regular-grid index distance.

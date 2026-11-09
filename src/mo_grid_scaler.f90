@@ -22,7 +22,7 @@ module mo_grid_scaler
   use mo_utils, only: is_close, eq, optval, prefix_sum
   use mo_string_utils, only: num2str
   use mo_message, only: error_message
-  use mo_constants, only: nodata_i4
+  use mo_constants, only: nodata_i4, nodata_i8
   use mo_orderpack, only: omedian
   use mo_spatial_index, only: spatial_index_t
 
@@ -67,13 +67,18 @@ module mo_grid_scaler
   !!@}
 
   !> \class   scaler_t
-  !> \brief   Scaler type to remap data on regular grids with an integer cellsize ratio and matching lower left corner.
+  !> \brief   Scaler type to remap data on regular grids with an integer cellsize ratio and aligned lower-left corners.
   !> \details Scaler to up or down scale values on given grid. Provides an \ref execute method to regrid packed/unpacked data.
   !!          With `fill_missing=.true.`, equal-resolution and upscaled target gaps are filled from nearest completed target
   !!          results. For downscaling, required inactive coarse source blocks use nearest active coarse donor values before
   !!          applying the downscaling operator. Filled \ref down_split blocks intentionally do not preserve the source sum.
   !!          Area-weighted upscaling normalizes contributing active fine-cell areas within each coarse target.
   !!          The \ref down_split operator always uses equal summands and is independent of `weight_mode`.
+  !!          Lower-left corners may differ by integer fine-cell counts. The inferred offset describes
+  !!          the coarse origin relative to the fine origin, positive east/north. Coarse source grids
+  !!          may extend arbitrarily beyond a fine target; longitude seam wrapping is not performed.
+  !!          A periodic source must contain the complete longitude footprint of every active target cell.
+  !!          Two periodic grids must share their longitude interval. These checks also apply with fill_missing.
   !!
   !! Upscaling operator (`upscaling_operator`) can be the following:
   !! - \ref up_p_mean (0): power mean upscaling operator
@@ -106,6 +111,8 @@ module mo_grid_scaler
     integer(i4) :: downscaling_operator = down_nearest      !< default downscaling operator when executing (default: nearest)
     integer(i4) :: weight_mode = weight_area                !< upscaling weight mode (default: normalized area based)
     integer(i4) :: factor = 0_i4                            !< coarse_grid % cellsize / fine_grid % cellsize
+    !> Coarse lower-left displacement relative to the fine grid, in fine cells (east, north).
+    integer(i4) :: offset(2) = [0_i4, 0_i4]
     logical :: y_dir_match = .false.                        !< coarse_grid % y_direction == fine_grid % y_direction
     logical :: cache_bounds = .false.                       !< flag to cache bounds for coarse cells
     logical :: fill_missing = .false.                       !< Fill missing target results from nearest valid target results.
@@ -291,6 +298,7 @@ contains
     this%upscaling_operator = up_a_mean
     this%downscaling_operator = down_nearest
     this%weight_mode = weight_area
+    this%offset = 0_i4
     this%factor = 0_i4
     this%y_dir_match = .false.
     this%cache_bounds = .false.
@@ -308,6 +316,41 @@ contains
     this%source_use_aux = .false.
     this%target_use_aux = .false.
   end subroutine nearest_regridder_destroy
+
+  !> \brief Reject periodic source mappings that would require longitude seam wrapping.
+  !! Check complete active target-cell footprints, including partial coarse cells. Inactive target
+  !! padding is permitted. Two global periodic grids must share the same longitude interval.
+  subroutine scaler_check_periodic_grids(source_grid, target_grid, factor, tol)
+    type(grid_t), intent(in) :: source_grid !< Source grid whose stored interval supplies target cells.
+    type(grid_t), intent(in) :: target_grid !< Target grid; only active cells require source support.
+    integer(i4), intent(in) :: factor !< Validated integer coarse-to-fine cell-size ratio.
+    real(dp), optional, intent(in) :: tol !< Alignment tolerance in fine-cell units.
+    integer(i4) :: offset(2)
+    integer(i8) :: source_width, target_step, target_origin, west, east
+
+    if (.not. source_grid%is_periodic()) return
+    ! Use integer fine-cell units after validating alignment; retain the exact signed displacement.
+    if (factor == 1_i4 .or. source_grid%cellsize < target_grid%cellsize) then
+      offset = source_grid%get_offset(target_grid, tol)
+      source_width = int(source_grid%nx, i8)
+      target_step = int(factor, i8)
+      target_origin = int(offset(1), i8)
+    else
+      offset = target_grid%get_offset(source_grid, tol)
+      source_width = int(source_grid%nx, i8) * int(factor, i8)
+      target_step = 1_i8
+      target_origin = -int(offset(1), i8)
+    end if
+    if (target_grid%is_periodic()) then
+      if (target_origin /= 0_i8 .or. int(target_grid%nx, i8) * target_step /= source_width) &
+        call error_message("scaler: periodic grids must use the same longitude interval; wrapping is not supported.")
+    end if
+    if (target_grid%ncells == 0_i8) return
+    west = target_origin + (int(minval(target_grid%cell_ij(:,1)), i8) - 1_i8) * target_step
+    east = target_origin + int(maxval(target_grid%cell_ij(:,1)), i8) * target_step
+    if (west < 0_i8 .or. east > source_width) &
+      call error_message("scaler: active target cells cross the periodic source longitude boundary; wrapping is not supported.")
+  end subroutine scaler_check_periodic_grids
 
   !> \brief Setup scaler from given source and target grids
   subroutine scaler_init(this, source_grid, target_grid, upscaling_operator, downscaling_operator, weight_mode, cache_bounds, tol, &
@@ -356,6 +399,8 @@ contains
       call check_factor(target_grid%cellsize, source_grid%cellsize, factor=this%factor, tol=tol)
     end if
 
+    call scaler_check_periodic_grids(source_grid, target_grid, this%factor, tol)
+
     if (this%factor == 1_i4) then
       ! equal resolutions (only type conversion, masking and flipping)
       this%scaling_mode = no_scaling
@@ -389,6 +434,8 @@ contains
       this%coarse_grid => source_grid
     end if
 
+    this%offset = this%fine_grid%get_offset(this%coarse_grid, tol)
+
     if (this%fill_missing .and. this%scaling_mode /= down_scaling) call this%init_fill_map(missing_mask)
 
     if (this%cache_bounds) then
@@ -408,7 +455,9 @@ contains
     !$omp parallel do default(shared) private(ic,jc) schedule(static)
     do k = 1_i8, this%fine_grid%ncells
       call this%coarse_ij(k, ic, jc)
-      this%id_map(k) = coarse_id_matrix(ic, jc) ! this also picks nodata values
+      this%id_map(k) = nodata_i8
+      if (ic >= 1_i4 .and. ic <= this%coarse_grid%nx .and. jc >= 1_i4 .and. jc <= this%coarse_grid%ny) &
+        this%id_map(k) = coarse_id_matrix(ic, jc) ! includes inactive coarse cells
     end do
     !$omp end parallel do
     deallocate(coarse_id_matrix)
@@ -646,73 +695,73 @@ contains
     !$omp end parallel do
   end subroutine scaler_fill_target_i4
 
-  !> \brief Pack equal-resolution real data in target order, applying y-direction mapping.
+  !> \brief Pack equal-resolution real data in target order, applying the origin offset and y-direction mapping.
   subroutine scaler_pack_equal_dp(this, in_data, out_data)
     class(scaler_t), intent(in) :: this
     real(dp), intent(in) :: in_data(:, :)
     real(dp), intent(out) :: out_data(:)
 
     integer(i8) :: k
-    integer(i4) :: i, j, source_j
+    integer(i4) :: i, j, source_i, source_j, x_ub, y_ub
 
-    !$omp parallel do default(shared) private(k,i,source_j) schedule(static)
+    !$omp parallel do default(shared) private(k,i,source_i,source_j,x_ub,y_ub) schedule(static)
     do j = 1_i4, this%target_grid%ny
-      source_j = merge(j, this%target_grid%ny - j + 1_i4, this%y_dir_match)
       k = this%target_grid%mask_cum_col_cnt(j)
       do i = 1_i4, this%target_grid%nx
         if (.not. this%target_grid%mask(i, j)) cycle
         k = k + 1_i8
-        out_data(k) = in_data(i, source_j)
+        call this%coarse_bounds(i, j, source_i, x_ub, source_j, y_ub)
+        out_data(k) = in_data(source_i, source_j)
       end do
     end do
     !$omp end parallel do
   end subroutine scaler_pack_equal_dp
 
-  !> \brief Pack equal-resolution integer data in target order, applying y-direction mapping.
+  !> \brief Pack equal-resolution integer data in target order, applying the origin offset and y-direction mapping.
   subroutine scaler_pack_equal_i4(this, in_data, out_data)
     class(scaler_t), intent(in) :: this
     integer(i4), intent(in) :: in_data(:, :)
     integer(i4), intent(out) :: out_data(:)
 
     integer(i8) :: k
-    integer(i4) :: i, j, source_j
+    integer(i4) :: i, j, source_i, source_j, x_ub, y_ub
 
-    !$omp parallel do default(shared) private(k,i,source_j) schedule(static)
+    !$omp parallel do default(shared) private(k,i,source_i,source_j,x_ub,y_ub) schedule(static)
     do j = 1_i4, this%target_grid%ny
-      source_j = merge(j, this%target_grid%ny - j + 1_i4, this%y_dir_match)
       k = this%target_grid%mask_cum_col_cnt(j)
       do i = 1_i4, this%target_grid%nx
         if (.not. this%target_grid%mask(i, j)) cycle
         k = k + 1_i8
-        out_data(k) = in_data(i, source_j)
+        call this%coarse_bounds(i, j, source_i, x_ub, source_j, y_ub)
+        out_data(k) = in_data(source_i, source_j)
       end do
     end do
     !$omp end parallel do
   end subroutine scaler_pack_equal_i4
 
-  !> \brief Pack equal-resolution integer data as real data, applying y-direction mapping.
+  !> \brief Pack equal-resolution integer data as real data, applying the origin offset and y-direction mapping.
   subroutine scaler_pack_equal_i4_dp(this, in_data, out_data)
     class(scaler_t), intent(in) :: this
     integer(i4), intent(in) :: in_data(:, :)
     real(dp), intent(out) :: out_data(:)
 
     integer(i8) :: k
-    integer(i4) :: i, j, source_j
+    integer(i4) :: i, j, source_i, source_j, x_ub, y_ub
 
-    !$omp parallel do default(shared) private(k,i,source_j) schedule(static)
+    !$omp parallel do default(shared) private(k,i,source_i,source_j,x_ub,y_ub) schedule(static)
     do j = 1_i4, this%target_grid%ny
-      source_j = merge(j, this%target_grid%ny - j + 1_i4, this%y_dir_match)
       k = this%target_grid%mask_cum_col_cnt(j)
       do i = 1_i4, this%target_grid%nx
         if (.not. this%target_grid%mask(i, j)) cycle
         k = k + 1_i8
-        out_data(k) = real(in_data(i, source_j), dp)
+        call this%coarse_bounds(i, j, source_i, x_ub, source_j, y_ub)
+        out_data(k) = real(in_data(source_i, source_j), dp)
       end do
     end do
     !$omp end parallel do
   end subroutine scaler_pack_equal_i4_dp
 
-  !> \brief Pack equal-resolution class fractions in target order, applying y-direction mapping.
+  !> \brief Pack equal-resolution class fractions in target order, applying the origin offset and y-direction mapping.
   subroutine scaler_pack_equal_fraction(this, in_data, out_data, class_id)
     class(scaler_t), intent(in) :: this
     integer(i4), intent(in) :: in_data(:, :)
@@ -720,17 +769,17 @@ contains
     integer(i4), intent(in), optional :: class_id !< Class ID whose fraction is requested.
 
     integer(i8) :: k
-    integer(i4) :: i, j, source_j, cls_id
+    integer(i4) :: i, j, source_i, source_j, x_ub, y_ub, cls_id
 
     cls_id = optval(class_id, default=nodata_i4)
-    !$omp parallel do default(shared) private(k,i,source_j) schedule(static)
+    !$omp parallel do default(shared) private(k,i,source_i,source_j,x_ub,y_ub) schedule(static)
     do j = 1_i4, this%target_grid%ny
-      source_j = merge(j, this%target_grid%ny - j + 1_i4, this%y_dir_match)
       k = this%target_grid%mask_cum_col_cnt(j)
       do i = 1_i4, this%target_grid%nx
         if (.not. this%target_grid%mask(i, j)) cycle
         k = k + 1_i8
-        out_data(k) = merge(1.0_dp, 0.0_dp, in_data(i, source_j) == cls_id)
+        call this%coarse_bounds(i, j, source_i, x_ub, source_j, y_ub)
+        out_data(k) = merge(1.0_dp, 0.0_dp, in_data(source_i, source_j) == cls_id)
       end do
     end do
     !$omp end parallel do
@@ -2519,6 +2568,10 @@ contains
     call this%fine_grid%gen_id_matrix(cells)
     !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub,loc,ix,iy) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
+      if (this%n_subcells(k) < 1_i4) then
+        ids(k) = nodata_i8
+        cycle
+      end if
       call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
       loc = maxloc(in_data(x_lb:x_ub,y_lb:y_ub), mask=this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub), back=back_)
       ix = x_lb + loc(1) - 1_i4
@@ -2562,6 +2615,10 @@ contains
     call this%fine_grid%gen_id_matrix(cells)
     !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub,loc,ix,iy) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
+      if (this%n_subcells(k) < 1_i4) then
+        ids(k) = nodata_i8
+        cycle
+      end if
       call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
       loc = maxloc(in_data(x_lb:x_ub,y_lb:y_ub), mask=this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub), back=back_)
       ix = x_lb + loc(1) - 1_i4
@@ -2605,6 +2662,10 @@ contains
     call this%fine_grid%gen_id_matrix(cells)
     !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub,loc,ix,iy) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
+      if (this%n_subcells(k) < 1_i4) then
+        ids(k) = nodata_i8
+        cycle
+      end if
       call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
       loc = minloc(in_data(x_lb:x_ub,y_lb:y_ub), mask=this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub), back=back_)
       ix = x_lb + loc(1) - 1_i4
@@ -2648,6 +2709,10 @@ contains
     call this%fine_grid%gen_id_matrix(cells)
     !$omp parallel do default(shared) private(x_lb,x_ub,y_lb,y_ub,loc,ix,iy) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
+      if (this%n_subcells(k) < 1_i4) then
+        ids(k) = nodata_i8
+        cycle
+      end if
       call this%coarse_bounds(k, x_lb, x_ub, y_lb, y_ub)
       loc = minloc(in_data(x_lb:x_ub,y_lb:y_ub), mask=this%fine_grid%mask(x_lb:x_ub,y_lb:y_ub), back=back_)
       ix = x_lb + loc(1) - 1_i4
@@ -2683,7 +2748,7 @@ contains
     call coarse_ij(this%factor, fine_i, fine_j, &
       this%fine_grid%y_direction, this%fine_grid%ny, &
       this%coarse_grid%y_direction, this%coarse_grid%ny, &
-      coarse_i, coarse_j)
+      coarse_i, coarse_j, this%offset)
   end subroutine scaler_coarse_ij
 
   !> \brief Get coarse grid indices from fine grid cell index.
@@ -2695,7 +2760,7 @@ contains
     call coarse_ij(this%factor, this%fine_grid%cell_ij(fine_cell, 1), this%fine_grid%cell_ij(fine_cell, 2), &
       this%fine_grid%y_direction, this%fine_grid%ny, &
       this%coarse_grid%y_direction, this%coarse_grid%ny, &
-      coarse_i, coarse_j)
+      coarse_i, coarse_j, this%offset)
   end subroutine scaler_coarse_ij_cell
 
   !> \brief Get fine cell index bounds from coarse grid indices.
@@ -2710,7 +2775,7 @@ contains
     call id_bounds(this%factor, coarse_i, coarse_j, &
       this%coarse_grid%y_direction, this%coarse_grid%ny, &
       this%fine_grid%y_direction, this%fine_grid%nx, this%fine_grid%ny, &
-      x_lb, x_ub, y_lb, y_ub)
+      x_lb, x_ub, y_lb, y_ub, this%offset)
   end subroutine scaler_coarse_bounds
 
   !> \brief Get fine cell index bounds from coarse grid cell index.
@@ -2731,7 +2796,7 @@ contains
     call id_bounds(this%factor, this%coarse_grid%cell_ij(coarse_cell,1), this%coarse_grid%cell_ij(coarse_cell,2), &
       this%coarse_grid%y_direction, this%coarse_grid%ny, &
       this%fine_grid%y_direction, this%fine_grid%nx, this%fine_grid%ny, &
-      x_lb, x_ub, y_lb, y_ub)
+      x_lb, x_ub, y_lb, y_ub, this%offset)
   end subroutine scaler_coarse_bounds_cell
 
   subroutine check_upscaling(scaling_mode)

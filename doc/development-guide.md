@@ -103,6 +103,72 @@ call grid%pack_into(field_xy, packed)
 call grid%unpack_into(packed, field_xy)
 ```
 
+Grid derivation accepts `llcorner=[xll, yll]` in grid coordinates and
+`dims=[nx, ny]` in target cell counts on every `gen_*grid` and `derive_*grid`
+entrypoint. The origin defaults to the source lower-left corner, and displacement
+must remain an integer number of fine cells. Offsets are derived internally for
+index mapping. For example:
+
+```fortran
+call source%gen_grid(target, target_resolution=resolution, &
+  llcorner=[xll, yll], dims=[nx, ny], estimate_aux=.false.)
+```
+
+With `dims`, the requested rectangle is used directly: source cells may be cropped,
+and target cells are active wherever they overlap active source cells. Unsupported
+padding stays inactive. Without `dims`, derivation keeps the requested/default
+origin and chooses the smallest dimensions covering the complete source rectangle.
+An origin excluding source cells is rejected.
+
+Use `source%mask_extent` to determine dimensions covering complete active source
+cells before deriving a grid:
+
+```fortran
+! Keep the source lower-left corner.
+call source%mask_extent(resolution, dims)
+
+! Find the smallest rectangle around the active mask.
+call source%mask_extent(resolution, dims, llcorner=corner)
+call source%gen_grid(target, target_resolution=resolution, llcorner=corner, dims=dims)
+
+! Keep a specific lower-left corner.
+call source%mask_extent(resolution, dims, origin=corner)
+```
+
+Requesting `llcorner` without `origin` selects and returns the exact geographic
+lower-left corner of the active mask bounding box, independent of row storage
+direction. Supplying neither retains the source origin. Supplying `origin` fixes
+the corner; it is also returned through `llcorner` if requested. Dimensions round
+up to whole target cells from that corner. An empty mask uses full source bounds.
+The helper validates integer resolution ratios, fine-cell alignment, coverage of
+all required source cells, and representable dimensions; optional `tol` has the
+same meaning as in grid derivation. It does not constrain auxiliary estimation.
+For nonperiodic sources, the automatically chosen mask rectangle supports
+auxiliary estimation, including partial coarse edge cells. A fixed origin can
+introduce unsupported padding; periodic longitude restrictions are described below.
+
+Use `estimate_aux=.false.` to allow padding with no source overlap. With auxiliary
+estimation enabled, every coarse output cell must overlap the source rectangle,
+and the entire fine output rectangle must lie inside the source. Cropping is
+supported when source coordinates cover the output.
+
+Periodic longitude seam wrapping is not implemented by the scaler or grid
+derivation. A periodic source can supply a shifted regional target inside its
+stored longitude interval; matching periodic states are not required. The scaler
+rejects active target cells whose complete longitude footprint extends outside
+that interval, including partially overlapping coarse cells, even with
+`fill_missing=.true.`. Inactive regional target padding is permitted. Two global
+periodic grids must share their longitude interval.
+
+Derivation from a periodic source rejects any requested rectangle extending
+outside the source longitude interval, including inactive padding and
+`estimate_aux=.false.`. Latitude padding follows the ordinary rules. Without
+`dims`, the output retains the complete 360-degree longitude extent and the
+resolution must be compatible with that extent. Explicit dimensions may select a
+regional rectangle inside the interval. `mask_extent` still returns ordinary
+bounding-box geometry; target-cell rounding may yield longitude padding rejected
+by derivation from a periodic source.
+
 Point values follow the point set's ordering, and a spatial mapping must preserve
 the correspondence between coordinates, IDs, and values. A regridder or index
 caches information derived from its source and destination support; rebuild it

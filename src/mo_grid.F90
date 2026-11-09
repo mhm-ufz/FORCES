@@ -21,8 +21,8 @@ module mo_grid
 
   use mo_grid_constants, only: cartesian, spherical, keep_y, top_down, bottom_up, area_sum, area_full, area_count
   use mo_grid_helper, only: value_in_closed_interval, shift_longitude_near_query, quad_contains_point, &
-                            arrays_match_2d, append_candidate_id, update_best_metric, intersection, calculate_coarse_extent, &
-                            coarse_ij, id_bounds, dist_latlon, check_factor, read_ascii_grid, write_ascii_grid, &
+                            arrays_match_2d, append_candidate_id, update_best_metric, intersection, &
+                            coarse_ij, id_bounds, dist_latlon, check_factor, check_offset, read_ascii_grid, write_ascii_grid, &
                             read_ascii_header, nearest_border_id_by_index, helper_connected_mask => connected_mask, data_t
 #ifdef FORCES_WITH_NETCDF
   use mo_grid_helper, only: is_x_axis, is_y_axis, is_z_axis, is_t_axis, is_lon_coord, is_lat_coord, check_uniform_axis, &
@@ -150,6 +150,10 @@ module mo_grid
     procedure, public :: has_mask => grid_has_mask
     procedure, public :: any_missing => grid_any_missing
     procedure, public :: is_matching => grid_is_matching
+    procedure, public :: get_offset => grid_get_offset
+    procedure, public :: mask_extent => grid_mask_extent
+    procedure, private :: mask_bounds => grid_mask_bounds
+    procedure, private :: derivation_offset => grid_derivation_offset
     procedure, public :: uncovered_mask => grid_uncovered_mask
     procedure, public :: unfilled_mask => grid_unfilled_mask
     procedure, public :: check_is_covered_by => grid_check_is_covered_by
@@ -2434,7 +2438,9 @@ contains
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     real(dp) :: n_subcells
     integer(i4) :: i_ub, i_lb, j_lb, j_ub, i, j, factor
-    call this%check_is_covering(fine_grid, tol=tol, check_mask=.false.)
+    integer(i4) :: offset(2)
+    offset = fine_grid%get_offset(this, tol)
+    call this%check_is_filled_by(fine_grid, tol=tol, check_mask=.false.)
     call check_factor(fine_grid%cellsize, this%cellsize, factor=factor, tol=tol)
 
     if (this % coordsys /= cartesian) &
@@ -2454,7 +2460,9 @@ contains
         call id_bounds(factor, i, j, &
           this%y_direction, this%ny, &
           fine_grid%y_direction, fine_grid%nx, fine_grid%ny, &
-          i_lb, i_ub, j_lb, j_ub)
+          i_lb, i_ub, j_lb, j_ub, offset)
+        if (i_lb > i_ub .or. j_lb > j_ub) &
+          call error_message("grid % upscale_aux_coords: each coarse cell must overlap the fine extent.")
         n_subcells = real(size(fine_grid%lat(i_lb:i_ub, j_lb:j_ub)), dp)
         ! estimate lat-lon coords by averaging sub-cell coordinates (even if fine grid is "a bit" smaller)
         this%lat(i, j) = sum(fine_grid%lat(i_lb:i_ub, j_lb:j_ub)) / n_subcells
@@ -2473,12 +2481,20 @@ contains
     type(grid_t), intent(inout) :: coarse_grid !< finer grid to estimate the auxilliar coordinates from
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
     real(dp) :: x, dx, fac
-    integer(i4) :: i, j, ii, jj, i_start, i_end, j_start, j_end, k, factor, fac_i, fac_j
+    integer(i4) :: i, j, ii, jj, i_start, i_end, j_start, j_end, k, factor
+    integer(i4) :: sub_i, sub_j, fine_j_geo, coarse_j_geo
     logical :: reset_aux_vertices
+    integer(i4) :: offset(2)
     real(dp), allocatable, dimension(:,:) :: latlon_t, latlon_b, latlon_l, latlon_r
 
+    offset = this%get_offset(coarse_grid, tol)
     call this%check_is_covered_by(coarse_grid, tol=tol, check_mask=.false.)
     call check_factor(this%cellsize, coarse_grid%cellsize, rounded=fac, factor=factor, tol=tol)
+
+    if (any(offset > 0_i4) .or. &
+        any(int([this%nx, this%ny], i8) - int(offset, i8) > &
+            int([coarse_grid%nx, coarse_grid%ny], i8) * int(factor, i8))) &
+      call error_message("grid % downscale_aux_coords: fine extent must lie inside the coarse extent.")
 
     if (this % coordsys /= cartesian) &
       call error_message("grid % downscale_aux_coords: grids already use spherical coordinate system for axis.") ! LCOV_EXCL_LINE
@@ -2506,47 +2522,54 @@ contains
     allocate(this%lon(this%nx, this%ny))
     do j = 1_i4, coarse_grid%ny
       do i = 1_i4, coarse_grid%nx
+        call id_bounds(factor, i, j, &
+          coarse_grid%y_direction, coarse_grid%ny, &
+          this%y_direction, this%nx, this%ny, &
+          i_start, i_end, j_start, j_end, offset)
+        if (i_start > i_end .or. j_start > j_end) cycle
         ! calculate sub-points along vertice boundaries (top, left, right, bottom)
         ! lon
         x = coarse_grid%lon_vertices(i,j)
         dx = coarse_grid%lon_vertices(i+1,j) - x
-        latlon_t(:,1) = [(x + dx * (real(k)-0.5_dp) / fac, k=1_i4,factor)]
+        latlon_t(:,1) = [(x + dx * (real(k, dp)-0.5_dp) / fac, k=1_i4,factor)]
         x = coarse_grid%lon_vertices(i,j)
         dx = coarse_grid%lon_vertices(i,j+1) - x
-        latlon_l(:,1) = [(x + dx * (real(k)-0.5_dp) / fac, k=1_i4,factor)]
+        latlon_l(:,1) = [(x + dx * (real(k, dp)-0.5_dp) / fac, k=1_i4,factor)]
         x = coarse_grid%lon_vertices(i+1,j)
         dx = coarse_grid%lon_vertices(i+1,j+1) - x
-        latlon_r(:,1) = [(x + dx * (real(k)-0.5_dp) / fac, k=1_i4,factor)]
+        latlon_r(:,1) = [(x + dx * (real(k, dp)-0.5_dp) / fac, k=1_i4,factor)]
         x = coarse_grid%lon_vertices(i,j+1)
         dx = coarse_grid%lon_vertices(i+1,j+1) - x
-        latlon_b(:,1) = [(x + dx * (real(k)-0.5_dp) / fac, k=1_i4,factor)]
+        latlon_b(:,1) = [(x + dx * (real(k, dp)-0.5_dp) / fac, k=1_i4,factor)]
         ! lat
         x = coarse_grid%lat_vertices(i,j)
         dx = coarse_grid%lat_vertices(i+1,j) - x
-        latlon_t(:,2) = [(x + dx * (real(k)-0.5_dp) / fac, k=1_i4,factor)]
+        latlon_t(:,2) = [(x + dx * (real(k, dp)-0.5_dp) / fac, k=1_i4,factor)]
         x = coarse_grid%lat_vertices(i,j)
         dx = coarse_grid%lat_vertices(i,j+1) - x
-        latlon_l(:,2) = [(x + dx * (real(k)-0.5_dp) / fac, k=1_i4,factor)]
+        latlon_l(:,2) = [(x + dx * (real(k, dp)-0.5_dp) / fac, k=1_i4,factor)]
         x = coarse_grid%lat_vertices(i+1,j)
         dx = coarse_grid%lat_vertices(i+1,j+1) - x
-        latlon_r(:,2) = [(x + dx * (real(k)-0.5_dp) / fac, k=1_i4,factor)]
+        latlon_r(:,2) = [(x + dx * (real(k, dp)-0.5_dp) / fac, k=1_i4,factor)]
         x = coarse_grid%lat_vertices(i,j+1)
         dx = coarse_grid%lat_vertices(i+1,j+1) - x
-        latlon_b(:,2) = [(x + dx * (real(k)-0.5_dp) / fac, k=1_i4,factor)]
+        latlon_b(:,2) = [(x + dx * (real(k, dp)-0.5_dp) / fac, k=1_i4,factor)]
         ! generate latlon pairs in sub-cells
-        call id_bounds(factor, i, j, &
-          coarse_grid%y_direction, coarse_grid%ny, &
-          this%y_direction, this%nx, this%ny, &
-          i_start, i_end, j_start, j_end)
-        fac_i = i_end - i_start + 1_i4
-        fac_j = j_end - j_start + 1_i4
 
-        do jj = 1_i4, fac_j
-          do ii = 1_i4, fac_i
+        coarse_j_geo = j
+        if (coarse_grid%y_direction == top_down) coarse_j_geo = coarse_grid%ny - j + 1_i4
+        do jj = j_start, j_end
+          fine_j_geo = jj
+          if (this%y_direction == top_down) fine_j_geo = this%ny - jj + 1_i4
+          sub_j = int(int(fine_j_geo, i8) - int(offset(2), i8) - &
+                      int(coarse_j_geo - 1_i4, i8) * int(factor, i8), i4)
+          if (coarse_grid%y_direction == top_down) sub_j = factor - sub_j + 1_i4
+          do ii = i_start, i_end
+            sub_i = int(int(ii, i8) - int(offset(1), i8) - int(i - 1_i4, i8) * int(factor, i8), i4)
             call intersection( &
-              latlon_t(ii,1), latlon_t(ii,2), latlon_b(ii,1), latlon_b(ii,2), &
-              latlon_l(jj,1), latlon_l(jj,2), latlon_r(jj,1), latlon_r(jj,2), &
-              this%lon(i_start+ii-1,j_start+jj-1), this%lat(i_start+ii-1,j_start+jj-1))
+              latlon_t(sub_i,1), latlon_t(sub_i,2), latlon_b(sub_i,1), latlon_b(sub_i,2), &
+              latlon_l(sub_j,1), latlon_l(sub_j,2), latlon_r(sub_j,1), latlon_r(sub_j,2), &
+              this%lon(ii,jj), this%lat(ii,jj))
           end do
         end do
 
@@ -2780,6 +2803,108 @@ contains
     is_matching = .true.
   end function grid_is_matching
 
+  !> \brief Coarse-grid lower-left displacement relative to this fine grid, in fine cells.
+  function grid_get_offset(this, coarse_grid, tol) result(offset)
+    class(grid_t), intent(in) :: this
+    type(grid_t), intent(in) :: coarse_grid
+    real(dp), optional, intent(in) :: tol !< Alignment tolerance in fine cells and resolution-ratio tolerance.
+    integer(i4) :: offset(2)
+
+    if (this%coordsys /= coarse_grid%coordsys) &
+      call error_message("grid % get_offset: grids don't use the same coordinate system.")
+    call check_offset([this%xllcorner, this%yllcorner], [coarse_grid%xllcorner, coarse_grid%yllcorner], &
+                      this%cellsize, offset, tol)
+    call check_factor(this%cellsize, coarse_grid%cellsize, tol=tol)
+  end function grid_get_offset
+
+  !> \brief Resolve the coarse-relative-to-fine offset for a derived grid.
+  subroutine grid_derivation_offset(this, target_resolution, target_is_fine, llcorner, tol, shift)
+    class(grid_t), intent(in) :: this
+    real(dp), intent(in) :: target_resolution !< Target cell size.
+    logical, intent(in) :: target_is_fine !< Use the fine-target offset convention, including equal cell sizes.
+    real(dp), optional, intent(in) :: llcorner(2) !< Requested target lower-left coordinates.
+    real(dp), optional, intent(in) :: tol !< Alignment tolerance in fine cells.
+    integer(i4), intent(out) :: shift(2) !< Validated offset used for index mapping.
+
+    shift = 0_i4
+    if (.not. present(llcorner)) return
+    if (target_is_fine) then
+      call check_offset(llcorner, [this%xllcorner, this%yllcorner], target_resolution, shift, tol)
+    else
+      call check_offset([this%xllcorner, this%yllcorner], llcorner, this%cellsize, shift, tol)
+    end if
+  end subroutine grid_derivation_offset
+
+  !> \brief Determine target dimensions covering complete active source cells.
+  !! Without llcorner or origin, retain the source lower-left corner.
+  !! With llcorner but no origin, return the geographic lower-left corner of the mask bounding box.
+  !! With origin, use that exact corner and also return it through llcorner when present.
+  !! An empty mask uses full source bounds. Resolution ratios must be integer and origins must
+  !! align on fine-cell borders. Reject an origin excluding required cells or dimensions outside integer(i4).
+  !! This helper determines geometry only; auxiliary-coordinate constraints are checked during derivation.
+  subroutine grid_mask_extent(this, target_resolution, dims, llcorner, origin, tol)
+    use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+    class(grid_t), intent(in) :: this
+    real(dp), intent(in) :: target_resolution !< Target cell size in source coordinate units.
+    integer(i4), intent(out) :: dims(2) !< Smallest covering target dimensions (nx,ny) from the chosen corner.
+    real(dp), optional, intent(out) :: llcorner(2) !< Chosen corner; requests the mask-bbox corner when origin is absent.
+    real(dp), optional, intent(in) :: origin(2) !< Fixed target corner (x,y), overriding automatic corner selection.
+    real(dp), optional, intent(in) :: tol !< Fine-cell alignment and resolution-ratio tolerance (default: 1.e-7).
+
+    integer(i4) :: factor, shift(2)
+    integer(i8) :: bounds(4), grid_dims(2), factor8
+    real(dp) :: corner(2)
+    logical :: target_is_fine
+
+    if (.not. ieee_is_finite(target_resolution)) &
+      call error_message("grid % mask_extent: target resolution must be finite.")
+    target_is_fine = target_resolution < this%cellsize
+    if (target_is_fine) then
+      call check_factor(target_resolution, this%cellsize, factor=factor, tol=tol)
+    else
+      call check_factor(this%cellsize, target_resolution, factor=factor, tol=tol)
+    end if
+    factor8 = int(factor, i8)
+    call this%mask_bounds(bounds)
+    corner = [this%xllcorner, this%yllcorner]
+    if (present(origin)) then
+      corner = origin
+    else if (present(llcorner)) then
+      corner = corner + real(bounds(1:2), dp) * this%cellsize
+    end if
+    call this%derivation_offset(target_resolution, target_is_fine, corner, tol, shift)
+    if (target_is_fine) then
+      if (any(-int(shift, i8) > bounds(1:2) * factor8)) &
+        call error_message("grid % mask_extent: origin excludes required source cells.")
+      grid_dims = bounds(3:4) * factor8 + int(shift, i8)
+    else
+      if (any(int(shift, i8) > bounds(1:2))) &
+        call error_message("grid % mask_extent: origin excludes required source cells.")
+      grid_dims = (bounds(3:4) - int(shift, i8) + factor8 - 1_i8) / factor8
+    end if
+    if (any(grid_dims < 1_i8) .or. any(grid_dims > int(huge(0_i4), i8))) &
+      call error_message("grid % mask_extent: derived dimensions are out of range.")
+    dims = int(grid_dims, i4)
+    if (present(llcorner)) llcorner = corner
+  end subroutine grid_mask_extent
+
+  !> \brief Active source bounds in zero-based, geographic cell coordinates: west, south, east, north.
+  subroutine grid_mask_bounds(this, bounds)
+    class(grid_t), intent(in) :: this
+    integer(i8), intent(out) :: bounds(4) !< Zero-based cell bounds; full source bounds for an empty mask.
+    integer(i8) :: k, ij(2)
+
+    bounds = [0_i8, 0_i8, int(this%nx, i8), int(this%ny, i8)]
+    if (this%ncells == 0_i8) return
+    bounds = [int(this%nx, i8), int(this%ny, i8), 0_i8, 0_i8]
+    do k = 1_i8, this%ncells
+      ij = int(this%cell_ij(k, :), i8)
+      if (this%y_direction == top_down) ij(2) = int(this%ny, i8) - ij(2) + 1_i8
+      bounds(1:2) = min(bounds(1:2), ij - 1_i8)
+      bounds(3:4) = max(bounds(3:4), ij)
+    end do
+  end subroutine grid_mask_bounds
+
   !> \brief Return active fine cells not covered by an active coarse cell.
   subroutine grid_uncovered_mask(this, coarse_grid, uncovered, tol)
     implicit none
@@ -2789,8 +2914,10 @@ contains
     real(dp), optional, intent(in) :: tol !< Tolerance for cell-factor comparison (default: 1.e-7).
 
     integer(i4) :: factor, i, j, ic, jc
+    integer(i4) :: offset(2)
     integer(i8) :: k
 
+    offset = this%get_offset(coarse_grid, tol)
     call this%check_is_covered_by(coarse_grid, tol=tol, check_mask=.false.)
     call check_factor(this%cellsize, coarse_grid%cellsize, factor=factor, tol=tol)
 
@@ -2800,7 +2927,7 @@ contains
       i = this%cell_ij(k, 1)
       j = this%cell_ij(k, 2)
       call coarse_ij(factor, i, j, this%y_direction, this%ny, &
-                     coarse_grid%y_direction, coarse_grid%ny, ic, jc)
+                     coarse_grid%y_direction, coarse_grid%ny, ic, jc, offset)
       uncovered(i, j) = .not. coarse_grid%mask(ic, jc)
     end do
     !$omp end parallel do
@@ -2815,8 +2942,10 @@ contains
     real(dp), optional, intent(in) :: tol !< Tolerance for cell-factor comparison (default: 1.e-7).
 
     integer(i4) :: factor, i, j, i_lb, i_ub, j_lb, j_ub
+    integer(i4) :: offset(2)
     integer(i8) :: k
 
+    offset = fine_grid%get_offset(this, tol)
     call this%check_is_filled_by(fine_grid, tol=tol, check_mask=.false.)
     call check_factor(fine_grid%cellsize, this%cellsize, factor=factor, tol=tol)
 
@@ -2827,7 +2956,7 @@ contains
       j = this%cell_ij(k, 2)
       call id_bounds(factor, i, j, this%y_direction, this%ny, &
                      fine_grid%y_direction, fine_grid%nx, fine_grid%ny, &
-                     i_lb, i_ub, j_lb, j_ub)
+                     i_lb, i_ub, j_lb, j_ub, offset)
       unfilled(i, j) = .not. any(fine_grid%mask(i_lb:i_ub, j_lb:j_ub))
     end do
     !$omp end parallel do
@@ -2839,59 +2968,37 @@ contains
   !> \authors Sebastian Müller
   !> \date Mar 2024
   subroutine grid_check_is_covered_by(this, coarse_grid, tol, check_mask)
-    use mo_utils, only: is_close
-    implicit none
-    class(grid_t), intent(in) :: this
-    type(grid_t), intent(in) :: coarse_grid !< coarse grid that should cover this grid
-    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    logical, optional, intent(in) :: check_mask !< whether to check if coarse mask covers fine mask
+    class(grid_t), intent(in) :: this !< Fine grid whose active cells require coverage.
+    type(grid_t), intent(in) :: coarse_grid
+    real(dp), optional, intent(in) :: tol
+    logical, optional, intent(in) :: check_mask
+    integer(i4) :: factor, offset(2), ic, jc
+    integer(i8) :: k
+    logical :: check_mask_, outside_extent, outside_mask
 
-    integer(i4) :: factor, i, j, i_lb, i_ub, j_lb, j_ub
-    logical :: check_mask_
-    real(dp) :: tol_
-
-    check_mask_ = optval(check_mask, .true.)
-
-    ! LCOV_EXCL_START
-    if (this%coordsys /= coarse_grid%coordsys) then
-      call error_message("grid % check_is_covered_by: grids don't use the same coordinate system.")
-    end if
-    ! LCOV_EXCL_STOP
-
+    offset = this%get_offset(coarse_grid, tol)
     call check_factor(this%cellsize, coarse_grid%cellsize, factor=factor, tol=tol)
-
-    ! LCOV_EXCL_START
-    ! check ll corner (absolute and relative tolerance set to "tol")
-    tol_ = optval(tol, 1.e-7_dp)
-    if ( .not. ( is_close(this%xllcorner, coarse_grid%xllcorner, tol_, tol_) &
-         .and.   is_close(this%yllcorner, coarse_grid%yllcorner, tol_, tol_) ) ) then
-      call error_message("grid % check_is_covered_by: coarse grid lower-left corner is not matching.")
-    end if
-    ! check extent
-    if (.not. ((coarse_grid%nx - 1) * factor <= this%nx .and. this%nx <= coarse_grid%nx * factor .and. &
-               (coarse_grid%ny - 1) * factor <= this%ny .and. this%ny <= coarse_grid%ny * factor)) then
-      call error_message("grid % check_is_covered_by: coarse grid extent is not matching.")
-    end if
-    ! LCOV_EXCL_STOP
-
-    ! LCOV_EXCL_START
-    if ( check_mask_ .and. coarse_grid%any_missing()) then
-      if (.not. this%any_missing()) call error_message("grid % check_is_covered_by: coarse grid is masked, this grid not.") ! LCOV_EXCL_LINE
-      !$omp parallel do default(shared) private(i,j,i_lb,i_ub,j_lb,j_ub) schedule(static)
-      do j = 1_i4, coarse_grid%ny
-        do i = 1_i4, coarse_grid%nx
-          if ( coarse_grid%mask(i, j)) cycle
-          call id_bounds(factor, i, j, &
-            coarse_grid%y_direction, coarse_grid%ny, &
-            this%y_direction, this%nx, this%ny, &
-            i_lb, i_ub, j_lb, j_ub)
-          if (any(this%mask(i_lb:i_ub, j_lb:j_ub))) &
-            call error_message("grid % check_is_covered_by: fine cells outside of coarse mask.")
-        end do
-      end do
-      !$omp end parallel do
-    end if
-    ! LCOV_EXCL_STOP
+    check_mask_ = optval(check_mask, .true.)
+    outside_extent = .false.
+    outside_mask = .false.
+    !$omp parallel do default(shared) private(ic,jc) reduction(.or.:outside_extent,outside_mask) schedule(static)
+    do k = 1_i8, this%ncells
+      call coarse_ij(factor, this%cell_ij(k,1), this%cell_ij(k,2), this%y_direction, this%ny, &
+                     coarse_grid%y_direction, coarse_grid%ny, ic, jc, offset)
+      if (ic < 1_i4 .or. ic > coarse_grid%nx .or. jc < 1_i4 .or. jc > coarse_grid%ny) then
+        outside_extent = .true.
+        cycle
+      end if
+      if (check_mask_) then
+        outside_mask = outside_mask .or. (.not. coarse_grid%mask(ic,jc))
+      end if
+    end do
+    !$omp end parallel do
+    ! Report once, after all workers have left the parallel region.
+    if (outside_extent) &
+      call error_message("grid % check_is_covered_by: active fine cell outside coarse extent.")
+    if (outside_mask) &
+      call error_message("grid % check_is_covered_by: fine cells outside of coarse mask.")
   end subroutine grid_check_is_covered_by
 
   !> \brief check if given grid is covering finer grid
@@ -2914,57 +3021,38 @@ contains
   !> \authors Sebastian Müller
   !> \date Mar 2024
   subroutine grid_check_is_filled_by(this, fine_grid, tol, check_mask)
-    use mo_utils, only: is_close
-    implicit none
-    class(grid_t), intent(in) :: this
-    type(grid_t), intent(in) :: fine_grid !< fine grid that should fill this grid
-    real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
-    logical, optional, intent(in) :: check_mask !< whether to check if fine mask fills coarse mask
-
-    integer(i4) :: factor, i_lb, i_ub, j_lb, j_ub
+    class(grid_t), intent(in) :: this !< Coarse grid whose active cells require fine overlap.
+    type(grid_t), intent(in) :: fine_grid
+    real(dp), optional, intent(in) :: tol
+    logical, optional, intent(in) :: check_mask
+    integer(i4) :: factor, offset(2), i_lb, i_ub, j_lb, j_ub
     integer(i8) :: k
-    logical :: check_mask_
-    real(dp) :: tol_
+    logical :: check_mask_, outside_extent, outside_mask
 
-    check_mask_ = optval(check_mask, .true.)
-
-    ! LCOV_EXCL_START
-    if (this%coordsys /= fine_grid%coordsys) then
-      call error_message("grid % check_is_filled_by: grids don't use the same coordinate system.")
-    end if
-    ! LCOV_EXCL_STOP
-
+    offset = fine_grid%get_offset(this, tol)
     call check_factor(fine_grid%cellsize, this%cellsize, factor=factor, tol=tol)
-
-    ! LCOV_EXCL_START
-    ! check ll corner (absolute and relative tolerance set to "tol")
-    tol_ = optval(tol, 1.e-7_dp)
-    if ( .not. ( is_close(this%xllcorner, fine_grid%xllcorner, tol_, tol_) &
-         .and.   is_close(this%yllcorner, fine_grid%yllcorner, tol_, tol_) ) ) then
-      call error_message("grid % check_is_filled_by: fine grid lower-left corner is not matching.")
-    end if
-    ! check extent
-    if (.not. ((this%nx - 1) * factor <= fine_grid%nx .and. fine_grid%nx <= this%nx * factor .and. &
-               (this%ny - 1) * factor <= fine_grid%ny .and. fine_grid%ny <= this%ny * factor)) then
-      call error_message("grid % check_is_filled_by: fine grid extent is not matching.")
-    end if
-    ! LCOV_EXCL_STOP
-
-    ! LCOV_EXCL_START
-    if ( check_mask_ .and. fine_grid%any_missing()) then
-      !$omp parallel do default(shared) private(i_lb,i_ub,j_lb,j_ub) schedule(static)
-      do k = 1_i8, this%ncells
-        call id_bounds(factor, this%cell_ij(k,1), this%cell_ij(k,2), &
-          this%y_direction, this%ny, &
-          fine_grid%y_direction, fine_grid%nx, fine_grid%ny, &
-          i_lb, i_ub, j_lb, j_ub)
-        if (.not.any(fine_grid%mask(i_lb:i_ub, j_lb:j_ub))) then
-          call error_message("grid % check_is_filled_by: coarse cells without any filling fine cells found.")
-        end if
-      end do
-      !$omp end parallel do
-    end if
-    ! LCOV_EXCL_STOP
+    check_mask_ = optval(check_mask, .true.)
+    outside_extent = .false.
+    outside_mask = .false.
+    !$omp parallel do default(shared) private(i_lb,i_ub,j_lb,j_ub) &
+    !$omp& reduction(.or.:outside_extent,outside_mask) schedule(static)
+    do k = 1_i8, this%ncells
+      call id_bounds(factor, this%cell_ij(k,1), this%cell_ij(k,2), this%y_direction, this%ny, &
+                     fine_grid%y_direction, fine_grid%nx, fine_grid%ny, i_lb, i_ub, j_lb, j_ub, offset)
+      if (i_lb > i_ub .or. j_lb > j_ub) then
+        outside_extent = .true.
+        cycle
+      end if
+      if (check_mask_) then
+        outside_mask = outside_mask .or. (.not. any(fine_grid%mask(i_lb:i_ub, j_lb:j_ub)))
+      end if
+    end do
+    !$omp end parallel do
+    ! Report once, after all workers have left the parallel region.
+    if (outside_extent) &
+      call error_message("grid % check_is_filled_by: active coarse cell outside fine extent.")
+    if (outside_mask) &
+      call error_message("grid % check_is_filled_by: coarse cells without any filling fine cells found.")
   end subroutine grid_check_is_filled_by
 
   !> \brief check if given grid is filling coarser grid
@@ -3142,8 +3230,17 @@ contains
     endif
   end function grid_is_periodic
 
-  !> \brief Generate coarse grid from a fine grid by a given target resolution
-  subroutine grid_gen_coarse_grid(this, coarse_grid, target_resolution, estimate_aux, estimate_area, area_method, tol)
+  !> \brief Generate coarse grid from a fine grid by a given target resolution.
+  !! llcorner fixes the target origin in grid coordinates; the default is the source origin.
+  !! Without dims, choose the smallest dimensions covering the source rectangle from the fixed lower-left corner.
+  !! Reject a lower-left corner that excludes required source cells.
+  !! Use mask_extent() to determine dimensions covering only active source cells.
+  !! With dims, use the explicit rectangle and activate cells overlapping active source cells.
+  !! With estimate_aux=.true., every output cell must overlap the source rectangle.
+  !! Disable auxiliary estimation to allow wholly unsupported, inactive padding cells.
+  !! Periodic sources forbid longitude padding regardless of estimate_aux; seam wrapping is not supported.
+  subroutine grid_gen_coarse_grid(this, coarse_grid, target_resolution, estimate_aux, &
+      estimate_area, area_method, tol, llcorner, dims)
     implicit none
     class(grid_t), intent(inout) :: this
     type(grid_t), intent(out) :: coarse_grid !< resulting low resolution grid
@@ -3153,6 +3250,8 @@ contains
     !> method to estimate area: (0, default) from fine grid, (1) from cell extent, (2) from count fraction of valid fine cells
     integer(i4), intent(in), optional :: area_method
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    real(dp), optional, intent(in) :: llcorner(2) !< Target lower-left (x,y) coordinates (default: source origin).
+    integer(i4), optional, intent(in) :: dims(2) !< Target (nx,ny); default: smallest dimensions covering the full source from the fixed origin.
 
     real(dp), dimension(:, :), allocatable :: fine_cell_area
     integer(i4) :: i_ub, i_lb, j_lb, j_ub
@@ -3160,6 +3259,8 @@ contains
     integer(i8) :: k
     integer(i4) :: factor, area_method_
     logical :: estimate_aux_, estimate_area_
+    integer(i4) :: shift(2)
+    integer(i8) :: required(4), grid_dims(2), factor8
     real(dp) :: sub_cell_cnt
 
     estimate_aux_ = optval(estimate_aux, .true.)
@@ -3171,31 +3272,44 @@ contains
     ! 2) Pad each variable to its corresponding global one
     !--------------------------------------------------------
     ! grid properties
-    call calculate_coarse_extent( &
-      nx_in=this%nx, &
-      ny_in=this%ny, &
-      xllcorner_in=this%xllcorner, &
-      yllcorner_in=this%yllcorner, &
-      cellsize_in=this%cellsize, &
-      target_resolution=target_resolution, &
-      nx_out=coarse_grid%nx, &
-      ny_out=coarse_grid%ny, &
-      xllcorner_out=coarse_grid%xllcorner, &
-      yllcorner_out=coarse_grid%yllcorner, &
-      cellsize_out=coarse_grid%cellsize, &
-      tol=tol &
-    )
+    call check_factor(this%cellsize, target_resolution, factor=factor, tol=tol)
+    call this%derivation_offset(target_resolution, .false., llcorner, tol, shift)
+    factor8 = int(factor, i8)
+    if (present(dims)) then
+      grid_dims = int(dims, i8)
+    else
+      required = [0_i8, 0_i8, int(this%nx, i8), int(this%ny, i8)]
+      if (any(int(shift, i8) > required(1:2))) &
+        call error_message("derive_coarse_grid: llcorner excludes required source cells.")
+      grid_dims = (required(3:4) - int(shift, i8) + factor8 - 1_i8) / factor8
+    end if
+    if (any(grid_dims < 1_i8) .or. any(grid_dims > int(huge(0_i4), i8))) &
+      call error_message("derive_coarse_grid: derived dimensions are out of range.")
+    if (this%is_periodic()) then
+      if (shift(1) < 0_i4 .or. int(shift(1), i8) + grid_dims(1) * factor8 > int(this%nx, i8)) &
+        call error_message("derive_coarse_grid: longitude extent exceeds periodic source; wrapping is not supported.")
+    end if
+    if (estimate_aux_) then
+      if (any(int(shift, i8) + factor8 <= 0_i8) .or. &
+          any(int(shift, i8) + (grid_dims - 1_i8) * factor8 >= int([this%nx, this%ny], i8))) &
+        call error_message("derive_coarse_grid: each coarse cell must overlap a source fine cell.")
+    end if
+    coarse_grid%nx = int(grid_dims(1), i4)
+    coarse_grid%ny = int(grid_dims(2), i4)
+    coarse_grid%xllcorner = this%xllcorner + real(shift(1), dp) * this%cellsize
+    coarse_grid%yllcorner = this%yllcorner + real(shift(2), dp) * this%cellsize
+    coarse_grid%cellsize = target_resolution
 
     coarse_grid%coordsys = this%coordsys
     coarse_grid%y_direction = this%y_direction
 
-    factor = nint(coarse_grid%cellsize / this%cellsize, i4)
-
-    if (this%is_periodic().and.(.not.coarse_grid%is_periodic())) &
-      call error_message("derive_coarse_grid: target resolution is not suitable for a periodic grid.") ! LCOV_EXCL_LINE
+    if (.not. present(dims)) then
+      if (this%is_periodic().and.(.not.coarse_grid%is_periodic())) &
+        call error_message("derive_coarse_grid: target resolution is not suitable for a periodic grid.") ! LCOV_EXCL_LINE
+    end if
 
     ! create mask at coarse grid
-    allocate(coarse_grid%mask(coarse_grid%nx, coarse_grid%ny))
+    allocate(coarse_grid%mask(coarse_grid%nx, coarse_grid%ny), source=.false.)
 
     !$omp parallel do default(shared) private(i,j,i_lb,i_ub,j_lb,j_ub) schedule(static)
     do j = 1_i4, coarse_grid%ny
@@ -3203,7 +3317,8 @@ contains
         call id_bounds(factor, i, j, &
           coarse_grid%y_direction, coarse_grid%ny, &
           this%y_direction, this%nx, this%ny, &
-          i_lb, i_ub, j_lb, j_ub)
+          i_lb, i_ub, j_lb, j_ub, shift)
+        if (i_lb > i_ub .or. j_lb > j_ub) cycle
         coarse_grid%mask(i, j) = any(this%mask(i_lb : i_ub, j_lb : j_ub))
       end do
     end do
@@ -3224,7 +3339,7 @@ contains
             j = coarse_grid%cell_ij(k, 2)
             call id_bounds(factor, i, j, &
               coarse_grid%y_direction, coarse_grid%ny, this%y_direction, this%nx, this%ny, &
-              i_lb, i_ub, j_lb, j_ub)
+              i_lb, i_ub, j_lb, j_ub, shift)
             coarse_grid%cell_area(k) = sum(fine_cell_area(i_lb : i_ub, j_lb : j_ub), this%mask(i_lb : i_ub, j_lb : j_ub))
           end do
           !$omp end parallel do
@@ -3234,7 +3349,7 @@ contains
           call coarse_grid%calculate_cell_area()
         case(area_count)
           call coarse_grid%calculate_cell_area()
-          sub_cell_cnt = real(factor * factor, dp)
+          sub_cell_cnt = real(factor, dp) ** 2
           !$omp parallel do default(shared) private(i,j,i_lb,i_ub,j_lb,j_ub) schedule(static)
           do k = 1_i8, coarse_grid%ncells
             i = coarse_grid%cell_ij(k, 1)
@@ -3242,7 +3357,7 @@ contains
             call id_bounds(factor, i, j, &
               coarse_grid%y_direction, coarse_grid%ny, &
               this%y_direction, this%nx, this%ny, &
-              i_lb, i_ub, j_lb, j_ub)
+              i_lb, i_ub, j_lb, j_ub, shift)
             coarse_grid%cell_area(k) = coarse_grid%cell_area(k) * (real(count(this%mask(i_lb:i_ub, j_lb:j_ub)), dp) / sub_cell_cnt)
           end do
           !$omp end parallel do
@@ -3259,8 +3374,11 @@ contains
   end subroutine grid_gen_coarse_grid
 
   !> \brief Generate coarse grid from a fine grid by a given target resolution
+  !! Without dims, choose the smallest dimensions covering the source rectangle from the fixed lower-left corner.
+  !! Reject a lower-left corner that excludes required source cells.
   !> \return `type(grid_t) :: coarse_grid`
-  function grid_derive_coarse_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol) result(coarse_grid)
+  function grid_derive_coarse_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol, &
+      llcorner, dims) result(coarse_grid)
     implicit none
     class(grid_t), intent(inout) :: this
     real(dp), intent(in) :: target_resolution !< desired target resolution
@@ -3269,12 +3387,24 @@ contains
     !> method to estimate area: (0, default) from fine grid, (1) from cell extent, (2) from count fraction of valid fine cells
     integer(i4), intent(in), optional :: area_method
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    real(dp), optional, intent(in) :: llcorner(2) !< Target lower-left (x,y) coordinates (default: source origin).
+    integer(i4), optional, intent(in) :: dims(2) !< Target (nx,ny); default: smallest dimensions covering the full source from the fixed origin.
     type(grid_t) :: coarse_grid !< resulting low resolution grid
-    call this%gen_coarse_grid(coarse_grid, target_resolution, estimate_aux, estimate_area, area_method, tol)
+    call this%gen_coarse_grid(coarse_grid, target_resolution, estimate_aux, estimate_area, area_method, tol, &
+      llcorner, dims)
   end function grid_derive_coarse_grid
 
-  !> \brief Generate fine grid from a coarse grid by a given target resolution
-  subroutine grid_gen_fine_grid(this, fine_grid, target_resolution, estimate_aux, estimate_area, area_method, tol)
+  !> \brief Generate fine grid from a coarse grid by a given target resolution.
+  !! llcorner fixes the target origin in grid coordinates; the default is the source origin.
+  !! Without dims, choose the smallest dimensions covering the source rectangle from the fixed lower-left corner.
+  !! Reject a lower-left corner that excludes required source cells.
+  !! Use mask_extent() to determine dimensions covering only active source cells.
+  !! With dims, use the explicit rectangle and activate cells inside active source cells.
+  !! With estimate_aux=.true., the entire output rectangle must lie inside the source.
+  !! Disable auxiliary estimation to allow unsupported, inactive padding cells.
+  !! Periodic sources forbid longitude padding regardless of estimate_aux; seam wrapping is not supported.
+  subroutine grid_gen_fine_grid(this, fine_grid, target_resolution, estimate_aux, &
+      estimate_area, area_method, tol, llcorner, dims)
     implicit none
     class(grid_t), intent(inout) :: this
     type(grid_t), intent(out) :: fine_grid !< resulting high resolution grid
@@ -3283,8 +3413,11 @@ contains
     logical, intent(in), optional :: estimate_area !< whether to estimate coarse cell areas respecting fine mask (default: .true.)
     integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from fine grid, (1) from cell extent
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    real(dp), optional, intent(in) :: llcorner(2) !< Target lower-left (x,y) coordinates (default: source origin).
+    integer(i4), optional, intent(in) :: dims(2) !< Target (nx,ny); default: smallest dimensions covering the full source from the fixed origin.
 
-    integer(i4) :: i, j, ic, jc
+    integer(i4) :: i, j, i_lb, i_ub, j_lb, j_ub, shift(2)
+    integer(i8) :: required(4), grid_dims(2), factor8
     integer(i4) :: factor, area_method_
     logical :: estimate_aux_, estimate_area_
 
@@ -3294,23 +3427,45 @@ contains
 
     call check_factor(target_resolution, this%cellsize, factor=factor, tol=tol)
 
-    fine_grid%nx = this%nx * factor
-    fine_grid%ny = this%ny * factor
+    call this%derivation_offset(target_resolution, .true., llcorner, tol, shift)
+    factor8 = int(factor, i8)
+    if (present(dims)) then
+      grid_dims = int(dims, i8)
+    else
+      required = [0_i8, 0_i8, int(this%nx, i8), int(this%ny, i8)]
+      if (any(-int(shift, i8) > required(1:2) * factor8)) &
+        call error_message("derive_fine_grid: llcorner excludes required source cells.")
+      grid_dims = required(3:4) * factor8 + int(shift, i8)
+    end if
+    if (any(grid_dims < 1_i8) .or. any(grid_dims > int(huge(0_i4), i8))) &
+      call error_message("derive_fine_grid: derived dimensions are out of range.")
+    if (this%is_periodic()) then
+      if (shift(1) > 0_i4 .or. grid_dims(1) - int(shift(1), i8) > int(this%nx, i8) * factor8) &
+        call error_message("derive_fine_grid: longitude extent exceeds periodic source; wrapping is not supported.")
+    end if
+    if (estimate_aux_) then
+      if (any(shift > 0_i4) .or. &
+          any(grid_dims - int(shift, i8) > int([this%nx, this%ny], i8) * factor8)) &
+        call error_message("derive_fine_grid: fine extent must lie inside the source extent.")
+    end if
+    fine_grid%nx = int(grid_dims(1), i4)
+    fine_grid%ny = int(grid_dims(2), i4)
     fine_grid%cellsize = target_resolution
-    fine_grid%xllcorner = this%xllcorner
-    fine_grid%yllcorner = this%yllcorner
+    fine_grid%xllcorner = this%xllcorner - real(shift(1), dp) * target_resolution
+    fine_grid%yllcorner = this%yllcorner - real(shift(2), dp) * target_resolution
     fine_grid%coordsys = this%coordsys
     fine_grid%y_direction = this%y_direction
 
     ! create mask at fine grid
     allocate(fine_grid%mask(fine_grid%nx, fine_grid%ny), source=.false.)
     do j = 1_i4, this%ny
-      ! everything would be better with 0-based ids
-      jc = (j-1_i4) * factor + 1_i4
       do i = 1_i4, this%nx
-        if (.not. this%mask(i, j)) cycle
-        ic = (i-1_i4) * factor + 1_i4
-        fine_grid%mask(ic : ic + factor - 1_i4, jc :  jc + factor - 1_i4) = .true.
+        if (.not. this%mask(i,j)) cycle
+        call id_bounds(factor, i, j, this%y_direction, this%ny, &
+                       fine_grid%y_direction, fine_grid%nx, fine_grid%ny, &
+                       i_lb, i_ub, j_lb, j_ub, shift)
+        if (i_lb > i_ub .or. j_lb > j_ub) cycle
+        fine_grid%mask(i_lb:i_ub, j_lb:j_ub) = .true.
       end do
     end do
 
@@ -3327,8 +3482,11 @@ contains
   end subroutine grid_gen_fine_grid
 
   !> \brief Generate fine grid from a coarse grid by a given target resolution
+  !! Without dims, choose the smallest dimensions covering the source rectangle from the fixed lower-left corner.
+  !! Reject a lower-left corner that excludes required source cells.
   !> \return `type(grid_t) :: fine_grid`
-  function grid_derive_fine_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol) result(fine_grid)
+  function grid_derive_fine_grid(this, target_resolution, estimate_aux, estimate_area, area_method, tol, &
+      llcorner, dims) result(fine_grid)
     implicit none
     class(grid_t), intent(inout) :: this
     real(dp), intent(in) :: target_resolution !< desired target resolution
@@ -3336,13 +3494,24 @@ contains
     logical, intent(in), optional :: estimate_area !< whether to estimate coarse cell areas respecting fine mask (default: .true.)
     integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from fine grid, (1) from cell extent
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    real(dp), optional, intent(in) :: llcorner(2) !< Target lower-left (x,y) coordinates (default: source origin).
+    integer(i4), optional, intent(in) :: dims(2) !< Target (nx,ny); default: smallest dimensions covering the full source from the fixed origin.
     type(grid_t) :: fine_grid !< resulting high resolution grid
-    call this%gen_fine_grid(fine_grid, target_resolution, estimate_aux, estimate_area, area_method, tol)
+    call this%gen_fine_grid(fine_grid, target_resolution, estimate_aux, estimate_area, area_method, tol, &
+      llcorner, dims)
   end function grid_derive_fine_grid
 
-  !> \brief Generate a derived grid by a given target resolution
+  !> \brief Generate a derived grid by a given target resolution.
+  !! llcorner fixes the target origin in grid coordinates; the default is the source origin.
+  !! The requested origin must align with the source on fine-cell borders.
+  !! Without dims, choose the smallest dimensions covering the source rectangle from the fixed lower-left corner.
+  !! Reject a lower-left corner that excludes required source cells.
+  !! Explicit dims fixes (nx,ny), allowing source cropping. Use mask_extent() for mask-based sizing.
+  !! Unsupported cells are inactive; padding requires estimate_aux=.false.
+  !! Periodic sources forbid longitude padding regardless of estimate_aux; seam wrapping is not supported.
   !> \return `type(grid_t) :: result_grid`
-  subroutine grid_gen_grid(this, grid, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, estimate_area, area_method, tol)
+  subroutine grid_gen_grid(this, grid, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, &
+      estimate_area, area_method, tol, llcorner, dims)
     implicit none
     class(grid_t), intent(inout) :: this
     type(grid_t), intent(out) :: grid !< resulting grid
@@ -3353,6 +3522,8 @@ contains
     logical, intent(in), optional :: estimate_area !< whether to estimate cell areas (default: .true.)
     integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from other grid, (1) from cell extent
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    real(dp), optional, intent(in) :: llcorner(2) !< Target lower-left (x,y) coordinates (default: source origin).
+    integer(i4), optional, intent(in) :: dims(2) !< Target (nx,ny); default: smallest dimensions covering the full source from the fixed origin.
     real(dp) :: resolution
     integer(i4) :: input_opt
 
@@ -3376,16 +3547,24 @@ contains
     ! LCOV_EXCL_STOP
 
     if (resolution < this%cellsize) then
-      call this%gen_fine_grid(grid, resolution, estimate_aux, estimate_area, area_method, tol)
+      call this%gen_fine_grid(grid, resolution, estimate_aux, estimate_area, area_method, tol, llcorner, dims)
     else
-      call this%gen_coarse_grid(grid, resolution, estimate_aux, estimate_area, area_method, tol)
+      call this%gen_coarse_grid(grid, resolution, estimate_aux, estimate_area, area_method, tol, llcorner, dims)
     end if
 
   end subroutine grid_gen_grid
 
-  !> \brief Generate a derived grid by a given target resolution
+  !> \brief Generate a derived grid by a given target resolution.
+  !! llcorner fixes the target origin in grid coordinates; the default is the source origin.
+  !! The requested origin must align with the source on fine-cell borders.
+  !! Without dims, choose the smallest dimensions covering the source rectangle from the fixed lower-left corner.
+  !! Reject a lower-left corner that excludes required source cells.
+  !! Explicit dims fixes (nx,ny), allowing source cropping. Use mask_extent() for mask-based sizing.
+  !! Unsupported cells are inactive; padding requires estimate_aux=.false.
+  !! Periodic sources forbid longitude padding regardless of estimate_aux; seam wrapping is not supported.
   !> \return `type(grid_t) :: result_grid`
-  function grid_derive_grid(this, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, estimate_area, area_method, tol) result(derive_grid)
+  function grid_derive_grid(this, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, &
+      estimate_area, area_method, tol, llcorner, dims) result(derive_grid)
     implicit none
     class(grid_t), intent(inout) :: this
     real(dp), intent(in), optional :: target_resolution !< desired target resolution
@@ -3395,8 +3574,11 @@ contains
     logical, intent(in), optional :: estimate_area !< whether to estimate cell areas (default: .true.)
     integer(i4), intent(in), optional :: area_method !< method to estimate area: (0, default) from other grid, (1) from cell extent
     real(dp), optional, intent(in) :: tol !< tolerance for cell factor comparisson (default: 1.e-7)
+    real(dp), optional, intent(in) :: llcorner(2) !< Target lower-left (x,y) coordinates (default: source origin).
+    integer(i4), optional, intent(in) :: dims(2) !< Target (nx,ny); default: smallest dimensions covering the full source from the fixed origin.
     type(grid_t) :: derive_grid !< resulting grid
-    call this%gen_grid(derive_grid, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, estimate_area, area_method, tol)
+    call this%gen_grid(derive_grid, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, &
+      estimate_area, area_method, tol, llcorner, dims)
   end function grid_derive_grid
 
   !> \brief Check 2D data shape for grid
