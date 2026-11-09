@@ -4,7 +4,7 @@ program grid_offset_error
   use mo_kind, only: i4, dp
   use mo_grid, only: grid_t, cartesian, spherical
   use mo_grid_helper, only: check_offset
-  use mo_grid_scaler, only: scaler_t
+  use mo_grid_scaler, only: scaler_t, up_fraction
   implicit none
   type(grid_t), target :: fine, coarse
   type(scaler_t) :: scaler
@@ -152,6 +152,32 @@ program grid_offset_error
   case ('resolution_ratio')
     coarse%cellsize = 1.5_dp
     offset = fine%get_offset(coarse)
+  case ('equal_mask')
+    fine_mask = .true.
+    fine_mask(2,2) = .false.
+    call fine%init(4_i4,4_i4,cellsize=1.0_dp,mask=fine_mask)
+    call coarse%init(4_i4,4_i4,cellsize=1.0_dp)
+    call scaler%init(fine,coarse)
+  case ('equal_fill_geometry')
+    call coarse%init(4_i4,4_i4,cellsize=1.0_dp,xllcorner=1.0_dp)
+    call scaler%init(fine,coarse,fill_missing=.true.)
+  case ('equal_no_donor')
+    fine_mask = .false.
+    call fine%init(4_i4,4_i4,cellsize=1.0_dp,mask=fine_mask)
+    call coarse%init(4_i4,4_i4,cellsize=1.0_dp)
+    call scaler%init(fine,coarse,fill_missing=.true.)
+  case ('equal_real_fraction')
+    call scaler%init(fine,fine)
+    block
+      real(dp) :: result(16)
+      call scaler%execute(spread(1.0_dp,1,16),result,upscaling_operator=up_fraction)
+    end block
+  case ('equal_integer_fraction')
+    call scaler%init(fine,fine)
+    block
+      integer(i4) :: result(16)
+      call scaler%execute(spread(1_i4,1,16),result,upscaling_operator=up_fraction)
+    end block
   case ('fill_geometry')
     fine%xllcorner = -1.0_dp
     call scaler%init(coarse, fine, fill_missing=.true.)

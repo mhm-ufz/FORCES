@@ -4,6 +4,24 @@
 
 All notable changes to **FORCES** will be documented in this file.
 
+## Unreleased
+
+### Enhancements and Changes
+
+* `mo_grid_scaler`: equal-resolution scalers now assign the target as `fine_grid`
+  and the source as `coarse_grid`, retaining `no_scaling`. `id_map(target_id)`
+  contains a source packed ID, with one entry per active target cell and
+  `nodata_i8` for a missing source match. Filling still copies completed target
+  results and does not replace missing map entries. `execute` results and
+  unequal-resolution scaling retain their existing behavior.
+  * This changes public field/helper contracts: `coarse_ij` maps target indices
+    to source indices; `coarse_bounds` returns target bounds for a source cell;
+    `offset` is the source origin relative to the target in cell counts; and
+    source-sized `n_subcells` counts active target cells per source cell (zero
+    or one), including zero outside the target extent.
+  * Reverse maps must be obtained explicitly. `grid_t%gen_id_map` retains its
+    separate source-to-target contract for coincident geometry and zero sentinel.
+
 ## v0.11.3 - 2026-09
 - See the git [diff](https://git.ufz.de/chs/forces/-/compare/v0.11.2...v0.11.3) for details.
 
