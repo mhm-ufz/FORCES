@@ -462,7 +462,7 @@ contains
 
   !> \brief Derive the outer extent of a coarsened grid from a finer grid.
   subroutine calculate_coarse_extent(nx_in,  ny_in,  xllcorner_in,  yllcorner_in,  cellsize_in,  target_resolution, &
-                                     nx_out, ny_out, xllcorner_out, yllcorner_out, cellsize_out, tol, offset)
+                                     nx_out, ny_out, xllcorner_out, yllcorner_out, cellsize_out, tol, llcorner)
     implicit none
 
     integer(i4), intent(in) :: nx_in                  !< Number of cells along x on the input grid.
@@ -477,15 +477,15 @@ contains
     real(dp), intent(out) :: yllcorner_out            !< Lower-left y coordinate of the coarse grid.
     real(dp), intent(out) :: cellsize_out             !< Cell size of the coarse grid.
     real(dp), intent(in), optional :: tol             !< Tolerance for the resolution ratio check.
-    integer(i4), optional, intent(in) :: offset(2) !< Coarse origin relative to fine origin, in fine cells.
+    real(dp), optional, intent(in) :: llcorner(2) !< Coarse lower-left coordinates (default: source origin).
     integer(i4) :: factor, shift(2)
     integer(i8) :: dims(2)
 
     call check_factor(cellsize_in, target_resolution, factor=factor, tol=tol)
     shift = 0_i4
-    if (present(offset)) shift = offset
+    if (present(llcorner)) call check_offset([xllcorner_in, yllcorner_in], llcorner, cellsize_in, shift, tol)
     if (any(shift > 0_i4) .or. any(int(shift, i8) <= -int(factor, i8))) &
-      call error_message("calculate_coarse_extent: offset must cover the source and overlap every coarse cell.")
+      call error_message("calculate_coarse_extent: llcorner must cover the source and overlap every coarse cell.")
     dims = (int([nx_in, ny_in], i8) - int(shift, i8) + int(factor, i8) - 1_i8) / int(factor, i8)
     if (any(dims < 1_i8) .or. any(dims > int(huge(0_i4), i8))) &
       call error_message("calculate_coarse_extent: derived dimensions are out of range.")

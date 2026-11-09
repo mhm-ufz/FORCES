@@ -32,6 +32,7 @@ module test_mo_grid_scaler
   public :: test_offset_meteo_downscaling
   public :: test_offset_upscaling
   public :: test_offset_equal_resolution
+  public :: test_derived_rectangle_scaling
   public :: test_offset_masked_downscaling
 
 contains
@@ -132,6 +133,51 @@ contains
       @assertEqual(out, [27.5_dp, 27.5_dp], tolerance=1.e-12_dp)
     end do
   end subroutine test_offset_upscaling
+
+  @test
+  subroutine test_derived_rectangle_scaling()
+    type(grid_t), target :: source_grid, target_grid
+    type(scaler_t) :: scaler
+    integer(i4) :: direction, mode, i, j, jg, si, sj
+    integer(i8) :: k
+    real(dp) :: source(2,2), resolution
+    real(dp), allocatable :: result(:), expected(:)
+    logical :: mask(2,2)
+
+    do direction = top_down, bottom_up
+      mask = .true.
+      mask(2,merge(1_i4,2_i4,direction == bottom_up)) = .false.
+      call source_grid%init(2_i4,2_i4,cellsize=2.0_dp,mask=mask,y_direction=direction)
+      do j = 1_i4, 2_i4
+        jg = merge(j,3_i4-j,direction == bottom_up)
+        do i = 1_i4, 2_i4
+          source(i,j) = real(10_i4*jg+i,dp)
+        end do
+      end do
+      do mode = 1_i4, 3_i4
+        resolution = real(2_i4 ** (mode-1_i4),dp)
+        call source_grid%gen_grid(target_grid,target_resolution=resolution, &
+          llcorner=[-4.0_dp,-4.0_dp],dims=[12_i4,12_i4],estimate_aux=.false.)
+        allocate(result(target_grid%ncells),expected(target_grid%ncells))
+        do k = 1_i8, target_grid%ncells
+          if (mode == 3_i4) then
+            expected(k) = 18.0_dp
+          else
+            si = int(target_grid%x_center(target_grid%cell_ij(k,1))/2.0_dp,i4) + 1_i4
+            sj = int(target_grid%y_center(target_grid%cell_ij(k,2))/2.0_dp,i4) + 1_i4
+            expected(k) = real(10_i4*sj+si,dp)
+          end if
+        end do
+        call scaler%init(source_grid,target_grid)
+        call scaler%execute(source,result)
+        @assertEqual(result, expected, tolerance=1.e-12_dp)
+        call scaler%execute(source_grid%pack(source),result)
+        @assertEqual(result, expected, tolerance=1.e-12_dp)
+        call scaler%destroy()
+        deallocate(result,expected)
+      end do
+    end do
+  end subroutine test_derived_rectangle_scaling
 
   @test
   subroutine test_offset_equal_resolution()
