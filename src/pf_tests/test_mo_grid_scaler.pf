@@ -2,10 +2,10 @@ module test_mo_grid_scaler
   use funit
   use mo_grid, only: grid_t, cartesian, spherical, top_down, bottom_up
   use mo_grid_scaler, only: scaler_t, nearest_regridder_t, up_a_mean, up_h_mean, up_p_mean, up_min, up_max, up_sum, &
-                            up_var, up_std, up_laf, up_fraction, up_median, down_nearest, down_split, weight_area, weight_count
+                            up_var, up_std, up_laf, up_fraction, up_median, down_nearest, down_split, weight_area, weight_count, no_scaling
   use mo_kind, only: i4, dp, i8
   use mo_utils, only: flip, flipped, is_close
-  use mo_constants, only: nodata_dp
+  use mo_constants, only: nodata_dp, nodata_i4, nodata_i8
   ! use mo_netcdf, only: NcDataset, NcVariable, NcDimension
   implicit none
 
@@ -36,7 +36,273 @@ module test_mo_grid_scaler
   public :: test_offset_masked_downscaling
   public :: test_periodic_regional_scaling
 
+  public :: test_equal_target_contract, test_equal_geometry_contract
+  public :: test_equal_representations, test_equal_missing_representations
+
 contains
+
+  @test
+  subroutine test_equal_target_contract()
+    type(grid_t), target :: source, target, coarse
+    type(scaler_t) :: scaler
+    real(dp) :: result(1), up_result(1), down_result(3)
+    integer(i4) :: ci, cj, xl, xu, yl, yu
+
+    call source%init(3_i4, 1_i4, cellsize=1.0_dp)
+    call target%init(3_i4, 1_i4, cellsize=1.0_dp, mask=reshape([.false., .true., .false.], [3,1]))
+    call scaler%init(source, target, cache_bounds=.true.)
+    @assertEqual(scaler%scaling_mode, no_scaling)
+    @assertTrue(associated(scaler%source_grid, source))
+    @assertTrue(associated(scaler%target_grid, target))
+    @assertTrue(associated(scaler%fine_grid, target))
+    @assertTrue(associated(scaler%coarse_grid, source))
+    @assertFalse(scaler%cache_bounds)
+    @assertEqual(scaler%weight_mode, weight_count)
+    @assertEqual(scaler%id_map, [2_i8])
+    @assertEqual(scaler%n_subcells, [0_i4, 1_i4, 0_i4])
+    call scaler%execute([10.0_dp, 20.0_dp, 30.0_dp], result)
+    @assertEqual(result, [20.0_dp], tolerance=0.0_dp)
+    call scaler%coarse_ij(1_i8, ci, cj)
+    @assertEqual([ci,cj], [2_i4,1_i4])
+    call scaler%coarse_bounds(2_i8, xl, xu, yl, yu)
+    @assertEqual([xl,xu,yl,yu], [2_i4,2_i4,1_i4,1_i4])
+
+    ! Reuse one scaler through modes with different owned weights and map lengths.
+    call coarse%init(1_i4, 1_i4, cellsize=3.0_dp)
+    call scaler%init(source, coarse, weight_mode=weight_area)
+    call scaler%execute([10.0_dp, 20.0_dp, 30.0_dp], up_result)
+    @assertEqual(up_result, [20.0_dp], tolerance=1.e-12_dp)
+    call scaler%init(coarse, source)
+    call scaler%execute([9.0_dp], down_result, downscaling_operator=down_split)
+    @assertEqual(down_result, [3.0_dp,3.0_dp,3.0_dp], tolerance=1.e-12_dp)
+    call scaler%init(source, target, fill_missing=.true.)
+    @assertEqual(scaler%id_map, [2_i8])
+    @assertEqual(scaler%n_subcells, [0_i4,1_i4,0_i4])
+    call scaler%destroy()
+    call scaler%destroy()
+    @assertFalse(associated(scaler%fine_grid))
+    @assertFalse(associated(scaler%coarse_grid))
+    @assertFalse(allocated(scaler%id_map))
+    @assertFalse(allocated(scaler%n_subcells))
+    @assertEqual(source%ncells, 3_i8)
+    @assertEqual(target%ncells, 1_i8)
+    call scaler%init(source, target)
+    call scaler%execute([10_i4,20_i4,30_i4], result)
+    @assertEqual(result, [20.0_dp], tolerance=0.0_dp)
+
+    call target%init(3_i4, 1_i4, cellsize=1.0_dp, mask=reshape([.false.,.false.,.false.], [3,1]))
+    call scaler%init(source, target, fill_missing=.true.)
+    @assertEqual(size(scaler%id_map), 0)
+    @assertEqual(scaler%n_subcells, [0_i4,0_i4,0_i4])
+    call scaler%execute([10.0_dp,20.0_dp,30.0_dp], result(1:0))
+  end subroutine test_equal_target_contract
+
+  @test
+  subroutine test_equal_geometry_contract()
+    type(grid_t), target :: source, target
+    type(scaler_t) :: scaler
+    logical :: smask(5,4), tmask(4,3)
+    integer(i8) :: source_ids(5,4), expected_ids(12), ks, kt, k
+    integer(i4) :: counts(20), sd, td, shift, i, j, jg, si, sj, ci, cj, xl, xu, yl, yu, ti, tj
+    real(dp) :: values(5,4), expected(12), result(12)
+
+    do sd = top_down, bottom_up
+      do td = top_down, bottom_up
+        do shift = -1_i4, 1_i4, 2_i4
+          ks = 0_i8
+          source_ids = nodata_i8
+          do j = 1_i4, 4_i4
+            jg = merge(j, 5_i4-j, sd == bottom_up)
+            do i = 1_i4, 5_i4
+              values(i,j) = real(i+10_i4*jg,dp)
+              smask(i,j) = modulo(i+2_i4*jg,4_i4) /= 0_i4
+              if (.not. smask(i,j)) cycle
+              ks = ks + 1_i8
+              source_ids(i,j) = ks
+            end do
+          end do
+          kt = 0_i8
+          tmask = .false.
+          counts = 0_i4
+          do j = 1_i4, 3_i4
+            jg = merge(j, 4_i4-j, td == bottom_up)
+            do i = 1_i4, 4_i4
+              si = i + shift
+              sj = jg + shift
+              if (si < 1_i4 .or. si > 5_i4 .or. sj < 1_i4 .or. sj > 4_i4) cycle
+              if (sd == top_down) sj = 5_i4-sj
+              if (.not. smask(si,sj)) cycle
+              if (modulo(si+jg+shift,3_i4) == 0_i4) cycle
+              tmask(i,j) = .true.
+              kt = kt + 1_i8
+              expected_ids(kt) = source_ids(si,sj)
+              expected(kt) = values(si,sj)
+              counts(source_ids(si,sj)) = counts(source_ids(si,sj)) + 1_i4
+            end do
+          end do
+          call source%init(5_i4,4_i4,cellsize=1.0_dp,mask=smask,y_direction=sd)
+          call target%init(4_i4,3_i4,cellsize=1.0_dp,mask=tmask,y_direction=td, &
+            xllcorner=real(shift,dp),yllcorner=real(shift,dp))
+          call scaler%init(source,target)
+          @assertEqual(scaler%offset, [-shift,-shift])
+          @assertEqual(scaler%id_map, expected_ids(:kt))
+          @assertEqual(scaler%n_subcells, counts(:ks))
+          call scaler%execute(values,result(:kt))
+          @assertEqual(result(:kt), expected(:kt), tolerance=0.0_dp)
+          do k = 1_i8, kt
+            call scaler%coarse_ij(k,ci,cj)
+            @assertEqual(source_ids(ci,cj), expected_ids(k))
+            call scaler%coarse_ij(target%cell_ij(k,1),target%cell_ij(k,2),ci,cj)
+            @assertEqual(source_ids(ci,cj), expected_ids(k))
+          end do
+          do k = 1_i8, ks
+            si = source%cell_ij(k,1)
+            sj = source%cell_ij(k,2)
+            ti = si-shift
+            jg = merge(sj,5_i4-sj,sd == bottom_up)-shift
+            tj = merge(jg,4_i4-jg,td == bottom_up)
+            call scaler%coarse_bounds(k,xl,xu,yl,yu)
+            if (ti < 1_i4 .or. ti > 4_i4 .or. tj < 1_i4 .or. tj > 3_i4) then
+              @assertEqual([xl,xu,yl,yu], [1_i4,0_i4,1_i4,0_i4])
+            else
+              @assertEqual([xl,xu,yl,yu], [ti,ti,tj,tj])
+            end if
+            call scaler%coarse_bounds(si,sj,ci,xu,cj,yu)
+            @assertEqual([ci,cj], [xl,yl])
+          end do
+        end do
+      end do
+    end do
+  end subroutine test_equal_geometry_contract
+
+  @test
+  subroutine test_equal_representations()
+    type(grid_t), target :: source, target
+    type(scaler_t) :: scaler
+    real(dp) :: values(8,6), packed(24), out(6), mat(4,4), expected(3), expected_mat(2,2)
+    integer(i4) :: integers(8,6), ipacked(24), iout(6), imat(4,4), i, j
+    logical :: smask(4,3), tmask(2,2)
+
+    smask = .true.
+    smask(1,1) = .false.
+    smask(3,1) = .false.
+    tmask = reshape([.true.,.false.,.true.,.true.],[2,2])
+    call source%init(4_i4,3_i4,cellsize=1.0_dp,mask=smask,y_direction=bottom_up)
+    call target%init(2_i4,2_i4,cellsize=1.0_dp,mask=tmask,y_direction=top_down,xllcorner=1.0_dp,yllcorner=1.0_dp)
+    call scaler%init(source,target)
+    values = -123.0_dp
+    do j = 1_i4, 3_i4
+      do i = 1_i4, 4_i4
+        values(2*i-1,2*j-1) = real(i+10*j,dp)
+      end do
+    end do
+    integers = int(values,i4)
+    packed = -123.0_dp
+    ipacked = -123_i4
+    call source%pack_into(values(::2,::2),packed(1:2*source%ncells:2))
+    call source%pack_into(integers(::2,::2),ipacked(1:2*source%ncells:2))
+    expected = [32.0_dp,22.0_dp,23.0_dp]
+    expected_mat = reshape([32.0_dp,nodata_dp,22.0_dp,23.0_dp],[2,2])
+    call scaler%execute(values(::2,::2),out(::2))
+    @assertEqual(out(::2), expected)
+    call scaler%execute(values(::2,::2),mat(::2,::2))
+    @assertEqual(mat(::2,::2), expected_mat)
+    call scaler%execute(packed(1:2*source%ncells:2),out(::2))
+    @assertEqual(out(::2), expected)
+    call scaler%execute(packed(1:2*source%ncells:2),mat(::2,::2))
+    @assertEqual(mat(::2,::2), expected_mat)
+    call scaler%execute(integers(::2,::2),iout(::2))
+    @assertEqual(iout(::2), int(expected,i4))
+    call scaler%execute(integers(::2,::2),imat(::2,::2))
+    @assertEqual(imat(::2,::2), reshape([32_i4,nodata_i4,22_i4,23_i4],[2,2]))
+    call scaler%execute(ipacked(1:2*source%ncells:2),iout(::2))
+    @assertEqual(iout(::2), int(expected,i4))
+    call scaler%execute(ipacked(1:2*source%ncells:2),imat(::2,::2))
+    @assertEqual(imat(::2,::2), reshape([32_i4,nodata_i4,22_i4,23_i4],[2,2]))
+    call scaler%execute(integers(::2,::2),out(::2))
+    @assertEqual(out(::2), expected)
+    call scaler%execute(integers(::2,::2),mat(::2,::2))
+    @assertEqual(mat(::2,::2), expected_mat)
+    call scaler%execute(ipacked(1:2*source%ncells:2),out(::2))
+    @assertEqual(out(::2), expected)
+    call scaler%execute(ipacked(1:2*source%ncells:2),mat(::2,::2))
+    @assertEqual(mat(::2,::2), expected_mat)
+  end subroutine test_equal_representations
+
+  @test
+  subroutine test_equal_missing_representations()
+    type(grid_t), target :: source, target
+    type(scaler_t) :: scaler
+    integer(i4) :: mode, idir, classes(1,4), ipacked(2), iout(3), imat(1,3)
+    real(dp) :: values(1,4), packed(2), out(3), mat(1,3), expected(3)
+
+    classes(:,1) = 999_i4
+    classes(:,2) = 3_i4
+    classes(:,3) = 7_i4
+    classes(:,4) = 999_i4
+    values = real(classes,dp)
+    packed = [3.0_dp,7.0_dp]
+    ipacked = [3_i4,7_i4]
+    do mode = 0_i4, 1_i4
+      do idir = top_down, bottom_up
+        call source%init(1_i4,4_i4,cellsize=1.0_dp,y_direction=bottom_up, &
+          mask=reshape([.false.,.true.,.true.,.false.],[1,4]))
+        call target%init(1_i4,3_i4,cellsize=1.0_dp,y_direction=idir,yllcorner=1.0_dp)
+        call scaler%init(source,target,fill_missing=.true.,use_index_distance=mode == 1_i4)
+        expected = [3.0_dp,7.0_dp,7.0_dp]
+        if (idir == top_down) expected = expected(3:1:-1)
+        if (idir == bottom_up) then
+          @assertEqual(scaler%id_map, [1_i8,2_i8,nodata_i8])
+        else
+          @assertEqual(scaler%id_map, [nodata_i8,2_i8,1_i8])
+        end if
+        @assertEqual(scaler%n_subcells, [1_i4,1_i4])
+        @assertEqual(scaler%offset, [0_i4,-1_i4])
+        call scaler%execute(values,out)
+        @assertEqual(out, expected)
+        call scaler%execute(values,mat)
+        @assertEqual(mat, reshape(expected,[1,3]))
+        call scaler%execute(packed,out)
+        @assertEqual(out, expected)
+        call scaler%execute(packed,mat)
+        @assertEqual(mat, reshape(expected,[1,3]))
+        call scaler%execute(classes,iout)
+        @assertEqual(iout, int(expected,i4))
+        call scaler%execute(classes,imat)
+        @assertEqual(imat, reshape(int(expected,i4),[1,3]))
+        call scaler%execute(ipacked,iout)
+        @assertEqual(iout, int(expected,i4))
+        call scaler%execute(ipacked,imat)
+        @assertEqual(imat, reshape(int(expected,i4),[1,3]))
+        call scaler%execute(classes,out)
+        @assertEqual(out, expected)
+        call scaler%execute(classes,mat)
+        @assertEqual(mat, reshape(expected,[1,3]))
+        call scaler%execute(ipacked,out)
+        @assertEqual(out, expected)
+        call scaler%execute(ipacked,mat)
+        @assertEqual(mat, reshape(expected,[1,3]))
+        expected = merge(1.0_dp,0.0_dp,expected == 7.0_dp)
+        call scaler%execute(classes,out,upscaling_operator=up_fraction,class_id=7_i4)
+        @assertEqual(out, expected)
+        call scaler%execute(ipacked,mat,upscaling_operator=up_fraction,class_id=7_i4)
+        @assertEqual(mat, reshape(expected,[1,3]))
+        call scaler%execute(ipacked,out,upscaling_operator=up_fraction)
+        @assertEqual(out, [0.0_dp,0.0_dp,0.0_dp])
+        call scaler%execute(packed,out,upscaling_operator=up_var)
+        @assertEqual(out, [0.0_dp,0.0_dp,0.0_dp])
+        call scaler%execute(values,mat,upscaling_operator=up_std)
+        @assertEqual(mat, reshape([0.0_dp,0.0_dp,0.0_dp],[1,3]))
+        call scaler%execute(ipacked,out,upscaling_operator=up_std)
+        @assertEqual(out, [0.0_dp,0.0_dp,0.0_dp])
+        call scaler%execute(classes,mat,upscaling_operator=up_var)
+        @assertEqual(mat, reshape([0.0_dp,0.0_dp,0.0_dp],[1,3]))
+        call scaler%execute(ipacked,iout,upscaling_operator=up_var)
+        @assertEqual(iout, int(merge([3.0_dp,7.0_dp,7.0_dp],[7.0_dp,7.0_dp,3.0_dp],idir == bottom_up),i4))
+      end do
+    end do
+  end subroutine test_equal_missing_representations
+
   @test
   subroutine test_periodic_regional_scaling()
     type(grid_t), target :: source_grid, target_grid

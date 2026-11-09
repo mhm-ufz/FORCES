@@ -99,6 +99,11 @@ if(PFUNIT_FOUND)
       "no_overlap|active coarse cell outside fine extent"
       "coordinate_system|grids don't use the same coordinate system"
       "resolution_ratio|check_factor: Two resolutions"
+      "equal_mask|coarse cells without any filling fine cells found"
+      "equal_fill_geometry|active coarse cell outside fine extent"
+      "equal_no_donor|no valid target result is available to fill missing cells"
+      "equal_real_fraction|class fraction upscaling operator not supported for real input data"
+      "equal_integer_fraction|class fraction upscaling operator not supported for integer output data"
       "fill_geometry|active fine cell outside coarse extent")
     foreach(error_case IN LISTS offset_error_cases)
       string(REPLACE "|" ";" case_parts "${error_case}")

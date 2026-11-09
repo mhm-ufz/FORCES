@@ -80,6 +80,19 @@ module mo_grid_scaler
   !!          A periodic source must contain the complete longitude footprint of every active target cell.
   !!          Two periodic grids must share their longitude interval. These checks also apply with fill_missing.
   !!
+  !! The source and target grids retain their application roles. The fine/coarse roles and mapping are:
+  !! | Scaling mode | Fine grid | Coarse grid | id_map direction |
+  !! |--------------|-----------|-------------|------------------|
+  !! | Upscaling | Source | Target | Source to target |
+  !! | Equal resolution | Target | Source | Target to source |
+  !! | Downscaling | Target | Source | Target to source |
+  !! At equal resolution, `id_map(target_id) = source_id`, and `n_subcells` counts active target cells
+  !! per active source cell (zero or one). Missing map entries remain `nodata_i8`, even with filling enabled:
+  !! filling copies completed target results rather than changing this geometry mapping.
+  !! Reverse mappings must be obtained explicitly. The coincident-geometry `grid_t%gen_id_map` method
+  !! independently retains its source-to-target contract and zero sentinel.
+  !! All grid pointers are borrowed; keep their targets alive and unchanged until destruction or reinitialization.
+  !!
   !! Upscaling operator (`upscaling_operator`) can be the following:
   !! - \ref up_p_mean (0): power mean upscaling operator
   !! - \ref up_a_mean (1): arithmetic mean upscaling operator (p-mean with p=1)
@@ -105,8 +118,8 @@ module mo_grid_scaler
     integer(i4) :: scaling_mode = no_scaling                !< \ref up_scaling (0), \ref down_scaling (1) or \ref no_scaling (-1)
     type(grid_t), pointer :: source_grid => null()          !< source grid
     type(grid_t), pointer :: target_grid => null()          !< target grid
-    type(grid_t), pointer :: fine_grid => null()            !< high resolution grid (target when downscaling, source otherwise)
-    type(grid_t), pointer :: coarse_grid => null()          !< low resolution grid (source when downscaling, target otherwise)
+    type(grid_t), pointer :: fine_grid => null()            !< fine grid (source for upscaling, target otherwise; borrowed)
+    type(grid_t), pointer :: coarse_grid => null()          !< coarse grid (target for upscaling, source otherwise; borrowed)
     integer(i4) :: upscaling_operator = up_a_mean           !< default upscaling operator when executing (default: arithmetic mean)
     integer(i4) :: downscaling_operator = down_nearest      !< default downscaling operator when executing (default: nearest)
     integer(i4) :: weight_mode = weight_area                !< upscaling weight mode (default: normalized area based)
@@ -122,7 +135,7 @@ module mo_grid_scaler
     integer(i4), private, dimension(:), allocatable :: x_lb !< cached lower bound for x-id on fine grid (coarse\%ncells)
     integer(i4), private, dimension(:), allocatable :: x_ub !< cached upper bound for x-id on fine grid (coarse\%ncells)
     integer(i4), dimension(:), allocatable :: n_subcells    !< valid fine grid cells in coarse cell (coarse\%ncells)
-    integer(i8), dimension(:), allocatable :: id_map        !< flat index array of coarse ids (fine\%ncells)
+    integer(i8), dimension(:), allocatable :: id_map        !< coarse packed IDs per fine cell; nodata_i8 for missing matches
     real(dp), private, allocatable :: area_weights(:, :)    !< Normalized active fine-cell area weights (fine\%nx,fine\%ny).
     real(dp), private, allocatable :: count_weights(:)      !< Inverse active fine-cell counts (coarse\%ncells).
     real(dp), private, allocatable :: down_split_weights(:) !< Equal split weights for filled destination blocks (fine\%ncells).
@@ -146,7 +159,10 @@ module mo_grid_scaler
     generic, private :: fill_target => scaler_fill_target_dp, scaler_fill_target_i4
     procedure, private :: scaler_pack_equal_dp, scaler_pack_equal_i4, scaler_pack_equal_i4_dp
     generic, private :: pack_equal => scaler_pack_equal_dp, scaler_pack_equal_i4, scaler_pack_equal_i4_dp
-    procedure, private :: pack_equal_fraction => scaler_pack_equal_fraction
+    procedure, private :: scaler_pack_equal_dp_1d, scaler_pack_equal_i4_1d, scaler_pack_equal_i4_dp_1d
+    generic, private :: pack_equal => scaler_pack_equal_dp_1d, scaler_pack_equal_i4_1d, scaler_pack_equal_i4_dp_1d
+    procedure, private :: scaler_pack_equal_fraction, scaler_pack_equal_fraction_1d
+    generic, private :: pack_equal_fraction => scaler_pack_equal_fraction, scaler_pack_equal_fraction_1d
     procedure, private :: check_packed_source => scaler_check_packed_source
     procedure, private :: check_packed_target => scaler_check_packed_target
     procedure, private :: check_unpacked_source => scaler_check_unpacked_source
@@ -409,8 +425,8 @@ contains
       else
         call target_grid%check_is_filled_by(source_grid, tol=tol)
       end if
-      this%fine_grid => source_grid
-      this%coarse_grid => target_grid
+      this%fine_grid => target_grid
+      this%coarse_grid => source_grid
       this%cache_bounds = .false.
       this%weight_mode = weight_count
     else if (is_upscaling) then
@@ -465,9 +481,10 @@ contains
     ! skip further initialization for no scaling
     if (this%scaling_mode == no_scaling) then
       allocate(this%n_subcells(this%coarse_grid%ncells))
-      !$omp parallel do default(shared) schedule(static)
+      !$omp parallel do default(shared) private(i_lb,i_ub,j_lb,j_ub) schedule(static)
       do k = 1_i8, this%coarse_grid%ncells
-        this%n_subcells(k) = 1_i4
+        call this%coarse_bounds(k, i_lb, i_ub, j_lb, j_ub)
+        this%n_subcells(k) = count(this%fine_grid%mask(i_lb:i_ub, j_lb:j_ub))
       end do
       !$omp end parallel do
       return
@@ -695,95 +712,167 @@ contains
     !$omp end parallel do
   end subroutine scaler_fill_target_i4
 
-  !> \brief Pack equal-resolution real data in target order, applying the origin offset and y-direction mapping.
+  !> \brief Gather equal-resolution unpacked real data in target order.
   subroutine scaler_pack_equal_dp(this, in_data, out_data)
     class(scaler_t), intent(in) :: this
-    real(dp), intent(in) :: in_data(:, :)
-    real(dp), intent(out) :: out_data(:)
+    real(dp), intent(in) :: in_data(:, :) !< Source-grid values.
+    real(dp), intent(out) :: out_data(:) !< Packed target-grid results.
 
-    integer(i8) :: k
-    integer(i4) :: i, j, source_i, source_j, x_ub, y_ub
+    integer(i8) :: k, source_id
+    integer(i4) :: source_i, source_j
 
-    !$omp parallel do default(shared) private(k,i,source_i,source_j,x_ub,y_ub) schedule(static)
-    do j = 1_i4, this%target_grid%ny
-      k = this%target_grid%mask_cum_col_cnt(j)
-      do i = 1_i4, this%target_grid%nx
-        if (.not. this%target_grid%mask(i, j)) cycle
-        k = k + 1_i8
-        call this%coarse_bounds(i, j, source_i, x_ub, source_j, y_ub)
-        out_data(k) = in_data(source_i, source_j)
-      end do
+    !$omp parallel do default(shared) private(source_id,source_i,source_j) schedule(static)
+    do k = 1_i8, this%target_grid%ncells
+      out_data(k) = 0.0_dp
+      source_id = this%id_map(k)
+      if (source_id < 1_i8) cycle
+      source_i = this%source_grid%cell_ij(source_id, 1)
+      source_j = this%source_grid%cell_ij(source_id, 2)
+      out_data(k) = in_data(source_i, source_j)
     end do
     !$omp end parallel do
   end subroutine scaler_pack_equal_dp
 
-  !> \brief Pack equal-resolution integer data in target order, applying the origin offset and y-direction mapping.
+  !> \brief Gather equal-resolution unpacked integer data in target order.
   subroutine scaler_pack_equal_i4(this, in_data, out_data)
     class(scaler_t), intent(in) :: this
-    integer(i4), intent(in) :: in_data(:, :)
-    integer(i4), intent(out) :: out_data(:)
+    integer(i4), intent(in) :: in_data(:, :) !< Source-grid values.
+    integer(i4), intent(out) :: out_data(:) !< Packed target-grid results.
 
-    integer(i8) :: k
-    integer(i4) :: i, j, source_i, source_j, x_ub, y_ub
+    integer(i8) :: k, source_id
+    integer(i4) :: source_i, source_j
 
-    !$omp parallel do default(shared) private(k,i,source_i,source_j,x_ub,y_ub) schedule(static)
-    do j = 1_i4, this%target_grid%ny
-      k = this%target_grid%mask_cum_col_cnt(j)
-      do i = 1_i4, this%target_grid%nx
-        if (.not. this%target_grid%mask(i, j)) cycle
-        k = k + 1_i8
-        call this%coarse_bounds(i, j, source_i, x_ub, source_j, y_ub)
-        out_data(k) = in_data(source_i, source_j)
-      end do
+    !$omp parallel do default(shared) private(source_id,source_i,source_j) schedule(static)
+    do k = 1_i8, this%target_grid%ncells
+      out_data(k) = 0_i4
+      source_id = this%id_map(k)
+      if (source_id < 1_i8) cycle
+      source_i = this%source_grid%cell_ij(source_id, 1)
+      source_j = this%source_grid%cell_ij(source_id, 2)
+      out_data(k) = in_data(source_i, source_j)
     end do
     !$omp end parallel do
   end subroutine scaler_pack_equal_i4
 
-  !> \brief Pack equal-resolution integer data as real data, applying the origin offset and y-direction mapping.
+  !> \brief Gather equal-resolution unpacked integer data as real values in target order.
   subroutine scaler_pack_equal_i4_dp(this, in_data, out_data)
     class(scaler_t), intent(in) :: this
-    integer(i4), intent(in) :: in_data(:, :)
-    real(dp), intent(out) :: out_data(:)
+    integer(i4), intent(in) :: in_data(:, :) !< Source-grid values.
+    real(dp), intent(out) :: out_data(:) !< Packed target-grid results.
 
-    integer(i8) :: k
-    integer(i4) :: i, j, source_i, source_j, x_ub, y_ub
+    integer(i8) :: k, source_id
+    integer(i4) :: source_i, source_j
 
-    !$omp parallel do default(shared) private(k,i,source_i,source_j,x_ub,y_ub) schedule(static)
-    do j = 1_i4, this%target_grid%ny
-      k = this%target_grid%mask_cum_col_cnt(j)
-      do i = 1_i4, this%target_grid%nx
-        if (.not. this%target_grid%mask(i, j)) cycle
-        k = k + 1_i8
-        call this%coarse_bounds(i, j, source_i, x_ub, source_j, y_ub)
-        out_data(k) = real(in_data(source_i, source_j), dp)
-      end do
+    !$omp parallel do default(shared) private(source_id,source_i,source_j) schedule(static)
+    do k = 1_i8, this%target_grid%ncells
+      out_data(k) = 0.0_dp
+      source_id = this%id_map(k)
+      if (source_id < 1_i8) cycle
+      source_i = this%source_grid%cell_ij(source_id, 1)
+      source_j = this%source_grid%cell_ij(source_id, 2)
+      out_data(k) = real(in_data(source_i, source_j), dp)
     end do
     !$omp end parallel do
   end subroutine scaler_pack_equal_i4_dp
 
-  !> \brief Pack equal-resolution class fractions in target order, applying the origin offset and y-direction mapping.
+  !> \brief Gather equal-resolution unpacked class fractions in target order.
   subroutine scaler_pack_equal_fraction(this, in_data, out_data, class_id)
     class(scaler_t), intent(in) :: this
-    integer(i4), intent(in) :: in_data(:, :)
-    real(dp), intent(out) :: out_data(:)
+    integer(i4), intent(in) :: in_data(:, :) !< Source-grid values.
+    real(dp), intent(out) :: out_data(:) !< Packed target-grid results.
     integer(i4), intent(in), optional :: class_id !< Class ID whose fraction is requested.
 
-    integer(i8) :: k
-    integer(i4) :: i, j, source_i, source_j, x_ub, y_ub, cls_id
+    integer(i8) :: k, source_id
+    integer(i4) :: source_i, source_j
+    integer(i4) :: cls_id
 
     cls_id = optval(class_id, default=nodata_i4)
-    !$omp parallel do default(shared) private(k,i,source_i,source_j,x_ub,y_ub) schedule(static)
-    do j = 1_i4, this%target_grid%ny
-      k = this%target_grid%mask_cum_col_cnt(j)
-      do i = 1_i4, this%target_grid%nx
-        if (.not. this%target_grid%mask(i, j)) cycle
-        k = k + 1_i8
-        call this%coarse_bounds(i, j, source_i, x_ub, source_j, y_ub)
-        out_data(k) = merge(1.0_dp, 0.0_dp, in_data(source_i, source_j) == cls_id)
-      end do
+    !$omp parallel do default(shared) private(source_id,source_i,source_j) schedule(static)
+    do k = 1_i8, this%target_grid%ncells
+      out_data(k) = 0.0_dp
+      source_id = this%id_map(k)
+      if (source_id < 1_i8) cycle
+      source_i = this%source_grid%cell_ij(source_id, 1)
+      source_j = this%source_grid%cell_ij(source_id, 2)
+      out_data(k) = merge(1.0_dp, 0.0_dp, in_data(source_i, source_j) == cls_id)
     end do
     !$omp end parallel do
   end subroutine scaler_pack_equal_fraction
+
+  !> \brief Gather equal-resolution packed real data in target order.
+  subroutine scaler_pack_equal_dp_1d(this, in_data, out_data)
+    class(scaler_t), intent(in) :: this
+    real(dp), intent(in) :: in_data(:) !< Source-grid values.
+    real(dp), intent(out) :: out_data(:) !< Packed target-grid results.
+
+    integer(i8) :: k, source_id
+
+    !$omp parallel do default(shared) private(source_id) schedule(static)
+    do k = 1_i8, this%target_grid%ncells
+      out_data(k) = 0.0_dp
+      source_id = this%id_map(k)
+      if (source_id < 1_i8) cycle
+      out_data(k) = in_data(source_id)
+    end do
+    !$omp end parallel do
+  end subroutine scaler_pack_equal_dp_1d
+
+  !> \brief Gather equal-resolution packed integer data in target order.
+  subroutine scaler_pack_equal_i4_1d(this, in_data, out_data)
+    class(scaler_t), intent(in) :: this
+    integer(i4), intent(in) :: in_data(:) !< Source-grid values.
+    integer(i4), intent(out) :: out_data(:) !< Packed target-grid results.
+
+    integer(i8) :: k, source_id
+
+    !$omp parallel do default(shared) private(source_id) schedule(static)
+    do k = 1_i8, this%target_grid%ncells
+      out_data(k) = 0_i4
+      source_id = this%id_map(k)
+      if (source_id < 1_i8) cycle
+      out_data(k) = in_data(source_id)
+    end do
+    !$omp end parallel do
+  end subroutine scaler_pack_equal_i4_1d
+
+  !> \brief Gather equal-resolution packed integer data as real values in target order.
+  subroutine scaler_pack_equal_i4_dp_1d(this, in_data, out_data)
+    class(scaler_t), intent(in) :: this
+    integer(i4), intent(in) :: in_data(:) !< Source-grid values.
+    real(dp), intent(out) :: out_data(:) !< Packed target-grid results.
+
+    integer(i8) :: k, source_id
+
+    !$omp parallel do default(shared) private(source_id) schedule(static)
+    do k = 1_i8, this%target_grid%ncells
+      out_data(k) = 0.0_dp
+      source_id = this%id_map(k)
+      if (source_id < 1_i8) cycle
+      out_data(k) = real(in_data(source_id), dp)
+    end do
+    !$omp end parallel do
+  end subroutine scaler_pack_equal_i4_dp_1d
+
+  !> \brief Gather equal-resolution packed class fractions in target order.
+  subroutine scaler_pack_equal_fraction_1d(this, in_data, out_data, class_id)
+    class(scaler_t), intent(in) :: this
+    integer(i4), intent(in) :: in_data(:) !< Source-grid values.
+    real(dp), intent(out) :: out_data(:) !< Packed target-grid results.
+    integer(i4), intent(in), optional :: class_id !< Class ID whose fraction is requested.
+
+    integer(i8) :: k, source_id
+    integer(i4) :: cls_id
+
+    cls_id = optval(class_id, default=nodata_i4)
+    !$omp parallel do default(shared) private(source_id) schedule(static)
+    do k = 1_i8, this%target_grid%ncells
+      out_data(k) = 0.0_dp
+      source_id = this%id_map(k)
+      if (source_id < 1_i8) cycle
+      out_data(k) = merge(1.0_dp, 0.0_dp, in_data(source_id) == cls_id)
+    end do
+    !$omp end parallel do
+  end subroutine scaler_pack_equal_fraction_1d
 
   !> \brief Setup nearest-neighbor regridder from source and target grids.
   !> \details Builds a transient spatial index over the active source cells and
@@ -1525,8 +1614,23 @@ contains
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
     real(dp), allocatable :: temp_in(:, :)
+    integer(i4) :: up_operator, down_operator
+
     call this%check_packed_source(size(in_data, kind=i8))
     call this%check_packed_target(size(out_data, kind=i8))
+    if (this%scaling_mode == no_scaling) then
+      call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
+      select case (up_operator)
+        case (up_var, up_std)
+          out_data = 0.0_dp
+        case (up_fraction)
+          call error_message("scaler: class fraction upscaling operator not supported for real input data.") ! LCOV_EXCL_LINE
+        case default
+          call this%pack_equal(in_data, out_data)
+      end select
+      call this%fill_target(out_data)
+      return
+    end if
     allocate(temp_in(this%source_grid%nx, this%source_grid%ny))
     call this%source_grid%unpack_into(in_data, temp_in)
     call this%scaler_exe_dp_2d_1d(temp_in, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
@@ -1546,6 +1650,13 @@ contains
     real(dp), allocatable :: temp_out(:), temp_in(:, :)
     call this%check_packed_source(size(in_data, kind=i8))
     call this%check_unpacked_target(size(out_data, 1), size(out_data, 2))
+    if (this%scaling_mode == no_scaling) then
+      allocate(temp_out(this%target_grid%ncells))
+      call this%scaler_exe_dp_1d_1d(in_data, temp_out, &
+        upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
+      call this%target_grid%unpack_into(temp_out, out_data)
+      return
+    end if
     allocate(temp_out(this%target_grid%ncells), temp_in(this%source_grid%nx, this%source_grid%ny))
     call this%source_grid%unpack_into(in_data, temp_in)
     call this%scaler_exe_dp_2d_1d(temp_in, temp_out, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
@@ -1652,8 +1763,20 @@ contains
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
     integer(i4), allocatable :: temp_in(:, :)
+    integer(i4) :: up_operator, down_operator
+
     call this%check_packed_source(size(in_data, kind=i8))
     call this%check_packed_target(size(out_data, kind=i8))
+    if (this%scaling_mode == no_scaling) then
+      call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
+      if (up_operator == up_fraction) then
+        call error_message("scaler: class fraction upscaling operator not supported for integer output data.") ! LCOV_EXCL_LINE
+      else
+        call this%pack_equal(in_data, out_data)
+      end if
+      call this%fill_target(out_data)
+      return
+    end if
     allocate(temp_in(this%source_grid%nx, this%source_grid%ny))
     call this%source_grid%unpack_into(in_data, temp_in)
     call this%scaler_exe_i4_2d_1d(temp_in, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
@@ -1673,6 +1796,13 @@ contains
     integer(i4), allocatable :: temp_out(:), temp_in(:, :)
     call this%check_packed_source(size(in_data, kind=i8))
     call this%check_unpacked_target(size(out_data, 1), size(out_data, 2))
+    if (this%scaling_mode == no_scaling) then
+      allocate(temp_out(this%target_grid%ncells))
+      call this%scaler_exe_i4_1d_1d(in_data, temp_out, &
+        upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
+      call this%target_grid%unpack_into(temp_out, out_data)
+      return
+    end if
     allocate(temp_out(this%target_grid%ncells), temp_in(this%source_grid%nx, this%source_grid%ny))
     call this%source_grid%unpack_into(in_data, temp_in)
     call this%scaler_exe_i4_2d_1d(temp_in, temp_out, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
@@ -1775,8 +1905,23 @@ contains
     integer(i4), intent(in), optional :: vmin !< minimum of values to speed up up_laf operator
     integer(i4), intent(in), optional :: vmax !< maximum of values to speed up up_laf operator
     integer(i4), allocatable :: temp_in(:, :)
+    integer(i4) :: up_operator, down_operator
+
     call this%check_packed_source(size(in_data, kind=i8))
     call this%check_packed_target(size(out_data, kind=i8))
+    if (this%scaling_mode == no_scaling) then
+      call this%operator_init(up_operator, down_operator, upscaling_operator, downscaling_operator)
+      select case (up_operator)
+        case (up_var, up_std)
+          out_data = 0.0_dp
+        case (up_fraction)
+          call this%pack_equal_fraction(in_data, out_data, class_id)
+        case default
+          call this%pack_equal(in_data, out_data)
+      end select
+      call this%fill_target(out_data)
+      return
+    end if
     allocate(temp_in(this%source_grid%nx, this%source_grid%ny))
     call this%source_grid%unpack_into(in_data, temp_in)
     call this%scaler_exe_i4_dp_2d_1d(temp_in, out_data, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
@@ -1797,6 +1942,13 @@ contains
     real(dp), allocatable :: temp_out(:)
     call this%check_packed_source(size(in_data, kind=i8))
     call this%check_unpacked_target(size(out_data, 1), size(out_data, 2))
+    if (this%scaling_mode == no_scaling) then
+      allocate(temp_out(this%target_grid%ncells))
+      call this%scaler_exe_i4_dp_1d_1d(in_data, temp_out, &
+        upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
+      call this%target_grid%unpack_into(temp_out, out_data)
+      return
+    end if
     allocate(temp_in(this%source_grid%nx, this%source_grid%ny), temp_out(this%target_grid%ncells))
     call this%source_grid%unpack_into(in_data, temp_in)
     call this%scaler_exe_i4_dp_2d_1d(temp_in, temp_out, upscaling_operator, downscaling_operator, p, class_id, vmin, vmax)
@@ -2738,7 +2890,7 @@ contains
     call this%scaler_minloc_i4_2d(temp_in, ids, back)
   end subroutine scaler_minloc_i4_1d
 
-  !> \brief Get coarse grid indices from fine grid indices.
+  !> \brief Get coarse grid indices from fine grid indices (target to source at equal resolution).
   pure subroutine scaler_coarse_ij(this, fine_i, fine_j, coarse_i, coarse_j)
     class(scaler_t), intent(in) :: this
     integer(i4), intent(in) :: fine_i !< i index on fine grid
@@ -2751,7 +2903,7 @@ contains
       coarse_i, coarse_j, this%offset)
   end subroutine scaler_coarse_ij
 
-  !> \brief Get coarse grid indices from fine grid cell index.
+  !> \brief Get coarse grid indices from fine grid cell index (target to source at equal resolution).
   pure subroutine scaler_coarse_ij_cell(this, fine_cell, coarse_i, coarse_j)
     class(scaler_t), intent(in) :: this
     integer(i8), intent(in) :: fine_cell !< cell index on fine grid
@@ -2763,7 +2915,7 @@ contains
       coarse_i, coarse_j, this%offset)
   end subroutine scaler_coarse_ij_cell
 
-  !> \brief Get fine cell index bounds from coarse grid indices.
+  !> \brief Get fine cell index bounds from coarse grid indices (source to target at equal resolution).
   pure subroutine scaler_coarse_bounds(this, coarse_i, coarse_j, x_lb, x_ub, y_lb, y_ub)
     class(scaler_t), intent(in) :: this
     integer(i4), intent(in) :: coarse_i !< i index on coarse grid
@@ -2778,7 +2930,7 @@ contains
       x_lb, x_ub, y_lb, y_ub, this%offset)
   end subroutine scaler_coarse_bounds
 
-  !> \brief Get fine cell index bounds from coarse grid cell index.
+  !> \brief Get fine cell index bounds from coarse grid cell index (source to target at equal resolution).
   pure subroutine scaler_coarse_bounds_cell(this, coarse_cell, x_lb, x_ub, y_lb, y_ub)
     class(scaler_t), intent(in) :: this
     integer(i8), intent(in) :: coarse_cell !< cell index on coarse grid
