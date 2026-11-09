@@ -7,6 +7,15 @@
   width: 100%;
 }
 
+/* Named member groups retain Doxygen's fixed light-mode colors in the theme. */
+.contents div.groupHeader {
+  color: var(--page-foreground-color);
+  box-shadow: 13px 0 var(--page-background-color),
+              -13px 0 var(--page-background-color),
+               13px 1px var(--separator-color),
+              -13px 1px var(--separator-color);
+}
+
 .forces-rtd-controls {
   box-sizing: border-box;
   display: block;
