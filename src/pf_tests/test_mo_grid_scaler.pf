@@ -34,8 +34,99 @@ module test_mo_grid_scaler
   public :: test_offset_equal_resolution
   public :: test_derived_rectangle_scaling
   public :: test_offset_masked_downscaling
+  public :: test_periodic_regional_scaling
 
 contains
+  @test
+  subroutine test_periodic_regional_scaling()
+    type(grid_t), target :: source_grid, target_grid
+    type(scaler_t) :: scaler
+    integer(i4) :: sd, td, mode, cache, i, j, jg
+    real(dp) :: source(12,2), expected(14,2)
+    real(dp), allocatable :: result(:)
+    logical :: padded_mask(14,2)
+
+    do sd = top_down, bottom_up
+      do td = top_down, bottom_up
+        call source_grid%init(12_i4, 2_i4, yllcorner=-30.0_dp, cellsize=30.0_dp, &
+                              coordsys=spherical, y_direction=sd)
+        do j = 1_i4, 2_i4
+          jg = merge(j, 3_i4-j, sd == bottom_up)
+          do i = 1_i4, 12_i4
+            source(i,j) = real(100_i4*jg+i, dp)
+          end do
+        end do
+        do mode = 1_i4, 3_i4
+          select case (mode)
+          case (1_i4)
+            call target_grid%init(3_i4, 2_i4, xllcorner=315.0_dp, yllcorner=-15.0_dp, &
+                                  cellsize=15.0_dp, coordsys=spherical, y_direction=td)
+            do j = 1_i4, 2_i4
+              jg = merge(j, 3_i4-j, td == bottom_up)
+              expected(1:3,j) = real(100_i4*jg, dp) + [11.0_dp,12.0_dp,12.0_dp]
+            end do
+          case (2_i4)
+            call target_grid%init(2_i4, 2_i4, xllcorner=300.0_dp, yllcorner=-30.0_dp, &
+                                  cellsize=30.0_dp, coordsys=spherical, y_direction=td)
+            do j = 1_i4, 2_i4
+              jg = merge(j, 3_i4-j, td == bottom_up)
+              expected(1:2,j) = real(100_i4*jg, dp) + [11.0_dp,12.0_dp]
+            end do
+          case (3_i4)
+            call target_grid%init(1_i4, 1_i4, xllcorner=300.0_dp, yllcorner=-30.0_dp, &
+                                  cellsize=60.0_dp, coordsys=spherical, y_direction=td)
+            expected(1,1) = 161.5_dp
+          end select
+          @assertTrue(source_grid%is_periodic())
+          @assertFalse(target_grid%is_periodic())
+          allocate(result(target_grid%ncells))
+          do cache = 0_i4, 1_i4
+            call scaler%init(source_grid, target_grid, cache_bounds=cache == 1_i4)
+            call scaler%execute(source, result)
+            @assertEqual(result, target_grid%pack(expected(1:target_grid%nx,1:target_grid%ny)), tolerance=1.e-12_dp)
+            call scaler%execute(source_grid%pack(source), result)
+            @assertEqual(result, target_grid%pack(expected(1:target_grid%nx,1:target_grid%ny)), tolerance=1.e-12_dp)
+          end do
+          call scaler%destroy()
+          deallocate(result)
+        end do
+
+        call target_grid%init(6_i4, 1_i4, yllcorner=-30.0_dp, cellsize=60.0_dp, &
+                              coordsys=spherical, y_direction=td)
+        allocate(result(target_grid%ncells))
+        call scaler%init(source_grid, target_grid)
+        call scaler%execute(source, result)
+        @assertEqual(result, [151.5_dp,153.5_dp,155.5_dp,157.5_dp,159.5_dp,161.5_dp], tolerance=1.e-12_dp)
+        call scaler%destroy()
+        deallocate(result)
+
+        ! Inactive padding does not require source support or seam wrapping.
+        padded_mask = .true.
+        padded_mask(1,:) = .false.
+        padded_mask(14,:) = .false.
+        call target_grid%init(14_i4, 2_i4, xllcorner=-30.0_dp, yllcorner=-30.0_dp, &
+                              cellsize=30.0_dp, coordsys=spherical, mask=padded_mask, y_direction=td)
+        do j = 1_i4, 2_i4
+          jg = merge(j, 3_i4-j, td == bottom_up)
+          do i = 2_i4, 13_i4
+            expected(i,j) = real(100_i4*jg+i-1_i4, dp)
+          end do
+        end do
+        allocate(result(target_grid%ncells))
+        call scaler%init(source_grid, target_grid)
+        call scaler%execute(source, result)
+        @assertEqual(result, target_grid%pack(expected), tolerance=1.e-12_dp)
+        call scaler%destroy()
+        deallocate(result)
+        call target_grid%init(1_i4, 1_i4, xllcorner=390.0_dp, cellsize=30.0_dp, &
+                              coordsys=spherical, mask=reshape([.false.],[1,1]))
+        call scaler%init(source_grid, target_grid)
+        @assertEqual(target_grid%ncells, 0_i8, message='empty regional targets need no longitude support')
+        call scaler%destroy()
+      end do
+    end do
+  end subroutine test_periodic_regional_scaling
+
   @test
   subroutine test_offset_meteo_downscaling()
     type(grid_t), target :: coarse, fine

@@ -3238,6 +3238,7 @@ contains
   !! With dims, use the explicit rectangle and activate cells overlapping active source cells.
   !! With estimate_aux=.true., every output cell must overlap the source rectangle.
   !! Disable auxiliary estimation to allow wholly unsupported, inactive padding cells.
+  !! Periodic sources forbid longitude padding regardless of estimate_aux; seam wrapping is not supported.
   subroutine grid_gen_coarse_grid(this, coarse_grid, target_resolution, estimate_aux, &
       estimate_area, area_method, tol, llcorner, dims)
     implicit none
@@ -3284,6 +3285,10 @@ contains
     end if
     if (any(grid_dims < 1_i8) .or. any(grid_dims > int(huge(0_i4), i8))) &
       call error_message("derive_coarse_grid: derived dimensions are out of range.")
+    if (this%is_periodic()) then
+      if (shift(1) < 0_i4 .or. int(shift(1), i8) + grid_dims(1) * factor8 > int(this%nx, i8)) &
+        call error_message("derive_coarse_grid: longitude extent exceeds periodic source; wrapping is not supported.")
+    end if
     if (estimate_aux_) then
       if (any(int(shift, i8) + factor8 <= 0_i8) .or. &
           any(int(shift, i8) + (grid_dims - 1_i8) * factor8 >= int([this%nx, this%ny], i8))) &
@@ -3397,6 +3402,7 @@ contains
   !! With dims, use the explicit rectangle and activate cells inside active source cells.
   !! With estimate_aux=.true., the entire output rectangle must lie inside the source.
   !! Disable auxiliary estimation to allow unsupported, inactive padding cells.
+  !! Periodic sources forbid longitude padding regardless of estimate_aux; seam wrapping is not supported.
   subroutine grid_gen_fine_grid(this, fine_grid, target_resolution, estimate_aux, &
       estimate_area, area_method, tol, llcorner, dims)
     implicit none
@@ -3433,6 +3439,10 @@ contains
     end if
     if (any(grid_dims < 1_i8) .or. any(grid_dims > int(huge(0_i4), i8))) &
       call error_message("derive_fine_grid: derived dimensions are out of range.")
+    if (this%is_periodic()) then
+      if (shift(1) > 0_i4 .or. grid_dims(1) - int(shift(1), i8) > int(this%nx, i8) * factor8) &
+        call error_message("derive_fine_grid: longitude extent exceeds periodic source; wrapping is not supported.")
+    end if
     if (estimate_aux_) then
       if (any(shift > 0_i4) .or. &
           any(grid_dims - int(shift, i8) > int([this%nx, this%ny], i8) * factor8)) &
@@ -3498,6 +3508,7 @@ contains
   !! Reject a lower-left corner that excludes required source cells.
   !! Explicit dims fixes (nx,ny), allowing source cropping. Use mask_extent() for mask-based sizing.
   !! Unsupported cells are inactive; padding requires estimate_aux=.false.
+  !! Periodic sources forbid longitude padding regardless of estimate_aux; seam wrapping is not supported.
   !> \return `type(grid_t) :: result_grid`
   subroutine grid_gen_grid(this, grid, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, &
       estimate_area, area_method, tol, llcorner, dims)
@@ -3550,6 +3561,7 @@ contains
   !! Reject a lower-left corner that excludes required source cells.
   !! Explicit dims fixes (nx,ny), allowing source cropping. Use mask_extent() for mask-based sizing.
   !! Unsupported cells are inactive; padding requires estimate_aux=.false.
+  !! Periodic sources forbid longitude padding regardless of estimate_aux; seam wrapping is not supported.
   !> \return `type(grid_t) :: result_grid`
   function grid_derive_grid(this, target_resolution, downscaling_factor, upscaling_factor, estimate_aux, &
       estimate_area, area_method, tol, llcorner, dims) result(derive_grid)

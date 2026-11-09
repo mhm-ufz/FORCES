@@ -58,6 +58,7 @@ module test_mo_grid
   public :: test_derivation_crop_aux
   public :: test_derivation_padded_origins
   public :: test_mask_extent
+  public :: test_periodic_derivation_rectangles
 
 contains
   @test
@@ -339,12 +340,58 @@ contains
       @assertEqual(target%ncells, 1_i8)
       @assertEqual(target%cell_area(1), 4.0_dp, tolerance=1.e-12_dp)
     end do
-    call source%init(4_i4,2_i4,xllcorner=-180.0_dp,yllcorner=-90.0_dp,cellsize=90.0_dp,coordsys=spherical)
-    @assertTrue(source%is_periodic())
-    target = source%derive_coarse_grid(180.0_dp,llcorner=[90.0_dp,-90.0_dp],dims=[2_i4,1_i4],estimate_aux=.false.)
-    @assertEqual(target%mask(:,1), [.true.,.false.], message='explicit periodic-source rectangles do not wrap')
-    @assertEqual(target%cell_area(1), 2.0_dp*source%cell_area(1), tolerance=1.0_dp)
   end subroutine test_derivation_rectangles
+
+  @test
+  subroutine test_periodic_derivation_rectangles()
+    type(grid_t) :: source, target
+    integer(i4) :: direction, dims(2)
+    real(dp) :: corner(2)
+    logical :: mask(12,2)
+
+    do direction = top_down, bottom_up
+      call source%init(12_i4, 2_i4, yllcorner=-30.0_dp, cellsize=30.0_dp, &
+                       coordsys=spherical, y_direction=direction)
+      target = source%derive_grid(upscaling_factor=2_i4)
+      @assertTrue(target%is_periodic())
+      @assertEqual([target%nx,target%ny], [6_i4,1_i4])
+      @assertEqual(target%total_area(), source%total_area(), tolerance=1.0_dp)
+      target = source%derive_grid(downscaling_factor=2_i4)
+      @assertTrue(target%is_periodic())
+      @assertEqual([target%nx,target%ny], [24_i4,4_i4])
+      @assertEqual(target%total_area(), source%total_area(), tolerance=1.0_dp)
+      target = source%derive_grid(target_resolution=30.0_dp)
+      @assertTrue(target%is_periodic())
+      @assertEqual([target%nx,target%ny], [12_i4,2_i4])
+
+      target = source%derive_coarse_grid(60.0_dp, llcorner=[300.0_dp,-30.0_dp], dims=[1_i4,1_i4])
+      @assertFalse(target%is_periodic())
+      @assertTrue(all(target%mask))
+      @assertEqual(target%cell_area(1), 4.0_dp*source%cell_area(1), tolerance=1.0_dp)
+      target = source%derive_fine_grid(15.0_dp, llcorner=[315.0_dp,-15.0_dp], dims=[3_i4,2_i4])
+      @assertFalse(target%is_periodic())
+      @assertTrue(all(target%mask))
+      target = source%derive_coarse_grid(60.0_dp, llcorner=[0.0_dp,-90.0_dp], &
+                                         dims=[6_i4,2_i4], estimate_aux=.false.)
+      @assertTrue(target%is_periodic(), message='latitude padding remains supported')
+      @assertEqual(target%ncells, 6_i8)
+      target = source%derive_fine_grid(15.0_dp, llcorner=[0.0_dp,-60.0_dp], &
+                                       dims=[24_i4,6_i4], estimate_aux=.false.)
+      @assertTrue(target%is_periodic())
+      @assertEqual(target%ncells, 96_i8)
+
+      mask = .false.
+      mask(11:12,:) = .true.
+      call source%init(12_i4, 2_i4, yllcorner=-30.0_dp, cellsize=30.0_dp, &
+                       coordsys=spherical, y_direction=direction, mask=mask)
+      call source%mask_extent(60.0_dp, dims, llcorner=corner)
+      @assertEqual(corner, [300.0_dp,-30.0_dp], tolerance=1.e-12_dp)
+      @assertEqual(dims, [1_i4,1_i4])
+      target = source%derive_coarse_grid(60.0_dp, llcorner=corner, dims=dims)
+      @assertFalse(target%is_periodic())
+      @assertEqual(target%total_area(), source%total_area(), tolerance=1.0_dp)
+    end do
+  end subroutine test_periodic_derivation_rectangles
 
   @test
   subroutine test_derivation_crop_aux()

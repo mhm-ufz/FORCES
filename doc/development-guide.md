@@ -143,14 +143,31 @@ up to whole target cells from that corner. An empty mask uses full source bounds
 The helper validates integer resolution ratios, fine-cell alignment, coverage of
 all required source cells, and representable dimensions; optional `tol` has the
 same meaning as in grid derivation. It does not constrain auxiliary estimation.
-The automatically chosen mask rectangle supports auxiliary estimation, including
-partial coarse edge cells. A fixed origin can introduce unsupported padding.
+For nonperiodic sources, the automatically chosen mask rectangle supports
+auxiliary estimation, including partial coarse edge cells. A fixed origin can
+introduce unsupported padding; periodic longitude restrictions are described below.
 
 Use `estimate_aux=.false.` to allow padding with no source overlap. With auxiliary
 estimation enabled, every coarse output cell must overlap the source rectangle,
 and the entire fine output rectangle must lie inside the source. Cropping is
-supported when source coordinates cover the output. Explicit rectangles on
-periodic sources do not wrap across the longitude seam.
+supported when source coordinates cover the output.
+
+Periodic longitude seam wrapping is not implemented by the scaler or grid
+derivation. A periodic source can supply a shifted regional target inside its
+stored longitude interval; matching periodic states are not required. The scaler
+rejects active target cells whose complete longitude footprint extends outside
+that interval, including partially overlapping coarse cells, even with
+`fill_missing=.true.`. Inactive regional target padding is permitted. Two global
+periodic grids must share their longitude interval.
+
+Derivation from a periodic source rejects any requested rectangle extending
+outside the source longitude interval, including inactive padding and
+`estimate_aux=.false.`. Latitude padding follows the ordinary rules. Without
+`dims`, the output retains the complete 360-degree longitude extent and the
+resolution must be compatible with that extent. Explicit dimensions may select a
+regional rectangle inside the interval. `mask_extent` still returns ordinary
+bounding-box geometry; target-cell rounding may yield longitude padding rejected
+by derivation from a periodic source.
 
 Point values follow the point set's ordering, and a spatial mapping must preserve
 the correspondence between coordinates, IDs, and values. A regridder or index

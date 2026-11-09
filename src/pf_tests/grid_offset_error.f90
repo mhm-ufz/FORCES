@@ -9,7 +9,8 @@ program grid_offset_error
   type(grid_t), target :: fine, coarse
   type(scaler_t) :: scaler
   integer(i4) :: offset(2), dims(2)
-  logical :: fine_mask(4,4), coarse_mask(2,2)
+  real(dp) :: corner(2)
+  logical :: fine_mask(4,4), coarse_mask(2,2), periodic_mask(12,2)
   character(len=40) :: scenario
 
   call get_command_argument(1, scenario)
@@ -91,6 +92,57 @@ program grid_offset_error
     call fine%mask_extent(1.5_dp, dims)
   case ('mask_resolution_nonfinite')
     call fine%mask_extent(ieee_value(0.0_dp,ieee_quiet_nan), dims)
+  case ('periodic_up_west', 'periodic_up_east', 'periodic_up_fill')
+    call fine%init(12_i4, 2_i4, yllcorner=-30.0_dp, cellsize=30.0_dp, coordsys=spherical)
+    call coarse%init(1_i4, 1_i4, xllcorner=330.0_dp, yllcorner=-30.0_dp, cellsize=60.0_dp, coordsys=spherical)
+    if (scenario == 'periodic_up_west') coarse%xllcorner = -30.0_dp
+    call scaler%init(fine, coarse, fill_missing=scenario == 'periodic_up_fill')
+  case ('periodic_down_west', 'periodic_down_east')
+    call coarse%init(6_i4, 1_i4, yllcorner=-30.0_dp, cellsize=60.0_dp, coordsys=spherical)
+    call fine%init(1_i4, 1_i4, xllcorner=360.0_dp, yllcorner=-30.0_dp, cellsize=30.0_dp, coordsys=spherical)
+    if (scenario == 'periodic_down_west') fine%xllcorner = -30.0_dp
+    call scaler%init(coarse, fine)
+  case ('periodic_equal_east')
+    call coarse%init(12_i4, 2_i4, yllcorner=-30.0_dp, cellsize=30.0_dp, coordsys=spherical)
+    call fine%init(1_i4, 1_i4, xllcorner=360.0_dp, yllcorner=-30.0_dp, cellsize=30.0_dp, coordsys=spherical)
+    call scaler%init(coarse, fine)
+  case ('periodic_global_up', 'periodic_global_down', 'periodic_global_equal')
+    call fine%init(12_i4, 2_i4, yllcorner=-30.0_dp, cellsize=30.0_dp, coordsys=spherical)
+    call coarse%init(6_i4, 1_i4, xllcorner=30.0_dp, yllcorner=-30.0_dp, cellsize=60.0_dp, coordsys=spherical)
+    if (scenario == 'periodic_global_equal') &
+      call coarse%init(12_i4, 2_i4, xllcorner=30.0_dp, yllcorner=-30.0_dp, cellsize=30.0_dp, coordsys=spherical)
+    if (scenario == 'periodic_global_down') then
+      call scaler%init(coarse, fine)
+    else
+      call scaler%init(fine, coarse)
+    end if
+  case ('periodic_coarse_west', 'periodic_coarse_east', 'periodic_coarse_empty')
+    periodic_mask = scenario /= 'periodic_coarse_empty'
+    call fine%init(12_i4, 2_i4, yllcorner=-30.0_dp, cellsize=30.0_dp, coordsys=spherical, mask=periodic_mask)
+    if (scenario == 'periodic_coarse_west') then
+      coarse = fine%derive_coarse_grid(60.0_dp, llcorner=[-30.0_dp,-30.0_dp], dims=[1_i4,1_i4], estimate_aux=.false.)
+    else
+      coarse = fine%derive_coarse_grid(60.0_dp, llcorner=[330.0_dp,-30.0_dp], dims=[1_i4,1_i4], estimate_aux=.false.)
+    end if
+  case ('periodic_fine_west', 'periodic_fine_east')
+    call coarse%init(12_i4, 2_i4, yllcorner=-30.0_dp, cellsize=30.0_dp, coordsys=spherical)
+    if (scenario == 'periodic_fine_west') then
+      fine = coarse%derive_fine_grid(15.0_dp, llcorner=[-15.0_dp,-30.0_dp], dims=[2_i4,2_i4], estimate_aux=.false.)
+    else
+      fine = coarse%derive_fine_grid(15.0_dp, llcorner=[345.0_dp,-30.0_dp], dims=[2_i4,2_i4], estimate_aux=.false.)
+    end if
+  case ('periodic_coarse_default')
+    call fine%init(12_i4, 2_i4, yllcorner=-30.0_dp, cellsize=30.0_dp, coordsys=spherical)
+    coarse = fine%derive_coarse_grid(150.0_dp, estimate_aux=.false.)
+  case ('periodic_fine_default')
+    call coarse%init(12_i4, 2_i4, yllcorner=-30.0_dp, cellsize=30.0_dp, coordsys=spherical)
+    fine = coarse%derive_fine_grid(15.0_dp, llcorner=[-15.0_dp,-30.0_dp], estimate_aux=.false.)
+  case ('periodic_mask_padding')
+    periodic_mask = .false.
+    periodic_mask(12,:) = .true.
+    call fine%init(12_i4, 2_i4, yllcorner=-30.0_dp, cellsize=30.0_dp, coordsys=spherical, mask=periodic_mask)
+    call fine%mask_extent(60.0_dp, dims, llcorner=corner)
+    coarse = fine%derive_coarse_grid(60.0_dp, dims=dims, llcorner=corner, estimate_aux=.false.)
   case ('no_overlap')
     coarse%xllcorner = 10.0_dp
     call coarse%check_is_filled_by(fine, check_mask=.false.)

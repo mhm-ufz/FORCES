@@ -77,6 +77,8 @@ module mo_grid_scaler
   !!          Lower-left corners may differ by integer fine-cell counts. The inferred offset describes
   !!          the coarse origin relative to the fine origin, positive east/north. Coarse source grids
   !!          may extend arbitrarily beyond a fine target; longitude seam wrapping is not performed.
+  !!          A periodic source must contain the complete longitude footprint of every active target cell.
+  !!          Two periodic grids must share their longitude interval. These checks also apply with fill_missing.
   !!
   !! Upscaling operator (`upscaling_operator`) can be the following:
   !! - \ref up_p_mean (0): power mean upscaling operator
@@ -315,6 +317,41 @@ contains
     this%target_use_aux = .false.
   end subroutine nearest_regridder_destroy
 
+  !> \brief Reject periodic source mappings that would require longitude seam wrapping.
+  !! Check complete active target-cell footprints, including partial coarse cells. Inactive target
+  !! padding is permitted. Two global periodic grids must share the same longitude interval.
+  subroutine scaler_check_periodic_grids(source_grid, target_grid, factor, tol)
+    type(grid_t), intent(in) :: source_grid !< Source grid whose stored interval supplies target cells.
+    type(grid_t), intent(in) :: target_grid !< Target grid; only active cells require source support.
+    integer(i4), intent(in) :: factor !< Validated integer coarse-to-fine cell-size ratio.
+    real(dp), optional, intent(in) :: tol !< Alignment tolerance in fine-cell units.
+    integer(i4) :: offset(2)
+    integer(i8) :: source_width, target_step, target_origin, west, east
+
+    if (.not. source_grid%is_periodic()) return
+    ! Use integer fine-cell units after validating alignment; retain the exact signed displacement.
+    if (factor == 1_i4 .or. source_grid%cellsize < target_grid%cellsize) then
+      offset = source_grid%get_offset(target_grid, tol)
+      source_width = int(source_grid%nx, i8)
+      target_step = int(factor, i8)
+      target_origin = int(offset(1), i8)
+    else
+      offset = target_grid%get_offset(source_grid, tol)
+      source_width = int(source_grid%nx, i8) * int(factor, i8)
+      target_step = 1_i8
+      target_origin = -int(offset(1), i8)
+    end if
+    if (target_grid%is_periodic()) then
+      if (target_origin /= 0_i8 .or. int(target_grid%nx, i8) * target_step /= source_width) &
+        call error_message("scaler: periodic grids must use the same longitude interval; wrapping is not supported.")
+    end if
+    if (target_grid%ncells == 0_i8) return
+    west = target_origin + (int(minval(target_grid%cell_ij(:,1)), i8) - 1_i8) * target_step
+    east = target_origin + int(maxval(target_grid%cell_ij(:,1)), i8) * target_step
+    if (west < 0_i8 .or. east > source_width) &
+      call error_message("scaler: active target cells cross the periodic source longitude boundary; wrapping is not supported.")
+  end subroutine scaler_check_periodic_grids
+
   !> \brief Setup scaler from given source and target grids
   subroutine scaler_init(this, source_grid, target_grid, upscaling_operator, downscaling_operator, weight_mode, cache_bounds, tol, &
                          fill_missing, use_index_distance)
@@ -361,6 +398,8 @@ contains
     else
       call check_factor(target_grid%cellsize, source_grid%cellsize, factor=this%factor, tol=tol)
     end if
+
+    call scaler_check_periodic_grids(source_grid, target_grid, this%factor, tol)
 
     if (this%factor == 1_i4) then
       ! equal resolutions (only type conversion, masking and flipping)
