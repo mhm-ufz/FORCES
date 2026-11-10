@@ -180,6 +180,20 @@ interval sums. Preserve time units, bounds, timestamp location, and nodata
 handling when changing temporal I/O or resampling. Read the corresponding tests
 before modifying those conversions.
 
+FORCES diagnostics use one module-level `use mo_forces_message, only: ...` import
+per consuming module; remove repeated procedure-level imports when extending a
+module. The wrappers supply the `forces` scope without changing application
+message defaults. Keep the dependency direction from foundations through
+`mo_logging`, `mo_message` and `mo_forces_message` to diagnostic callers. Logger
+internals must not depend on higher-level string, append, or OS utilities.
+Plain CLI presentation and scientific data-file output retain dedicated writers.
+Keep all parts of a diagnostic at the same severity, including follow-up details;
+combine a fatal explanation into one terminating call when possible. Ordinary
+conditional message calls use `if (condition) &` followed by `call ...` on the
+next line. Logging macros require block IF guards because their expansion
+contains its own IF. Prefer source lines within 132 columns and break outside
+character literals; use complete concatenated literals if a string must be split.
+
 Follow each type's existing initialization, reset, close, and destruction API.
 Do not reallocate storage while another object points into it. A copied derived
 type with pointer components retains aliases to the same targets. Prepare

@@ -31,11 +31,65 @@ if(PFUNIT_FOUND)
   endif()
   foreach(testsourcefile ${testsourcefiles})
     get_filename_component(testname ${testsourcefile} NAME_WE)
-    add_pfunit_ctest(${testname}
-      TEST_SOURCES ${testsourcefile}
-      LINK_LIBRARIES ${LIB_NAME})
+    if(testname MATCHES "^test_mo_(message|forces_message|logging)$")
+      add_pfunit_ctest(${testname}
+        TEST_SOURCES ${testsourcefile}
+        OTHER_SOURCES logging_test_support.F90
+        EXTRA_USE logging_test_support
+        EXTRA_INITIALIZE initialize_logging_tests
+        EXTRA_FINALIZE finalize_logging_tests
+        LINK_LIBRARIES ${LIB_NAME})
+      if(FORCES_WITH_MPI)
+        target_compile_definitions(${testname} PRIVATE MPI)
+      endif()
+    else()
+      add_pfunit_ctest(${testname}
+        TEST_SOURCES ${testsourcefile}
+        LINK_LIBRARIES ${LIB_NAME})
+    endif()
     list(APPEND testnames ${testname})
   endforeach()
+
+  if(TARGET test_mo_message OR TARGET test_mo_forces_message OR TARGET test_mo_logging)
+    add_executable(logging_cases logging_cases.F90)
+    target_link_libraries(logging_cases PRIVATE ${LIB_NAME})
+    if(FORCES_WITH_MPI)
+      target_compile_definitions(logging_cases PRIVATE MPI)
+    endif()
+    foreach(suite test_mo_message test_mo_forces_message test_mo_logging)
+      if(TARGET ${suite})
+        add_dependencies(${suite} logging_cases)
+      endif()
+    endforeach()
+    # case | exit status | required diagnostic | forbidden diagnostic
+    set(logging_cases_to_check
+      "fatal-plain|1|[forces] sentinel fatal|[FATAL]"
+      "fatal-filtered|1|[forces][FATAL] sentinel fatal|[mhm]"
+      "warning-fatal|1|[forces][FATAL] sentinel warning|[WARN]"
+      "fatal-plain-hidden|1||sentinel hidden"
+      "fatal-hidden|1||sentinel hidden"
+      "fatal-global-hidden|1||sentinel hidden"
+      "fatal-global-visible|1|[forces][FATAL] sentinel visible|[mhm]"
+      "warning-global-visible|1|[forces][FATAL] sentinel visible|[mhm]"
+      "warning-hidden|1||sentinel hidden"
+      "fatal-quiet|1||sentinel quiet")
+    foreach(logging_case IN LISTS logging_cases_to_check)
+      string(REPLACE "|" ";" case_parts "${logging_case}")
+      list(GET case_parts 0 case_name)
+      list(GET case_parts 1 expected_exit)
+      list(GET case_parts 2 expected)
+      list(GET case_parts 3 forbidden)
+      add_test(NAME test_mo_logging_${case_name}
+        COMMAND ${CMAKE_COMMAND}
+          "-DPROGRAM=$<TARGET_FILE:logging_cases>"
+          "-DCASE=${case_name}"
+          "-DCASE_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/logging_case_${case_name}"
+          "-DEXPECTED_EXIT=${expected_exit}"
+          "-DEXPECTED=${expected}"
+          "-DFORBIDDEN=${forbidden}"
+          -P "${CMAKE_CURRENT_SOURCE_DIR}/expect_logging_case.cmake")
+    endforeach()
+  endif()
 
   if("test_mo_grid.pf" IN_LIST testsourcefiles OR "test_mo_grid_scaler.pf" IN_LIST testsourcefiles)
     add_executable(grid_offset_error grid_offset_error.f90)

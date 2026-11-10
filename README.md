@@ -73,6 +73,70 @@ cmake --build build --parallel
 You can use this with the examples provided in the `examples/` directory, e.g. `FORCES_EXE=examples/01_grids/01_regridding.f90`.
 The executable will be always called `main`.
 
+## Messages and logging
+
+Applications use `mo_message` for concatenated messages, warnings and errors:
+
+```fortran
+use mo_message, only: message, warn_message, error_message, def_log_scope, use_log
+
+! Configure saved settings once, before parallel work.
+def_log_scope = "mhm"
+call message("Reading input")                       ! [mhm] Reading input
+call message("Unscoped output", scope="")            ! Unscoped output
+call warn_message("Missing optional input")          ! [mhm] Missing optional input
+call error_message("Recoverable error", raise=.false.)
+
+! Enable after configuring mo_logging.
+use_log = .true.
+call message("Reading input")                       ! [mhm][INFO] Reading input
+```
+
+`def_log_scope` is an owned, saved allocatable string. It initially remains
+unallocated, which means root. An explicit `scope=` overrides it; an empty scope
+or `"#"` selects root. Deallocating the default restores root. Do not temporarily
+change saved settings around individual calls or mutate them during parallel work.
+
+Plain output adds `[scope] ` for named scopes and has no scope filtering. It
+honors `uni=`, `advance=` and `show=`. Logging remains opt-in (`use_log=.false.`
+by default); when enabled, logger units and advancing records replace `uni=` and
+`advance=`. The global `show_msg`, `show_warn` and `show_err` flags control only
+plain output. Logging uses its own level/scope configuration independently of
+these flags. An explicit `show=` is honored in both modes; `show=.true.` still
+cannot bypass logger level/scope filters. Visibility never changes whether a
+requested termination happens.
+
+Normal messages log at INFO, nonterminating warnings at WARN, and nonterminating
+errors at ERROR. A warning or error with `raise=.true.` logs at FATAL and
+terminates with `ERROR STOP 1` in both output modes. Warnings default to `raise=.false.`; errors default to
+`raise=.true.`. FATAL bypasses scope filters, while quiet levels and MPI rank
+selection still apply. In particular, `log_level=0` suppresses FATAL text too.
+The logging macros themselves do not terminate execution.
+
+All log scopes are visible by default. `mo_logging:log_set_config` accepts
+`log_scope_filter=` as a case-insensitive CSV list of glob patterns. Empty or
+`"*"` permits all scopes; `"#"` selects only root; `"#,forces*"` selects root and
+FORCES scopes.
+
+Inside FORCES, import only the required routines **once at module level**:
+
+```fortran
+module mo_example
+  use mo_forces_message, only: message, error_message
+  implicit none
+contains
+  subroutine report_input()
+    call message("Reading input")                   ! [forces] Reading input
+  end subroutine report_input
+end module mo_example
+```
+
+These wrappers default to `"forces"` independently of the application's
+`def_log_scope`; an explicit scope still overrides that default. They share all
+other settings with `mo_message` and do not own mutable state. Scientific output,
+optimization history/restart files, and logger failure fallback output retain
+their dedicated I/O paths.
+
 ## Build Configuration
 
 FORCES uses standard CMake inputs such as `CMAKE_BUILD_TYPE` and a small set of project-specific cache options:

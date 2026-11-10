@@ -1,8 +1,13 @@
-!> \file mo_message.f90
+!> \file mo_message.F90
 !> \copydoc mo_message
 
 !> \brief Write out concatenated strings
 !> \details Write out several strings concatenated on standard out or a given unit, either advancing or not.
+!! Named scopes add `[scope] ` in plain output and `[scope][LEVEL] ` with logging.
+!! An absent scope uses def_log_scope; an unallocated default, an empty scope, or '#' means root.
+!! Configure saved settings before parallel work. Plain visibility defaults use show_msg/show_warn/show_err;
+!! logging visibility uses logger configuration. An explicit show= applies in both modes.
+!! With logging, logger units and advancing records replace uni= and advance=.
 !> \author Matthias Cuntz, Sebastian Mueller
 !> \date Jul 2011, Dec 2019
 !> \copyright Copyright 2005-\today, the CHS Developers, Sabine Attinger: All rights reserved.
@@ -19,12 +24,14 @@ MODULE mo_message
 
   PUBLIC :: message         ! versatile routine to write out strings in file or on screen
   PUBLIC :: warn_message    ! write warning message to ERROR_UNIT
-  PUBLIC :: error_message   ! write error message to ERROR_UNIT and call stop 1
+  PUBLIC :: error_message   ! write error message to ERROR_UNIT and call error stop 1
 
-  logical, public, save :: show_msg = .true.  !< global control switch to show normal messages
-  logical, public, save :: show_warn = .true. !< global control switch to show warning messages
-  logical, public, save :: show_err = .true.  !< global control switch to show error messages
+  logical, public, save :: show_msg = .true.  !< plain-output control switch to show normal messages
+  logical, public, save :: show_warn = .true. !< plain-output control switch to show warning messages
+  logical, public, save :: show_err = .true.  !< plain-output control switch to show error messages
   logical, public, save :: use_log = .false.  !< use logging module to print message
+
+  character(:), allocatable, public, save :: def_log_scope !< owned default scope; unallocated means root
 
   integer, public, save :: unit_msg = nout    !< global standard output unit (stdout by default)
   integer, public, save :: unit_warn = nerr   !< global standard warning unit (stderr by default)
@@ -77,9 +84,9 @@ CONTAINS
   end function process_arguments
 
 
-  !> \brief Write out an error message to stdout
+  !> \brief Write out a message to stdout
   SUBROUTINE message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, &
-    uni, advance, show)
+    uni, advance, show, scope)
 
     IMPLICIT NONE
 
@@ -101,14 +108,17 @@ CONTAINS
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t16  !< optional string arguments
     INTEGER, INTENT(IN), OPTIONAL :: uni  !< Unit to write to (default: stdout)
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< add linebreak after message, default: 'yes', else 'no'
-    LOGICAL, INTENT(IN), OPTIONAL :: show  !< control if message should be shown (show_msg as default)
+    LOGICAL, INTENT(IN), OPTIONAL :: show  !< visibility override in either mode; plain default: show_msg
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: scope !< scope override; defaults to def_log_scope
 
     CHARACTER(len = 32000) :: outString
+    CHARACTER(:), ALLOCATABLE :: scope_
     INTEGER :: uni_
     CHARACTER(len = 3) :: advance_
     logical :: show_
 
-    show_ = show_msg
+    show_ = .true.
+    if (.not. use_log) show_ = show_msg
     if ( present(show) ) show_ = show
     ! short circuit if message should not be shown
     if (.not. show_ ) return
@@ -120,18 +130,23 @@ CONTAINS
 
     outString = process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16)
 
+    scope_ = resolve_scope(scope)
     if (use_log) then
-      log_info(*) trim(outString)
+      scope_info(scope_, '(2a)') trim(outString)
       return
     end if
 
-    write(uni_, '(a)', advance = advance_) trim(outString)
+    if (len(scope_) > 0) then
+      write(uni_, '(a)', advance = advance_) '[' // scope_ // '] ' // trim(outString)
+    else
+      write(uni_, '(a)', advance = advance_) trim(outString)
+    end if
 
   END SUBROUTINE message
 
-  !> \brief Write out an error message to stderr and call stop 1.
+  !> \brief Write out an error message to stderr and call error stop 1.
   SUBROUTINE error_message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, &
-    uni, advance, show, raise)
+    uni, advance, show, raise, scope)
 
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t01  !< optional string arguments
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t02  !< optional string arguments
@@ -151,33 +166,43 @@ CONTAINS
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t16  !< optional string arguments
     INTEGER, INTENT(IN), OPTIONAL :: uni  !< Unit to write to (default: stderr)
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< add linebreak after message, default: 'yes', else 'no'
-    LOGICAL, INTENT(IN), OPTIONAL :: show  !< control if message should be shown (show_err as default)
+    LOGICAL, INTENT(IN), OPTIONAL :: show  !< visibility override in either mode; plain default: show_err
     LOGICAL, INTENT(IN), OPTIONAL :: raise  !< control if an exception is raised with error code 1 (.true. as default)
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: scope !< scope override; defaults to def_log_scope
 
+    CHARACTER(len = 32000) :: outString
+    CHARACTER(:), ALLOCATABLE :: scope_
     INTEGER :: uni_
     logical :: show_, raise_
 
-    show_ = show_err
+    show_ = .true.
+    if (.not. use_log) show_ = show_err
     uni_ = unit_err
     raise_ = .true.
     if ( present(show) ) show_ = show
     if ( present(uni) ) uni_ = uni
     if ( present(raise) ) raise_ = raise
 
-    if (use_log) then
-      log_fatal(*) trim(process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16))
-      if ( raise_ ) error stop 1
-      return
+    if (show_) then
+      if (use_log) then
+        scope_ = resolve_scope(scope)
+        outString = process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16)
+        if (raise_) then
+          scope_fatal(scope_, '(2a)') trim(outString)
+        else
+          scope_error(scope_, '(2a)') trim(outString)
+        end if
+      else
+        call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, uni_, advance, show_, scope)
+      end if
     end if
-
-    call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, uni_, advance, show_)
-    if ( raise_ ) stop 1
+    if ( raise_ ) error stop 1
 
   END SUBROUTINE error_message
 
   !> \brief Write out a warning message to stderr.
   SUBROUTINE warn_message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, &
-    uni, advance, show, raise)
+    uni, advance, show, raise, scope)
 
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t01  !< optional string arguments
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t02  !< optional string arguments
@@ -197,28 +222,49 @@ CONTAINS
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: t16  !< optional string arguments
     INTEGER, INTENT(IN), OPTIONAL :: uni  !< Unit to write to (default: stderr)
     CHARACTER(len = *), INTENT(IN), OPTIONAL :: advance  !< add linebreak after message, default: 'yes', else 'no'
-    LOGICAL, INTENT(IN), OPTIONAL :: show  !< control if message should be shown (show_warn as default)
+    LOGICAL, INTENT(IN), OPTIONAL :: show  !< visibility override in either mode; plain default: show_warn
     LOGICAL, INTENT(IN), OPTIONAL :: raise  !< control if an exception is raised with error code 1 (.false. as default)
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: scope !< scope override; defaults to def_log_scope
 
+    CHARACTER(len = 32000) :: outString
+    CHARACTER(:), ALLOCATABLE :: scope_
     INTEGER :: uni_
     logical :: show_, raise_
 
-    show_ = show_warn
+    show_ = .true.
+    if (.not. use_log) show_ = show_warn
     uni_ = unit_warn
     raise_ = .false.
     if ( present(show) ) show_ = show
     if ( present(uni) ) uni_ = uni
     if ( present(raise) ) raise_ = raise
 
-    if (use_log) then
-      log_warn(*) trim(process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16))
-      if ( raise_ ) stop 1
-      return
+    if (show_) then
+      if (use_log) then
+        scope_ = resolve_scope(scope)
+        outString = process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16)
+        if (raise_) then
+          scope_fatal(scope_, '(2a)') trim(outString)
+        else
+          scope_warn(scope_, '(2a)') trim(outString)
+        end if
+      else
+        call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, uni_, advance, show_, scope)
+      end if
     end if
-
-    call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, uni_, advance, show_)
-    if ( raise_ ) stop 1
+    if ( raise_ ) error stop 1
 
   END SUBROUTINE warn_message
+
+  !> \brief Resolve a scope without changing saved application configuration.
+  function resolve_scope(scope) result(scope_)
+    CHARACTER(len = *), INTENT(IN), OPTIONAL :: scope !< scope override; absent uses def_log_scope
+    CHARACTER(:), ALLOCATABLE :: scope_ !< resolved scope; empty means root
+
+    scope_ = ''
+    if (allocated(def_log_scope)) scope_ = trim(def_log_scope)
+    if (present(scope)) scope_ = trim(scope)
+    if (scope_ == '#') scope_ = ''
+  end function resolve_scope
 
 END MODULE mo_message

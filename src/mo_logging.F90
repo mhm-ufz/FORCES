@@ -22,7 +22,9 @@
 !!            - `log_subtrace(format)`: level 7
 !!          as required.
 !!
-!!          Use the `--log-scope` CLI option (via `mo_cli`) to enable optional scope tags.
+!!          Named records use `[scope][LEVEL]` prefixes; unscoped records use `[LEVEL]`.
+!!          All scopes are enabled by default; FATAL bypasses scope filters but respects quiet levels.
+!!          Use the `--log-scope` CLI option (via `mo_cli`) to select scope patterns.
 !!          Provide a comma-separated list (e.g. `--log-scope=dag,grid`) to restrict output
 !!          to specific components, or omit the list (`--log-scope`) to show every scope.
 !!
@@ -55,8 +57,7 @@ module mo_logging
   ! FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
   ! OTHER DEALINGS IN THE SOFTWARE.
 
-  use mo_constants, only: stdout=>nout, stderr=>nerr
-  use mo_string_utils, only: tolower
+  use, intrinsic :: iso_fortran_env, only: stdout => output_unit, stderr => error_unit
 
   implicit none
   ! Log levels
@@ -70,7 +71,7 @@ module mo_logging
   integer, public, parameter :: LOG_FINE = LOG_LEVEL_SUBTRACE_DEF !< = 7, More Extremely detailed output, compile your program with -DENABLE_LOG_TRACE to enable
   integer, public, parameter :: LOG_SUBTRACE = LOG_LEVEL_SUBTRACE_DEF !< = 7, More Extremely detailed output, compile your program with -DENABLE_LOG_TRACE to enable
 
-  integer, public, save :: log_unit = stdout !< By default, log to stderr for level > 2 (stdout has a bug with gfortran)
+  integer, public, save :: log_unit = stdout !< Output unit for WARN and less severe records (stdout by default)
   integer, public, save :: log_unit_error = stderr !< By default, log to stderr for level <= 2
   integer, public, save :: log_level = LOG_INFO !< Note that more critical means a lower number
 
@@ -112,7 +113,7 @@ contains
 #endif
     integer, intent(in)           :: level     !< The log level of the current message
     integer, intent(in), optional :: only_n    !< Show only if the current mpi rank equals only_n
-    character(len=*), optional    :: scope     !< Optional scope identifier
+    character(len=*), optional, intent(in) :: scope     !< Optional scope identifier
 #ifdef MPI
     integer :: rank, ierr
 #endif
@@ -125,7 +126,7 @@ contains
     endif
 #endif
     if (.not. logp) return
-    logp = scope_should_log(scope)
+    if (level /= LOG_FATAL) logp = scope_should_log(scope)
 
   end function logp
 
@@ -134,11 +135,11 @@ contains
   !> \return The output log leader.
   function logl(level, file, line, plain, scope)
     implicit none
-    integer                    :: level !< The log level
-    character(len=*), optional :: file  !< An optional filename to add to the log lead
-    integer, optional          :: line  !< With line number
-    logical, optional          :: plain !< Whether to output plain log lead without severity level
-    character(len=*), optional :: scope !< Optional scope tag
+    integer, intent(in)        :: level !< The log level
+    character(len=*), optional, intent(in) :: file  !< An optional filename to add to the log lead
+    integer, optional, intent(in) :: line  !< With line number
+    logical, optional, intent(in) :: plain !< Whether to output plain log lead without severity level
+    character(len=*), optional, intent(in) :: scope !< Optional scope tag
     character(:), allocatable  :: logl  !< The output log lead
     ! Internal parameters
     character(len=50), dimension(7) :: log_tmp ! The different parts of the log lead
@@ -147,7 +148,9 @@ contains
     character(4)  :: linenum_lj ! left-justified line number
     character(len=50) :: basename ! basename stripped from filename
     logical :: skip_level ! Whether to skip level output
-    character(:), allocatable :: effective_scope
+    character(:), allocatable :: effective_scope, scope_level
+    integer :: effective_level
+    logl = ""
     i = 1
 
     ! If plain is set, skip level output
@@ -155,8 +158,8 @@ contains
     if (present(plain)) skip_level = plain
 
     ! Set level to 1 if it is too low, skip if too high
-    if (level < 1) level = 1
-    if (level > log_level .or. level > NUM_LOG_LEVELS) return
+    effective_level = max(1, level)
+    if (effective_level > log_level .or. effective_level > NUM_LOG_LEVELS) return
 
     if (present(scope)) then
       effective_scope = scope
@@ -189,17 +192,12 @@ contains
       i = i+1
     endif
 
+    ! Keep the potentially long scope outside the fixed metadata buffers.
+    scope_level = ""
     if (allocated(effective_scope)) then
-      if (len_trim(effective_scope) > 0) then
-        log_tmp(i) = trim(effective_scope)
-        i = i + 1
-      endif
+      if (len_trim(effective_scope) > 0) scope_level = "[" // trim(effective_scope) // "]"
     endif
-
-    if (.not. skip_level) then
-      log_tmp(i) = log_level_label(level)
-      i = i + 1
-    endif
+    if (.not. skip_level) scope_level = scope_level // trim(log_level_label(effective_level))
 
     ! Concatenate trim(log_tmp(i)) with spaces in between
     log_buf = ""
@@ -213,9 +211,9 @@ contains
     enddo
     if (len_trim(log_buf) > 0) then
       logl = trim(log_buf) // " "
-    else
-      logl = ""
     endif
+    logl = logl // scope_level
+    if (len(scope_level) > 0) logl = logl // " "
   end function logl
 
   !> \brief Get base name of a file path.
@@ -255,13 +253,25 @@ contains
     end select
   end function log_level_label
 
+  !> \brief Normalize ASCII scope identifiers without higher-level utility dependencies.
+  pure function scope_lowercase(raw) result(norm)
+    character(len=*), intent(in) :: raw !< Scope identifier or filter pattern
+    character(len=len(raw)) :: norm !< ASCII lowercase identifier
+    integer :: i, code
+    norm = raw
+    do i = 1, len(raw)
+      code = iachar(raw(i:i))
+      if (code >= iachar('A') .and. code <= iachar('Z')) norm(i:i) = achar(code + iachar('a') - iachar('A'))
+    end do
+  end function scope_lowercase
+
   subroutine append_scope_filter(raw)
     character(len=*), intent(in) :: raw
     character(:), allocatable :: norm
     type(scope_filter_entry) :: add_filter
     type(scope_filter_entry), allocatable :: tmp(:)
     integer :: i, n
-    norm = tolower(trim(raw))
+    norm = scope_lowercase(trim(raw))
     if (norm == "#") norm = ""
     if (allocated(scope_filters)) then
       do n = 1, size(scope_filters)
@@ -294,8 +304,8 @@ contains
     character(:), allocatable :: token
     call clear_scope_filter()
     lenlist = len_trim(list)
-    ! only root, no scopes. Catch: "", "#", ","
-    if (lenlist == 0 .or. trim(list) == "#" .or. trim(list) == ",") return
+    ! An empty filter enables all scopes; an explicit # is retained as root.
+    if (lenlist == 0) return
     allocate(scope_filters(0)) ! trigger append_scope_filter with ""
     token = ""
     do i = 1, lenlist
@@ -317,9 +327,9 @@ contains
     norm = ""
     if (present(scope)) norm = trim(scope)
     if (norm == "#") norm = ""
-    norm = tolower(norm)
+    norm = scope_lowercase(norm)
     if (.not. allocated(scope_filters)) then
-      scope_should_log = (len(norm) == 0)
+      scope_should_log = .true.
       return
     end if
     scope_should_log = .false.
@@ -381,7 +391,7 @@ contains
     logical, optional, intent(in) :: log_output_date !< add date to output
     logical, optional, intent(in) :: log_output_time !< add time to output
     logical, optional, intent(in) :: log_output_line !< add file/line to output
-    character(len=*), optional, intent(in) :: log_scope_filter !< csv of allowed scopes (requires log_output_scope)
+    character(len=*), optional, intent(in) :: log_scope_filter !< CSV of allowed scope patterns; empty means all, # means root
     integer :: level_shift
     level_shift = 0
     if ( present(verbose) ) level_shift = level_shift + int(verbose)

@@ -1,0 +1,82 @@
+module test_mo_forces_message
+  use funit
+  use mo_forces_message, only: message, warn_message, error_message
+  use mo_message, only: def_log_scope, use_log, show_warn, unit_msg, unit_warn, unit_err
+  use mo_logging, only: log_unit, log_unit_error, log_level, LOG_INFO
+  use logging_test_support, only: save_message_config, restore_message_config
+  implicit none
+  private
+  public :: setup
+  public :: teardown
+  public :: test_library_default_and_optional_forwarding
+  public :: test_library_logged_scope
+contains
+  @before
+  subroutine setup()
+    call save_message_config()
+  end subroutine setup
+
+  @after
+  subroutine teardown()
+    call restore_message_config()
+  end subroutine teardown
+
+  @test
+  subroutine test_library_default_and_optional_forwarding()
+    integer :: unit, ios
+    character(len=256) :: line
+    open(newunit=unit, status='scratch', action='readwrite')
+    unit_msg = unit
+    unit_warn = unit
+    unit_err = unit
+    def_log_scope = 'mhm'
+    call message('default')
+    call message('root', scope='#')
+    call message(t02='two ', t04='four', scope='explicit')
+    call warn_message('warning')
+    call error_message('error', raise=.false.)
+    show_warn = .false.
+    call warn_message('hidden')
+    call warn_message('override', uni=unit, scope='', show=.true.)
+    rewind(unit)
+    read(unit, '(a)') line
+    @assertEqual('[forces] default', trim(line))
+    read(unit, '(a)') line
+    @assertEqual('root', trim(line))
+    read(unit, '(a)') line
+    @assertEqual('[explicit] two four', trim(line))
+    read(unit, '(a)') line
+    @assertEqual('[forces] warning', trim(line))
+    read(unit, '(a)') line
+    @assertEqual('[forces] error', trim(line))
+    read(unit, '(a)') line
+    @assertEqual('override', trim(line))
+    read(unit, '(a)', iostat=ios) line
+    @assertTrue(ios < 0)
+    @assertEqual('mhm', def_log_scope)
+    close(unit)
+  end subroutine test_library_default_and_optional_forwarding
+
+  @test
+  subroutine test_library_logged_scope()
+    integer :: unit
+    character(len=256) :: line
+    open(newunit=unit, status='scratch', action='readwrite')
+    use_log = .true.
+    log_unit = unit
+    log_unit_error = unit
+    log_level = LOG_INFO
+    def_log_scope = 'mhm'
+    call message('default')
+    call warn_message('override', scope='custom')
+    call error_message('root', raise=.false., scope='')
+    rewind(unit)
+    read(unit, '(a)') line
+    @assertEqual('[forces][INFO] default', trim(line))
+    read(unit, '(a)') line
+    @assertEqual('[custom][WARN] override', trim(line))
+    read(unit, '(a)') line
+    @assertEqual('[ERROR] root', trim(line))
+    close(unit)
+  end subroutine test_library_logged_scope
+end module test_mo_forces_message
