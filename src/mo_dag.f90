@@ -42,8 +42,10 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_core
 module mo_dag
+  use mo_forces_message, only: error_message
   use mo_kind, only : i8
   use mo_utils, only: optval, swap, prefix_sum
+  private :: error_message ! Diagnostic imports are implementation details
 
   ! Control constants for depth-first traversal behavior.
   ! These values are returned by `visit()` to control DFS branching.
@@ -1085,17 +1087,18 @@ contains
 
   !> \brief Set the number of nodes in the dag.
   subroutine dag_set_nodes(this, n, tags)
-    use mo_message, only: error_message
     class(dag), intent(inout) :: this
     integer(i8), intent(in)   :: n !< number of nodes
     integer(i8), dimension(:), intent(in), optional :: tags !< tags of the nodes (will be their index by default)
     integer(i8) :: i !! counter
-    if (n<1_i8) call error_message('error: n must be >= 1')
+    if (n<1_i8) &
+      call error_message('error: n must be >= 1')
     if (allocated(this%nodes)) deallocate(this%nodes)
     this%n_nodes = n
     allocate(this%nodes(n))
     if (present(tags)) then
-      if (size(tags, kind=i8) /= n) call error_message("error: tags size must match n")
+      if (size(tags, kind=i8) /= n) &
+        call error_message("error: tags size must match n")
       this%tags = tags
       call this%rebuild_tag_map()
     else
@@ -1137,7 +1140,6 @@ contains
 
   !> \brief Initialize branching DAG from downstream linkage.
   subroutine branching_init(this, down, tags)
-    use mo_message, only: error_message
     class(branching), intent(inout) :: this
     integer(i8), intent(in) :: down(:) !< downstream linkage (0 for sinks)
     integer(i8), intent(in), optional :: tags(:) !< node tags (by default their index)
@@ -1231,7 +1233,8 @@ contains
     allocate(this%down(n))
     allocate(this%tags(n))
     if (present(tags)) then
-      if (size(tags, kind=i8) /= n) call error_message('branching_init: tags size mismatch')
+      if (size(tags, kind=i8) /= n) &
+        call error_message('branching_init: tags size mismatch')
       !$omp parallel do default(none) shared(this,tags,down,n) schedule(static)
       do i = 1_i8, n
         this%tags(i) = tags(i)

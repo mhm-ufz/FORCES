@@ -18,6 +18,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_core
 MODULE mo_utils
+  use mo_forces_message, only: error_message
 
   USE mo_kind, only : sp, dp, i1, i2, i4, i8, spc, dpc
   USE mo_string_utils, only : toupper
@@ -1518,15 +1519,13 @@ CONTAINS
 
   subroutine flip_1D_sp(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     real(sp), dimension(:), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, n
     real(sp) :: tmp
 
-    if (iDim > 1_i4) then
+    if (iDim > 1_i4) &
       call error_message('Cannot flip 1D-array at dimension ', compress(trim(num2str(iDim))))
-    end if
 
     n = size(data)
     do i = 1_i8, n / 2_i8
@@ -1538,7 +1537,6 @@ CONTAINS
 
   subroutine flip_2D_sp(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     real(sp), dimension(:, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, n1, n2
@@ -1567,7 +1565,6 @@ CONTAINS
 
   subroutine flip_3D_sp(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     real(sp), dimension(:, :, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, k, n1, n2, n3
@@ -1603,7 +1600,6 @@ CONTAINS
 
   subroutine flip_4D_sp(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     real(sp), dimension(:, :, :, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, k, l, n1, n2, n3, n4
@@ -1646,15 +1642,13 @@ CONTAINS
 
   subroutine flip_1D_dp(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     real(dp), dimension(:), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, n
     real(dp) :: tmp
 
-    if (iDim > 1_i4) then
+    if (iDim > 1_i4) &
       call error_message('Cannot flip 1D-array at dimension ', compress(trim(num2str(iDim))))
-    end if
 
     n = size(data)
     do i = 1_i8, n / 2_i8
@@ -1666,7 +1660,6 @@ CONTAINS
 
   subroutine flip_2D_dp(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     real(dp), dimension(:, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, n1, n2
@@ -1695,7 +1688,6 @@ CONTAINS
 
   subroutine flip_3D_dp(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     real(dp), dimension(:, :, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, k, n1, n2, n3
@@ -1731,7 +1723,6 @@ CONTAINS
 
   subroutine flip_4D_dp(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     real(dp), dimension(:, :, :, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, k, l, n1, n2, n3, n4
@@ -1774,15 +1765,13 @@ CONTAINS
 
   subroutine flip_1D_i1(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i1), dimension(:), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, n
     integer(i1) :: tmp
 
-    if (iDim > 1_i4) then
+    if (iDim > 1_i4) &
       call error_message('Cannot flip 1D-array at dimension ', compress(trim(num2str(iDim))))
-    end if
 
     n = size(data)
     do i = 1_i8, n / 2_i8
@@ -1794,7 +1783,6 @@ CONTAINS
 
   subroutine flip_2D_i1(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i1), dimension(:, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, n1, n2
@@ -1823,7 +1811,6 @@ CONTAINS
 
   subroutine flip_3D_i1(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i1), dimension(:, :, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, k, n1, n2, n3
@@ -1859,7 +1846,6 @@ CONTAINS
 
   subroutine flip_4D_i1(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i1), dimension(:, :, :, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, k, l, n1, n2, n3, n4
@@ -1902,15 +1888,13 @@ CONTAINS
 
   subroutine flip_1D_i2(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i2), dimension(:), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, n
     integer(i2) :: tmp
 
-    if (iDim > 1_i4) then
+    if (iDim > 1_i4) &
       call error_message('Cannot flip 1D-array at dimension ', compress(trim(num2str(iDim))))
-    end if
 
     n = size(data)
     do i = 1_i8, n / 2_i8
@@ -1922,7 +1906,6 @@ CONTAINS
 
   subroutine flip_2D_i2(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i2), dimension(:, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, n1, n2
@@ -1951,7 +1934,6 @@ CONTAINS
 
   subroutine flip_3D_i2(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i2), dimension(:, :, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, k, n1, n2, n3
@@ -1987,7 +1969,6 @@ CONTAINS
 
   subroutine flip_4D_i2(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i2), dimension(:, :, :, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, k, l, n1, n2, n3, n4
@@ -2030,15 +2011,13 @@ CONTAINS
 
   subroutine flip_1D_i4(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i4), dimension(:), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, n
     integer(i4) :: tmp
 
-    if (iDim > 1_i4) then
+    if (iDim > 1_i4) &
       call error_message('Cannot flip 1D-array at dimension ', compress(trim(num2str(iDim))))
-    end if
 
     n = size(data)
     do i = 1_i8, n / 2_i8
@@ -2050,7 +2029,6 @@ CONTAINS
 
   subroutine flip_2D_i4(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i4), dimension(:, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, n1, n2
@@ -2079,7 +2057,6 @@ CONTAINS
 
   subroutine flip_3D_i4(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i4), dimension(:, :, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, k, n1, n2, n3
@@ -2115,7 +2092,6 @@ CONTAINS
 
   subroutine flip_4D_i4(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i4), dimension(:, :, :, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, k, l, n1, n2, n3, n4
@@ -2158,15 +2134,13 @@ CONTAINS
 
   subroutine flip_1D_i8(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i8), dimension(:), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, n
     integer(i8) :: tmp
 
-    if (iDim > 1_i4) then
+    if (iDim > 1_i4) &
       call error_message('Cannot flip 1D-array at dimension ', compress(trim(num2str(iDim))))
-    end if
 
     n = size(data)
     do i = 1_i8, n / 2_i8
@@ -2178,7 +2152,6 @@ CONTAINS
 
   subroutine flip_2D_i8(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i8), dimension(:, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, n1, n2
@@ -2207,7 +2180,6 @@ CONTAINS
 
   subroutine flip_3D_i8(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i8), dimension(:, :, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, k, n1, n2, n3
@@ -2243,7 +2215,6 @@ CONTAINS
 
   subroutine flip_4D_i8(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i8), dimension(:, :, :, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, k, l, n1, n2, n3, n4
@@ -2286,15 +2257,13 @@ CONTAINS
 
   subroutine flip_1D_lgt(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     logical, dimension(:), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, n
     logical :: tmp
 
-    if (iDim > 1_i4) then
+    if (iDim > 1_i4) &
       call error_message('Cannot flip 1D-array at dimension ', compress(trim(num2str(iDim))))
-    end if
 
     n = size(data)
     do i = 1_i8, n / 2_i8
@@ -2306,7 +2275,6 @@ CONTAINS
 
   subroutine flip_2D_lgt(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     logical, dimension(:, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, n1, n2
@@ -2335,7 +2303,6 @@ CONTAINS
 
   subroutine flip_3D_lgt(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     logical, dimension(:, :, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, k, n1, n2, n3
@@ -2371,7 +2338,6 @@ CONTAINS
 
   subroutine flip_4D_lgt(data, iDim)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     logical, dimension(:, :, :, :), intent(inout) :: data
     integer(i4), intent(in) :: iDim
     integer(i8) :: i, j, k, l, n1, n2, n3, n4
@@ -2414,15 +2380,13 @@ CONTAINS
 
   function flipped_1D_sp(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     real(sp), dimension(:), intent(in) :: data
     integer(i4), intent(in) :: iDim
     real(sp), dimension(size(data)) :: flip_data
     integer(i8) :: i, n
 
-    if (iDim > 1_i4) then
+    if (iDim > 1_i4) &
       call error_message('Cannot flip 1D-array at dimension '//compress(trim(num2str(iDim))))
-    end if
 
     n = size(data)
     do i = 1_i8, n
@@ -2432,7 +2396,6 @@ CONTAINS
 
   function flipped_2D_sp(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     real(sp), dimension(:, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     real(sp), dimension(size(data, 1), size(data, 2)) :: flip_data
@@ -2457,7 +2420,6 @@ CONTAINS
 
   function flipped_3D_sp(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     real(sp), dimension(:, :, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     real(sp), dimension(size(data, 1), size(data, 2), size(data, 3)) :: flip_data
@@ -2487,7 +2449,6 @@ CONTAINS
 
   function flipped_4D_sp(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     real(sp), dimension(:, :, :, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     real(sp), dimension(size(data, 1), size(data, 2), size(data, 3), size(data, 4)) :: flip_data
@@ -2522,15 +2483,13 @@ CONTAINS
 
   function flipped_1D_dp(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     real(dp), dimension(:), intent(in) :: data
     integer(i4), intent(in) :: iDim
     real(dp), dimension(size(data)) :: flip_data
     integer(i8) :: i, n
 
-    if (iDim > 1_i4) then
+    if (iDim > 1_i4) &
       call error_message('Cannot flip 1D-array at dimension '//compress(trim(num2str(iDim))))
-    end if
 
     n = size(data)
     do i = 1_i8, n
@@ -2540,7 +2499,6 @@ CONTAINS
 
   function flipped_2D_dp(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     real(dp), dimension(:, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     real(dp), dimension(size(data, 1), size(data, 2)) :: flip_data
@@ -2565,7 +2523,6 @@ CONTAINS
 
   function flipped_3D_dp(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     real(dp), dimension(:, :, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     real(dp), dimension(size(data, 1), size(data, 2), size(data, 3)) :: flip_data
@@ -2595,7 +2552,6 @@ CONTAINS
 
   function flipped_4D_dp(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     real(dp), dimension(:, :, :, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     real(dp), dimension(size(data, 1), size(data, 2), size(data, 3), size(data, 4)) :: flip_data
@@ -2630,15 +2586,13 @@ CONTAINS
 
   function flipped_1D_i1(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i1), dimension(:), intent(in) :: data
     integer(i4), intent(in) :: iDim
     integer(i1), dimension(size(data)) :: flip_data
     integer(i8) :: i, n
 
-    if (iDim > 1_i4) then
+    if (iDim > 1_i4) &
       call error_message('Cannot flip 1D-array at dimension '//compress(trim(num2str(iDim))))
-    end if
 
     n = size(data)
     do i = 1_i8, n
@@ -2648,7 +2602,6 @@ CONTAINS
 
   function flipped_2D_i1(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i1), dimension(:, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     integer(i1), dimension(size(data, 1), size(data, 2)) :: flip_data
@@ -2673,7 +2626,6 @@ CONTAINS
 
   function flipped_3D_i1(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i1), dimension(:, :, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     integer(i1), dimension(size(data, 1), size(data, 2), size(data, 3)) :: flip_data
@@ -2703,7 +2655,6 @@ CONTAINS
 
   function flipped_4D_i1(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i1), dimension(:, :, :, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     integer(i1), dimension(size(data, 1), size(data, 2), size(data, 3), size(data, 4)) :: flip_data
@@ -2738,15 +2689,13 @@ CONTAINS
 
   function flipped_1D_i2(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i2), dimension(:), intent(in) :: data
     integer(i4), intent(in) :: iDim
     integer(i2), dimension(size(data)) :: flip_data
     integer(i8) :: i, n
 
-    if (iDim > 1_i4) then
+    if (iDim > 1_i4) &
       call error_message('Cannot flip 1D-array at dimension '//compress(trim(num2str(iDim))))
-    end if
 
     n = size(data)
     do i = 1_i8, n
@@ -2756,7 +2705,6 @@ CONTAINS
 
   function flipped_2D_i2(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i2), dimension(:, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     integer(i2), dimension(size(data, 1), size(data, 2)) :: flip_data
@@ -2781,7 +2729,6 @@ CONTAINS
 
   function flipped_3D_i2(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i2), dimension(:, :, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     integer(i2), dimension(size(data, 1), size(data, 2), size(data, 3)) :: flip_data
@@ -2811,7 +2758,6 @@ CONTAINS
 
   function flipped_4D_i2(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i2), dimension(:, :, :, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     integer(i2), dimension(size(data, 1), size(data, 2), size(data, 3), size(data, 4)) :: flip_data
@@ -2846,15 +2792,13 @@ CONTAINS
 
   function flipped_1D_i4(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i4), dimension(:), intent(in) :: data
     integer(i4), intent(in) :: iDim
     integer(i4), dimension(size(data)) :: flip_data
     integer(i8) :: i, n
 
-    if (iDim > 1_i4) then
+    if (iDim > 1_i4) &
       call error_message('Cannot flip 1D-array at dimension '//compress(trim(num2str(iDim))))
-    end if
 
     n = size(data)
     do i = 1_i8, n
@@ -2864,7 +2808,6 @@ CONTAINS
 
   function flipped_2D_i4(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i4), dimension(:, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     integer(i4), dimension(size(data, 1), size(data, 2)) :: flip_data
@@ -2889,7 +2832,6 @@ CONTAINS
 
   function flipped_3D_i4(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i4), dimension(:, :, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     integer(i4), dimension(size(data, 1), size(data, 2), size(data, 3)) :: flip_data
@@ -2919,7 +2861,6 @@ CONTAINS
 
   function flipped_4D_i4(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i4), dimension(:, :, :, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     integer(i4), dimension(size(data, 1), size(data, 2), size(data, 3), size(data, 4)) :: flip_data
@@ -2954,15 +2895,13 @@ CONTAINS
 
   function flipped_1D_i8(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i8), dimension(:), intent(in) :: data
     integer(i4), intent(in) :: iDim
     integer(i8), dimension(size(data)) :: flip_data
     integer(i8) :: i, n
 
-    if (iDim > 1_i4) then
+    if (iDim > 1_i4) &
       call error_message('Cannot flip 1D-array at dimension '//compress(trim(num2str(iDim))))
-    end if
 
     n = size(data)
     do i = 1_i8, n
@@ -2972,7 +2911,6 @@ CONTAINS
 
   function flipped_2D_i8(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i8), dimension(:, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     integer(i8), dimension(size(data, 1), size(data, 2)) :: flip_data
@@ -2997,7 +2935,6 @@ CONTAINS
 
   function flipped_3D_i8(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i8), dimension(:, :, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     integer(i8), dimension(size(data, 1), size(data, 2), size(data, 3)) :: flip_data
@@ -3027,7 +2964,6 @@ CONTAINS
 
   function flipped_4D_i8(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     integer(i8), dimension(:, :, :, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     integer(i8), dimension(size(data, 1), size(data, 2), size(data, 3), size(data, 4)) :: flip_data
@@ -3062,15 +2998,13 @@ CONTAINS
 
   function flipped_1D_lgt(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     logical, dimension(:), intent(in) :: data
     integer(i4), intent(in) :: iDim
     logical, dimension(size(data)) :: flip_data
     integer(i8) :: i, n
 
-    if (iDim > 1_i4) then
+    if (iDim > 1_i4) &
       call error_message('Cannot flip 1D-array at dimension '//compress(trim(num2str(iDim))))
-    end if
 
     n = size(data)
     do i = 1_i8, n
@@ -3080,7 +3014,6 @@ CONTAINS
 
   function flipped_2D_lgt(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     logical, dimension(:, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     logical, dimension(size(data, 1), size(data, 2)) :: flip_data
@@ -3105,7 +3038,6 @@ CONTAINS
 
   function flipped_3D_lgt(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     logical, dimension(:, :, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     logical, dimension(size(data, 1), size(data, 2), size(data, 3)) :: flip_data
@@ -3135,7 +3067,6 @@ CONTAINS
 
   function flipped_4D_lgt(data, iDim) result(flip_data)
     use mo_string_utils, only: compress, num2str
-    use mo_message, only: error_message
     logical, dimension(:, :, :, :), intent(in) :: data
     integer(i4), intent(in) :: iDim
     logical, dimension(size(data, 1), size(data, 2), size(data, 3), size(data, 4)) :: flip_data
@@ -3261,7 +3192,6 @@ CONTAINS
   !! A positive `shift` delays when elements of `input` appear in the prefix. Parallelized in blocks.
   subroutine prefix_sum_i8(input, output, shift, start, block_size)
     !$ use omp_lib,     only: omp_get_num_threads
-    use mo_message, only: error_message
     integer(i8), intent(in) :: input(:) !< input array
     integer(i8), intent(out) :: output(:) !< output array
     integer(i8), intent(in), optional :: shift !< shift of input indices
@@ -3281,7 +3211,8 @@ CONTAINS
     n_in = size(input, kind=i8)
     n_out = size(output, kind=i8)
     if (n_out == 0_i8) return
-    if (n_in + s < n_out) call error_message('prefix_sum_i8: input too small for requested shift/output length')
+    if (n_in + s < n_out) &
+      call error_message('prefix_sum_i8: input too small for requested shift/output length')
 
     init = optval(start, 0_i8)
     ! Heuristic: aim for a handful of blocks per thread; clamp to stay cache-friendly.

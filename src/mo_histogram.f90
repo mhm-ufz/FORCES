@@ -10,9 +10,9 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_statistics
 MODULE mo_histogram
+  use mo_forces_message, only: error_message
 
   USE mo_kind, ONLY : i4, sp, dp
-  use mo_message, ONLY : error_message
 
   PUBLIC :: histogram    ! Generate histogram
 
@@ -64,8 +64,10 @@ CONTAINS
     INTEGER(i4) :: i, bin_index
 
     ! Validate inputs
-    IF (num_bins <= 0) call error_message("Error histogram_dp: num_bins must be greater than 0.")
-    IF (min_edge >= max_edge) call error_message("Error histogram_dp: min_edge must be less than max_edge.")
+    IF (num_bins <= 0) &
+      call error_message("Error histogram_dp: num_bins must be greater than 0.")
+    IF (min_edge >= max_edge) &
+      call error_message("Error histogram_dp: min_edge must be less than max_edge.")
 
     ! Initialize bins and histogram
     ALLOCATE(histogram_dp(num_bins))

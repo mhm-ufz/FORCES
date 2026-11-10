@@ -11,8 +11,8 @@ All notable changes to **FORCES** will be documented in this file.
 * Scoped diagnostics and logging:
   * Added `mo_message::def_log_scope` and optional `scope=` arguments, with root
     defaults for applications and `[scope]` prefixes in plain output.
-  * Added `mo_forces_message` wrappers defaulting to `forces` independently
-    of application settings; import them once at module level.
+  * Added `mo_forces_message` wrappers; internal diagnostics import them once at
+    module level and default to `forces` independently of application settings.
   * Logging remains opt-in, now formats `[scope][LEVEL]`, and enables all scopes
     by default. Explicit root/named/glob filters remain available. FATAL bypasses
     scope filters but respects quiet levels, rank selection and explicit `show=`.
@@ -21,6 +21,10 @@ All notable changes to **FORCES** will be documented in this file.
     use ERROR, and terminating warnings/errors use FATAL. Logging still ignores
     message `uni=` and `advance=` in favor of its configured output units/records.
   * Removed higher-level logger dependencies.
+  * Migrated utility, spatial, time and numerical diagnostics and diagnostic
+    STOP strings to the FORCES
+    wrappers. Fatal failures use `ERROR STOP 1` in both modes, including legacy cases that
+    could previously report success. Scientific/history/restart files are unchanged.
 
 * `mo_grid_scaler`: equal-resolution scalers now assign the target as `fine_grid`
   and the source as `coarse_grid`, retaining `no_scaling`. `id_map(target_id)`

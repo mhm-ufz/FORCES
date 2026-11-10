@@ -9,6 +9,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_core
 MODULE mo_string_utils
+  use mo_forces_message, only: warn_message
 
   USE mo_kind, ONLY: i4, i8, sp, dp
 
@@ -356,7 +357,7 @@ CONTAINS
     end do
     ! hand over results to strArr
     if (nosubstr == 0_i4) then
-       print*, '***WARNING: string does not contain delimiter. There are no substrings. (subroutine DIVIDE_STRING)'
+       call warn_message('***WARNING: string does not contain delimiter. There are no substrings. (subroutine DIVIDE_STRING)')
        return
     else
        allocate(strArr(nosubstr))

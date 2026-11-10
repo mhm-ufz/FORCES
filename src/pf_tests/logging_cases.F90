@@ -3,11 +3,18 @@ program logging_cases
   use mo_message, only: message, error_message, use_log, def_log_scope, show_msg, show_warn, show_err
   use mo_forces_message, only: forces_error => error_message, forces_warning => warn_message, forces_message => message
   use mo_logging, only: log_level, LOG_INFO, log_set_config
+  use mo_append, only: append
+  use mo_moment, only: stddev
+  use mo_julian, only: setCalendar
+  use mo_kind, only: dp
 #ifdef MPI
   use mpi, only: MPI_Init, MPI_Finalize
 #endif
   implicit none
   character(len=64) :: scenario
+  integer, allocatable :: left(:,:)
+  integer :: right(1,2)
+  real(dp) :: result
 #ifdef MPI
   integer :: ierr
 #endif
@@ -51,6 +58,15 @@ program logging_cases
     use_log = .true.
     log_level = 0
     call forces_error('sentinel quiet')
+  case('append-shape')
+    allocate(left(1,1))
+    left = 0
+    right = 0
+    call append(left, right)
+  case('moment-size')
+    result = stddev([1.0_dp])
+  case('calendar')
+    call setCalendar('invalid')
   case default
     call error_message('Unknown logging fixture scenario', scope='')
   end select

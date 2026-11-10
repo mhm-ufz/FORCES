@@ -14,12 +14,12 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_spatial
 module mo_spatial_index
+  use mo_forces_message, only: error_message
 
   use mo_kind, only: i4, i8, dp
   use mo_grid_constants, only: cartesian, spherical
   use mo_constants, only: deg2rad_dp
   use mo_utils, only: is_close
-  use mo_message, only: error_message
 
   implicit none
 
@@ -82,9 +82,10 @@ contains
 
     npts = size(points, 1, kind=i8)
     ndim = size(points, 2, kind=i4)
-    if (npts /= size(point_ids, kind=i8)) &
+    if (npts /= size(point_ids, kind=i8)) & ! LCOV_EXCL_LINE
       call error_message("spatial_index % init: point count and point_ids size do not match.") ! LCOV_EXCL_LINE
-    if (ndim < 1_i4) call error_message("spatial_index % init: need at least one point dimension.") ! LCOV_EXCL_LINE
+    if (ndim < 1_i4) & ! LCOV_EXCL_LINE
+      call error_message("spatial_index % init: need at least one point dimension.") ! LCOV_EXCL_LINE
 
     call this%clear()
     this%ndim = ndim
@@ -119,9 +120,9 @@ contains
     integer(i8) :: ipt, npts
 
     npts = size(coords, 1, kind=i8)
-    if (size(coords, 2) /= lonlat_ndim) &
+    if (size(coords, 2) /= lonlat_ndim) & ! LCOV_EXCL_LINE
       call error_message("spatial_index % init_lonlat: coordinates need shape (:,2).") ! LCOV_EXCL_LINE
-    if (npts /= size(point_ids, kind=i8)) &
+    if (npts /= size(point_ids, kind=i8)) & ! LCOV_EXCL_LINE
       call error_message("spatial_index % init_lonlat: point count and point_ids size do not match.") ! LCOV_EXCL_LINE
 
     call this%clear()
@@ -150,9 +151,9 @@ contains
 
     real(dp) :: target(size(query))
 
-    if (this%coordsys == spherical) &
+    if (this%coordsys == spherical) & ! LCOV_EXCL_LINE
       call error_message("spatial_index % nearest_id: spherical indices need nearest_id_lonlat.") ! LCOV_EXCL_LINE
-    if (size(query, kind=i4) /= this%storage_ndim) &
+    if (size(query, kind=i4) /= this%storage_ndim) & ! LCOV_EXCL_LINE
       call error_message("spatial_index % nearest_id: query dimension does not match index.") ! LCOV_EXCL_LINE
 
     target = query
@@ -171,9 +172,9 @@ contains
     integer(i4) :: idim
     real(dp) :: target(size(queries, 2))
 
-    if (this%coordsys == spherical) &
+    if (this%coordsys == spherical) & ! LCOV_EXCL_LINE
       call error_message("spatial_index % nearest_ids: spherical indices need nearest_ids_lonlat.") ! LCOV_EXCL_LINE
-    if (size(queries, 2) /= this%storage_ndim) &
+    if (size(queries, 2) /= this%storage_ndim) & ! LCOV_EXCL_LINE
       call error_message("spatial_index % nearest_ids: query dimension does not match index.") ! LCOV_EXCL_LINE
 
     !$omp parallel do default(shared) private(iquery,idim,target) schedule(static) &
@@ -195,7 +196,7 @@ contains
 
     real(dp) :: target(spherical_storage_ndim)
 
-    if (this%coordsys /= spherical) &
+    if (this%coordsys /= spherical) & ! LCOV_EXCL_LINE
       call error_message("spatial_index % nearest_id_lonlat: index is not spherical.") ! LCOV_EXCL_LINE
 
     call lonlat_to_unitvec(lon, lat, target)
@@ -213,9 +214,9 @@ contains
     integer(i8) :: iquery
     real(dp) :: target(spherical_storage_ndim)
 
-    if (this%coordsys /= spherical) &
+    if (this%coordsys /= spherical) & ! LCOV_EXCL_LINE
       call error_message("spatial_index % nearest_ids_lonlat: index is not spherical.") ! LCOV_EXCL_LINE
-    if (size(coords, 2) /= lonlat_ndim) &
+    if (size(coords, 2) /= lonlat_ndim) & ! LCOV_EXCL_LINE
       call error_message("spatial_index % nearest_ids_lonlat: coordinates need shape (:,2).") ! LCOV_EXCL_LINE
 
     !$omp parallel do default(shared) private(iquery,target) schedule(static) if(size(coords, 1, kind=i8) >= loop_parallel_min_n)
@@ -236,7 +237,7 @@ contains
     point_id = 0_i8
     if (.not. allocated(this%point_ids)) return
     if (size(this%point_ids, kind=i8) < 1_i8) return
-    if (size(target, kind=i4) /= this%storage_ndim) &
+    if (size(target, kind=i4) /= this%storage_ndim) & ! LCOV_EXCL_LINE
       call error_message("spatial_index % nearest_target: target dimension does not match index.") ! LCOV_EXCL_LINE
 
     best_dist2 = huge(1.0_dp)

@@ -72,7 +72,10 @@ if(PFUNIT_FOUND)
       "fatal-global-visible|1|[forces][FATAL] sentinel visible|[mhm]"
       "warning-global-visible|1|[forces][FATAL] sentinel visible|[mhm]"
       "warning-hidden|1||sentinel hidden"
-      "fatal-quiet|1||sentinel quiet")
+      "fatal-quiet|1||sentinel quiet"
+      "append-shape|1|[forces]|[mhm]"
+      "moment-size|1|stddev_dp: n must be at least 2|[mhm]"
+      "calendar|1|Unknown selector!|[mhm]")
     foreach(logging_case IN LISTS logging_cases_to_check)
       string(REPLACE "|" ";" case_parts "${logging_case}")
       list(GET case_parts 0 case_name)

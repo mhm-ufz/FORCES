@@ -99,9 +99,9 @@
 !! mHM is released under the LGPLv3+ license \license_note
 !> \ingroup f_time
 module mo_datetime
+  use mo_forces_message, only: error_message
 
   use mo_kind, only: i4, i8, dp
-  use mo_message, only: error_message
   use mo_string_utils, only : num2str, divide_string
   use mo_julian, only : dec2date, date2dec
 
@@ -423,7 +423,8 @@ contains
         if (n > 1_i4) bounds(2_i4, 1_i4:n - 1_i4) = values(2_i4:n)
         bounds(2_i4, n) = values(n) + dt
       case(center_timestamp)
-        if (mod(dt, 2_i4) /= 0_i4) call error_message("infer_time_bounds: center bounds need even step")
+        if (mod(dt, 2_i4) /= 0_i4) &
+          call error_message("infer_time_bounds: center bounds need even step")
         do i = 1_i4, n
           bounds(1_i4, i) = values(i) - dt / 2_i4
           bounds(2_i4, i) = values(i) + dt / 2_i4
@@ -590,7 +591,8 @@ contains
     character(256), dimension(:), allocatable :: str_arr
     call divide_string(trim(string), ' ', str_arr)
     delta = delta_from_string(str_arr(1))
-    if (trim(str_arr(2)) /= "since") call error_message("datetime: expected 'since' for cf-convetion. Got: ", trim(str_arr(2)))
+    if (trim(str_arr(2)) /= "since") &
+      call error_message("datetime: expected 'since' for cf-convetion. Got: ", trim(str_arr(2)))
     ref_date = d_from_string(str_arr(3))
     ref_time = midnight()
     if(size(str_arr) > 3_i4) ref_time = t_from_string(str_arr(4))
@@ -836,7 +838,7 @@ contains
   subroutine check_year(year)
     implicit none
     integer(i4), intent(in) :: year            !< 1 <= year <= 9999
-    if (year < MIN_YEAR .or. year > MAX_YEAR) &
+    if (year < MIN_YEAR .or. year > MAX_YEAR) & ! LCOV_EXCL_LINE
       call error_message("datetime: year is out of range. Got: ", num2str(year)) ! LCOV_EXCL_LINE
   end subroutine check_year
 
@@ -844,7 +846,7 @@ contains
   subroutine check_month(month)
     implicit none
     integer(i4), intent(in) :: month           !< 1 <= month <= 12
-    if (month < 1_i4 .or. month > YEAR_MONTHS) &
+    if (month < 1_i4 .or. month > YEAR_MONTHS) & ! LCOV_EXCL_LINE
       call error_message("datetime: month is out of range. Got: ", num2str(month)) ! LCOV_EXCL_LINE
   end subroutine check_month
 
@@ -854,7 +856,7 @@ contains
     integer(i4), intent(in) :: year           !< 1 <= year <= 9999
     integer(i4), intent(in) :: month          !< 1 <= month <= 12
     integer(i4), intent(in) :: day            !< 1 <= day <= number of days in the given month and year
-    if (day < 1_i4 .or. day > days_in_month(year, month)) &
+    if (day < 1_i4 .or. day > days_in_month(year, month)) & ! LCOV_EXCL_LINE
       call error_message("datetime: day is out of range. Got: ", num2str(day)) ! LCOV_EXCL_LINE
   end subroutine check_day
 
@@ -862,7 +864,7 @@ contains
   subroutine check_hour(hour)
     implicit none
     integer(i4), intent(in), optional :: hour           !< 0 <= hour < 24
-    if (hour < 0_i4 .or. hour >= DAY_HOURS) &
+    if (hour < 0_i4 .or. hour >= DAY_HOURS) & ! LCOV_EXCL_LINE
       call error_message("datetime: hour is out of range. Got: ", num2str(hour)) ! LCOV_EXCL_LINE
   end subroutine check_hour
 
@@ -870,7 +872,7 @@ contains
   subroutine check_minute(minute)
     implicit none
     integer(i4), intent(in), optional :: minute         !< 0 <= minute < 60
-    if (minute < 0_i4 .or. minute >= HOUR_MINUTES) &
+    if (minute < 0_i4 .or. minute >= HOUR_MINUTES) & ! LCOV_EXCL_LINE
       call error_message("datetime: minute is out of range. Got: ", num2str(minute)) ! LCOV_EXCL_LINE
   end subroutine check_minute
 
@@ -878,7 +880,7 @@ contains
   subroutine check_second(second)
     implicit none
     integer(i4), intent(in), optional :: second         !< 0 <= second < 60
-    if (second < 0_i4 .or. second >= MINUTE_SECONDS) &
+    if (second < 0_i4 .or. second >= MINUTE_SECONDS) & ! LCOV_EXCL_LINE
       call error_message("datetime: second is out of range. Got: ", num2str(second)) ! LCOV_EXCL_LINE
   end subroutine check_second
 
@@ -892,7 +894,7 @@ contains
     integer(i4), intent(in), optional :: minute         !< 0 <= minute < 60
     integer(i4), intent(in), optional :: second         !< 0 <= second < 60
     ! sanity check for day
-    if (present(day) .and. .not. (present(year) .and. present(month))) &
+    if (present(day) .and. .not. (present(year) .and. present(month))) & ! LCOV_EXCL_LINE
       call error_message("check_datetime: to validate a given 'day', 'year' and 'month' are required.") ! LCOV_EXCL_LINE
     ! check components
     if (present(year)) call check_year(year)

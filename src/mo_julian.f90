@@ -31,6 +31,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_time
 MODULE mo_julian
+  use mo_forces_message, only: error_message
 
   USE mo_kind, ONLY : i4, i8, dp
 
@@ -86,8 +87,7 @@ CONTAINS
     case("360day")
       call setCalendarInteger(3)
     case default
-      print*, "Unknown selector! Select on of 'julian', '365day', '360day'."
-      stop 1
+      call error_message("Unknown selector! Select on of 'julian', '365day', '360day'.")
     end select
   end subroutine setCalendarString
 
@@ -95,10 +95,8 @@ CONTAINS
   subroutine setCalendarInteger(selector)
     integer(i4), intent(in) :: selector
 
-    if ((selector .lt. 1) .or. (selector .gt. 3)) then
-      print*, "Unknown selector! Select on of 1, 2, 3."
-      stop 1
-    end if
+    if ((selector .lt. 1) .or. (selector .gt. 3)) &
+      call error_message("Unknown selector! Select on of 1, 2, 3.")
     calendar = selector
 
   end subroutine setCalendarInteger

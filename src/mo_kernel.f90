@@ -29,6 +29,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_statistics
 MODULE mo_kernel
+  use mo_forces_message, only: error_message
 
   !$ USE omp_lib
   USE mo_kind,      ONLY: i4, sp, dp
@@ -508,9 +509,8 @@ CONTAINS
     real(dp)               :: delta                    ! stepsize for Newton-Coates
 
     ! consistency check - mask needs either nodata or xout
-    if (present(mask) .and. (.not. present(xout)) .and. (.not. present(nodata)) ) then
-       stop 'kernel_cumdensity_1d_dp: missing nodata value or xout with present(mask)'
-    end if
+    if (present(mask) .and. (.not. present(xout)) .and. (.not. present(nodata)) ) &
+      call error_message('kernel_cumdensity_1d_dp: missing nodata value or xout with present(mask)')
 
     ! Pack if mask present
     if (present(mask)) then
@@ -707,9 +707,8 @@ CONTAINS
     real(sp)               :: delta                    ! stepsize for Newton-Coates
 
     ! consistency check - mask needs either nodata or xout
-    if (present(mask) .and. (.not. present(xout)) .and. (.not. present(nodata)) ) then
-       stop 'kernel_cumdensity_1d_sp: missing nodata value or xout with present(mask)'
-    end if
+    if (present(mask) .and. (.not. present(xout)) .and. (.not. present(nodata)) ) &
+      call error_message('kernel_cumdensity_1d_sp: missing nodata value or xout with present(mask)')
 
     ! Pack if mask present
     if (present(mask)) then
@@ -889,9 +888,8 @@ CONTAINS
     real(dp), dimension(:),        allocatable :: x
 
     ! consistency check - mask needs either nodata or xout
-    if (present(mask) .and. (.not. present(xout)) .and. (.not. present(nodata)) ) then
-       stop 'kernel_density_1d_dp: missing nodata value or xout with present(mask)'
-    end if
+    if (present(mask) .and. (.not. present(xout)) .and. (.not. present(nodata)) ) &
+      call error_message('kernel_density_1d_dp: missing nodata value or xout with present(mask)')
 
     ! Pack if mask present
     if (present(mask)) then
@@ -985,9 +983,8 @@ CONTAINS
     real(sp), dimension(:),        allocatable :: x
 
     ! consistency check - mask needs either nodata or xout
-    if (present(mask) .and. (.not. present(xout)) .and. (.not. present(nodata)) ) then
-       stop 'kernel_density_1d_sp: missing nodata value or xout with present(mask)'
-    end if
+    if (present(mask) .and. (.not. present(xout)) .and. (.not. present(nodata)) ) &
+      call error_message('kernel_density_1d_sp: missing nodata value or xout with present(mask)')
 
     ! Pack if mask present
     if (present(mask)) then
@@ -1189,13 +1186,13 @@ CONTAINS
     real(dp), dimension(:), allocatable :: y
 
     ! consistency check - mask needs either nodata or xout
-    if (present(mask) .and. (.not. present(xout)) .and. (.not. present(nodata)) ) then
-       stop 'kernel_regression_1d_dp: missing nodata value or xout with present(mask)'
-    end if
+    if (present(mask) .and. (.not. present(xout)) .and. (.not. present(nodata)) ) &
+      call error_message('kernel_regression_1d_dp: missing nodata value or xout with present(mask)')
 
     nin   = size(ix,1)
     ! consistency checks of inputs
-    if (size(iy,1) .ne. nin) stop 'kernel_regression_1d_dp: size(x) /= size(y)'
+    if (size(iy,1) .ne. nin) &
+      call error_message('kernel_regression_1d_dp: size(x) /= size(y)')
 
     ! Pack if mask present
     if (present(mask)) then
@@ -1287,13 +1284,13 @@ CONTAINS
     real(sp), dimension(:), allocatable :: y
 
     ! consistency check - mask needs either nodata or xout
-    if (present(mask) .and. (.not. present(xout)) .and. (.not. present(nodata)) ) then
-       stop 'kernel_regression_1d_sp: missing nodata value or xout with present(mask)'
-    end if
+    if (present(mask) .and. (.not. present(xout)) .and. (.not. present(nodata)) ) &
+      call error_message('kernel_regression_1d_sp: missing nodata value or xout with present(mask)')
 
     nin   = size(ix,1)
     ! consistency checks of inputs
-    if (size(iy,1) .ne. nin) stop 'kernel_regression_1d_sp: size(x) /= size(y)'
+    if (size(iy,1) .ne. nin) &
+      call error_message('kernel_regression_1d_sp: size(x) /= size(y)')
 
     ! Pack if mask present
     if (present(mask)) then
@@ -1386,19 +1383,21 @@ CONTAINS
     real(dp), dimension(:),   allocatable :: y
 
     ! consistency check - mask needs either nodata or xout
-    if (present(mask) .and. (.not. present(xout)) .and. (.not. present(nodata)) ) then
-       stop 'kernel_regression_1d_dp: missing nodata value or xout with present(mask)'
-    end if
+    if (present(mask) .and. (.not. present(xout)) .and. (.not. present(nodata)) ) &
+      call error_message('kernel_regression_1d_dp: missing nodata value or xout with present(mask)')
 
     nin  = size(ix,1)
     dims = size(ix,2)
     ! consistency checks of inputs
-    if (size(iy) .ne. nin) stop 'kernel_regression_2d_dp: size(y) /= size(x,1)'
+    if (size(iy) .ne. nin) &
+      call error_message('kernel_regression_2d_dp: size(y) /= size(x,1)')
     if (present(h)) then
-       if (size(h) .ne. dims) stop 'kernel_regression_2d_dp: size(h) /= size(x,2)'
+       if (size(h) .ne. dims) &
+         call error_message('kernel_regression_2d_dp: size(h) /= size(x,2)')
     end if
     if (present(xout)) then
-       if (size(xout,2) .ne. dims) stop 'kernel_regression_2d_dp: size(xout) /= size(x,2)'
+       if (size(xout,2) .ne. dims) &
+         call error_message('kernel_regression_2d_dp: size(xout) /= size(x,2)')
     end if
 
     ! Pack if mask present
@@ -1491,19 +1490,21 @@ CONTAINS
     real(sp), dimension(:),   allocatable :: y
 
     ! consistency check - mask needs either nodata or xout
-    if (present(mask) .and. (.not. present(xout)) .and. (.not. present(nodata)) ) then
-       stop 'kernel_regression_1d_sp: missing nodata value or xout with present(mask)'
-    end if
+    if (present(mask) .and. (.not. present(xout)) .and. (.not. present(nodata)) ) &
+      call error_message('kernel_regression_1d_sp: missing nodata value or xout with present(mask)')
 
     nin  = size(ix,1)
     dims = size(ix,2)
     ! consistency checks of inputs
-    if (size(iy) .ne. nin) stop 'kernel_regression_2d_sp: size(y) /= size(x,1)'
+    if (size(iy) .ne. nin) &
+      call error_message('kernel_regression_2d_sp: size(y) /= size(x,1)')
     if (present(h)) then
-       if (size(h) .ne. dims) stop 'kernel_regression_2d_sp: size(h) /= size(x,2)'
+       if (size(h) .ne. dims) &
+         call error_message('kernel_regression_2d_sp: size(h) /= size(x,2)')
     end if
     if (present(xout)) then
-       if (size(xout,2) .ne. dims) stop 'kernel_regression_2d_sp: size(xout) /= size(x,2)'
+       if (size(xout,2) .ne. dims) &
+         call error_message('kernel_regression_2d_sp: size(xout) /= size(x,2)')
     end if
 
     ! Pack if mask present
@@ -2667,9 +2668,8 @@ CONTAINS
     ns = ns-1
     do m=1, n-1
        den(1:n-m) = ho(1:n-m)-ho(1+m:n)
-       if (any(eq(den(1:n-m),0.0_dp))) then
-          stop 'polint: calculation failure'
-       endif
+       if (any(eq(den(1:n-m),0.0_dp))) &
+         call error_message('polint: calculation failure')
        den(1:n-m) = (c(2:n-m+1)-d(1:n-m))/den(1:n-m)
        d(1:n-m)   = ho(1+m:n)*den(1:n-m)
        c(1:n-m)   = ho(1:n-m)*den(1:n-m)
@@ -2706,9 +2706,8 @@ CONTAINS
     ns = ns-1
     do m=1, n-1
        den(1:n-m) = ho(1:n-m)-ho(1+m:n)
-       if (any(eq(den(1:n-m),0.0_sp))) then
-          stop 'polint: calculation failure'
-       endif
+       if (any(eq(den(1:n-m),0.0_sp))) &
+         call error_message('polint: calculation failure')
        den(1:n-m) = (c(2:n-m+1)-d(1:n-m))/den(1:n-m)
        d(1:n-m)   = ho(1+m:n)*den(1:n-m)
        c(1:n-m)   = ho(1:n-m)*den(1:n-m)

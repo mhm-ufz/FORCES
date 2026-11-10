@@ -135,7 +135,9 @@ These wrappers default to `"forces"` independently of the application's
 `def_log_scope`; an explicit scope still overrides that default. They share all
 other settings with `mo_message` and do not own mutable state. Scientific output,
 optimization history/restart files, and logger failure fallback output retain
-their dedicated I/O paths.
+their dedicated I/O paths. Migrated legacy fatal diagnostics now consistently
+terminate with status 1, including failures that previously used a character or
+bare STOP and could report success.
 
 ## Build Configuration
 

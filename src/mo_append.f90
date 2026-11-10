@@ -18,6 +18,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_core
 MODULE mo_append
+  use mo_forces_message, only: error_message, warn_message
 
   USE mo_kind, only: i4, i8, sp, dp
 
@@ -289,6 +290,7 @@ CONTAINS
     integer(i4), dimension(:,:), allocatable, intent(inout)   :: mat1
     integer(i4), dimension(:,:), intent(in)                   :: mat2
     integer(i4), optional,       intent(in)                   :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                               :: m1, m2    ! dim1 of matrixes: rows
@@ -303,8 +305,9 @@ CONTAINS
        n1 = size(mat1,2)   ! columns
 
        if ((n1 /= n2) .and. .not. present(fill_value) ) then
-          print*, 'append: columns of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
+          write(diagnostic_text, *) 'append: columns of matrix1 and matrix2 are unequal : (', m1, ',', n1, &
+            ')  and (', m2, ',', n2, ')'
+          call error_message(trim(diagnostic_text))
        end if
 
        ! save mat1
@@ -346,6 +349,7 @@ CONTAINS
     integer(i4), dimension(:,:,:), allocatable, intent(inout) :: mat1
     integer(i4), dimension(:,:,:), intent(in)                 :: mat2
     integer(i4), optional,         intent(in)                 :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                                :: m1, m2    ! dim1 of matrixes: rows
@@ -353,7 +357,8 @@ CONTAINS
     integer(i4)                                :: j1, j2    ! dim3 of matrixes: something else
     integer(i4), dimension(:,:,:), allocatable :: tmp
 
-    if (present(fill_value)) print*, '***warning: fill_value is ignored in append_i4_3d'
+    if (present(fill_value)) &
+      call warn_message('***warning: fill_value is ignored in append_i4_3d')
 
     m2 = size(mat2,1)    ! rows
     n2 = size(mat2,2)    ! columns
@@ -365,9 +370,9 @@ CONTAINS
        j1 = size(mat1,3)    ! something else
 
        if ((n1 /= n2) .or. (j1 /= j2) ) then
-          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
-          STOP
+          write(diagnostic_text, *) 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : '  // &
+            '(', m1, ',', n1, ',', j1, ')  and  (', m2, ',', n2, ',', j2, ')'
+          call error_message(trim(diagnostic_text))
        end if
 
        ! save mat1
@@ -453,6 +458,7 @@ CONTAINS
     integer(i8), dimension(:,:), allocatable, intent(inout)   :: mat1
     integer(i8), dimension(:,:), intent(in)                   :: mat2
     integer(i8), optional,       intent(in)                   :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                               :: m1, m2    ! dim1 of matrixes: rows
@@ -467,8 +473,9 @@ CONTAINS
        n1 = size(mat1,2)   ! columns
 
        if ((n1 /= n2) .and. .not. present(fill_value) ) then
-          print*, 'append: columns of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
+          write(diagnostic_text, *) 'append: columns of matrix1 and matrix2 are unequal : (', m1, ',', n1, &
+            ')  and (', m2, ',', n2, ')'
+          call error_message(trim(diagnostic_text))
        end if
 
        ! save mat1
@@ -510,6 +517,7 @@ CONTAINS
     integer(i8), dimension(:,:,:), allocatable, intent(inout) :: mat1
     integer(i8), dimension(:,:,:), intent(in)                 :: mat2
     integer(i8), optional,         intent(in)                 :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                                :: m1, m2    ! dim1 of matrixes: rows
@@ -517,7 +525,8 @@ CONTAINS
     integer(i4)                                :: j1, j2    ! dim3 of matrixes: something else
     integer(i8), dimension(:,:,:), allocatable :: tmp
 
-    if (present(fill_value)) print*, '***warning: fill_value is ignored in append_i8_3d'
+    if (present(fill_value)) &
+      call warn_message('***warning: fill_value is ignored in append_i8_3d')
 
     m2 = size(mat2,1)    ! rows
     n2 = size(mat2,2)    ! columns
@@ -529,9 +538,9 @@ CONTAINS
        j1 = size(mat1,3)    ! something else
 
        if ((n1 /= n2) .or. (j1 /= j2) ) then
-          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
-          STOP
+          write(diagnostic_text, *) 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : '  // &
+            '(', m1, ',', n1, ',', j1, ')  and  (', m2, ',', n2, ',', j2, ')'
+          call error_message(trim(diagnostic_text))
        end if
 
        ! save mat1
@@ -617,6 +626,7 @@ CONTAINS
     real(sp), dimension(:,:), allocatable, intent(inout)   :: mat1
     real(sp), dimension(:,:), intent(in)                   :: mat2
     real(sp), optional,       intent(in)                   :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                               :: m1, m2    ! dim1 of matrixes: rows
@@ -631,8 +641,9 @@ CONTAINS
        n1 = size(mat1,2)   ! columns
 
        if ((n1 /= n2) .and. .not. present(fill_value) ) then
-          print*, 'append: columns of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
+          write(diagnostic_text, *) 'append: columns of matrix1 and matrix2 are unequal : (', m1, ',', n1, &
+            ')  and (', m2, ',', n2, ')'
+          call error_message(trim(diagnostic_text))
        end if
 
        ! save mat1
@@ -674,6 +685,7 @@ CONTAINS
     real(sp), dimension(:,:,:), allocatable, intent(inout)   :: mat1
     real(sp), dimension(:,:,:), intent(in)                   :: mat2
     real(sp), optional,         intent(in)                   :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                               :: m1, m2    ! dim1 of matrixes: rows
@@ -681,7 +693,8 @@ CONTAINS
     integer(i4)                               :: j1, j2    ! dim3 of matrixes: something else
     real(sp), dimension(:,:,:), allocatable   :: tmp
 
-    if (present(fill_value)) print*, '***warning: fill_value is ignored in append_sp_3d'
+    if (present(fill_value)) &
+      call warn_message('***warning: fill_value is ignored in append_sp_3d')
 
     m2 = size(mat2,1)    ! rows
     n2 = size(mat2,2)    ! columns
@@ -693,9 +706,9 @@ CONTAINS
        j1 = size(mat1,3)    ! something else
 
        if ((n1 /= n2) .or. (j1 /= j2) ) then
-          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
-          STOP
+          write(diagnostic_text, *) 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : '  // &
+            '(', m1, ',', n1, ',', j1, ')  and  (', m2, ',', n2, ',', j2, ')'
+          call error_message(trim(diagnostic_text))
        end if
 
        ! save mat1
@@ -782,6 +795,7 @@ CONTAINS
     real(dp), dimension(:,:), intent(in)                   :: mat2
     real(dp), optional,       intent(in)                   :: fill_value
     integer(i4), optional,       intent(in)                   :: idim
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                               :: m1, m2    ! dim1 of matrixes: rows
@@ -792,8 +806,8 @@ CONTAINS
     dd = 1
     if (present(idim)) dd = idim
     if (dd > 2) then
-      print*, 'append: dd is : (',dd,')  and greater than number of dimensions : 2'
-      STOP
+      write(diagnostic_text, *) 'append: dd is : (', dd, ')  and greater than number of dimensions : 2'
+      call error_message(trim(diagnostic_text))
     end if
 
 
@@ -807,8 +821,9 @@ CONTAINS
        if (present(idim)) then
          if (dd == 1) then
            if (n1 /= n2) then
-             print*, 'append: columns of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-             STOP
+             write(diagnostic_text, *) 'append: columns of matrix1 and matrix2 are unequal : (', m1, ',', n1, &
+               ') and  (', m2, ',', n2, ')'
+             call error_message(trim(diagnostic_text))
            end if
 
           ! save mat1
@@ -821,8 +836,9 @@ CONTAINS
          else if (dd == 2) then
 
            if (m1 /= m2) then
-             print*, 'append: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-             STOP
+             write(diagnostic_text, *) 'append: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, &
+               ')  and (', m2, ',', n2, ')'
+             call error_message(trim(diagnostic_text))
            end if
 
           ! save mat1
@@ -837,8 +853,9 @@ CONTAINS
        else
 
          if ((n1 /= n2) .and. .not. present(fill_value) ) then
-           print*, 'append: columns of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-           STOP
+           write(diagnostic_text, *) 'append: columns of matrix1 and matrix2 are unequal : (', m1, ',', n1, &
+             ')  and (', m2, ',', n2, ')'
+           call error_message(trim(diagnostic_text))
          end if
 
          ! save mat1
@@ -880,6 +897,7 @@ CONTAINS
     real(dp), dimension(:,:,:), intent(in)                   :: mat2
     real(dp), optional,         intent(in)                   :: fill_value
     integer(i4), optional,      intent(in)                   :: idim
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                               :: m1, m2    ! dim1 of matrixes: rows
@@ -888,13 +906,14 @@ CONTAINS
     integer(i4)                               :: dd        ! dimension it is appended along
     real(dp), dimension(:,:,:), allocatable   :: tmp
 
-    if (present(fill_value)) print*, '***warning: fill_value is ignored in append_dp_3d'
+    if (present(fill_value)) &
+      call warn_message('***warning: fill_value is ignored in append_dp_3d')
 
     dd = 1_i4
     if (present(idim)) dd = idim
     if (dd > 3) then
-      print*, 'append: dd is : (',dd,')  and greater than number of dimensions : 3'
-      STOP
+      write(diagnostic_text, *) 'append: dd is : (', dd, ')  and greater than number of dimensions : 3'
+      call error_message(trim(diagnostic_text))
     end if
 
     m2 = size(mat2,1)    ! rows
@@ -908,9 +927,9 @@ CONTAINS
 
        if (dd == 1) then
          if ((n1 /= n2) .or. (j1 /= j2) ) then
-           print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
-           STOP
+           write(diagnostic_text, *) 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : '  // &
+             '(', m1, ',', n1, ',', j1, ')  and  (', m2, ',', n2, ',', j2, ')'
+           call error_message(trim(diagnostic_text))
          end if
 
          ! save mat1
@@ -921,9 +940,9 @@ CONTAINS
          mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
        else if (dd == 2) then
          if ((m1 /= m2) .or. (j1 /= j2) ) then
-           print*, 'append: size mismatch: dim 1 and 3 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
-           STOP
+           write(diagnostic_text, *) 'append: size mismatch: dim 1 and 3 of matrix1 and matrix2 are unequal : '  // &
+             '(', m1, ',', n1, ',', j1, ')  and  (', m2, ',', n2, ',', j2, ')'
+           call error_message(trim(diagnostic_text))
          end if
 
          ! save mat1
@@ -934,9 +953,9 @@ CONTAINS
          mat1(:,n1+1_i4:n1+n2,:) = mat2(:,1:n2,:)
        else if (dd == 3) then
          if ((m1 /= m2) .or. (n1 /= n2) ) then
-           print*, 'append: size mismatch: dim 1 and 2 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
-           STOP
+           write(diagnostic_text, *) 'append: size mismatch: dim 1 and 2 of matrix1 and matrix2 are unequal : '  // &
+             '(', m1, ',', n1, ',', j1, ')  and  (', m2, ',', n2, ',', j2, ')'
+           call error_message(trim(diagnostic_text))
          end if
 
          ! save mat1
@@ -964,6 +983,7 @@ CONTAINS
     real(dp), dimension(:,:,:,:), intent(in)                   :: mat2
     real(dp), optional,         intent(in)                   :: fill_value
     integer(i4), optional,      intent(in)                   :: idim
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)           :: m1, m2    ! dim1 of matrixes: rows
@@ -973,13 +993,14 @@ CONTAINS
     integer(i4)           :: dd        ! dimension it is appended along
     real(dp), allocatable :: tmp(:,:,:,:)
 
-    if (present(fill_value)) print*, '***warning: fill_value is ignored in append_dp_3d'
+    if (present(fill_value)) &
+      call warn_message('***warning: fill_value is ignored in append_dp_3d')
 
     dd = 1_i4
     if (present(idim)) dd = idim
     if (dd > 4) then
-      print*, 'append: dd is : (',dd,')  and greater than number of dimensions : 4'
-      STOP
+      write(diagnostic_text, *) 'append: dd is : (', dd, ')  and greater than number of dimensions : 4'
+      call error_message(trim(diagnostic_text))
     end if
 
     m2 = size(mat2,1)    ! rows
@@ -995,9 +1016,9 @@ CONTAINS
 
        if (dd == 1) then
          if ((n1 /= n2) .or. (j1 /= j2) .or. (i1 /= i2)) then
-           print*, 'append: size mismatch: dim 2, 3, and 4 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,',',i1,')  and  (',m2,',',n2,',',j2,',',i2,')'
-           STOP
+           write(diagnostic_text, *) 'append: size mismatch: dim 2, 3, and 4 of matrix1 and matrix2 are unequal : ' &
+             // '(', m1, ',', n1, ',', j1, ',', i1, ')  and  (', m2, ',', n2, ',', j2, ',', i2, ')'
+           call error_message(trim(diagnostic_text))
          end if
 
          ! save mat1
@@ -1008,9 +1029,9 @@ CONTAINS
          mat1(m1+1_i4:m1+m2,:,:,:) = mat2(1:m2,:,:,:)
        else if (dd == 2) then
          if ((m1 /= m2) .or. (j1 /= j2) .or. (i1 /= i2)) then
-           print*, 'append: size mismatch: dim 1, 3, and 4 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,',',i1,')  and  (',m2,',',n2,',',j2,',',i2,')'
-           STOP
+           write(diagnostic_text, *) 'append: size mismatch: dim 1, 3, and 4 of matrix1 and matrix2 are unequal : ' &
+             // '(', m1, ',', n1, ',', j1, ',', i1, ')  and  (', m2, ',', n2, ',', j2, ',', i2, ')'
+           call error_message(trim(diagnostic_text))
          end if
 
          ! save mat1
@@ -1021,9 +1042,9 @@ CONTAINS
          mat1(:,n1+1_i4:n1+n2,:,:) = mat2(:,1:n2,:,:)
        else if (dd == 3) then
          if ((m1 /= m2) .or. (n1 /= n2) .or. (i1 /= i2)) then
-           print*, 'append: size mismatch: dim 1, 2, and 4 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,',',i1,')  and  (',m2,',',n2,',',j2,',',i2,')'
-           STOP
+           write(diagnostic_text, *) 'append: size mismatch: dim 1, 2, and 4 of matrix1 and matrix2 are unequal : ' &
+             // '(', m1, ',', n1, ',', j1, ',', i1, ')  and  (', m2, ',', n2, ',', j2, ',', i2, ')'
+           call error_message(trim(diagnostic_text))
          end if
 
          ! save mat1
@@ -1036,9 +1057,9 @@ CONTAINS
          mat1(:,:,j1+1_i4:j1+j2,:) = mat2(:,:,1:j2,:)
        else if (dd == 4) then
          if ((m1 /= m2) .or. (n1 /= n2) .or. (j1 /= j2)) then
-           print*, 'append: size mismatch: dim 1, 2, and 3 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,',',i1,')  and  (',m2,',',n2,',',j2,',',i2,')'
-           STOP
+           write(diagnostic_text, *) 'append: size mismatch: dim 1, 2, and 3 of matrix1 and matrix2 are unequal : ' &
+             // '(', m1, ',', n1, ',', j1, ',', i1, ')  and  (', m2, ',', n2, ',', j2, ',', i2, ')'
+           call error_message(trim(diagnostic_text))
          end if
 
          ! save mat1
@@ -1123,6 +1144,7 @@ CONTAINS
     character(len=*), dimension(:,:), allocatable, intent(inout)   :: mat1
     character(len=*), dimension(:,:),              intent(in)      :: mat2
     character(len=*), optional,                    intent(in)      :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                                 :: m1, m2    ! dim1 of matrixes: rows
@@ -1137,8 +1159,9 @@ CONTAINS
        n1 = size(mat1,2)   ! columns
 
        if ((n1 /= n2) .and. .not. present(fill_value) ) then
-          print*, 'append: columns of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
+          write(diagnostic_text, *) 'append: columns of matrix1 and matrix2 are unequal : (', m1, ',', n1, &
+            ')  and (', m2, ',', n2, ')'
+          call error_message(trim(diagnostic_text))
        end if
 
        ! save mat1
@@ -1180,6 +1203,7 @@ CONTAINS
     character(len=*), dimension(:,:,:), allocatable, intent(inout) :: mat1
     character(len=*), dimension(:,:,:), intent(in)                 :: mat2
     character(len=*), optional,         intent(in)                 :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                                :: m1, m2    ! dim1 of matrixes: rows
@@ -1187,7 +1211,8 @@ CONTAINS
     integer(i4)                                :: j1, j2    ! dim3 of matrixes: something else
     character(len(mat1)), dimension(:,:,:), allocatable :: tmp
 
-    if (present(fill_value)) print*, '***warning: fill_value is ignored in append_i8_3d'
+    if (present(fill_value)) &
+      call warn_message('***warning: fill_value is ignored in append_i8_3d')
 
     m2 = size(mat2,1)    ! rows
     n2 = size(mat2,2)    ! columns
@@ -1199,9 +1224,9 @@ CONTAINS
        j1 = size(mat1,3)    ! something else
 
        if ((n1 /= n2) .or. (j1 /= j2) ) then
-          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
-          STOP
+          write(diagnostic_text, *) 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : '  // &
+            '(', m1, ',', n1, ',', j1, ')  and  (', m2, ',', n2, ',', j2, ')'
+          call error_message(trim(diagnostic_text))
        end if
 
        ! save mat1
@@ -1288,6 +1313,7 @@ CONTAINS
     logical, dimension(:,:), intent(in)                   :: mat2
     logical, optional,       intent(in)                   :: fill_value
     integer(i4), optional,   intent(in)                   :: idim
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                           :: m1, m2    ! dim1 of matrixes: rows
@@ -1298,8 +1324,8 @@ CONTAINS
     dd = 1
     if (present(idim)) dd = idim
     if (dd > 3) then
-      print*, 'append: dd is : (',dd,')  and greater than number of dimensions : 3'
-      STOP
+      write(diagnostic_text, *) 'append: dd is : (', dd, ')  and greater than number of dimensions : 3'
+      call error_message(trim(diagnostic_text))
     end if
 
     m2 = size(mat2,1)   ! rows
@@ -1312,8 +1338,9 @@ CONTAINS
       if (present(idim)) then
         if (dd == 1) then
           if (n1 /= n2) then
-            print*, 'append: columns of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-            STOP
+            write(diagnostic_text, *) 'append: columns of matrix1 and matrix2 are unequal : (', m1, ',', n1, &
+              ')  and (', m2, ',', n2, ')'
+            call error_message(trim(diagnostic_text))
           end if
 
          ! save mat1
@@ -1326,8 +1353,9 @@ CONTAINS
         else if (dd == 2) then
 
           if (m1 /= m2) then
-            print*, 'append: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-            STOP
+            write(diagnostic_text, *) 'append: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and (', &
+              m2, ',', n2, ')'
+            call error_message(trim(diagnostic_text))
           end if
 
          ! save mat1
@@ -1341,8 +1369,9 @@ CONTAINS
 
       else
         if ( (n1 /= n2) .and. .not. present(fill_value) ) then
-          print*, 'append: columns of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
+          write(diagnostic_text, *) 'append: columns of matrix1 and matrix2 are unequal : (', m1, ',', n1, &
+            ')  and (', m2, ',', n2, ')'
+          call error_message(trim(diagnostic_text))
         end if
 
        ! save mat1
@@ -1385,6 +1414,7 @@ CONTAINS
     logical, dimension(:,:,:), allocatable, intent(inout) :: mat1
     logical, dimension(:,:,:), intent(in)                 :: mat2
     logical, optional,         intent(in)                 :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
     integer(i4), optional                                 :: idim
 
     ! local variables
@@ -1394,13 +1424,14 @@ CONTAINS
     integer(i4)                                :: dd        ! index of dimension to append
     logical, dimension(:,:,:), allocatable :: tmp
 
-    if (present(fill_value)) print*, '***warning: fill_value is ignored in append_i8_3d'
+    if (present(fill_value)) &
+      call warn_message('***warning: fill_value is ignored in append_i8_3d')
 
     dd = 1
     if (present(idim)) dd = idim
     if (dd > 3) then
-      print*, 'append: dd is : (',dd,')  and greater than number of dimensions : 3'
-      STOP
+      write(diagnostic_text, *) 'append: dd is : (', dd, ')  and greater than number of dimensions : 3'
+      call error_message(trim(diagnostic_text))
     end if
 
     m2 = size(mat2,1)    ! rows
@@ -1414,9 +1445,9 @@ CONTAINS
 
       if (dd == 1) then
         if ((n1 /= n2) .or. (j1 /= j2) ) then
-          print*, 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : ' &
-              // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
-          STOP
+          write(diagnostic_text, *) 'append: size mismatch: dim 2 and 3 of matrix1 and matrix2 are unequal : '  // &
+            '(', m1, ',', n1, ',', j1, ')  and  (', m2, ',', n2, ',', j2, ')'
+          call error_message(trim(diagnostic_text))
         end if
 
         ! save mat1
@@ -1427,9 +1458,9 @@ CONTAINS
         mat1(m1+1_i4:m1+m2,:,:) = mat2(1:m2,:,:)
       else if (dd == 2) then
         if ((m1 /= m2) .or. (j1 /= j2) ) then
-          print*, 'append: size mismatch: dim 1 and 3 of matrix1 and matrix2 are unequal : ' &
-              // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
-          STOP
+          write(diagnostic_text, *) 'append: size mismatch: dim 1 and 3 of matrix1 and matrix2 are unequal : '  // &
+            '(', m1, ',', n1, ',', j1, ')  and  (', m2, ',', n2, ',', j2, ')'
+          call error_message(trim(diagnostic_text))
         end if
 
         ! save mat1
@@ -1440,9 +1471,9 @@ CONTAINS
         mat1(:,n1+1_i4:n1+n2,:) = mat2(:,1:n2,:)
       else if (dd == 3) then
         if ((m1 /= m2) .or. (n1 /= n2) ) then
-          print*, 'append: size mismatch: dim 1 and 2 of matrix1 and matrix2 are unequal : ' &
-              // '(',m1,',',n1,',',j1,')  and  (',m2,',',n2,',',j2,')'
-          STOP
+          write(diagnostic_text, *) 'append: size mismatch: dim 1 and 2 of matrix1 and matrix2 are unequal : '  // &
+            '(', m1, ',', n1, ',', j1, ')  and  (', m2, ',', n2, ',', j2, ')'
+          call error_message(trim(diagnostic_text))
         end if
 
         ! save mat1
@@ -1470,6 +1501,7 @@ CONTAINS
     logical, dimension(:,:,:,:), intent(in)                 :: mat2
     logical, optional,         intent(in)                   :: fill_value
     integer(i4), optional,      intent(in)                  :: idim
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)          :: m1, m2    ! dim1 of matrixes: rows
@@ -1479,13 +1511,14 @@ CONTAINS
     integer(i4)          :: dd        ! dimension it is appended along
     logical, allocatable :: tmp(:,:,:,:)
 
-    if (present(fill_value)) print*, '***warning: fill_value is ignored in append_lgt_4d'
+    if (present(fill_value)) &
+      call warn_message('***warning: fill_value is ignored in append_lgt_4d')
 
     dd = 1_i4
     if (present(idim)) dd = idim
     if (dd > 4) then
-      print*, 'append: dd is : (',dd,')  and greater than number of dimensions : 4'
-      STOP
+      write(diagnostic_text, *) 'append: dd is : (', dd, ')  and greater than number of dimensions : 4'
+      call error_message(trim(diagnostic_text))
     end if
 
     m2 = size(mat2,1)    ! rows
@@ -1501,9 +1534,9 @@ CONTAINS
 
        if (dd == 1) then
          if ((n1 /= n2) .or. (j1 /= j2) .or. (i1 /= i2)) then
-           print*, 'append: size mismatch: dim 2, 3, and 4 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,',',i1,')  and  (',m2,',',n2,',',j2,',',i2,')'
-           STOP
+           write(diagnostic_text, *) 'append: size mismatch: dim 2, 3, and 4 of matrix1 and matrix2 are unequal : ' &
+             // '(', m1, ',', n1, ',', j1, ',', i1, ')  and  (', m2, ',', n2, ',', j2, ',', i2, ')'
+           call error_message(trim(diagnostic_text))
          end if
 
          ! save mat1
@@ -1514,9 +1547,9 @@ CONTAINS
          mat1(m1+1_i4:m1+m2,:,:,:) = mat2(1:m2,:,:,:)
        else if (dd == 2) then
          if ((m1 /= m2) .or. (j1 /= j2) .or. (i1 /= i2)) then
-           print*, 'append: size mismatch: dim 1, 3, and 4 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,',',i1,')  and  (',m2,',',n2,',',j2,',',i2,')'
-           STOP
+           write(diagnostic_text, *) 'append: size mismatch: dim 1, 3, and 4 of matrix1 and matrix2 are unequal : ' &
+             // '(', m1, ',', n1, ',', j1, ',', i1, ')  and  (', m2, ',', n2, ',', j2, ',', i2, ')'
+           call error_message(trim(diagnostic_text))
          end if
 
          ! save mat1
@@ -1527,9 +1560,9 @@ CONTAINS
          mat1(:,n1+1_i4:n1+n2,:,:) = mat2(:,1:n2,:,:)
        else if (dd == 3) then
          if ((m1 /= m2) .or. (n1 /= n2) .or. (i1 /= i2)) then
-           print*, 'append: size mismatch: dim 1, 2, and 4 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,',',i1,')  and  (',m2,',',n2,',',j2,',',i2,')'
-           STOP
+           write(diagnostic_text, *) 'append: size mismatch: dim 1, 2, and 4 of matrix1 and matrix2 are unequal : ' &
+             // '(', m1, ',', n1, ',', j1, ',', i1, ')  and  (', m2, ',', n2, ',', j2, ',', i2, ')'
+           call error_message(trim(diagnostic_text))
          end if
 
          ! save mat1
@@ -1540,9 +1573,9 @@ CONTAINS
          mat1(:,:,j1+1_i4:j1+j2,:) = mat2(:,:,1:j2,:)
        else if (dd == 4) then
          if ((m1 /= m2) .or. (n1 /= n2) .or. (j1 /= j2)) then
-           print*, 'append: size mismatch: dim 1, 2, and 3 of matrix1 and matrix2 are unequal : ' &
-               // '(',m1,',',n1,',',j1,',',i1,')  and  (',m2,',',n2,',',j2,',',i2,')'
-           STOP
+           write(diagnostic_text, *) 'append: size mismatch: dim 1, 2, and 3 of matrix1 and matrix2 are unequal : ' &
+             // '(', m1, ',', n1, ',', j1, ',', i1, ')  and  (', m2, ',', n2, ',', j2, ',', i2, ')'
+           call error_message(trim(diagnostic_text))
          end if
 
          ! save mat1
@@ -1579,10 +1612,8 @@ CONTAINS
     if (allocated(mat1)) then
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
-       if (m1 /= 1_i4) then
-          print*, 'paste: scalar paste to matrix only works with one-line matrix'
-          STOP
-       end if
+       if (m1 /= 1_i4) &
+         call error_message('paste: scalar paste to matrix only works with one-line matrix')
        ! save mat1
        call move_alloc(mat1, tmp)
 
@@ -1603,6 +1634,7 @@ CONTAINS
     integer(i4), dimension(:,:), allocatable, intent(inout)   :: mat1
     integer(i4), dimension(:),                intent(in)      :: vec2
     integer(i4), optional,                    intent(in)      :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                             :: m1, m2    ! dim1 of matrixes
@@ -1616,8 +1648,8 @@ CONTAINS
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
        if ( (m1 /= m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
+          write(diagnostic_text, *) 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+          call error_message(trim(diagnostic_text))
        end if
        ! save mat1
        call move_alloc(mat1, tmp)
@@ -1659,6 +1691,7 @@ CONTAINS
     integer(i4), dimension(:,:), allocatable, intent(inout)   :: mat1
     integer(i4), dimension(:,:),              intent(in)      :: mat2
     integer(i4), optional,                    intent(in)      :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                             :: m1, m2    ! dim1 of matrixes
@@ -1672,8 +1705,8 @@ CONTAINS
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
        if ( (m1 /= m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
+          write(diagnostic_text, *) 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+          call error_message(trim(diagnostic_text))
        end if
        ! save mat1
        call move_alloc(mat1, tmp)
@@ -1723,10 +1756,8 @@ CONTAINS
     if (allocated(mat1)) then
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
-       if (m1 /= 1_i4) then
-          print*, 'paste: scalar paste to matrix only works with one-line matrix'
-          STOP
-       end if
+       if (m1 /= 1_i4) &
+         call error_message('paste: scalar paste to matrix only works with one-line matrix')
        ! save mat1
        call move_alloc(mat1, tmp)
 
@@ -1747,6 +1778,7 @@ CONTAINS
     integer(i8), dimension(:,:), allocatable, intent(inout)   :: mat1
     integer(i8), dimension(:),                intent(in)      :: vec2
     integer(i8), optional,                    intent(in)      :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                               :: m1, m2    ! dim1 of matrixes
@@ -1760,8 +1792,8 @@ CONTAINS
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
        if ( (m1 /= m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
+          write(diagnostic_text, *) 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+          call error_message(trim(diagnostic_text))
        end if
        ! save mat1
        call move_alloc(mat1, tmp)
@@ -1803,6 +1835,7 @@ CONTAINS
     integer(i8), dimension(:,:), allocatable, intent(inout)   :: mat1
     integer(i8), dimension(:,:),              intent(in)      :: mat2
     integer(i8), optional,                    intent(in)      :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                             :: m1, m2    ! dim1 of matrixes
@@ -1816,8 +1849,8 @@ CONTAINS
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
        if ( (m1 /= m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
+          write(diagnostic_text, *) 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+          call error_message(trim(diagnostic_text))
        end if
        ! save mat1
        call move_alloc(mat1, tmp)
@@ -1867,10 +1900,8 @@ CONTAINS
     if (allocated(mat1)) then
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
-       if (m1 /= 1_i4) then
-          print*, 'paste: scalar paste to matrix only works with one-line matrix'
-          STOP
-       end if
+       if (m1 /= 1_i4) &
+         call error_message('paste: scalar paste to matrix only works with one-line matrix')
        ! save mat1
        call move_alloc(mat1, tmp)
 
@@ -1891,6 +1922,7 @@ CONTAINS
     real(sp), dimension(:,:), allocatable, intent(inout)   :: mat1
     real(sp), dimension(:),                intent(in)      :: vec2
     real(sp), optional,                    intent(in)      :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                             :: m1, m2    ! dim1 of matrixes
@@ -1904,8 +1936,8 @@ CONTAINS
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
        if ( (m1 /= m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
+          write(diagnostic_text, *) 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+          call error_message(trim(diagnostic_text))
        end if
        ! save mat1
        call move_alloc(mat1, tmp)
@@ -1947,6 +1979,7 @@ CONTAINS
     real(sp), dimension(:,:), allocatable, intent(inout)   :: mat1
     real(sp), dimension(:,:),              intent(in)      :: mat2
     real(sp), optional,                    intent(in)      :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                             :: m1, m2    ! dim1 of matrixes
@@ -1960,8 +1993,8 @@ CONTAINS
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
        if ( (m1 /= m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
+          write(diagnostic_text, *) 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+          call error_message(trim(diagnostic_text))
        end if
        ! save mat1
        call move_alloc(mat1, tmp)
@@ -2012,10 +2045,8 @@ CONTAINS
     if (allocated(mat1)) then
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
-       if (m1 /= 1_i4) then
-          print*, 'paste: scalar paste to matrix only works with one-line matrix'
-          STOP
-       end if
+       if (m1 /= 1_i4) &
+         call error_message('paste: scalar paste to matrix only works with one-line matrix')
        ! save mat1
        call move_alloc(mat1, tmp)
 
@@ -2036,6 +2067,7 @@ CONTAINS
     real(dp), dimension(:,:), allocatable, intent(inout)   :: mat1
     real(dp), dimension(:),                intent(in)      :: vec2
     real(dp), optional,                    intent(in)      :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                             :: m1, m2    ! dim1 of matrixes
@@ -2049,8 +2081,8 @@ CONTAINS
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
        if ( (m1 /= m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
+          write(diagnostic_text, *) 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+          call error_message(trim(diagnostic_text))
        end if
        ! save mat1
        call move_alloc(mat1, tmp)
@@ -2092,6 +2124,7 @@ CONTAINS
     real(dp), dimension(:,:), allocatable, intent(inout)   :: mat1
     real(dp), dimension(:,:),              intent(in)      :: mat2
     real(dp), optional,                    intent(in)      :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                             :: m1, m2    ! dim1 of matrixes
@@ -2105,8 +2138,8 @@ CONTAINS
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
        if ( (m1 /= m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
+          write(diagnostic_text, *) 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+          call error_message(trim(diagnostic_text))
        end if
        ! save mat1
        call move_alloc(mat1, tmp)
@@ -2145,6 +2178,7 @@ CONTAINS
 
     real(dp), dimension(:,:,:), allocatable, intent(inout) :: mat1
     real(dp), dimension(:,:,:),              intent(in)    :: mat2
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                             :: m1, m2    ! dim1 of matrixes
@@ -2161,11 +2195,11 @@ CONTAINS
       n1 = size(mat1,2)   ! columns
       o1 = size(mat1,3)   ! columns
       if ( (m1 /= m2)) then
-        print*, 'paste: rows of array1 and array2 are unequal : (',m1,')  and  (',m2,')'
-        STOP
+        write(diagnostic_text, *) 'paste: rows of array1 and array2 are unequal : (', m1, ')  and  (', m2, ')'
+        call error_message(trim(diagnostic_text))
       else if ( (n1 /= n2)) then
-        print*, 'paste: columns of array1 and array2 are unequal : (',n1,')  and  (',n2,')'
-        STOP
+        write(diagnostic_text, *) 'paste: columns of array1 and array2 are unequal : (', n1, ')  and  (', n2, ')'
+        call error_message(trim(diagnostic_text))
       end if
       ! save mat1
       call move_alloc(mat1, tmp)
@@ -2185,6 +2219,7 @@ CONTAINS
 
     real(dp), dimension(:,:,:,:), allocatable, intent(inout) :: mat1
     real(dp), dimension(:,:,:,:),              intent(in)    :: mat2
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                             :: m1, m2    ! dim1 of matrixes
@@ -2204,14 +2239,14 @@ CONTAINS
       o1 = size(mat1,3)   ! 3rd
       p1 = size(mat1,4)   ! 4th
       if ( (m1 /= m2)) then
-        print*, 'paste: rows of array1 and array2 are unequal : (',m1,')  and  (',m2,')'
-        STOP
+        write(diagnostic_text, *) 'paste: rows of array1 and array2 are unequal : (', m1, ')  and  (', m2, ')'
+        call error_message(trim(diagnostic_text))
       else if ( (n1 /= n2)) then
-        print*, 'paste: columns of array1 and array2 are unequal : (',n1,')  and  (',n2,')'
-        STOP
+        write(diagnostic_text, *) 'paste: columns of array1 and array2 are unequal : (', n1, ')  and  (', n2, ')'
+        call error_message(trim(diagnostic_text))
       else if ( (o1 /= o2)) then
-        print*, 'paste: columns of array1 and array2 are unequal : (',o1,')  and  (',o2,')'
-        STOP
+        write(diagnostic_text, *) 'paste: columns of array1 and array2 are unequal : (', o1, ')  and  (', o2, ')'
+        call error_message(trim(diagnostic_text))
       end if
       ! save mat1
       call move_alloc(mat1, tmp)
@@ -2231,6 +2266,7 @@ CONTAINS
 
     integer(i4), dimension(:,:,:), allocatable, intent(inout) :: mat1
     integer(i4), dimension(:,:,:),              intent(in)    :: mat2
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                             :: m1, m2    ! dim1 of matrixes
@@ -2247,11 +2283,11 @@ CONTAINS
       n1 = size(mat1,2)   ! columns
       o1 = size(mat1,3)   ! columns
       if ( (m1 /= m2)) then
-        print*, 'paste: rows of array1 and array2 are unequal : (',m1,')  and  (',m2,')'
-        STOP
+        write(diagnostic_text, *) 'paste: rows of array1 and array2 are unequal : (', m1, ')  and  (', m2, ')'
+        call error_message(trim(diagnostic_text))
       else if ( (n1 /= n2)) then
-        print*, 'paste: columns of array1 and array2 are unequal : (',n1,')  and  (',n2,')'
-        STOP
+        write(diagnostic_text, *) 'paste: columns of array1 and array2 are unequal : (', n1, ')  and  (', n2, ')'
+        call error_message(trim(diagnostic_text))
       end if
       ! save mat1
       call move_alloc(mat1, tmp)
@@ -2271,6 +2307,7 @@ CONTAINS
 
     integer(i4), dimension(:,:,:,:), allocatable, intent(inout) :: mat1
     integer(i4), dimension(:,:,:,:),              intent(in)    :: mat2
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                             :: m1, m2    ! dim1 of matrixes
@@ -2290,14 +2327,14 @@ CONTAINS
       o1 = size(mat1,3)   ! 3rd
       p1 = size(mat1,4)   ! 4th
       if ( (m1 /= m2)) then
-        print*, 'paste: rows of array1 and array2 are unequal : (',m1,')  and  (',m2,')'
-        STOP
+        write(diagnostic_text, *) 'paste: rows of array1 and array2 are unequal : (', m1, ')  and  (', m2, ')'
+        call error_message(trim(diagnostic_text))
       else if ( (n1 /= n2)) then
-        print*, 'paste: columns of array1 and array2 are unequal : (',n1,')  and  (',n2,')'
-        STOP
+        write(diagnostic_text, *) 'paste: columns of array1 and array2 are unequal : (', n1, ')  and  (', n2, ')'
+        call error_message(trim(diagnostic_text))
       else if ( (o1 /= o2)) then
-        print*, 'paste: columns of array1 and array2 are unequal : (',o1,')  and  (',o2,')'
-        STOP
+        write(diagnostic_text, *) 'paste: columns of array1 and array2 are unequal : (', o1, ')  and  (', o2, ')'
+        call error_message(trim(diagnostic_text))
       end if
       ! save mat1
       call move_alloc(mat1, tmp)
@@ -2328,10 +2365,8 @@ CONTAINS
     if (allocated(mat1)) then
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
-       if (m1 /= 1_i4) then
-          print*, 'paste: scalar paste to matrix only works with one-line matrix'
-          STOP
-       end if
+       if (m1 /= 1_i4) &
+         call error_message('paste: scalar paste to matrix only works with one-line matrix')
        ! save mat1
        call move_alloc(mat1, tmp)
 
@@ -2352,6 +2387,7 @@ CONTAINS
     character(len=*), dimension(:,:), allocatable, intent(inout)   :: mat1
     character(len=*), dimension(:),                intent(in)      :: vec2
     character(len=*), optional,                    intent(in)      :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                                  :: m1, m2    ! dim1 of matrixes
@@ -2365,8 +2401,8 @@ CONTAINS
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
        if ( (m1 /= m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
+          write(diagnostic_text, *) 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+          call error_message(trim(diagnostic_text))
        end if
        ! save mat1
        call move_alloc(mat1, tmp)
@@ -2408,6 +2444,7 @@ CONTAINS
     character(len=*), dimension(:,:), allocatable, intent(inout)   :: mat1
     character(len=*), dimension(:,:),              intent(in)      :: mat2
     character(len=*), optional,                    intent(in)      :: fill_value
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                                  :: m1, m2    ! dim1 of matrixes
@@ -2421,8 +2458,8 @@ CONTAINS
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
        if ( (m1 /= m2) .and. .not. present( fill_value ) ) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
+          write(diagnostic_text, *) 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+          call error_message(trim(diagnostic_text))
        end if
        ! save mat1
        call move_alloc(mat1, tmp)
@@ -2472,10 +2509,8 @@ CONTAINS
     if (allocated(mat1)) then
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
-       if (m1 /= 1_i4) then
-          print*, 'paste: scalar paste to matrix only works with one-line matrix'
-          STOP
-       end if
+       if (m1 /= 1_i4) &
+         call error_message('paste: scalar paste to matrix only works with one-line matrix')
        ! save mat1
        call move_alloc(mat1, tmp)
 
@@ -2495,6 +2530,7 @@ CONTAINS
 
     logical, dimension(:,:), allocatable, intent(inout)   :: mat1
     logical, dimension(:),                intent(in)      :: vec2
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                             :: m1, m2    ! dim1 of matrixes
@@ -2508,8 +2544,8 @@ CONTAINS
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
        if (m1 /= m2) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
+          write(diagnostic_text, *) 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+          call error_message(trim(diagnostic_text))
        end if
        ! save mat1
        call move_alloc(mat1, tmp)
@@ -2533,6 +2569,7 @@ CONTAINS
 
     logical, dimension(:,:), allocatable, intent(inout)   :: mat1
     logical, dimension(:,:),              intent(in)      :: mat2
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     ! local variables
     integer(i4)                             :: m1, m2    ! dim1 of matrixes
@@ -2546,8 +2583,8 @@ CONTAINS
        m1 = size(mat1,1)   ! rows
        n1 = size(mat1,2)   ! columns
        if (m1 /= m2) then
-          print*, 'paste: rows of matrix1 and matrix2 are unequal : (',m1,',',n1,')  and  (',m2,',',n2,')'
-          STOP
+          write(diagnostic_text, *) 'paste: rows of matrix1 and matrix2 are unequal : (', m1, ',', n1, ')  and  (', m2, ',', n2, ')'
+          call error_message(trim(diagnostic_text))
        end if
        ! save mat1
        call move_alloc(mat1, tmp)

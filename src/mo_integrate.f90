@@ -9,6 +9,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_statistics
 MODULE mo_integrate
+  use mo_forces_message, only: error_message
 
   USE mo_kind, ONLY: i4, sp, dp
 
@@ -62,7 +63,8 @@ CONTAINS
     INTEGER(i4) :: n, n0
     REAL(dp)    :: ddx
 
-    if (size(dat,1) < 5) stop 'Error int_regular_dp: size(dat) < 5'
+    if (size(dat,1) < 5) &
+      call error_message('Error int_regular_dp: size(dat) < 5')
 
     if (present(dx)) then
        ddx = dx*2.0_dp/45.0_dp
@@ -105,7 +107,8 @@ CONTAINS
     INTEGER(i4) :: n, n0
     REAL(sp)    :: ddx
 
-    if (size(dat,1) < 5) stop 'Error int_regular_sp: size(dat) < 5'
+    if (size(dat,1) < 5) &
+      call error_message('Error int_regular_sp: size(dat) < 5')
 
     if (present(dx)) then
        ddx = dx*2.0_sp/45.0_sp

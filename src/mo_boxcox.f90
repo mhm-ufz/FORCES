@@ -15,6 +15,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_statistics
 MODULE mo_boxcox
+  use mo_forces_message, only: error_message
 
   USE mo_kind, ONLY : sp, dp
   USE mo_utils, only : le
@@ -133,10 +134,12 @@ CONTAINS
 
     maske(:) = .true.
     if (present(mask)) then
-      if (size(mask) /= size(x)) stop 'Error boxcox_sp: size(mask) /= size(x)'
+      if (size(mask) /= size(x)) &
+        call error_message('Error boxcox_sp: size(mask) /= size(x)')
       maske = mask
     endif
-    if (any((le(x, 0.0_sp)) .and. maske)) stop 'Error boxcox_sp: x <= 0'
+    if (any((le(x, 0.0_sp)) .and. maske)) &
+      call error_message('Error boxcox_sp: x <= 0')
     if (abs(lmbda) < tiny(0.0_sp)) then
       where (maske)
         boxcox_sp = log(x)
@@ -165,12 +168,12 @@ CONTAINS
 
     maske(:) = .true.
     if (present(mask)) then
-      if (size(mask) /= size(x)) stop 'Error boxcox_dp: size(mask) /= size(x)'
+      if (size(mask) /= size(x)) &
+        call error_message('Error boxcox_dp: size(mask) /= size(x)')
       maske = mask
     endif
-    if (any((le(x, 0.0_dp)) .and. maske)) then
-      stop 'Error boxcox_dp: x <= 0'
-    end if
+    if (any((le(x, 0.0_dp)) .and. maske)) &
+      call error_message('Error boxcox_dp: x <= 0')
     if (abs(lmbda) < tiny(0.0_dp)) then
       where (maske)
         boxcox_dp = log(x)
@@ -201,7 +204,8 @@ CONTAINS
 
     maske(:) = .true.
     if (present(mask)) then
-      if (size(mask) /= size(x)) stop 'Error invboxcox_1d_sp: size(mask) /= size(x)'
+      if (size(mask) /= size(x)) &
+        call error_message('Error invboxcox_1d_sp: size(mask) /= size(x)')
       maske = mask
     endif
     if (abs(lmbda) < tiny(0.0_sp)) then
@@ -238,7 +242,8 @@ CONTAINS
 
     maske(:) = .true.
     if (present(mask)) then
-      if (size(mask) /= size(x)) stop 'Error invboxcox_1d_dp: size(mask) /= size(x)'
+      if (size(mask) /= size(x)) &
+        call error_message('Error invboxcox_1d_dp: size(mask) /= size(x)')
       maske = mask
     endif
     if (abs(lmbda) < tiny(0.0_dp)) then
