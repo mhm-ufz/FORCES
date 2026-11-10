@@ -1,7 +1,7 @@
-# FORCES library
+# Quick start
 
 <div align="center">
-<img src="https://git.ufz.de/chs/logos/-/raw/master/Forces.png" alt="Forces-LOGO" width="251px" style="width:251px;"/>
+<img src="https://raw.githubusercontent.com/mhm-ufz/FORCES/main/doc/figures/Forces.png" alt="Forces-LOGO" width="251px" style="width:251px;"/>
 </div>
 
 This is the FORTRAN library for Computational Environmental Systems of the
@@ -24,7 +24,7 @@ The default build also needs NetCDF-C. Fypp is optional; generated Fortran
 sources are included. Supported compilers, Conda installation and optional
 features are described in the [user guide](doc/user-guide.md).
 
-## Quick start
+## Build and run
 
 From a FORCES checkout with the dependencies installed, save this program as
 `test.f90` in the repository root:

@@ -1,46 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <doxygenlayout version="2.0">
-  <!-- Standard navigation with a custom introduction for the automatic example
-       index. Version 2.0 supplies defaults for the omitted page layouts. -->
+  <!-- Guide links use stable page IDs. Functional sections, examples and API
+       indices remain automatic. Version 2.0 supplies omitted page layouts. -->
   <navindex>
-    <tab type="mainpage" visible="yes" title=""/>
-    <tab type="pages" visible="yes" title="" intro=""/>
-    <tab type="topics" visible="yes" title="" intro=""/>
-    <tab type="modules" visible="yes" title="" intro="">
-      <tab type="modulelist" visible="yes" title="" intro=""/>
-      <tab type="modulemembers" visible="yes" title="" intro=""/>
+    <tab type="mainpage" visible="yes" title="Quick start"/>
+    <tab type="usergroup" visible="yes" title="Guides">
+      <tab type="user" title="Using FORCES" url="@ref forces_usage"/>
+      <tab type="user" title="Developing FORCES" url="@ref forces_development"/>
+      <tab type="user" title="Building the documentation" url="@ref forces_documentation"/>
     </tab>
-    <tab type="namespaces" visible="yes" title="">
-      <tab type="namespacelist" visible="yes" title="" intro=""/>
-      <tab type="namespacemembers" visible="yes" title="" intro=""/>
-    </tab>
-    <tab type="concepts" visible="yes" title="">
-    </tab>
-    <tab type="interfaces" visible="yes" title="">
-      <tab type="interfacelist" visible="yes" title="" intro=""/>
-      <tab type="interfaceindex" visible="$ALPHABETICAL_INDEX" title=""/>
-      <tab type="interfacehierarchy" visible="yes" title="" intro=""/>
-    </tab>
-    <tab type="classes" visible="yes" title="">
-      <tab type="classlist" visible="yes" title="" intro=""/>
-      <tab type="classindex" visible="$ALPHABETICAL_INDEX" title=""/>
-      <tab type="hierarchy" visible="yes" title="" intro=""/>
-      <tab type="classmembers" visible="yes" title="" intro=""/>
-    </tab>
-    <tab type="structs" visible="yes" title="">
-      <tab type="structlist" visible="yes" title="" intro=""/>
-      <tab type="structindex" visible="$ALPHABETICAL_INDEX" title=""/>
-    </tab>
-    <tab type="exceptions" visible="yes" title="">
-      <tab type="exceptionlist" visible="yes" title="" intro=""/>
-      <tab type="exceptionindex" visible="$ALPHABETICAL_INDEX" title=""/>
-      <tab type="exceptionhierarchy" visible="yes" title="" intro=""/>
-    </tab>
-    <tab type="files" visible="yes" title="">
-      <tab type="filelist" visible="yes" title="" intro=""/>
-      <tab type="globals" visible="yes" title="" intro=""/>
-    </tab>
+    <tab type="topics" visible="yes" title="Library sections" intro="Browse FORCES modules by functionality."/>
     <tab type="examples" visible="yes" title="Examples"
          intro="Standalone programs demonstrating how to combine FORCES modules in an application. Each entry opens the example's description and complete source listing. Select a program with CMake's FORCES_EXE option and run the resulting main executable from the repository root so that relative input paths resolve. NetCDF examples require FORCES_WITH_NETCDF=ON."/>
+    <tab type="usergroup" visible="yes" title="API reference">
+      <tab type="namespaces" visible="yes" title="Fortran modules">
+        <tab type="namespacelist" visible="yes" title="Module list" intro=""/>
+        <tab type="namespacemembers" visible="yes" title="Procedures and variables" intro=""/>
+      </tab>
+      <tab type="classes" visible="yes" title="Derived types">
+        <tab type="classlist" visible="yes" title="Type list" intro=""/>
+        <tab type="classindex" visible="$ALPHABETICAL_INDEX" title="Type index"/>
+        <tab type="hierarchy" visible="yes" title="Type hierarchy" intro=""/>
+        <tab type="classmembers" visible="yes" title="Type members" intro=""/>
+      </tab>
+      <tab type="files" visible="yes" title="Source files">
+        <tab type="filelist" visible="yes" title="File list" intro=""/>
+        <tab type="globals" visible="yes" title="File members" intro=""/>
+      </tab>
+    </tab>
+    <tab type="usergroup" visible="yes" title="Project information">
+      <tab type="user" title="Changelog" url="@ref doc/CHANGELOG.md"/>
+      <tab type="user" title="License" url="@ref LICENSE.md"/>
+      <tab type="user" title="Repository instructions" url="@ref AGENTS.md"/>
+    </tab>
   </navindex>
 </doxygenlayout>

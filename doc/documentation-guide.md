@@ -17,11 +17,22 @@ make -C latex
 ```
 
 Open `html/index.html` to browse the manual or `latex/refman.pdf` for the PDF.
-The Topics view organizes the API by purpose: core utilities and data structures,
-spatial data and regridding, dates and time series, file I/O and operating system
-support, statistics and numerical methods, and optimization and sampling.
+The Library sections view organizes the API by purpose: core utilities and data
+structures, spatial data and regridding, dates and time series, file I/O and
+operating system support, statistics and numerical methods, and optimization and
+sampling.
 Definitions live in `doc/directories.dox`; module headers declare their topic
 with `\ingroup`, and topic pages link to relevant examples.
+
+Navigation starts with Quick start, Guides, Library sections, Examples, API
+reference and Project information. The Guides menu links to the usage, development
+and documentation pages; API reference groups the generated Fortran module,
+derived type and source file indices. Project information links to the changelog,
+license and repository instructions, which are also linked from the main page.
+Maintain this structure in `doc/doxygen-layout.xml`, using page IDs or Markdown
+file references and keeping the library sections, examples and API indices
+automatic. Add new standalone pages to the appropriate navigation group. Check
+both the mobile menu and desktop navigation tree after layout changes.
 
 Documentation builds need a Fortran compiler for `doc/pre-proc.sh`, Graphviz, and
 Doxygen 1.18.0, pinned in `doc/rtd-environment.yml`. Export `FC` to select a compiler;
