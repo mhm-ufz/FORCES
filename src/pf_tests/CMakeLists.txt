@@ -50,7 +50,7 @@ if(PFUNIT_FOUND)
     list(APPEND testnames ${testname})
   endforeach()
 
-  if(TARGET test_mo_message OR TARGET test_mo_forces_message OR TARGET test_mo_logging)
+  if(TARGET test_mo_message OR TARGET test_mo_forces_message OR TARGET test_mo_logging OR TARGET test_mo_cli)
     add_executable(logging_cases logging_cases.F90)
     target_link_libraries(logging_cases PRIVATE ${LIB_NAME})
     if(FORCES_WITH_MPI)
@@ -59,7 +59,7 @@ if(PFUNIT_FOUND)
     if(FORCES_WITH_NETCDF)
       target_compile_definitions(logging_cases PRIVATE FORCES_WITH_NETCDF)
     endif()
-    foreach(suite test_mo_message test_mo_forces_message test_mo_logging)
+    foreach(suite test_mo_message test_mo_forces_message test_mo_logging test_mo_cli)
       if(TARGET ${suite})
         add_dependencies(${suite} logging_cases)
       endif()
@@ -78,7 +78,18 @@ if(PFUNIT_FOUND)
       "fatal-quiet|1||sentinel quiet"
       "append-shape|1|[forces]|[mhm]"
       "moment-size|1|stddev_dp: n must be at least 2|[mhm]"
-      "calendar|1|Unknown selector!|[mhm]")
+      "calendar|1|Unknown selector!|[mhm]"
+      "cli-help|0|Plain CLI fixture.|[INFO]"
+      "cli-version|0|1.2.3|[INFO]"
+      "cli-file|0||Failed to open log file"
+      "cli-file-filtered|0||Failed to open log file"
+      "cli-file-missing|1|[forces] cli_parser%parse: option expects a nonempty path: log-file|library record"
+      "cli-file-empty|1|[forces] cli_parser%parse: option expects a nonempty path: log-file|library record"
+      "cli-file-fallback|0|[forces][INFO] library record|[mhm]"
+      "scope-default|0|[forces][INFO] library record|[mhm]"
+      "scope-bare|0|[forces][INFO] library record|[mhm]"
+      "scope-root|0|[INFO] root record|[forces]"
+      "scope-forces|0|[forces][INFO] library record|root record")
     if(FORCES_WITH_NETCDF)
       list(APPEND logging_cases_to_check "netcdf-mode|1|Mode argument must be in|[mhm]")
     endif()

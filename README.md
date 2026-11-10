@@ -87,7 +87,7 @@ call message("Unscoped output", scope="")            ! Unscoped output
 call warn_message("Missing optional input")          ! [mhm] Missing optional input
 call error_message("Recoverable error", raise=.false.)
 
-! Enable after configuring mo_logging.
+! Enable explicitly when configuring mo_logging without mo_cli logger options.
 use_log = .true.
 call message("Reading input")                       ! [mhm][INFO] Reading input
 ```
@@ -116,7 +116,22 @@ The logging macros themselves do not terminate execution.
 All log scopes are visible by default. `mo_logging:log_set_config` accepts
 `log_scope_filter=` as a case-insensitive CSV list of glob patterns. Empty or
 `"*"` permits all scopes; `"#"` selects only root; `"#,forces*"` selects root and
-FORCES scopes.
+FORCES scopes. The CLI exposes the same selection through `--log-scope`; a bare
+option enables all scopes. CLI help and version text always use plain stdout,
+independent of diagnostic settings and logger redirection.
+
+Constructing `cli_parser(add_logger_options=.true.)` adds `--log-file path`
+alongside the verbosity, metadata and scope options without changing the message
+mode. After help/version handling and argument validation, parsing configures the
+logger, creates the requested file with `status='replace'`, and enables
+`mo_message::use_log`. It routes all logger severities there.
+Existing contents are overwritten; a missing or blank path is
+a CLI error. File opens use `recl=65536_i4` for long formatted records. If opening
+fails, the logger writes a warning directly to stderr and restores stdout/stderr
+routing. Help/version requests do not create or truncate the requested file.
+Parsing without logger options leaves `use_log` unchanged. CLI validation failures
+use the existing message mode. Configure the parser and saved message settings
+before parallel work.
 
 Inside FORCES, import only the required routines **once at module level**:
 

@@ -2,14 +2,37 @@ module test_mo_cli
   use funit
   use mo_cli, only: cli_parser
   use mo_kind, only: i4
+  use mo_message, only: use_log
 
   implicit none
 
   private
 
   public :: test_cli_parser
+  public :: test_logger_construction_preserves_message_mode
 
 contains
+
+  @test
+  subroutine test_logger_construction_preserves_message_mode()
+    type(cli_parser) :: parser
+    logical :: saved_use_log
+
+    saved_use_log = use_log
+    use_log = .false.
+    parser = cli_parser(prog='plain-cli', add_logger_options=.false.)
+    @assertFalse(use_log)
+    @assertFalse(parser%has_option('log-file'))
+    parser = cli_parser(prog='logging-cli', add_logger_options=.true.)
+    @assertFalse(use_log)
+    @assertTrue(parser%has_option('log-file'))
+    use_log = .true.
+    parser = cli_parser(prog='another-logging-cli', add_logger_options=.true.)
+    @assertTrue(use_log)
+    parser = cli_parser(prog='another-plain-cli')
+    @assertTrue(use_log)
+    use_log = saved_use_log
+  end subroutine test_logger_construction_preserves_message_mode
 
   @test
   subroutine test_cli_parser()

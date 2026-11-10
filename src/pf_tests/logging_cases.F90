@@ -2,7 +2,8 @@
 program logging_cases
   use mo_message, only: message, error_message, use_log, def_log_scope, show_msg, show_warn, show_err
   use mo_forces_message, only: forces_error => error_message, forces_warning => warn_message, forces_message => message
-  use mo_logging, only: log_level, LOG_INFO, log_set_config
+  use mo_logging, only: log_level, LOG_INFO, log_set_config, log_unit, log_unit_error
+  use mo_cli, only: cli_parser
   use mo_append, only: append
   use mo_moment, only: stddev
   use mo_julian, only: setCalendar
@@ -15,8 +16,9 @@ program logging_cases
 #endif
   implicit none
   character(len=64) :: scenario
+  type(cli_parser) :: parser
   integer, allocatable :: left(:,:)
-  integer :: right(1,2)
+  integer :: right(1,2), record_length
   real(dp) :: result
 #ifdef FORCES_WITH_NETCDF
   type(NcDataset) :: dataset
@@ -24,9 +26,11 @@ program logging_cases
 #ifdef MPI
   integer :: ierr
 #endif
+  ! Keep the blank scenario argument last so the parser can consume preceding options.
   call get_command_argument(command_argument_count(), scenario)
 #ifdef MPI
-  call MPI_Init(ierr)
+  ! Help/version exit inside the parser; their plain writers require no MPI calls.
+  if (scenario /= 'cli-help' .and. scenario /= 'cli-version') call MPI_Init(ierr)
 #endif
   log_level = LOG_INFO
   def_log_scope = 'mhm'
@@ -77,6 +81,32 @@ program logging_cases
   case('netcdf-mode')
     dataset = NcDataset('unused', '?')
 #endif
+  case('cli-help', 'cli-version', 'scope-default', 'scope-bare', 'scope-root', 'scope-forces', &
+    'cli-file', 'cli-file-filtered', 'cli-file-missing', 'cli-file-empty', 'cli-file-fallback')
+    use_log = .false.
+    show_msg = .false.
+    log_level = 0
+    call log_set_config(log_scope_filter='other')
+    parser = cli_parser(prog='logging-fixture', description='Plain CLI fixture.', &
+      add_help_option=.true., add_version_option=.true., version='1.2.3', add_logger_options=.true.)
+    if (use_log) error stop 2
+    ! Also exercise presentation with an already active, restrictive logger.
+    if (scenario == 'cli-help' .or. scenario == 'cli-version') use_log = .true.
+    call parser%add_option(name='scenario', blank=.true., help='Fixture scenario')
+    call parser%parse()
+    ! Successful help/version parsing stops above, before configuring logging.
+    if (.not. use_log) error stop 2
+    log_level = LOG_INFO
+    call message('root record', scope='')
+    call forces_message('library record')
+    if (scenario == 'cli-file' .or. scenario == 'cli-file-filtered') then
+      if (log_unit /= log_unit_error) error stop 2
+      inquire(unit=log_unit, recl=record_length)
+      if (record_length /= 65536) error stop 2
+      call forces_message(repeat('x', 4096))
+      call forces_warning('warning record')
+      call forces_error('recoverable error record', raise=.false.)
+    end if
   case default
     call error_message('Unknown logging fixture scenario', scope='')
   end select
@@ -84,5 +114,5 @@ program logging_cases
   call MPI_Finalize(ierr)
 #endif
   ! Fatal fixtures must not return normally.
-  error stop 2
+  if (index(trim(scenario), 'scope-') /= 1 .and. index(trim(scenario), 'cli-file') /= 1) error stop 2
 end program logging_cases

@@ -20,7 +20,12 @@ All notable changes to **FORCES** will be documented in this file.
     both modes independently of logger settings. Nonterminating errors
     use ERROR, and terminating warnings/errors use FATAL. Logging still ignores
     message `uni=` and `advance=` in favor of its configured output units/records.
-  * Removed higher-level logger dependencies.
+  * Removed higher-level logger dependencies and kept CLI help/version on plain
+    stdout independently of diagnostic configuration.
+  * CLI logger options now enable message logging after successful parsing and include
+    `--log-file path`, which overwrites the file after successful parsing.
+    Help/version leave the file untouched; opening failures retain stdout/stderr
+    fallback. Logger file opens now specify `recl=65536_i4` for long records.
   * Migrated console diagnostics and diagnostic STOP strings to the FORCES
     wrappers. Fatal failures use `ERROR STOP 1` in both modes, including legacy cases that
     could previously report success. Scientific/history/restart files are unchanged.

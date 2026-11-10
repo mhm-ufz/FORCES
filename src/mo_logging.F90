@@ -404,9 +404,11 @@ contains
   end subroutine log_set_config
 
   !> \brief Create a log file and redirect all logging output to that file
+  !> \details Formatted records use an explicit length of 65536. Opening failure restores stdout/stderr routing.
   !> \param log_file_path Path to the log file to create
   !> \param append If true, append to existing file; if false, overwrite
   subroutine log_redirect_to_file(log_file_path, append)
+    use mo_kind, only: i4
     character(len=*), intent(in) :: log_file_path !< Path to the log file
     logical, intent(in), optional :: append !< Whether to append to existing file
     logical :: append_flag
@@ -416,19 +418,15 @@ contains
     append_flag = .false.
     if (present(append)) append_flag = append
 
-    ! Close existing log units if they're open
-    if (log_unit /= stdout) then
-      close(log_unit)
-    endif
-    if (log_unit_error /= stderr) then
-      close(log_unit_error)
-    endif
+    ! Close each redirected unit once; normal and error output may share a file.
+    if (log_unit_error /= stdout .and. log_unit_error /= stderr .and. log_unit_error /= log_unit) close(log_unit_error)
+    if (log_unit /= stdout .and. log_unit /= stderr) close(log_unit)
 
     ! Open new log file
     if (append_flag) then
-      open(newunit=log_unit, file=log_file_path, status='old', position='append', action='write', iostat=ios)
+      open(newunit=log_unit, file=log_file_path, status='old', position='append', action='write', recl=65536_i4, iostat=ios)
     else
-      open(newunit=log_unit, file=log_file_path, status='replace', action='write', iostat=ios)
+      open(newunit=log_unit, file=log_file_path, status='replace', action='write', recl=65536_i4, iostat=ios)
     endif
 
     ! Use the same unit for both normal and error logging

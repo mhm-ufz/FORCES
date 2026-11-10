@@ -187,6 +187,12 @@ message defaults. Keep the dependency direction from foundations through
 `mo_logging`, `mo_message` and `mo_forces_message` to diagnostic callers. Logger
 internals must not depend on higher-level string, append, or OS utilities.
 Plain CLI presentation and scientific data-file output retain dedicated writers.
+With `add_logger_options=.true.`, successful parsing configures the logger, applies
+optional `--log-file path` redirection and enables message logging after
+help/version handling and argument validation; the file is overwritten.
+Construction and validation failures leave the message mode unchanged.
+Reuse this built-in option rather than adding another `log-file`
+option or manually redirecting units in applications.
 Keep all parts of a diagnostic at the same severity, including follow-up details;
 combine a fatal explanation into one terminating call when possible. Ordinary
 conditional message calls use `if (condition) &` followed by `call ...` on the

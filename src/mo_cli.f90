@@ -9,6 +9,10 @@
 !!          You can define options and then parse the given command.
 !!          Option can be with or without passed values and they can be set
 !!          as required.
+!!          With add_logger_options=.true., successful parsing enables mo_message logging.
+!!          Logger options include --log-file path, which overwrites the file after
+!!          successful parsing. Help and version output stay on plain stdout and
+!!          leave the requested file untouched.
 !!
 !!          The following example demonstrates the functionality:
 !!          \code{.f90}
@@ -58,9 +62,11 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_core
 module mo_cli
+  use mo_forces_message, only: error_message
 
+  use, intrinsic :: iso_fortran_env, only: output_unit
   use mo_kind, only: i4
-  use mo_message, only: error_message, message
+  use mo_message, only: use_log
   use mo_utils, only: optval
 
   implicit none
@@ -136,9 +142,9 @@ contains
     logical, optional, intent(in) :: add_help_option !< whether to add a help option (--help, -h)
     logical, optional, intent(in) :: add_version_option !< whether to add a version option (--version, -V)
     character(*), optional, intent(in) :: version !< Program version
-    !> whether to add a logger options (--verbose, --quite, --log-date, --log-time, --log-line, --log-scope)
+    !> Add logger options; successful parsing enables message logging and applies --log-file redirection.
     logical, optional, intent(in) :: add_logger_options
-    character(*), optional, intent(in) :: log_scope_default !< default scope list for logger option ("#" if not given)
+    character(*), optional, intent(in) :: log_scope_default !< default scope list for logger option ("*" if not given)
 
     integer(i4) :: n
     character(:), allocatable :: arg, prog_
@@ -183,8 +189,11 @@ contains
       call new_cli_parser%add_option( &
         name="log-line", help="Output file and line information while logging.")
       call new_cli_parser%add_option( &
-        name="log-scope", help="Enable scope tags while logging (optional pattern CSV list, '#' aliases root).", &
-        has_value=.true., value_name="scopes", default=optval(log_scope_default, "#"))
+        name="log-scope", help="Filter log scopes (optional pattern CSV list; default all, '#' selects root).", &
+        has_value=.true., value_name="scopes", default=optval(log_scope_default, "*"))
+      call new_cli_parser%add_option( &
+        name="log-file", help="Write all logging output to a file, replacing existing contents.", &
+        has_value=.true., value_name="path")
     end if
   end function new_cli_parser
 
@@ -276,8 +285,7 @@ contains
     do i = 1, size(tmp_options)
       if (tmp_options(i)%name == added_option%name) &
         call error_message("cli_parser%add_option: name already present: ", added_option%name)
-      if (tmp_options(i)%has_s_name .and. added_option%has_s_name &
-          .and. (tmp_options(i)%s_name == added_option%s_name)) &
+      if (tmp_options(i)%has_s_name .and. added_option%has_s_name  .and. (tmp_options(i)%s_name == added_option%s_name)) &
         call error_message("cli_parser%add_option: short name already present: ", added_option%s_name)
     end do
 
@@ -338,7 +346,8 @@ contains
       end if
     end do
 
-    if (get_option_index == 0_i4 .and. raise_error_) call error_message("cli_parser: unknown option: ", name)
+    if (get_option_index == 0_i4 .and. raise_error_) &
+      call error_message("cli_parser: unknown option: ", name)
 
   end function get_option_index
 
@@ -434,6 +443,17 @@ contains
 
   end function option_value
 
+  !> \brief Write CLI presentation text independently of diagnostic configuration.
+  subroutine cli_message(text, suffix)
+    character(len=*), intent(in) :: text !< Plain help or version text
+    character(len=*), optional, intent(in) :: suffix !< Optional text appended without a separator
+    if (present(suffix)) then
+      write(output_unit, '(a)') text // trim(suffix)
+    else
+      write(output_unit, '(a)') trim(text)
+    end if
+  end subroutine cli_message
+
   !> \brief Print info for an \ref option.
   subroutine print_info(self)
     implicit none
@@ -451,11 +471,11 @@ contains
       if (self%has_value) opt_str = opt_str // " <" // self%value_name // ">"
     end if
 
-    call message(opt_str)
-    call message("      Description: ", self%help)
-    if (self%has_default) call message("      Default: ", self%default)
-    if (self%repeated) call message("      Can be repeated.")
-    if (self%required) call message("      (required)")
+    call cli_message(opt_str)
+    call cli_message("      Description: ", self%help)
+    if (self%has_default) call cli_message("      Default: ", self%default)
+    if (self%repeated) call cli_message("      Can be repeated.")
+    if (self%required) call cli_message("      (required)")
 
   end subroutine print_info
 
@@ -470,11 +490,11 @@ contains
     blank_str = ""
     if (self%has_blank_option) blank_str = " <" // self%options(self%get_blank_option_index())%value_name // ">"
 
-    call message(self%description)
-    call message("")
-    call message("  Usage: ", self%prog, " [options]", blank_str)
-    call message("")
-    call message("Options:")
+    call cli_message(self%description)
+    call cli_message("")
+    call cli_message("  Usage: " // self%prog // " [options]" // blank_str)
+    call cli_message("")
+    call cli_message("Options:")
 
     ! blank option
     if (self%has_blank_option) call self%options(self%get_blank_option_index())%print_info
@@ -482,14 +502,14 @@ contains
     ! required
     do i = 1, self%cnt_options()
       if ((.not. self%options(i)%required) .or. self%options(i)%blank) cycle
-      call message("")
+      call cli_message("")
       call self%options(i)%print_info
     end do
 
     ! optional
     do i = 1, self%cnt_options()
       if (self%options(i)%required .or. self%options(i)%blank) cycle
-      call message("")
+      call cli_message("")
       call self%options(i)%print_info
     end do
 
@@ -497,7 +517,7 @@ contains
 
   !> \brief Parse the given command line arguments with the \ref cli_parser.
   subroutine parse(self)
-    use mo_logging, only: log_set_config
+    use mo_logging, only: log_set_config, log_redirect_to_file
     implicit none
     class(cli_parser), intent(inout) :: self
 
@@ -574,7 +594,7 @@ contains
 
     if (self%has_version) then
       if (self%option_was_read("version")) then
-        call message(self%version)
+        call cli_message(self%version)
         stop
       end if
     end if
@@ -597,6 +617,10 @@ contains
 
     ! set logger
     if ( self%has_logger ) then
+      if (self%option_was_read("log-file")) then
+        if (len_trim(self%option_value("log-file")) == 0) &
+          call error_message("cli_parser%parse: option expects a nonempty path: log-file")
+      end if
       call log_set_config( &
         verbose = self%option_read_count("verbose"), &
         quiet = self%option_read_count("quiet"), &
@@ -605,6 +629,8 @@ contains
         log_output_line = self%option_was_read("log-line"), &
         log_scope_filter = self%option_value("log-scope") &
       )
+      if (self%option_was_read("log-file")) call log_redirect_to_file(self%option_value("log-file"))
+      use_log = .true.
     end if
 
   end subroutine parse
@@ -619,14 +645,17 @@ contains
     integer(i4) :: i, j
     character(1), allocatable :: tmp(:)
 
-    if ( arg(1:1) /= "-" ) call error_message("cli_parser%parse: invalid argument: ", arg)
-    if ( len(arg) < 2 ) call error_message("cli_parser%parse: found empty argument: ", arg)
+    if ( arg(1:1) /= "-" ) &
+      call error_message("cli_parser%parse: invalid argument: ", arg)
+    if ( len(arg) < 2 ) &
+      call error_message("cli_parser%parse: found empty argument: ", arg)
 
     allocate(counts(0))
 
     ! check for long name (--name)
     if ( arg(2:2) == "-" ) then
-      if ( len(arg) == 2 ) call error_message("cli_parser%parse: found empty argument: ", arg)
+      if ( len(arg) == 2 ) &
+        call error_message("cli_parser%parse: found empty argument: ", arg)
       allocate(names(1), source=arg(3:len(arg)))
       counts = [counts, 1_i4]
       return
