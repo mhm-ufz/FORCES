@@ -55,41 +55,41 @@ MODULE mo_utils
 
   !> \brief handle optional values with defaults
   interface optval
-    procedure optval_lgt, optval_character
-    procedure optval_i1, optval_i2, optval_i4, optval_i8
-    procedure optval_sp, optval_dp, optval_spc, optval_dpc
+    module procedure optval_lgt, optval_character
+    module procedure optval_i1, optval_i2, optval_i4, optval_i8
+    module procedure optval_sp, optval_dp, optval_spc, optval_dpc
   end interface
 
   !> \brief flip an array at a certain dimension
   interface flip
-    procedure flip_1D_sp, flip_2D_sp, flip_3D_sp, flip_4D_sp
-    procedure flip_1D_dp, flip_2D_dp, flip_3D_dp, flip_4D_dp
-    procedure flip_1D_i1, flip_2D_i1, flip_3D_i1, flip_4D_i1
-    procedure flip_1D_i2, flip_2D_i2, flip_3D_i2, flip_4D_i2
-    procedure flip_1D_i4, flip_2D_i4, flip_3D_i4, flip_4D_i4
-    procedure flip_1D_i8, flip_2D_i8, flip_3D_i8, flip_4D_i8
-    procedure flip_1D_lgt, flip_2D_lgt, flip_3D_lgt, flip_4D_lgt
+    module procedure flip_1D_sp, flip_2D_sp, flip_3D_sp, flip_4D_sp
+    module procedure flip_1D_dp, flip_2D_dp, flip_3D_dp, flip_4D_dp
+    module procedure flip_1D_i1, flip_2D_i1, flip_3D_i1, flip_4D_i1
+    module procedure flip_1D_i2, flip_2D_i2, flip_3D_i2, flip_4D_i2
+    module procedure flip_1D_i4, flip_2D_i4, flip_3D_i4, flip_4D_i4
+    module procedure flip_1D_i8, flip_2D_i8, flip_3D_i8, flip_4D_i8
+    module procedure flip_1D_lgt, flip_2D_lgt, flip_3D_lgt, flip_4D_lgt
   end interface
 
   !> \brief create flipped array at a certain dimension
   interface flipped
-    procedure flipped_1D_sp, flipped_2D_sp, flipped_3D_sp, flipped_4D_sp
-    procedure flipped_1D_dp, flipped_2D_dp, flipped_3D_dp, flipped_4D_dp
-    procedure flipped_1D_i1, flipped_2D_i1, flipped_3D_i1, flipped_4D_i1
-    procedure flipped_1D_i2, flipped_2D_i2, flipped_3D_i2, flipped_4D_i2
-    procedure flipped_1D_i4, flipped_2D_i4, flipped_3D_i4, flipped_4D_i4
-    procedure flipped_1D_i8, flipped_2D_i8, flipped_3D_i8, flipped_4D_i8
-    procedure flipped_1D_lgt, flipped_2D_lgt, flipped_3D_lgt, flipped_4D_lgt
+    module procedure flipped_1D_sp, flipped_2D_sp, flipped_3D_sp, flipped_4D_sp
+    module procedure flipped_1D_dp, flipped_2D_dp, flipped_3D_dp, flipped_4D_dp
+    module procedure flipped_1D_i1, flipped_2D_i1, flipped_3D_i1, flipped_4D_i1
+    module procedure flipped_1D_i2, flipped_2D_i2, flipped_3D_i2, flipped_4D_i2
+    module procedure flipped_1D_i4, flipped_2D_i4, flipped_3D_i4, flipped_4D_i4
+    module procedure flipped_1D_i8, flipped_2D_i8, flipped_3D_i8, flipped_4D_i8
+    module procedure flipped_1D_lgt, flipped_2D_lgt, flipped_3D_lgt, flipped_4D_lgt
   end interface
 
   !> \brief chunk version of the unpack operation
   interface unpack_chunkwise
-    procedure unpack_chunkwise_i1, unpack_chunkwise_dp
+    module procedure unpack_chunkwise_i1, unpack_chunkwise_dp
   end interface
 
   !> \brief prefix sum helpers
   interface prefix_sum
-    procedure prefix_sum_i8
+    module procedure prefix_sum_i8
   end interface
 
   ! ------------------------------------------------------------------
@@ -3201,7 +3201,7 @@ CONTAINS
     integer(i8) :: n_in, n_out, s, init, bs, n_blocks
     integer(i8) :: block_start, block_end, lower, upper
     integer(i8) :: acc
-    integer(i8), allocatable :: block_sums(:), block_offsets(:)
+    integer(i8), allocatable :: partial_sums(:), partial_offsets(:)
     integer(i8) :: i, n_threads, target_blocks
     integer(i8), parameter :: min_block = 50000_i8    ! aim to avoid tiny chunks (≈400 KB)
     integer(i8), parameter :: max_block = 2000000_i8  ! cap to keep blocks cache-friendly (≈16 MB)
@@ -3226,33 +3226,35 @@ CONTAINS
     bs = optval(block_size, bs)
 
     n_blocks = (n_out + bs - 1_i8) / bs
-    allocate(block_sums(n_blocks))
-    allocate(block_offsets(n_blocks))
+    allocate(partial_sums(n_blocks))
+    allocate(partial_offsets(n_blocks))
 
-    !$omp parallel do default(none) shared(block_sums,input,n_in,n_out,n_blocks,bs,s) private(block_start,block_end,lower,upper) schedule(static)
+    !$omp parallel do default(none) shared(partial_sums,input,n_in,n_out,n_blocks,bs,s) &
+    !$omp& private(block_start,block_end,lower,upper) schedule(static)
     do i = 1_i8, n_blocks
       block_start = (i - 1_i8) * bs + 1_i8
       block_end = min(n_out, block_start + bs - 1_i8)
       lower = max(1_i8, block_start - s)
       upper = min(n_in, block_end - s)
       if (lower <= upper) then
-        block_sums(i) = sum(input(lower:upper))
+        partial_sums(i) = sum(input(lower:upper))
       else
-        block_sums(i) = 0_i8
+        partial_sums(i) = 0_i8
       end if
     end do
     !$omp end parallel do
 
-    block_offsets(1_i8) = init
+    partial_offsets(1_i8) = init
     do i = 2_i8, n_blocks
-      block_offsets(i) = block_offsets(i - 1_i8) + block_sums(i - 1_i8)
+      partial_offsets(i) = partial_offsets(i - 1_i8) + partial_sums(i - 1_i8)
     end do
 
-    !$omp parallel do default(none) shared(output,input,block_offsets,n_in,n_out,n_blocks,bs,s) private(block_start,block_end,acc,lower) schedule(static)
+    !$omp parallel do default(none) shared(output,input,partial_offsets,n_in,n_out,n_blocks,bs,s) &
+    !$omp& private(block_start,block_end,acc,lower) schedule(static)
     do i = 1_i8, n_blocks
       block_start = (i - 1_i8) * bs + 1_i8
       block_end = min(n_out, block_start + bs - 1_i8)
-      acc = block_offsets(i)
+      acc = partial_offsets(i)
       do lower = block_start, block_end
         if (lower - s >= 1_i8 .and. lower - s <= n_in) acc = acc + input(lower - s)
         output(lower) = acc
@@ -3260,7 +3262,7 @@ CONTAINS
     end do
     !$omp end parallel do
 
-    deallocate(block_sums, block_offsets)
+    deallocate(partial_sums, partial_offsets)
   end subroutine prefix_sum_i8
 
   pure elemental function optval_lgt(x, default) result(y)
