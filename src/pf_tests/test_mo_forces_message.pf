@@ -72,11 +72,11 @@ contains
     call error_message('root', raise=.false., scope='')
     rewind(unit)
     read(unit, '(a)') line
-    @assertEqual('[forces][INFO] default', trim(line))
+    @assertEqual(' [forces][INFO] default', trim(line))
     read(unit, '(a)') line
-    @assertEqual('[custom][WARN] override', trim(line))
+    @assertEqual(' [custom][WARN] override', trim(line))
     read(unit, '(a)') line
-    @assertEqual('[ERROR] root', trim(line))
+    @assertEqual(' [ERROR] root', trim(line))
     close(unit)
   end subroutine test_library_logged_scope
 end module test_mo_forces_message

@@ -158,21 +158,21 @@ contains
     call message('quiet', scope='other', show=.true.)
     rewind(unit)
     read(unit, '(a)') line
-    @assertEqual('[forces][INFO] info', trim(line))
+    @assertEqual(' [forces][INFO] info', trim(line))
     read(unit, '(a)') line
-    @assertEqual('[mhm][WARN] warning', trim(line))
+    @assertEqual(' [mhm][WARN] warning', trim(line))
     read(unit, '(a)') line
-    @assertEqual('[mhm][ERROR] error', trim(line))
+    @assertEqual(' [mhm][ERROR] error', trim(line))
     read(unit, '(a)') line
-    @assertEqual('[mhm][INFO] global info', trim(line))
+    @assertEqual(' [mhm][INFO] global info', trim(line))
     read(unit, '(a)') line
-    @assertEqual('[mhm][WARN] global warning', trim(line))
+    @assertEqual(' [mhm][WARN] global warning', trim(line))
     read(unit, '(a)') line
-    @assertEqual('[mhm][ERROR] global error', trim(line))
+    @assertEqual(' [mhm][ERROR] global error', trim(line))
     read(unit, '(a)') line
-    @assertEqual('[WARN] override', trim(line))
+    @assertEqual(' [WARN] override', trim(line))
     read(unit, '(a)') line
-    @assertEqual('[ERROR] override', trim(line))
+    @assertEqual(' [ERROR] override', trim(line))
     read(unit, '(a)', iostat=ios) line
     @assertTrue(ios < 0)
     rewind(ignored_unit)

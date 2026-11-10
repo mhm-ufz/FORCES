@@ -132,7 +132,7 @@ CONTAINS
 
     scope_ = resolve_scope(scope)
     if (use_log) then
-      scope_info(scope_, '(2a)') trim(outString)
+      scope_info(scope_, '(1x,2a)') trim(outString)
       return
     end if
 
@@ -188,9 +188,9 @@ CONTAINS
         scope_ = resolve_scope(scope)
         outString = process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16)
         if (raise_) then
-          scope_fatal(scope_, '(2a)') trim(outString)
+          scope_fatal(scope_, '(1x,2a)') trim(outString)
         else
-          scope_error(scope_, '(2a)') trim(outString)
+          scope_error(scope_, '(1x,2a)') trim(outString)
         end if
       else
         call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, uni_, advance, show_, scope)
@@ -244,9 +244,9 @@ CONTAINS
         scope_ = resolve_scope(scope)
         outString = process_arguments(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16)
         if (raise_) then
-          scope_fatal(scope_, '(2a)') trim(outString)
+          scope_fatal(scope_, '(1x,2a)') trim(outString)
         else
-          scope_warn(scope_, '(2a)') trim(outString)
+          scope_warn(scope_, '(1x,2a)') trim(outString)
         end if
       else
         call message(t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, uni_, advance, show_, scope)
