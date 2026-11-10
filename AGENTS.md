@@ -2,7 +2,8 @@
 
 These rules apply throughout the repository to new or touched code. Read the
 [developer guide](doc/development-guide.md) for module relationships and extension
-workflows, and the [README](README.md) for dependencies and build options.
+workflows, and the [user guide](doc/user-guide.md) for dependencies and build options.
+The [README](README.md) provides the quick start.
 
 ## Workflow
 
@@ -123,7 +124,8 @@ workflows, and the [README](README.md) for dependencies and build options.
 - Keep the Examples index automatic. Customize its introduction in
   `doc/doxygen-layout.xml`; do not replace it with a manually maintained catalogue.
 - Keep documentation generation rooted at the repository top. Use the pinned
-  Doxygen environment and HTML/PDF commands in the README. Preserve figures,
+  Doxygen environment and HTML/PDF commands in the
+  [documentation guide](doc/documentation-guide.md). Preserve figures,
   source listings, licenses, release history, and functional RTD/GitLab navigation.
 
 ## Validation
@@ -139,9 +141,9 @@ workflows, and the [README](README.md) for dependencies and build options.
   authorized. Keep full compiler/Release/coverage matrices in CI; do not run model
   examples solely for prose edits.
 - Ordinary test configuration may succeed without pFUnit while adding no FORCES
-  tests. Report this explicitly and point to the README section "Testing with
-  pFUnit". Coverage configuration requires GNU Fortran and pFUnit and fails if
-  pFUnit is unavailable; preserve that distinction.
+  tests. Report this explicitly and point to "Testing with pFUnit" in the
+  [developer guide](doc/development-guide.md). Coverage configuration requires
+  GNU Fortran and pFUnit and fails if pFUnit is unavailable; preserve that distinction.
 - Exclude generated HTML/PDF, build products, logs, and runtime NetCDF outputs
   from commits. Keep test fixtures immutable unless updating them is part of the
   requested change.
