@@ -11,6 +11,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_io
 module mo_netcdf_utils
+  use mo_forces_message, only: error_message, warn_message
 
   use, intrinsic :: ieee_arithmetic, only: ieee_is_finite, ieee_is_nan
 
@@ -19,7 +20,6 @@ module mo_netcdf_utils
                          daily, monthly, yearly, varying, start_timestamp, center_timestamp, end_timestamp, &
                          infer_time_timestep_from_bounds, infer_time_timestep_from_values
   use mo_kind, only: i1, i2, i4, i8, dp, sp
-  use mo_message, only: error_message, warn_message
   use mo_netcdf, only: NcVariable
   use mo_string_utils, only: num2str
   use mo_utils, only: optval
@@ -173,7 +173,8 @@ contains
         end if
       end if
     end do
-    if (var_index == 0_i4) call error_message(method // ": variable not present: ", name)
+    if (var_index == 0_i4) &
+      call error_message(method // ": variable not present: ", name)
   end function var_index
 
   !> \brief Read and trim the units attribute from a NetCDF variable.
@@ -328,12 +329,12 @@ contains
     has_offset = nc_var%hasAttribute("add_offset")
     packing%enabled = has_scale .or. has_offset
     if (.not.packing%enabled) then
-      if (requested_scale) call warn_message(context_, &
-        ": requested scale_factor is absent from the file and will be ignored: ", variable%name)
-      if (requested_offset) call warn_message(context_, &
-        ": requested add_offset is absent from the file and will be ignored: ", variable%name)
-      if (requested_dtype) call warn_message(context_, &
-        ": requested scale_dtype is absent from the file and will be ignored: ", variable%name)
+      if (requested_scale) &
+        call warn_message(context_,  ": requested scale_factor is absent from the file and will be ignored: ", variable%name)
+      if (requested_offset) &
+        call warn_message(context_,  ": requested add_offset is absent from the file and will be ignored: ", variable%name)
+      if (requested_dtype) &
+        call warn_message(context_,  ": requested scale_dtype is absent from the file and will be ignored: ", variable%name)
       return
     end if
     packing%name = variable%name
@@ -384,9 +385,9 @@ contains
     call validate_transform(packing, variable%name, context_)
 
     if (requested_dtype) then
-      if (trim(requested_scale_dtype) /= packing%scale_dtype) call warn_message(context_, &
-        ": requested scale_dtype differs from the file and will be ignored: ", variable%name, &
-        ", requested=", requested_scale_dtype, ", file=", packing%scale_dtype)
+      if (trim(requested_scale_dtype) /= packing%scale_dtype) &
+        call warn_message(context_,  ": requested scale_dtype differs from the file and will be ignored: ", &
+          variable%name,  ", requested=", requested_scale_dtype, ", file=", packing%scale_dtype)
     end if
     if (requested_scale) then
       if (.not.has_scale) then
@@ -395,9 +396,9 @@ contains
       else
         requested_value = requested_scale_factor
         if (packing%scale_dtype == "f32") requested_value = real(real(requested_value, sp), dp)
-        if (requested_value /= variable%scale_factor) call warn_message(context_, &
-          ": requested scale_factor differs from the file and will be ignored: ", variable%name, &
-          ", requested=", num2str(requested_value), ", file=", num2str(variable%scale_factor))
+        if (requested_value /= variable%scale_factor) &
+          call warn_message(context_,  ": requested scale_factor differs from the file and will be ignored: ", &
+            variable%name,  ", requested=", num2str(requested_value), ", file=", num2str(variable%scale_factor))
       end if
     end if
     if (requested_offset) then
@@ -407,9 +408,9 @@ contains
       else
         requested_value = requested_add_offset
         if (packing%scale_dtype == "f32") requested_value = real(real(requested_value, sp), dp)
-        if (requested_value /= variable%add_offset) call warn_message(context_, &
-          ": requested add_offset differs from the file and will be ignored: ", variable%name, &
-          ", requested=", num2str(requested_value), ", file=", num2str(variable%add_offset))
+        if (requested_value /= variable%add_offset) &
+          call warn_message(context_,  ": requested add_offset differs from the file and will be ignored: ", &
+            variable%name,  ", requested=", num2str(requested_value), ", file=", num2str(variable%add_offset))
       end if
     end if
 
@@ -427,7 +428,8 @@ contains
       packing%fill_value = packing%missing_values(pos)
     end if
     if (has_missing) then
-      if (n_missing < 1_i4) call error_message(context_ // ": empty missing_value attribute: ", variable%name)
+      if (n_missing < 1_i4) &
+        call error_message(context_ // ": empty missing_value attribute: ", variable%name)
       allocate(missing(n_missing))
       call nc_var%getAttribute("missing_value", missing)
       packing%missing_values(pos + 1_i4:pos + n_missing) = missing
@@ -585,7 +587,8 @@ contains
     call storage_bounds_sp(packing%dtype, lower, upper)
     do i = 1_i4, size(values)
       if (ieee_is_nan(values(i)) .or. values(i) == nodata_sp) cycle
-      if (.not.ieee_is_finite(values(i))) call error_message("CF packing: non-finite input value: ", packing%name)
+      if (.not.ieee_is_finite(values(i))) &
+        call error_message("CF packing: non-finite input value: ", packing%name)
       code = anint((values(i) - real(packing%add_offset, sp)) / real(packing%scale_factor, sp))
       if (.not.ieee_is_finite(code) .or. code < lower .or. code > upper) &
         call error_message("CF packing: packed integer overflow: ", packing%name)
@@ -602,7 +605,8 @@ contains
     call storage_bounds_dp(packing%dtype, lower, upper)
     do i = 1_i4, size(values)
       if (ieee_is_nan(values(i)) .or. values(i) == nodata_dp) cycle
-      if (.not.ieee_is_finite(values(i))) call error_message("CF packing: non-finite input value: ", packing%name)
+      if (.not.ieee_is_finite(values(i))) &
+        call error_message("CF packing: non-finite input value: ", packing%name)
       code = anint((values(i) - packing%add_offset) / packing%scale_factor)
       if (.not.ieee_is_finite(code) .or. code < lower .or. code > upper) &
         call error_message("CF packing: packed integer overflow: ", packing%name)
@@ -1010,7 +1014,8 @@ contains
     integer(i4) :: i
 
     call read_integral_time_data(t_var, values)
-    if (size(values) < 1_i4) call error_message("time_stepping: empty time axis")
+    if (size(values) < 1_i4) &
+      call error_message("time_stepping: empty time axis")
     if (.not.t_var%hasAttribute("bounds")) return
 
     call t_var%getAttribute("bounds", bounds_name)
@@ -1024,9 +1029,9 @@ contains
       if (values(i) < bounds(1_i4, i) .or. values(i) > bounds(2_i4, i)) &
         call error_message("time_stepping: time value outside bounds at entry ", trim(num2str(i)))
       if (i > 1_i4) then
-        if (bounds(1_i4, i) /= bounds(2_i4, i - 1_i4)) call error_message( &
-          "time_stepping: non-contiguous time bounds between entries ", trim(num2str(i - 1_i4)), &
-          " and ", trim(num2str(i)))
+        if (bounds(1_i4, i) /= bounds(2_i4, i - 1_i4)) &
+          call error_message(  "time_stepping: non-contiguous time bounds between entries ", trim(num2str(i - 1_i4)), &
+            " and ", trim(num2str(i)))
       end if
     end do
   end subroutine check_and_read_time
@@ -1083,8 +1088,9 @@ contains
         call error_message("time_stepping: non-finite value in time variable: ", trim(name))
       if (real_values(i) < lower_i4 .or. real_values(i) > upper_i4) &
         call error_message("time_stepping: value outside i4 range in time variable: ", trim(name))
-      if (real_values(i) /= anint(real_values(i))) call error_message( &
-        "time_stepping: time values must be integral in their declared units; use finer CF time units: ", trim(name))
+      if (real_values(i) /= anint(real_values(i))) &
+        call error_message( &
+          "time_stepping: time values must be integral in their declared units; use finer CF time units: ", trim(name))
       values(i) = nint(real_values(i), i4)
     end do
   end subroutine convert_integral_time_data

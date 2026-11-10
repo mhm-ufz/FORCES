@@ -12,12 +12,12 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_spatial
 module mo_grid_helper
+  use mo_forces_message, only: error_message, warn_message
 
   use mo_kind, only: i1, i2, i4, i8, sp, dp
   use mo_grid_constants, only: top_down, bottom_up
   use mo_constants, only : nodata_dp, RadiusEarth_dp, deg2rad_dp
   use mo_utils, only: flip, optval, is_close
-  use mo_message, only : error_message, warn_message
   use mo_string_utils, only : num2str
 
   implicit none
@@ -109,12 +109,10 @@ contains
 
     nx = size(mask, 1)
     ny = size(mask, 2)
-    if (seed_i < 1_i4 .or. seed_i > nx .or. seed_j < 1_i4 .or. seed_j > ny) then
+    if (seed_i < 1_i4 .or. seed_i > nx .or. seed_j < 1_i4 .or. seed_j > ny) &
       call error_message("connected_mask: seed index is out of bounds.") ! LCOV_EXCL_LINE
-    end if
-    if (.not. mask(seed_i, seed_j)) then
+    if (.not. mask(seed_i, seed_j)) &
       call error_message("connected_mask: seed cell is inactive.") ! LCOV_EXCL_LINE
-    end if
 
     periodic_x_ = optval(periodic_x, .false.)
     nx_i8 = int(nx, i8)
@@ -212,7 +210,8 @@ contains
     class(data_t), intent(inout) :: this
     real(sp), allocatable, dimension(:,:), intent(out) :: data  !< Moved single-precision data.
 
-    if (.not. allocated(this%data_sp)) call error_message("data % get: data not allocated for dtype 'f32'") ! LCOV_EXCL_LINE
+    if (.not. allocated(this%data_sp)) & ! LCOV_EXCL_LINE
+      call error_message("data % get: data not allocated for dtype 'f32'") ! LCOV_EXCL_LINE
     call move_alloc(this%data_sp, data)
   end subroutine data_move_sp
 
@@ -221,7 +220,8 @@ contains
     class(data_t), intent(inout) :: this
     real(dp), allocatable, dimension(:,:), intent(out) :: data  !< Moved double-precision data.
 
-    if (.not. allocated(this%data_dp)) call error_message("data % get: data not allocated for dtype 'f64'") ! LCOV_EXCL_LINE
+    if (.not. allocated(this%data_dp)) & ! LCOV_EXCL_LINE
+      call error_message("data % get: data not allocated for dtype 'f64'") ! LCOV_EXCL_LINE
     call move_alloc(this%data_dp, data)
   end subroutine data_move_dp
 
@@ -230,7 +230,8 @@ contains
     class(data_t), intent(inout) :: this
     integer(i1), allocatable, dimension(:,:), intent(out) :: data  !< Moved 1-byte integer data.
 
-    if (.not. allocated(this%data_i1)) call error_message("data % get: data not allocated for dtype 'i8'") ! LCOV_EXCL_LINE
+    if (.not. allocated(this%data_i1)) & ! LCOV_EXCL_LINE
+      call error_message("data % get: data not allocated for dtype 'i8'") ! LCOV_EXCL_LINE
     call move_alloc(this%data_i1, data)
   end subroutine data_move_i1
 
@@ -239,7 +240,8 @@ contains
     class(data_t), intent(inout) :: this
     integer(i2), allocatable, dimension(:,:), intent(out) :: data  !< Moved 2-byte integer data.
 
-    if (.not. allocated(this%data_i2)) call error_message("data % get: data not allocated for dtype 'i16'") ! LCOV_EXCL_LINE
+    if (.not. allocated(this%data_i2)) & ! LCOV_EXCL_LINE
+      call error_message("data % get: data not allocated for dtype 'i16'") ! LCOV_EXCL_LINE
     call move_alloc(this%data_i2, data)
   end subroutine data_move_i2
 
@@ -248,7 +250,8 @@ contains
     class(data_t), intent(inout) :: this
     integer(i4), allocatable, dimension(:,:), intent(out) :: data  !< Moved 4-byte integer data.
 
-    if (.not. allocated(this%data_i4)) call error_message("data % get: data not allocated for dtype 'i32'") ! LCOV_EXCL_LINE
+    if (.not. allocated(this%data_i4)) & ! LCOV_EXCL_LINE
+      call error_message("data % get: data not allocated for dtype 'i32'") ! LCOV_EXCL_LINE
     call move_alloc(this%data_i4, data)
   end subroutine data_move_i4
 
@@ -257,7 +260,8 @@ contains
     class(data_t), intent(inout) :: this
     integer(i8), allocatable, dimension(:,:), intent(out) :: data  !< Moved 8-byte integer data.
 
-    if (.not. allocated(this%data_i8)) call error_message("data % get: data not allocated for dtype 'i64'") ! LCOV_EXCL_LINE
+    if (.not. allocated(this%data_i8)) & ! LCOV_EXCL_LINE
+      call error_message("data % get: data not allocated for dtype 'i64'") ! LCOV_EXCL_LINE
     call move_alloc(this%data_i8, data)
   end subroutine data_move_i8
 
@@ -527,15 +531,15 @@ contains
     name = var%getName()
     tol_ = optval(tol, 1.e-7_dp)
 
-    if (size(axis) == 0_i4) &
+    if (size(axis) == 0_i4) & ! LCOV_EXCL_LINE
       call error_message("check_uniform_axis: axis is empty: ", name) ! LCOV_EXCL_LINE
 
     if (size(axis) > 1_i4) then
       diff = (axis(size(axis)) - axis(1)) / real(size(axis) - 1_i4, dp)
-      if (.not.all(is_close(axis(2:size(axis))-axis(1:size(axis)-1), diff, rtol=0.0_dp, atol=tol_))) &
+      if (.not.all(is_close(axis(2:size(axis))-axis(1:size(axis)-1), diff, rtol=0.0_dp, atol=tol_))) & ! LCOV_EXCL_LINE
         call error_message("check_uniform_axis: given axis is not uniform: ", name) ! LCOV_EXCL_LINE
     else
-      if (.not. has_bnds) &
+      if (.not. has_bnds) & ! LCOV_EXCL_LINE
         call error_message("check_uniform_axis: can't check axis of size 1 when no bounds are given: ", name) ! LCOV_EXCL_LINE
       diff = bounds(2,1) - bounds(1,1)
     end if
@@ -551,9 +555,9 @@ contains
           i_ub = 1
         end if
       end if
-      if (.not.all(is_close(bounds(i_ub,:)-bounds(i_lb,:), diff, rtol=0.0_dp, atol=tol_))) &
+      if (.not.all(is_close(bounds(i_ub,:)-bounds(i_lb,:), diff, rtol=0.0_dp, atol=tol_))) & ! LCOV_EXCL_LINE
         call error_message("check_uniform_axis: given bounds are not uniform: ", name) ! LCOV_EXCL_LINE
-      if (.not.all(is_close(axis(:)-bounds(i_lb,:), 0.5_dp*diff, rtol=0.0_dp, atol=tol_))) &
+      if (.not.all(is_close(axis(:)-bounds(i_lb,:), 0.5_dp*diff, rtol=0.0_dp, atol=tol_))) & ! LCOV_EXCL_LINE
         call error_message("check_uniform_axis: given bounds are not centered around axis points: ", name) ! LCOV_EXCL_LINE
     end if
 
@@ -901,23 +905,21 @@ contains
 
     tol_ = optval(tol, 1.e-7_dp)
 
-    if (.not. ieee_is_finite(fine_cellsize) .or. .not. ieee_is_finite(coarse_cellsize) .or. &
-        .not. ieee_is_finite(tol_)) call error_message("check_factor: cell sizes and tolerance must be finite.")
+    if (.not. ieee_is_finite(fine_cellsize) .or. .not. ieee_is_finite(coarse_cellsize) .or.  .not. ieee_is_finite(tol_)) &
+      call error_message("check_factor: cell sizes and tolerance must be finite.")
     if (fine_cellsize <= 0.0_dp .or. coarse_cellsize <= 0.0_dp .or. tol_ < 0.0_dp) &
       call error_message("check_factor: cell sizes must be positive and tolerance nonnegative.")
     cellfactor_ = coarse_cellsize / fine_cellsize
-    if (.not. ieee_is_finite(cellfactor_)) call error_message("check_factor: resolution ratio is not finite.")
+    if (.not. ieee_is_finite(cellfactor_)) &
+      call error_message("check_factor: resolution ratio is not finite.")
     rounded_ = anint(cellfactor_)
     if (rounded_ < 1.0_dp .or. rounded_ > real(huge(0_i4), dp)) &
       call error_message("check_factor: cell factor must be representable as a positive integer(i4).")
     factor_ = int(rounded_, i4)
 
-    if (abs(rounded_ - cellfactor_) > tol_) then
-      call error_message( &
-        'check_factor: Two resolutions size do not confirm (need to have an integer ratio): ', &
-        trim(adjustl(num2str(coarse_cellsize))), &
-        trim(adjustl(num2str(fine_cellsize)))) ! LCOV_EXCL_LINE
-    end if
+    if (abs(rounded_ - cellfactor_) > tol_) &
+      call error_message(  'check_factor: Two resolutions size do not confirm (need to have an integer ratio): ', & ! LCOV_EXCL_LINE
+        trim(adjustl(num2str(coarse_cellsize))),  trim(adjustl(num2str(fine_cellsize)))) ! LCOV_EXCL_LINE
     if (present(cellfactor)) cellfactor = cellfactor_
     if (present(rounded)) rounded = rounded_
     if (present(factor)) factor = factor_
@@ -933,17 +935,17 @@ contains
     real(dp) :: displacement(2), rounded(2), tol_
 
     tol_ = optval(tol, 1.e-7_dp)
-    if (.not. all(ieee_is_finite(fine_ll)) .or. .not. all(ieee_is_finite(coarse_ll)) .or. &
-        .not. ieee_is_finite(fine_cellsize) .or. .not. ieee_is_finite(tol_)) &
+    if (.not. all(ieee_is_finite(fine_ll)) .or. .not. all(ieee_is_finite(coarse_ll)) .or.  .not. &
+      ieee_is_finite(fine_cellsize) .or. .not. ieee_is_finite(tol_)) &
       call error_message("check_offset: origins, cell size and tolerance must be finite.")
     if (fine_cellsize <= 0.0_dp .or. tol_ < 0.0_dp) &
       call error_message("check_offset: cell size must be positive and tolerance nonnegative.")
     displacement = (coarse_ll - fine_ll) / fine_cellsize
-    if (.not. all(ieee_is_finite(displacement))) call error_message("check_offset: displacement is not finite.")
+    if (.not. all(ieee_is_finite(displacement))) &
+      call error_message("check_offset: displacement is not finite.")
     ! Reject out-of-range values before rounding or integer conversion.
     ! Half-cell ties round away from zero and would exceed the i4 range here.
-    if (any(displacement >= real(huge(0_i4), dp) + 0.5_dp) .or. &
-        any(displacement <= -real(huge(0_i4), dp) - 1.5_dp)) &
+    if (any(displacement >= real(huge(0_i4), dp) + 0.5_dp) .or.  any(displacement <= -real(huge(0_i4), dp) - 1.5_dp)) &
       call error_message("check_offset: displacement is outside the integer(i4) range.")
     rounded = real(nint(displacement, kind=i8), dp)
     if (any(abs(displacement - rounded) > tol_)) &
@@ -1095,23 +1097,23 @@ contains
     close(fileunit)
 
     if (present(ref_ncols)) then
-      if (ncols .ne. ref_ncols) &
+      if (ncols .ne. ref_ncols) & ! LCOV_EXCL_LINE
         call error_message('read_ascii: header not matching with reference header: ncols') ! LCOV_EXCL_LINE
     end if
     if (present(ref_nrows)) then
-      if (nrows .ne. ref_nrows) &
+      if (nrows .ne. ref_nrows) & ! LCOV_EXCL_LINE
         call error_message('read_ascii: header not matching with reference header: nrows') ! LCOV_EXCL_LINE
     end if
     if (present(ref_xllcorner)) then
-      if (abs(xllcorner - ref_xllcorner) .gt. tiny(1.0_dp)) &
+      if (abs(xllcorner - ref_xllcorner) .gt. tiny(1.0_dp)) & ! LCOV_EXCL_LINE
         call error_message('read_ascii: header not matching with reference header: xllcorner') ! LCOV_EXCL_LINE
     end if
     if (present(ref_yllcorner)) then
-      if (abs(yllcorner - ref_yllcorner) .gt. tiny(1.0_dp)) &
+      if (abs(yllcorner - ref_yllcorner) .gt. tiny(1.0_dp)) & ! LCOV_EXCL_LINE
         call error_message('read_ascii: header not matching with reference header: yllcorner') ! LCOV_EXCL_LINE
     end if
     if (present(ref_cellsize)) then
-      if (abs(cellsize - ref_cellsize) .gt. tiny(1.0_dp)) &
+      if (abs(cellsize - ref_cellsize) .gt. tiny(1.0_dp)) & ! LCOV_EXCL_LINE
         call error_message('read_ascii: header not matching with reference header: cellsize') ! LCOV_EXCL_LINE
     end if
   end subroutine read_ascii_header
@@ -1140,20 +1142,17 @@ contains
 
     if (present(data)) then
       if (is_xy_) then
-        if (size(data,1) /= ncols .or. size(data,2) /= nrows) then
+        if (size(data,1) /= ncols .or. size(data,2) /= nrows) &
           call error_message('Error: data array dimensions mismatch (expected: ncols x nrows)') ! LCOV_EXCL_LINE
-        end if
       else
-        if (size(data,1) /= nrows .or. size(data,2) /= ncols) then
+        if (size(data,1) /= nrows .or. size(data,2) /= ncols) &
           call error_message('Error: data array dimensions mismatch (expected: nrows x ncols)') ! LCOV_EXCL_LINE
-        end if
       end if
     end if
 
     open(newunit=io, file=path, status='replace', action='write', form='formatted', iostat=ierr)
-    if (ierr /= 0) then
+    if (ierr /= 0) &
       call error_message('Error opening file: ', path) ! LCOV_EXCL_LINE
-    end if
 
     write(io,'(A,I0)') 'ncols         ', ncols
     write(io,'(A,I0)') 'nrows         ', nrows
@@ -1213,20 +1212,17 @@ contains
 
     if (present(data)) then
       if (is_xy_) then
-        if (size(data,1) /= ncols .or. size(data,2) /= nrows) then
+        if (size(data,1) /= ncols .or. size(data,2) /= nrows) &
           call error_message('Error: data array dimensions mismatch (expected: ncols x nrows)') ! LCOV_EXCL_LINE
-        end if
       else
-        if (size(data,1) /= nrows .or. size(data,2) /= ncols) then
+        if (size(data,1) /= nrows .or. size(data,2) /= ncols) &
           call error_message('Error: data array dimensions mismatch (expected: nrows x ncols)') ! LCOV_EXCL_LINE
-        end if
       end if
     end if
 
     open(newunit=io, file=path, status='replace', action='write', form='formatted', iostat=ierr)
-    if (ierr /= 0) then
+    if (ierr /= 0) &
       call error_message('Error opening file: ', path) ! LCOV_EXCL_LINE
-    end if
 
     write(io,'(A,I0)') 'ncols         ', ncols
     write(io,'(A,I0)') 'nrows         ', nrows

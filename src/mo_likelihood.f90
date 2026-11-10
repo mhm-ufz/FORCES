@@ -6,6 +6,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_optimization
 module mo_likelihood
+  use mo_forces_message, only: error_message
 
   USE mo_kind,   only: i4, dp
   USE mo_moment, only: stddev
@@ -185,7 +186,6 @@ CONTAINS
   subroutine model_dp(config, sim_data)
 
     use mo_kind, only: dp
-    use mo_message, only : error_message
     !! !$ USE omp_lib,    only: OMP_GET_THREAD_NUM
 
     type(config_t), intent(in) :: config
@@ -198,7 +198,8 @@ CONTAINS
 
     n = size(meas,1)
 
-    if (size(sim_data) /= 1) call error_message('model_dp: does not support sim_data data with more than 1 dimension.')
+    if (size(sim_data) /= 1) &
+      call error_message('model_dp: does not support sim_data data with more than 1 dimension.')
 
     if (sim_data(1)%has('runoff')) then
       call sim_data(1)%allocate(name="runoff", data_shape=(/n, 1/))

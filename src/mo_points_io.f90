@@ -12,12 +12,12 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_io
 module mo_points_io
+  use mo_forces_message, only: error_message, warn_message
 
   use mo_constants, only: nodata_dp, nodata_i1, nodata_i2, nodata_i4, nodata_i8
   use mo_datetime, only: datetime, timedelta, delta_from_string, time_values, end_timestamp, instant_timestamp, no_time
   use mo_grid_helper, only: is_t_axis, is_x_axis, is_lon_coord
   use mo_kind, only: i1, i2, i4, i8, dp, sp
-  use mo_message, only: error_message, warn_message
   use mo_netcdf, only: NcDataset, NcDimension, NcVariable, NF90_NOFILL
   use mo_netcdf_utils, only: var, add_var, var_index, time_stepping, read_units, netcdf_dtype_defaults, &
                              netcdf_packing, configure_output_packing, write_packing_attributes, &
@@ -398,11 +398,13 @@ contains
     call configure_output_packing(self, self%packing, context="points_output_variable")
     if (.not.allocated(self%dtype)) self%dtype = "f64"
     self%points => points
-    if (.not.associated(self%points)) call error_message("points_output_variable: points pointer not associated")
+    if (.not.associated(self%points)) &
+      call error_message("points_output_variable: points pointer not associated")
     if (self%static) then
       self%nc = nc%setVariable(self%name, self%dtype, [points_dim], deflate_level=deflate_level, shuffle=.true.)
     else
-      if (.not.present(time_dim)) call error_message("points_output_variable: temporal variable needs time dimension: ", self%name)
+      if (.not.present(time_dim)) &
+        call error_message("points_output_variable: temporal variable needs time dimension: ", self%name)
       if (self%time_series) then
         self%nc = nc%setVariable(self%name, self%dtype, [time_dim, points_dim], deflate_level=deflate_level, shuffle=.true.)
       else
@@ -452,8 +454,10 @@ contains
   subroutine points_out_var_update_sp(self, data)
     class(points_output_variable), intent(inout) :: self
     real(sp), intent(in) :: data(:) !< point data for the current accumulation step
-    if (.not.allocated(self%data_sp)) call error_message("points_output_variable: wrong kind for update: ", self%name)
-    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_output_variable: data size mismatch: ", self%name)
+    if (.not.allocated(self%data_sp)) &
+      call error_message("points_output_variable: wrong kind for update: ", self%name)
+    if (size(data, kind=i8) /= self%points%n_points) &
+      call error_message("points_output_variable: data size mismatch: ", self%name)
     self%data_sp = self%data_sp + data
     self%counter = self%counter + 1_i4
   end subroutine points_out_var_update_sp
@@ -461,8 +465,10 @@ contains
   subroutine points_out_var_update_dp(self, data)
     class(points_output_variable), intent(inout) :: self
     real(dp), intent(in) :: data(:) !< point data for the current accumulation step
-    if (.not.allocated(self%data_dp)) call error_message("points_output_variable: wrong kind for update: ", self%name)
-    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_output_variable: data size mismatch: ", self%name)
+    if (.not.allocated(self%data_dp)) &
+      call error_message("points_output_variable: wrong kind for update: ", self%name)
+    if (size(data, kind=i8) /= self%points%n_points) &
+      call error_message("points_output_variable: data size mismatch: ", self%name)
     self%data_dp = self%data_dp + data
     self%counter = self%counter + 1_i4
   end subroutine points_out_var_update_dp
@@ -470,8 +476,10 @@ contains
   subroutine points_out_var_update_i1(self, data)
     class(points_output_variable), intent(inout) :: self
     integer(i1), intent(in) :: data(:) !< point data for the current accumulation step
-    if (.not.allocated(self%data_i1)) call error_message("points_output_variable: wrong kind for update: ", self%name)
-    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_output_variable: data size mismatch: ", self%name)
+    if (.not.allocated(self%data_i1)) &
+      call error_message("points_output_variable: wrong kind for update: ", self%name)
+    if (size(data, kind=i8) /= self%points%n_points) &
+      call error_message("points_output_variable: data size mismatch: ", self%name)
     self%data_i1 = self%data_i1 + data
     self%counter = self%counter + 1_i4
   end subroutine points_out_var_update_i1
@@ -479,8 +487,10 @@ contains
   subroutine points_out_var_update_i2(self, data)
     class(points_output_variable), intent(inout) :: self
     integer(i2), intent(in) :: data(:) !< point data for the current accumulation step
-    if (.not.allocated(self%data_i2)) call error_message("points_output_variable: wrong kind for update: ", self%name)
-    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_output_variable: data size mismatch: ", self%name)
+    if (.not.allocated(self%data_i2)) &
+      call error_message("points_output_variable: wrong kind for update: ", self%name)
+    if (size(data, kind=i8) /= self%points%n_points) &
+      call error_message("points_output_variable: data size mismatch: ", self%name)
     self%data_i2 = self%data_i2 + data
     self%counter = self%counter + 1_i4
   end subroutine points_out_var_update_i2
@@ -488,8 +498,10 @@ contains
   subroutine points_out_var_update_i4(self, data)
     class(points_output_variable), intent(inout) :: self
     integer(i4), intent(in) :: data(:) !< point data for the current accumulation step
-    if (.not.allocated(self%data_i4)) call error_message("points_output_variable: wrong kind for update: ", self%name)
-    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_output_variable: data size mismatch: ", self%name)
+    if (.not.allocated(self%data_i4)) &
+      call error_message("points_output_variable: wrong kind for update: ", self%name)
+    if (size(data, kind=i8) /= self%points%n_points) &
+      call error_message("points_output_variable: data size mismatch: ", self%name)
     self%data_i4 = self%data_i4 + data
     self%counter = self%counter + 1_i4
   end subroutine points_out_var_update_i4
@@ -497,8 +509,10 @@ contains
   subroutine points_out_var_update_i8(self, data)
     class(points_output_variable), intent(inout) :: self
     integer(i8), intent(in) :: data(:) !< point data for the current accumulation step
-    if (.not.allocated(self%data_i8)) call error_message("points_output_variable: wrong kind for update: ", self%name)
-    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_output_variable: data size mismatch: ", self%name)
+    if (.not.allocated(self%data_i8)) &
+      call error_message("points_output_variable: wrong kind for update: ", self%name)
+    if (size(data, kind=i8) /= self%points%n_points) &
+      call error_message("points_output_variable: data size mismatch: ", self%name)
     self%data_i8 = self%data_i8 + data
     self%counter = self%counter + 1_i4
   end subroutine points_out_var_update_i8
@@ -509,7 +523,8 @@ contains
     integer(i4), optional, intent(in) :: t_index !< time index for temporal variables
 
     if (self%static .and. self%static_written) return
-    if (self%counter == 0_i4) call error_message("points_output_variable: no data was added before writing: ", self%name)
+    if (self%counter == 0_i4) &
+      call error_message("points_output_variable: no data was added before writing: ", self%name)
     select case(self%kind)
       case("sp")
         if (self%avg) self%data_sp = self%data_sp / real(self%counter, sp)
@@ -520,7 +535,8 @@ contains
             call self%nc%setData(self%data_sp)
           end if
         else
-          if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%name)
+          if (.not.present(t_index)) &
+            call error_message("points_output_variable: missing time index: ", self%name)
           if (self%time_series) then
             if (self%packing%enabled) then
               call write_cf_packed(self%packing, self%nc, &
@@ -548,7 +564,8 @@ contains
             call self%nc%setData(self%data_dp)
           end if
         else
-          if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%name)
+          if (.not.present(t_index)) &
+            call error_message("points_output_variable: missing time index: ", self%name)
           if (self%time_series) then
             if (self%packing%enabled) then
               call write_cf_packed(self%packing, self%nc, &
@@ -572,7 +589,8 @@ contains
         if (self%static) then
           call self%nc%setData(self%data_i1)
         else
-          if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%name)
+          if (.not.present(t_index)) &
+            call error_message("points_output_variable: missing time index: ", self%name)
           if (self%time_series) then
             call self%nc%setData(reshape(self%data_i1, [1_i4, int(self%points%n_points, i4)]), &
                                  [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
@@ -586,7 +604,8 @@ contains
         if (self%static) then
           call self%nc%setData(self%data_i2)
         else
-          if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%name)
+          if (.not.present(t_index)) &
+            call error_message("points_output_variable: missing time index: ", self%name)
           if (self%time_series) then
             call self%nc%setData(reshape(self%data_i2, [1_i4, int(self%points%n_points, i4)]), &
                                  [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
@@ -600,7 +619,8 @@ contains
         if (self%static) then
           call self%nc%setData(self%data_i4)
         else
-          if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%name)
+          if (.not.present(t_index)) &
+            call error_message("points_output_variable: missing time index: ", self%name)
           if (self%time_series) then
             call self%nc%setData(reshape(self%data_i4, [1_i4, int(self%points%n_points, i4)]), &
                                  [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
@@ -614,7 +634,8 @@ contains
         if (self%static) then
           call self%nc%setData(self%data_i8)
         else
-          if (.not.present(t_index)) call error_message("points_output_variable: missing time index: ", self%name)
+          if (.not.present(t_index)) &
+            call error_message("points_output_variable: missing time index: ", self%name)
           if (self%time_series) then
             call self%nc%setData(reshape(self%data_i8, [1_i4, int(self%points%n_points, i4)]), &
                                  [t_index, 1_i4], cnt=[1_i4, int(self%points%n_points, i4)])
@@ -665,13 +686,15 @@ contains
     points_dim = self%nc%getDimension(dimname)
 
     self%nvars = size(vars)
-    if (self%nvars == 0_i4) call error_message("points_output_dataset: no variables selected")
+    if (self%nvars == 0_i4) &
+      call error_message("points_output_dataset: no variables selected")
     self%static = .true.
     do i = 1_i4, self%nvars
       self%static = self%static .and. vars(i)%static
     end do
     if (.not.self%static) then
-      if (.not.present(start_time)) call error_message("points_output_dataset: temporal output needs start_time")
+      if (.not.present(start_time)) &
+        call error_message("points_output_dataset: temporal output needs start_time")
       units_dt = trim(optval(delta, "hours"))
       self%previous_time = start_time
       self%start_time = start_time
@@ -752,7 +775,8 @@ contains
 
     self%counter = self%counter + 1_i4
     if (.not.self%static) then
-      if (.not.present(current_time)) call error_message("points_output_dataset: missing current_time")
+      if (.not.present(current_time)) &
+        call error_message("points_output_dataset: missing current_time")
       call time_values(self%ref_time, self%previous_time, current_time, self%delta, self%timestamp, t_start, t_end, t_stamp)
       t_var = self%nc%getVariable("time")
       call t_var%setData(t_stamp, [self%counter])
@@ -780,7 +804,8 @@ contains
     class(points_output_dataset), intent(inout) :: self
     integer(i4) :: i
     do i = 1_i4, self%nvars
-      if (self%vars(i)%counter > 0_i4) call warn_message("points_output%close: unwritten buffered data: ", self%vars(i)%name)
+      if (self%vars(i)%counter > 0_i4) &
+        call warn_message("points_output%close: unwritten buffered data: ", self%vars(i)%name)
     end do
     call self%nc%close()
     if (allocated(self%vars)) deallocate(self%vars)
@@ -808,7 +833,8 @@ contains
     call configure_output_packing(self, self%packing, context="points_series_output_variable")
     if (.not.allocated(self%dtype)) self%dtype = "f64"
     self%points => points
-    if (.not.associated(self%points)) call error_message("points_series_output_variable: points pointer not associated")
+    if (.not.associated(self%points)) &
+      call error_message("points_series_output_variable: points pointer not associated")
     if (self%static) then
       self%nc = nc%setVariable(self%name, self%dtype, [points_dim], deflate_level=deflate_level, shuffle=.true.)
     else
@@ -840,8 +866,10 @@ contains
     type(NcDimension), allocatable :: dims(:)
     integer(i4) :: point_index_
     integer(i8) :: n_times
-    if (self%static) call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
-    if (self%kind /= "sp") call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
+    if (self%static) &
+      call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
+    if (self%kind /= "sp") &
+      call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_series_output_variable: point index out of range: ", self%name)
     dims = self%nc%getDimensions()
@@ -863,8 +891,10 @@ contains
     real(sp), intent(in) :: data(:, :) !< complete series matrix with shape (time,point)
     type(NcDimension), allocatable :: dims(:)
     integer(i8) :: n_times
-    if (self%static) call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
-    if (self%kind /= "sp") call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
+    if (self%static) &
+      call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
+    if (self%kind /= "sp") &
+      call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
     dims = self%nc%getDimensions()
     n_times = dims(1_i4)%getLength64()
     if (size(data, 1, kind=i8) /= n_times) &
@@ -884,8 +914,10 @@ contains
   subroutine points_series_out_var_write_static_sp(self, data)
     class(points_series_output_variable), intent(inout) :: self
     real(sp), intent(in) :: data(:) !< static point data
-    if (.not.self%static) call error_message("points_series_output_variable: write_static needs static variable: ", self%name)
-    if (self%kind /= "sp") call error_message("points_series_output_variable: wrong kind for write_static: ", self%name)
+    if (.not.self%static) &
+      call error_message("points_series_output_variable: write_static needs static variable: ", self%name)
+    if (self%kind /= "sp") &
+      call error_message("points_series_output_variable: wrong kind for write_static: ", self%name)
     if (size(data, kind=i8) /= self%points%n_points) &
       call error_message("points_series_output_variable: static data size mismatch: ", self%name)
     if (self%packing%enabled) then
@@ -903,8 +935,10 @@ contains
     type(NcDimension), allocatable :: dims(:)
     integer(i4) :: point_index_
     integer(i8) :: n_times
-    if (self%static) call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
-    if (self%kind /= "dp") call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
+    if (self%static) &
+      call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
+    if (self%kind /= "dp") &
+      call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_series_output_variable: point index out of range: ", self%name)
     dims = self%nc%getDimensions()
@@ -926,8 +960,10 @@ contains
     real(dp), intent(in) :: data(:, :) !< complete series matrix with shape (time,point)
     type(NcDimension), allocatable :: dims(:)
     integer(i8) :: n_times
-    if (self%static) call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
-    if (self%kind /= "dp") call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
+    if (self%static) &
+      call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
+    if (self%kind /= "dp") &
+      call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
     dims = self%nc%getDimensions()
     n_times = dims(1_i4)%getLength64()
     if (size(data, 1, kind=i8) /= n_times) &
@@ -947,8 +983,10 @@ contains
   subroutine points_series_out_var_write_static_dp(self, data)
     class(points_series_output_variable), intent(inout) :: self
     real(dp), intent(in) :: data(:) !< static point data
-    if (.not.self%static) call error_message("points_series_output_variable: write_static needs static variable: ", self%name)
-    if (self%kind /= "dp") call error_message("points_series_output_variable: wrong kind for write_static: ", self%name)
+    if (.not.self%static) &
+      call error_message("points_series_output_variable: write_static needs static variable: ", self%name)
+    if (self%kind /= "dp") &
+      call error_message("points_series_output_variable: wrong kind for write_static: ", self%name)
     if (size(data, kind=i8) /= self%points%n_points) &
       call error_message("points_series_output_variable: static data size mismatch: ", self%name)
     if (self%packing%enabled) then
@@ -966,8 +1004,10 @@ contains
     type(NcDimension), allocatable :: dims(:)
     integer(i4) :: point_index_
     integer(i8) :: n_times
-    if (self%static) call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
-    if (self%kind /= "i1") call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
+    if (self%static) &
+      call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
+    if (self%kind /= "i1") &
+      call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_series_output_variable: point index out of range: ", self%name)
     dims = self%nc%getDimensions()
@@ -985,8 +1025,10 @@ contains
     integer(i1), intent(in) :: data(:, :) !< complete series matrix with shape (time,point)
     type(NcDimension), allocatable :: dims(:)
     integer(i8) :: n_times
-    if (self%static) call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
-    if (self%kind /= "i1") call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
+    if (self%static) &
+      call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
+    if (self%kind /= "i1") &
+      call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
     dims = self%nc%getDimensions()
     n_times = dims(1_i4)%getLength64()
     if (size(data, 1, kind=i8) /= n_times) &
@@ -1001,8 +1043,10 @@ contains
   subroutine points_series_out_var_write_static_i1(self, data)
     class(points_series_output_variable), intent(inout) :: self
     integer(i1), intent(in) :: data(:) !< static point data
-    if (.not.self%static) call error_message("points_series_output_variable: write_static needs static variable: ", self%name)
-    if (self%kind /= "i1") call error_message("points_series_output_variable: wrong kind for write_static: ", self%name)
+    if (.not.self%static) &
+      call error_message("points_series_output_variable: write_static needs static variable: ", self%name)
+    if (self%kind /= "i1") &
+      call error_message("points_series_output_variable: wrong kind for write_static: ", self%name)
     if (size(data, kind=i8) /= self%points%n_points) &
       call error_message("points_series_output_variable: static data size mismatch: ", self%name)
     call self%nc%setData(data)
@@ -1016,8 +1060,10 @@ contains
     type(NcDimension), allocatable :: dims(:)
     integer(i4) :: point_index_
     integer(i8) :: n_times
-    if (self%static) call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
-    if (self%kind /= "i2") call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
+    if (self%static) &
+      call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
+    if (self%kind /= "i2") &
+      call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_series_output_variable: point index out of range: ", self%name)
     dims = self%nc%getDimensions()
@@ -1035,8 +1081,10 @@ contains
     integer(i2), intent(in) :: data(:, :) !< complete series matrix with shape (time,point)
     type(NcDimension), allocatable :: dims(:)
     integer(i8) :: n_times
-    if (self%static) call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
-    if (self%kind /= "i2") call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
+    if (self%static) &
+      call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
+    if (self%kind /= "i2") &
+      call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
     dims = self%nc%getDimensions()
     n_times = dims(1_i4)%getLength64()
     if (size(data, 1, kind=i8) /= n_times) &
@@ -1051,8 +1099,10 @@ contains
   subroutine points_series_out_var_write_static_i2(self, data)
     class(points_series_output_variable), intent(inout) :: self
     integer(i2), intent(in) :: data(:) !< static point data
-    if (.not.self%static) call error_message("points_series_output_variable: write_static needs static variable: ", self%name)
-    if (self%kind /= "i2") call error_message("points_series_output_variable: wrong kind for write_static: ", self%name)
+    if (.not.self%static) &
+      call error_message("points_series_output_variable: write_static needs static variable: ", self%name)
+    if (self%kind /= "i2") &
+      call error_message("points_series_output_variable: wrong kind for write_static: ", self%name)
     if (size(data, kind=i8) /= self%points%n_points) &
       call error_message("points_series_output_variable: static data size mismatch: ", self%name)
     call self%nc%setData(data)
@@ -1066,8 +1116,10 @@ contains
     type(NcDimension), allocatable :: dims(:)
     integer(i4) :: point_index_
     integer(i8) :: n_times
-    if (self%static) call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
-    if (self%kind /= "i4") call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
+    if (self%static) &
+      call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
+    if (self%kind /= "i4") &
+      call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_series_output_variable: point index out of range: ", self%name)
     dims = self%nc%getDimensions()
@@ -1085,8 +1137,10 @@ contains
     integer(i4), intent(in) :: data(:, :) !< complete series matrix with shape (time,point)
     type(NcDimension), allocatable :: dims(:)
     integer(i8) :: n_times
-    if (self%static) call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
-    if (self%kind /= "i4") call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
+    if (self%static) &
+      call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
+    if (self%kind /= "i4") &
+      call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
     dims = self%nc%getDimensions()
     n_times = dims(1_i4)%getLength64()
     if (size(data, 1, kind=i8) /= n_times) &
@@ -1101,8 +1155,10 @@ contains
   subroutine points_series_out_var_write_static_i4(self, data)
     class(points_series_output_variable), intent(inout) :: self
     integer(i4), intent(in) :: data(:) !< static point data
-    if (.not.self%static) call error_message("points_series_output_variable: write_static needs static variable: ", self%name)
-    if (self%kind /= "i4") call error_message("points_series_output_variable: wrong kind for write_static: ", self%name)
+    if (.not.self%static) &
+      call error_message("points_series_output_variable: write_static needs static variable: ", self%name)
+    if (self%kind /= "i4") &
+      call error_message("points_series_output_variable: wrong kind for write_static: ", self%name)
     if (size(data, kind=i8) /= self%points%n_points) &
       call error_message("points_series_output_variable: static data size mismatch: ", self%name)
     call self%nc%setData(data)
@@ -1116,8 +1172,10 @@ contains
     type(NcDimension), allocatable :: dims(:)
     integer(i4) :: point_index_
     integer(i8) :: n_times
-    if (self%static) call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
-    if (self%kind /= "i8") call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
+    if (self%static) &
+      call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
+    if (self%kind /= "i8") &
+      call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_series_output_variable: point index out of range: ", self%name)
     dims = self%nc%getDimensions()
@@ -1135,8 +1193,10 @@ contains
     integer(i8), intent(in) :: data(:, :) !< complete series matrix with shape (time,point)
     type(NcDimension), allocatable :: dims(:)
     integer(i8) :: n_times
-    if (self%static) call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
-    if (self%kind /= "i8") call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
+    if (self%static) &
+      call error_message("points_series_output_variable: write_series needs temporal variable: ", self%name)
+    if (self%kind /= "i8") &
+      call error_message("points_series_output_variable: wrong kind for write_series: ", self%name)
     dims = self%nc%getDimensions()
     n_times = dims(1_i4)%getLength64()
     if (size(data, 1, kind=i8) /= n_times) &
@@ -1151,8 +1211,10 @@ contains
   subroutine points_series_out_var_write_static_i8(self, data)
     class(points_series_output_variable), intent(inout) :: self
     integer(i8), intent(in) :: data(:) !< static point data
-    if (.not.self%static) call error_message("points_series_output_variable: write_static needs static variable: ", self%name)
-    if (self%kind /= "i8") call error_message("points_series_output_variable: wrong kind for write_static: ", self%name)
+    if (.not.self%static) &
+      call error_message("points_series_output_variable: write_static needs static variable: ", self%name)
+    if (self%kind /= "i8") &
+      call error_message("points_series_output_variable: wrong kind for write_static: ", self%name)
     if (size(data, kind=i8) /= self%points%n_points) &
       call error_message("points_series_output_variable: static data size mismatch: ", self%name)
     call self%nc%setData(data)
@@ -1179,7 +1241,8 @@ contains
     integer(i4) :: i
     logical :: has_time_bounds
 
-    if (time_axis%n_times() < 1_i4) call error_message("points_series_output_dataset: empty time axis")
+    if (time_axis%n_times() < 1_i4) &
+      call error_message("points_series_output_dataset: empty time axis")
     call time_axis%to_cf(time_values, time_bnds, time_units)
     has_time_bounds = time_axis%has_bounds()
     self%path = trim(path)
@@ -1208,7 +1271,8 @@ contains
     end if
 
     self%nvars = size(vars)
-    if (self%nvars == 0_i4) call error_message("points_series_output_dataset: no variables selected")
+    if (self%nvars == 0_i4) &
+      call error_message("points_series_output_dataset: no variables selected")
     allocate(self%vars(self%nvars))
     do i = 1_i4, self%nvars
       call self%vars(i)%init(vars(i), self%nc, self%points, points_dim, time_dim, self%deflate_level)
@@ -1369,9 +1433,12 @@ contains
     type(NcDimension) :: points_dim
     type(NcVariable) :: id_var
 
-    if (.not.associated(self%points)) call error_message("points_series_output%set_ids: points pointer not associated")
-    if (.not.allocated(self%point_dim_name)) call error_message("points_series_output%set_ids: point dimension is unknown")
-    if (size(ids, kind=i8) /= self%points%n_points) call error_message("points_series_output%set_ids: ID size mismatch")
+    if (.not.associated(self%points)) &
+      call error_message("points_series_output%set_ids: points pointer not associated")
+    if (.not.allocated(self%point_dim_name)) &
+      call error_message("points_series_output%set_ids: point dimension is unknown")
+    if (size(ids, kind=i8) /= self%points%n_points) &
+      call error_message("points_series_output%set_ids: ID size mismatch")
     if (self%has_var(self%point_dim_name)) &
       call error_message("points_series_output%set_ids: ID name already declared as output variable: ", self%point_dim_name)
     if (self%nc%hasVariable(self%point_dim_name)) &
@@ -1398,9 +1465,12 @@ contains
     type(NcDimension) :: points_dim
     type(NcVariable) :: id_var
 
-    if (.not.associated(self%points)) call error_message("points_series_output%set_ids: points pointer not associated")
-    if (.not.allocated(self%point_dim_name)) call error_message("points_series_output%set_ids: point dimension is unknown")
-    if (size(ids, kind=i8) /= self%points%n_points) call error_message("points_series_output%set_ids: ID size mismatch")
+    if (.not.associated(self%points)) &
+      call error_message("points_series_output%set_ids: points pointer not associated")
+    if (.not.allocated(self%point_dim_name)) &
+      call error_message("points_series_output%set_ids: point dimension is unknown")
+    if (size(ids, kind=i8) /= self%points%n_points) &
+      call error_message("points_series_output%set_ids: ID size mismatch")
     if (self%has_var(self%point_dim_name)) &
       call error_message("points_series_output%set_ids: ID name already declared as output variable: ", self%point_dim_name)
     if (self%nc%hasVariable(self%point_dim_name)) &
@@ -1458,11 +1528,13 @@ contains
     self%points => points
     dims = self%nc%getDimensions()
     self%rank = size(dims)
-    if (self%rank < 1_i4 .or. self%rank > 2_i4) call error_message("points_input_variable: rank mismatch: ", self%name)
+    if (self%rank < 1_i4 .or. self%rank > 2_i4) &
+      call error_message("points_input_variable: rank mismatch: ", self%name)
     self%static = self%rank == 1_i4
     first_is_point = dims(1)%getLength64() == points%n_points
     if (self%static) then
-      if (.not.first_is_point) call error_message("points_input_variable: point dimension mismatch: ", self%name)
+      if (.not.first_is_point) &
+        call error_message("points_input_variable: point dimension mismatch: ", self%name)
       self%time_series = .false.
     else
       if (.not.nc%hasVariable(trim(dims(1)%getName()))) then
@@ -1486,7 +1558,8 @@ contains
         call error_message("points_input_variable: could not identify point/time dimensions: ", self%name)
       end if
     end if
-    if (meta%static .and. .not.self%static) call error_message("points_input_variable: expected static variable: ", self%name)
+    if (meta%static .and. .not.self%static) &
+      call error_message("points_input_variable: expected static variable: ", self%name)
     if ((.not.meta%static) .and. self%static .and. .not.meta%allow_static) &
       call error_message("points_input_variable: expected temporal variable: ", self%name)
     self%dtype = trim(self%nc%getDtype())
@@ -1499,8 +1572,8 @@ contains
       self%standard_name = trim(tmp_str)
       if (allocated(meta%standard_name)) then
         if (meta%standard_name /= self%standard_name) &
-          call error_message("points_input_variable: standard_name mismatch: ", self%name, ", ", &
-                             meta%standard_name, "=/=", self%standard_name)
+          call error_message("points_input_variable: standard_name mismatch: ", self%name, ", ",  meta%standard_name, &
+            "=/=", self%standard_name)
       end if
     end if
     if (self%nc%hasAttribute("units")) then
@@ -1524,7 +1597,8 @@ contains
     real(sp), intent(out) :: data(:) !< read point data
     integer(i4), optional, intent(in) :: t_index !< temporal index for non-static variables
     real(sp), allocatable :: tmp(:, :)
-    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ", self%name)
+    if (size(data, kind=i8) /= self%points%n_points) &
+      call error_message("points_input_variable: data size mismatch: ", self%name)
     if (self%static) then
       if (self%packing%enabled) then
         call read_cf_packed(self%packing, self%nc, data)
@@ -1532,8 +1606,10 @@ contains
         call self%nc%readInto(data)
       end if
     else
-      if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
-      if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("points_input_variable: temporal variable needs a time: ", self%name)
+      if (t_index == 0_i4) &
+        call error_message("points_input_variable: temporal variable needs a time: ", self%name)
       if (self%time_series) then
         if (self%packing%enabled) then
           allocate(tmp(1_i4, int(self%points%n_points, i4)))
@@ -1561,7 +1637,8 @@ contains
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
     real(sp), allocatable :: tmp(:, :)
-    if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%name)
+    if (self%static) &
+      call error_message("points_input_variable: chunk read needs temporal variable: ", self%name)
     if (self%time_series) then
       if (self%packing%enabled) then
         allocate(tmp(t_size, int(self%points%n_points, i4)))
@@ -1589,7 +1666,8 @@ contains
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
     real(sp), allocatable :: tmp(:, :)
-    if (self%static) call error_message("points_input_variable: series read needs temporal variable: ", self%name)
+    if (self%static) &
+      call error_message("points_input_variable: series read needs temporal variable: ", self%name)
     if (self%time_series) then
       if (self%packing%enabled) then
         allocate(data(t_size, int(self%points%n_points, i4)))
@@ -1618,7 +1696,8 @@ contains
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
     integer(i4) :: point_index_
-    if (self%static) call error_message("points_input_variable: time series read needs temporal variable: ", self%name)
+    if (self%static) &
+      call error_message("points_input_variable: time series read needs temporal variable: ", self%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_input_variable: point index out of range: ", self%name)
     point_index_ = int(point_index, i4)
@@ -1644,7 +1723,8 @@ contains
     real(dp), intent(out) :: data(:) !< read point data
     integer(i4), optional, intent(in) :: t_index !< temporal index for non-static variables
     real(dp), allocatable :: tmp(:, :)
-    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ", self%name)
+    if (size(data, kind=i8) /= self%points%n_points) &
+      call error_message("points_input_variable: data size mismatch: ", self%name)
     if (self%static) then
       if (self%packing%enabled) then
         call read_cf_packed(self%packing, self%nc, data)
@@ -1652,8 +1732,10 @@ contains
         call self%nc%readInto(data)
       end if
     else
-      if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
-      if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("points_input_variable: temporal variable needs a time: ", self%name)
+      if (t_index == 0_i4) &
+        call error_message("points_input_variable: temporal variable needs a time: ", self%name)
       if (self%time_series) then
         if (self%packing%enabled) then
           allocate(tmp(1_i4, int(self%points%n_points, i4)))
@@ -1681,7 +1763,8 @@ contains
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
     real(dp), allocatable :: tmp(:, :)
-    if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%name)
+    if (self%static) &
+      call error_message("points_input_variable: chunk read needs temporal variable: ", self%name)
     if (self%time_series) then
       if (self%packing%enabled) then
         allocate(tmp(t_size, int(self%points%n_points, i4)))
@@ -1709,7 +1792,8 @@ contains
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
     real(dp), allocatable :: tmp(:, :)
-    if (self%static) call error_message("points_input_variable: series read needs temporal variable: ", self%name)
+    if (self%static) &
+      call error_message("points_input_variable: series read needs temporal variable: ", self%name)
     if (self%time_series) then
       if (self%packing%enabled) then
         allocate(data(t_size, int(self%points%n_points, i4)))
@@ -1738,7 +1822,8 @@ contains
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
     integer(i4) :: point_index_
-    if (self%static) call error_message("points_input_variable: time series read needs temporal variable: ", self%name)
+    if (self%static) &
+      call error_message("points_input_variable: time series read needs temporal variable: ", self%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_input_variable: point index out of range: ", self%name)
     point_index_ = int(point_index, i4)
@@ -1764,7 +1849,8 @@ contains
     integer(i1), intent(out) :: data(:) !< read point data
     integer(i4), optional, intent(in) :: t_index !< temporal index for non-static variables
     integer(i1), allocatable :: tmp(:, :)
-    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ", self%name)
+    if (size(data, kind=i8) /= self%points%n_points) &
+      call error_message("points_input_variable: data size mismatch: ", self%name)
     if (self%static) then
       if (self%packing%enabled) then
         call points_read_cf_integer_1d_i1(self%packing, self%nc, data, self%name)
@@ -1772,8 +1858,10 @@ contains
         call self%nc%readInto(data)
       end if
     else
-      if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
-      if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("points_input_variable: temporal variable needs a time: ", self%name)
+      if (t_index == 0_i4) &
+        call error_message("points_input_variable: temporal variable needs a time: ", self%name)
       if (self%time_series) then
         if (self%packing%enabled) then
           allocate(tmp(1_i4, int(self%points%n_points, i4)))
@@ -1801,7 +1889,8 @@ contains
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
     integer(i1), allocatable :: tmp(:, :)
-    if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%name)
+    if (self%static) &
+      call error_message("points_input_variable: chunk read needs temporal variable: ", self%name)
     if (self%time_series) then
       if (self%packing%enabled) then
         allocate(tmp(t_size, int(self%points%n_points, i4)))
@@ -1829,7 +1918,8 @@ contains
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
     integer(i1), allocatable :: tmp(:, :)
-    if (self%static) call error_message("points_input_variable: series read needs temporal variable: ", self%name)
+    if (self%static) &
+      call error_message("points_input_variable: series read needs temporal variable: ", self%name)
     if (self%time_series) then
       if (self%packing%enabled) then
         allocate(data(t_size, int(self%points%n_points, i4)))
@@ -1858,7 +1948,8 @@ contains
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
     integer(i4) :: point_index_
-    if (self%static) call error_message("points_input_variable: time series read needs temporal variable: ", self%name)
+    if (self%static) &
+      call error_message("points_input_variable: time series read needs temporal variable: ", self%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_input_variable: point index out of range: ", self%name)
     point_index_ = int(point_index, i4)
@@ -1886,7 +1977,8 @@ contains
     integer(i2), intent(out) :: data(:) !< read point data
     integer(i4), optional, intent(in) :: t_index !< temporal index for non-static variables
     integer(i2), allocatable :: tmp(:, :)
-    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ", self%name)
+    if (size(data, kind=i8) /= self%points%n_points) &
+      call error_message("points_input_variable: data size mismatch: ", self%name)
     if (self%static) then
       if (self%packing%enabled) then
         call points_read_cf_integer_1d_i2(self%packing, self%nc, data, self%name)
@@ -1894,8 +1986,10 @@ contains
         call self%nc%readInto(data)
       end if
     else
-      if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
-      if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("points_input_variable: temporal variable needs a time: ", self%name)
+      if (t_index == 0_i4) &
+        call error_message("points_input_variable: temporal variable needs a time: ", self%name)
       if (self%time_series) then
         if (self%packing%enabled) then
           allocate(tmp(1_i4, int(self%points%n_points, i4)))
@@ -1923,7 +2017,8 @@ contains
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
     integer(i2), allocatable :: tmp(:, :)
-    if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%name)
+    if (self%static) &
+      call error_message("points_input_variable: chunk read needs temporal variable: ", self%name)
     if (self%time_series) then
       if (self%packing%enabled) then
         allocate(tmp(t_size, int(self%points%n_points, i4)))
@@ -1951,7 +2046,8 @@ contains
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
     integer(i2), allocatable :: tmp(:, :)
-    if (self%static) call error_message("points_input_variable: series read needs temporal variable: ", self%name)
+    if (self%static) &
+      call error_message("points_input_variable: series read needs temporal variable: ", self%name)
     if (self%time_series) then
       if (self%packing%enabled) then
         allocate(data(t_size, int(self%points%n_points, i4)))
@@ -1980,7 +2076,8 @@ contains
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
     integer(i4) :: point_index_
-    if (self%static) call error_message("points_input_variable: time series read needs temporal variable: ", self%name)
+    if (self%static) &
+      call error_message("points_input_variable: time series read needs temporal variable: ", self%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_input_variable: point index out of range: ", self%name)
     point_index_ = int(point_index, i4)
@@ -2008,7 +2105,8 @@ contains
     integer(i4), intent(out) :: data(:) !< read point data
     integer(i4), optional, intent(in) :: t_index !< temporal index for non-static variables
     integer(i4), allocatable :: tmp(:, :)
-    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ", self%name)
+    if (size(data, kind=i8) /= self%points%n_points) &
+      call error_message("points_input_variable: data size mismatch: ", self%name)
     if (self%static) then
       if (self%packing%enabled) then
         call points_read_cf_integer_1d_i4(self%packing, self%nc, data, self%name)
@@ -2016,8 +2114,10 @@ contains
         call self%nc%readInto(data)
       end if
     else
-      if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
-      if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("points_input_variable: temporal variable needs a time: ", self%name)
+      if (t_index == 0_i4) &
+        call error_message("points_input_variable: temporal variable needs a time: ", self%name)
       if (self%time_series) then
         if (self%packing%enabled) then
           allocate(tmp(1_i4, int(self%points%n_points, i4)))
@@ -2045,7 +2145,8 @@ contains
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
     integer(i4), allocatable :: tmp(:, :)
-    if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%name)
+    if (self%static) &
+      call error_message("points_input_variable: chunk read needs temporal variable: ", self%name)
     if (self%time_series) then
       if (self%packing%enabled) then
         allocate(tmp(t_size, int(self%points%n_points, i4)))
@@ -2073,7 +2174,8 @@ contains
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
     integer(i4), allocatable :: tmp(:, :)
-    if (self%static) call error_message("points_input_variable: series read needs temporal variable: ", self%name)
+    if (self%static) &
+      call error_message("points_input_variable: series read needs temporal variable: ", self%name)
     if (self%time_series) then
       if (self%packing%enabled) then
         allocate(data(t_size, int(self%points%n_points, i4)))
@@ -2102,7 +2204,8 @@ contains
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
     integer(i4) :: point_index_
-    if (self%static) call error_message("points_input_variable: time series read needs temporal variable: ", self%name)
+    if (self%static) &
+      call error_message("points_input_variable: time series read needs temporal variable: ", self%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_input_variable: point index out of range: ", self%name)
     point_index_ = int(point_index, i4)
@@ -2130,7 +2233,8 @@ contains
     integer(i8), intent(out) :: data(:) !< read point data
     integer(i4), optional, intent(in) :: t_index !< temporal index for non-static variables
     integer(i8), allocatable :: tmp(:, :)
-    if (size(data, kind=i8) /= self%points%n_points) call error_message("points_input_variable: data size mismatch: ", self%name)
+    if (size(data, kind=i8) /= self%points%n_points) &
+      call error_message("points_input_variable: data size mismatch: ", self%name)
     if (self%static) then
       if (self%packing%enabled) then
         call points_read_cf_integer_1d_i8(self%packing, self%nc, data, self%name)
@@ -2138,8 +2242,10 @@ contains
         call self%nc%readInto(data)
       end if
     else
-      if (.not.present(t_index)) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
-      if (t_index == 0_i4) call error_message("points_input_variable: temporal variable needs a time: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("points_input_variable: temporal variable needs a time: ", self%name)
+      if (t_index == 0_i4) &
+        call error_message("points_input_variable: temporal variable needs a time: ", self%name)
       if (self%time_series) then
         if (self%packing%enabled) then
           allocate(tmp(1_i4, int(self%points%n_points, i4)))
@@ -2167,7 +2273,8 @@ contains
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
     integer(i8), allocatable :: tmp(:, :)
-    if (self%static) call error_message("points_input_variable: chunk read needs temporal variable: ", self%name)
+    if (self%static) &
+      call error_message("points_input_variable: chunk read needs temporal variable: ", self%name)
     if (self%time_series) then
       if (self%packing%enabled) then
         allocate(tmp(t_size, int(self%points%n_points, i4)))
@@ -2195,7 +2302,8 @@ contains
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
     integer(i8), allocatable :: tmp(:, :)
-    if (self%static) call error_message("points_input_variable: series read needs temporal variable: ", self%name)
+    if (self%static) &
+      call error_message("points_input_variable: series read needs temporal variable: ", self%name)
     if (self%time_series) then
       if (self%packing%enabled) then
         allocate(data(t_size, int(self%points%n_points, i4)))
@@ -2224,7 +2332,8 @@ contains
     integer(i4), intent(in) :: t_index !< first temporal index
     integer(i4), intent(in) :: t_size !< number of temporal indices
     integer(i4) :: point_index_
-    if (self%static) call error_message("points_input_variable: time series read needs temporal variable: ", self%name)
+    if (self%static) &
+      call error_message("points_input_variable: time series read needs temporal variable: ", self%name)
     if (point_index < 1_i8 .or. point_index > self%points%n_points) &
       call error_message("points_input_variable: point index out of range: ", self%name)
     point_index_ = int(point_index, i4)
@@ -2313,7 +2422,8 @@ contains
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned chunk
     integer(i4) :: t_index, t_size, var_id
     var_id = self%var_index(name)
-    if (self%vars(var_id)%static) call error_message("points_input%read_chunk: need temporal variable: ", self%vars(var_id)%name)
+    if (self%vars(var_id)%static) &
+      call error_message("points_input%read_chunk: need temporal variable: ", self%vars(var_id)%name)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%vars(var_id)%read_chunk(data, t_index=t_index, t_size=t_size)
   end subroutine points_input_read_chunk_sp
@@ -2353,7 +2463,8 @@ contains
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned series
     integer(i4) :: t_index, t_size, var_id
     var_id = self%var_index(name)
-    if (self%vars(var_id)%static) call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
+    if (self%vars(var_id)%static) &
+      call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
     if (present(timeframe_start) .neqv. present(timeframe_end)) &
       call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
     if (present(timeframe_start)) then
@@ -2388,7 +2499,8 @@ contains
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned chunk
     integer(i4) :: t_index, t_size, var_id
     var_id = self%var_index(name)
-    if (self%vars(var_id)%static) call error_message("points_input%read_chunk: need temporal variable: ", self%vars(var_id)%name)
+    if (self%vars(var_id)%static) &
+      call error_message("points_input%read_chunk: need temporal variable: ", self%vars(var_id)%name)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%vars(var_id)%read_chunk(data, t_index=t_index, t_size=t_size)
   end subroutine points_input_read_chunk_dp
@@ -2428,7 +2540,8 @@ contains
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned series
     integer(i4) :: t_index, t_size, var_id
     var_id = self%var_index(name)
-    if (self%vars(var_id)%static) call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
+    if (self%vars(var_id)%static) &
+      call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
     if (present(timeframe_start) .neqv. present(timeframe_end)) &
       call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
     if (present(timeframe_start)) then
@@ -2463,7 +2576,8 @@ contains
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned chunk
     integer(i4) :: t_index, t_size, var_id
     var_id = self%var_index(name)
-    if (self%vars(var_id)%static) call error_message("points_input%read_chunk: need temporal variable: ", self%vars(var_id)%name)
+    if (self%vars(var_id)%static) &
+      call error_message("points_input%read_chunk: need temporal variable: ", self%vars(var_id)%name)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%vars(var_id)%read_chunk(data, t_index=t_index, t_size=t_size)
   end subroutine points_input_read_chunk_i1
@@ -2503,7 +2617,8 @@ contains
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned series
     integer(i4) :: t_index, t_size, var_id
     var_id = self%var_index(name)
-    if (self%vars(var_id)%static) call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
+    if (self%vars(var_id)%static) &
+      call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
     if (present(timeframe_start) .neqv. present(timeframe_end)) &
       call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
     if (present(timeframe_start)) then
@@ -2538,7 +2653,8 @@ contains
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned chunk
     integer(i4) :: t_index, t_size, var_id
     var_id = self%var_index(name)
-    if (self%vars(var_id)%static) call error_message("points_input%read_chunk: need temporal variable: ", self%vars(var_id)%name)
+    if (self%vars(var_id)%static) &
+      call error_message("points_input%read_chunk: need temporal variable: ", self%vars(var_id)%name)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%vars(var_id)%read_chunk(data, t_index=t_index, t_size=t_size)
   end subroutine points_input_read_chunk_i2
@@ -2578,7 +2694,8 @@ contains
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned series
     integer(i4) :: t_index, t_size, var_id
     var_id = self%var_index(name)
-    if (self%vars(var_id)%static) call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
+    if (self%vars(var_id)%static) &
+      call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
     if (present(timeframe_start) .neqv. present(timeframe_end)) &
       call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
     if (present(timeframe_start)) then
@@ -2613,7 +2730,8 @@ contains
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned chunk
     integer(i4) :: t_index, t_size, var_id
     var_id = self%var_index(name)
-    if (self%vars(var_id)%static) call error_message("points_input%read_chunk: need temporal variable: ", self%vars(var_id)%name)
+    if (self%vars(var_id)%static) &
+      call error_message("points_input%read_chunk: need temporal variable: ", self%vars(var_id)%name)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%vars(var_id)%read_chunk(data, t_index=t_index, t_size=t_size)
   end subroutine points_input_read_chunk_i4
@@ -2653,7 +2771,8 @@ contains
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned series
     integer(i4) :: t_index, t_size, var_id
     var_id = self%var_index(name)
-    if (self%vars(var_id)%static) call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
+    if (self%vars(var_id)%static) &
+      call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
     if (present(timeframe_start) .neqv. present(timeframe_end)) &
       call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
     if (present(timeframe_start)) then
@@ -2688,7 +2807,8 @@ contains
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned chunk
     integer(i4) :: t_index, t_size, var_id
     var_id = self%var_index(name)
-    if (self%vars(var_id)%static) call error_message("points_input%read_chunk: need temporal variable: ", self%vars(var_id)%name)
+    if (self%vars(var_id)%static) &
+      call error_message("points_input%read_chunk: need temporal variable: ", self%vars(var_id)%name)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%vars(var_id)%read_chunk(data, t_index=t_index, t_size=t_size)
   end subroutine points_input_read_chunk_i8
@@ -2728,7 +2848,8 @@ contains
     type(datetime), allocatable, optional, intent(out) :: times(:) !< timestamps covered by the returned series
     integer(i4) :: t_index, t_size, var_id
     var_id = self%var_index(name)
-    if (self%vars(var_id)%static) call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
+    if (self%vars(var_id)%static) &
+      call error_message("points_input%read_series: need temporal variable: ", self%vars(var_id)%name)
     if (present(timeframe_start) .neqv. present(timeframe_end)) &
       call error_message("points_input%read_series: timeframe_start and timeframe_end must be given together")
     if (present(timeframe_start)) then
@@ -2750,11 +2871,13 @@ contains
     type(NcDimension), allocatable :: dims(:)
     character(:), allocatable :: id_var_name
     integer(i8) :: i
-    if (.not.allocated(self%point_dim_name)) call error_message("points_input%get_ids: point dimension is unknown")
+    if (.not.allocated(self%point_dim_name)) &
+      call error_message("points_input%get_ids: point dimension is unknown")
     id_var_name = self%point_dim_name
     if (present(id_name)) id_var_name = trim(id_name)
     if (.not.self%nc%hasVariable(id_var_name)) then
-      if (present(id_name)) call error_message("points_input%get_ids: ID variable not present: ", id_var_name)
+      if (present(id_name)) &
+        call error_message("points_input%get_ids: ID variable not present: ", id_var_name)
       allocate(ids(self%points%n_points))
       do i = 1_i8, self%points%n_points
         ids(i) = int(i, i4)
@@ -2762,7 +2885,8 @@ contains
       return
     end if
     id_var = self%nc%getVariable(id_var_name)
-    if (id_var%getRank() /= 1_i4) call error_message("points_input%get_ids: ID variable must be one-dimensional: ", id_var_name)
+    if (id_var%getRank() /= 1_i4) &
+      call error_message("points_input%get_ids: ID variable must be one-dimensional: ", id_var_name)
     dims = id_var%getDimensions()
     if (trim(dims(1)%getName()) /= self%point_dim_name) &
       call error_message("points_input%get_ids: ID variable uses wrong dimension: ", id_var_name)
@@ -2780,11 +2904,13 @@ contains
     type(NcDimension), allocatable :: dims(:)
     character(:), allocatable :: id_var_name
     integer(i8) :: i
-    if (.not.allocated(self%point_dim_name)) call error_message("points_input%get_ids: point dimension is unknown")
+    if (.not.allocated(self%point_dim_name)) &
+      call error_message("points_input%get_ids: point dimension is unknown")
     id_var_name = self%point_dim_name
     if (present(id_name)) id_var_name = trim(id_name)
     if (.not.self%nc%hasVariable(id_var_name)) then
-      if (present(id_name)) call error_message("points_input%get_ids: ID variable not present: ", id_var_name)
+      if (present(id_name)) &
+        call error_message("points_input%get_ids: ID variable not present: ", id_var_name)
       allocate(ids(self%points%n_points))
       do i = 1_i8, self%points%n_points
         ids(i) = int(i, i8)
@@ -2792,7 +2918,8 @@ contains
       return
     end if
     id_var = self%nc%getVariable(id_var_name)
-    if (id_var%getRank() /= 1_i4) call error_message("points_input%get_ids: ID variable must be one-dimensional: ", id_var_name)
+    if (id_var%getRank() /= 1_i4) &
+      call error_message("points_input%get_ids: ID variable must be one-dimensional: ", id_var_name)
     dims = id_var%getDimensions()
     if (trim(dims(1)%getName()) /= self%point_dim_name) &
       call error_message("points_input%get_ids: ID variable uses wrong dimension: ", id_var_name)
@@ -2810,7 +2937,8 @@ contains
     integer(i4), optional, intent(out) :: t_index !< first temporal index
     integer(i4), optional, intent(out) :: t_size !< chunk size
     integer(i4) :: t_start, t_end, t_cnt, t_id
-    if (self%static) call error_message("points_input%chunk_times: file has no time: ", self%path)
+    if (self%static) &
+      call error_message("points_input%chunk_times: file has no time: ", self%path)
     if (timeframe_start < self%times(1)) then
       t_start = 0_i4
     else
@@ -2835,7 +2963,8 @@ contains
     integer(i8) :: current_delta_sec
     integer(i4) :: t_val, left, right
     points_input_time_index = 0_i4
-    if (.not.allocated(self%times)) call error_message("points_input%time_index: file is static and has no time dimension")
+    if (.not.allocated(self%times)) &
+      call error_message("points_input%time_index: file is static and has no time dimension")
     current_delta_sec = int(current_time%date_to_ordinal(), i8) * 86400_i8 + int(current_time%day_second(), i8) - self%ref_ord_sec
     t_val = int(current_delta_sec / self%delta_sec, i4)
     if (mod(current_delta_sec, self%delta_sec) > 0_i8) t_val = t_val + 1_i4
@@ -2865,8 +2994,10 @@ contains
     integer(i4), allocatable :: bounds(:, :)
     integer(i4) :: n_times
 
-    if (self%static .or. .not.allocated(self%t_values)) call error_message("points_input%time_axis: input has no time axis")
-    if (.not.allocated(self%time_units)) call error_message("points_input%time_axis: missing time units")
+    if (self%static .or. .not.allocated(self%t_values)) &
+      call error_message("points_input%time_axis: input has no time axis")
+    if (.not.allocated(self%time_units)) &
+      call error_message("points_input%time_axis: missing time units")
     n_times = size(self%t_values)
     allocate(bounds(2_i4, n_times))
     bounds(1_i4, :) = self%t_bounds(:n_times)
@@ -2927,7 +3058,8 @@ contains
           if (is_x_axis(coord_var) .or. is_lon_coord(coord_var) .or. &
               trim(coord_names(i)) == "x" .or. trim(coord_names(i)) == "lon") then
             coord_dims = coord_var%getDimensions()
-            if (size(coord_dims) /= 1_i4) call error_message("points_input: point coordinate variable must be one-dimensional")
+            if (size(coord_dims) /= 1_i4) &
+              call error_message("points_input: point coordinate variable must be one-dimensional")
             dimname = trim(coord_dims(1)%getName())
             call points_input_check_point_dim(nc, points, dimname, var)
             return
@@ -2948,7 +3080,8 @@ contains
       call error_message("points_input: could not infer point dimension")
     end if
     coord_dims = coord_var%getDimensions()
-    if (size(coord_dims) /= 1_i4) call error_message("points_input: point coordinate variable must be one-dimensional")
+    if (size(coord_dims) /= 1_i4) &
+      call error_message("points_input: point coordinate variable must be one-dimensional")
     dimname = trim(coord_dims(1)%getName())
     if (present(var)) call points_input_check_point_dim(nc, points, dimname, var)
   end function points_input_infer_point_dim_name
@@ -2971,9 +3104,11 @@ contains
     do i = 1_i4, size(dims)
       if (trim(dims(i)%getName()) == trim(dimname)) found = .true.
     end do
-    if (.not.found) call error_message("points_input: selected variable does not use point coordinate dimension: ", var)
+    if (.not.found) &
+      call error_message("points_input: selected variable does not use point coordinate dimension: ", var)
     point_dim = nc%getDimension(trim(dimname))
-    if (point_dim%getLength64() /= points%n_points) call error_message("points_input: point dimension size mismatch: ", dimname)
+    if (point_dim%getLength64() /= points%n_points) &
+      call error_message("points_input: point dimension size mismatch: ", dimname)
   end subroutine points_input_check_point_dim
 
   !> \brief Return one-based index of an integer point ID.

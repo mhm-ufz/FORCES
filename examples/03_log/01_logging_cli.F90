@@ -15,27 +15,18 @@
 program logging_cli
   use mo_logging
   use mo_cli, only : cli_parser
+  use mo_message, only: message, def_log_scope
   implicit none
-  integer :: unit
   type(cli_parser) :: parser
 
   parser = cli_parser( &
     description='Program with cli and logger.', &
-    add_help_option=.true., add_logger_options=.true., log_scope_default="#")
-  ! add log-file option
-  call parser%add_option(name='log-file', help='Write to log file.', has_value=.true., required=.false.)
+    add_help_option=.true., add_logger_options=.true.)
+  ! Successful parsing enables message logging; --log-file replaces the chosen file.
   call parser%parse()
 
-  if (parser%option_was_read('log-file')) then
-    open(newunit=unit, file=parser%option_value('log-file'), status='replace', action='write')
-    print*, 'Logging to file: ', parser%option_value('log-file')
-    ! redirect log units to the opened file
-    log_unit = unit
-    log_unit_error = unit
-  end if
-
   ! log messages with different levels
-  log_fatal(*) 'fatal that should stop the program'
+  log_fatal(*) 'fatal severity record; the macro itself does not terminate'
   log_error(*) 'error that should be logged'
   log_warn(*) 'warning message'
   log_info(*) 'information message'
@@ -52,11 +43,16 @@ program logging_cli
   log_root(LOG_INFO,*) 'root info macro for MPI'
   log_plain_root(LOG_WARN,*) 'plain root warn macro without level for MPI'
 
-  ! scoped messages (enable with --log-scope)
+  ! Scoped messages are enabled by default; --log-scope selects patterns.
   ! examples:
   !   --log-scope mod_data -> 'mod_data' scope only
   !   --log-scope forces*  -> 'forces_data' and 'forces_grid' scopes
   !   --log-scope \#,mod*  -> root and 'mod_data' scopes
+  ! The generic message API can use an application-owned default scope.
+  def_log_scope = 'application'
+  call message('Application message routed through logging')
+  call message('Explicit root message', scope='#')
+
   scope_info('mod_data',*) 'This is a scope info message for the "mod_data" scope.'
   scope_info('forces_data',*) 'This is a scope info message for the "forces_data" scope.'
   scope_debug('forces_grid',*) 'This is a scope debug message for the "forces_grid" scope.'

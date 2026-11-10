@@ -12,6 +12,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_statistics
 MODULE mo_errormeasures
+  use mo_forces_message, only: error_message
 
   USE mo_kind, ONLY : i4, sp, dp
 
@@ -1029,7 +1030,7 @@ CONTAINS
     end if
     !
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'BIAS_sp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('BIAS_sp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1039,7 +1040,8 @@ CONTAINS
       n = size(x)
     end if
     !
-    if (n .LE. 1_i4) stop 'BIAS_sp_1d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('BIAS_sp_1d: number of arguments must be at least 2')
     !
     BIAS_sp_1d = average(y, mask = maske) - average(x, mask = maske)
 
@@ -1066,7 +1068,7 @@ CONTAINS
     end if
     !
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'BIAS_dp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('BIAS_dp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1075,7 +1077,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'BIAS_dp_1d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('BIAS_dp_1d: number of arguments must be at least 2')
     !
     BIAS_dp_1d = average(y, mask = maske) - average(x, mask = maske)
 
@@ -1103,7 +1106,7 @@ CONTAINS
     end if
     !
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'BIAS_sp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('BIAS_sp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1113,7 +1116,8 @@ CONTAINS
       n = size(x, dim = 1) * size(x, dim = 2)
     end if
     !
-    if (n .LE. 1_i4) stop 'BIAS_sp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('BIAS_sp_2d: number of arguments must be at least 2')
     !
     BIAS_sp_2d = average(reshape(y, (/size(y, dim = 1) * size(y, dim = 2)/)), &
             mask = reshape(maske, (/size(y, dim = 1) * size(y, dim = 2)/))) - &
@@ -1143,7 +1147,7 @@ CONTAINS
     end if
     !
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'BIAS_dp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('BIAS_dp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1153,7 +1157,8 @@ CONTAINS
       n = size(x, dim = 1) * size(x, dim = 2)
     end if
     !
-    if (n .LE. 1_i4) stop 'BIAS_dp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('BIAS_dp_2d: number of arguments must be at least 2')
     !
     BIAS_dp_2d = average(reshape(y, (/size(y, dim = 1) * size(y, dim = 2)/)), &
             mask = reshape(maske, (/size(y, dim = 1) * size(y, dim = 2)/))) - &
@@ -1184,7 +1189,7 @@ CONTAINS
     end if
     !
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'BIAS_sp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('BIAS_sp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1195,7 +1200,8 @@ CONTAINS
     end if
     !
     ! not really sopisticated, it has to be checked if the 3 numbers of x and y are matching in arry position
-    if (n .LE. 1_i4) stop 'BIAS_sp_3d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('BIAS_sp_3d: number of arguments must be at least 2')
     !
     BIAS_sp_3d = average(reshape(y, (/size(y, dim = 1) * size(y, dim = 2) * size(y, dim = 3)/)), &
             mask = reshape(maske, (/size(y, dim = 1) * size(y, dim = 2) * size(y, dim = 3)/))) - &
@@ -1226,7 +1232,7 @@ CONTAINS
     end if
     !
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'BIAS_dp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('BIAS_dp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1237,7 +1243,8 @@ CONTAINS
     end if
     !
     ! not really sopisticated, it has to be checked if the 3 numbers of x and y are matching in arry position
-    if (n .LE. 1_i4) stop 'BIAS_dp_3d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('BIAS_dp_3d: number of arguments must be at least 2')
     !
     BIAS_dp_3d = average(reshape(y, (/size(y, dim = 1) * size(y, dim = 2) * size(y, dim = 3)/)), &
             mask = reshape(maske, (/size(y, dim = 1) * size(y, dim = 2) * size(y, dim = 3)/))) - &
@@ -1273,7 +1280,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGE_sp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGE_sp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1282,7 +1289,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGE_sp_1d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGE_sp_1d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(x, mask = maske)
@@ -1325,7 +1333,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGE_sp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGE_sp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1334,7 +1342,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGE_sp_2d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGE_sp_2d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(&
@@ -1389,7 +1398,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGE_sp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGE_sp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1398,7 +1407,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGE_sp_3d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGE_sp_3d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(&
@@ -1454,7 +1464,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGE_dp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGE_dp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1463,7 +1473,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGE_dp_1d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGE_dp_1d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(x, mask = maske)
@@ -1506,7 +1517,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGE_dp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGE_dp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1515,7 +1526,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGE_dp_2d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGE_dp_2d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(&
@@ -1570,7 +1582,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGE_dp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGE_dp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1579,7 +1591,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGE_dp_3d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGE_dp_3d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(&
@@ -1636,7 +1649,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEnocorr_sp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEnocorr_sp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1645,7 +1658,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEnocorr_sp_1d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEnocorr_sp_1d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(x, mask = maske)
@@ -1685,7 +1699,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEnocorr_sp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEnocorr_sp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1694,7 +1708,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEnocorr_sp_2d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEnocorr_sp_2d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(&
@@ -1741,7 +1756,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEnocorr_sp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEnocorr_sp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1750,7 +1765,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEnocorr_sp_3d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEnocorr_sp_3d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(&
@@ -1799,7 +1815,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEnocorr_dp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEnocorr_dp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1808,7 +1824,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEnocorr_dp_1d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEnocorr_dp_1d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(x, mask = maske)
@@ -1848,7 +1865,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEnocorr_dp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEnocorr_dp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1857,7 +1874,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEnocorr_dp_2d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEnocorr_dp_2d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(&
@@ -1904,7 +1922,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEnocorr_dp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEnocorr_dp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1913,7 +1931,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEnocorr_dp_3d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEnocorr_dp_3d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(&
@@ -1967,7 +1986,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEprime_sp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEprime_sp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -1976,7 +1995,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEprime_sp_1d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEprime_sp_1d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(x, mask = maske)
@@ -2022,7 +2042,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEprime_sp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEprime_sp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -2031,7 +2051,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEprime_sp_2d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEprime_sp_2d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(&
@@ -2089,7 +2110,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEprime_sp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEprime_sp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -2098,7 +2119,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEprime_sp_3d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEprime_sp_3d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(&
@@ -2157,7 +2179,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEprime_dp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEprime_dp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -2166,7 +2188,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEprime_dp_1d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEprime_dp_1d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(x, mask = maske)
@@ -2212,7 +2235,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEprime_dp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEprime_dp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -2221,7 +2244,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEprime_dp_2d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEprime_dp_2d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(&
@@ -2279,7 +2303,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEprime_dp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEprime_dp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -2288,7 +2312,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEprime_dp_3d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEprime_dp_3d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(&
@@ -2412,7 +2437,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEnp_sp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEnp_sp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -2421,7 +2446,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEnp_sp_1d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEnp_sp_1d: sample size must be at least 2')
 
     x_valid = PACK(x, maske)
     y_valid = PACK(y, maske)
@@ -2483,7 +2509,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEnp_sp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEnp_sp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -2492,7 +2518,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEnp_sp_2d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEnp_sp_2d: sample size must be at least 2')
 
     x_valid = PACK(x, maske)
     y_valid = PACK(y, maske)
@@ -2554,7 +2581,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEnp_sp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEnp_sp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -2563,7 +2590,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEnp_sp_3d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEnp_sp_3d: sample size must be at least 2')
 
     x_valid = PACK(x, maske)
     y_valid = PACK(y, maske)
@@ -2625,7 +2653,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEnp_dp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEnp_dp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -2634,7 +2662,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEnp_dp_1d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEnp_dp_1d: sample size must be at least 2')
 
     x_valid = PACK(x, maske)
     y_valid = PACK(y, maske)
@@ -2696,7 +2725,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEnp_dp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEnp_dp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -2705,7 +2734,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEnp_dp_2d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEnp_dp_2d: sample size must be at least 2')
 
     x_valid = PACK(x, maske)
     y_valid = PACK(y, maske)
@@ -2767,7 +2797,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEnp_dp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEnp_dp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -2776,7 +2806,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEnp_dp_3d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEnp_dp_3d: sample size must be at least 2')
 
     x_valid = PACK(x, maske)
     y_valid = PACK(y, maske)
@@ -2845,7 +2876,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEweighted_sp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEweighted_sp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -2854,7 +2885,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEweighted_sp_1d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEweighted_sp_1d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(x, mask = maske)
@@ -2906,7 +2938,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEweighted_sp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEweighted_sp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -2915,7 +2947,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEweighted_sp_2d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEweighted_sp_2d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(&
@@ -2979,7 +3012,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEweighted_sp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEweighted_sp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -2988,7 +3021,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEweighted_sp_3d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEweighted_sp_3d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(&
@@ -3053,7 +3087,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEweighted_dp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEweighted_dp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -3062,7 +3096,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEweighted_dp_1d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEweighted_dp_1d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(x, mask = maske)
@@ -3114,7 +3149,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEweighted_dp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEweighted_dp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -3123,7 +3158,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEweighted_dp_2d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEweighted_dp_2d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(&
@@ -3187,7 +3223,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'KGEweighted_dp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('KGEweighted_dp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -3196,7 +3232,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'KGEweighted_dp_3d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('KGEweighted_dp_3d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(&
@@ -3268,7 +3305,8 @@ CONTAINS
     xo = PACK(x, valid)
     xs = PACK(y, valid)
     n = size(xo)
-    if (n <= 1_i4) stop 'jsd_log2_dp: not enough valid, non-negative, finite pairs'
+    if (n <= 1_i4) &
+      call error_message('jsd_log2_dp: not enough valid, non-negative, finite pairs')
 
     ! epsilon: below the smallest positive value seen in either series
     min_pos = huge(1.0_dp)
@@ -3373,7 +3411,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) /= shape(y))) .OR. (any(shape(x) /= shapemask))) &
-            stop 'JDKGE_dp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('JDKGE_dp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -3382,7 +3420,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n <= 1_i4) stop 'JDKGE_dp_1d: sample size must be at least 2'
+    if (n <= 1_i4) &
+      call error_message('JDKGE_dp_1d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(x, mask = maske)
@@ -3465,7 +3504,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) /= shape(y))) .OR. (any(shape(x) /= shapemask))) &
-            stop 'JDKGE_sp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('JDKGE_sp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -3474,7 +3513,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n <= 1_i4) stop 'JDKGE_sp_1d: sample size must be at least 2'
+    if (n <= 1_i4) &
+      call error_message('JDKGE_sp_1d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(x, mask = maske)
@@ -3571,7 +3611,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) /= shape(y))) .OR. (any(shape(x) /= shapemask))) &
-            stop 'JDKGEweighted_dp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('JDKGEweighted_dp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -3580,7 +3620,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n <= 1_i4) stop 'JDKGEweighted_dp_1d: sample size must be at least 2'
+    if (n <= 1_i4) &
+      call error_message('JDKGEweighted_dp_1d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(x, mask = maske)
@@ -3674,7 +3715,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) /= shape(y))) .OR. (any(shape(x) /= shapemask))) &
-            stop 'JDKGEweighted_sp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('JDKGEweighted_sp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -3683,7 +3724,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n <= 1_i4) stop 'JDKGEweighted_sp_1d: sample size must be at least 2'
+    if (n <= 1_i4) &
+      call error_message('JDKGEweighted_sp_1d: sample size must be at least 2')
 
     ! Mean
     mu_Obs = average(x, mask = maske)
@@ -3757,7 +3799,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'LNNSE_sp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('LNNSE_sp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -3770,7 +3812,8 @@ CONTAINS
       maske = .false.
     end where
     n = count(maske)
-    if (n .LE. 1_i4) stop 'LNNSE_sp_1d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('LNNSE_sp_1d: number of arguments must be at least 2')
 
     ! logarithms
     logx = 0.0_sp
@@ -3814,7 +3857,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'LNNSE_dp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('LNNSE_dp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -3827,7 +3870,8 @@ CONTAINS
       maske = .false.
     end where
     n = count(maske)
-    if (n .LE. 1_i4) stop 'LNNSE_dp_1d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('LNNSE_dp_1d: number of arguments must be at least 2')
 
     ! logarithms
     logx = 0.0_dp
@@ -3871,7 +3915,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'LNNSE_sp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('LNNSE_sp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -3884,7 +3928,8 @@ CONTAINS
       maske = .false.
     end where
     n = count(maske)
-    if (n .LE. 1_i4) stop 'LNNSE_sp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('LNNSE_sp_2d: number of arguments must be at least 2')
 
     ! logarithms
     logx = 0.0_sp
@@ -3928,7 +3973,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'LNNSE_dp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('LNNSE_dp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -3941,7 +3986,8 @@ CONTAINS
       maske = .false.
     end where
     n = count(maske)
-    if (n .LE. 1_i4) stop 'LNNSE_dp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('LNNSE_dp_2d: number of arguments must be at least 2')
 
     ! logarithms
     logx = 0.0_dp
@@ -3985,7 +4031,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'LNNSE_sp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('LNNSE_sp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -3998,7 +4044,8 @@ CONTAINS
       maske = .false.
     end where
     n = count(maske)
-    if (n .LE. 1_i4) stop 'LNNSE_sp_3d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('LNNSE_sp_3d: number of arguments must be at least 2')
 
     ! logarithms
     logx = 0.0_sp
@@ -4042,7 +4089,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'LNNSE_dp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('LNNSE_dp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4055,7 +4102,8 @@ CONTAINS
       maske = .false.
     end where
     n = count(maske)
-    if (n .LE. 1_i4) stop 'LNNSE_dp_3d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('LNNSE_dp_3d: number of arguments must be at least 2')
 
     ! logarithms
     logx = 0.0_dp
@@ -4095,7 +4143,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'MAE_sp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('MAE_sp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4104,7 +4152,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1)
     end if
-    if (n .LE. 1_i4) stop 'MAE_sp_1d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('MAE_sp_1d: number of arguments must be at least 2')
     !
     MAE_sp_1d = SAE_sp_1d(x, y, mask = maske) / real(n, sp)
 
@@ -4128,7 +4177,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'MAE_dp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('MAE_dp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4137,7 +4186,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1)
     end if
-    if (n .LE. 1_i4) stop 'MAE_dp_1d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('MAE_dp_1d: number of arguments must be at least 2')
     !
     MAE_dp_1d = SAE_dp_1d(x, y, mask = maske) / real(n, dp)
 
@@ -4161,7 +4211,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'MAE_sp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('MAE_sp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4170,7 +4220,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1) * size(x, dim = 2)
     end if
-    if (n .LE. 1_i4) stop 'MAE_sp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('MAE_sp_2d: number of arguments must be at least 2')
     !
     MAE_sp_2d = SAE_sp_2d(x, y, mask = maske) / real(n, sp)
 
@@ -4194,7 +4245,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'MAE_dp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('MAE_dp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4203,7 +4254,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1) * size(x, dim = 2)
     end if
-    if (n .LE. 1_i4) stop 'MAE_dp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('MAE_dp_2d: number of arguments must be at least 2')
     !
     MAE_dp_2d = SAE_dp_2d(x, y, mask = maske) / real(n, dp)
 
@@ -4228,7 +4280,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'MAE_sp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('MAE_sp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4237,7 +4289,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)
     end if
-    if (n .LE. 1_i4) stop 'MAE_sp_3d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('MAE_sp_3d: number of arguments must be at least 2')
     !
     MAE_sp_3d = SAE_sp_3d(x, y, mask = maske) / real(n, sp)
 
@@ -4262,7 +4315,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'MAE_dp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('MAE_dp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4271,7 +4324,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)
     end if
-    if (n .LE. 1_i4) stop 'MAE_dp_3d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('MAE_dp_3d: number of arguments must be at least 2')
     !
     MAE_dp_3d = SAE_dp_3d(x, y, mask = maske) / real(n, dp)
 
@@ -4297,7 +4351,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'MSE_sp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('MSE_sp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4306,7 +4360,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1)
     end if
-    if (n .LE. 1_i4) stop 'MSE_sp_1d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('MSE_sp_1d: number of arguments must be at least 2')
     !
     MSE_sp_1d = SSE_sp_1d(x, y, mask = maske) / real(n, sp)
 
@@ -4330,7 +4385,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'MSE_dp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('MSE_dp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4339,7 +4394,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1)
     end if
-    if (n .LE. 1_i4) stop 'MSE_dp_1d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('MSE_dp_1d: number of arguments must be at least 2')
     !
     MSE_dp_1d = SSE_dp_1d(x, y, mask = maske) / real(n, dp)
 
@@ -4363,7 +4419,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'MSE_sp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('MSE_sp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4372,7 +4428,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1) * size(x, dim = 2)
     end if
-    if (n .LE. 1_i4) stop 'MSE_sp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('MSE_sp_2d: number of arguments must be at least 2')
     !
     MSE_sp_2d = SSE_sp_2d(x, y, mask = maske) / real(n, sp)
 
@@ -4396,7 +4453,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'MSE_dp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('MSE_dp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4405,7 +4462,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1) * size(x, dim = 2)
     end if
-    if (n .LE. 1_i4) stop 'MSE_dp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('MSE_dp_2d: number of arguments must be at least 2')
     !
     MSE_dp_2d = SSE_dp_2d(x, y, mask = maske) / real(n, dp)
 
@@ -4430,7 +4488,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'MSE_sp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('MSE_sp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4439,7 +4497,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)
     end if
-    if (n .LE. 1_i4) stop 'MSE_sp_3d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('MSE_sp_3d: number of arguments must be at least 2')
     !
     MSE_sp_3d = SSE_sp_3d(x, y, mask = maske) / real(n, sp)
 
@@ -4464,7 +4523,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'MSE_dp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('MSE_dp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4473,7 +4532,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)
     end if
-    if (n .LE. 1_i4) stop 'MSE_dp_3d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('MSE_dp_3d: number of arguments must be at least 2')
     !
     MSE_dp_3d = SSE_dp_3d(x, y, mask = maske) / real(n, dp)
 
@@ -4503,7 +4563,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'NSE_sp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('NSE_sp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4512,7 +4572,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'NSE_sp_1d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('NSE_sp_1d: number of arguments must be at least 2')
     ! mean of x
     xmean = average(x, mask = maske)
     !
@@ -4545,7 +4606,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'NSE_dp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('NSE_dp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4554,7 +4615,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'NSE_dp_1d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('NSE_dp_1d: number of arguments must be at least 2')
     ! mean of x
     xmean = average(x, mask = maske)
     !
@@ -4586,7 +4648,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'NSE_sp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('NSE_sp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4596,7 +4658,8 @@ CONTAINS
       n = size(x, dim = 1) * size(x, dim = 2)
     end if
     !
-    if (n .LE. 1_i4) stop 'NSE_sp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('NSE_sp_2d: number of arguments must be at least 2')
     ! mean of x
     xmean = average(reshape(x(:, :), (/size(x, dim = 1) * size(x, dim = 2)/)), &
             mask = reshape(maske(:, :), (/size(x, dim = 1) * size(x, dim = 2)/)))
@@ -4626,7 +4689,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'NSE_dp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('NSE_dp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4636,7 +4699,8 @@ CONTAINS
       n = size(x, dim = 1) * size(x, dim = 2)
     end if
     !
-    if (n .LE. 1_i4) stop 'NSE_dp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('NSE_dp_2d: number of arguments must be at least 2')
     ! mean of x
     xmean = average(reshape(x(:, :), (/size(x, dim = 1) * size(x, dim = 2)/)), &
             mask = reshape(maske(:, :), (/size(x, dim = 1) * size(x, dim = 2)/)))
@@ -4667,7 +4731,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'NSE_sp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('NSE_sp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4677,7 +4741,8 @@ CONTAINS
       n = size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)
     end if
     !
-    if (n .LE. 1_i4) stop 'NSE_sp_3d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('NSE_sp_3d: number of arguments must be at least 2')
     ! mean of x
     xmean = average(reshape(x(:, :, :), (/size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)/)), &
             mask = reshape(maske(:, :, :), (/size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)/)))
@@ -4708,7 +4773,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'NSE_dp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('NSE_dp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4718,7 +4783,8 @@ CONTAINS
       n = size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)
     end if
     !
-    if (n .LE. 1_i4) stop 'NSE_dp_3d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('NSE_dp_3d: number of arguments must be at least 2')
     ! Average of x
     xmean = average(reshape(x(:, :, :), (/size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)/)), &
             mask = reshape(maske(:, :, :), (/size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)/)))
@@ -4749,7 +4815,7 @@ CONTAINS
     end if
     !
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'SAE_sp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('SAE_sp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4758,7 +4824,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'SAE_sp_1d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('SAE_sp_1d: number of arguments must be at least 2')
     !
     SAE_sp_1d = sum(abs(y - x), mask = maske)
 
@@ -4783,7 +4850,7 @@ CONTAINS
     end if
     !
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'SAE_dp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('SAE_dp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4792,7 +4859,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'SAE_dp_1d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('SAE_dp_1d: number of arguments must be at least 2')
     !
     SAE_dp_1d = sum(abs(y - x), mask = maske)
 
@@ -4817,7 +4885,7 @@ CONTAINS
     end if
     !
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'SAE_sp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('SAE_sp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4826,7 +4894,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1) * size(x, dim = 2)
     end if
-    if (n .LE. 1_i4) stop 'SAE_sp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('SAE_sp_2d: number of arguments must be at least 2')
     !
     SAE_sp_2d = SAE_sp_1d(reshape(x, (/size(x, dim = 1) * size(x, dim = 2)/)), &
             reshape(y, (/size(y, dim = 1) * size(y, dim = 2)/)), &
@@ -4853,7 +4922,7 @@ CONTAINS
     end if
     !
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'SAE_dp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('SAE_dp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4862,7 +4931,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1) * size(x, dim = 2)
     end if
-    if (n .LE. 1_i4) stop 'SAE_dp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('SAE_dp_2d: number of arguments must be at least 2')
     !
     SAE_dp_2d = SAE_dp_1d(reshape(x, (/size(x, dim = 1) * size(x, dim = 2)/)), &
             reshape(y, (/size(y, dim = 1) * size(y, dim = 2)/)), &
@@ -4890,7 +4960,7 @@ CONTAINS
     end if
     !
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'SAE_sp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('SAE_sp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4899,7 +4969,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)
     end if
-    if (n .LE. 1_i4) stop 'SAE_sp_3d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('SAE_sp_3d: number of arguments must be at least 2')
     !
     SAE_sp_3d = SAE_sp_1d(reshape(x, (/size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)/)), &
             reshape(y, (/size(y, dim = 1) * size(y, dim = 2) * size(x, dim = 3)/)), &
@@ -4928,7 +4999,7 @@ CONTAINS
     end if
     !
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'SAE_dp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('SAE_dp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4937,7 +5008,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)
     end if
-    if (n .LE. 1_i4) stop 'SAE_dp_3d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('SAE_dp_3d: number of arguments must be at least 2')
     !
     SAE_dp_3d = SAE_dp_1d(reshape(x, (/size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)/)), &
             reshape(y, (/size(y, dim = 1) * size(y, dim = 2) * size(x, dim = 3)/)), &
@@ -4967,7 +5039,7 @@ CONTAINS
     end if
     !
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'SSE_sp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('SSE_sp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -4976,7 +5048,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'SSE_sp_1d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('SSE_sp_1d: number of arguments must be at least 2')
     !
     SSE_sp_1d = sum((y - x)**2_i4, mask = maske)
 
@@ -5000,7 +5073,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'SSE_dp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('SSE_dp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -5009,7 +5082,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'SSE_dp_1d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('SSE_dp_1d: number of arguments must be at least 2')
     !
     SSE_dp_1d = sum((y - x)**2_i4, mask = maske)
 
@@ -5033,7 +5107,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'SSE_sp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('SSE_sp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -5042,7 +5116,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'SSE_sp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('SSE_sp_2d: number of arguments must be at least 2')
     !
     SSE_sp_2d = SSE_sp_1d(reshape(x, (/size(x, dim = 1) * size(x, dim = 2)/)), &
             reshape(y, (/size(y, dim = 1) * size(y, dim = 2)/)), &
@@ -5068,7 +5143,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'SSE_dp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('SSE_dp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -5077,7 +5152,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'SSE_dp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('SSE_dp_2d: number of arguments must be at least 2')
     !
     SSE_dp_2d = SSE_dp_1d(reshape(x, (/size(x, dim = 1) * size(x, dim = 2)/)), &
             reshape(y, (/size(y, dim = 1) * size(y, dim = 2)/)), &
@@ -5104,7 +5180,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'SSE_sp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('SSE_sp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -5113,7 +5189,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'SSE_sp_3d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('SSE_sp_3d: number of arguments must be at least 2')
     !
     SSE_sp_3d = SSE_sp_1d(reshape(x, (/size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)/)), &
             reshape(y, (/size(y, dim = 1) * size(y, dim = 2) * size(x, dim = 3)/)), &
@@ -5141,7 +5218,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'SSE_dp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('SSE_dp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -5150,7 +5227,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'SSE_dp_3d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('SSE_dp_3d: number of arguments must be at least 2')
     !
     SSE_dp_3d = SSE_dp_1d(reshape(x, (/size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)/)), &
             reshape(y, (/size(y, dim = 1) * size(y, dim = 2) * size(x, dim = 3)/)), &
@@ -5179,7 +5257,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'RMSE_sp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('RMSE_sp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -5188,7 +5266,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1)
     end if
-    if (n .LE. 1_i4) stop 'RMSE_sp_1d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('RMSE_sp_1d: number of arguments must be at least 2')
     !
     RMSE_sp_1d = sqrt(MSE_sp_1d(x, y, mask = maske))
 
@@ -5212,7 +5291,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'RMSE_dp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('RMSE_dp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -5221,7 +5300,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1)
     end if
-    if (n .LE. 1_i4) stop 'RMSE_dp_1d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('RMSE_dp_1d: number of arguments must be at least 2')
     !
     RMSE_dp_1d = sqrt(MSE_dp_1d(x, y, mask = maske))
 
@@ -5245,7 +5325,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'RMSE_sp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('RMSE_sp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -5254,7 +5334,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1) * size(x, dim = 2)
     end if
-    if (n .LE. 1_i4) stop 'RMSE_sp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('RMSE_sp_2d: number of arguments must be at least 2')
     !
     RMSE_sp_2d = sqrt(MSE_sp_2d(x, y, mask = maske))
 
@@ -5278,7 +5359,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'RMSE_dp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('RMSE_dp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -5287,7 +5368,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1) * size(x, dim = 2)
     end if
-    if (n .LE. 1_i4) stop 'RMSE_dp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('RMSE_dp_2d: number of arguments must be at least 2')
     !
     RMSE_dp_2d = sqrt(MSE_dp_2d(x, y, mask = maske))
 
@@ -5312,7 +5394,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'RMSE_sp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('RMSE_sp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -5321,7 +5403,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)
     end if
-    if (n .LE. 1_i4) stop 'RMSE_sp_3d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('RMSE_sp_3d: number of arguments must be at least 2')
     !
     RMSE_sp_3d = sqrt(MSE_sp_3d(x, y, mask = maske))
 
@@ -5346,7 +5429,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'RMSE_dp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('RMSE_dp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -5355,7 +5438,8 @@ CONTAINS
       maske = .true.
       n = size(x, dim = 1) * size(x, dim = 2) * size(x, dim = 3)
     end if
-    if (n .LE. 1_i4) stop 'RMSE_dp_3d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('RMSE_dp_3d: number of arguments must be at least 2')
     !
     RMSE_dp_3d = sqrt(MSE_dp_3d(x, y, mask = maske))
 
@@ -5385,7 +5469,7 @@ CONTAINS
        shapemask =  shape(x)
     end if
     if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
-         stop 'wNSE_sp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('wNSE_sp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
        maske = mask
@@ -5394,7 +5478,8 @@ CONTAINS
        maske = .true.
        n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'wNSE_sp_1d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('wNSE_sp_1d: number of arguments must be at least 2')
     ! mean of x
     xmean = average(x, mask=maske)
     !
@@ -5428,7 +5513,7 @@ CONTAINS
        shapemask =  shape(x)
     end if
     if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
-         stop 'wNSE_dp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('wNSE_dp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
        maske = mask
@@ -5437,7 +5522,8 @@ CONTAINS
        maske = .true.
        n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'wNSE_dp_1d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('wNSE_dp_1d: number of arguments must be at least 2')
     ! mean of x
     xmean = average(x, mask=maske)
     !
@@ -5470,7 +5556,7 @@ CONTAINS
        shapemask =  shape(x)
     end if
     if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
-         stop 'wNSE_sp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('wNSE_sp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
        maske = mask
@@ -5480,7 +5566,8 @@ CONTAINS
        n     = size(x, dim=1) * size(x, dim=2)
     end if
     !
-    if (n .LE. 1_i4) stop 'wNSE_sp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('wNSE_sp_2d: number of arguments must be at least 2')
     ! mean of x
     xmean = average(reshape(x(:,:), (/size(x, dim=1)*size(x, dim=2)/)), &
          mask=reshape(maske(:,:), (/size(x, dim=1)*size(x, dim=2)/)))
@@ -5510,7 +5597,7 @@ CONTAINS
        shapemask =  shape(x)
     end if
     if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
-         stop 'wNSE_dp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('wNSE_dp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
        maske = mask
@@ -5520,7 +5607,8 @@ CONTAINS
        n     = size(x, dim=1) * size(x, dim=2)
     end if
     !
-    if (n .LE. 1_i4) stop 'wNSE_dp_2d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('wNSE_dp_2d: number of arguments must be at least 2')
     ! mean of x
     xmean = average(reshape(x(:,:), (/size(x, dim=1)*size(x, dim=2)/)), &
          mask=reshape(maske(:,:), (/size(x, dim=1)*size(x, dim=2)/)))
@@ -5551,7 +5639,7 @@ CONTAINS
        shapemask =  shape(x)
     end if
     if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
-         stop 'wNSE_sp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('wNSE_sp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
        maske = mask
@@ -5561,7 +5649,8 @@ CONTAINS
        n     = size(x, dim=1) * size(x, dim=2) * size(x, dim=3)
     end if
     !
-    if (n .LE. 1_i4) stop 'wNSE_sp_3d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('wNSE_sp_3d: number of arguments must be at least 2')
     ! mean of x
     xmean = average(reshape(x(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)), &
          mask=reshape(maske(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)))
@@ -5592,7 +5681,7 @@ CONTAINS
        shapemask =  shape(x)
     end if
     if ( (any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask)) ) &
-         stop 'wNSE_dp_3d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('wNSE_dp_3d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
        maske = mask
@@ -5602,7 +5691,8 @@ CONTAINS
        n     = size(x, dim=1) * size(x, dim=2) * size(x, dim=3)
     end if
     !
-    if (n .LE. 1_i4) stop 'wNSE_dp_3d: number of arguments must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('wNSE_dp_3d: number of arguments must be at least 2')
     ! Average of x
     xmean = average(reshape(x(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)), &
          mask=reshape(maske(:,:,:), (/size(x, dim=1)*size(x, dim=2)*size(x, dim=3)/)))
@@ -5646,7 +5736,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'SPAEF_dp_1d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('SPAEF_dp_1d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -5655,7 +5745,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'SPAEF_dp_1d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('SPAEF_dp_1d: sample size must be at least 2')
 
     ! == Calculate alpha
     ! Pearson product-moment correlation coefficient is with (N-1) not N
@@ -5709,7 +5800,7 @@ CONTAINS
       shapemask = shape(x)
     end if
     if ((any(shape(x) .NE. shape(y))) .OR. (any(shape(x) .NE. shapemask))) &
-            stop 'CA_dp_2d: shapes of inputs(x,y) or mask are not matching'
+      call error_message('CA_dp_2d: shapes of inputs(x,y) or mask are not matching')
     !
     if (present(mask)) then
       maske = mask
@@ -5718,7 +5809,8 @@ CONTAINS
       maske = .true.
       n = size(x)
     end if
-    if (n .LE. 1_i4) stop 'CA_dp_2d: sample size must be at least 2'
+    if (n .LE. 1_i4) &
+      call error_message('CA_dp_2d: sample size must be at least 2')
 
 
     ! == Calculate CA

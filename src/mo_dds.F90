@@ -11,6 +11,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_optimization
 module mo_dds
+  use mo_forces_message, only: error_message, message
 
   use mo_optimizee, only : optimizee
 
@@ -137,6 +138,7 @@ CONTAINS
     real(dp), optional, intent(out) :: funcbest ! Best value of the function.
     real(dp), dimension(:), optional, intent(out), &
             allocatable :: history  ! History of objective function values
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
     real(dp), dimension(size(pini)) :: DDS      ! Best value of decision variables
 
     ! Local variables
@@ -163,16 +165,20 @@ CONTAINS
 
     ! Check input
     pnum = size(pini)
-    if (size(prange, 1) /= pnum) stop 'Error DDS: size(prange,1) /= size(pini)'
-    if (size(prange, 2) /= 2)    stop 'Error DDS: size(prange,2) /= 2'
+    if (size(prange, 1) /= pnum) &
+      call error_message('Error DDS: size(prange,1) /= size(pini)')
+    if (size(prange, 2) /= 2) &
+      call error_message('Error DDS: size(prange,2) /= 2')
     ! r Perturbation parameter
     ir = 0.2_dp
     if (present(r)) ir = r
-    if (ir <= 0.0_dp .or. ir > 1.0_dp) stop 'Error DDS: DDS perturbation parameter (0.0, 1.0]'
+    if (ir <= 0.0_dp .or. ir > 1.0_dp) &
+      call error_message('Error DDS: DDS perturbation parameter (0.0, 1.0]')
     ! max. iteration
     imaxiter = 1000
     if (present(maxiter)) imaxiter = maxiter
-    if (imaxiter < 6) stop 'Error DDS: max function evals must be minimum 6'
+    if (imaxiter < 6) &
+      call error_message('Error DDS: max function evals must be minimum 6')
     ! history output
     if (present(history)) then
       allocate(history(imaxiter))
@@ -189,7 +195,7 @@ CONTAINS
 
     if (present(mask)) then
       if (count(mask) .eq. 0_i4) then
-        stop 'Input argument mask: At least one element has to be true'
+        call error_message('Input argument mask: At least one element has to be true')
       else
         maske = mask
       end if
@@ -246,7 +252,8 @@ CONTAINS
     ! and Initialise the other variables (e.g. of_best)
     ! imaxit is 1.0 for MIN problems, -1 for MAX problems
     DDS = pini
-    print *, imaxit
+    write(diagnostic_text, *) imaxit
+    call message(trim(diagnostic_text))
 #ifdef MPI
     call MPI_Comm_size(comm, nproc, ierror)
     do iproc = 1, nproc-1
@@ -466,12 +473,15 @@ CONTAINS
 
     ! Check input
     pnum = size(pini)
-    if (size(prange, 1) /= pnum) stop 'Error MDDS: size(prange,1) /= size(pini)'
-    if (size(prange, 2) /= 2)    stop 'Error MDDS: size(prange,2) /= 2'
+    if (size(prange, 1) /= pnum) &
+      call error_message('Error MDDS: size(prange,1) /= size(pini)')
+    if (size(prange, 2) /= 2) &
+      call error_message('Error MDDS: size(prange,2) /= 2')
     ! max. iteration
     imaxiter = 1000
     if (present(maxiter)) imaxiter = maxiter
-    if (imaxiter < 6) stop 'Error MDDS: max function evals must be minimum 6'
+    if (imaxiter < 6) &
+      call error_message('Error MDDS: max function evals must be minimum 6')
     ! history output
     if (present(history)) then
       allocate(history(imaxiter))
@@ -501,7 +511,7 @@ CONTAINS
     ! Masked parameters
     if (present(mask)) then
       if (count(mask) .eq. 0_i4) then
-        stop 'Input argument mask: At least one element has to be true'
+        call error_message('Input argument mask: At least one element has to be true')
       else
         maske = mask
       end if

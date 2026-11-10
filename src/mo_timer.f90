@@ -15,6 +15,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_core
 module mo_timer
+  use mo_forces_message, only: message
 
   ! -----------------------------------------------------------------------
 
@@ -227,6 +228,7 @@ contains
     implicit none
 
     integer(i4), intent(in) :: timer            ! timer number
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     !---
     !--- print the cputime accumulated for timer
@@ -234,12 +236,12 @@ contains
     !---
 
     if (status(timer) .eq. 'stopped') then
-      write(*, "(' CPU time for timer',i3,':',1p,e16.8)")   &
-              timer, cputime(timer)
+      write(diagnostic_text, "(' CPU time for timer',i3,':',1p,e16.8)") timer, cputime(timer)
+      call message(trim(diagnostic_text))
     else
       call timer_stop(timer)
-      write(*, "(' CPU time for timer',i3,':',1p,e16.8)")   &
-              timer, cputime(timer)
+      write(diagnostic_text, "(' CPU time for timer',i3,':',1p,e16.8)") timer, cputime(timer)
+      call message(trim(diagnostic_text))
       call timer_start(timer)
     end if
 
@@ -382,7 +384,7 @@ contains
       clock_rate = 1.0_sp / real(cycles)
     else
       clock_rate = 0.0_sp
-      print *, '--- No system clock available ---'
+      call message('--- No system clock available ---')
     end if
 
   end subroutine timers_init

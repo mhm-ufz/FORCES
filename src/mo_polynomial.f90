@@ -16,10 +16,10 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_statistics
 module mo_polynomial
+  use mo_forces_message, only: error_message
 
   use mo_kind, only : i4, dp
   use mo_utils, only : equal
-  use mo_message, only : error_message
 
   implicit none
   private
@@ -46,7 +46,8 @@ contains
     integer(i4) :: n, i
 
     n = size(p) ! should be > 0
-    if (n == 0_i4) call error_message("mo_polynomial : p is an empty array.")
+    if (n == 0_i4) &
+      call error_message("mo_polynomial : p is an empty array.")
 
     ! Horner's scheme
     poly_eval = p(1)
@@ -67,7 +68,8 @@ contains
     integer(i4) :: n, i
 
     n = size(p)
-    if (n == 0_i4) call error_message("mo_polynomial : p is an empty array.")
+    if (n == 0_i4) &
+      call error_message("mo_polynomial : p is an empty array.")
     if (n == 1_i4) d_p(1) = 0.0
 
     do i = 1_i4, n - 1_i4
@@ -86,7 +88,8 @@ contains
     integer(i4) :: n, i
 
     n = size(p)
-    if (n == 0_i4) call error_message("mo_polynomial : p is an empty array.")
+    if (n == 0_i4) &
+      call error_message("mo_polynomial : p is an empty array.")
 
     poly_order = 0_i4
     do i = 1_i4, n

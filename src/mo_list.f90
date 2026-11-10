@@ -88,9 +88,9 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_core
 module mo_list
+  use mo_forces_message, only: error_message
 
   use mo_kind, only: i4
-  use mo_message, only: error_message
   implicit none
   private
 
@@ -199,7 +199,8 @@ contains
     character(:), allocatable :: value !< key value
     class(*), pointer :: p
     call this%get(id, p)
-    if (.not.associated(p)) call error_message('key_list: item not associated') ! LCOV_EXCL_LINE
+    if (.not.associated(p)) & ! LCOV_EXCL_LINE
+      call error_message('key_list: item not associated') ! LCOV_EXCL_LINE
     select type (p)
       type is (character(len=*))
         value = p
@@ -215,7 +216,8 @@ contains
     integer(i4) :: value !< key value
     class(*), pointer :: p
     call this%get(id, p)
-    if (.not.associated(p)) call error_message('key_list: item not associated') ! LCOV_EXCL_LINE
+    if (.not.associated(p)) & ! LCOV_EXCL_LINE
+      call error_message('key_list: item not associated') ! LCOV_EXCL_LINE
     select type (p)
       type is (integer(i4))
         value = p
@@ -231,7 +233,8 @@ contains
     class(key_class) :: value !< key value
     class(*), pointer :: p
     call this%get(id, p)
-    if (.not.associated(p)) call error_message('key_list: item not associated') ! LCOV_EXCL_LINE
+    if (.not.associated(p)) & ! LCOV_EXCL_LINE
+      call error_message('key_list: item not associated') ! LCOV_EXCL_LINE
     select type (p)
       class is (key_class)
         value = p
@@ -292,7 +295,8 @@ contains
     integer(i4), intent(in) :: id !< key id
     class(*), pointer :: p
     call this%get(id, p)
-    if (.not.associated(p)) call error_message('key_list: item not associated') ! LCOV_EXCL_LINE
+    if (.not.associated(p)) & ! LCOV_EXCL_LINE
+      call error_message('key_list: item not associated') ! LCOV_EXCL_LINE
     select type (p)
       type is (character(len=*))
         get_type = "str"
@@ -451,7 +455,8 @@ contains
     class(*), intent(in)       :: key !< item key
     type(item), pointer :: p
     call this%get_item(key, p)
-    if (.not.associated(p)) call error_message('list%remove: item not associated') ! LCOV_EXCL_LINE
+    if (.not.associated(p)) & ! LCOV_EXCL_LINE
+      call error_message('list%remove: item not associated') ! LCOV_EXCL_LINE
     call this%remove_by_pointer(p)
   end subroutine remove_by_key
 
@@ -487,7 +492,8 @@ contains
     implicit none
     class(item), intent(in)        :: this
     class(*), pointer, intent(out) :: value
-    if (.not.associated(this%value)) call error_message('item%get: item value not associated') ! LCOV_EXCL_LINE
+    if (.not.associated(this%value)) & ! LCOV_EXCL_LINE
+      call error_message('item%get: item value not associated') ! LCOV_EXCL_LINE
     value => this%value
   end subroutine get_item_data
 
@@ -499,7 +505,8 @@ contains
     class(*), pointer, intent(out) :: value !< data value
     type(item), pointer :: p
     call this%get_item(key, p)
-    if (.not.associated(p)) call error_message('list%get: item not associated') ! LCOV_EXCL_LINE
+    if (.not.associated(p)) & ! LCOV_EXCL_LINE
+      call error_message('list%get: item not associated') ! LCOV_EXCL_LINE
     call p%get_data(value)
   end subroutine get_data
 
@@ -606,7 +613,8 @@ contains
      type is (integer(i4))
       !ok
      type is (character(len=*))
-      if (len_trim(key) < 1) call error_message('Error: key must be nonblank.') ! LCOV_EXCL_LINE
+      if (len_trim(key) < 1) & ! LCOV_EXCL_LINE
+        call error_message('Error: key must be nonblank.') ! LCOV_EXCL_LINE
      class is (key_class)
       !ok
      class default
@@ -615,7 +623,8 @@ contains
     ! if the item is already there, then remove it
     call this%get_item(key, p)
     if (associated(p)) then
-      if (.not.replace_) call error_message('Error: key already present but replace=.false.') ! LCOV_EXCL_LINE
+      if (.not.replace_) & ! LCOV_EXCL_LINE
+        call error_message('Error: key already present but replace=.false.') ! LCOV_EXCL_LINE
       if (p%destroy_on_delete .and. associated(p%value)) deallocate(p%value)
       p%value => value
       p%destroy_on_delete = .true. ! reset to default

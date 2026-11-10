@@ -8,10 +8,12 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_statistics
 MODULE mo_corr
+  use mo_forces_message, only: error_message
 
   USE mo_kind, ONLY : i4, sp, dp
 
   Implicit NONE
+  private :: error_message ! Diagnostic imports are implementation details
 
   PUBLIC :: autocorr     ! Autocorrelation coefficient at lag k = autocoeffk(k)/autocoeffk(0)
 
@@ -84,7 +86,8 @@ CONTAINS
 
     maske(:) = .true.
     if (present(mask)) then
-      if (size(mask) /= size(x)) stop 'Error autocorr_dp: size(mask) /= size(x)'
+      if (size(mask) /= size(x)) &
+        call error_message('Error autocorr_dp: size(mask) /= size(x)')
       maske = mask
     end if
 
@@ -121,7 +124,8 @@ CONTAINS
 
     maske(:) = .true.
     if (present(mask)) then
-      if (size(mask) /= size(x)) stop 'Error autocorr_sp: size(mask) /= size(x)'
+      if (size(mask) /= size(x)) &
+        call error_message('Error autocorr_sp: size(mask) /= size(x)')
       maske = mask
     end if
 

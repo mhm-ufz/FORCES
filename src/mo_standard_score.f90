@@ -11,6 +11,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_statistics
 MODULE mo_standard_score
+  use mo_forces_message, only: error_message
 
   USE mo_kind, ONLY : i4, sp, dp
 
@@ -190,14 +191,16 @@ CONTAINS
 
     ! check if optional mask matches shape of data
     if (present(mask)) then
-      if (size(mask) .ne. size(data)) stop '***Error: standard_score_sp: size(mask) .ne. size(data)'
+      if (size(mask) .ne. size(data)) &
+        call error_message('***Error: standard_score_sp: size(mask) .ne. size(data)')
       maske = mask
     else
       maske(:) = .true.
     end if
 
     ! check if enough values (>1) are available
-    if (count(maske) .LE. 2) stop '***Error: standard_score_sp: less than 2 elements avaiable'
+    if (count(maske) .LE. 2) &
+      call error_message('***Error: standard_score_sp: less than 2 elements avaiable')
 
     standard_score_sp = (data(:) - average(data, mask = maske)) / stddev(data, mask = maske)
 
@@ -219,14 +222,16 @@ CONTAINS
 
     ! check if optional mask matches shape of data
     if (present(mask)) then
-      if (size(mask) .ne. size(data)) stop '***Error: standard_score_dp: size(mask) .ne. size(data)'
+      if (size(mask) .ne. size(data)) &
+        call error_message('***Error: standard_score_dp: size(mask) .ne. size(data)')
       maske = mask
     else
       maske(:) = .true.
     end if
 
     ! check if enough values (>1) are available
-    if (count(maske) .LE. 2) stop '***Error: standard_score_dp: less than 2 elements avaiable'
+    if (count(maske) .LE. 2) &
+      call error_message('***Error: standard_score_dp: less than 2 elements avaiable')
 
     standard_score_dp = (data(:) - average(data, mask = maske)) / stddev(data, mask = maske)
 
@@ -259,14 +264,16 @@ CONTAINS
 
     ! check if optional mask matches shape of data
     if (present(mask)) then
-      if (size(mask) .ne. size(data)) stop '***Error: classified_standard_score_sp: size(mask) .ne. size(data)'
+      if (size(mask) .ne. size(data)) &
+        call error_message('***Error: classified_standard_score_sp: size(mask) .ne. size(data)')
       maske = mask
     else
       maske(:) = .true.
     end if
 
     ! check if enough values (>1) are available
-    if (count(maske) .LE. 2) stop '***Error: classified_standard_score_sp: less than 2 elements avaiable'
+    if (count(maske) .LE. 2) &
+      call error_message('***Error: classified_standard_score_sp: less than 2 elements avaiable')
 
     ! initialization
     classified_standard_score_sp = 0.0_sp
@@ -315,14 +322,16 @@ CONTAINS
 
     ! check if optional mask matches shape of data
     if (present(mask)) then
-      if (size(mask) .ne. size(data)) stop '***Error: classified_standard_score_dp: size(mask) .ne. size(data)'
+      if (size(mask) .ne. size(data)) &
+        call error_message('***Error: classified_standard_score_dp: size(mask) .ne. size(data)')
       maske = mask
     else
       maske(:) = .true.
     end if
 
     ! check if enough values (>1) are available
-    if (count(maske) .LE. 2) stop '***Error: classified_standard_score_dp: less than 2 elements avaiable'
+    if (count(maske) .LE. 2) &
+      call error_message('***Error: classified_standard_score_dp: less than 2 elements avaiable')
 
     ! initialization
     classified_standard_score_dp = 0.0_dp

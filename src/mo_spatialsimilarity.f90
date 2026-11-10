@@ -10,10 +10,12 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_spatial
 MODULE mo_spatialsimilarity
+  use mo_forces_message, only: error_message
 
   USE mo_kind, ONLY : i4, sp, dp
 
   IMPLICIT NONE
+  private :: error_message ! Diagnostic imports are implementation details
 
   PUBLIC :: NNDV       ! number of neighboring dominating values
   PUBLIC :: PD         ! patter dissimilarity measure
@@ -248,10 +250,10 @@ CONTAINS
       shapemask = shape(mat1)
     end if
     !
-    if (any(shape(mat1) .NE. shape(mat2)))  &
-            stop 'NNDV_sp: shapes of input matrix 1 and input matrix 2 are not matching'
-    if (any(shape(mat1) .NE. shapemask))    &
-            stop 'NNDV_sp: shapes of input matrices and mask are not matching'
+    if (any(shape(mat1) .NE. shape(mat2))) &
+      call error_message('NNDV_sp: shapes of input matrix 1 and input matrix 2 are not matching')
+    if (any(shape(mat1) .NE. shapemask)) &
+      call error_message('NNDV_sp: shapes of input matrices and mask are not matching')
     !
     ! additional 2 rows and 2 cols added for checking the border cells without crashing the search agorithm
     ! so the search windows can always cover 9 cells even if it is checking a border cell
@@ -334,10 +336,10 @@ CONTAINS
       shapemask = shape(mat1)
     end if
     !
-    if (any(shape(mat1) .NE. shape(mat2)))  &
-            stop 'NNDV_dp: shapes of input matrix 1 and input matrix 2 are not matching'
-    if (any(shape(mat1) .NE. shapemask))    &
-            stop 'NNDV_dp: shapes of input matrices and mask are not matching'
+    if (any(shape(mat1) .NE. shape(mat2))) &
+      call error_message('NNDV_dp: shapes of input matrix 1 and input matrix 2 are not matching')
+    if (any(shape(mat1) .NE. shapemask)) &
+      call error_message('NNDV_dp: shapes of input matrices and mask are not matching')
     !
     ! additional 2 rows and 2 cols added for checking the border cells without crashing the search agorithm
     ! so the search windows can always cover 9 cells even if it is checking a border cell
@@ -421,10 +423,10 @@ CONTAINS
       shapemask = shape(mat1)
     end if
     !
-    if (any(shape(mat1) .NE. shape(mat2)))  &
-            stop 'PD_sp: shapes of input matrix 1 and input matrix 2 are not matching'
-    if (any(shape(mat1) .NE. shapemask))    &
-            stop 'PD_sp: shapes of input matrices and mask are not matching'
+    if (any(shape(mat1) .NE. shape(mat2))) &
+      call error_message('PD_sp: shapes of input matrix 1 and input matrix 2 are not matching')
+    if (any(shape(mat1) .NE. shapemask)) &
+      call error_message('PD_sp: shapes of input matrices and mask are not matching')
     !
     ! additional 2 rows and 2 cols added for checking the border cells without crashing the search agorithm
     ! so the search windows can always cover 9 cells even if it is checking a border cell
@@ -512,10 +514,10 @@ CONTAINS
       shapemask = shape(mat1)
     end if
     !
-    if (any(shape(mat1) .NE. shape(mat2)))  &
-            stop 'PD_dp: shapes of input matrix 1 and input matrix 2 are not matching'
-    if (any(shape(mat1) .NE. shapemask))    &
-            stop 'PD_dp: shapes of input matrices and mask are not matching'
+    if (any(shape(mat1) .NE. shape(mat2))) &
+      call error_message('PD_dp: shapes of input matrix 1 and input matrix 2 are not matching')
+    if (any(shape(mat1) .NE. shapemask)) &
+      call error_message('PD_dp: shapes of input matrices and mask are not matching')
     !
     ! additional 2 rows and 2 cols added for checking the border cells without crashing the search agorithm
     ! so the search windows can always cover 9 cells even if it is checking a border cell

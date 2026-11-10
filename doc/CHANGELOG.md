@@ -1,4 +1,4 @@
-# Changelog
+# Changelog {#changelog}
 
 [TOC]
 
@@ -7,6 +7,28 @@ All notable changes to **FORCES** will be documented in this file.
 ## Unreleased
 
 ### Enhancements and Changes
+
+* Scoped diagnostics and logging:
+  * Added `mo_message::def_log_scope` and optional `scope=` arguments, with root
+    defaults for applications and `[scope]` prefixes in plain output.
+  * Added `mo_forces_message` wrappers; internal diagnostics import them once at
+    module level and default to `forces` independently of application settings.
+  * Logging remains opt-in, now formats `[scope][LEVEL]`, and enables all scopes
+    by default. Explicit root/named/glob filters remain available. FATAL bypasses
+    scope filters but respects quiet levels, rank selection and explicit `show=`.
+  * Global show flags apply only to plain output; explicit `show=` is honored in
+    both modes independently of logger settings. Nonterminating errors
+    use ERROR, and terminating warnings/errors use FATAL. Logging still ignores
+    message `uni=` and `advance=` in favor of its configured output units/records.
+  * Removed higher-level logger dependencies and kept CLI help/version on plain
+    stdout independently of diagnostic configuration.
+  * CLI logger options now enable message logging after successful parsing and include
+    `--log-file path`, which overwrites the file after successful parsing.
+    Help/version leave the file untouched; opening failures retain stdout/stderr
+    fallback. Logger file opens now specify `recl=65536_i4` for long records.
+  * Migrated console diagnostics and diagnostic STOP strings to the FORCES
+    wrappers. Fatal failures use `ERROR STOP 1` in both modes, including legacy cases that
+    could previously report success. Scientific/history/restart files are unchanged.
 
 * `mo_grid_scaler`: equal-resolution scalers now assign the target as `fine_grid`
   and the source as `coarse_grid`, retaining `no_scaling`. `id_map(target_id)`

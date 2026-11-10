@@ -9,6 +9,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_statistics
 module mo_xor4096
+  use mo_forces_message, only: error_message
 
   ! -----------------------------------------------------------------------------
   ! The original version of this source code  (without multiple streams, optional
@@ -505,9 +506,8 @@ CONTAINS
 
     m = size(seed, 1)
 
-    if (any(seed .eq. 0_i4) .and. any(seed .ne. 0_i4)) then
-      stop 'xor4096: seeds have to be eigther all 0 or all larger than 0'
-    end if
+    if (any(seed .eq. 0_i4) .and. any(seed .ne. 0_i4)) &
+      call error_message('xor4096: seeds have to be eigther all 0 or all larger than 0')
 
     if (present(save_state) .and. all(seed .eq. 0_i4)) then
       if (allocated(x)) then
@@ -766,9 +766,8 @@ CONTAINS
 
     m = size(seed, 1)
 
-    if (any(seed .eq. 0_i4) .and. any(seed .ne. 0_i4)) then
-      stop 'xor4096: seeds have to be eigther all 0 or all larger than 0'
-    end if
+    if (any(seed .eq. 0_i4) .and. any(seed .ne. 0_i4)) &
+      call error_message('xor4096: seeds have to be eigther all 0 or all larger than 0')
 
     if (present(save_state) .and. all(seed .eq. 0_i4)) then
       if (allocated(x)) then
@@ -1012,9 +1011,8 @@ CONTAINS
 
     m = size(seed, 1)
 
-    if (any(seed .eq. 0_i8) .and. any(seed .ne. 0_i8)) then
-      stop 'xor4096: seeds have to be eigther all 0 or all larger than 0'
-    end if
+    if (any(seed .eq. 0_i8) .and. any(seed .ne. 0_i8)) &
+      call error_message('xor4096: seeds have to be eigther all 0 or all larger than 0')
 
     if (present(save_state) .and. all(seed .eq. 0_i4)) then
       if (allocated(x)) then
@@ -1267,9 +1265,8 @@ CONTAINS
 
     m = size(seed, 1)
 
-    if (any(seed .eq. 0_i8) .and. any(seed .ne. 0_i8)) then
-      stop 'xor4096: seeds have to be eigther all 0 or all larger than 0'
-    end if
+    if (any(seed .eq. 0_i8) .and. any(seed .ne. 0_i8)) &
+      call error_message('xor4096: seeds have to be eigther all 0 or all larger than 0')
 
     if (present(save_state) .and. all(seed .eq. 0_i4)) then
       if (allocated(x)) then
@@ -1584,9 +1581,8 @@ CONTAINS
 
     m = size(seed, 1)
 
-    if (any(seed .eq. 0_i4) .and. any(seed .ne. 0_i4)) then
-      stop 'xor4096g: seeds have to be eigther all 0 or all larger than 0'
-    end if
+    if (any(seed .eq. 0_i4) .and. any(seed .ne. 0_i4)) &
+      call error_message('xor4096g: seeds have to be eigther all 0 or all larger than 0')
 
     if (present(save_state) .and. all(seed .eq. 0_i4)) then
       if (allocated(x)) then
@@ -1964,9 +1960,8 @@ CONTAINS
 
     m = size(seed, 1)
 
-    if (any(seed .eq. 0_i8) .and. any(seed .ne. 0_i8)) then
-      stop 'xor4096g: seeds have to be eigther all 0 or all larger than 0'
-    end if
+    if (any(seed .eq. 0_i8) .and. any(seed .ne. 0_i8)) &
+      call error_message('xor4096g: seeds have to be eigther all 0 or all larger than 0')
 
     if (present(save_state) .and. all(seed .eq. 0_i8)) then
       if (allocated(x)) then

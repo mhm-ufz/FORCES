@@ -18,6 +18,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_spatial
 module mo_grid
+  use mo_forces_message, only: error_message, warn_message
 
   use mo_grid_constants, only: cartesian, spherical, keep_y, top_down, bottom_up, area_sum, area_full, area_count
   use mo_grid_helper, only: value_in_closed_interval, shift_longitude_near_query, quad_contains_point, &
@@ -31,7 +32,6 @@ module mo_grid
   use mo_kind, only: i1, i2, i4, i8, sp, dp
   use mo_constants, only : nodata_i1, nodata_i2, nodata_i4, nodata_i8, nodata_sp, nodata_dp, RadiusEarth_dp, deg2rad_dp
   use mo_utils, only: flip, optval, is_close, is_finite
-  use mo_message, only : error_message, warn_message, message
   use mo_spatial_index, only: spatial_index_t
   use mo_string_utils, only : num2str
   use mo_poly, only: inpoly
@@ -267,9 +267,8 @@ contains
     ! check if coordsys is supported
     this%coordsys = optval(coordsys, cartesian)
     ! LCOV_EXCL_START
-    if (.not.any(this%coordsys == [cartesian, spherical])) then
+    if (.not.any(this%coordsys == [cartesian, spherical])) &
       call error_message("grid % init: unknown coordsys value: ", num2str(this%coordsys))
-    end if
     ! LCOV_EXCL_STOP
     ! check if y-direction is supported
     this%y_direction = top_down
@@ -283,11 +282,9 @@ contains
     if ( present(mask) ) then
       ! LCOV_EXCL_START
       if (size(mask, dim=1) /= nx .or. size(mask, dim=2) /= ny) &
-        call error_message("grid % init: mask has wrong shape: mask(", &
-                           trim(adjustl(num2str(size(mask, dim=1)))), ",", &
-                           trim(adjustl(num2str(size(mask, dim=2)))), ") =/= grid(", &
-                           trim(adjustl(num2str(nx))), ",", &
-                           trim(adjustl(num2str(ny))), ")")
+        call error_message("grid % init: mask has wrong shape: mask(",  trim(adjustl(num2str(size(mask, dim=1)))), &
+          ",",  trim(adjustl(num2str(size(mask, dim=2)))), ") =/= grid(",  trim(adjustl(num2str(nx))), ",", &
+          trim(adjustl(num2str(ny))), ")")
       ! LCOV_EXCL_STOP
       allocate(this%mask(this%nx, this%ny))
       !$omp parallel do default(shared) schedule(static)
@@ -500,7 +497,8 @@ contains
 
     ncvar = nc%getVariable(var)
     rnk = ncvar%getRank()
-    if (rnk < 2) call error_message("grid % from_netcdf: given variable has too few dimensions: ", trim(nc%fname), ":", var) ! LCOV_EXCL_LINE
+    if (rnk < 2) & ! LCOV_EXCL_LINE
+      call error_message("grid % from_netcdf: given variable has too few dimensions: ", trim(nc%fname), ":", var) ! LCOV_EXCL_LINE
 
     dims = ncvar%getDimensions()
     this%nx = dims(1)%getLength()
@@ -546,10 +544,9 @@ contains
 
     ! warn about flipping if present axis is not in desired direction
     flip_y = y_inc.neqv.(this%y_direction==bottom_up)
-    if (flip_y) then
+    if (flip_y) &
       call warn_message("grid % from_netcdf: y axis direction is oposite to desired one (inefficient flipping). ", &
-                        "You could flip the file beforehand with: 'cdo invertlat <ifile> <ofile>'. ", trim(nc%fname), ":", var)
-    end if
+        "You could flip the file beforehand with: 'cdo invertlat <ifile> <ofile>'. ", trim(nc%fname), ":", var)
     ! check cellsize in x and y direction
     ! LCOV_EXCL_START
     if (.not.is_close(cs_x, cs_y, rtol=0.0_dp, atol=tol_)) &
@@ -585,10 +582,9 @@ contains
         end if
       end do
       ! LCOV_EXCL_START
-      if (.not.(found_lat.and.found_lon)) then
-        call error_message( "grid % from_netcdf: could not find lat/lon auxilliar coordinates: ", &
-                           trim(nc%fname), ":", var, " - ", trim(tmp_str))
-      end if
+      if (.not.(found_lat.and.found_lon)) &
+        call error_message( "grid % from_netcdf: could not find lat/lon auxilliar coordinates: ",  trim(nc%fname), &
+          ":", var, " - ", trim(tmp_str))
       ! LCOV_EXCL_STOP
       call this%aux_from_netcdf(nc, lat=trim(coords_str(size(coords_str)-1)), lon=trim(coords_str(size(coords_str))))
     end if
@@ -633,7 +629,7 @@ contains
     character(:), allocatable :: lon_, lat_
     character(len=256) :: name
 
-    if (this%coordsys /= cartesian) &
+    if (this%coordsys /= cartesian) & ! LCOV_EXCL_LINE
       call error_message("grid % aux_from_netcdf: need projected axis to have auxilliar coordinates.") ! LCOV_EXCL_LINE
 
     lon_ = lon
@@ -649,16 +645,16 @@ contains
       latvar = nc%getVariable(lat_)
     end if
 
-    if (.not.is_lat_coord(latvar)) &
+    if (.not.is_lat_coord(latvar)) & ! LCOV_EXCL_LINE
       call error_message("grid % aux_from_netcdf: auxilliar latitude coordinate is not valid: ", trim(nc%fname), ":", lat_) ! LCOV_EXCL_LINE
     rnk = latvar%getRank()
-    if (rnk /= 2) &
+    if (rnk /= 2) & ! LCOV_EXCL_LINE
       call error_message("grid % from_netcdf: auxilliar latitude coordinate is not 2 dimensional: ", trim(nc%fname), ":", lat_) ! LCOV_EXCL_LINE
 
     call latvar%getData(dummy)
     y_inc = .true.
     if (size(dummy, dim=2)>1) y_inc = dummy(1,1) < dummy(1,2)
-    if (size(dummy, dim=1) /= this%nx .or. size(dummy, dim=2) /= this%ny) &
+    if (size(dummy, dim=1) /= this%nx .or. size(dummy, dim=2) /= this%ny) & ! LCOV_EXCL_LINE
       call error_message("grid % from_netcdf: auxilliar latitude coordinate has wrong shape: ", trim(nc%fname), ":", lat_) ! LCOV_EXCL_LINE
 
     flip_y = y_inc.neqv.(this%y_direction==bottom_up)
@@ -668,14 +664,14 @@ contains
     deallocate(dummy)
 
     lonvar = nc%getVariable(lon_)
-    if (.not.is_lon_coord(lonvar)) &
+    if (.not.is_lon_coord(lonvar)) & ! LCOV_EXCL_LINE
       call error_message("grid % aux_from_netcdf: auxilliar longitude coordinate is not valid: ", trim(nc%fname), ":", lon_) ! LCOV_EXCL_LINE
     rnk = lonvar%getRank()
-    if (rnk /= 2) &
+    if (rnk /= 2) & ! LCOV_EXCL_LINE
       call error_message("grid % aux_from_netcdf: auxilliar longitude coordinate is not 2 dimensional: ", trim(nc%fname), ":", lon_) ! LCOV_EXCL_LINE
 
     call lonvar%getData(dummy)
-    if (size(dummy, dim=1) /= this%nx .or. size(dummy, dim=2) /= this%ny) &
+    if (size(dummy, dim=1) /= this%nx .or. size(dummy, dim=2) /= this%ny) & ! LCOV_EXCL_LINE
       call error_message("grid % from_netcdf: auxilliar longitude coordinate has wrong shape: ", trim(nc%fname), ":", lon_) ! LCOV_EXCL_LINE
     allocate(this%lon(this%nx, this%ny))
     if (flip_y) call flip(dummy, iDim=2)
@@ -1040,9 +1036,8 @@ contains
     if (nc%hasDimension("bnds")) then
       b_dim = nc%getDimension("bnds") ! check size
       ! LCOV_EXCL_START
-      if (b_dim%getLength() /= 2_i4) then
+      if (b_dim%getLength() /= 2_i4) &
         call error_message("grid % to_netcdf: bnds dim already present but with length =/= 2")
-      end if
       ! LCOV_EXCL_STOP
     else
       b_dim = nc%setDimension("bnds", 2_i4)
@@ -1051,9 +1046,8 @@ contains
       if (nc%hasDimension("nv")) then
         v_dim = nc%getDimension("nv") ! check size
         ! LCOV_EXCL_START
-        if (v_dim%getLength() /= 4_i4) then
+        if (v_dim%getLength() /= 4_i4) &
           call error_message("grid % to_netcdf: nv dim already present but with length =/= 4")
-        end if
         ! LCOV_EXCL_STOP
       else
         v_dim = nc%setDimension("nv", 4_i4)
@@ -1221,20 +1215,16 @@ contains
     integer(i4) :: i, j
     logical :: check_cover_, check_fill_, cover_failed, fill_failed
 
-    if (.not. allocated(this%mask) .or. .not. allocated(this%mask_col_cnt) .or. &
-        .not. allocated(this%mask_cum_col_cnt) .or. .not. allocated(this%cell_ij)) then
+    if (.not. allocated(this%mask) .or. .not. allocated(this%mask_col_cnt) .or.  .not. &
+      allocated(this%mask_cum_col_cnt) .or. .not. allocated(this%cell_ij)) &
       call error_message("grid%gen_id_map: source grid is not initialized.") ! LCOV_EXCL_LINE
-    end if
-    if (.not. allocated(target_grid%mask) .or. .not. allocated(target_grid%mask_col_cnt) .or. &
-        .not. allocated(target_grid%mask_cum_col_cnt) .or. .not. allocated(target_grid%cell_ij)) then
+    if (.not. allocated(target_grid%mask) .or. .not. allocated(target_grid%mask_col_cnt) .or.  .not. &
+      allocated(target_grid%mask_cum_col_cnt) .or. .not. allocated(target_grid%cell_ij)) &
       call error_message("grid%gen_id_map: target grid is not initialized.") ! LCOV_EXCL_LINE
-    end if
-    if (size(id_map, kind=i8) /= this%ncells) then
+    if (size(id_map, kind=i8) /= this%ncells) &
       call error_message("grid%gen_id_map: output size does not match source grid ncells.") ! LCOV_EXCL_LINE
-    end if
-    if (.not. this%is_matching(target_grid, aux=.false., compare_mask=.false.)) then
+    if (.not. this%is_matching(target_grid, aux=.false., compare_mask=.false.)) &
       call error_message("grid%gen_id_map: source and target grid geometry does not match.") ! LCOV_EXCL_LINE
-    end if
 
     check_cover_ = optval(check_cover, .false.)
     check_fill_ = optval(check_fill, .false.)
@@ -1279,9 +1269,10 @@ contains
     implicit none
     class(grid_t), intent(in) :: this
     integer(i4), intent(in) :: indices(2) !< matrix indices (x_i,y_i)
-    if (indices(1) < 1_i4 .or. indices(1) > this%nx .or. indices(2) < 1_i4 .or. indices(2) > this%ny) &
+    if (indices(1) < 1_i4 .or. indices(1) > this%nx .or. indices(2) < 1_i4 .or. indices(2) > this%ny) & ! LCOV_EXCL_LINE
       call error_message("grid%cell_id: given indices are out of bounds.") ! LCOV_EXCL_LINE
-    if (.not.this%mask(indices(1), indices(2))) call error_message("grid%cell_id: given indices are masked.") ! LCOV_EXCL_LINE
+    if (.not.this%mask(indices(1), indices(2))) & ! LCOV_EXCL_LINE
+      call error_message("grid%cell_id: given indices are masked.") ! LCOV_EXCL_LINE
     cell_id = this%mask_cum_col_cnt(indices(2)) + count(this%mask(1_i4:indices(1), indices(2)), kind=i8)
   end function grid_cell_id
 
@@ -1343,10 +1334,12 @@ contains
 
     integer(i8) :: seed_id
 
-    if (.not. allocated(this%mask)) call error_message("grid%connected_mask: grid has no mask.") ! LCOV_EXCL_LINE
+    if (.not. allocated(this%mask)) & ! LCOV_EXCL_LINE
+      call error_message("grid%connected_mask: grid has no mask.") ! LCOV_EXCL_LINE
 
     seed_id = this%closest_cell_id(coords, use_aux=use_aux)
-    if (seed_id < 1_i8) call error_message("grid%connected_mask: no active seed cell found.") ! LCOV_EXCL_LINE
+    if (seed_id < 1_i8) & ! LCOV_EXCL_LINE
+      call error_message("grid%connected_mask: no active seed cell found.") ! LCOV_EXCL_LINE
 
     call helper_connected_mask( &
       this%mask, this%cell_ij(seed_id, 1), this%cell_ij(seed_id, 2), component, &
@@ -1368,14 +1361,16 @@ contains
     integer(i8) :: k
     logical :: use_aux_, normalize_longitudes
 
-    if (.not. allocated(this%mask)) call error_message("grid%polygon_mask: grid has no mask.") ! LCOV_EXCL_LINE
-    if (size(polygon, 2) /= 2_i4) call error_message("grid%polygon_mask: polygon must have shape (n, 2).") ! LCOV_EXCL_LINE
-    if (size(polygon, 1) < 3_i4) call error_message("grid%polygon_mask: polygon needs at least three vertices.") ! LCOV_EXCL_LINE
+    if (.not. allocated(this%mask)) & ! LCOV_EXCL_LINE
+      call error_message("grid%polygon_mask: grid has no mask.") ! LCOV_EXCL_LINE
+    if (size(polygon, 2) /= 2_i4) & ! LCOV_EXCL_LINE
+      call error_message("grid%polygon_mask: polygon must have shape (n, 2).") ! LCOV_EXCL_LINE
+    if (size(polygon, 1) < 3_i4) & ! LCOV_EXCL_LINE
+      call error_message("grid%polygon_mask: polygon needs at least three vertices.") ! LCOV_EXCL_LINE
 
     use_aux_ = optval(use_aux, .false.)
-    if (use_aux_ .and. .not. this%has_aux_coords()) then
+    if (use_aux_ .and. .not. this%has_aux_coords()) &
       call error_message("grid%polygon_mask: auxiliary coordinates are not allocated.") ! LCOV_EXCL_LINE
-    end if
 
     normalize_longitudes = this%coordsys == spherical .and. .not. use_aux_
     allocate(polygon_norm(size(polygon, 1), 2_i4))
@@ -1437,13 +1432,13 @@ contains
     integer(i8) :: k, ks, kt
     logical :: col_same_mask, col_sup_mask, cropped, invalid_area, keep_sub_cell_area_, same_mask, sub_mask, sup_mask
 
-    if (.not. allocated(this%mask)) call error_message("grid%copy_to: source grid has no mask.") ! LCOV_EXCL_LINE
+    if (.not. allocated(this%mask)) & ! LCOV_EXCL_LINE
+      call error_message("grid%copy_to: source grid has no mask.") ! LCOV_EXCL_LINE
     if (present(mask)) call this%check_shape(shape(mask, kind=i4))
     if (present(cell_area)) call this%check_shape(shape(cell_area, kind=i4))
     if (present(bbox)) then
-      if (any(.not. is_finite(bbox)) .or. bbox(1) >= bbox(3) .or. bbox(2) >= bbox(4)) then
+      if (any(.not. is_finite(bbox)) .or. bbox(1) >= bbox(3) .or. bbox(2) >= bbox(4)) &
         call error_message("grid%copy_to: bbox needs finite values with west < east and south < north.") ! LCOV_EXCL_LINE
-      end if
       i_lb = this%nx + 1_i4
       do i = 1_i4, this%nx
         if (this%x_center(i) >= bbox(1)) then
@@ -1487,9 +1482,8 @@ contains
           end if
         end do
       end if
-      if (i_ub < 1_i4 .or. i_lb > this%nx .or. j_ub < 1_i4 .or. j_lb > this%ny) then
+      if (i_ub < 1_i4 .or. i_lb > this%nx .or. j_ub < 1_i4 .or. j_lb > this%ny) &
         call error_message("grid%copy_to: bbox does not overlap source grid.") ! LCOV_EXCL_LINE
-      end if
       i_lb = max(1_i4, i_lb)
       i_ub = min(this%nx, i_ub)
       j_lb = max(1_i4, j_lb)
@@ -1607,9 +1601,8 @@ contains
         invalid_area = invalid_area .or. (.not. is_finite(new_grid%cell_area(kt))) .or. new_grid%cell_area(kt) < 0.0_dp
       end do
       !$omp end parallel do
-      if (invalid_area) then
+      if (invalid_area) &
         call error_message("grid%copy_to: explicit cell_area values need to be finite and non-negative.") ! LCOV_EXCL_LINE
-      end if
     else if (same_mask .and. .not. cropped .and. new_grid%ncells == this%ncells .and. allocated(this%cell_area)) then
       allocate(new_grid%cell_area(new_grid%ncells))
       !$omp parallel do default(shared) schedule(static)
@@ -1659,16 +1652,16 @@ contains
     integer(i4) :: i, j, js
     logical :: spherical_space, use_index_distance_, use_index_search, periodic_index_x, y_dir_match
 
-    if (.not. this%is_matching(target_grid, compare_mask=.false., compare_y_direction=.false.)) then
+    if (.not. this%is_matching(target_grid, compare_mask=.false., compare_y_direction=.false.)) &
       call error_message("grid%fill_ids: source and target grid geometry does not match.") ! LCOV_EXCL_LINE
-    end if
     use_index_distance_ = optval(use_index_distance, .false.)
     y_dir_match = this%y_direction == target_grid%y_direction
 
     allocate(ids(target_grid%ncells))
     if (target_grid%ncells < 1_i8) return
 
-    if (this%ncells < 1_i8) call error_message("grid%fill_ids: source grid has no active cells.") ! LCOV_EXCL_LINE
+    if (this%ncells < 1_i8) & ! LCOV_EXCL_LINE
+      call error_message("grid%fill_ids: source grid has no active cells.") ! LCOV_EXCL_LINE
 
     source_ids = this%id_matrix()
     fallback_count = 0_i8
@@ -1685,7 +1678,8 @@ contains
     if (fallback_count > 0_i8) then
       call this%border_mask(border)
       border_count = count(border, kind=i8)
-      if (border_count < 1_i8) call error_message("grid%fill_ids: source grid has no border cells.") ! LCOV_EXCL_LINE
+      if (border_count < 1_i8) & ! LCOV_EXCL_LINE
+        call error_message("grid%fill_ids: source grid has no border cells.") ! LCOV_EXCL_LINE
 
       if (use_index_search) then
         allocate(border_col_cnt(this%ny), border_cum_col_cnt(this%ny))
@@ -1797,7 +1791,7 @@ contains
     real(dp), allocatable :: points(:, :)
 
     aux = optval(use_aux, .false.)
-    if (aux .and. .not. this%has_aux_coords()) &
+    if (aux .and. .not. this%has_aux_coords()) & ! LCOV_EXCL_LINE
       call error_message("grid%build_spatial_index: no auxilliar coordniates defined.") ! LCOV_EXCL_LINE
 
     allocate(point_ids(this%ncells))
@@ -1854,7 +1848,8 @@ contains
     logical :: aux
 
     aux = optval(use_aux, .false.)
-    if (aux .and. .not. this%has_aux_coords()) call error_message("grid%closest_cell_id: no auxilliar coordniates defined.") ! LCOV_EXCL_LINE
+    if (aux .and. .not. this%has_aux_coords()) & ! LCOV_EXCL_LINE
+      call error_message("grid%closest_cell_id: no auxilliar coordniates defined.") ! LCOV_EXCL_LINE
 
     if (aux) then
       closest_cell_id = this%closest_cell_id_aux_scalar(coords)
@@ -1878,10 +1873,12 @@ contains
     integer(i4) :: igauge
     type(spatial_index_t) :: aux_index
 
-    if (size(coords, 2) /= 2_i4) call error_message("grid%closest_cell_id: coordinates need shape (:,2).") ! LCOV_EXCL_LINE
+    if (size(coords, 2) /= 2_i4) & ! LCOV_EXCL_LINE
+      call error_message("grid%closest_cell_id: coordinates need shape (:,2).") ! LCOV_EXCL_LINE
 
     aux = optval(use_aux, .false.)
-    if (aux .and. .not. this%has_aux_coords()) call error_message("grid%closest_cell_id: no auxilliar coordniates defined.") ! LCOV_EXCL_LINE
+    if (aux .and. .not. this%has_aux_coords()) & ! LCOV_EXCL_LINE
+      call error_message("grid%closest_cell_id: no auxilliar coordniates defined.") ! LCOV_EXCL_LINE
 
     if (aux) then
       call this%build_spatial_index(aux_index, use_aux=.true.)
@@ -2443,13 +2440,13 @@ contains
     call this%check_is_filled_by(fine_grid, tol=tol, check_mask=.false.)
     call check_factor(fine_grid%cellsize, this%cellsize, factor=factor, tol=tol)
 
-    if (this % coordsys /= cartesian) &
+    if (this % coordsys /= cartesian) & ! LCOV_EXCL_LINE
       call error_message("grid % upscale_aux_coords: grids already use spherical coordinate system for axis.") ! LCOV_EXCL_LINE
 
-    if (.not. fine_grid%has_aux_coords()) &
+    if (.not. fine_grid%has_aux_coords()) & ! LCOV_EXCL_LINE
       call error_message("grid % upscale_aux_coords: fine grid has no auxilliar coordinates defined.") ! LCOV_EXCL_LINE
 
-    if (this%has_aux_coords()) &
+    if (this%has_aux_coords()) & ! LCOV_EXCL_LINE
       call error_message("grid % upscale_aux_coords: grid already has auxilliar coordinates defined.") ! LCOV_EXCL_LINE
 
     allocate(this%lat(this%nx, this%ny))
@@ -2491,18 +2488,17 @@ contains
     call this%check_is_covered_by(coarse_grid, tol=tol, check_mask=.false.)
     call check_factor(this%cellsize, coarse_grid%cellsize, rounded=fac, factor=factor, tol=tol)
 
-    if (any(offset > 0_i4) .or. &
-        any(int([this%nx, this%ny], i8) - int(offset, i8) > &
-            int([coarse_grid%nx, coarse_grid%ny], i8) * int(factor, i8))) &
+    if (any(offset > 0_i4) .or.  any(int([this%nx, this%ny], i8) - int(offset, i8) >  int([coarse_grid%nx, &
+      coarse_grid%ny], i8) * int(factor, i8))) &
       call error_message("grid % downscale_aux_coords: fine extent must lie inside the coarse extent.")
 
-    if (this % coordsys /= cartesian) &
+    if (this % coordsys /= cartesian) & ! LCOV_EXCL_LINE
       call error_message("grid % downscale_aux_coords: grids already use spherical coordinate system for axis.") ! LCOV_EXCL_LINE
 
-    if (.not. coarse_grid%has_aux_coords()) &
+    if (.not. coarse_grid%has_aux_coords()) & ! LCOV_EXCL_LINE
       call error_message("grid % downscale_aux_coords: fine grid has no auxilliar coordinates defined.") ! LCOV_EXCL_LINE
 
-    if (this%has_aux_coords()) &
+    if (this%has_aux_coords()) & ! LCOV_EXCL_LINE
       call error_message("grid % downscale_aux_coords: grid already has auxilliar coordinates defined.") ! LCOV_EXCL_LINE
 
     if (coarse_grid%has_aux_vertices()) then
@@ -2591,13 +2587,13 @@ contains
     class(grid_t), intent(inout) :: this
     integer(i4) :: i, j
 
-    if (.not. this%has_aux_coords()) &
+    if (.not. this%has_aux_coords()) & ! LCOV_EXCL_LINE
       call error_message("grid % estimate_aux_vertices: grid has no auxilliar coordinates defined.") ! LCOV_EXCL_LINE
 
-    if (this%has_aux_vertices()) &
+    if (this%has_aux_vertices()) & ! LCOV_EXCL_LINE
       call error_message("grid % estimate_aux_vertices: grid already has auxilliar vertices defined.") ! LCOV_EXCL_LINE
 
-    if (this%nx == 1_i4 .or. this%ny == 1_i4) &
+    if (this%nx == 1_i4 .or. this%ny == 1_i4) & ! LCOV_EXCL_LINE
       call error_message("grid % estimate_aux_vertices: grid needs at least 2 cells in both directions.") ! LCOV_EXCL_LINE
 
     allocate(this%lat_vertices(this%nx+1_i4, this%ny+1_i4))
@@ -2649,7 +2645,7 @@ contains
     implicit none
     class(grid_t), intent(in) :: this
     real(dp), allocatable, dimension(:,:,:) :: lat_bounds
-    if (.not.this%has_aux_vertices()) &
+    if (.not.this%has_aux_vertices()) & ! LCOV_EXCL_LINE
       call error_message("grid % lat_bounds: grid has no auxilliar vertices defined.") ! LCOV_EXCL_LINE
     allocate(lat_bounds(4, this%nx, this%ny))
     if (this%y_direction == bottom_up) then
@@ -2681,7 +2677,7 @@ contains
     implicit none
     class(grid_t), intent(in) :: this
     real(dp), allocatable, dimension(:,:,:) :: lon_bounds
-    if (.not.this%has_aux_vertices()) &
+    if (.not.this%has_aux_vertices()) & ! LCOV_EXCL_LINE
       call error_message("grid % lon_bounds: grid has no auxilliar vertices defined.") ! LCOV_EXCL_LINE
     allocate(lon_bounds(4, this%nx, this%ny))
     if (this%y_direction == bottom_up) then
@@ -3290,8 +3286,8 @@ contains
         call error_message("derive_coarse_grid: longitude extent exceeds periodic source; wrapping is not supported.")
     end if
     if (estimate_aux_) then
-      if (any(int(shift, i8) + factor8 <= 0_i8) .or. &
-          any(int(shift, i8) + (grid_dims - 1_i8) * factor8 >= int([this%nx, this%ny], i8))) &
+      if (any(int(shift, i8) + factor8 <= 0_i8) .or.  any(int(shift, i8) + (grid_dims - 1_i8) * factor8 >= &
+        int([this%nx, this%ny], i8))) &
         call error_message("derive_coarse_grid: each coarse cell must overlap a source fine cell.")
     end if
     coarse_grid%nx = int(grid_dims(1), i4)
@@ -3304,7 +3300,7 @@ contains
     coarse_grid%y_direction = this%y_direction
 
     if (.not. present(dims)) then
-      if (this%is_periodic().and.(.not.coarse_grid%is_periodic())) &
+      if (this%is_periodic().and.(.not.coarse_grid%is_periodic())) & ! LCOV_EXCL_LINE
         call error_message("derive_coarse_grid: target resolution is not suitable for a periodic grid.") ! LCOV_EXCL_LINE
     end if
 
@@ -3444,8 +3440,7 @@ contains
         call error_message("derive_fine_grid: longitude extent exceeds periodic source; wrapping is not supported.")
     end if
     if (estimate_aux_) then
-      if (any(shift > 0_i4) .or. &
-          any(grid_dims - int(shift, i8) > int([this%nx, this%ny], i8) * factor8)) &
+      if (any(shift > 0_i4) .or.  any(grid_dims - int(shift, i8) > int([this%nx, this%ny], i8) * factor8)) &
         call error_message("derive_fine_grid: fine extent must lie inside the source extent.")
     end if
     fine_grid%nx = int(grid_dims(1), i4)
@@ -3541,9 +3536,8 @@ contains
       resolution = this%cellsize * real(upscaling_factor, dp)
     end if
     ! LCOV_EXCL_START
-    if (input_opt /= 1) then
+    if (input_opt /= 1) &
       call error_message("derive_grid: only one of 'target_resolution', 'factor_up' or 'factor_down' can be given.")
-    end if
     ! LCOV_EXCL_STOP
 
     if (resolution < this%cellsize) then
@@ -3589,12 +3583,9 @@ contains
     class(grid_t), intent(in) :: this
     integer(i4), intent(in) :: data_shape(2) !< (x,y)
     ! LCOV_EXCL_START
-    if (data_shape(1) /= this%nx .or. data_shape(2) /= this%ny) then
-      call error_message( &
-        "grid data: data has wrong shape. Expected: (", &
-        num2str(this%nx), ",", num2str(this%ny), "), got: (", &
-        num2str(data_shape(1)), ",", num2str(data_shape(2)), ")")
-    end if
+    if (data_shape(1) /= this%nx .or. data_shape(2) /= this%ny) &
+      call error_message(  "grid data: data has wrong shape. Expected: (",  num2str(this%nx), ",", num2str(this%ny), &
+        "), got: (",  num2str(data_shape(1)), ",", num2str(data_shape(2)), ")")
     ! LCOV_EXCL_STOP
   end subroutine grid_check_shape
 
@@ -3606,11 +3597,9 @@ contains
     class(grid_t), intent(in) :: this
     integer(i8), intent(in) :: data_shape(1) !< (n)
     ! LCOV_EXCL_START
-    if (data_shape(1) /= this%ncells) then
-      call error_message( &
-        "grid data: packed data has wrong shape. Expected: (", &
-        num2str(this%ncells), "), got: (", num2str(data_shape(1)), ")")
-    end if
+    if (data_shape(1) /= this%ncells) &
+      call error_message(  "grid data: packed data has wrong shape. Expected: (",  num2str(this%ncells), "), got: (", &
+        num2str(data_shape(1)), ")")
     ! LCOV_EXCL_STOP
   end subroutine grid_check_shape_packed
 

@@ -9,6 +9,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_statistics
 MODULE mo_mad
+  use mo_forces_message, only: error_message, message
 
   USE mo_kind,       ONLY: i4, sp, dp
   USE mo_percentile, ONLY: median
@@ -123,7 +124,8 @@ CONTAINS
     n = size(arr)
     maske(:) = .true.
     if (present(mask)) then
-       if (size(mask) /= n) stop 'Error mad_dp: size(mask) /= size(arr)'
+       if (size(mask) /= n) &
+         call error_message('Error mad_dp: size(mask) /= size(arr)')
        maske = mask
     endif
     if (present(z)) then
@@ -165,7 +167,7 @@ CONTAINS
        mad_dp(n)       = .true.
        mad_dp(2:n-1)   = (d(1:n-2) .ge. (med-thresh)) .and. (d(1:n-2) .le. (med+thresh)) .and. dmask(1:n-2)
     case default
-       stop 'Unimplemented option in mad_dp'
+       call error_message('Unimplemented option in mad_dp')
     end select
 
   END FUNCTION mad_dp
@@ -191,7 +193,8 @@ CONTAINS
     n = size(arr)
     maske(:) = .true.
     if (present(mask)) then
-       if (size(mask) /= n) stop 'Error mad_sp: size(mask) /= size(arr)'
+       if (size(mask) /= n) &
+         call error_message('Error mad_sp: size(mask) /= size(arr)')
        maske = mask
     endif
     if (present(z)) then
@@ -233,7 +236,7 @@ CONTAINS
        mad_sp(n)       = .true.
        mad_sp(2:n-1)   = (d(1:n-2) .ge. (med-thresh)) .and. (d(1:n-2) .le. (med+thresh)) .and. dmask(1:n-2)
     case default
-       stop 'Unimplemented option in mad_sp'
+       call error_message('Unimplemented option in mad_sp')
     end select
 
   END FUNCTION mad_sp
@@ -258,7 +261,8 @@ CONTAINS
     n = size(arr)
     maske(:) = .true.
     if (present(mask)) then
-       if (size(mask) /= n) stop 'Error mad_val_dp: size(mask) /= size(arr)'
+       if (size(mask) /= n) &
+         call error_message('Error mad_val_dp: size(mask) /= size(arr)')
        maske = mask
     endif
     if (present(z)) then
@@ -296,7 +300,7 @@ CONTAINS
       where ((mad_val_dp .lt. (med-thresh)) &
            .and. maske) mad_val_dp = med-thresh
     case default
-       stop 'Unimplemented option in mad_val_dp'
+       call error_message('Unimplemented option in mad_val_dp')
     end select
 
   END FUNCTION mad_val_dp
@@ -310,6 +314,7 @@ CONTAINS
     REAL(sp),    DIMENSION(:),           INTENT(IN) :: arr
     REAL(sp),                  OPTIONAL, INTENT(IN) :: z, mval
     LOGICAL,     DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
     REAL(sp),    DIMENSION(size(arr))               :: mad_val_sp
     CHARACTER(1)                                    :: tout ! type out
     ! u : cut upper; l : cut lower; b : cut upper and lower
@@ -321,7 +326,8 @@ CONTAINS
     n = size(arr)
     maske(:) = .true.
     if (present(mask)) then
-       if (size(mask) /= n) stop 'Error mad_val_sp: size(mask) /= size(arr)'
+       if (size(mask) /= n) &
+         call error_message('Error mad_val_sp: size(mask) /= size(arr)')
        maske = mask
     endif
     if (present(z)) then
@@ -344,21 +350,24 @@ CONTAINS
     mad_val_sp = arr
     select case(tout)
     case("u")
-      print *, "The threshold is set to", med, "+", thresh
+      write(diagnostic_text, *) "The threshold is set to", med, "+", thresh
+      call message(trim(diagnostic_text))
       where ((mad_val_sp .gt. (med+thresh)) &
            .and. maske) mad_val_sp = med+thresh
     case("l")
-      print *, "The threshold is set to", med, "-", thresh
+      write(diagnostic_text, *) "The threshold is set to", med, "-", thresh
+      call message(trim(diagnostic_text))
       where ((mad_val_sp .lt. (med-thresh)) &
            .and. maske) mad_val_sp = med-thresh
     case("b")
-      print *, "The threshold is set to", med, "+/-", thresh
+      write(diagnostic_text, *) "The threshold is set to", med, "+/-", thresh
+      call message(trim(diagnostic_text))
       where ((mad_val_sp .gt. (med+thresh)) &
            .and. maske) mad_val_sp = med+thresh
       where ((mad_val_sp .lt. (med-thresh)) &
            .and. maske) mad_val_sp = med-thresh
     case default
-       stop 'Unimplemented option in mad_val_sp'
+       call error_message('Unimplemented option in mad_val_sp')
     end select
 
   END FUNCTION mad_val_sp

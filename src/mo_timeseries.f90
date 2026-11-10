@@ -16,13 +16,13 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_time
 module mo_timeseries
+  use mo_forces_message, only: error_message
 
   use mo_datetime, only: datetime, timedelta, delta_from_string, decode_cf_time_units, time_units_delta, time_values, &
                          yearly, monthly, daily, no_time, hourly, varying, &
                          start_timestamp, center_timestamp, end_timestamp, instant_timestamp, &
                          infer_time_bounds, infer_time_timestep_from_bounds, infer_time_timestep_from_values
   use mo_kind, only: i4, i8, dp
-  use mo_message, only: error_message
   use mo_utils, only: optval
 
   implicit none
@@ -147,7 +147,8 @@ contains
     integer(i4) :: t_start, t_end, t_stamp
     integer(i4) :: i, n_times
 
-    if (timeframe_end <= timeframe_start) call error_message("time%init: invalid time frame")
+    if (timeframe_end <= timeframe_start) &
+      call error_message("time%init: invalid time frame")
     if (allocated(self%values)) deallocate(self%values)
     if (allocated(self%bounds)) deallocate(self%bounds)
     self%timestep = optval(timestep, daily)
@@ -162,7 +163,8 @@ contains
     previous_time = timeframe_start
     do while(previous_time < timeframe_end)
       current_time = time_next(previous_time, self%timestep, delta, present(delta))
-      if (current_time > timeframe_end) call error_message("time%init: timestep does not align")
+      if (current_time > timeframe_end) &
+        call error_message("time%init: timestep does not align")
       n_times = n_times + 1_i4
       previous_time = current_time
     end do
@@ -195,7 +197,8 @@ contains
     integer(i4), allocatable :: tmp_values(:)
     integer(i4) :: n_times
 
-    if (timeframe_end <= timeframe_start) call error_message("time%init_discrete: invalid time frame")
+    if (timeframe_end <= timeframe_start) &
+      call error_message("time%init_discrete: invalid time frame")
     if (allocated(self%values)) deallocate(self%values)
     if (allocated(self%bounds)) deallocate(self%bounds)
     self%timestep = optval(timestep, daily)
@@ -215,7 +218,8 @@ contains
       n_times = n_times + 1_i4
       current_time = time_next(current_time, self%timestep, delta, present(delta))
     end do
-    if (n_times < 1_i4) call error_message("time%init_discrete: empty time axis")
+    if (n_times < 1_i4) &
+      call error_message("time%init_discrete: empty time axis")
 
     allocate(tmp_values(n_times))
     current_time = timeframe_start
@@ -239,7 +243,8 @@ contains
     integer(i4), optional, intent(in) :: timestamp !< timestamp location if bounds are inferred (default: \ref end_timestamp)
     logical, optional, intent(in) :: infer_bounds !< infer bounds when bounds are omitted (default: false)
 
-    if (size(values) < 1_i4) call error_message("time%init_cf: empty time axis")
+    if (size(values) < 1_i4) &
+      call error_message("time%init_cf: empty time axis")
     if (allocated(self%values)) deallocate(self%values)
     if (allocated(self%bounds)) deallocate(self%bounds)
     self%units = trim(units)
@@ -247,7 +252,8 @@ contains
     allocate(self%values(size(values)), source=values)
     if (present(bounds)) then
       self%timestamp = optval(timestamp, end_timestamp)
-      if (size(bounds, 1) /= 2_i4 .or. size(bounds, 2) /= size(values)) call error_message("time%init_cf: invalid bounds shape")
+      if (size(bounds, 1) /= 2_i4 .or. size(bounds, 2) /= size(values)) &
+        call error_message("time%init_cf: invalid bounds shape")
       allocate(self%bounds(2_i4, size(values)), source=bounds)
       self%timestep = infer_time_timestep_from_bounds(self%bounds, self%delta, self%ref_time)
     else if (optval(infer_bounds, .false.)) then
@@ -290,7 +296,8 @@ contains
     class(time_t), intent(in) :: self
     integer(i4), intent(in) :: i !< one-based time index
     call self%check_index(i, "time%lower")
-    if (.not.self%has_bounds()) call error_message("time%lower: axis has no bounds")
+    if (.not.self%has_bounds()) &
+      call error_message("time%lower: axis has no bounds")
     time = self%ref_time + self%bounds(1_i4, i) * self%delta
   end function time_lower
 
@@ -299,7 +306,8 @@ contains
     class(time_t), intent(in) :: self
     integer(i4), intent(in) :: i !< one-based time index
     call self%check_index(i, "time%upper")
-    if (.not.self%has_bounds()) call error_message("time%upper: axis has no bounds")
+    if (.not.self%has_bounds()) &
+      call error_message("time%upper: axis has no bounds")
     time = self%ref_time + self%bounds(2_i4, i) * self%delta
   end function time_upper
 
@@ -309,7 +317,8 @@ contains
     integer(i4), allocatable, intent(out) :: values(:) !< CF time coordinate values
     integer(i4), allocatable, optional, intent(out) :: bounds(:, :) !< CF time bounds
     character(:), allocatable, intent(out) :: units !< CF time units
-    if (.not.allocated(self%values)) call error_message("time%to_cf: uninitialized axis")
+    if (.not.allocated(self%values)) &
+      call error_message("time%to_cf: uninitialized axis")
     allocate(values(size(self%values)), source=self%values)
     if (present(bounds)) then
       if (allocated(bounds)) deallocate(bounds)
@@ -329,8 +338,10 @@ contains
     integer(i4) :: start_value, end_value
     integer(i4) :: n
 
-    if (timeframe_end <= timeframe_start) call error_message("time%window_indices: invalid time frame")
-    if (.not.allocated(self%values)) call error_message("time%window_indices: uninitialized axis")
+    if (timeframe_end <= timeframe_start) &
+      call error_message("time%window_indices: invalid time frame")
+    if (.not.allocated(self%values)) &
+      call error_message("time%window_indices: uninitialized axis")
     start_value = self%integer_value(timeframe_start)
     end_value = self%integer_value(timeframe_end)
     n = size(self%values)
@@ -342,7 +353,8 @@ contains
     do while(last >= 1_i4 .and. self%values(last) > end_value)
       last = last - 1_i4
     end do
-    if (first > last) call error_message("time%window_indices: empty time frame")
+    if (first > last) &
+      call error_message("time%window_indices: empty time frame")
   end subroutine time_window_indices
 
   !> \brief Derive a contiguous axis over the same time frame with a new resolution.
@@ -358,7 +370,8 @@ contains
     integer(i4) :: timestamp_
     type(datetime) :: start_time, end_time, source_start, source_end
 
-    if (.not.self%has_bounds()) call error_message("time%resampled: axis has no bounds")
+    if (.not.self%has_bounds()) &
+      call error_message("time%resampled: axis has no bounds")
     timestamp_ = optval(timestamp, self%timestamp)
     source_start = self%lower(1_i4)
     source_end = self%upper(self%n_times())
@@ -454,8 +467,10 @@ contains
     real(dp), intent(in) :: source(:) !< source values with shape (source_time)
     real(dp), intent(out) :: target(:) !< target values with shape (target_time)
 
-    if (size(source) /= self%source%n_times()) call error_message("resampler%execute: invalid source size")
-    if (size(target) /= self%target%n_times()) call error_message("resampler%execute: invalid target size")
+    if (size(source) /= self%source%n_times()) &
+      call error_message("resampler%execute: invalid source size")
+    if (size(target) /= self%target%n_times()) &
+      call error_message("resampler%execute: invalid target size")
     select case(self%support)
       case(ts_instant)
         call self%execute_instant_1d(source, target)
@@ -472,9 +487,12 @@ contains
     real(dp), intent(in) :: source(:, :) !< source values with shape (n_series,source_time)
     real(dp), intent(out) :: target(:, :) !< target values with shape (n_series,target_time)
 
-    if (size(source, 2) /= self%source%n_times()) call error_message("resampler%execute: invalid source time size")
-    if (size(target, 2) /= self%target%n_times()) call error_message("resampler%execute: invalid target time size")
-    if (size(source, 1) /= size(target, 1)) call error_message("resampler%execute: invalid series count")
+    if (size(source, 2) /= self%source%n_times()) &
+      call error_message("resampler%execute: invalid source time size")
+    if (size(target, 2) /= self%target%n_times()) &
+      call error_message("resampler%execute: invalid target time size")
+    if (size(source, 1) /= size(target, 1)) &
+      call error_message("resampler%execute: invalid series count")
     select case(self%support)
       case(ts_instant)
         call self%execute_instant_2d(source, target)
@@ -491,9 +509,12 @@ contains
     real(dp), intent(in) :: source(:, :) !< source values with shape (source_time,n_series)
     real(dp), intent(out) :: target(:, :) !< target values with shape (target_time,n_series)
 
-    if (size(source, 1) /= self%source%n_times()) call error_message("resampler%execute_series: invalid source time size")
-    if (size(target, 1) /= self%target%n_times()) call error_message("resampler%execute_series: invalid target time size")
-    if (size(source, 2) /= size(target, 2)) call error_message("resampler%execute_series: invalid series count")
+    if (size(source, 1) /= self%source%n_times()) &
+      call error_message("resampler%execute_series: invalid source time size")
+    if (size(target, 1) /= self%target%n_times()) &
+      call error_message("resampler%execute_series: invalid target time size")
+    if (size(source, 2) /= size(target, 2)) &
+      call error_message("resampler%execute_series: invalid series count")
     select case(self%support)
       case(ts_instant)
         call self%execute_instant_series(source, target)
@@ -540,8 +561,7 @@ contains
             self%left(i) = j
           end if
         case(ts_linear)
-          if (self%target_values(i) < self%source_values(1_i4) .or. &
-              self%target_values(i) > self%source_values(n_source)) &
+          if (self%target_values(i) < self%source_values(1_i4) .or.  self%target_values(i) > self%source_values(n_source)) &
             call error_message("resampler%init: target time outside source range")
           self%left(i) = j
           if (j < n_source) then
@@ -593,8 +613,10 @@ contains
         if (self%source_bounds(2_i4, k) >= self%target_bounds(2_i4, i)) exit
         k = k + 1_i4
       end do
-      if (total_overlap <= 0_i8) call error_message("resampler%init: target interval not covered")
-      if (total_overlap /= target_width) call error_message("resampler%init: target interval partially covered")
+      if (total_overlap <= 0_i8) &
+        call error_message("resampler%init: target interval not covered")
+      if (total_overlap /= target_width) &
+        call error_message("resampler%init: target interval partially covered")
     end do
   end subroutine precompute_interval
 
@@ -679,7 +701,8 @@ contains
             target(i) = target(i) + source(j) * overlap
           case(ts_sum)
             source_width = real(self%source_bounds(2_i4, j) - self%source_bounds(1_i4, j), dp)
-            if (source_width <= 0.0_dp) call error_message("resampler%execute: invalid source interval")
+            if (source_width <= 0.0_dp) &
+              call error_message("resampler%execute: invalid source interval")
             target(i) = target(i) + source(j) * overlap / source_width
           case(ts_min)
             target(i) = min(target(i), source(j))
@@ -716,7 +739,8 @@ contains
             target(:, i) = target(:, i) + source(:, j) * overlap
           case(ts_sum)
             source_width = real(self%source_bounds(2_i4, j) - self%source_bounds(1_i4, j), dp)
-            if (source_width <= 0.0_dp) call error_message("resampler%execute: invalid source interval")
+            if (source_width <= 0.0_dp) &
+              call error_message("resampler%execute: invalid source interval")
             target(:, i) = target(:, i) + source(:, j) * overlap / source_width
           case(ts_min)
             target(:, i) = min(target(:, i), source(:, j))
@@ -753,7 +777,8 @@ contains
               target(i, k) = target(i, k) + source(j, k) * overlap
             case(ts_sum)
               source_width = real(self%source_bounds(2_i4, j) - self%source_bounds(1_i4, j), dp)
-              if (source_width <= 0.0_dp) call error_message("resampler%execute_series: invalid source interval")
+              if (source_width <= 0.0_dp) &
+                call error_message("resampler%execute_series: invalid source interval")
               target(i, k) = target(i, k) + source(j, k) * overlap / source_width
             case(ts_min)
               target(i, k) = min(target(i, k), source(j, k))
@@ -792,7 +817,8 @@ contains
     class(resampler_t), intent(in) :: self
     select case(self%support)
       case(ts_instant)
-        if (self%method /= ts_none) call error_message("resampler%init: instant series needs ts_none method")
+        if (self%method /= ts_none) &
+          call error_message("resampler%init: instant series needs ts_none method")
         select case(self%interpolation)
           case(ts_previous, ts_nearest, ts_linear)
           case default
@@ -813,23 +839,29 @@ contains
     class(time_t), intent(in) :: self
     logical, optional, intent(in) :: require_bounds
     integer(i4) :: i
-    if (.not.allocated(self%values)) call error_message("time: uninitialized values")
-    if (self%delta%total_seconds() <= 0_i8) call error_message("time: invalid delta")
-    if (optval(require_bounds, .false.) .and. .not.self%has_bounds()) call error_message("time: uninitialized bounds")
+    if (.not.allocated(self%values)) &
+      call error_message("time: uninitialized values")
+    if (self%delta%total_seconds() <= 0_i8) &
+      call error_message("time: invalid delta")
+    if (optval(require_bounds, .false.) .and. .not.self%has_bounds()) &
+      call error_message("time: uninitialized bounds")
     if (self%has_bounds()) then
       if (size(self%bounds, 1) /= 2_i4 .or. size(self%bounds, 2) /= size(self%values)) &
         call error_message("time: invalid bounds shape")
     end if
     do i = 1_i4, size(self%values)
       if (self%has_bounds()) then
-        if (self%bounds(2_i4, i) <= self%bounds(1_i4, i)) call error_message("time: invalid bounds")
+        if (self%bounds(2_i4, i) <= self%bounds(1_i4, i)) &
+          call error_message("time: invalid bounds")
         if (self%values(i) < self%bounds(1_i4, i) .or. self%values(i) > self%bounds(2_i4, i)) &
           call error_message("time: value outside bounds")
       end if
       if (i > 1_i4) then
-        if (self%values(i) <= self%values(i - 1_i4)) call error_message("time: values not monotonic")
+        if (self%values(i) <= self%values(i - 1_i4)) &
+          call error_message("time: values not monotonic")
         if (self%has_bounds()) then
-          if (self%bounds(1_i4, i) < self%bounds(2_i4, i - 1_i4)) call error_message("time: overlapping bounds")
+          if (self%bounds(1_i4, i) < self%bounds(2_i4, i - 1_i4)) &
+            call error_message("time: overlapping bounds")
         end if
       end if
     end do
@@ -855,8 +887,10 @@ contains
     class(time_t), intent(in) :: self
     integer(i4), intent(in) :: i
     character(*), intent(in) :: context
-    if (.not.allocated(self%values)) call error_message(context // ": uninitialized axis")
-    if (i < 1_i4 .or. i > size(self%values)) call error_message(context // ": index out of range")
+    if (.not.allocated(self%values)) &
+      call error_message(context // ": uninitialized axis")
+    if (i < 1_i4 .or. i > size(self%values)) &
+      call error_message(context // ": index out of range")
   end subroutine time_check_index
 
   subroutine time_value_seconds(self, ref_time, seconds)
@@ -909,7 +943,8 @@ contains
     logical, intent(in) :: use_delta
 
     if (use_delta) then
-      if (.not.present(delta)) call error_message("time_next: missing delta")
+      if (.not.present(delta)) &
+        call error_message("time_next: missing delta")
       next_time = current_time + delta_from_string(delta)
       return
     end if
@@ -923,7 +958,8 @@ contains
       case(varying, no_time)
         call error_message("time%init: invalid timestep")
       case default
-        if (timestep <= 0_i4) call error_message("time%init: invalid timestep")
+        if (timestep <= 0_i4) &
+          call error_message("time%init: invalid timestep")
         next_time = current_time + timestep * delta_from_string("hours")
     end select
   end function time_next

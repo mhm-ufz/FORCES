@@ -10,6 +10,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_optimization
 MODULE mo_sce
+  use mo_forces_message, only: error_message, message, warn_message
   use mo_optimizee, only : optimizee
 
   IMPLICIT NONE
@@ -303,6 +304,7 @@ CONTAINS
     real(dp), optional, intent(out) :: bestf       ! function value of bestx(.)
     integer(i8), optional, intent(out) :: neval       ! number of function evaluations
     real(dp), optional, dimension(:), allocatable, intent(out) :: history     ! history of best function values after each iteration
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
     real(dp), dimension(size(pini, 1)) :: bestx       ! best point at current shuffling loop (is RETURN)
     !
     ! optionals transfer
@@ -438,9 +440,8 @@ CONTAINS
 #ifdef MPI
       parall = .false.
       if (present(parallel)) then
-        if (parallel) then
-          write(*, *) 'WARNING: sce: openMP parallelization with MPI enabled is no implemented yet'
-        end if
+        if (parallel) &
+          call warn_message('WARNING: sce: openMP parallelization with MPI enabled is no implemented yet')
       end if
 #else
       if (present(parallel)) then
@@ -453,12 +454,13 @@ CONTAINS
       if (parall) then
         ! OpenMP or not
         n_threads = 1
-        !$  write(output_unit,*) '--------------------------------------------------'
+        !$  call message('--------------------------------------------------')
         !$OMP parallel
         !$    n_threads = OMP_GET_NUM_THREADS()
         !$OMP end parallel
-        !$  write(output_unit,*) '   SCE is parellel with ',n_threads,' threads'
-        !$  write(output_unit,*) '--------------------------------------------------'
+        !$  write(diagnostic_text, *) '   SCE is parellel with ',n_threads,' threads'
+        !$  call message(trim(diagnostic_text))
+        !$  call message('--------------------------------------------------')
       else
         n_threads = 1
       end if
@@ -470,7 +472,8 @@ CONTAINS
       allocate(save_state_gauss(n_threads, n_save_state))
 
       if (present(mymask)) then
-        if (.not. any(mymask)) stop 'mo_sce: all parameters are masked --> none will be optimized'
+        if (.not. any(mymask)) &
+          call error_message('mo_sce: all parameters are masked --> none will be optimized')
         maskpara = mymask
       else
         maskpara = .true.
@@ -482,25 +485,24 @@ CONTAINS
       nn = size(pini, 1)
 
       ! input checking
-      if (size(prange, dim = 1) .ne. size(pini, 1)) then
-        stop 'mo_sce: prange has not matching rows'
-      end if
-      if (size(prange, dim = 2) .ne. 2) then
-        stop 'mo_sce: two colums expected for prange'
-      end if
+      if (size(prange, dim = 1) .ne. size(pini, 1)) &
+        call error_message('mo_sce: prange has not matching rows')
+      if (size(prange, dim = 2) .ne. 2) &
+        call error_message('mo_sce: two colums expected for prange')
       bl(:) = prange(:, 1)
       bu(:) = prange(:, 2)
       do ii = 1, nn
         if(((bu(ii) - bl(ii)) .lt. tiny(1.0_dp)) .and. maskpara(ii)) then
-          write(error_unit, *) 'para #', ii, '  :: range = ( ', bl(ii), ' , ', bu(ii), ' )'
-          stop 'mo_sce: inconsistent or too small parameter range'
+          write(diagnostic_text, *) 'para #', ii, '  :: range = ( ', bl(ii), ' , ', bu(ii), ' )'
+          call error_message('mo_sce: inconsistent or too small parameter range: ', trim(diagnostic_text))
         end if
       end do
 
       !
       ! optionals checking
       if (present(mymaxn)) then
-        if (mymaxn .lt. 2_i4) stop 'mo_sce: maxn has to be at least 2'
+        if (mymaxn .lt. 2_i4) &
+          call error_message('mo_sce: maxn has to be at least 2')
         maxn = mymaxn
       else
         maxn = 1000_i8
@@ -511,68 +513,79 @@ CONTAINS
         maxit = .false.
       end if
       if (present(mykstop)) then
-        if (mykstop .lt. 1_i4) stop 'mo_sce: kstop has to be at least 1'
+        if (mykstop .lt. 1_i4) &
+          call error_message('mo_sce: kstop has to be at least 1')
         kstop = mykstop
       else
         kstop = 10_i4
       end if
       if (present(mypcento)) then
-        if (mypcento .lt. 0_dp) stop 'mo_sce: pcento should be positive'
+        if (mypcento .lt. 0_dp) &
+          call error_message('mo_sce: pcento should be positive')
         pcento = mypcento
       else
         pcento = 0.0001_dp
       end if
       if (present(mypeps)) then
-        if (mypeps .lt. 0_dp) stop 'mo_sce: peps should be positive'
+        if (mypeps .lt. 0_dp) &
+          call error_message('mo_sce: peps should be positive')
         peps = mypeps
       else
         peps = 0.001_dp
       end if
       if (present(myseed)) then
-        if (myseed .lt. 1_i8) stop 'mo_sce: seed should be non-negative'
+        if (myseed .lt. 1_i8) &
+          call error_message('mo_sce: seed should be non-negative')
         forall(ii = 1 : n_threads) iseed(ii) = myseed + (ii - 1) * 1000_i8
       else
         call get_timeseed(iseed)
       end if
       if (present(myngs)) then
-        if (myngs .lt. 1_i4) stop 'mo_sce: ngs has to be at least 1'
+        if (myngs .lt. 1_i4) &
+          call error_message('mo_sce: ngs has to be at least 1')
         ngs = myngs
       else
         ngs = 2_i4
       end if
       if (present(mynpg)) then
-        if (mynpg .lt. 3_i4) stop 'mo_sce: npg has to be at least 3'
+        if (mynpg .lt. 3_i4) &
+          call error_message('mo_sce: npg has to be at least 3')
         npg = mynpg
       else
         npg = 2 * nopt + 1
       end if
       if (present(mynps)) then
-        if (mynps .lt. 2_i4) stop 'mo_sce: nps has to be at least 2'
+        if (mynps .lt. 2_i4) &
+          call error_message('mo_sce: nps has to be at least 2')
         nps = mynps
       else
         nps = nopt + 1_i4
       end if
       if (present(mynspl)) then
-        if (mynspl .lt. 3_i4) stop 'mo_sce: nspl has to be at least 3'
+        if (mynspl .lt. 3_i4) &
+          call error_message('mo_sce: nspl has to be at least 3')
         nspl = mynspl
       else
         nspl = 2 * nopt + 1
       end if
       if (present(mymings)) then
-        if (mymings .lt. 1_i4) stop 'mo_sce: mings has to be at least 1'
+        if (mymings .lt. 1_i4) &
+          call error_message('mo_sce: mings has to be at least 1')
         mings = mymings
       else
         mings = ngs  ! no reduction of complexes
       end if
       if (present(myiniflg)) then
-        if ((myiniflg .ne. 1_i4) .and. (myiniflg .ne. 0_i4)) stop 'mo_sce: iniflg has to be 0 or 1'
+        if ((myiniflg .ne. 1_i4) .and. (myiniflg .ne. 0_i4)) &
+          call error_message('mo_sce: iniflg has to be 0 or 1')
         iniflg = myiniflg
       else
         iniflg = 1_i4
       end if
       idot = .false.
       if (present(myprint)) then
-        if ((myprint .lt. 0_i4) .or. (myprint .gt. 4_i4)) stop 'mo_sce: iprint has to be between 0 and 4'
+        if ((myprint .lt. 0_i4) .or. (myprint .gt. 4_i4)) &
+          call error_message('mo_sce: iprint has to be between 0 and 4')
         if (myprint > 2_i4) then
           iprint = myprint - 3
           idot = .true.
@@ -666,14 +679,15 @@ CONTAINS
       npt1 = npt
       !
       if (iprint .lt. 2) then
-        write(output_unit, *) '=================================================='
-        write(output_unit, *) 'ENTER THE SHUFFLED COMPLEX EVOLUTION GLOBAL SEARCH'
-        write(output_unit, *) '=================================================='
+        call message('==================================================')
+        call message('ENTER THE SHUFFLED COMPLEX EVOLUTION GLOBAL SEARCH')
+        call message('==================================================')
       end if
       !
       !  Print seed
       if (iprint .lt. 2) then
-        write (*, *) ' Seeds used : ', iseed
+        write(diagnostic_text, *) ' Seeds used : ', iseed
+        call message(trim(diagnostic_text))
       end if
       !  initialize random number generator: Uniform
       call xor4096(iseed, rand_tmp, save_state = save_state_unif)
@@ -692,7 +706,8 @@ CONTAINS
       !  compute the function value of the initial point
       !--------------------------------------------------
       ! function evaluation will be counted later...
-      if (idot) write(output_unit, '(A1)') '.'
+      if (idot) &
+        call message('.')
 #ifdef MPI
       call MPI_Comm_size(comm, nproc, ierror)
       do iproc = 1, nproc-1
@@ -712,9 +727,9 @@ CONTAINS
       bestx = pini
       bestf_tmp = fpini
       if (iprint .lt. 2) then
-        write(output_unit, *) ''
-        write(output_unit, *) ''
-        write(output_unit, *) '*** PRINT THE INITIAL POINT AND ITS CRITERION VALUE ***'
+        call message('')
+        call message('')
+        call message('*** PRINT THE INITIAL POINT AND ITS CRITERION VALUE ***')
         call write_best_final()
       end if
       if (itmp_file) then ! initial tmp file
@@ -743,7 +758,8 @@ CONTAINS
         do ii = 1, nn
           x(1, ii) = xx(ii)
         end do
-        if (idot) write(output_unit, '(A1)') '.'
+        if (idot) &
+          call message('.')
 #ifdef MPI
         call MPI_Comm_size(comm, nproc, ierror)
         do iproc = 1, nproc-1
@@ -780,7 +796,8 @@ CONTAINS
           do jj = 1, nn
             x(ii, jj) = xx(jj)
           end do
-          if (idot) write(output_unit, '(A1)') '.'
+          if (idot) &
+            call message('.')
 #ifdef MPI
           call MPI_Comm_size(comm, nproc, ierror)
           do iproc = 1, nproc-1
@@ -813,7 +830,8 @@ CONTAINS
           do jj = 1, nn
             x(ii, jj) = xx(jj)
           end do
-          if (idot) write(output_unit, '(A1)') '.'
+          if (idot) &
+            call message('.')
 #ifdef MPI
           call MPI_Comm_size(comm, nproc, ierror)
           do iproc = 1, nproc-1
@@ -1009,8 +1027,9 @@ CONTAINS
       nloop = nloop + 1
       !
       if (iprint .lt. 2) then
-        write(output_unit, *) ''
-        write(output_unit, '(A28,I4)') ' ***  Evolution Loop Number ', nloop
+        call message('')
+        write(diagnostic_text, '(A28,I4)') ' ***  Evolution Loop Number ', nloop
+        call message(trim(diagnostic_text))
       end if
       !
       !  begin loop on complexes
@@ -1442,6 +1461,7 @@ CONTAINS
       implicit none
 
       logical, intent(in) :: to_file
+      character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
       integer(i4) :: ll
 
       if (to_file) then
@@ -1456,15 +1476,19 @@ CONTAINS
         write(format_str1, '(A13,I3,A8)') '( A49, ', nn, '(6X,A4))'
         write(format_str2, '(A26,I3,A8)') '(I5,1X,I5,3X,I5,3(E22.14), ', nn, '(G10.3))'
         if (nloop == 0) then
-          write(output_unit, *) ''
-          write(output_unit, '(A44)') ' *** PRINT THE RESULTS OF THE SCE SEARCH ***'
-          write(output_unit, *) ''
-          write(output_unit, format_str1) ' LOOP TRIALS COMPLXS  BEST F   WORST F   PAR RNG ', (xname(ll), ll = 1, nn)
+          call message('')
+          write(diagnostic_text, '(A44)') ' *** PRINT THE RESULTS OF THE SCE SEARCH ***'
+          call message(trim(diagnostic_text))
+          call message('')
+          write(diagnostic_text, format_str1) ' LOOP TRIALS COMPLXS  BEST F   WORST F   PAR RNG ', (xname(ll), ll = 1, nn)
+          call message(trim(diagnostic_text))
         end if
         if (.not. maxit) then
-          write(output_unit, format_str2) nloop, icall, ngs1, bestf_tmp, worstf, gnrng, (bestx(ll), ll = 1, nn)
+          write(diagnostic_text, format_str2) nloop, icall, ngs1, bestf_tmp, worstf, gnrng, (bestx(ll), ll = 1, nn)
+          call message(trim(diagnostic_text))
         else
-          write(output_unit, format_str2) nloop, icall, ngs1, -bestf_tmp, -worstf, gnrng, (bestx(ll), ll = 1, nn)
+          write(diagnostic_text, format_str2) nloop, icall, ngs1, -bestf_tmp, -worstf, gnrng, (bestx(ll), ll = 1, nn)
+          call message(trim(diagnostic_text))
         end if
       end if
 
@@ -1473,17 +1497,21 @@ CONTAINS
     subroutine write_best_final()
 
       implicit none
+      character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
       integer(i4) :: ll
 
       write(format_str1, '(A13,I3,A8)') '( A10, ', nn, '(6X,A4))'
       write(format_str2, '(A14,I3,A8)') '(E22.14, ', nn, '(G10.3))'
 
-      write(output_unit, format_str1) 'CRITERION ', (xname(ll), ll = 1, nn)
+      write(diagnostic_text, format_str1) 'CRITERION ', (xname(ll), ll = 1, nn)
+      call message(trim(diagnostic_text))
       if (.not. maxit) then
-        write(output_unit, format_str2) bestf_tmp, (bestx(ll), ll = 1, nn)
+        write(diagnostic_text, format_str2) bestf_tmp, (bestx(ll), ll = 1, nn)
+        call message(trim(diagnostic_text))
       else
-        write(output_unit, format_str2) -bestf_tmp, (bestx(ll), ll = 1, nn)
+        write(diagnostic_text, format_str2) -bestf_tmp, (bestx(ll), ll = 1, nn)
+        call message(trim(diagnostic_text))
       end if
 
     end subroutine write_best_final
@@ -1491,6 +1519,7 @@ CONTAINS
     subroutine write_population(to_file)
 
       logical, intent(in) :: to_file
+      character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
       integer(i4) :: ll, mm
 
@@ -1509,16 +1538,20 @@ CONTAINS
         close(999)
       else
         write(format_str2, '(A12,I3,A8)') '(I4, E22.14, ', nn, '(G10.3))'
-        write(output_unit, *) ''
-        write(output_unit, '(A22,I3)') '   POPULATION AT LOOP ', nloop
-        write(output_unit, '(A27)')    '---------------------------'
+        call message('')
+        write(diagnostic_text, '(A22,I3)') '   POPULATION AT LOOP ', nloop
+        call message(trim(diagnostic_text))
+        write(diagnostic_text, '(A27)') '---------------------------'
+        call message(trim(diagnostic_text))
         if (.not. maxit) then
           do mm = 1, npt1
-            write(output_unit, format_str2) nloop, xf(mm), (x(mm, ll), ll = 1, nn)
+            write(diagnostic_text, format_str2) nloop, xf(mm), (x(mm, ll), ll = 1, nn)
+            call message(trim(diagnostic_text))
           end do
         else
           do mm = 1, npt1
-            write(output_unit, format_str2) nloop, -xf(mm), (x(mm, ll), ll = 1, nn)
+            write(diagnostic_text, format_str2) nloop, -xf(mm), (x(mm, ll), ll = 1, nn)
+            call message(trim(diagnostic_text))
           end do
         end if
       end if
@@ -1528,33 +1561,37 @@ CONTAINS
     subroutine write_termination_case(case)
 
       integer(i4), intent(in) :: case
+      character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
       select case (case)
       case (1) ! maximal number of iterations reached
-        write(output_unit, *) ''
-        write(output_unit, '(A46,A39,I7,A46,I4,A12,I4,A19,I4,A4)') &
-                '*** OPTIMIZATION SEARCH TERMINATED BECAUSE THE', &
-                ' LIMIT ON THE MAXIMUM NUMBER OF TRIALS ', maxn, &
-                ' EXCEEDED.  SEARCH WAS STOPPED AT SUB-COMPLEX ', &
-                loop, ' OF COMPLEX ', igs, ' IN SHUFFLING LOOP ', nloop, ' ***'
+        call message('')
+        write(diagnostic_text, '(A46,A39,I7,A46,I4,A12,I4,A19,I4,A4)') &
+          '*** OPTIMIZATION SEARCH TERMINATED BECAUSE THE',  ' LIMIT ON THE MAXIMUM NUMBER OF TRIALS ', maxn, &
+          ' EXCEEDED.  SEARCH WAS STOPPED AT SUB-COMPLEX ', &
+          loop, ' OF COMPLEX ', igs, ' IN SHUFFLING LOOP ', nloop, ' ***'
+        call message(trim(diagnostic_text))
         !
       case(2) ! objective not changed during last evolution loops
-        write(output_unit, *) ''
-        write(output_unit, '(A72,F8.4,A12,I3,A20)') '*** OPTIMIZATION TERMINATED BECAUSE THE CRITERION VALUE HAS NOT CHANGED ', &
-                pcento * 100._dp, ' PERCENT IN ', kstop, ' SHUFFLING LOOPS ***'
+        call message('')
+        write(diagnostic_text, '(A72,F8.4,A12,I3,A20)') &
+          '*** OPTIMIZATION TERMINATED BECAUSE THE CRITERION VALUE HAS NOT CHANGED ',  pcento * 100._dp, &
+          ' PERCENT IN ', kstop, ' SHUFFLING LOOPS ***'
+        call message(trim(diagnostic_text))
         !
       case(3) ! complexes converged
-        write(output_unit, *) ''
-        write(output_unit, '(A50,A20,F8.4,A34)') '*** OPTIMIZATION TERMINATED BECAUSE THE POPULATION', &
-                ' HAS CONVERGED INTO ', gnrng * 100._dp, ' PERCENT OF THE FEASIBLE SPACE ***'
+        call message('')
+        write(diagnostic_text, '(A50,A20,F8.4,A34)') '*** OPTIMIZATION TERMINATED BECAUSE THE POPULATION', &
+          ' HAS CONVERGED INTO ', gnrng * 100._dp, ' PERCENT OF THE FEASIBLE SPACE ***'
+        call message(trim(diagnostic_text))
         !
       case default
-        write(error_unit, *) 'This termination case is not implemented!'
-        stop
+        call error_message('This termination case is not implemented!')
       end select
 
-      write(output_unit, *) ''
-      write(output_unit, '(A66)') '*** PRINT THE FINAL PARAMETER ESTIMATE AND ITS CRITERION VALUE ***'
+      call message('')
+      write(diagnostic_text, '(A66)') '*** PRINT THE FINAL PARAMETER ESTIMATE AND ITS CRITERION VALUE ***'
+      call message(trim(diagnostic_text))
 
     end subroutine write_termination_case
 
@@ -1935,7 +1972,8 @@ CONTAINS
     end if
     !
     ! compute the function value at snew
-    if (idot) write(output_unit, '(A1)') '.'
+    if (idot) &
+      call message('.')
 #ifdef MPI
       call MPI_Comm_size(comm, nproc, ierror)
       do iproc = 1, nproc-1
@@ -1968,7 +2006,8 @@ CONTAINS
       end do
       !
       ! compute the function value of the contracted point
-      if (idot) write(output_unit, '(A1)') '.'
+      if (idot) &
+        call message('.')
 #ifdef MPI
       call MPI_Comm_size(comm, nproc, ierror)
       do iproc = 1, nproc-1
@@ -1999,7 +2038,8 @@ CONTAINS
         call getpnt(2, bl(1 : nn), bu(1 : nn), xnstd(1 : nn), sb(1 : nn), maskpara(1 : nn), save_state_gauss, snew)
         !
         ! compute the function value at the random point
-        if (idot) write(output_unit, '(A1)') '.'
+        if (idot) &
+          call message('.')
 #ifdef MPI
       call MPI_Comm_size(comm, nproc, ierror)
       do iproc = 1, nproc-1

@@ -1,0 +1,90 @@
+module test_mo_logging
+  use funit
+  use mo_logging, only: logp, logl, log_set_config, log_level, logu, log_unit, log_unit_error, &
+    LOG_INFO, LOG_FATAL, LOG_ERROR, LOG_WARN, LOG_DEBUG
+  use logging_test_support, only: save_message_config, restore_message_config
+  implicit none
+  private
+  public :: setup
+  public :: teardown
+  public :: test_scope_filters_and_fatal_visibility
+  public :: test_leaders_and_long_scopes
+  public :: test_source_metadata_and_severity_units
+contains
+  @before
+  subroutine setup()
+    call save_message_config()
+    log_level = LOG_INFO
+  end subroutine setup
+
+  @after
+  subroutine teardown()
+    call restore_message_config()
+  end subroutine teardown
+
+  @test
+  subroutine test_scope_filters_and_fatal_visibility()
+    @assertTrue(logp(LOG_INFO, scope='forces'))
+    @assertTrue(logp(LOG_INFO))
+    @assertTrue(logp(LOG_FATAL, only_n=0, scope='forces'))
+    call log_set_config(log_scope_filter='#')
+    @assertTrue(logp(LOG_INFO))
+    @assertTrue(logp(LOG_INFO, scope='#'))
+    @assertFalse(logp(LOG_INFO, scope='forces'))
+    @assertTrue(logp(LOG_FATAL, scope='forces'))
+    call log_set_config(log_scope_filter='#,FORCES*,grid?')
+    @assertTrue(logp(LOG_INFO))
+    @assertTrue(logp(LOG_INFO, scope='forces'))
+    @assertTrue(logp(LOG_INFO, scope='Forces_grid'))
+    @assertTrue(logp(LOG_INFO, scope='grid1'))
+    @assertFalse(logp(LOG_INFO, scope='other'))
+    @assertFalse(logp(LOG_DEBUG, scope='forces'))
+    call log_set_config(log_scope_filter='*')
+    @assertTrue(logp(LOG_INFO, scope='other'))
+    call log_set_config(log_scope_filter='')
+    @assertTrue(logp(LOG_INFO, scope='other'))
+    call log_set_config(log_scope_filter='other')
+    @assertFalse(logp(LOG_INFO))
+    @assertTrue(logp(LOG_FATAL, scope='forces'))
+    log_level = 0
+    @assertFalse(logp(LOG_FATAL, scope='forces'))
+  end subroutine test_scope_filters_and_fatal_visibility
+
+  @test
+  subroutine test_leaders_and_long_scopes()
+    character(:), allocatable :: leader, scope
+    leader = logl(LOG_INFO)
+    @assertEqual('[INFO] ', leader)
+    leader = logl(LOG_INFO, scope='#')
+    @assertEqual('[INFO] ', leader)
+    leader = logl(LOG_WARN, scope='forces')
+    @assertEqual('[forces][WARN] ', leader)
+    leader = logl(LOG_INFO, plain=.true., scope='forces')
+    @assertEqual('[forces] ', leader)
+    leader = logl(LOG_INFO, plain=.true.)
+    @assertEqual('', leader)
+    scope = repeat('x', 400)
+    leader = logl(LOG_INFO, scope=scope)
+    @assertEqual('[' // scope // '][INFO] ', leader)
+    leader = logl(LOG_DEBUG)
+    @assertTrue(allocated(leader))
+    @assertEqual('', leader)
+    leader = logl(99)
+    @assertEqual('', leader)
+    log_level = 0
+    leader = logl(LOG_FATAL, scope='forces')
+    @assertEqual('', leader)
+  end subroutine test_leaders_and_long_scopes
+
+  @test
+  subroutine test_source_metadata_and_severity_units()
+    character(:), allocatable :: leader
+    call log_set_config(log_output_line=.true.)
+    leader = logl(LOG_INFO, file='/path/source.F90', line=12, scope='forces')
+    @assertEqual('source.F90:12 [forces][INFO] ', leader)
+    @assertEqual(log_unit, logu(LOG_INFO))
+    @assertEqual(log_unit, logu(LOG_WARN))
+    @assertEqual(log_unit_error, logu(LOG_ERROR))
+    @assertEqual(log_unit_error, logu(LOG_FATAL))
+  end subroutine test_source_metadata_and_severity_units
+end module test_mo_logging

@@ -23,6 +23,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_statistics
 MODULE mo_moment
+  use mo_forces_message, only: error_message
 
   USE mo_kind, ONLY : i4, sp, dp
 
@@ -629,14 +630,16 @@ CONTAINS
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-      if (size(mask) .ne. size(dat)) stop 'Error absdev_dp: size(mask) .ne. size(dat)'
+      if (size(mask) .ne. size(dat)) &
+        call error_message('Error absdev_dp: size(mask) .ne. size(dat)')
       maske = mask
       n = real(count(maske), dp)
     else
       maske(:) = .true.
       n = real(size(dat), dp)
     end if
-    if (n .le. (1.0_dp + tiny(1.0_dp))) stop 'absdev_dp: n must be at least 2'
+    if (n .le. (1.0_dp + tiny(1.0_dp))) &
+      call error_message('absdev_dp: n must be at least 2')
 
     ! Average
     ave = sum(dat(:), mask = maske) / n
@@ -660,14 +663,16 @@ CONTAINS
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-      if (size(mask) .ne. size(dat)) stop 'Error absdev_sp: size(mask) .ne. size(dat)'
+      if (size(mask) .ne. size(dat)) &
+        call error_message('Error absdev_sp: size(mask) .ne. size(dat)')
       maske = mask
       n = real(count(maske), sp)
     else
       maske(:) = .true.
       n = real(size(dat), sp)
     end if
-    if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'absdev_sp: n must be at least 2'
+    if (n .le. (1.0_sp + tiny(1.0_sp))) &
+      call error_message('absdev_sp: n must be at least 2')
 
     ! Average
     ave = sum(dat(:), mask = maske) / n
@@ -690,7 +695,8 @@ CONTAINS
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-      if (size(mask) .ne. size(dat)) stop 'Error average_dp: size(mask) .ne. size(dat)'
+      if (size(mask) .ne. size(dat)) &
+        call error_message('Error average_dp: size(mask) .ne. size(dat)')
       maske = mask
       n = real(count(maske), dp)
     else
@@ -716,7 +722,8 @@ CONTAINS
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-      if (size(mask) .ne. size(dat)) stop 'Error average_sp: size(mask) .ne. size(dat)'
+      if (size(mask) .ne. size(dat)) &
+        call error_message('Error average_sp: size(mask) .ne. size(dat)')
       maske = mask
       n = real(count(maske), sp)
     else
@@ -753,14 +760,16 @@ CONTAINS
     end if
 
     if (present(mask)) then
-      if (size(mask) .ne. size(x)) stop 'Error central_moment_dp: size(mask) .ne. size(x)'
+      if (size(mask) .ne. size(x)) &
+        call error_message('Error central_moment_dp: size(mask) .ne. size(x)')
       maske = mask
       n = real(count(maske), dp)
     else
       maske(:) = .true.
       n = real(size(x), dp)
     end if
-    if (n .le. (2.0_dp + tiny(2.0_dp))) stop 'central_moment_dp: n must be at least 3'
+    if (n .le. (2.0_dp + tiny(2.0_dp))) &
+      call error_message('central_moment_dp: n must be at least 3')
 
     ! average
     mx = sum(x, mask = maske) / n
@@ -792,14 +801,16 @@ CONTAINS
     end if
 
     if (present(mask)) then
-      if (size(mask) .ne. size(x)) stop 'Error central_moment_sp: size(mask) .ne. size(x)'
+      if (size(mask) .ne. size(x)) &
+        call error_message('Error central_moment_sp: size(mask) .ne. size(x)')
       maske = mask
       n = real(count(maske), sp)
     else
       maske(:) = .true.
       n = real(size(x), sp)
     end if
-    if (n .le. (2.0_sp + tiny(2.0_sp))) stop 'central_moment_sp: n must be at least 3'
+    if (n .le. (2.0_sp + tiny(2.0_sp))) &
+      call error_message('central_moment_sp: n must be at least 3')
 
     ! average
     mx = sum(x, mask = maske) / n
@@ -828,14 +839,16 @@ CONTAINS
     end if
 
     if (present(mask)) then
-      if (size(mask) .ne. size(x)) stop 'Error central_moment_var_dp: size(mask) .ne. size(x)'
+      if (size(mask) .ne. size(x)) &
+        call error_message('Error central_moment_var_dp: size(mask) .ne. size(x)')
       maske = mask
       n = real(count(maske), dp)
     else
       maske(:) = .true.
       n = real(size(x), dp)
     end if
-    if (n .le. (2.0_dp + tiny(2.0_dp))) stop 'central_moment_var_dp: n must be at least 3'
+    if (n .le. (2.0_dp + tiny(2.0_dp))) &
+      call error_message('central_moment_var_dp: n must be at least 3')
 
     u2r = central_moment(x, 2 * r, mask = maske)
     ur = central_moment(x, r, mask = maske)
@@ -866,14 +879,16 @@ CONTAINS
     end if
 
     if (present(mask)) then
-      if (size(mask) .ne. size(x)) stop 'Error central_moment_var_sp: size(mask) .ne. size(x)'
+      if (size(mask) .ne. size(x)) &
+        call error_message('Error central_moment_var_sp: size(mask) .ne. size(x)')
       maske = mask
       n = real(count(maske), sp)
     else
       maske(:) = .true.
       n = real(size(x), sp)
     end if
-    if (n .le. (2.0_sp + tiny(2.0_sp))) stop 'central_moment_var_sp: n must be at least 3'
+    if (n .le. (2.0_sp + tiny(2.0_sp))) &
+      call error_message('central_moment_var_sp: n must be at least 3')
 
     u2r = central_moment(x, 2 * r, mask = maske)
     ur = central_moment(x, r, mask = maske)
@@ -901,16 +916,19 @@ CONTAINS
     REAL(dp) :: sx, sy, covar
     LOGICAL, DIMENSION(size(x)) :: maske
 
-    if (size(x) .ne. size(y)) stop 'Error correlation_dp: size(x) .ne. size(y)'
+    if (size(x) .ne. size(y)) &
+      call error_message('Error correlation_dp: size(x) .ne. size(y)')
     if (present(mask)) then
-      if (size(mask) .ne. size(x)) stop 'Error correlation_dp: size(mask) .ne. size(x)'
+      if (size(mask) .ne. size(x)) &
+        call error_message('Error correlation_dp: size(mask) .ne. size(x)')
       maske = mask
       n = real(count(maske), dp)
     else
       maske(:) = .true.
       n = real(size(x), dp)
     end if
-    if (n .le. (1.0_dp + tiny(1.0_dp))) stop 'correlation_dp: n must be at least 2'
+    if (n .le. (1.0_dp + tiny(1.0_dp))) &
+      call error_message('correlation_dp: n must be at least 2')
 
     ! Mean and Stddev of x and y
     call moment(x, mx, stddev = sx, mask = maske)
@@ -936,16 +954,19 @@ CONTAINS
     REAL(sp) :: sx, sy, covar
     LOGICAL, DIMENSION(size(x)) :: maske
 
-    if (size(x) .ne. size(y)) stop 'Error correlation_sp: size(x) .ne. size(y)'
+    if (size(x) .ne. size(y)) &
+      call error_message('Error correlation_sp: size(x) .ne. size(y)')
     if (present(mask)) then
-      if (size(mask) .ne. size(x)) stop 'Error correlation_sp: size(mask) .ne. size(x)'
+      if (size(mask) .ne. size(x)) &
+        call error_message('Error correlation_sp: size(mask) .ne. size(x)')
       maske = mask
       n = real(count(maske), sp)
     else
       maske(:) = .true.
       n = real(size(x), sp)
     end if
-    if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'correlation_sp: n must be at least 2'
+    if (n .le. (1.0_sp + tiny(1.0_sp))) &
+      call error_message('correlation_sp: n must be at least 2')
 
     ! Mean and Stddev of x and y
     call moment(x, mx, stddev = sx, mask = maske)
@@ -971,16 +992,19 @@ CONTAINS
     REAL(dp) :: mx, my
     LOGICAL, DIMENSION(size(x)) :: maske
 
-    if (size(x) .ne. size(y)) stop 'Error covariance_dp: size(x) .ne. size(y)'
+    if (size(x) .ne. size(y)) &
+      call error_message('Error covariance_dp: size(x) .ne. size(y)')
     if (present(mask)) then
-      if (size(mask) .ne. size(x)) stop 'Error covariance_dp: size(mask) .ne. size(x)'
+      if (size(mask) .ne. size(x)) &
+        call error_message('Error covariance_dp: size(mask) .ne. size(x)')
       maske = mask
       n = real(count(maske), dp)
     else
       maske(:) = .true.
       n = real(size(x), dp)
     end if
-    if (n .le. (1.0_dp + tiny(1.0_dp))) stop 'covariance_dp: n must be at least 2'
+    if (n .le. (1.0_dp + tiny(1.0_dp))) &
+      call error_message('covariance_dp: n must be at least 2')
 
     ! Mean of x and y
     mx = mean(x, mask = maske)
@@ -1003,16 +1027,19 @@ CONTAINS
     REAL(sp) :: mx, my
     LOGICAL, DIMENSION(size(x)) :: maske
 
-    if (size(x) .ne. size(y)) stop 'Error covariance_sp: size(x) .ne. size(y)'
+    if (size(x) .ne. size(y)) &
+      call error_message('Error covariance_sp: size(x) .ne. size(y)')
     if (present(mask)) then
-      if (size(mask) .ne. size(x)) stop 'Error covariance_sp: size(mask) .ne. size(x)'
+      if (size(mask) .ne. size(x)) &
+        call error_message('Error covariance_sp: size(mask) .ne. size(x)')
       maske = mask
       n = real(count(maske), sp)
     else
       maske(:) = .true.
       n = real(size(x), sp)
     end if
-    if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'covariance_sp: n must be at least 2'
+    if (n .le. (1.0_sp + tiny(1.0_sp))) &
+      call error_message('covariance_sp: n must be at least 2')
 
     ! Mean of x and y
     mx = mean(x, mask = maske)
@@ -1038,14 +1065,16 @@ CONTAINS
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-      if (size(mask) .ne. size(dat)) stop 'Error kurtosis_dp: size(mask) .ne. size(dat)'
+      if (size(mask) .ne. size(dat)) &
+        call error_message('Error kurtosis_dp: size(mask) .ne. size(dat)')
       maske = mask
       n = real(count(maske), dp)
     else
       maske(:) = .true.
       n = real(size(dat), dp)
     end if
-    if (n .le. (1.0_dp + tiny(1.0_dp))) stop 'kurtosis_dp: n must be at least 2'
+    if (n .le. (1.0_dp + tiny(1.0_dp))) &
+      call error_message('kurtosis_dp: n must be at least 2')
 
     ! Average
     ave = sum(dat(:), mask = maske) / n
@@ -1055,7 +1084,8 @@ CONTAINS
     p(:) = s(:) * s(:)
     var = sum(p(:), mask = maske)
     var = (var - ep * ep / n) / (n - 1.0_dp)
-    if (abs(var) .lt. tiny(0.0_dp)) stop 'kurtosis_dp: no kurtosis when zero variance'
+    if (abs(var) .lt. tiny(0.0_dp)) &
+      call error_message('kurtosis_dp: no kurtosis when zero variance')
     ! Kurtosis
     p(:) = p(:) * s(:) * s(:)
     kurtosis_dp = sum(p(:), mask = maske)
@@ -1079,14 +1109,16 @@ CONTAINS
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-      if (size(mask) .ne. size(dat)) stop 'Error kurtosis_sp: size(mask) .ne. size(dat)'
+      if (size(mask) .ne. size(dat)) &
+        call error_message('Error kurtosis_sp: size(mask) .ne. size(dat)')
       maske = mask
       n = real(count(maske), sp)
     else
       maske(:) = .true.
       n = real(size(dat), sp)
     end if
-    if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'kurtosis_sp: n must be at least 2'
+    if (n .le. (1.0_sp + tiny(1.0_sp))) &
+      call error_message('kurtosis_sp: n must be at least 2')
 
     ! Average
     ave = sum(dat(:), mask = maske) / n
@@ -1096,7 +1128,8 @@ CONTAINS
     p(:) = s(:) * s(:)
     var = sum(p(:), mask = maske)
     var = (var - ep * ep / n) / (n - 1.0_sp)
-    if (abs(var) .lt. tiny(0.0_sp)) stop 'kurtosis_sp: no kurtosis when zero variance'
+    if (abs(var) .lt. tiny(0.0_sp)) &
+      call error_message('kurtosis_sp: no kurtosis when zero variance')
     ! Kurtosis
     p(:) = p(:) * s(:) * s(:)
     kurtosis_sp = sum(p(:), mask = maske)
@@ -1119,7 +1152,8 @@ CONTAINS
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-      if (size(mask) .ne. size(dat)) stop 'Error mean_dp: size(mask) .ne. size(dat)'
+      if (size(mask) .ne. size(dat)) &
+        call error_message('Error mean_dp: size(mask) .ne. size(dat)')
       maske = mask
       n = real(count(maske), dp)
     else
@@ -1146,7 +1180,8 @@ CONTAINS
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-      if (size(mask) .ne. size(dat)) stop 'Error mean_sp: size(mask) .ne. size(dat)'
+      if (size(mask) .ne. size(dat)) &
+        call error_message('Error mean_sp: size(mask) .ne. size(dat)')
       maske = mask
       n = real(count(maske), sp)
     else
@@ -1181,16 +1216,19 @@ CONTAINS
       return
     end if
 
-    if (size(x) .ne. size(y)) stop 'Error mixed_central_moment_dp: size(x) .ne. size(y)'
+    if (size(x) .ne. size(y)) &
+      call error_message('Error mixed_central_moment_dp: size(x) .ne. size(y)')
     if (present(mask)) then
-      if (size(mask) .ne. size(x)) stop 'Error mixed_central_moment_dp: size(mask) .ne. size(x)'
+      if (size(mask) .ne. size(x)) &
+        call error_message('Error mixed_central_moment_dp: size(mask) .ne. size(x)')
       maske = mask
       n = real(count(maske), dp)
     else
       maske(:) = .true.
       n = real(size(x), dp)
     end if
-    if (n .le. (2.0_dp + tiny(2.0_dp))) stop 'mixed_central_moment_dp: n must be at least 3'
+    if (n .le. (2.0_dp + tiny(2.0_dp))) &
+      call error_message('mixed_central_moment_dp: n must be at least 3')
 
     ! Averages of x and y
     mx = sum(x, mask = maske) / n
@@ -1231,16 +1269,19 @@ CONTAINS
       return
     end if
 
-    if (size(x) .ne. size(y)) stop 'Error mixed_central_moment_sp: size(x) .ne. size(y)'
+    if (size(x) .ne. size(y)) &
+      call error_message('Error mixed_central_moment_sp: size(x) .ne. size(y)')
     if (present(mask)) then
-      if (size(mask) .ne. size(x)) stop 'Error mixed_central_moment_sp: size(mask) .ne. size(x)'
+      if (size(mask) .ne. size(x)) &
+        call error_message('Error mixed_central_moment_sp: size(mask) .ne. size(x)')
       maske = mask
       n = real(count(maske), sp)
     else
       maske(:) = .true.
       n = real(size(x), sp)
     end if
-    if (n .le. (2.0_sp + tiny(2.0_sp))) stop 'mixed_central_moment_sp: n must be at least 3'
+    if (n .le. (2.0_sp + tiny(2.0_sp))) &
+      call error_message('mixed_central_moment_sp: n must be at least 3')
 
     ! Averages of x and y
     mx = sum(x, mask = maske) / n
@@ -1277,16 +1318,19 @@ CONTAINS
     REAL(dp) :: n, rr, ss
     LOGICAL, DIMENSION(size(x)) :: maske
 
-    if (size(x) .ne. size(y)) stop 'Error mixed_central_moment_var_dp: size(x) .ne. size(y)'
+    if (size(x) .ne. size(y)) &
+      call error_message('Error mixed_central_moment_var_dp: size(x) .ne. size(y)')
     if (present(mask)) then
-      if (size(mask) .ne. size(x)) stop 'Error mixed_central_moment_var_dp: size(mask) .ne. size(x)'
+      if (size(mask) .ne. size(x)) &
+        call error_message('Error mixed_central_moment_var_dp: size(mask) .ne. size(x)')
       maske = mask
       n = real(count(maske), dp)
     else
       maske(:) = .true.
       n = real(size(x), dp)
     end if
-    if (n .le. (2.0_dp + tiny(2.0_dp))) stop 'mixed_central_moment_var_dp: n must be at least 3'
+    if (n .le. (2.0_dp + tiny(2.0_dp))) &
+      call error_message('mixed_central_moment_var_dp: n must be at least 3')
 
     u2r2s = mixed_central_moment(x, y, 2 * r, 2 * s, mask = maske)
     urs = mixed_central_moment(x, y, r, s, mask = maske)
@@ -1323,16 +1367,19 @@ CONTAINS
     REAL(sp) :: n, rr, ss
     LOGICAL, DIMENSION(size(x)) :: maske
 
-    if (size(x) .ne. size(y)) stop 'Error mixed_central_moment_var_sp: size(x) .ne. size(y)'
+    if (size(x) .ne. size(y)) &
+      call error_message('Error mixed_central_moment_var_sp: size(x) .ne. size(y)')
     if (present(mask)) then
-      if (size(mask) .ne. size(x)) stop 'Error mixed_central_moment_var_sp: size(mask) .ne. size(x)'
+      if (size(mask) .ne. size(x)) &
+        call error_message('Error mixed_central_moment_var_sp: size(mask) .ne. size(x)')
       maske = mask
       n = real(count(maske), sp)
     else
       maske(:) = .true.
       n = real(size(x), sp)
     end if
-    if (n .le. (2.0_sp + tiny(2.0_sp))) stop 'mixed_central_moment_var_sp: n must be at least 3'
+    if (n .le. (2.0_sp + tiny(2.0_sp))) &
+      call error_message('mixed_central_moment_var_sp: n must be at least 3')
 
     u2r2s = mixed_central_moment(x, y, 2 * r, 2 * s, mask = maske)
     urs = mixed_central_moment(x, y, r, s, mask = maske)
@@ -1377,14 +1424,16 @@ CONTAINS
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-      if (size(mask) .ne. size(dat)) stop 'Error moment_dp: size(mask) .ne. size(dat)'
+      if (size(mask) .ne. size(dat)) &
+        call error_message('Error moment_dp: size(mask) .ne. size(dat)')
       maske = mask
       n = real(count(maske), sp)
     else
       maske(:) = .true.
       n = real(size(dat), sp)
     end if
-    if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'moment_dp: n must be at least 2'
+    if (n .le. (1.0_sp + tiny(1.0_sp))) &
+      call error_message('moment_dp: n must be at least 2')
 
     ! set divisor for population (n) or sample (n-1) variance
     div_n = n - 1.0_dp
@@ -1416,7 +1465,8 @@ CONTAINS
     if (present(stddev))   stddev = sqrt(var)
     if (.not. (present(skewness) .or. present(kurtosis))) return
     ! Skewness
-    if (abs(var) .lt. tiny(0.0_dp)) stop 'moment_dp: no skewness or kurtosis when zero variance'
+    if (abs(var) .lt. tiny(0.0_dp)) &
+      call error_message('moment_dp: no skewness or kurtosis when zero variance')
     p(:) = p(:) * s(:)
     if (present(skewness)) then
       skewness = sum(p(:), mask = maske)
@@ -1454,14 +1504,16 @@ CONTAINS
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-      if (size(mask) .ne. size(dat)) stop 'Error moment_sp: size(mask) .ne. size(dat)'
+      if (size(mask) .ne. size(dat)) &
+        call error_message('Error moment_sp: size(mask) .ne. size(dat)')
       maske = mask
       n = real(count(maske), sp)
     else
       maske(:) = .true.
       n = real(size(dat), sp)
     end if
-    if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'moment_sp: n must be at least 2'
+    if (n .le. (1.0_sp + tiny(1.0_sp))) &
+      call error_message('moment_sp: n must be at least 2')
 
     ! set divisor for population (n) or sample (n-1) variance
     div_n = n - 1.0_sp
@@ -1493,7 +1545,8 @@ CONTAINS
     if (present(stddev))   stddev = sqrt(var)
     if (.not. (present(skewness) .or. present(kurtosis))) return
     ! Skewness
-    if (abs(var) .lt. tiny(0.0_sp)) stop 'moment_sp: no skewness or kurtosis when zero variance'
+    if (abs(var) .lt. tiny(0.0_sp)) &
+      call error_message('moment_sp: no skewness or kurtosis when zero variance')
     p(:) = p(:) * s(:)
     if (present(skewness)) then
       skewness = sum(p(:), mask = maske)
@@ -1525,14 +1578,16 @@ CONTAINS
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-      if (size(mask) .ne. size(dat)) stop 'Error stddev_dp: size(mask) .ne. size(dat)'
+      if (size(mask) .ne. size(dat)) &
+        call error_message('Error stddev_dp: size(mask) .ne. size(dat)')
       maske = mask
       n = real(count(maske), dp)
     else
       maske(:) = .true.
       n = real(size(dat), dp)
     end if
-    if (n .le. (1.0_dp + tiny(1.0_dp))) stop 'stddev_dp: n must be at least 2'
+    if (n .le. (1.0_dp + tiny(1.0_dp))) &
+      call error_message('stddev_dp: n must be at least 2')
 
     ! Average
     ave = sum(dat(:), mask = maske) / n
@@ -1562,14 +1617,16 @@ CONTAINS
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-      if (size(mask) .ne. size(dat)) stop 'Error stddev_sp: size(mask) .ne. size(dat)'
+      if (size(mask) .ne. size(dat)) &
+        call error_message('Error stddev_sp: size(mask) .ne. size(dat)')
       maske = mask
       n = real(count(maske), sp)
     else
       maske(:) = .true.
       n = real(size(dat), sp)
     end if
-    if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'stddev_sp: n must be at least 2'
+    if (n .le. (1.0_sp + tiny(1.0_sp))) &
+      call error_message('stddev_sp: n must be at least 2')
 
     ! Average
     ave = sum(dat(:), mask = maske) / n
@@ -1600,14 +1657,16 @@ CONTAINS
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-      if (size(mask) .ne. size(dat)) stop 'Error skewness_dp: size(mask) .ne. size(dat)'
+      if (size(mask) .ne. size(dat)) &
+        call error_message('Error skewness_dp: size(mask) .ne. size(dat)')
       maske = mask
       n = real(count(maske), dp)
     else
       maske(:) = .true.
       n = real(size(dat), dp)
     end if
-    if (n .le. (1.0_dp + tiny(1.0_dp))) stop 'skewness_dp: n must be at least 2'
+    if (n .le. (1.0_dp + tiny(1.0_dp))) &
+      call error_message('skewness_dp: n must be at least 2')
 
     ! Average
     ave = sum(dat(:), mask = maske) / n
@@ -1619,7 +1678,8 @@ CONTAINS
     var = (var - ep * ep / n) / (n - 1.0_dp)
     stddev = sqrt(var)
     ! Skewness
-    if (abs(var) .lt. tiny(0.0_dp)) stop 'skewness_dp: no skewness when zero variance'
+    if (abs(var) .lt. tiny(0.0_dp)) &
+      call error_message('skewness_dp: no skewness when zero variance')
     p(:) = p(:) * s(:)
     skewness_dp = sum(p(:), mask = maske)
     skewness_dp = skewness_dp / (n * stddev * stddev * stddev)
@@ -1642,14 +1702,16 @@ CONTAINS
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-      if (size(mask) .ne. size(dat)) stop 'Error skewness_sp: size(mask) .ne. size(dat)'
+      if (size(mask) .ne. size(dat)) &
+        call error_message('Error skewness_sp: size(mask) .ne. size(dat)')
       maske = mask
       n = real(count(maske), sp)
     else
       maske(:) = .true.
       n = real(size(dat), sp)
     end if
-    if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'skewness_sp: n must be at least 2'
+    if (n .le. (1.0_sp + tiny(1.0_sp))) &
+      call error_message('skewness_sp: n must be at least 2')
 
     ! Average
     ave = sum(dat(:), mask = maske) / n
@@ -1661,7 +1723,8 @@ CONTAINS
     var = (var - ep * ep / n) / (n - 1.0_sp)
     stddev = sqrt(var)
     ! Skewness
-    if (abs(var) .lt. tiny(0.0_sp)) stop 'skewness_sp: no skewness when zero variance'
+    if (abs(var) .lt. tiny(0.0_sp)) &
+      call error_message('skewness_sp: no skewness when zero variance')
     p(:) = p(:) * s(:)
     skewness_sp = sum(p(:), mask = maske)
     skewness_sp = skewness_sp / (n * stddev * stddev * stddev)
@@ -1685,14 +1748,16 @@ CONTAINS
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-      if (size(mask) .ne. size(dat)) stop 'Error variance_dp: size(mask) .ne. size(dat)'
+      if (size(mask) .ne. size(dat)) &
+        call error_message('Error variance_dp: size(mask) .ne. size(dat)')
       maske = mask
       n = real(count(maske), dp)
     else
       maske(:) = .true.
       n = real(size(dat), dp)
     end if
-    if (n .le. (1.0_dp + tiny(1.0_dp))) stop 'variance_dp: n must be at least 2'
+    if (n .le. (1.0_dp + tiny(1.0_dp))) &
+      call error_message('variance_dp: n must be at least 2')
 
     ! Average
     ave = sum(dat(:), mask = maske) / n
@@ -1721,14 +1786,16 @@ CONTAINS
     LOGICAL, DIMENSION(size(dat)) :: maske
 
     if (present(mask)) then
-      if (size(mask) .ne. size(dat)) stop 'Error variance_sp: size(mask) .ne. size(dat)'
+      if (size(mask) .ne. size(dat)) &
+        call error_message('Error variance_sp: size(mask) .ne. size(dat)')
       maske = mask
       n = real(count(maske), sp)
     else
       maske(:) = .true.
       n = real(size(dat), sp)
     end if
-    if (n .le. (1.0_sp + tiny(1.0_sp))) stop 'variance_sp: n must be at least 2'
+    if (n .le. (1.0_sp + tiny(1.0_sp))) &
+      call error_message('variance_sp: n must be at least 2')
 
     ! Average
     ave = sum(dat(:), mask = maske) / n

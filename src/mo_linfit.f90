@@ -9,6 +9,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_statistics
 MODULE mo_linfit
+  use mo_forces_message, only: error_message
 
   USE mo_kind, ONLY : sp, dp
 
@@ -111,7 +112,8 @@ CONTAINS
     REAL(dp) :: mx, my, sx2, sy2, sxy, sxy2, syx2, ssigb
     !REAL(dp) :: r
 
-    if (size(x) /= size(y))   stop 'linfit_dp: size(x) /= size(y)'
+    if (size(x) /= size(y)) &
+      call error_message('linfit_dp: size(x) /= size(y)')
     if (.not. allocated(linfit_dp)) allocate(linfit_dp(size(x)))
     if (present(model2)) then
       mod2 = model2
@@ -202,7 +204,8 @@ CONTAINS
     REAL(sp) :: mx, my, sx2, sy2, sxy, sxy2, syx2, ssigb
     !REAL(sp) :: r
 
-    if (size(x) /= size(y))   stop 'linfit_sp: size(x) /= size(y)'
+    if (size(x) /= size(y)) &
+      call error_message('linfit_sp: size(x) /= size(y)')
     if (.not. allocated(linfit_sp)) allocate(linfit_sp(size(x)))
     if (present(model2)) then
       mod2 = model2

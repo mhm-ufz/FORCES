@@ -14,6 +14,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_spatial
 module mo_grid_scaler
+  use mo_forces_message, only: error_message
 
   use, intrinsic :: ieee_arithmetic, only : ieee_is_finite, ieee_is_nan, ieee_is_negative
   use mo_kind, only: i4, i8, dp
@@ -21,7 +22,6 @@ module mo_grid_scaler
   use mo_grid_helper, only: id_bounds, coarse_ij, check_factor, dist_latlon
   use mo_utils, only: is_close, eq, optval, prefix_sum
   use mo_string_utils, only: num2str
-  use mo_message, only: error_message
   use mo_constants, only: nodata_i4, nodata_i8
   use mo_orderpack, only: omedian
   use mo_spatial_index, only: spatial_index_t
@@ -566,9 +566,8 @@ contains
       end do
       !$omp end parallel do
 
-      if (fine_grid_check_invalid) then
+      if (fine_grid_check_invalid) &
         call error_message("scaler % init: contributing fine-grid cell areas need to be finite and positive.") ! LCOV_EXCL_LINE
-      end if
 
       !$omp parallel do default(shared) private(i_lb,i_ub,j_lb,j_ub) schedule(static)
       do k = 1_i8, this%coarse_grid%ncells
@@ -647,9 +646,8 @@ contains
     allocate(this%fill_target_ids(n_missing), this%fill_source_ids(n_missing))
     if (n_missing < 1_i8) return
 
-    if (.not. has_valid) then
+    if (.not. has_valid) &
       call error_message("scaler % init: no valid target result is available to fill missing cells.") ! LCOV_EXCL_LINE
-    end if
 
     call this%target_grid%copy_to(valid_grid, mask=valid_mask)
     call valid_grid%fill_ids(this%target_grid, valid_ids, use_index_distance=this%use_index_distance)
@@ -1082,12 +1080,10 @@ contains
 
     if (this%source_grid%coordsys == cartesian .and. this%target_grid%coordsys == cartesian) then
       if (use_aux) then
-        if (.not. this%source_grid%has_aux_coords()) then
+        if (.not. this%source_grid%has_aux_coords()) &
           call error_message("nearest_regridder % init: source grid has no auxiliary lon/lat coordinates.") ! LCOV_EXCL_LINE
-        end if
-        if (.not. this%target_grid%has_aux_coords()) then
+        if (.not. this%target_grid%has_aux_coords()) &
           call error_message("nearest_regridder % init: target grid has no auxiliary lon/lat coordinates.") ! LCOV_EXCL_LINE
-        end if
         this%mapping_coordsys = spherical
         this%source_use_aux = .true.
         this%target_use_aux = .true.
@@ -1097,17 +1093,15 @@ contains
 
     this%mapping_coordsys = spherical
     if (this%source_grid%coordsys == cartesian) then
-      if (.not. this%source_grid%has_aux_coords()) then
-        call error_message("nearest_regridder % init: Cartesian source grid needs auxiliary lon/lat coordinates", &
-                           " for spherical mapping.") ! LCOV_EXCL_LINE
-      end if
+      if (.not. this%source_grid%has_aux_coords()) &
+        call error_message("nearest_regridder % init: Cartesian source grid needs auxiliary lon/lat coordinates", & ! LCOV_EXCL_LINE
+          " for spherical mapping.") ! LCOV_EXCL_LINE
       this%source_use_aux = .true.
     end if
     if (this%target_grid%coordsys == cartesian) then
-      if (.not. this%target_grid%has_aux_coords()) then
-        call error_message("nearest_regridder % init: Cartesian target grid needs auxiliary lon/lat coordinates", &
-                           " for spherical mapping.") ! LCOV_EXCL_LINE
-      end if
+      if (.not. this%target_grid%has_aux_coords()) &
+        call error_message("nearest_regridder % init: Cartesian target grid needs auxiliary lon/lat coordinates", & ! LCOV_EXCL_LINE
+          " for spherical mapping.") ! LCOV_EXCL_LINE
       this%target_use_aux = .true.
     end if
   end subroutine nearest_regridder_select_space
@@ -1117,10 +1111,9 @@ contains
 
     if (.not. this%source_use_aux) return
     if (this%source_grid%has_aux_vertices()) return
-    if (this%source_grid%nx <= 1_i4 .or. this%source_grid%ny <= 1_i4) then
-      call error_message("nearest_regridder % init: source grid needs auxiliary vertices for derived masking", &
-                         " in aux mode and cannot estimate them for singleton dimensions.") ! LCOV_EXCL_LINE
-    end if
+    if (this%source_grid%nx <= 1_i4 .or. this%source_grid%ny <= 1_i4) &
+      call error_message("nearest_regridder % init: source grid needs auxiliary vertices for derived masking", & ! LCOV_EXCL_LINE
+        " in aux mode and cannot estimate them for singleton dimensions.") ! LCOV_EXCL_LINE
     call this%source_grid%estimate_aux_vertices()
   end subroutine nearest_regridder_prepare_source_aux_vertices
 
@@ -1163,15 +1156,12 @@ contains
     target_mask_changed = .false.
     if (this%target_grid%ncells < 1_i8) return
 
-    if (size(target_points, 1, kind=i8) /= this%target_grid%ncells .or. size(target_points, 2) /= 2_i4) then
+    if (size(target_points, 1, kind=i8) /= this%target_grid%ncells .or. size(target_points, 2) /= 2_i4) &
       call error_message("nearest_regridder % init: target point buffer has wrong shape.") ! LCOV_EXCL_LINE
-    end if
-    if (size(nearest_ids, kind=i8) /= this%target_grid%ncells) then
+    if (size(nearest_ids, kind=i8) /= this%target_grid%ncells) &
       call error_message("nearest_regridder % init: nearest source ids have wrong size.") ! LCOV_EXCL_LINE
-    end if
-    if (size(target_mask, 1) /= this%target_grid%nx .or. size(target_mask, 2) /= this%target_grid%ny) then
+    if (size(target_mask, 1) /= this%target_grid%nx .or. size(target_mask, 2) /= this%target_grid%ny) &
       call error_message("nearest_regridder % init: target mask buffer has wrong shape.") ! LCOV_EXCL_LINE
-    end if
 
     !$omp parallel do default(shared) private(k,tgt_i,tgt_j,src_i,src_j,found,src_i_found,src_j_found) &
     !$omp& reduction(.or.:target_mask_changed) schedule(static) &
@@ -1288,9 +1278,8 @@ contains
     real(dp), allocatable :: packed_area(:)
     logical :: has_cell_area
 
-    if (size(target_mask, 1) /= this%target_grid%nx .or. size(target_mask, 2) /= this%target_grid%ny) then
+    if (size(target_mask, 1) /= this%target_grid%nx .or. size(target_mask, 2) /= this%target_grid%ny) &
       call error_message("nearest_regridder % init: derived target mask has wrong shape.") ! LCOV_EXCL_LINE
-    end if
 
     has_cell_area = allocated(this%target_grid%cell_area)
     if (has_cell_area) then
@@ -1320,9 +1309,8 @@ contains
       allocate(this%id_map(0))
       return
     end if
-    if (this%source_grid%ncells < 1_i8) then
+    if (this%source_grid%ncells < 1_i8) &
       call error_message("nearest_regridder % init: source grid has no active cells.") ! LCOV_EXCL_LINE
-    end if
 
     call this%source_grid%build_spatial_index(index, use_aux=this%source_use_aux)
     call this%collect_target_points(target_points)
@@ -1339,12 +1327,10 @@ contains
     integer(i8), allocatable :: new_col_cnt(:), new_cum_col_cnt(:)
     logical :: invalid_mask
 
-    if (size(nearest_ids, kind=i8) /= this%target_grid%ncells) then
+    if (size(nearest_ids, kind=i8) /= this%target_grid%ncells) &
       call error_message("nearest_regridder % init: nearest ids do not match old target cells.") ! LCOV_EXCL_LINE
-    end if
-    if (size(target_mask, 1) /= this%target_grid%nx .or. size(target_mask, 2) /= this%target_grid%ny) then
+    if (size(target_mask, 1) /= this%target_grid%nx .or. size(target_mask, 2) /= this%target_grid%ny) &
       call error_message("nearest_regridder % init: target mask buffer has wrong shape.") ! LCOV_EXCL_LINE
-    end if
 
     allocate(new_col_cnt(this%target_grid%ny), new_cum_col_cnt(this%target_grid%ny))
     invalid_mask = .false.
@@ -1360,9 +1346,8 @@ contains
       end do
     end do
     !$omp end parallel do
-    if (invalid_mask) then
+    if (invalid_mask) &
       call error_message("nearest_regridder % init: derived target mask is not a subset of the old target mask.") ! LCOV_EXCL_LINE
-    end if
 
     call prefix_sum(new_col_cnt, new_cum_col_cnt, shift=1_i8, start=0_i8)
     n_new = new_cum_col_cnt(this%target_grid%ny) + new_col_cnt(this%target_grid%ny)
@@ -1391,9 +1376,8 @@ contains
     integer(i8) :: k
     integer(i4) :: i, j
 
-    if (size(points, 1, kind=i8) /= grid%ncells .or. size(points, 2) /= 2_i4) then
+    if (size(points, 1, kind=i8) /= grid%ncells .or. size(points, 2) /= 2_i4) &
       call error_message("nearest_regridder: Cartesian point buffer has wrong shape.") ! LCOV_EXCL_LINE
-    end if
 
     !$omp parallel do default(shared) private(k,i,j) schedule(static) if(grid%ncells >= nearest_regridder_loop_parallel_min_n)
     do k = 1_i8, grid%ncells
@@ -1413,16 +1397,13 @@ contains
     integer(i8) :: k
     integer(i4) :: i, j
 
-    if (size(points, 1, kind=i8) /= grid%ncells .or. size(points, 2) /= 2_i4) then
+    if (size(points, 1, kind=i8) /= grid%ncells .or. size(points, 2) /= 2_i4) &
       call error_message("nearest_regridder: lon/lat point buffer has wrong shape.") ! LCOV_EXCL_LINE
-    end if
 
-    if (use_aux .and. .not. grid%has_aux_coords()) then
+    if (use_aux .and. .not. grid%has_aux_coords()) &
       call error_message("nearest_regridder: grid has no auxiliary lon/lat coordinates.") ! LCOV_EXCL_LINE
-    end if
-    if (.not. use_aux .and. grid%coordsys /= spherical) then
+    if (.not. use_aux .and. grid%coordsys /= spherical) &
       call error_message("nearest_regridder: regular lon/lat points need a spherical grid.") ! LCOV_EXCL_LINE
-    end if
 
     !$omp parallel do default(shared) private(k,i,j) schedule(static) if(grid%ncells >= nearest_regridder_loop_parallel_min_n)
     do k = 1_i8, grid%ncells
@@ -1442,33 +1423,28 @@ contains
   subroutine nearest_regridder_check_ready(this)
     class(nearest_regridder_t), intent(in) :: this
 
-    if (.not. associated(this%source_grid) .or. .not. associated(this%target_grid)) then
+    if (.not. associated(this%source_grid) .or. .not. associated(this%target_grid)) &
       call error_message("nearest_regridder % execute: regridder is not initialized.") ! LCOV_EXCL_LINE
-    end if
-    if (.not. allocated(this%id_map)) then
+    if (.not. allocated(this%id_map)) &
       call error_message("nearest_regridder % execute: regridder is not initialized.") ! LCOV_EXCL_LINE
-    end if
-    if (size(this%id_map, kind=i8) /= this%target_grid%ncells) then
+    if (size(this%id_map, kind=i8) /= this%target_grid%ncells) &
       call error_message("nearest_regridder % execute: target mapping size does not match target grid.") ! LCOV_EXCL_LINE
-    end if
   end subroutine nearest_regridder_check_ready
 
   subroutine nearest_regridder_check_packed_source(this, nvals)
     class(nearest_regridder_t), intent(in) :: this
     integer(i8), intent(in) :: nvals
 
-    if (nvals /= this%source_grid%ncells) then
+    if (nvals /= this%source_grid%ncells) &
       call error_message("nearest_regridder % execute: packed source size does not match source grid.") ! LCOV_EXCL_LINE
-    end if
   end subroutine nearest_regridder_check_packed_source
 
   subroutine nearest_regridder_check_packed_target(this, nvals)
     class(nearest_regridder_t), intent(in) :: this
     integer(i8), intent(in) :: nvals
 
-    if (nvals /= this%target_grid%ncells) then
+    if (nvals /= this%target_grid%ncells) &
       call error_message("nearest_regridder % execute: packed target size does not match target grid.") ! LCOV_EXCL_LINE
-    end if
   end subroutine nearest_regridder_check_packed_target
 
   subroutine nearest_regridder_check_unpacked_source(this, nx, ny)
@@ -1476,9 +1452,8 @@ contains
     integer(i4), intent(in) :: nx
     integer(i4), intent(in) :: ny
 
-    if (nx /= this%source_grid%nx .or. ny /= this%source_grid%ny) then
+    if (nx /= this%source_grid%nx .or. ny /= this%source_grid%ny) &
       call error_message("nearest_regridder % execute: source matrix shape does not match source grid.") ! LCOV_EXCL_LINE
-    end if
   end subroutine nearest_regridder_check_unpacked_source
 
   subroutine nearest_regridder_check_unpacked_target(this, nx, ny)
@@ -1486,9 +1461,8 @@ contains
     integer(i4), intent(in) :: nx
     integer(i4), intent(in) :: ny
 
-    if (nx /= this%target_grid%nx .or. ny /= this%target_grid%ny) then
+    if (nx /= this%target_grid%nx .or. ny /= this%target_grid%ny) &
       call error_message("nearest_regridder % execute: target matrix shape does not match target grid.") ! LCOV_EXCL_LINE
-    end if
   end subroutine nearest_regridder_check_unpacked_target
 
   subroutine nearest_regridder_map_dp(this, in_data, out_data)
@@ -1537,69 +1511,61 @@ contains
   subroutine scaler_check_packed_source(this, nvals)
     class(scaler_t), intent(in) :: this
     integer(i8), intent(in) :: nvals
-    if (nvals /= this%source_grid%ncells) then
+    if (nvals /= this%source_grid%ncells) &
       call error_message("scaler % execute: packed source size does not match source grid.") ! LCOV_EXCL_LINE
-    end if
   end subroutine scaler_check_packed_source
 
   subroutine scaler_check_packed_target(this, nvals)
     class(scaler_t), intent(in) :: this
     integer(i8), intent(in) :: nvals
-    if (nvals /= this%target_grid%ncells) then
+    if (nvals /= this%target_grid%ncells) &
       call error_message("scaler % execute: packed target size does not match target grid.") ! LCOV_EXCL_LINE
-    end if
   end subroutine scaler_check_packed_target
 
   subroutine scaler_check_unpacked_source(this, nx, ny)
     class(scaler_t), intent(in) :: this
     integer(i4), intent(in) :: nx
     integer(i4), intent(in) :: ny
-    if (nx /= this%source_grid%nx .or. ny /= this%source_grid%ny) then
+    if (nx /= this%source_grid%nx .or. ny /= this%source_grid%ny) &
       call error_message("scaler % execute: source matrix shape does not match source grid.") ! LCOV_EXCL_LINE
-    end if
   end subroutine scaler_check_unpacked_source
 
   subroutine scaler_check_unpacked_target(this, nx, ny)
     class(scaler_t), intent(in) :: this
     integer(i4), intent(in) :: nx
     integer(i4), intent(in) :: ny
-    if (nx /= this%target_grid%nx .or. ny /= this%target_grid%ny) then
+    if (nx /= this%target_grid%nx .or. ny /= this%target_grid%ny) &
       call error_message("scaler % execute: target matrix shape does not match target grid.") ! LCOV_EXCL_LINE
-    end if
   end subroutine scaler_check_unpacked_target
 
   subroutine scaler_check_packed_fine(this, nvals)
     class(scaler_t), intent(in) :: this
     integer(i8), intent(in) :: nvals
-    if (nvals /= this%fine_grid%ncells) then
+    if (nvals /= this%fine_grid%ncells) &
       call error_message("scaler: packed fine-grid size does not match fine grid.") ! LCOV_EXCL_LINE
-    end if
   end subroutine scaler_check_packed_fine
 
   subroutine scaler_check_packed_coarse(this, nvals)
     class(scaler_t), intent(in) :: this
     integer(i8), intent(in) :: nvals
-    if (nvals /= this%coarse_grid%ncells) then
+    if (nvals /= this%coarse_grid%ncells) &
       call error_message("scaler: packed coarse-grid size does not match coarse grid.") ! LCOV_EXCL_LINE
-    end if
   end subroutine scaler_check_packed_coarse
 
   subroutine scaler_check_unpacked_fine(this, nx, ny)
     class(scaler_t), intent(in) :: this
     integer(i4), intent(in) :: nx
     integer(i4), intent(in) :: ny
-    if (nx /= this%fine_grid%nx .or. ny /= this%fine_grid%ny) then
+    if (nx /= this%fine_grid%nx .or. ny /= this%fine_grid%ny) &
       call error_message("scaler: fine-grid matrix shape does not match fine grid.") ! LCOV_EXCL_LINE
-    end if
   end subroutine scaler_check_unpacked_fine
 
   subroutine scaler_check_unpacked_coarse(this, nx, ny)
     class(scaler_t), intent(in) :: this
     integer(i4), intent(in) :: nx
     integer(i4), intent(in) :: ny
-    if (nx /= this%coarse_grid%nx .or. ny /= this%coarse_grid%ny) then
+    if (nx /= this%coarse_grid%nx .or. ny /= this%coarse_grid%ny) &
       call error_message("scaler: coarse-grid matrix shape does not match coarse grid.") ! LCOV_EXCL_LINE
-    end if
   end subroutine scaler_check_unpacked_coarse
 
   !> \brief Execute scaler for packed real input and output.
@@ -2092,7 +2058,8 @@ contains
     else if (eq(p_, -1.0_dp)) then
       call this%upscale_h_mean(in_data, out_data)
     else if (.not.ieee_is_finite(p_)) then
-      if (ieee_is_nan(p_)) call error_message("upscale_p_mean: p is not a number.") ! LCOV_EXCL_LINE
+      if (ieee_is_nan(p_)) & ! LCOV_EXCL_LINE
+        call error_message("upscale_p_mean: p is not a number.") ! LCOV_EXCL_LINE
       if (ieee_is_negative(p_)) then
         call this%upscale_min(in_data, out_data)
       else
@@ -2486,7 +2453,8 @@ contains
       end do
       !$omp end parallel do
     endif
-    if (min_v > max_v) call error_message("upscale_laf: vmin is bigger than vmax.") ! LCOV_EXCL_LINE
+    if (min_v > max_v) & ! LCOV_EXCL_LINE
+      call error_message("upscale_laf: vmin is bigger than vmax.") ! LCOV_EXCL_LINE
 
     !$omp parallel do default(shared) private(i,laf_v,cnt_v,cnt_i,x_lb,x_ub,y_lb,y_ub) schedule(static)
     do k = 1_i8, this%coarse_grid%ncells
@@ -2546,9 +2514,8 @@ contains
 
     call check_upscaling(this%scaling_mode)
     call this%check_unpacked_fine(size(class_map, 1), size(class_map, 2))
-    if (coarse_cell < 1_i8 .or. coarse_cell > this%coarse_grid%ncells) then
+    if (coarse_cell < 1_i8 .or. coarse_cell > this%coarse_grid%ncells) &
       call error_message("scaler % cell_fraction: coarse cell ID is out of bounds.") ! LCOV_EXCL_LINE
-    end if
     if (this%weight_mode == weight_area) then
       fraction = this%cell_fraction_area_value(class_map, coarse_cell, class_id)
     else
@@ -2953,12 +2920,14 @@ contains
 
   subroutine check_upscaling(scaling_mode)
     integer(i4), intent(in) :: scaling_mode        !< up_scaling or down_scaling
-    if (scaling_mode /= up_scaling) call error_message("scaler: not setup for upscaling.") ! LCOV_EXCL_LINE
+    if (scaling_mode /= up_scaling) & ! LCOV_EXCL_LINE
+      call error_message("scaler: not setup for upscaling.") ! LCOV_EXCL_LINE
   end subroutine check_upscaling
 
   subroutine check_downscaling(scaling_mode)
     integer(i4), intent(in) :: scaling_mode        !< up_scaling or down_scaling
-    if (scaling_mode /= down_scaling) call error_message("scaler: not setup for downscaling.") ! LCOV_EXCL_LINE
+    if (scaling_mode /= down_scaling) & ! LCOV_EXCL_LINE
+      call error_message("scaler: not setup for downscaling.") ! LCOV_EXCL_LINE
   end subroutine check_downscaling
 
 end module mo_grid_scaler

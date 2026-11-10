@@ -40,6 +40,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_optimization
 MODULE mo_anneal
+  use mo_forces_message, only: error_message, message, warn_message
 
   USE mo_kind, ONLY : i4, i8, dp
   USE mo_utils, ONLY : le, ge
@@ -356,6 +357,7 @@ CONTAINS
                                                                           !! (DEFAULT: not present)
     real(dp), optional, dimension(:, :), allocatable, intent(out) :: history !< returns a vector of achieved objective!
                                                                           !! after ith model evaluation (DEFAULT: not present)
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     real(dp), dimension(size(para, 1)) :: parabest                     !< parameter set minimizing objective
 
@@ -429,13 +431,12 @@ CONTAINS
     n = size(para, 1)
 
     ! either range or rangfunc has to be given
-    if (present(prange) .eqv. present(prange_func)) then
-      stop 'anneal: Either range or prange_func has to be given'
-    end if
+    if (present(prange) .eqv. present(prange_func)) &
+      call error_message('anneal: Either range or prange_func has to be given')
 
     if (present(Dt)) then
       if ((Dt .lt. 0.7_dp) .or. (Dt .gt. 0.999_dp)) then
-        stop 'Input argument DT must lie between 0.7 and 0.999'
+        call error_message('Input argument DT must lie between 0.7 and 0.999')
       else
         DT_IN = Dt
       end if
@@ -445,7 +446,7 @@ CONTAINS
 
     if (present(nITERmax)) then
       if (nITERmax .lt. 1_I4) then
-        stop 'Input argument nITERmax must be greater 0'
+        call error_message('Input argument nITERmax must be greater 0')
       else
         nITERmax_in = nITERmax
       end if
@@ -455,7 +456,7 @@ CONTAINS
 
     if (present(Len)) then
       if (Len .lt. Max(20_i4 * n, 250_i4)) then
-        print*, 'WARNING: Input argument LEN should be greater than Max(250,20*N), N=number of parameters'
+        call warn_message('WARNING: Input argument LEN should be greater than Max(250,20*N), N=number of parameters')
         LEN_IN = Len
       else
         LEN_IN = Len
@@ -469,7 +470,7 @@ CONTAINS
 
     if (present(nST)) then
       if (nST .lt. 0_i4) then
-        stop 'Input argument nST must be greater than 0'
+        call error_message('Input argument nST must be greater than 0')
       else
         nST_in = nST
       end if
@@ -482,7 +483,7 @@ CONTAINS
 
     if (present(eps)) then
       if (le(eps, 0.0_dp)) then
-        stop 'Input argument eps must be greater than 0'
+        call error_message('Input argument eps must be greater than 0')
       else
         eps_in = eps
       end if
@@ -492,7 +493,7 @@ CONTAINS
 
     if (present(acc)) then
       if (le(acc, 0.0_dp)  .or. ge(acc, 1.0_dp)) then
-        stop 'Input argument acc must lie between 0.0 and 1.0'
+        call error_message('Input argument acc must lie between 0.0 and 1.0')
       else
         acc_in = acc
       end if
@@ -515,7 +516,7 @@ CONTAINS
 
     if (present(maskpara)) then
       if (count(maskpara) .eq. 0_i4) then
-        stop 'Input argument maskpara: At least one element has to be true'
+        call error_message('Input argument maskpara: At least one element has to be true')
       else
         maskpara_in = maskpara
       end if
@@ -537,7 +538,7 @@ CONTAINS
 
     if (present(temp)) then
       if ((temp .lt. 0.0_dp)) then
-        stop 'Input argument temp must be greater then zero'
+        call error_message('Input argument temp must be greater then zero')
       else
         T_in = temp
       end if
@@ -612,7 +613,8 @@ CONTAINS
     end do
 
     if (printflag_in) then
-      print*, 'Following parameters will be optimized: ', truepara
+      write(diagnostic_text, *) 'Following parameters will be optimized: ', truepara
+      call message(trim(diagnostic_text))
     end if
 
     weight_in = 0.0_dp
@@ -683,8 +685,11 @@ CONTAINS
     fBest = 1.0_dp * maxit_in
 
     if (printflag_in) then
-      print '(A15,E15.7,A4,E15.7,A4)', ' start NSe   = ', fBest * maxit_in, '  ( ', fBest * normPhi * maxit_in, ' )  '
-      print '(I8, 2I5, 4E15.7)', 1_i4, 0_i4, 0_i4, 1._dp, T_in, fo * normPhi * maxit_in, fBest * normPhi * maxit_in
+      write(diagnostic_text, '(A15,E15.7,A4,E15.7,A4)') ' start NSe   = ', fBest * maxit_in, '  ( ', fBest * normPhi &
+        * maxit_in, ' )  '
+      call message(trim(diagnostic_text))
+      write(diagnostic_text, '(I8, 2I5, 4E15.7)') 1_i4, 0_i4, 0_i4, 1._dp, T_in, fo * normPhi * maxit_in, fBest * normPhi * maxit_in
+      call message(trim(diagnostic_text))
     end if
 
     ! ****************** Stop Criterium  *******************
@@ -880,8 +885,9 @@ CONTAINS
       end if file_write2
 
       if (printflag_in) then
-        print '(I8, 2I5, E15.7, 3E15.7)', ITotalCounter, Ipos, Ineg, ac_ratio, T_in, &
-                fo * NormPhi * maxit_in, fBest * NormPhi * maxit_in
+        write(diagnostic_text, '(I8, 2I5, E15.7, 3E15.7)') ITotalCounter, Ipos, Ineg, ac_ratio, T_in, fo * NormPhi * &
+          maxit_in, fBest * NormPhi * maxit_in
+        call message(trim(diagnostic_text))
       end if
 
       ! Cooling schedule
@@ -899,7 +905,8 @@ CONTAINS
       if ((ac_ratio < 0.15_dp) .and. (iConF > 5_i4) .and. (iConR <= -3_i4)) then     ! - iConR  no reheating
         ! Re-heating
         if (printflag_in) then
-          print *, 'Re-heating: ', iConR
+          write(diagnostic_text, *) 'Re-heating: ', iConR
+          call message(trim(diagnostic_text))
         end if
         iConR = iConR + 1_i4
         T_in = T0 / 2._DP
@@ -938,7 +945,8 @@ CONTAINS
 
         nITERmax_in = max(nITERmax_in + LEN_IN, int(real(nITERmax_in, dp) * 1.10_dp, i4))
         if (printflag_in) then
-          print *, 'nITERmax changed to =', nITERmax_in
+          write(diagnostic_text, *) 'nITERmax changed to =', nITERmax_in
+          call message(trim(diagnostic_text))
         end if
 
         ! increase lenght of history vecor
@@ -968,14 +976,17 @@ CONTAINS
     fo = costbest / NormPhi
 
     if (printflag_in) then
-      print *, '   '
-      print '(A15,E15.7)', ' end cost    = ', maxit_in * fBest * normPhi
-      print *, 'end parameter: '
+      call message('   ')
+      write(diagnostic_text, '(A15,E15.7)') ' end cost    = ', maxit_in * fBest * normPhi
+      call message(trim(diagnostic_text))
+      call message('end parameter: ')
       do kk = 1, N
-        print '(A10,I3,A3, E15.7)', '    para #', kk, ' = ', gamma(kk)%best
+        write(diagnostic_text, '(A10,I3,A3, E15.7)') '    para #', kk, ' = ', gamma(kk)%best
+        call message(trim(diagnostic_text))
       end do
 
-      print *, 'Final check:    ', (fo - fBest)
+      write(diagnostic_text, *) 'Final check:    ', (fo - fBest)
+      call message(trim(diagnostic_text))
     end if
 
     if (present(history)) then
@@ -1019,6 +1030,7 @@ CONTAINS
     real(dp), OPTIONAL, INTENT(IN) :: undef_funcval                             !< objective function value occuring if
                                                                                 !! parameter set leads to invalid model results,
                                                                                 !! e.g. -999.0_dp. DEFAULT: not present
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     INTERFACE
       SUBROUTINE prange_func(paraset, iPar, rangePar)
@@ -1077,15 +1089,14 @@ CONTAINS
     n = size(paraset, 1)
 
     ! either range or rangfunc has to be given
-    if (present(prange) .eqv. present(prange_func)) then
-      stop 'anneal: Either range or prange_func has to be given'
-    end if
+    if (present(prange) .eqv. present(prange_func)) &
+      call error_message('anneal: Either range or prange_func has to be given')
 
     if (present(samplesize)) then
       if (samplesize .lt. Max(20_i4 * n, 250_i4)) then
         !stop 'Input argument LEN must be greater than Max(250,20*N), N=number of parameters'
-        print*, 'WARNING (GetTemperature): '
-        print*, 'Input argument samplesize should be greater than Max(250,20*N), N=number of parameters'
+        call warn_message('WARNING (GetTemperature): ')
+        call warn_message('Input argument samplesize should be greater than Max(250,20*N), N=number of parameters')
         samplesize_in = samplesize
       else
         samplesize_in = samplesize
@@ -1096,7 +1107,7 @@ CONTAINS
 
     if (present(maskpara)) then
       if (count(maskpara) .eq. 0_i4) then
-        stop 'Input argument maskpara: At least one element has to be true'
+        call error_message('Input argument maskpara: At least one element has to be true')
       else
         maskpara_in = maskpara
       end if
@@ -1109,7 +1120,8 @@ CONTAINS
     else
       ! Seeds depend on actual time
       call get_timeseed(seeds_in)
-      print*, 'temp: seeds(1)=', seeds_in(1)
+      write(diagnostic_text, *) 'temp: seeds(1)=', seeds_in(1)
+      call message(trim(diagnostic_text))
     end if
 
     if (present(printflag)) then
@@ -1228,14 +1240,16 @@ CONTAINS
 
     acc_estim = sum(exp(-(Energy(:, 2) / T))) / sum(exp(-(Energy(:, 1) / T)))
     if (printflag_in) then
-      print*, "acc_estimate = ", acc_estim, "    ( T = ", T, " )"
+      write(diagnostic_text, *) "acc_estimate = ", acc_estim, "    ( T = ", T, " )"
+      call message(trim(diagnostic_text))
     end if
     Do While ((acc_estim .lt. 1.0_dp) .and. (abs(acc_estim - acc_goal) .gt. 0.0001_dp))
       T = T * (Log(acc_estim) / Log(acc_goal))**(0.5_dp) ! **(1.0/p)  with p=1.0
       if (all(T .gt. Energy(:, 1) / 709._dp) .and. all(T .gt. Energy(:, 2) / 709._dp)) then
         acc_estim = sum(exp(-(Energy(:, 2) / T))) / sum(exp(-(Energy(:, 1) / T)))
         if (printflag_in) then
-          print*, "acc_estimate = ", acc_estim, "    ( T = ", T, " )"
+          write(diagnostic_text, *) "acc_estimate = ", acc_estim, "    ( T = ", T, " )"
+          call message(trim(diagnostic_text))
         end if
       else
         T = T / (Log(acc_estim) / Log(acc_goal))**(0.5_dp)

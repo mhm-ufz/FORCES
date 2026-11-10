@@ -16,10 +16,10 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_spatial
 module mo_points
+  use mo_forces_message, only: error_message
 
   use mo_grid_constants, only: cartesian, spherical
   use mo_kind, only: i4, i8, dp, sp
-  use mo_message, only: error_message
   use mo_spatial_index, only: spatial_index_t
   use mo_string_utils, only: num2str
   use mo_utils, only: is_close, is_finite, optval
@@ -90,12 +90,12 @@ contains
     real(dp), intent(in) :: y(:) !< y or latitude coordinates
     integer(i4), optional, intent(in) :: coordsys !< coordinate system, defaults to cartesian
 
-    if (size(x, kind=i8) /= size(y, kind=i8)) call error_message("points % init: x and y size mismatch")
+    if (size(x, kind=i8) /= size(y, kind=i8)) &
+      call error_message("points % init: x and y size mismatch")
     call this%destroy()
     this%coordsys = optval(coordsys, cartesian)
-    if (.not.any(this%coordsys == [cartesian, spherical])) then
+    if (.not.any(this%coordsys == [cartesian, spherical])) &
       call error_message("points % init: unknown coordsys value: ", num2str(this%coordsys))
-    end if
     this%n_points = size(x, kind=i8)
     allocate(this%x(this%n_points), source=x)
     allocate(this%y(this%n_points), source=y)
@@ -120,8 +120,10 @@ contains
     integer(i4) :: in_poly
     integer(i8) :: i
 
-    if (size(polygon, 2) /= 2_i4) call error_message("points % polygon_mask: polygon must have shape (n, 2).") ! LCOV_EXCL_LINE
-    if (size(polygon, 1) < 3_i4) call error_message("points % polygon_mask: polygon needs at least three vertices.") ! LCOV_EXCL_LINE
+    if (size(polygon, 2) /= 2_i4) & ! LCOV_EXCL_LINE
+      call error_message("points % polygon_mask: polygon must have shape (n, 2).") ! LCOV_EXCL_LINE
+    if (size(polygon, 1) < 3_i4) & ! LCOV_EXCL_LINE
+      call error_message("points % polygon_mask: polygon needs at least three vertices.") ! LCOV_EXCL_LINE
 
     x_min = minval(polygon(:, 1))
     x_max = maxval(polygon(:, 1))
@@ -154,16 +156,15 @@ contains
     logical, allocatable :: keep(:)
     integer(i8) :: i
 
-    if (.not. allocated(this%x) .or. .not. allocated(this%y)) then
+    if (.not. allocated(this%x) .or. .not. allocated(this%y)) &
       call error_message("points % copy_to: source point coordinates are not allocated.") ! LCOV_EXCL_LINE
-    end if
     if (present(mask)) then
-      if (size(mask, kind=i8) /= this%n_points) call error_message("points % copy_to: mask size mismatch.") ! LCOV_EXCL_LINE
+      if (size(mask, kind=i8) /= this%n_points) & ! LCOV_EXCL_LINE
+        call error_message("points % copy_to: mask size mismatch.") ! LCOV_EXCL_LINE
     end if
     if (present(bbox)) then
-      if (any(.not. is_finite(bbox)) .or. bbox(1) > bbox(3) .or. bbox(2) > bbox(4)) then
+      if (any(.not. is_finite(bbox)) .or. bbox(1) > bbox(3) .or. bbox(2) > bbox(4)) &
         call error_message("points % copy_to: bbox needs finite values with west <= east and south <= north.") ! LCOV_EXCL_LINE
-      end if
     end if
 
     new_points%coordsys = this%coordsys
@@ -193,7 +194,8 @@ contains
     integer(i8), allocatable :: point_ids(:)
     integer(i8) :: i
 
-    if (this%n_points < 1_i8) call error_message("points % build_spatial_index: points is empty")
+    if (this%n_points < 1_i8) &
+      call error_message("points % build_spatial_index: points is empty")
     point_ids = [(i, i=1_i8,this%n_points)]
     if (this%coordsys == spherical) then
       call index%init_lonlat(this%coords(), point_ids)
@@ -223,7 +225,8 @@ contains
     integer(i8) :: point_ids(size(coords, 1))
     type(spatial_index_t) :: index
 
-    if (size(coords, 2) /= 2_i4) call error_message("points % closest_point_id: coordinates need shape (:,2)")
+    if (size(coords, 2) /= 2_i4) &
+      call error_message("points % closest_point_id: coordinates need shape (:,2)")
     call this%build_spatial_index(index)
     if (this%coordsys == spherical) then
       point_ids = index%nearest_ids_lonlat(coords)
@@ -346,7 +349,8 @@ contains
       end if
     end if
 
-    if (.not.have_yname) call error_message("points % from_netcdf: missing y/lat coordinate variable")
+    if (.not.have_yname) &
+      call error_message("points % from_netcdf: missing y/lat coordinate variable")
     xvar = nc%getVariable(xname)
     yvar = nc%getVariable(yname)
     if (xvar%getRank() /= 1_i4 .or. yvar%getRank() /= 1_i4) &

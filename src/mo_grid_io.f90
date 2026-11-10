@@ -25,6 +25,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_io
 module mo_grid_io
+  use mo_forces_message, only: error_message, warn_message
 
   use mo_constants, only: nodata_dp, nodata_i1, nodata_i2, nodata_i4, nodata_i8
   use mo_kind, only : i1, i2, i4, i8, dp, sp
@@ -34,7 +35,6 @@ module mo_grid_io
   use mo_datetime, only : datetime, timedelta, delta_from_string, time_units_delta, time_values, &
                           hourly, no_time, daily, monthly, yearly, varying, &
                           start_timestamp, center_timestamp, end_timestamp, instant_timestamp
-  use mo_message, only : error_message, warn_message
   use mo_netcdf_utils, only: var, add_var, var_index, time_stepping, read_units, netcdf_dtype_defaults, &
                              netcdf_packing, configure_output_packing, write_packing_attributes, &
                              discover_input_packing, read_cf_packed, write_cf_packed, validate_cf_integer, &
@@ -330,7 +330,8 @@ contains
         exit
       end if
     end do
-    if (.not.found_.and.raise_) call error_message("time_index: current time not available: ", current_time%str())
+    if (.not.found_.and.raise_) &
+      call error_message("time_index: current time not available: ", current_time%str())
     if (.not.found_) i = 0_i4
     if (present(found)) found = found_
     time_index = i
@@ -360,18 +361,19 @@ contains
     self%nlayers = 0_i4
     call configure_output_packing(self, self%packing, context="output_variable")
     if (.not.allocated(self%dtype)) self%dtype = "f64" ! default to double
-    if (.not.associated(grid)) call error_message("output_variable: grid pointer not associated: ", self%name)
+    if (.not.associated(grid)) &
+      call error_message("output_variable: grid pointer not associated: ", self%name)
     self%grid => grid
-    if (.not.associated(self%grid)) call error_message("output_variable: failed to associate grid pointer: ", self%name)
+    if (.not.associated(self%grid)) &
+      call error_message("output_variable: failed to associate grid pointer: ", self%name)
 
     has_layer_var = self%layered
     has_time = .not.self%static
     self%rank = 2_i4
     if (has_layer_var) self%rank = self%rank + 1_i4
     if (has_time) self%rank = self%rank + 1_i4
-    if (size(dims) < self%rank) then
+    if (size(dims) < self%rank) &
       call error_message("output_variable: given dimensions not enough to setup variable: ", self%name)
-    end if
     allocate(var_dims(self%rank))
     var_dims(1) = dims(1)
     var_dims(2) = dims(2)
@@ -392,7 +394,8 @@ contains
     use_cache = present(cache_size)
     use_static_contiguous = optval(static_contiguous, .false.)
     if (use_cache) then
-      if (cache_size <= 0_i4) call error_message("output_variable: cache_size must be >0 MB: ", self%name)
+      if (cache_size <= 0_i4) &
+        call error_message("output_variable: cache_size must be >0 MB: ", self%name)
       cache_bytes = int(cache_size, i8) * 1024_i8 * 1024_i8
       target_chunk_bytes = max(1_i8, cache_bytes / 2_i8) ! aim to fit at least 2 chunks
       if (self%static .and. use_static_contiguous) then
@@ -413,7 +416,8 @@ contains
         z_chunk = 1_i4
         t_chunk = 1_i4
         denom = int(grid%nx, i8) * int(z_chunk, i8) * int(nbytes, i8)
-        if (denom <= 0_i8) call error_message("output_variable: invalid chunk denominator: ", self%name)
+        if (denom <= 0_i8) &
+          call error_message("output_variable: invalid chunk denominator: ", self%name)
         y_chunk = int(target_chunk_bytes / denom, i4)
         y_chunk = max(1_i4, min(grid%ny, y_chunk))
         select case(self%rank)
@@ -462,8 +466,8 @@ contains
     else if (allocated(meta%kind)) then
       self%kind = meta%kind
       if ((self%dtype(1:1) == "f" .and. meta%kind(2:2) /= "p") .or. (self%dtype(1:1) == "i" .and. meta%kind(1:1) /= "i")) &
-        call warn_message("output_variable: variable dtype and array kind will result in conversion: ", &
-                          self%name, ", dtype: ", self%dtype, ", kind:", self%kind)
+        call warn_message("output_variable: variable dtype and array kind will result in conversion: ",  self%name, &
+          ", dtype: ", self%dtype, ", kind:", self%kind)
     end if
     select case(self%kind)
       case("sp")
@@ -512,9 +516,12 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     real(sp), intent(in), dimension(:) :: data !< data for current time step
-    if (self%layered) call error_message("output_variable: layered data requires update_layered: ", self%name)
-    if (.not.allocated(self%data_sp)) call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=sp")
-    if (size(data, kind=i8) /= self%grid%ncells) call error_message("output_variable: data size mismatch: ", self%name)
+    if (self%layered) &
+      call error_message("output_variable: layered data requires update_layered: ", self%name)
+    if (.not.allocated(self%data_sp)) &
+      call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=sp")
+    if (size(data, kind=i8) /= self%grid%ncells) &
+      call error_message("output_variable: data size mismatch: ", self%name)
     self%data_sp = self%data_sp + data
     self%counter = self%counter + 1_i4
   end subroutine out_var_update_sp
@@ -524,11 +531,14 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     real(sp), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    if (.not.self%layered) call error_message("output_variable: non-layered data requires update: ", self%name)
-    if (size(data,2) /= self%nlayers) call error_message("output_variable: layered data dimension mismatch: ", self%name)
-    if (size(data, 1, kind=i8) /= self%grid%ncells) call error_message("output_variable: layered data cell count mismatch: ",&
-        & self%name)
-    if (.not.allocated(self%data_layered_sp)) call error_message("output_variable: wrong kind for layered data: ", self%name)
+    if (.not.self%layered) &
+      call error_message("output_variable: non-layered data requires update: ", self%name)
+    if (size(data,2) /= self%nlayers) &
+      call error_message("output_variable: layered data dimension mismatch: ", self%name)
+    if (size(data, 1, kind=i8) /= self%grid%ncells) &
+      call error_message("output_variable: layered data cell count mismatch: ", self%name)
+    if (.not.allocated(self%data_layered_sp)) &
+      call error_message("output_variable: wrong kind for layered data: ", self%name)
     self%data_layered_sp = self%data_layered_sp + data
     self%counter = self%counter + 1_i4
   end subroutine out_var_update_layered_sp
@@ -538,9 +548,12 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     real(dp), intent(in), dimension(:) :: data !< data for current time step
-    if (self%layered) call error_message("output_variable: layered data requires update_layered: ", self%name)
-    if (.not.allocated(self%data_dp)) call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=dp")
-    if (size(data, kind=i8) /= self%grid%ncells) call error_message("output_variable: data size mismatch: ", self%name)
+    if (self%layered) &
+      call error_message("output_variable: layered data requires update_layered: ", self%name)
+    if (.not.allocated(self%data_dp)) &
+      call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=dp")
+    if (size(data, kind=i8) /= self%grid%ncells) &
+      call error_message("output_variable: data size mismatch: ", self%name)
     self%data_dp = self%data_dp + data
     self%counter = self%counter + 1_i4
   end subroutine out_var_update_dp
@@ -550,11 +563,14 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     real(dp), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    if (.not.self%layered) call error_message("output_variable: non-layered data requires update: ", self%name)
-    if (size(data,2) /= self%nlayers) call error_message("output_variable: layered data dimension mismatch: ", self%name)
-    if (size(data, 1, kind=i8) /= self%grid%ncells) call error_message("output_variable: layered data cell count mismatch: ",&
-        & self%name)
-    if (.not.allocated(self%data_layered_dp)) call error_message("output_variable: wrong kind for layered data: ", self%name)
+    if (.not.self%layered) &
+      call error_message("output_variable: non-layered data requires update: ", self%name)
+    if (size(data,2) /= self%nlayers) &
+      call error_message("output_variable: layered data dimension mismatch: ", self%name)
+    if (size(data, 1, kind=i8) /= self%grid%ncells) &
+      call error_message("output_variable: layered data cell count mismatch: ", self%name)
+    if (.not.allocated(self%data_layered_dp)) &
+      call error_message("output_variable: wrong kind for layered data: ", self%name)
     self%data_layered_dp = self%data_layered_dp + data
     self%counter = self%counter + 1_i4
   end subroutine out_var_update_layered_dp
@@ -564,9 +580,12 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     integer(i1), intent(in), dimension(:) :: data !< data for current time step
-    if (self%layered) call error_message("output_variable: layered data requires update_layered: ", self%name)
-    if (.not.allocated(self%data_i1)) call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=i1")
-    if (size(data, kind=i8) /= self%grid%ncells) call error_message("output_variable: data size mismatch: ", self%name)
+    if (self%layered) &
+      call error_message("output_variable: layered data requires update_layered: ", self%name)
+    if (.not.allocated(self%data_i1)) &
+      call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=i1")
+    if (size(data, kind=i8) /= self%grid%ncells) &
+      call error_message("output_variable: data size mismatch: ", self%name)
     self%data_i1 = self%data_i1 + data
     self%counter = self%counter + 1_i4
   end subroutine out_var_update_i1
@@ -576,11 +595,14 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     integer(i1), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    if (.not.self%layered) call error_message("output_variable: non-layered data requires update: ", self%name)
-    if (size(data,2) /= self%nlayers) call error_message("output_variable: layered data dimension mismatch: ", self%name)
-    if (size(data, 1, kind=i8) /= self%grid%ncells) call error_message("output_variable: layered data cell count mismatch: ",&
-        & self%name)
-    if (.not.allocated(self%data_layered_i1)) call error_message("output_variable: wrong kind for layered data: ", self%name)
+    if (.not.self%layered) &
+      call error_message("output_variable: non-layered data requires update: ", self%name)
+    if (size(data,2) /= self%nlayers) &
+      call error_message("output_variable: layered data dimension mismatch: ", self%name)
+    if (size(data, 1, kind=i8) /= self%grid%ncells) &
+      call error_message("output_variable: layered data cell count mismatch: ", self%name)
+    if (.not.allocated(self%data_layered_i1)) &
+      call error_message("output_variable: wrong kind for layered data: ", self%name)
     self%data_layered_i1 = self%data_layered_i1 + data
     self%counter = self%counter + 1_i4
   end subroutine out_var_update_layered_i1
@@ -590,9 +612,12 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     integer(i2), intent(in), dimension(:) :: data !< data for current time step
-    if (self%layered) call error_message("output_variable: layered data requires update_layered: ", self%name)
-    if (.not.allocated(self%data_i2)) call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=i2")
-    if (size(data, kind=i8) /= self%grid%ncells) call error_message("output_variable: data size mismatch: ", self%name)
+    if (self%layered) &
+      call error_message("output_variable: layered data requires update_layered: ", self%name)
+    if (.not.allocated(self%data_i2)) &
+      call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=i2")
+    if (size(data, kind=i8) /= self%grid%ncells) &
+      call error_message("output_variable: data size mismatch: ", self%name)
     self%data_i2 = self%data_i2 + data
     self%counter = self%counter + 1_i4
   end subroutine out_var_update_i2
@@ -602,11 +627,14 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     integer(i2), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    if (.not.self%layered) call error_message("output_variable: non-layered data requires update: ", self%name)
-    if (size(data,2) /= self%nlayers) call error_message("output_variable: layered data dimension mismatch: ", self%name)
-    if (size(data, 1, kind=i8) /= self%grid%ncells) call error_message("output_variable: layered data cell count mismatch: ",&
-        & self%name)
-    if (.not.allocated(self%data_layered_i2)) call error_message("output_variable: wrong kind for layered data: ", self%name)
+    if (.not.self%layered) &
+      call error_message("output_variable: non-layered data requires update: ", self%name)
+    if (size(data,2) /= self%nlayers) &
+      call error_message("output_variable: layered data dimension mismatch: ", self%name)
+    if (size(data, 1, kind=i8) /= self%grid%ncells) &
+      call error_message("output_variable: layered data cell count mismatch: ", self%name)
+    if (.not.allocated(self%data_layered_i2)) &
+      call error_message("output_variable: wrong kind for layered data: ", self%name)
     self%data_layered_i2 = self%data_layered_i2 + data
     self%counter = self%counter + 1_i4
   end subroutine out_var_update_layered_i2
@@ -616,9 +644,12 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     integer(i4), intent(in), dimension(:) :: data !< data for current time step
-    if (self%layered) call error_message("output_variable: layered data requires update_layered: ", self%name)
-    if (.not.allocated(self%data_i4)) call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=i4")
-    if (size(data, kind=i8) /= self%grid%ncells) call error_message("output_variable: data size mismatch: ", self%name)
+    if (self%layered) &
+      call error_message("output_variable: layered data requires update_layered: ", self%name)
+    if (.not.allocated(self%data_i4)) &
+      call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=i4")
+    if (size(data, kind=i8) /= self%grid%ncells) &
+      call error_message("output_variable: data size mismatch: ", self%name)
     self%data_i4 = self%data_i4 + data
     self%counter = self%counter + 1_i4
   end subroutine out_var_update_i4
@@ -628,11 +659,14 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     integer(i4), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    if (.not.self%layered) call error_message("output_variable: non-layered data requires update: ", self%name)
-    if (size(data,2) /= self%nlayers) call error_message("output_variable: layered data dimension mismatch: ", self%name)
-    if (size(data, 1, kind=i8) /= self%grid%ncells) call error_message("output_variable: layered data cell count mismatch: ",&
-        & self%name)
-    if (.not.allocated(self%data_layered_i4)) call error_message("output_variable: wrong kind for layered data: ", self%name)
+    if (.not.self%layered) &
+      call error_message("output_variable: non-layered data requires update: ", self%name)
+    if (size(data,2) /= self%nlayers) &
+      call error_message("output_variable: layered data dimension mismatch: ", self%name)
+    if (size(data, 1, kind=i8) /= self%grid%ncells) &
+      call error_message("output_variable: layered data cell count mismatch: ", self%name)
+    if (.not.allocated(self%data_layered_i4)) &
+      call error_message("output_variable: wrong kind for layered data: ", self%name)
     self%data_layered_i4 = self%data_layered_i4 + data
     self%counter = self%counter + 1_i4
   end subroutine out_var_update_layered_i4
@@ -642,9 +676,12 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     integer(i8), intent(in), dimension(:) :: data !< data for current time step
-    if (self%layered) call error_message("output_variable: layered data requires update_layered: ", self%name)
-    if (.not.allocated(self%data_i8)) call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=i8")
-    if (size(data, kind=i8) /= self%grid%ncells) call error_message("output_variable: data size mismatch: ", self%name)
+    if (self%layered) &
+      call error_message("output_variable: layered data requires update_layered: ", self%name)
+    if (.not.allocated(self%data_i8)) &
+      call error_message("output_variable: wrong kind: ", self%name, ", ", self%kind, "=/=i8")
+    if (size(data, kind=i8) /= self%grid%ncells) &
+      call error_message("output_variable: data size mismatch: ", self%name)
     self%data_i8 = self%data_i8 + data
     self%counter = self%counter + 1_i4
   end subroutine out_var_update_i8
@@ -654,11 +691,14 @@ contains
     implicit none
     class(output_variable), intent(inout) :: self
     integer(i8), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    if (.not.self%layered) call error_message("output_variable: non-layered data requires update: ", self%name)
-    if (size(data,2) /= self%nlayers) call error_message("output_variable: layered data dimension mismatch: ", self%name)
-    if (size(data, 1, kind=i8) /= self%grid%ncells) call error_message("output_variable: layered data cell count mismatch: ",&
-        & self%name)
-    if (.not.allocated(self%data_layered_i8)) call error_message("output_variable: wrong kind for layered data: ", self%name)
+    if (.not.self%layered) &
+      call error_message("output_variable: non-layered data requires update: ", self%name)
+    if (size(data,2) /= self%nlayers) &
+      call error_message("output_variable: layered data dimension mismatch: ", self%name)
+    if (size(data, 1, kind=i8) /= self%grid%ncells) &
+      call error_message("output_variable: layered data cell count mismatch: ", self%name)
+    if (.not.allocated(self%data_layered_i8)) &
+      call error_message("output_variable: wrong kind for layered data: ", self%name)
     self%data_layered_i8 = self%data_layered_i8 + data
     self%counter = self%counter + 1_i4
   end subroutine out_var_update_layered_i8
@@ -753,9 +793,11 @@ contains
     integer(i4) :: i
     integer(i4), allocatable :: start(:), cnt(:)
     if (self%static .and. self%static_written) return
-    if (self%counter == 0_i4) call error_message("output_variable: no data was added before writing: ", self%name)
+    if (self%counter == 0_i4) &
+      call error_message("output_variable: no data was added before writing: ", self%name)
     if (.not.self%static) then
-      if (.not.present(t_index)) call error_message("output_variable: no time index was given for temporal variable: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("output_variable: no time index was given for temporal variable: ", self%name)
     end if
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
@@ -899,11 +941,14 @@ contains
     dims = self%nc%getDimensions()
     rnk = size(dims)
     self%rank = rnk
-    if (rnk < 2_i4) call error_message("input_variable: given variable has too few dimensions: ", trim(nc%fname), ":", self%name)
-    if (rnk > 4_i4) call error_message("input_variable: given variable has too many dimensions: ", trim(nc%fname), ":", self%name)
+    if (rnk < 2_i4) &
+      call error_message("input_variable: given variable has too few dimensions: ", trim(nc%fname), ":", self%name)
+    if (rnk > 4_i4) &
+      call error_message("input_variable: given variable has too many dimensions: ", trim(nc%fname), ":", self%name)
     nx = dims(1)%getLength()
     ny = dims(2)%getLength()
-    if (nx /= grid%nx .or. ny /= grid%ny) call error_message("input_variable: variable not matching grid: ", self%name)
+    if (nx /= grid%nx .or. ny /= grid%ny) &
+      call error_message("input_variable: variable not matching grid: ", self%name)
 
     self%allow_static = .false.
     self%nlayers = 0_i4
@@ -911,14 +956,16 @@ contains
 
     if (self%layered) then
       expected_rank = expected_rank + 1_i4
-      if (rnk < expected_rank) call error_message("input_variable: z dimension missing for layered variable: ", self%name)
-      if (.not.nc%hasVariable(trim(dims(3)%getName()))) then
+      if (rnk < expected_rank) &
+        call error_message("input_variable: z dimension missing for layered variable: ", self%name)
+      if (.not.nc%hasVariable(trim(dims(3)%getName()))) &
         call error_message("input_variable: coordinate variable missing for z dimension: ", self%name)
-      end if
       coord_var = nc%getVariable(trim(dims(3)%getName()))
-      if (.not.is_z_axis(coord_var)) call error_message("input_variable: z axis not identified: ", self%name)
+      if (.not.is_z_axis(coord_var)) &
+        call error_message("input_variable: z axis not identified: ", self%name)
       self%nlayers = dims(3)%getLength()
-      if (self%nlayers <= 0_i4) call error_message("input_variable: z dimension without layers: ", self%name)
+      if (self%nlayers <= 0_i4) &
+        call error_message("input_variable: z dimension without layers: ", self%name)
     end if
 
     if (rnk == expected_rank) then
@@ -930,22 +977,26 @@ contains
     end if
     self%static = detected_static
     if (meta%static) then
-      if (.not.detected_static) call error_message("input_variable: static variable expected: ", self%name)
+      if (.not.detected_static) &
+        call error_message("input_variable: static variable expected: ", self%name)
     else if (.not.meta%allow_static) then
-      if (detected_static) call error_message("input_variable: temporal variable expected: ", self%name)
+      if (detected_static) &
+        call error_message("input_variable: temporal variable expected: ", self%name)
     end if
 
     if (.not.self%static) then
       expected_rank = expected_rank + 1_i4
-      if (rnk < expected_rank) call error_message("input_variable: time dimension missing for temporal variable: ", self%name)
-      if (.not.nc%hasVariable(trim(dims(rnk)%getName()))) then
+      if (rnk < expected_rank) &
+        call error_message("input_variable: time dimension missing for temporal variable: ", self%name)
+      if (.not.nc%hasVariable(trim(dims(rnk)%getName()))) &
         call error_message("input_variable: coordinate variable missing for time dimension: ", self%name)
-      end if
       coord_var = nc%getVariable(trim(dims(rnk)%getName()))
-      if (.not.is_t_axis(coord_var)) call error_message("input_variable: time axis not identified: ", self%name)
+      if (.not.is_t_axis(coord_var)) &
+        call error_message("input_variable: time axis not identified: ", self%name)
     end if
 
-    if (rnk /= expected_rank) call error_message("input_variable: rank mismatch: ", self%name)
+    if (rnk /= expected_rank) &
+      call error_message("input_variable: rank mismatch: ", self%name)
 
     self%dtype = trim(self%nc%getDtype())
     call discover_input_packing(self, self%nc, self%packing, context="input_variable")
@@ -953,17 +1004,15 @@ contains
     if (self%packing%enabled) self%kind = "dp"
     if (allocated(meta%dtype)) then
       if (meta%dtype/=self%dtype) &
-        call warn_message("input_variable: variable dtype not as expected: ", &
-                          self%name, ", ", meta%dtype, "=/=", self%dtype)
+        call warn_message("input_variable: variable dtype not as expected: ",  self%name, ", ", meta%dtype, "=/=", self%dtype)
     end if
 
     if (allocated(meta%kind)) then
       self%kind = meta%kind
-      if (.not.self%packing%enabled .and. &
-          ((self%dtype(1:1) == "f" .and. meta%kind(2:2) /= "p") .or. &
-           (self%dtype(1:1) == "i" .and. meta%kind(1:1) /= "i"))) &
-        call warn_message("input_variable: variable dtype and array kind will result in conversion: ", &
-                          self%name, ", dtype: ", self%dtype, ", kind:", self%kind)
+      if (.not.self%packing%enabled .and.  ((self%dtype(1:1) == "f" .and. meta%kind(2:2) /= "p") .or. &
+        (self%dtype(1:1) == "i" .and. meta%kind(1:1) /= "i"))) &
+        call warn_message("input_variable: variable dtype and array kind will result in conversion: ",  self%name, &
+          ", dtype: ", self%dtype, ", kind:", self%kind)
     end if
     if (self%nc%hasAttribute("standard_name")) then
       call self%nc%getAttribute("standard_name", tmp_str)
@@ -971,8 +1020,8 @@ contains
     end if
     if (allocated(meta%standard_name)) then
       if (meta%standard_name/=self%standard_name) &
-        call warn_message("input_variable: variable standard name not as expected: ", &
-                          self%name, ", ", meta%standard_name, "=/=", self%standard_name)
+        call warn_message("input_variable: variable standard name not as expected: ",  self%name, ", ", &
+          meta%standard_name, "=/=", self%standard_name)
     end if
 
     if (self%nc%hasAttribute("units")) then
@@ -981,8 +1030,7 @@ contains
     end if
     if (allocated(meta%units)) then
       if (meta%units/=self%units) &
-        call warn_message("input_variable: variable units not as expected: ", &
-                          self%name, ", ", meta%units, "=/=", self%units)
+        call warn_message("input_variable: variable units not as expected: ",  self%name, ", ", meta%units, "=/=", self%units)
     end if
 
     ! don't check long-name
@@ -1000,10 +1048,13 @@ contains
     integer(i4), intent(in), optional :: t_index !< current time step
     real(sp), dimension(:, :), intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
-    if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
+    if (self%layered) &
+      call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
-      if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
-      if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("input%read: temporal variable need a time: ", self%name)
+      if (t_index==0_i4) &
+        call error_message("input%read: temporal variable need a time: ", self%name)
     end if
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
@@ -1026,10 +1077,13 @@ contains
     integer(i4), intent(in), optional :: t_index !< current time step
     real(sp), dimension(:,:,:), intent(out) :: data !< read data (nx, ny, layer)
     integer(i4), allocatable :: start(:), cnt(:)
-    if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
+    if (.not.self%layered) &
+      call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
-      if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
-      if (t_index==0_i4) call error_message("input%read_layered: temporal variable need a time: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("input%read_layered: temporal variable need a time: ", self%name)
+      if (t_index==0_i4) &
+        call error_message("input%read_layered: temporal variable need a time: ", self%name)
     end if
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
@@ -1054,10 +1108,13 @@ contains
     integer(i4), intent(in), optional :: t_index !< current time step
     real(dp), dimension(:, :), intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
-    if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
+    if (self%layered) &
+      call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
-      if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
-      if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("input%read: temporal variable need a time: ", self%name)
+      if (t_index==0_i4) &
+        call error_message("input%read: temporal variable need a time: ", self%name)
     end if
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
@@ -1080,10 +1137,13 @@ contains
     integer(i4), intent(in), optional :: t_index !< current time step
     real(dp), dimension(:,:,:), intent(out) :: data !< read data (nx, ny, layer)
     integer(i4), allocatable :: start(:), cnt(:)
-    if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
+    if (.not.self%layered) &
+      call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
-      if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
-      if (t_index==0_i4) call error_message("input%read_layered: temporal variable need a time: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("input%read_layered: temporal variable need a time: ", self%name)
+      if (t_index==0_i4) &
+        call error_message("input%read_layered: temporal variable need a time: ", self%name)
     end if
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
@@ -1109,10 +1169,13 @@ contains
     integer(i1), dimension(:, :), intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
     real(dp), allocatable :: unpacked_dp(:, :)
-    if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
+    if (self%layered) &
+      call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
-      if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
-      if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("input%read: temporal variable need a time: ", self%name)
+      if (t_index==0_i4) &
+        call error_message("input%read: temporal variable need a time: ", self%name)
     end if
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
@@ -1141,10 +1204,13 @@ contains
     integer(i1), dimension(:,:,:), intent(out) :: data !< read data (nx, ny, layer)
     integer(i4), allocatable :: start(:), cnt(:)
     real(dp), allocatable :: unpacked_dp(:, :, :)
-    if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
+    if (.not.self%layered) &
+      call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
-      if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
-      if (t_index==0_i4) call error_message("input%read_layered: temporal variable need a time: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("input%read_layered: temporal variable need a time: ", self%name)
+      if (t_index==0_i4) &
+        call error_message("input%read_layered: temporal variable need a time: ", self%name)
     end if
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
@@ -1175,10 +1241,13 @@ contains
     integer(i2), dimension(:, :), intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
     real(dp), allocatable :: unpacked_dp(:, :)
-    if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
+    if (self%layered) &
+      call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
-      if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
-      if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("input%read: temporal variable need a time: ", self%name)
+      if (t_index==0_i4) &
+        call error_message("input%read: temporal variable need a time: ", self%name)
     end if
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
@@ -1207,10 +1276,13 @@ contains
     integer(i2), dimension(:,:,:), intent(out) :: data !< read data (nx, ny, layer)
     integer(i4), allocatable :: start(:), cnt(:)
     real(dp), allocatable :: unpacked_dp(:, :, :)
-    if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
+    if (.not.self%layered) &
+      call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
-      if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
-      if (t_index==0_i4) call error_message("input%read_layered: temporal variable need a time: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("input%read_layered: temporal variable need a time: ", self%name)
+      if (t_index==0_i4) &
+        call error_message("input%read_layered: temporal variable need a time: ", self%name)
     end if
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
@@ -1241,10 +1313,13 @@ contains
     integer(i4), dimension(:, :), intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
     real(dp), allocatable :: unpacked_dp(:, :)
-    if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
+    if (self%layered) &
+      call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
-      if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
-      if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("input%read: temporal variable need a time: ", self%name)
+      if (t_index==0_i4) &
+        call error_message("input%read: temporal variable need a time: ", self%name)
     end if
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
@@ -1273,10 +1348,13 @@ contains
     integer(i4), dimension(:,:,:), intent(out) :: data !< read data (nx, ny, layer)
     integer(i4), allocatable :: start(:), cnt(:)
     real(dp), allocatable :: unpacked_dp(:, :, :)
-    if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
+    if (.not.self%layered) &
+      call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
-      if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
-      if (t_index==0_i4) call error_message("input%read_layered: temporal variable need a time: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("input%read_layered: temporal variable need a time: ", self%name)
+      if (t_index==0_i4) &
+        call error_message("input%read_layered: temporal variable need a time: ", self%name)
     end if
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
@@ -1307,10 +1385,13 @@ contains
     integer(i8), dimension(:, :), intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
     real(dp), allocatable :: unpacked_dp(:, :)
-    if (self%layered) call error_message("input_variable: layered data requires layered read: ", self%name)
+    if (self%layered) &
+      call error_message("input_variable: layered data requires layered read: ", self%name)
     if (.not.self%static) then
-      if (.not.present(t_index)) call error_message("input%read: temporal variable need a time: ", self%name)
-      if (t_index==0_i4) call error_message("input%read: temporal variable need a time: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("input%read: temporal variable need a time: ", self%name)
+      if (t_index==0_i4) &
+        call error_message("input%read: temporal variable need a time: ", self%name)
     end if
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
@@ -1339,10 +1420,13 @@ contains
     integer(i8), dimension(:,:,:), intent(out) :: data !< read data (nx, ny, layer)
     integer(i4), allocatable :: start(:), cnt(:)
     real(dp), allocatable :: unpacked_dp(:, :, :)
-    if (.not.self%layered) call error_message("input_variable: variable not layered: ", self%name)
+    if (.not.self%layered) &
+      call error_message("input_variable: variable not layered: ", self%name)
     if (.not.self%static) then
-      if (.not.present(t_index)) call error_message("input%read_layered: temporal variable need a time: ", self%name)
-      if (t_index==0_i4) call error_message("input%read_layered: temporal variable need a time: ", self%name)
+      if (.not.present(t_index)) &
+        call error_message("input%read_layered: temporal variable need a time: ", self%name)
+      if (t_index==0_i4) &
+        call error_message("input%read_layered: temporal variable need a time: ", self%name)
     end if
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
@@ -1373,8 +1457,10 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     real(sp), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
-    if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
-    if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
+    if (self%static) &
+      call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
+    if (self%layered) &
+      call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
@@ -1399,9 +1485,12 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     real(sp), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
     integer(i4), allocatable :: start(:), cnt(:)
-    if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
-    if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
-    if (self%nlayers <= 0_i4) call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
+    if (self%static) &
+      call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
+    if (.not.self%layered) &
+      call error_message("input%read_chunk_layered: variable not layered: ", self%name)
+    if (self%nlayers <= 0_i4) &
+      call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
@@ -1428,8 +1517,10 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     real(dp), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
-    if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
-    if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
+    if (self%static) &
+      call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
+    if (self%layered) &
+      call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
@@ -1454,9 +1545,12 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     real(dp), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
     integer(i4), allocatable :: start(:), cnt(:)
-    if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
-    if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
-    if (self%nlayers <= 0_i4) call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
+    if (self%static) &
+      call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
+    if (.not.self%layered) &
+      call error_message("input%read_chunk_layered: variable not layered: ", self%name)
+    if (self%nlayers <= 0_i4) &
+      call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
@@ -1484,8 +1578,10 @@ contains
     integer(i1), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
     real(dp), allocatable :: unpacked_dp(:, :, :)
-    if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
-    if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
+    if (self%static) &
+      call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
+    if (self%layered) &
+      call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
@@ -1516,9 +1612,12 @@ contains
     integer(i1), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
     integer(i4), allocatable :: start(:), cnt(:)
     real(dp), allocatable :: unpacked_dp(:, :, :, :)
-    if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
-    if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
-    if (self%nlayers <= 0_i4) call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
+    if (self%static) &
+      call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
+    if (.not.self%layered) &
+      call error_message("input%read_chunk_layered: variable not layered: ", self%name)
+    if (self%nlayers <= 0_i4) &
+      call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
@@ -1551,8 +1650,10 @@ contains
     integer(i2), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
     real(dp), allocatable :: unpacked_dp(:, :, :)
-    if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
-    if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
+    if (self%static) &
+      call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
+    if (self%layered) &
+      call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
@@ -1583,9 +1684,12 @@ contains
     integer(i2), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
     integer(i4), allocatable :: start(:), cnt(:)
     real(dp), allocatable :: unpacked_dp(:, :, :, :)
-    if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
-    if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
-    if (self%nlayers <= 0_i4) call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
+    if (self%static) &
+      call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
+    if (.not.self%layered) &
+      call error_message("input%read_chunk_layered: variable not layered: ", self%name)
+    if (self%nlayers <= 0_i4) &
+      call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
@@ -1618,8 +1722,10 @@ contains
     integer(i4), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
     real(dp), allocatable :: unpacked_dp(:, :, :)
-    if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
-    if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
+    if (self%static) &
+      call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
+    if (self%layered) &
+      call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
@@ -1650,9 +1756,12 @@ contains
     integer(i4), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
     integer(i4), allocatable :: start(:), cnt(:)
     real(dp), allocatable :: unpacked_dp(:, :, :, :)
-    if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
-    if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
-    if (self%nlayers <= 0_i4) call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
+    if (self%static) &
+      call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
+    if (.not.self%layered) &
+      call error_message("input%read_chunk_layered: variable not layered: ", self%name)
+    if (self%nlayers <= 0_i4) &
+      call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
@@ -1685,8 +1794,10 @@ contains
     integer(i8), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), allocatable :: start(:), cnt(:)
     real(dp), allocatable :: unpacked_dp(:, :, :)
-    if (self%static) call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
-    if (self%layered) call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
+    if (self%static) &
+      call error_message("input%read_chunk: need temporal variable for chunk reading: ", self%name)
+    if (self%layered) &
+      call error_message("input%read_chunk: layered variable requires layered chunk read: ", self%name)
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
@@ -1717,9 +1828,12 @@ contains
     integer(i8), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
     integer(i4), allocatable :: start(:), cnt(:)
     real(dp), allocatable :: unpacked_dp(:, :, :, :)
-    if (self%static) call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
-    if (.not.self%layered) call error_message("input%read_chunk_layered: variable not layered: ", self%name)
-    if (self%nlayers <= 0_i4) call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
+    if (self%static) &
+      call error_message("input%read_chunk_layered: need temporal variable for chunk reading: ", self%name)
+    if (.not.self%layered) &
+      call error_message("input%read_chunk_layered: variable not layered: ", self%name)
+    if (self%nlayers <= 0_i4) &
+      call error_message("input%read_chunk_layered: layered variable without layers: ", self%name)
     allocate(start(self%rank), source=1_i4)
     allocate(cnt(self%rank), source=1_i4)
     cnt(1) = self%grid%nx
@@ -1786,7 +1900,8 @@ contains
     self%positive_up = optval(positive_up, .false.)
     self%cache_size = 0_i4
     if (present(cache_size)) then
-      if (cache_size <= 0_i4) call error_message("output_init: cache_size must be > 0 (MB)")
+      if (cache_size <= 0_i4) &
+        call error_message("output_init: cache_size must be > 0 (MB)")
       self%cache_size = cache_size
     end if
     self%static_contiguous = optval(static_contiguous, .false.)
@@ -1795,9 +1910,12 @@ contains
     if (allocated(self%layer_vertices)) deallocate(self%layer_vertices)
     self%has_layer = .false.
     if (present(layer)) then
-      if (.not.present(layer_vertices)) call error_message("output: layer_vertices missing while layer information provided")
-      if (size(layer) == 0) call error_message("output: layer array must not be empty")
-      if (size(layer) + 1 /= size(layer_vertices)) call error_message("output: number of layer vertices must be nlayers+1")
+      if (.not.present(layer_vertices)) &
+        call error_message("output: layer_vertices missing while layer information provided")
+      if (size(layer) == 0) &
+        call error_message("output: layer array must not be empty")
+      if (size(layer) + 1 /= size(layer_vertices)) &
+        call error_message("output: number of layer vertices must be nlayers+1")
       allocate(self%layer(size(layer)), source=layer)
       allocate(self%layer_vertices(size(layer_vertices)), source=layer_vertices)
       self%has_layer = .true.
@@ -1816,7 +1934,8 @@ contains
     self%nvars = size(vars)
     if (.not.self%has_layer) then
       do i = 1_i4, self%nvars
-        if (vars(i)%layered) call error_message("output: layered variable requires layer metadata: ", vars(i)%name)
+        if (vars(i)%layered) &
+          call error_message("output: layered variable requires layer metadata: ", vars(i)%name)
       end do
     end if
     self%static = .true.
@@ -1825,7 +1944,8 @@ contains
     end do
 
     if (.not.self%static) then
-      if (.not.present(start_time)) call error_message("output: if dataset is not static, a start_time is needed")
+      if (.not.present(start_time)) &
+        call error_message("output: if dataset is not static, a start_time is needed")
       units_dt = trim(optval(delta, "hours"))
       self%previous_time = start_time
       self%start_time = start_time
@@ -1935,7 +2055,8 @@ contains
     class(output_dataset), intent(inout) :: self
     integer(i4), intent(in) :: var_id !< variable index
     real(sp), intent(in), dimension(:) :: data !< data for current time step
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("output%update_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("output%update_id: invalid variable id")
     call self%vars(var_id)%update(data)
   end subroutine output_update_id_sp
 
@@ -1954,7 +2075,8 @@ contains
     class(output_dataset), intent(inout) :: self
     integer(i4), intent(in) :: var_id !< variable index
     real(sp), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("output%update_layered_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("output%update_layered_id: invalid variable id")
     call self%vars(var_id)%update_layered(data)
   end subroutine output_update_layered_id_sp
 
@@ -1974,7 +2096,8 @@ contains
     class(output_dataset), intent(inout) :: self
     integer(i4), intent(in) :: var_id !< variable index
     real(dp), intent(in), dimension(:) :: data !< data for current time step
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("output%update_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("output%update_id: invalid variable id")
     call self%vars(var_id)%update(data)
   end subroutine output_update_id_dp
 
@@ -1993,7 +2116,8 @@ contains
     class(output_dataset), intent(inout) :: self
     integer(i4), intent(in) :: var_id !< variable index
     real(dp), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("output%update_layered_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("output%update_layered_id: invalid variable id")
     call self%vars(var_id)%update_layered(data)
   end subroutine output_update_layered_id_dp
 
@@ -2013,7 +2137,8 @@ contains
     class(output_dataset), intent(inout) :: self
     integer(i4), intent(in) :: var_id !< variable index
     integer(i1), intent(in), dimension(:) :: data !< data for current time step
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("output%update_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("output%update_id: invalid variable id")
     call self%vars(var_id)%update(data)
   end subroutine output_update_id_i1
 
@@ -2032,7 +2157,8 @@ contains
     class(output_dataset), intent(inout) :: self
     integer(i4), intent(in) :: var_id !< variable index
     integer(i1), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("output%update_layered_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("output%update_layered_id: invalid variable id")
     call self%vars(var_id)%update_layered(data)
   end subroutine output_update_layered_id_i1
 
@@ -2052,7 +2178,8 @@ contains
     class(output_dataset), intent(inout) :: self
     integer(i4), intent(in) :: var_id !< variable index
     integer(i2), intent(in), dimension(:) :: data !< data for current time step
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("output%update_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("output%update_id: invalid variable id")
     call self%vars(var_id)%update(data)
   end subroutine output_update_id_i2
 
@@ -2071,7 +2198,8 @@ contains
     class(output_dataset), intent(inout) :: self
     integer(i4), intent(in) :: var_id !< variable index
     integer(i2), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("output%update_layered_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("output%update_layered_id: invalid variable id")
     call self%vars(var_id)%update_layered(data)
   end subroutine output_update_layered_id_i2
 
@@ -2091,7 +2219,8 @@ contains
     class(output_dataset), intent(inout) :: self
     integer(i4), intent(in) :: var_id !< variable index
     integer(i4), intent(in), dimension(:) :: data !< data for current time step
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("output%update_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("output%update_id: invalid variable id")
     call self%vars(var_id)%update(data)
   end subroutine output_update_id_i4
 
@@ -2110,7 +2239,8 @@ contains
     class(output_dataset), intent(inout) :: self
     integer(i4), intent(in) :: var_id !< variable index
     integer(i4), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("output%update_layered_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("output%update_layered_id: invalid variable id")
     call self%vars(var_id)%update_layered(data)
   end subroutine output_update_layered_id_i4
 
@@ -2130,7 +2260,8 @@ contains
     class(output_dataset), intent(inout) :: self
     integer(i4), intent(in) :: var_id !< variable index
     integer(i8), intent(in), dimension(:) :: data !< data for current time step
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("output%update_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("output%update_id: invalid variable id")
     call self%vars(var_id)%update(data)
   end subroutine output_update_id_i8
 
@@ -2149,7 +2280,8 @@ contains
     class(output_dataset), intent(inout) :: self
     integer(i4), intent(in) :: var_id !< variable index
     integer(i8), intent(in), dimension(:,:) :: data !< data for current time step (cell, layer)
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("output%update_layered_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("output%update_layered_id: invalid variable id")
     call self%vars(var_id)%update_layered(data)
   end subroutine output_update_layered_id_i8
 
@@ -2170,7 +2302,8 @@ contains
     self%counter = self%counter + 1_i4
     ! add to time variable
     if (.not.self%static) then
-      if (.not.present(current_time)) call error_message("output: no time was given: ", self%path)
+      if (.not.present(current_time)) &
+        call error_message("output: no time was given: ", self%path)
       call time_values(self%ref_time, self%previous_time, current_time, self%delta, self%timestamp, &
                        t_start, t_end, t_stamp) ! intent(out)
       t_var = self%nc%getVariable("time")
@@ -2220,7 +2353,8 @@ contains
     integer(i4) :: i
     do i = 1_i4, self%nvars
       ! check if variables have buffered data that was not written
-      if (self%vars(i)%counter > 0_i4) call warn_message("output%close: unwritten buffered data for variable: ", self%vars(i)%name)
+      if (self%vars(i)%counter > 0_i4) &
+        call warn_message("output%close: unwritten buffered data for variable: ", self%vars(i)%name)
     end do
     call self%nc%close()
     deallocate(self%vars)
@@ -2258,7 +2392,8 @@ contains
     self%nlayers = 0_i4
     if (present(grid_init_var)) call self%grid%from_netcdf(self%nc, grid_init_var, tol=tol)
     self%nvars = size(vars)
-    if (self%nvars == 0_i4) call error_message("input_dataset: no variables selected")
+    if (self%nvars == 0_i4) &
+      call error_message("input_dataset: no variables selected")
 
     self%positive_up = .false.
     self%has_layer = .false.
@@ -2306,21 +2441,27 @@ contains
     integer(i4) :: nl, i
 
     if (self%has_layer) return
-    if (.not.layer_var%layered) call error_message("input: layered metadata missing for variable: ", layer_var%name)
+    if (.not.layer_var%layered) &
+      call error_message("input: layered metadata missing for variable: ", layer_var%name)
     nl = layer_var%nlayers
-    if (nl <= 0_i4) call error_message("input: layered variable without layers: ", layer_var%name)
+    if (nl <= 0_i4) &
+      call error_message("input: layered variable without layers: ", layer_var%name)
     self%nlayers = nl
 
     vdims = layer_var%nc%getDimensions()
-    if (size(vdims) < 3_i4) call error_message("input: layered variable missing z dimension: ", layer_var%name)
+    if (size(vdims) < 3_i4) &
+      call error_message("input: layered variable missing z dimension: ", layer_var%name)
     z_name = trim(vdims(3)%getName())
-    if (.not.self%nc%hasVariable(z_name)) call error_message("input: layer axis variable not found: ", z_name)
+    if (.not.self%nc%hasVariable(z_name)) &
+      call error_message("input: layer axis variable not found: ", z_name)
 
     z_var = self%nc%getVariable(z_name)
-    if (.not.is_z_axis(z_var)) call warn_message('input: axis variable missing axis="Z" attribute: ' // trim(z_name))
+    if (.not.is_z_axis(z_var)) &
+      call warn_message('input: axis variable missing axis="Z" attribute: ' // trim(z_name))
 
     call z_var%getData(self%layer)
-    if (size(self%layer) /= nl) call error_message("input: layer axis size mismatch: ", z_name)
+    if (size(self%layer) /= nl) &
+      call error_message("input: layer axis size mismatch: ", z_name)
 
     if (z_var%hasAttribute("positive")) then
       call z_var%getAttribute("positive", pos_attr)
@@ -2374,12 +2515,12 @@ contains
     real(sp), dimension(:, :), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4) :: t_index
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_id: invalid variable id")
-    if (size(data, dim=1) /= self%grid%nx .or. &
-        size(data, dim=2) /= self%grid%ny) call error_message( &
-      "input%read_id: matrix data shape mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), "), got: (", &
-      num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ")")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_id: invalid variable id")
+    if (size(data, dim=1) /= self%grid%nx .or.  size(data, dim=2) /= self%grid%ny) &
+      call error_message(  "input%read_id: matrix data shape mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), "), got: (",  num2str(size(data, &
+        dim=1)), ", ", num2str(size(data, dim=2)), ")")
     t_index = 0_i4 ! indicate missing current_time
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
     call self%vars(var_id)%read(flip_y=self%flip_y, t_index=t_index, data=data)
@@ -2403,14 +2544,13 @@ contains
     real(sp), dimension(:, :, :), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4) :: t_index
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_layered_id: invalid variable id")
-    if (size(data, dim=1) /= self%grid%nx .or. &
-        size(data, dim=2) /= self%grid%ny .or. &
-        size(data, dim=3) /= self%nlayers) call error_message( &
-      "input%read_layered_id: layered matrix data shape mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), ", ", num2str(self%nlayers), &
-      "), got: (", num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ", ", &
-      num2str(size(data, dim=3)), ")")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_layered_id: invalid variable id")
+    if (size(data, dim=1) /= self%grid%nx .or.  size(data, dim=2) /= self%grid%ny .or.  size(data, dim=3) /= self%nlayers) &
+      call error_message(  "input%read_layered_id: layered matrix data shape mismatch for variable ", &
+        self%vars(var_id)%name,  ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), ", ", &
+        num2str(self%nlayers),  "), got: (", num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ", ", &
+        num2str(size(data, dim=3)), ")")
     t_index = 0_i4
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
     call self%vars(var_id)%read_layered(flip_y=self%flip_y, t_index=t_index, data=data)
@@ -2434,10 +2574,11 @@ contains
     real(sp), dimension(:), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     real(sp), allocatable :: data_matrix(:, :)
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_id: invalid variable id")
-    if (size(data, kind=i8) /= self%grid%ncells) call error_message( &
-      "input%read_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, kind=i8)))
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_id: invalid variable id")
+    if (size(data, kind=i8) /= self%grid%ncells) &
+      call error_message(  "input%read_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, kind=i8)))
     allocate(data_matrix(self%grid%nx, self%grid%ny))
     call self%input_read_matrix_id_sp(var_id, data_matrix, current_time)
     call self%grid%pack_into(data_matrix, data)
@@ -2462,13 +2603,14 @@ contains
     type(datetime), intent(in), optional :: current_time !< current time step
     real(sp), allocatable :: data_matrix(:, :, :)
     integer(i4) :: i
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_layered_id: invalid variable id")
-    if (size(data, 1, kind=i8) /= self%grid%ncells) call error_message( &
-      "input%read_layered_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, 1, kind=i8)))
-    if (size(data, 2) /= self%nlayers) call error_message( &
-      "input%read_layered_id: layer count mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(self%nlayers), ", got: ", num2str(size(data, 2)))
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_layered_id: invalid variable id")
+    if (size(data, 1, kind=i8) /= self%grid%ncells) &
+      call error_message(  "input%read_layered_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, 1, kind=i8)))
+    if (size(data, 2) /= self%nlayers) &
+      call error_message(  "input%read_layered_id: layer count mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: ", num2str(self%nlayers), ", got: ", num2str(size(data, 2)))
     allocate(data_matrix(self%grid%nx, self%grid%ny, self%nlayers))
     call self%input_read_matrix_layered_id_sp(var_id, data_matrix, current_time)
     do i = 1_i4, self%nlayers
@@ -2498,8 +2640,10 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk: file has no time: ", self%path)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_id_sp(var_id, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_id_sp
@@ -2526,8 +2670,10 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk_layered: file has no time: ", self%path)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_layered_id_sp(var_id, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_layered_id_sp
@@ -2555,7 +2701,8 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     real(sp), dimension(:,:,:), allocatable :: data_matrix !< read data
     integer(i4) :: i, nt
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
     call self%input_read_chunk_matrix_id_sp(var_id, data_matrix, timeframe_start, timeframe_end, times)
     nt = size(data_matrix, 3, kind=i4)
     allocate(data(self%grid%ncells, nt))
@@ -2587,7 +2734,8 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     real(sp), dimension(:,:,:,:), allocatable :: data_matrix !< read data
     integer(i4) :: i, j, nt
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
     call self%input_read_chunk_matrix_layered_id_sp(var_id, data_matrix, timeframe_start, timeframe_end, times)
     nt = size(data_matrix,4, kind=i4)
     allocate(data(self%grid%ncells, self%nlayers, nt))
@@ -2617,8 +2765,10 @@ contains
     real(sp), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk: file has no time: ", self%path)
     call self%vars(var_id)%read_chunk(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_id_sp
 
@@ -2641,8 +2791,10 @@ contains
     real(sp), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk_layered: file has no time: ", self%path)
     call self%vars(var_id)%read_chunk_layered(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_layered_id_sp
 
@@ -2667,7 +2819,8 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     real(sp), dimension(:,:,:), allocatable :: data_matrix
     integer(i4) :: i
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
     call self%input_read_chunk_by_ids_matrix_id_sp(var_id, data_matrix, t_index, t_size)
     allocate(data(self%grid%ncells, t_size))
     do i = 1_i4, t_size
@@ -2696,7 +2849,8 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     real(sp), dimension(:,:,:,:), allocatable :: data_matrix
     integer(i4) :: i, j
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
     call self%input_read_chunk_by_ids_matrix_layered_id_sp(var_id, data_matrix, t_index, t_size)
     allocate(data(self%grid%ncells, self%nlayers, t_size))
     do i = 1_i4, t_size
@@ -2726,12 +2880,12 @@ contains
     real(dp), dimension(:, :), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4) :: t_index
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_id: invalid variable id")
-    if (size(data, dim=1) /= self%grid%nx .or. &
-        size(data, dim=2) /= self%grid%ny) call error_message( &
-      "input%read_id: matrix data shape mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), "), got: (", &
-      num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ")")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_id: invalid variable id")
+    if (size(data, dim=1) /= self%grid%nx .or.  size(data, dim=2) /= self%grid%ny) &
+      call error_message(  "input%read_id: matrix data shape mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), "), got: (",  num2str(size(data, &
+        dim=1)), ", ", num2str(size(data, dim=2)), ")")
     t_index = 0_i4 ! indicate missing current_time
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
     call self%vars(var_id)%read(flip_y=self%flip_y, t_index=t_index, data=data)
@@ -2755,14 +2909,13 @@ contains
     real(dp), dimension(:, :, :), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4) :: t_index
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_layered_id: invalid variable id")
-    if (size(data, dim=1) /= self%grid%nx .or. &
-        size(data, dim=2) /= self%grid%ny .or. &
-        size(data, dim=3) /= self%nlayers) call error_message( &
-      "input%read_layered_id: layered matrix data shape mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), ", ", num2str(self%nlayers), &
-      "), got: (", num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ", ", &
-      num2str(size(data, dim=3)), ")")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_layered_id: invalid variable id")
+    if (size(data, dim=1) /= self%grid%nx .or.  size(data, dim=2) /= self%grid%ny .or.  size(data, dim=3) /= self%nlayers) &
+      call error_message(  "input%read_layered_id: layered matrix data shape mismatch for variable ", &
+        self%vars(var_id)%name,  ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), ", ", &
+        num2str(self%nlayers),  "), got: (", num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ", ", &
+        num2str(size(data, dim=3)), ")")
     t_index = 0_i4
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
     call self%vars(var_id)%read_layered(flip_y=self%flip_y, t_index=t_index, data=data)
@@ -2786,10 +2939,11 @@ contains
     real(dp), dimension(:), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     real(dp), allocatable :: data_matrix(:, :)
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_id: invalid variable id")
-    if (size(data, kind=i8) /= self%grid%ncells) call error_message( &
-      "input%read_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, kind=i8)))
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_id: invalid variable id")
+    if (size(data, kind=i8) /= self%grid%ncells) &
+      call error_message(  "input%read_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, kind=i8)))
     allocate(data_matrix(self%grid%nx, self%grid%ny))
     call self%input_read_matrix_id_dp(var_id, data_matrix, current_time)
     call self%grid%pack_into(data_matrix, data)
@@ -2814,13 +2968,14 @@ contains
     type(datetime), intent(in), optional :: current_time !< current time step
     real(dp), allocatable :: data_matrix(:, :, :)
     integer(i4) :: i
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_layered_id: invalid variable id")
-    if (size(data, 1, kind=i8) /= self%grid%ncells) call error_message( &
-      "input%read_layered_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, 1, kind=i8)))
-    if (size(data, 2) /= self%nlayers) call error_message( &
-      "input%read_layered_id: layer count mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(self%nlayers), ", got: ", num2str(size(data, 2)))
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_layered_id: invalid variable id")
+    if (size(data, 1, kind=i8) /= self%grid%ncells) &
+      call error_message(  "input%read_layered_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, 1, kind=i8)))
+    if (size(data, 2) /= self%nlayers) &
+      call error_message(  "input%read_layered_id: layer count mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: ", num2str(self%nlayers), ", got: ", num2str(size(data, 2)))
     allocate(data_matrix(self%grid%nx, self%grid%ny, self%nlayers))
     call self%input_read_matrix_layered_id_dp(var_id, data_matrix, current_time)
     do i = 1_i4, self%nlayers
@@ -2850,8 +3005,10 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk: file has no time: ", self%path)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_id_dp(var_id, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_id_dp
@@ -2878,8 +3035,10 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk_layered: file has no time: ", self%path)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_layered_id_dp(var_id, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_layered_id_dp
@@ -2907,7 +3066,8 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     real(dp), dimension(:,:,:), allocatable :: data_matrix !< read data
     integer(i4) :: i, nt
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
     call self%input_read_chunk_matrix_id_dp(var_id, data_matrix, timeframe_start, timeframe_end, times)
     nt = size(data_matrix, 3, kind=i4)
     allocate(data(self%grid%ncells, nt))
@@ -2939,7 +3099,8 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     real(dp), dimension(:,:,:,:), allocatable :: data_matrix !< read data
     integer(i4) :: i, j, nt
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
     call self%input_read_chunk_matrix_layered_id_dp(var_id, data_matrix, timeframe_start, timeframe_end, times)
     nt = size(data_matrix,4, kind=i4)
     allocate(data(self%grid%ncells, self%nlayers, nt))
@@ -2969,8 +3130,10 @@ contains
     real(dp), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk: file has no time: ", self%path)
     call self%vars(var_id)%read_chunk(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_id_dp
 
@@ -2993,8 +3156,10 @@ contains
     real(dp), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk_layered: file has no time: ", self%path)
     call self%vars(var_id)%read_chunk_layered(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_layered_id_dp
 
@@ -3019,7 +3184,8 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     real(dp), dimension(:,:,:), allocatable :: data_matrix
     integer(i4) :: i
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
     call self%input_read_chunk_by_ids_matrix_id_dp(var_id, data_matrix, t_index, t_size)
     allocate(data(self%grid%ncells, t_size))
     do i = 1_i4, t_size
@@ -3048,7 +3214,8 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     real(dp), dimension(:,:,:,:), allocatable :: data_matrix
     integer(i4) :: i, j
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
     call self%input_read_chunk_by_ids_matrix_layered_id_dp(var_id, data_matrix, t_index, t_size)
     allocate(data(self%grid%ncells, self%nlayers, t_size))
     do i = 1_i4, t_size
@@ -3078,12 +3245,12 @@ contains
     integer(i1), dimension(:, :), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4) :: t_index
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_id: invalid variable id")
-    if (size(data, dim=1) /= self%grid%nx .or. &
-        size(data, dim=2) /= self%grid%ny) call error_message( &
-      "input%read_id: matrix data shape mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), "), got: (", &
-      num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ")")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_id: invalid variable id")
+    if (size(data, dim=1) /= self%grid%nx .or.  size(data, dim=2) /= self%grid%ny) &
+      call error_message(  "input%read_id: matrix data shape mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), "), got: (",  num2str(size(data, &
+        dim=1)), ", ", num2str(size(data, dim=2)), ")")
     t_index = 0_i4 ! indicate missing current_time
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
     call self%vars(var_id)%read(flip_y=self%flip_y, t_index=t_index, data=data)
@@ -3107,14 +3274,13 @@ contains
     integer(i1), dimension(:, :, :), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4) :: t_index
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_layered_id: invalid variable id")
-    if (size(data, dim=1) /= self%grid%nx .or. &
-        size(data, dim=2) /= self%grid%ny .or. &
-        size(data, dim=3) /= self%nlayers) call error_message( &
-      "input%read_layered_id: layered matrix data shape mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), ", ", num2str(self%nlayers), &
-      "), got: (", num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ", ", &
-      num2str(size(data, dim=3)), ")")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_layered_id: invalid variable id")
+    if (size(data, dim=1) /= self%grid%nx .or.  size(data, dim=2) /= self%grid%ny .or.  size(data, dim=3) /= self%nlayers) &
+      call error_message(  "input%read_layered_id: layered matrix data shape mismatch for variable ", &
+        self%vars(var_id)%name,  ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), ", ", &
+        num2str(self%nlayers),  "), got: (", num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ", ", &
+        num2str(size(data, dim=3)), ")")
     t_index = 0_i4
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
     call self%vars(var_id)%read_layered(flip_y=self%flip_y, t_index=t_index, data=data)
@@ -3138,10 +3304,11 @@ contains
     integer(i1), dimension(:), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i1), allocatable :: data_matrix(:, :)
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_id: invalid variable id")
-    if (size(data, kind=i8) /= self%grid%ncells) call error_message( &
-      "input%read_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, kind=i8)))
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_id: invalid variable id")
+    if (size(data, kind=i8) /= self%grid%ncells) &
+      call error_message(  "input%read_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, kind=i8)))
     allocate(data_matrix(self%grid%nx, self%grid%ny))
     call self%input_read_matrix_id_i1(var_id, data_matrix, current_time)
     call self%grid%pack_into(data_matrix, data)
@@ -3166,13 +3333,14 @@ contains
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i1), allocatable :: data_matrix(:, :, :)
     integer(i4) :: i
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_layered_id: invalid variable id")
-    if (size(data, 1, kind=i8) /= self%grid%ncells) call error_message( &
-      "input%read_layered_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, 1, kind=i8)))
-    if (size(data, 2) /= self%nlayers) call error_message( &
-      "input%read_layered_id: layer count mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(self%nlayers), ", got: ", num2str(size(data, 2)))
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_layered_id: invalid variable id")
+    if (size(data, 1, kind=i8) /= self%grid%ncells) &
+      call error_message(  "input%read_layered_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, 1, kind=i8)))
+    if (size(data, 2) /= self%nlayers) &
+      call error_message(  "input%read_layered_id: layer count mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: ", num2str(self%nlayers), ", got: ", num2str(size(data, 2)))
     allocate(data_matrix(self%grid%nx, self%grid%ny, self%nlayers))
     call self%input_read_matrix_layered_id_i1(var_id, data_matrix, current_time)
     do i = 1_i4, self%nlayers
@@ -3202,8 +3370,10 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk: file has no time: ", self%path)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_id_i1(var_id, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_id_i1
@@ -3230,8 +3400,10 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk_layered: file has no time: ", self%path)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_layered_id_i1(var_id, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_layered_id_i1
@@ -3259,7 +3431,8 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i1), dimension(:,:,:), allocatable :: data_matrix !< read data
     integer(i4) :: i, nt
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
     call self%input_read_chunk_matrix_id_i1(var_id, data_matrix, timeframe_start, timeframe_end, times)
     nt = size(data_matrix, 3, kind=i4)
     allocate(data(self%grid%ncells, nt))
@@ -3291,7 +3464,8 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i1), dimension(:,:,:,:), allocatable :: data_matrix !< read data
     integer(i4) :: i, j, nt
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
     call self%input_read_chunk_matrix_layered_id_i1(var_id, data_matrix, timeframe_start, timeframe_end, times)
     nt = size(data_matrix,4, kind=i4)
     allocate(data(self%grid%ncells, self%nlayers, nt))
@@ -3321,8 +3495,10 @@ contains
     integer(i1), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk: file has no time: ", self%path)
     call self%vars(var_id)%read_chunk(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_id_i1
 
@@ -3345,8 +3521,10 @@ contains
     integer(i1), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk_layered: file has no time: ", self%path)
     call self%vars(var_id)%read_chunk_layered(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_layered_id_i1
 
@@ -3371,7 +3549,8 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i1), dimension(:,:,:), allocatable :: data_matrix
     integer(i4) :: i
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
     call self%input_read_chunk_by_ids_matrix_id_i1(var_id, data_matrix, t_index, t_size)
     allocate(data(self%grid%ncells, t_size))
     do i = 1_i4, t_size
@@ -3400,7 +3579,8 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i1), dimension(:,:,:,:), allocatable :: data_matrix
     integer(i4) :: i, j
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
     call self%input_read_chunk_by_ids_matrix_layered_id_i1(var_id, data_matrix, t_index, t_size)
     allocate(data(self%grid%ncells, self%nlayers, t_size))
     do i = 1_i4, t_size
@@ -3430,12 +3610,12 @@ contains
     integer(i2), dimension(:, :), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4) :: t_index
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_id: invalid variable id")
-    if (size(data, dim=1) /= self%grid%nx .or. &
-        size(data, dim=2) /= self%grid%ny) call error_message( &
-      "input%read_id: matrix data shape mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), "), got: (", &
-      num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ")")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_id: invalid variable id")
+    if (size(data, dim=1) /= self%grid%nx .or.  size(data, dim=2) /= self%grid%ny) &
+      call error_message(  "input%read_id: matrix data shape mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), "), got: (",  num2str(size(data, &
+        dim=1)), ", ", num2str(size(data, dim=2)), ")")
     t_index = 0_i4 ! indicate missing current_time
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
     call self%vars(var_id)%read(flip_y=self%flip_y, t_index=t_index, data=data)
@@ -3459,14 +3639,13 @@ contains
     integer(i2), dimension(:, :, :), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4) :: t_index
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_layered_id: invalid variable id")
-    if (size(data, dim=1) /= self%grid%nx .or. &
-        size(data, dim=2) /= self%grid%ny .or. &
-        size(data, dim=3) /= self%nlayers) call error_message( &
-      "input%read_layered_id: layered matrix data shape mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), ", ", num2str(self%nlayers), &
-      "), got: (", num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ", ", &
-      num2str(size(data, dim=3)), ")")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_layered_id: invalid variable id")
+    if (size(data, dim=1) /= self%grid%nx .or.  size(data, dim=2) /= self%grid%ny .or.  size(data, dim=3) /= self%nlayers) &
+      call error_message(  "input%read_layered_id: layered matrix data shape mismatch for variable ", &
+        self%vars(var_id)%name,  ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), ", ", &
+        num2str(self%nlayers),  "), got: (", num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ", ", &
+        num2str(size(data, dim=3)), ")")
     t_index = 0_i4
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
     call self%vars(var_id)%read_layered(flip_y=self%flip_y, t_index=t_index, data=data)
@@ -3490,10 +3669,11 @@ contains
     integer(i2), dimension(:), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i2), allocatable :: data_matrix(:, :)
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_id: invalid variable id")
-    if (size(data, kind=i8) /= self%grid%ncells) call error_message( &
-      "input%read_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, kind=i8)))
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_id: invalid variable id")
+    if (size(data, kind=i8) /= self%grid%ncells) &
+      call error_message(  "input%read_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, kind=i8)))
     allocate(data_matrix(self%grid%nx, self%grid%ny))
     call self%input_read_matrix_id_i2(var_id, data_matrix, current_time)
     call self%grid%pack_into(data_matrix, data)
@@ -3518,13 +3698,14 @@ contains
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i2), allocatable :: data_matrix(:, :, :)
     integer(i4) :: i
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_layered_id: invalid variable id")
-    if (size(data, 1, kind=i8) /= self%grid%ncells) call error_message( &
-      "input%read_layered_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, 1, kind=i8)))
-    if (size(data, 2) /= self%nlayers) call error_message( &
-      "input%read_layered_id: layer count mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(self%nlayers), ", got: ", num2str(size(data, 2)))
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_layered_id: invalid variable id")
+    if (size(data, 1, kind=i8) /= self%grid%ncells) &
+      call error_message(  "input%read_layered_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, 1, kind=i8)))
+    if (size(data, 2) /= self%nlayers) &
+      call error_message(  "input%read_layered_id: layer count mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: ", num2str(self%nlayers), ", got: ", num2str(size(data, 2)))
     allocate(data_matrix(self%grid%nx, self%grid%ny, self%nlayers))
     call self%input_read_matrix_layered_id_i2(var_id, data_matrix, current_time)
     do i = 1_i4, self%nlayers
@@ -3554,8 +3735,10 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk: file has no time: ", self%path)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_id_i2(var_id, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_id_i2
@@ -3582,8 +3765,10 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk_layered: file has no time: ", self%path)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_layered_id_i2(var_id, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_layered_id_i2
@@ -3611,7 +3796,8 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i2), dimension(:,:,:), allocatable :: data_matrix !< read data
     integer(i4) :: i, nt
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
     call self%input_read_chunk_matrix_id_i2(var_id, data_matrix, timeframe_start, timeframe_end, times)
     nt = size(data_matrix, 3, kind=i4)
     allocate(data(self%grid%ncells, nt))
@@ -3643,7 +3829,8 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i2), dimension(:,:,:,:), allocatable :: data_matrix !< read data
     integer(i4) :: i, j, nt
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
     call self%input_read_chunk_matrix_layered_id_i2(var_id, data_matrix, timeframe_start, timeframe_end, times)
     nt = size(data_matrix,4, kind=i4)
     allocate(data(self%grid%ncells, self%nlayers, nt))
@@ -3673,8 +3860,10 @@ contains
     integer(i2), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk: file has no time: ", self%path)
     call self%vars(var_id)%read_chunk(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_id_i2
 
@@ -3697,8 +3886,10 @@ contains
     integer(i2), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk_layered: file has no time: ", self%path)
     call self%vars(var_id)%read_chunk_layered(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_layered_id_i2
 
@@ -3723,7 +3914,8 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i2), dimension(:,:,:), allocatable :: data_matrix
     integer(i4) :: i
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
     call self%input_read_chunk_by_ids_matrix_id_i2(var_id, data_matrix, t_index, t_size)
     allocate(data(self%grid%ncells, t_size))
     do i = 1_i4, t_size
@@ -3752,7 +3944,8 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i2), dimension(:,:,:,:), allocatable :: data_matrix
     integer(i4) :: i, j
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
     call self%input_read_chunk_by_ids_matrix_layered_id_i2(var_id, data_matrix, t_index, t_size)
     allocate(data(self%grid%ncells, self%nlayers, t_size))
     do i = 1_i4, t_size
@@ -3782,12 +3975,12 @@ contains
     integer(i4), dimension(:, :), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4) :: t_index
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_id: invalid variable id")
-    if (size(data, dim=1) /= self%grid%nx .or. &
-        size(data, dim=2) /= self%grid%ny) call error_message( &
-      "input%read_id: matrix data shape mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), "), got: (", &
-      num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ")")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_id: invalid variable id")
+    if (size(data, dim=1) /= self%grid%nx .or.  size(data, dim=2) /= self%grid%ny) &
+      call error_message(  "input%read_id: matrix data shape mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), "), got: (",  num2str(size(data, &
+        dim=1)), ", ", num2str(size(data, dim=2)), ")")
     t_index = 0_i4 ! indicate missing current_time
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
     call self%vars(var_id)%read(flip_y=self%flip_y, t_index=t_index, data=data)
@@ -3811,14 +4004,13 @@ contains
     integer(i4), dimension(:, :, :), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4) :: t_index
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_layered_id: invalid variable id")
-    if (size(data, dim=1) /= self%grid%nx .or. &
-        size(data, dim=2) /= self%grid%ny .or. &
-        size(data, dim=3) /= self%nlayers) call error_message( &
-      "input%read_layered_id: layered matrix data shape mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), ", ", num2str(self%nlayers), &
-      "), got: (", num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ", ", &
-      num2str(size(data, dim=3)), ")")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_layered_id: invalid variable id")
+    if (size(data, dim=1) /= self%grid%nx .or.  size(data, dim=2) /= self%grid%ny .or.  size(data, dim=3) /= self%nlayers) &
+      call error_message(  "input%read_layered_id: layered matrix data shape mismatch for variable ", &
+        self%vars(var_id)%name,  ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), ", ", &
+        num2str(self%nlayers),  "), got: (", num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ", ", &
+        num2str(size(data, dim=3)), ")")
     t_index = 0_i4
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
     call self%vars(var_id)%read_layered(flip_y=self%flip_y, t_index=t_index, data=data)
@@ -3842,10 +4034,11 @@ contains
     integer(i4), dimension(:), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4), allocatable :: data_matrix(:, :)
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_id: invalid variable id")
-    if (size(data, kind=i8) /= self%grid%ncells) call error_message( &
-      "input%read_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, kind=i8)))
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_id: invalid variable id")
+    if (size(data, kind=i8) /= self%grid%ncells) &
+      call error_message(  "input%read_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, kind=i8)))
     allocate(data_matrix(self%grid%nx, self%grid%ny))
     call self%input_read_matrix_id_i4(var_id, data_matrix, current_time)
     call self%grid%pack_into(data_matrix, data)
@@ -3870,13 +4063,14 @@ contains
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4), allocatable :: data_matrix(:, :, :)
     integer(i4) :: i
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_layered_id: invalid variable id")
-    if (size(data, 1, kind=i8) /= self%grid%ncells) call error_message( &
-      "input%read_layered_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, 1, kind=i8)))
-    if (size(data, 2) /= self%nlayers) call error_message( &
-      "input%read_layered_id: layer count mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(self%nlayers), ", got: ", num2str(size(data, 2)))
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_layered_id: invalid variable id")
+    if (size(data, 1, kind=i8) /= self%grid%ncells) &
+      call error_message(  "input%read_layered_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, 1, kind=i8)))
+    if (size(data, 2) /= self%nlayers) &
+      call error_message(  "input%read_layered_id: layer count mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: ", num2str(self%nlayers), ", got: ", num2str(size(data, 2)))
     allocate(data_matrix(self%grid%nx, self%grid%ny, self%nlayers))
     call self%input_read_matrix_layered_id_i4(var_id, data_matrix, current_time)
     do i = 1_i4, self%nlayers
@@ -3906,8 +4100,10 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk: file has no time: ", self%path)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_id_i4(var_id, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_id_i4
@@ -3934,8 +4130,10 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk_layered: file has no time: ", self%path)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_layered_id_i4(var_id, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_layered_id_i4
@@ -3963,7 +4161,8 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4), dimension(:,:,:), allocatable :: data_matrix !< read data
     integer(i4) :: i, nt
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
     call self%input_read_chunk_matrix_id_i4(var_id, data_matrix, timeframe_start, timeframe_end, times)
     nt = size(data_matrix, 3, kind=i4)
     allocate(data(self%grid%ncells, nt))
@@ -3995,7 +4194,8 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4), dimension(:,:,:,:), allocatable :: data_matrix !< read data
     integer(i4) :: i, j, nt
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
     call self%input_read_chunk_matrix_layered_id_i4(var_id, data_matrix, timeframe_start, timeframe_end, times)
     nt = size(data_matrix,4, kind=i4)
     allocate(data(self%grid%ncells, self%nlayers, nt))
@@ -4025,8 +4225,10 @@ contains
     integer(i4), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk: file has no time: ", self%path)
     call self%vars(var_id)%read_chunk(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_id_i4
 
@@ -4049,8 +4251,10 @@ contains
     integer(i4), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk_layered: file has no time: ", self%path)
     call self%vars(var_id)%read_chunk_layered(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_layered_id_i4
 
@@ -4075,7 +4279,8 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i4), dimension(:,:,:), allocatable :: data_matrix
     integer(i4) :: i
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
     call self%input_read_chunk_by_ids_matrix_id_i4(var_id, data_matrix, t_index, t_size)
     allocate(data(self%grid%ncells, t_size))
     do i = 1_i4, t_size
@@ -4104,7 +4309,8 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i4), dimension(:,:,:,:), allocatable :: data_matrix
     integer(i4) :: i, j
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
     call self%input_read_chunk_by_ids_matrix_layered_id_i4(var_id, data_matrix, t_index, t_size)
     allocate(data(self%grid%ncells, self%nlayers, t_size))
     do i = 1_i4, t_size
@@ -4134,12 +4340,12 @@ contains
     integer(i8), dimension(:, :), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4) :: t_index
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_id: invalid variable id")
-    if (size(data, dim=1) /= self%grid%nx .or. &
-        size(data, dim=2) /= self%grid%ny) call error_message( &
-      "input%read_id: matrix data shape mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), "), got: (", &
-      num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ")")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_id: invalid variable id")
+    if (size(data, dim=1) /= self%grid%nx .or.  size(data, dim=2) /= self%grid%ny) &
+      call error_message(  "input%read_id: matrix data shape mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), "), got: (",  num2str(size(data, &
+        dim=1)), ", ", num2str(size(data, dim=2)), ")")
     t_index = 0_i4 ! indicate missing current_time
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
     call self%vars(var_id)%read(flip_y=self%flip_y, t_index=t_index, data=data)
@@ -4163,14 +4369,13 @@ contains
     integer(i8), dimension(:, :, :), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i4) :: t_index
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_layered_id: invalid variable id")
-    if (size(data, dim=1) /= self%grid%nx .or. &
-        size(data, dim=2) /= self%grid%ny .or. &
-        size(data, dim=3) /= self%nlayers) call error_message( &
-      "input%read_layered_id: layered matrix data shape mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), ", ", num2str(self%nlayers), &
-      "), got: (", num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ", ", &
-      num2str(size(data, dim=3)), ")")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_layered_id: invalid variable id")
+    if (size(data, dim=1) /= self%grid%nx .or.  size(data, dim=2) /= self%grid%ny .or.  size(data, dim=3) /= self%nlayers) &
+      call error_message(  "input%read_layered_id: layered matrix data shape mismatch for variable ", &
+        self%vars(var_id)%name,  ". Expected: (", num2str(self%grid%nx), ", ", num2str(self%grid%ny), ", ", &
+        num2str(self%nlayers),  "), got: (", num2str(size(data, dim=1)), ", ", num2str(size(data, dim=2)), ", ", &
+        num2str(size(data, dim=3)), ")")
     t_index = 0_i4
     if (present(current_time) .and. allocated(self%times)) t_index = self%time_index(current_time)
     call self%vars(var_id)%read_layered(flip_y=self%flip_y, t_index=t_index, data=data)
@@ -4194,10 +4399,11 @@ contains
     integer(i8), dimension(:), intent(out) :: data !< read data
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i8), allocatable :: data_matrix(:, :)
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_id: invalid variable id")
-    if (size(data, kind=i8) /= self%grid%ncells) call error_message( &
-      "input%read_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, kind=i8)))
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_id: invalid variable id")
+    if (size(data, kind=i8) /= self%grid%ncells) &
+      call error_message(  "input%read_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, kind=i8)))
     allocate(data_matrix(self%grid%nx, self%grid%ny))
     call self%input_read_matrix_id_i8(var_id, data_matrix, current_time)
     call self%grid%pack_into(data_matrix, data)
@@ -4222,13 +4428,14 @@ contains
     type(datetime), intent(in), optional :: current_time !< current time step
     integer(i8), allocatable :: data_matrix(:, :, :)
     integer(i4) :: i
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_layered_id: invalid variable id")
-    if (size(data, 1, kind=i8) /= self%grid%ncells) call error_message( &
-      "input%read_layered_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, 1, kind=i8)))
-    if (size(data, 2) /= self%nlayers) call error_message( &
-      "input%read_layered_id: layer count mismatch for variable ", self%vars(var_id)%name, &
-      ". Expected: ", num2str(self%nlayers), ", got: ", num2str(size(data, 2)))
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_layered_id: invalid variable id")
+    if (size(data, 1, kind=i8) /= self%grid%ncells) &
+      call error_message(  "input%read_layered_id: packed data size mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: ", num2str(self%grid%ncells), ", got: ", num2str(size(data, 1, kind=i8)))
+    if (size(data, 2) /= self%nlayers) &
+      call error_message(  "input%read_layered_id: layer count mismatch for variable ", self%vars(var_id)%name, &
+        ". Expected: ", num2str(self%nlayers), ", got: ", num2str(size(data, 2)))
     allocate(data_matrix(self%grid%nx, self%grid%ny, self%nlayers))
     call self%input_read_matrix_layered_id_i8(var_id, data_matrix, current_time)
     do i = 1_i4, self%nlayers
@@ -4258,8 +4465,10 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk: file has no time: ", self%path)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_id_i8(var_id, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_id_i8
@@ -4286,8 +4495,10 @@ contains
     type(datetime), intent(in) :: timeframe_end !< end of time frame (including)
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i4) :: t_index, t_size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk_layered: file has no time: ", self%path)
     call self%chunk_times(timeframe_start, timeframe_end, times, t_index, t_size)
     call self%input_read_chunk_by_ids_matrix_layered_id_i8(var_id, data, t_index, t_size)
   end subroutine input_read_chunk_matrix_layered_id_i8
@@ -4315,7 +4526,8 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i8), dimension(:,:,:), allocatable :: data_matrix !< read data
     integer(i4) :: i, nt
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
     call self%input_read_chunk_matrix_id_i8(var_id, data_matrix, timeframe_start, timeframe_end, times)
     nt = size(data_matrix, 3, kind=i4)
     allocate(data(self%grid%ncells, nt))
@@ -4347,7 +4559,8 @@ contains
     type(datetime), dimension(:), allocatable, intent(out), optional :: times !< timestamps for the data stack
     integer(i8), dimension(:,:,:,:), allocatable :: data_matrix !< read data
     integer(i4) :: i, j, nt
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
     call self%input_read_chunk_matrix_layered_id_i8(var_id, data_matrix, timeframe_start, timeframe_end, times)
     nt = size(data_matrix,4, kind=i4)
     allocate(data(self%grid%ncells, self%nlayers, nt))
@@ -4377,8 +4590,10 @@ contains
     integer(i8), dimension(:,:,:), allocatable, intent(out) :: data !< read data
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk: file has no time: ", self%path)
     call self%vars(var_id)%read_chunk(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_id_i8
 
@@ -4401,8 +4616,10 @@ contains
     integer(i8), dimension(:,:,:,:), allocatable, intent(out) :: data !< read data (nx,ny,layer,time)
     integer(i4), intent(in) :: t_index !< start index of time frame
     integer(i4), intent(in) :: t_size !< chunk size
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
-    if (self%static) call error_message("input%read_chunk_layered: file has no time: ", self%path)
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (self%static) &
+      call error_message("input%read_chunk_layered: file has no time: ", self%path)
     call self%vars(var_id)%read_chunk_layered(self%flip_y, t_index, t_size, data)
   end subroutine input_read_chunk_by_ids_matrix_layered_id_i8
 
@@ -4427,7 +4644,8 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i8), dimension(:,:,:), allocatable :: data_matrix
     integer(i4) :: i
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_id: invalid variable id")
     call self%input_read_chunk_by_ids_matrix_id_i8(var_id, data_matrix, t_index, t_size)
     allocate(data(self%grid%ncells, t_size))
     do i = 1_i4, t_size
@@ -4456,7 +4674,8 @@ contains
     integer(i4), intent(in) :: t_size !< chunk size
     integer(i8), dimension(:,:,:,:), allocatable :: data_matrix
     integer(i4) :: i, j
-    if (var_id < 1_i4 .or. var_id > self%nvars) call error_message("input%read_chunk_layered_id: invalid variable id")
+    if (var_id < 1_i4 .or. var_id > self%nvars) &
+      call error_message("input%read_chunk_layered_id: invalid variable id")
     call self%input_read_chunk_by_ids_matrix_layered_id_i8(var_id, data_matrix, t_index, t_size)
     allocate(data(self%grid%ncells, self%nlayers, t_size))
     do i = 1_i4, t_size
@@ -4478,7 +4697,8 @@ contains
     integer(i4), intent(out), optional :: t_index !< starting index of time frame
     integer(i4), intent(out), optional :: t_size !< chunk size of time frame
     integer(i4) :: t_start, t_end, t_cnt, t_id
-    if (self%static) call error_message("input%chunk_times: file has no time: ", self%path)
+    if (self%static) &
+      call error_message("input%chunk_times: file has no time: ", self%path)
     if (timeframe_start < self%times(1)) then
       t_start = 0_i4
     else
@@ -4503,7 +4723,8 @@ contains
     type(datetime), intent(in) :: current_time !< current read time
     integer(i8) :: current_delta_sec
     integer(i4) :: t_val, left, right
-    if (.not.allocated(self%times)) call error_message("input%time_index: file is static and has no time dimension")
+    if (.not.allocated(self%times)) &
+      call error_message("input%time_index: file is static and has no time dimension")
     ! seconds since start date
     current_delta_sec = int(current_time%date_to_ordinal(), i8) * 86400_i8 + int(current_time%day_second(), i8) - self%ref_ord_sec
     ! calculate time value for current time for time units in file
@@ -4538,8 +4759,10 @@ contains
     integer(i4), allocatable :: bounds(:, :)
     integer(i4) :: n_times
 
-    if (self%static .or. .not.allocated(self%t_values)) call error_message("input_dataset%time_axis: input has no time axis")
-    if (.not.allocated(self%time_units)) call error_message("input_dataset%time_axis: missing time units")
+    if (self%static .or. .not.allocated(self%t_values)) &
+      call error_message("input_dataset%time_axis: input has no time axis")
+    if (.not.allocated(self%time_units)) &
+      call error_message("input_dataset%time_axis: missing time units")
     n_times = size(self%t_values)
     allocate(bounds(2_i4, n_times))
     bounds(1_i4, :) = self%t_bounds(:n_times)

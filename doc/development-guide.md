@@ -5,7 +5,8 @@ backends for operating system operations and NetCDF interoperability. Developmen
 centres on small public APIs, explicit data ownership, and portable builds. This
 guide explains where to extend the library and how to check a change. The root
 [repository instructions](../AGENTS.md) define the coding and workflow rules;
-the [README](../README.md) covers installation, build options, and publishing.
+the [user guide](user-guide.md) covers installation and build options, and the
+[documentation guide](documentation-guide.md) covers HTML/PDF generation and publishing.
 
 [TOC]
 
@@ -180,6 +181,36 @@ interval sums. Preserve time units, bounds, timestamp location, and nodata
 handling when changing temporal I/O or resampling. Read the corresponding tests
 before modifying those conversions.
 
+FORCES diagnostics use one module-level `use mo_forces_message, only: ...` import
+per consuming module; remove repeated procedure-level imports when extending a
+module. The wrappers supply the `forces` scope without changing application
+message defaults. Keep the dependency direction from foundations through
+`mo_logging`, `mo_message` and `mo_forces_message` to diagnostic callers. Logger
+internals must not depend on higher-level string, append, or OS utilities.
+Plain CLI presentation and scientific data-file output retain dedicated writers.
+For message defaults, visibility, routing and CLI logger options, see the
+[user guide](user-guide.md).
+
+Import only the required routines **once at module level**:
+
+```fortran
+module mo_example
+  use mo_forces_message, only: message, error_message
+  implicit none
+contains
+  subroutine report_input()
+    call message("Reading input")                   ! [forces] Reading input
+  end subroutine report_input
+end module mo_example
+```
+
+Keep all parts of a diagnostic at the same severity, including follow-up details;
+combine a fatal explanation into one terminating call when possible. Ordinary
+conditional message calls use `if (condition) &` followed by `call ...` on the
+next line. Logging macros require block IF guards because their expansion
+contains its own IF. Prefer source lines within 132 columns and break outside
+character literals; use complete concatenated literals if a string must be split.
+
 Follow each type's existing initialization, reset, close, and destruction API.
 Do not reallocate storage while another object points into it. A copied derived
 type with pointer components retains aliases to the same targets. Prepare
@@ -202,21 +233,7 @@ For a fatal error path, check termination and the expected diagnostic in an
 isolated process. Keep pFUnit assertions on a single physical line.
 
 Compilation and test execution require an explicit user request in an agent
-session. The following commands are for use when authorized, from the repository
-root with pFUnit installed:
-
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DFORCES_BUILD_TESTING=ON
-cmake --build build --parallel 4
-ctest --test-dir build --output-on-failure -R '^test_mo_utils$'
-```
-
-Replace the pattern with the affected suite. To configure only that suite, add
-`-DFORCES_TEST_GLOB='test_mo_utils.pf'` to the configure command. Ordinary test
-configuration can succeed without pFUnit while adding no tests; check the CMake
-output and follow the README's **Testing with pFUnit** instructions. Coverage
-configuration requires GNU Fortran and pFUnit; see **Coverage reports** in the
-README for LCOV/Cobertura commands.
+session. Use the installation and execution commands below when authorized.
 
 Choose validation to match the change:
 
@@ -244,6 +261,100 @@ Ensure the selected cases actually enter parallel work. Preserve barriers and
 data dependencies, use disjoint writes, and keep serial builds working. Keep the
 full compiler, Release, and coverage matrix in CI rather than repeating it for
 every local change.
+
+## Testing with pFUnit
+
+FORCES uses [pFUnit](https://github.com/Goddard-Fortran-Ecosystem/pFUnit) for its unit tests. When `FORCES_BUILD_TESTING=ON`, CMake will look for `PFUNIT`. If pFUnit is not available, ordinary test configuration still succeeds, but no FORCES tests are added. Coverage builds require pFUnit and fail configuration if it is missing.
+
+Install pFUnit with compilers matching the FORCES build. For a source
+installation in the chosen Conda environment:
+
+```bash
+conda install -y m4
+git clone https://github.com/Goddard-Fortran-Ecosystem/pFUnit.git
+cmake -DCMAKE_BUILD_TYPE=Release -B pFUnit/build -S pFUnit
+cmake --build pFUnit/build --parallel
+cmake --install pFUnit/build --prefix "$CONDA_PREFIX"
+rm -rf pFUnit
+```
+
+Then you can compile and run the tests in the same environment:
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFORCES_BUILD_TESTING=ON
+cmake --build build --parallel
+cmake --build build --target test
+```
+
+Run all configured tests with:
+
+```bash
+ctest --test-dir build --output-on-failure
+```
+
+Run a single pFUnit suite with `ctest -R`, for example:
+
+```bash
+ctest --test-dir build --output-on-failure -R '^test_mo_message$'
+```
+
+If you only want to configure a subset of the pFUnit files, use `FORCES_TEST_GLOB`:
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFORCES_BUILD_TESTING=ON -DFORCES_TEST_GLOB='test_mo_message.pf'
+```
+
+This is useful when iterating on one module or when you want to avoid configuring optional suites such as NetCDF- or optimization-related tests.
+
+## Coverage reports
+
+Coverage uses a serial GNU Debug build with pFUnit installed. Install LCOV 2.0 or
+newer (`lcov` and `genhtml`) and Python's `lcov_cobertura` before collecting reports.
+Use the `gcov` executable matching the compiler's GCC version; set CMake's
+`GCOV_PATH` if the default differs.
+
+```bash
+cmake -S . -B build_coverage -DCMAKE_BUILD_TYPE=Debug \
+  -DFORCES_BUILD_TESTING=ON -DFORCES_WITH_COVERAGE=ON \
+  -DFORCES_WITH_OpenMP=OFF
+cmake --build build_coverage --parallel 4
+cmake --build build_coverage --target coverage
+mkdir -p coverage
+cp -a build_coverage/coverage/. coverage/
+lcov --rc check_data_consistency=0 --add-tracefile build_coverage/coverage.info \
+  --substitute "s#^(\Q$PWD\E|\Q$(pwd -P)\E)/##" --output-file coverage/coverage.info
+lcov_cobertura coverage/coverage.info --base-dir . --output coverage/coverage.xml
+```
+
+The `coverage` target runs CTest and retains unexecuted compiled code in its LCOV
+baseline. It excludes test sources, external files, and build-tree sources.
+Function/line consistency checks are disabled because GNU Fortran can map distinct
+functions to overlapping source lines; the original counters are retained.
+Report normalization strips both logical and physical checkout prefixes while
+preserving Fortran filename case. The commands stage HTML, LCOV, and Cobertura XML
+under `coverage/`; open `coverage/index.html` for the HTML report.
+
+GitLab's `coverage` job uses `chs-fortran-conda/0.6.0` and exposes the HTML report as
+a CI artifact. Its Cobertura XML supplies merge-request diff annotations. The
+`conditional_coverage` job repeats coverage with NetCDF and optimization disabled,
+using a separate build directory and artifact archive. Only the full-feature job
+supplies diff annotations. Coverage is not copied to GitLab Pages; artifact expiry
+uses the GitLab instance default and the project's latest-successful-artifact policy.
+
+To check the reduced-feature configuration locally:
+
+```bash
+cmake -S . -B build_coverage_conditional -DCMAKE_BUILD_TYPE=Debug \
+  -DFORCES_BUILD_TESTING=ON -DFORCES_WITH_COVERAGE=ON \
+  -DFORCES_WITH_OpenMP=OFF -DFORCES_WITH_NETCDF=OFF -DFORCES_WITH_OPTIMIZATION=OFF
+cmake --build build_coverage_conditional --parallel 4
+cmake --build build_coverage_conditional --target coverage
+```
+
+The GitHub Coverage workflow uses GNU Fortran 13 and builds serial pFUnit 4.12.0.
+It retains coverage artifacts for 14 days and uploads LCOV through the Coveralls
+GitHub Action using the built-in GitHub token. Enable the FORCES GitHub mirror in
+Coveralls to receive reports; no additional repository token secret is needed.
 
 ## Maintain documentation and examples
 
@@ -273,16 +384,12 @@ The Examples index is populated automatically from `\example` entries; its
 introduction is customized in `doc/doxygen-layout.xml`. Keep that index automatic
 as examples are added. Topic pages can highlight relevant examples.
 
-Generate documentation from the repository root with the pinned Doxygen 1.18.0
-environment:
+Use the [documentation guide](documentation-guide.md) for the pinned Doxygen
+environment, HTML/PDF commands, system TeX dependencies and publishing workflows.
+Inspect affected topic pages, example links and Doxygen warnings. Keep the
+vendored theme unchanged except during an intentional dependency update. Exclude
+generated HTML, PDFs, logs, build products and runtime outputs from commits;
+retain factual attribution and existing fixture data.
 
-```bash
-PROJECT_NUMBER="$(cat version.txt)" doxygen doc/doxygen.config
-make -C latex
-```
-
-Inspect affected topic pages, example links, and Doxygen warnings. The README
-documents the RTD environment, system TeX dependencies, and GitLab publishing.
-Keep the vendored theme unchanged except during an intentional dependency
-update. Exclude generated HTML, PDFs, logs, build products, and runtime outputs
-from commits; retain factual attribution and existing fixture data.
+For an application template with tests, documentation and modules, see the
+[Fortran Template](https://git.ufz.de/chs/fortran-template).
