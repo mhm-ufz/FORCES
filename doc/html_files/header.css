@@ -16,6 +16,16 @@
               -13px 1px var(--separator-color);
 }
 
+/* Hide only Doxygen's outer project row; retain its children and tree logic. */
+#nav-tree-contents > ul > li > .item {
+  display: none;
+}
+
+/* Remove the hidden project's indentation from every remaining tree level. */
+#nav-tree-contents > ul > li > ul .arrow {
+  margin-left: -16px;
+}
+
 .forces-rtd-controls {
   box-sizing: border-box;
   display: block;

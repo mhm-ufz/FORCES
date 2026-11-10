@@ -1,7 +1,8 @@
-# Quick start
+# FORCES library
 
 <div align="center">
-<img src="https://raw.githubusercontent.com/mhm-ufz/FORCES/main/doc/figures/Forces.png" alt="Forces-LOGO" width="251px" style="width:251px;"/>
+<img src="doc/figures/Forces.png" alt="Forces-LOGO" width="251px" style="width:251px;"
+     onerror="this.onerror=null; this.src='Forces.png';"/>
 </div>
 
 This is the FORTRAN library for Computational Environmental Systems of the
@@ -17,14 +18,16 @@ The `jams_fortran` library was formerly developed at the CHS department at the U
 
 [TOC]
 
-## Requirements
+## Quick start
+
+### Requirements
 
 Use C and supported Fortran compilers, CMake 3.18 or newer, and Make or Ninja.
 The default build also needs NetCDF-C. Fypp is optional; generated Fortran
 sources are included. Supported compilers, Conda installation and optional
 features are described in the [user guide](doc/user-guide.md).
 
-## Build and run
+### Build and run
 
 From a FORCES checkout with the dependencies installed, save this program as
 `test.f90` in the repository root:
@@ -76,6 +79,6 @@ Repository workflows and coding conventions are recorded in
 [AGENTS.md](AGENTS.md). Development and test commands live in the developer guide;
 normal library builds do not require pFUnit.
 
-## License
+## License {#license-overview}
 
 LGPLv3 (c) 2005-2026 CHS-Developers. See [LICENSE.md](LICENSE.md).

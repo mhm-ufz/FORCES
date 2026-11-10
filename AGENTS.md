@@ -1,4 +1,4 @@
-# FORCES repository instructions
+# FORCES repository instructions {#repository_instructions}
 
 These rules apply throughout the repository to new or touched code. Read the
 [developer guide](doc/development-guide.md) for module relationships and extension

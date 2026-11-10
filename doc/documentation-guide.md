@@ -24,15 +24,36 @@ sampling.
 Definitions live in `doc/directories.dox`; module headers declare their topic
 with `\ingroup`, and topic pages link to relevant examples.
 
-Navigation starts with Quick start, Guides, Library sections, Examples, API
-reference and Project information. The Guides menu links to the usage, development
-and documentation pages; API reference groups the generated Fortran module,
-derived type and source file indices. Project information links to the changelog,
-license and repository instructions, which are also linked from the main page.
+The mobile menu starts with FORCES library, Guides, About, Library sections,
+API reference and Examples. FORCES library opens the README, with
+requirements and build/run instructions under its first Quick start section.
+The desktop tree starts with FORCES library and uses the README heading
+for the page entry; the layout title controls the tab/mobile label. Local CSS in
+`doc/html_files/header.css` hides the outer FORCES project row and removes its
+indentation, leaving Doxygen's tree structure and navigation logic intact.
+The Guides menu links to the usage, development and documentation pages; API
+reference groups the generated Fortran module, derived type and source file
+indices. About links to the changelog, license and repository
+instructions, which are also linked from the main page.
+Guides, About and API reference use `url="[none]"` so their labels
+expand or collapse the group without opening a generated landing page.
 Maintain this structure in `doc/doxygen-layout.xml`, using page IDs or Markdown
 file references and keeping the library sections, examples and API indices
 automatic. Add new standalone pages to the appropriate navigation group. Check
 both the mobile menu and desktop navigation tree after layout changes.
+
+Give standalone Markdown pages an explicit ID on their first heading, such as
+`# Changelog {#changelog}`, to obtain a readable filename (`changelog.html`).
+The guides already use `forces_usage`, `forces_development` and
+`forces_documentation`; project pages use `changelog`, `license` and
+`repository_instructions`. Link to these IDs with `@ref` in the layout, and keep
+relative Markdown links in the guides so they also work in the repository.
+`MARKDOWN_ID_STYLE = GITHUB` produces readable section anchors such as
+`index.html#quick-start`. Add explicit heading IDs when an anchor must remain
+stable across heading changes; duplicate heading text may require a suffix in
+automatically generated IDs. Doxygen continues to name API pages and member
+anchors. Existing external links to the former generated page names and numbered
+section anchors need updating.
 
 Documentation builds need a Fortran compiler for `doc/pre-proc.sh`, Graphviz, and
 Doxygen 1.18.0, pinned in `doc/rtd-environment.yml`. Export `FC` to select a compiler;
