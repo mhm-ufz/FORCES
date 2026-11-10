@@ -12,13 +12,13 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_time
 module mo_eckhardt_filter
+  use mo_forces_message, only: error_message
 
   use mo_kind,       only: i4, dp
   use mo_moment,     only: mean
   use mo_percentile, only: percentile
   use mo_append,     only: append
   use mo_nelmin,     only: nelminrange
-  use mo_message,    only: error_message
 
   implicit none
   private
@@ -78,7 +78,8 @@ contains
       ! TODO: do we need a threshold for number in mask here?
       if ( any(mask_(i : j)) ) call append(q_min, minval(temp_d7(i : j), mask=mask_(i : j)))
     end do
-    if ( size(q_min) < 2 ) call error_message("Eckhardt filter: Less than 2 years of discharge observations! (min. 10 recommended)")
+    if ( size(q_min) < 2 ) &
+      call error_message("Eckhardt filter: Less than 2 years of discharge observations! (min. 10 recommended)")
 
     allocate(temp_qmin_mask(size(discharge)))
     allocate(temp_mask(size(discharge)))

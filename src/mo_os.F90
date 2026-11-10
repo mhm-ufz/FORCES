@@ -14,6 +14,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_io
 module mo_os
+  use mo_forces_message, only: error_message, message
 
   use, intrinsic :: iso_c_binding, only: c_char, c_int, c_null_char, c_size_t
   use mo_kind, only: i4
@@ -895,7 +896,6 @@ contains
   ! ------------------------------------------------------------------
 
   subroutine path_msg(msg, path, verbose, raise)
-    use mo_message, only: error_message, message
     implicit none
     character(len=*), intent(in), optional :: msg
     character(len=*), intent(in), optional :: path

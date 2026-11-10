@@ -21,8 +21,7 @@ All notable changes to **FORCES** will be documented in this file.
     use ERROR, and terminating warnings/errors use FATAL. Logging still ignores
     message `uni=` and `advance=` in favor of its configured output units/records.
   * Removed higher-level logger dependencies.
-  * Migrated utility, spatial, time and numerical diagnostics and diagnostic
-    STOP strings to the FORCES
+  * Migrated console diagnostics and diagnostic STOP strings to the FORCES
     wrappers. Fatal failures use `ERROR STOP 1` in both modes, including legacy cases that
     could previously report success. Scientific/history/restart files are unchanged.
 

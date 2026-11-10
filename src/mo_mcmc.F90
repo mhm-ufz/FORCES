@@ -9,6 +9,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_optimization
 MODULE mo_mcmc
+  use mo_forces_message, only: error_message, message, warn_message
 
   USE mo_kind, only : i4, i8, dp
   USE mo_xor4096, only : xor4096, xor4096g, get_timeseed, n_save_state
@@ -16,7 +17,6 @@ MODULE mo_mcmc
   USE mo_moment, only : stddev
   !$ USE omp_lib,    only: OMP_GET_NUM_THREADS
   use mo_optimizee, only : optimizee
-  use mo_message, only : error_message, warn_message
 #ifdef FORCES_WITH_NETCDF
   use mo_netcdf_wrapper, only : &
           NCW_CLOBBER, NCW_DOUBLE, NCW_GLOBAL, NCW_INT, NCW_NOERR, NCW_UNLIMITED, NCW_WRITE, &
@@ -486,6 +486,7 @@ CONTAINS
     !                                                                ! array to save para values of MCMC runs,
     !                                                                ! dim1=sets of all chains, dim2=paras
     REAL(DP), DIMENSION(:, :), ALLOCATABLE, INTENT(OUT) :: burnin_paras
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
     !                                                                ! array to save para values of Burn in run
 
 
@@ -610,7 +611,7 @@ CONTAINS
 
       if (present(maskpara_in)) then
         if (count(maskpara_in) .eq. 0_i4) then
-          stop 'Input argument maskpara: At least one element has to be true'
+          call error_message('Input argument maskpara: At least one element has to be true')
         else
           maskpara = maskpara_in
         end if
@@ -639,7 +640,7 @@ CONTAINS
       ! after how many iterations do we compute ac_ratio???
       if (present(iter_burnin_in)) then
         if (iter_burnin_in .le. 0_i4)  then
-          stop 'Input argument iter_burn_in must be greater than  0!'
+          call error_message('Input argument iter_burn_in must be greater than  0!')
         else
           iter_burnin = iter_burnin_in
         end if
@@ -651,7 +652,7 @@ CONTAINS
       ! iter_mcmc_in is handled later properly (after acceptance ratio of burn_in is known)
       if (present(iter_mcmc_in)) then
         if (iter_mcmc_in .le. 0_i4)  then
-          stop 'Input argument iter_mcmc must be greater than  0!'
+          call error_message('Input argument iter_mcmc must be greater than  0!')
         else
           iter_mcmc = iter_mcmc_in
         end if
@@ -660,9 +661,8 @@ CONTAINS
       end if
 
       if (present(chains_in)) then
-        if (chains_in .lt. 2_i4)  then
-          stop 'Input argument chains must be at least 2!'
-        end if
+        if (chains_in .lt. 2_i4) &
+          call error_message('Input argument chains must be at least 2!')
         chains = chains_in
       else
         chains = 5_i4
@@ -682,16 +682,18 @@ CONTAINS
       end if
 
       n_threads = 1
-      !$  write(*,*) '--------------------------------------------------'
-      !$  write(*,*) ' This program is parallel.'
+      !$  call message('--------------------------------------------------')
+      !$  call message(' This program is parallel.')
       !$OMP parallel
       !$    n_threads = OMP_GET_NUM_THREADS()
       !$OMP end parallel
-      !$  write(*,*) ' ',chains,' MCMC chains will run in ',n_threads,' threads'
-      !$  write(*,*) '--------------------------------------------------'
+      !$  write(diagnostic_text, *) ' ',chains,' MCMC chains will run in ',n_threads,' threads'
+      !$  call message(trim(diagnostic_text))
+      !$  call message('--------------------------------------------------')
 
       if (printflag) then
-        write(*, *) 'Following parameters will be sampled with MCMC: ', truepara
+        write(diagnostic_text, *) 'Following parameters will be sampled with MCMC: ', truepara
+        call message(trim(diagnostic_text))
       end if
 
       allocate(seeds(chains, 3))
@@ -751,11 +753,12 @@ CONTAINS
       if (.not. skip_burnin) then
 
         if (printflag) then
-          write(*, *) ''
-          write(*, *) '--------------------------------------------------'
-          write(*, *) 'Starting Burn-In   (iter_burnin = ', iter_burnin, ')'
-          write(*, *) '--------------------------------------------------'
-          write(*, *) ''
+          call message('')
+          call message('--------------------------------------------------')
+          write(diagnostic_text, *) 'Starting Burn-In   (iter_burnin = ', iter_burnin, ')'
+          call message(trim(diagnostic_text))
+          call message('--------------------------------------------------')
+          call message('')
         end if
 
         ! INITIALIZATION
@@ -772,11 +775,13 @@ CONTAINS
         iStop = .false.
 
         if (printflag) then
-          write(*, *) ' '
-          write(*, *) 'Start Burn-In with: '
-          write(*, *) '   parabest   = ', parabest
-          write(*, *) '   likelihood = ', likelibest
-          write(*, *) ' '
+          call message(' ')
+          call message('Start Burn-In with: ')
+          write(diagnostic_text, *) '   parabest   = ', parabest
+          call message(trim(diagnostic_text))
+          write(diagnostic_text, *) '   likelihood = ', likelibest
+          call message(trim(diagnostic_text))
+          call message(' ')
         end if
 
         ! ----------------------------------------------------------------------------------
@@ -830,10 +835,12 @@ CONTAINS
                 likeliold = likelinew
                 likelibest = likelinew
                 !
-                write(*, *) ''
-                write(*, *) 'best para changed: ', paranew
-                write(*, *) 'likelihood new:    ', likelinew
-                write(*, *) ''
+                call message('')
+                write(diagnostic_text, *) 'best para changed: ', paranew
+                call message(trim(diagnostic_text))
+                write(diagnostic_text, *) 'likelihood new:    ', likelinew
+                call message(trim(diagnostic_text))
+                call message('')
               end if
               burnin_paras_part(Ipos(1) + Ineg(1), :) = paranew(:)
 
@@ -875,7 +882,8 @@ CONTAINS
           accRatio(1) = real(Ipos(1) + Ineg(1), dp) / real(iter_burnin, dp)
           if (printflag) then
             write(str, '(A,I03,A)') '(A7,I4,A15,F5.3,A17,', size(para, 1), '(E9.2,1X),A1)'
-            write(*, str) 'trial #', trial, '   acc_ratio = ', accRatio(1), '     (stepsize = ', stepsize, ')'
+            write(diagnostic_text, str) 'trial #', trial, '   acc_ratio = ', accRatio(1), '     (stepsize = ', stepsize, ')'
+            call message(trim(diagnostic_text))
           end if
 
           if (Ipos(1) + Ineg(1) .gt. 0_i4) then
@@ -904,11 +912,15 @@ CONTAINS
               if ((accRatio_stddev .lt. Sqrt(1._dp / 12._dp * 0.05_dp**2))) then
                 iStop = .true.
                 if (printflag) then
-                  write(*, *) ''
-                  write(*, *) 'STOP BURN-IN with accaptence ratio of ', history_accRatio(accRatio_n)
-                  write(*, *) 'final stepsize:           ', stepsize
-                  write(*, *) 'best parameter set found: ', parabest
-                  write(*, *) 'with likelihood:          ', likelibest
+                  call message('')
+                  write(diagnostic_text, *) 'STOP BURN-IN with accaptence ratio of ', history_accRatio(accRatio_n)
+                  call message(trim(diagnostic_text))
+                  write(diagnostic_text, *) 'final stepsize:           ', stepsize
+                  call message(trim(diagnostic_text))
+                  write(diagnostic_text, *) 'best parameter set found: ', parabest
+                  call message(trim(diagnostic_text))
+                  write(diagnostic_text, *) 'with likelihood:          ', likelibest
+                  call message(trim(diagnostic_text))
                 end if
               end if
 
@@ -1002,11 +1014,12 @@ CONTAINS
     !----------------------------------------------------------------------
 
     if (printflag) then
-      write(*, *) ''
-      write(*, *) '--------------------------------------------------'
-      write(*, *) 'Starting MCMC  (chains = ', chains, ',   iter_mcmc = ', iter_mcmc, ')'
-      write(*, *) '--------------------------------------------------'
-      write(*, *) ''
+      call message('')
+      call message('--------------------------------------------------')
+      write(diagnostic_text, *) 'Starting MCMC  (chains = ', chains, ',   iter_mcmc = ', iter_mcmc, ')'
+      call message(trim(diagnostic_text))
+      call message('--------------------------------------------------')
+      call message('')
     end if
 
     convergedMCMC : do while (.not. converged)
@@ -1036,7 +1049,7 @@ CONTAINS
       end if
 
       !$OMP parallel default(shared) &
-      !$OMP private(chain, paraold, paranew, likeliold, likelinew, oddsSwitch1, oddsSwitch2, RN1, oddsRatio, ChangePara)
+      !$OMP private(chain, paraold, paranew, likeliold, likelinew, oddsSwitch1, oddsSwitch2, RN1, oddsRatio, ChangePara, diagnostic_text)
       !$OMP do
       parallelchain : do chain = 1, chains
 
@@ -1081,7 +1094,8 @@ CONTAINS
             if (printflag) then
               if ((Ipos(chain) + Ineg(chain) .gt. 0_i4) .and. &
                       (mod(Ipos(chain) + Ineg(chain), 10000_i4)) .eq. 0) then
-                write(*, *) 'Chain ', chain, ': Done ', Ipos(chain) + Ineg(chain), ' samples ...'
+                write(diagnostic_text, *) 'Chain ', chain, ': Done ', Ipos(chain) + Ineg(chain), ' samples ...'
+                call message(trim(diagnostic_text))
               end if
             end if
 
@@ -1121,7 +1135,8 @@ CONTAINS
               if (printflag) then
                 if ((Ipos(chain) + Ineg(chain) .gt. 0_i4) .and. &
                         (mod(Ipos(chain) + Ineg(chain), 10000_i4)) .eq. 0) then
-                  write(*, *) 'Chain ', chain, ': Done ', Ipos(chain) + Ineg(chain), ' samples ...'
+                  write(diagnostic_text, *) 'Chain ', chain, ': Done ', Ipos(chain) + Ineg(chain), ' samples ...'
+                  call message(trim(diagnostic_text))
                 end if
               end if
 
@@ -1164,8 +1179,8 @@ CONTAINS
       !    B ... between chain variance
 
       if (printflag) then
-        write(*, *) ' '
-        write(*, *) 'Checking for convergence ....'
+        call message(' ')
+        call message('Checking for convergence ....')
       end if
       sqrtR = 0.0_dp
       n_end = minval(Ipos + Ineg)
@@ -1204,17 +1219,19 @@ CONTAINS
       if (printflag) then
         do i = 1, size(para)
           if (sqrtR(i) .gt. 1.1_dp) then
-            write(*, *) '   sqrtR para #', i, ' : ', sqrtR(i), '  <-- FAILED'
+            write(diagnostic_text, *) '   sqrtR para #', i, ' : ', sqrtR(i), '  <-- FAILED'
+            call message(trim(diagnostic_text))
           else
-            write(*, *) '   sqrtR para #', i, ' : ', sqrtR(i)
+            write(diagnostic_text, *) '   sqrtR para #', i, ' : ', sqrtR(i)
+            call message(trim(diagnostic_text))
           end if
         end do
       end if
       if (all(sqrtR .lt. 1.1_dp)) then
         converged = .true.
         if (printflag) then
-          write(*, *) '   --> converged (all less than 1.1)'
-          write(*, *) ' '
+          call message('   --> converged (all less than 1.1)')
+          call message(' ')
         end if
       else
         ! increase number of iterations
@@ -1225,9 +1242,10 @@ CONTAINS
         end if
 
         if (printflag) then
-          write(*, *) '   --> not converged (not all less than 1.1)'
-          write(*, *) '       increasing iterations to ', iter_mcmc
-          write(*, *) ' '
+          call message('   --> not converged (not all less than 1.1)')
+          write(diagnostic_text, *) '       increasing iterations to ', iter_mcmc
+          call message(trim(diagnostic_text))
+          call message(' ')
         end if
       end if
 
@@ -1319,6 +1337,7 @@ CONTAINS
     !                                                                ! array to save para values of MCMC runs,
     !                                                                ! dim1=sets of all chains, dim2=paras
     REAL(DP), DIMENSION(:, :), ALLOCATABLE, INTENT(OUT) :: burnin_paras
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
     !                                                                ! array to save para values of Burn in run
 
 
@@ -1401,7 +1420,7 @@ CONTAINS
 
     if (present(maskpara_in)) then
       if (count(maskpara_in) .eq. 0_i4) then
-        stop 'Input argument maskpara: At least one element has to be true'
+        call error_message('Input argument maskpara: At least one element has to be true')
       else
         maskpara = maskpara_in
       end if
@@ -1430,7 +1449,7 @@ CONTAINS
     ! after how many iterations do we compute ac_ratio???
     if (present(iter_burnin_in)) then
       if (iter_burnin_in .le. 0_i4)  then
-        stop 'Input argument iter_burn_in must be greater than  0!'
+        call error_message('Input argument iter_burn_in must be greater than  0!')
       else
         iter_burnin = iter_burnin_in
       end if
@@ -1442,7 +1461,7 @@ CONTAINS
     ! iter_mcmc_in is handled later properly (after acceptance ratio of burn_in is known)
     if (present(iter_mcmc_in)) then
       if (iter_mcmc_in .le. 0_i4)  then
-        stop 'Input argument iter_mcmc must be greater than  0!'
+        call error_message('Input argument iter_mcmc must be greater than  0!')
       else
         iter_mcmc = iter_mcmc_in
       end if
@@ -1451,9 +1470,8 @@ CONTAINS
     end if
 
     if (present(chains_in)) then
-      if (chains_in .lt. 2_i4)  then
-        stop 'Input argument chains must be at least 2!'
-      end if
+      if (chains_in .lt. 2_i4) &
+        call error_message('Input argument chains must be at least 2!')
       chains = chains_in
     else
       chains = 5_i4
@@ -1469,16 +1487,18 @@ CONTAINS
       printflag = .false.
     end if
 
-    !$  write(*,*) '--------------------------------------------------'
-    !$  write(*,*) ' This program is parallel.'
+    !$  call message('--------------------------------------------------')
+    !$  call message(' This program is parallel.')
     !$OMP parallel
     !$    n_threads = OMP_GET_NUM_THREADS()
     !$OMP end parallel
-    !$  write(*,*) ' ',chains,' MCMC chains will run in ',n_threads,' threads'
-    !$  write(*,*) '--------------------------------------------------'
+    !$  write(diagnostic_text, *) ' ',chains,' MCMC chains will run in ',n_threads,' threads'
+    !$  call message(trim(diagnostic_text))
+    !$  call message('--------------------------------------------------')
 
     if (printflag) then
-      write(*, *) 'Following parameters will be sampled with MCMC: ', truepara
+      write(diagnostic_text, *) 'Following parameters will be sampled with MCMC: ', truepara
+      call message(trim(diagnostic_text))
     end if
 
     allocate(seeds(chains, 3))
@@ -1533,11 +1553,12 @@ CONTAINS
 
     if (.not. present(stepsize_in)) then
       if (printflag) then
-        write(*, *) ''
-        write(*, *) '--------------------------------------------------'
-        write(*, *) 'Starting Burn-In   (iter_burnin = ', iter_burnin, ')'
-        write(*, *) '--------------------------------------------------'
-        write(*, *) ''
+        call message('')
+        call message('--------------------------------------------------')
+        write(diagnostic_text, *) 'Starting Burn-In   (iter_burnin = ', iter_burnin, ')'
+        call message(trim(diagnostic_text))
+        call message('--------------------------------------------------')
+        call message('')
       end if
 
       ! INITIALIZATION
@@ -1565,13 +1586,17 @@ CONTAINS
         !stddev_data = stddev_new
 
         if (printflag) then
-          write(*, *) ' '
-          write(*, *) 'Restart Burn-In with new approximation of std.dev. of data: '
-          write(*, *) '   parabest   = ', parabest
-          write(*, *) '   stddev     = ', stddev_data
-          write(*, *) '   likelihood = ', likelibest
-          write(*, *) '   ssq        = ', -2.0_dp * stddev_data**2 * likelibest
-          write(*, *) ' '
+          call message(' ')
+          call message('Restart Burn-In with new approximation of std.dev. of data: ')
+          write(diagnostic_text, *) '   parabest   = ', parabest
+          call message(trim(diagnostic_text))
+          write(diagnostic_text, *) '   stddev     = ', stddev_data
+          call message(trim(diagnostic_text))
+          write(diagnostic_text, *) '   likelihood = ', likelibest
+          call message(trim(diagnostic_text))
+          write(diagnostic_text, *) '   ssq        = ', -2.0_dp * stddev_data**2 * likelibest
+          call message(trim(diagnostic_text))
+          call message(' ')
         end if
 
 
@@ -1630,10 +1655,12 @@ CONTAINS
                 stddev_data = stddev_new
                 !
                 parabestChanged = .true.
-                write(*, *) ''
-                write(*, *) 'best para changed: ', paranew
-                write(*, *) 'likelihood new:    ', likelinew
-                write(*, *) ''
+                call message('')
+                write(diagnostic_text, *) 'best para changed: ', paranew
+                call message(trim(diagnostic_text))
+                write(diagnostic_text, *) 'likelihood new:    ', likelinew
+                call message(trim(diagnostic_text))
+                call message('')
               end if
               burnin_paras_part(Ipos(1) + Ineg(1), :) = paranew(:)
               ! write(*,*) 'positive accept'
@@ -1681,7 +1708,8 @@ CONTAINS
           accRatio(1) = real(Ipos(1) + Ineg(1), dp) / real(iter_burnin, dp)
           if (printflag) then
             write(str, '(A,I03,A)') '(A7,I4,A15,F5.3,A17,', size(para, 1), '(E9.2,1X),A1)'
-            write(*, str) 'trial #', trial, '   acc_ratio = ', accRatio(1), '     (stepsize = ', stepsize, ')'
+            write(diagnostic_text, str) 'trial #', trial, '   acc_ratio = ', accRatio(1), '     (stepsize = ', stepsize, ')'
+            call message(trim(diagnostic_text))
           end if
 
           if (Ipos(1) + Ineg(1) .gt. 0_i4) then
@@ -1710,12 +1738,16 @@ CONTAINS
               if ((accRatio_stddev .lt. Sqrt(1._dp / 12._dp * 0.05_dp**2))) then
                 iStop = .true.
                 if (printflag) then
-                  write(*, *) ''
-                  write(*, *) 'STOP BURN-IN with accaptence ratio of ', history_accRatio(accRatio_n)
-                  write(*, *) 'final stepsize: ', stepsize
+                  call message('')
+                  write(diagnostic_text, *) 'STOP BURN-IN with accaptence ratio of ', history_accRatio(accRatio_n)
+                  call message(trim(diagnostic_text))
+                  write(diagnostic_text, *) 'final stepsize: ', stepsize
+                  call message(trim(diagnostic_text))
                   if (parabestChanged) then
-                    write(*, *) 'better parameter set was found: ', parabest
-                    write(*, *) 'with likelihood: ', likelibest
+                    write(diagnostic_text, *) 'better parameter set was found: ', parabest
+                    call message(trim(diagnostic_text))
+                    write(diagnostic_text, *) 'with likelihood: ', likelibest
+                    call message(trim(diagnostic_text))
                   end if
                 end if
               end if
@@ -1741,11 +1773,12 @@ CONTAINS
     initial_paraset_mcmc = parabest
 
     if (printflag) then
-      write(*, *) ''
-      write(*, *) '--------------------------------------------------'
-      write(*, *) 'Starting MCMC  (chains = ', chains, ',   iter_mcmc = ', iter_mcmc, ')'
-      write(*, *) '--------------------------------------------------'
-      write(*, *) ''
+      call message('')
+      call message('--------------------------------------------------')
+      write(diagnostic_text, *) 'Starting MCMC  (chains = ', chains, ',   iter_mcmc = ', iter_mcmc, ')'
+      call message(trim(diagnostic_text))
+      call message('--------------------------------------------------')
+      call message('')
     end if
     Ipos(:) = 0_i4   ! positive accepted
     Ineg(:) = 0_i4   ! negative accepted
@@ -1773,7 +1806,7 @@ CONTAINS
       end if
 
       !$OMP parallel default(shared) &
-      !$OMP private(chain, paraold, paranew, likeliold, likelinew, oddsSwitch1, oddsSwitch2, RN1, oddsRatio, ChangePara)
+      !$OMP private(chain, paraold, paranew, likeliold, likelinew, oddsSwitch1, oddsSwitch2, RN1, oddsRatio, ChangePara, diagnostic_text)
       !$OMP do
       parallelchain : do chain = 1, chains
 
@@ -1818,7 +1851,8 @@ CONTAINS
             if (printflag) then
               if ((Ipos(chain) + Ineg(chain) .gt. 0_i4) .and. &
                       (mod(Ipos(chain) + Ineg(chain), 10000_i4)) .eq. 0) then
-                write(*, *) 'Chain ', chain, ': Done ', Ipos(chain) + Ineg(chain), ' samples ...'
+                write(diagnostic_text, *) 'Chain ', chain, ': Done ', Ipos(chain) + Ineg(chain), ' samples ...'
+                call message(trim(diagnostic_text))
               end if
             end if
 
@@ -1826,10 +1860,12 @@ CONTAINS
               parabest = paranew
               likelibest = likelinew
               if (printflag) then
-                write(*, *) ''
-                write(*, *) 'best para changed: ', paranew
-                write(*, *) 'likelihood new:    ', likelinew
-                write(*, *) ''
+                call message('')
+                write(diagnostic_text, *) 'best para changed: ', paranew
+                call message(trim(diagnostic_text))
+                write(diagnostic_text, *) 'likelihood new:    ', likelinew
+                call message(trim(diagnostic_text))
+                call message('')
               end if
             end if
 
@@ -1854,7 +1890,8 @@ CONTAINS
               if (printflag) then
                 if ((Ipos(chain) + Ineg(chain) .gt. 0_i4) .and. &
                         (mod(Ipos(chain) + Ineg(chain), 10000_i4)) .eq. 0) then
-                  write(*, *) 'Chain ', chain, ': Done ', Ipos(chain) + Ineg(chain), ' samples ...'
+                  write(diagnostic_text, *) 'Chain ', chain, ': Done ', Ipos(chain) + Ineg(chain), ' samples ...'
+                  call message(trim(diagnostic_text))
                 end if
               end if
 
@@ -1897,8 +1934,8 @@ CONTAINS
       !    B ... between chain variance
 
       if (printflag) then
-        write(*, *) ' '
-        write(*, *) 'Checking for convergence ....'
+        call message(' ')
+        call message('Checking for convergence ....')
       end if
       sqrtR = 0.0_dp
       n_end = minval(Ipos + Ineg)
@@ -1937,17 +1974,19 @@ CONTAINS
       if (printflag) then
         do i = 1, size(para)
           if (sqrtR(i) .gt. 1.1_dp) then
-            write(*, *) '   sqrtR para #', i, ' : ', sqrtR(i), '  <-- FAILED'
+            write(diagnostic_text, *) '   sqrtR para #', i, ' : ', sqrtR(i), '  <-- FAILED'
+            call message(trim(diagnostic_text))
           else
-            write(*, *) '   sqrtR para #', i, ' : ', sqrtR(i)
+            write(diagnostic_text, *) '   sqrtR para #', i, ' : ', sqrtR(i)
+            call message(trim(diagnostic_text))
           end if
         end do
       end if
       if (all(sqrtR .lt. 1.1_dp)) then
         converged = .true.
         if (printflag) then
-          write(*, *) '   --> converged (all less than 1.1)'
-          write(*, *) ' '
+          call message('   --> converged (all less than 1.1)')
+          call message(' ')
         end if
       else
         ! increase number of iterations
@@ -1958,9 +1997,10 @@ CONTAINS
         end if
 
         if (printflag) then
-          write(*, *) '   --> not converged (not all less than 1.1)'
-          write(*, *) '       increasing iterations to ', iter_mcmc
-          write(*, *) ' '
+          call message('   --> not converged (not all less than 1.1)')
+          write(diagnostic_text, *) '       increasing iterations to ', iter_mcmc
+          call message(trim(diagnostic_text))
+          call message(' ')
         end if
       end if
 
@@ -2090,14 +2130,12 @@ CONTAINS
       call check_mcmc_netcdf(status, "inquiring y length")
       status = ncw_inquire_dimension(ncid, time_dimid, len = time_len)
       call check_mcmc_netcdf(status, "inquiring time length")
-      if (x_len /= int(size(values, 1), i4) .or. y_len /= int(size(values, 2), i4)) then
+      if (x_len /= int(size(values, 1), i4) .or. y_len /= int(size(values, 2), i4)) &
         call error_message("MCMC NetCDF: x/y dimensions in '", trim(output_file), "' do not match current MCMC output")
-      end if
       status = ncw_inquire_variable(ncid, varid, xtype = xtype, ndims = ndims, dimids = dimids)
       call check_mcmc_netcdf(status, "inquiring var variable")
-      if (xtype /= NCW_DOUBLE .or. ndims /= 3_i4 .or. any(dimids /= [x_dimid, y_dimid, time_dimid])) then
+      if (xtype /= NCW_DOUBLE .or. ndims /= 3_i4 .or. any(dimids /= [x_dimid, y_dimid, time_dimid])) &
         call error_message("MCMC NetCDF: variable 'var' in '", trim(output_file), "' has an incompatible schema")
-      end if
     else
       status = ncw_create(trim(output_file), NCW_CLOBBER, ncid)
       call check_mcmc_netcdf(status, "creating " // trim(output_file))
@@ -2164,9 +2202,8 @@ CONTAINS
     integer(i4), intent(in) :: status
     character(len = *), intent(in) :: context
 
-    if (status /= NCW_NOERR) then
+    if (status /= NCW_NOERR) &
       call error_message("MCMC NetCDF: ", trim(context), ": ", trim(ncw_strerror(status)))
-    end if
 
   end subroutine check_mcmc_netcdf
 #endif

@@ -15,9 +15,9 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_optimization
 module mo_optimizee
+  use mo_forces_message, only: error_message
 
   use mo_kind, only : dp
-  use mo_message, only : error_message
   use mo_opt_eval_utils, only : eval_interface, objective_interface
 
   implicit none
@@ -105,14 +105,12 @@ contains
       real(dp)                           :: value      !< output value
 
       ! Ensure the function pointer is set
-      if (.not. associated(self%func_pointer)) then
-          call error_message("Function pointer is not set in function_optimizee!")
-      end if
+      if (.not. associated(self%func_pointer)) &
+        call error_message("Function pointer is not set in function_optimizee!")
 
       ! Check optional arguments
-      if (present(sigma) .or. present(stddev_new) .or. present(likeli_new)) then
+      if (present(sigma) .or. present(stddev_new) .or. present(likeli_new)) &
         call error_message("function_optimizee doesn't support 'sigma', 'stddev_new' or 'likeli_new'!")
-      end if
 
       ! Call the function pointer
       value = self%func_pointer(parameters)
@@ -128,9 +126,8 @@ contains
     real(DP) :: value
 
     ! Ensure the likelihood function pointer is set
-    if (.not. associated(self%likelihood_pointer)) then
-        call error_message("Likelihood function pointer is not set in likelihood_optimizee!")
-    end if
+    if (.not. associated(self%likelihood_pointer)) &
+      call error_message("Likelihood function pointer is not set in likelihood_optimizee!")
 
     ! Call the likelihood function pointer
     value = self%likelihood_pointer(parameters, sigma, stddev_new, likeli_new)
@@ -146,13 +143,11 @@ contains
     real(DP) :: value
 
     ! Ensure the eval function pointer is set
-    if (.not. associated(self%eval_pointer)) then
+    if (.not. associated(self%eval_pointer)) &
       call error_message("Eval function pointer is not set in eval_optimizee!")
-    end if
     ! Ensure the objective function pointer is set
-    if (.not. associated(self%obj_pointer)) then
+    if (.not. associated(self%obj_pointer)) &
       call error_message("Objective function pointer is not set in eval_optimizee!")
-    end if
 
     ! Call the objective function pointer
     value = self%obj_pointer(parameters, self%eval_pointer, sigma, stddev_new, likeli_new)

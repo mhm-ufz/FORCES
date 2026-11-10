@@ -7,6 +7,9 @@ program logging_cases
   use mo_moment, only: stddev
   use mo_julian, only: setCalendar
   use mo_kind, only: dp
+#ifdef FORCES_WITH_NETCDF
+  use mo_netcdf, only: NcDataset
+#endif
 #ifdef MPI
   use mpi, only: MPI_Init, MPI_Finalize
 #endif
@@ -15,6 +18,9 @@ program logging_cases
   integer, allocatable :: left(:,:)
   integer :: right(1,2)
   real(dp) :: result
+#ifdef FORCES_WITH_NETCDF
+  type(NcDataset) :: dataset
+#endif
 #ifdef MPI
   integer :: ierr
 #endif
@@ -67,6 +73,10 @@ program logging_cases
     result = stddev([1.0_dp])
   case('calendar')
     call setCalendar('invalid')
+#ifdef FORCES_WITH_NETCDF
+  case('netcdf-mode')
+    dataset = NcDataset('unused', '?')
+#endif
   case default
     call error_message('Unknown logging fixture scenario', scope='')
   end select

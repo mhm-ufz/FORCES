@@ -13,7 +13,6 @@
 module mo_io
 
   use mo_kind, only: i4, dp, sp
-  use mo_message, only: error_message
   use mo_string_utils, only: is_blank
 
   implicit none

@@ -8,8 +8,8 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_optimization
 MODULE mo_opt_eval_utils
+  use mo_forces_message, only: error_message
   use mo_kind, only : i4, dp
-  use mo_message, only : error_message
   use mo_string_utils, only : num2str
 
   IMPLICIT NONE
@@ -101,8 +101,8 @@ MODULE mo_opt_eval_utils
     integer(i4), dimension(:), intent(in)    :: data_shape  !< data shape
     integer(i4), intent(in)    :: ndim  !< number of dimensions
     if (size(data_shape) /= ndim) &
-    call error_message( &
-      'check_data_shape: given data-shape (size ', num2str(size(data_shape)), ') not matching ndim (', num2str(ndim), ').')
+      call error_message(  'check_data_shape: given data-shape (size ', num2str(size(data_shape)), &
+        ') not matching ndim (', num2str(ndim), ').')
   end subroutine check_data_shape
 
   !> \brief Check given pointer dimension and ndim for consistency.
@@ -126,9 +126,10 @@ MODULE mo_opt_eval_utils
     integer(i4), dimension(:), intent(in) :: values_shape  !< shape of given values
     integer(i4), dimension(:), intent(in) :: data_shape  !< shape of the variable data
     if (size(values_shape) /= size(data_shape)) &
-      call error_message( &
-        "check_values_shape: values are ", num2str(size(values_shape)),"D but data is ", num2str(size(data_shape)), "D.")
-    if (any(values_shape /= data_shape)) call error_message("check_values_shape: values and data have different shapes.")
+      call error_message(  "check_values_shape: values are ", num2str(size(values_shape)),"D but data is ", &
+        num2str(size(data_shape)), "D.")
+    if (any(values_shape /= data_shape)) &
+      call error_message("check_values_shape: values and data have different shapes.")
 
   end subroutine check_values_shape
 
@@ -158,7 +159,8 @@ MODULE mo_opt_eval_utils
     type(sim_var_t), allocatable :: tmp(:)
     integer(i4) :: i, n, ndim_
 
-    if (this%has(name)) call error_message('sim_data_add: variable name "', trim(name), '" already present.')
+    if (this%has(name)) &
+      call error_message('sim_data_add: variable name "', trim(name), '" already present.')
     if (present(ndim) .eqv. present(data_shape)) then
       if (.not. present(ndim)) then
         call error_message('sim_data_add: either "ndim" or "data_shape" needed')
@@ -200,7 +202,8 @@ MODULE mo_opt_eval_utils
     integer(i4) :: i
 
     i = this%get_id(name, raise=.true.)
-    if (this%variables(i)%is_allocated()) call error_message('sim_data_allocate: data for "', trim(name) ,'" already allocated')
+    if (this%variables(i)%is_allocated()) &
+      call error_message('sim_data_allocate: data for "', trim(name) ,'" already allocated')
     select case (this%variables(i)%ndim)
       case(1)
         allocate(this%variables(i)%data_1d(data_shape(1)))

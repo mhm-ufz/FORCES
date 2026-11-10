@@ -8,6 +8,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_optimization
 MODULE mo_opt_functions
+  use mo_forces_message, only: error_message, message
 
   use mo_kind, only: i4, dp
   use mo_opt_eval_utils, only: eval_interface, sim_data_t, config_t
@@ -160,7 +161,8 @@ CONTAINS
     real(dp), dimension(:), intent(in) :: x
     real(dp)                           :: quadratic
 
-    if (size(x,1) .gt. 1_i4) stop 'quadratic: Input has to be array of size 1'
+    if (size(x,1) .gt. 1_i4) &
+      call error_message('quadratic: Input has to be array of size 1')
     quadratic = ( x(1) - 2.0_dp ) * ( x(1) - 2.0_dp ) + 1.0_dp
 
   end function quadratic
@@ -204,7 +206,8 @@ CONTAINS
     real(dp), dimension(:), intent(in) :: x
     real(dp)                           :: quadratic_exponential
 
-    if (size(x,1) .gt. 1_i4) stop 'quadratic_exponential: Input has to be array of size 1'
+    if (size(x,1) .gt. 1_i4) &
+      call error_message('quadratic_exponential: Input has to be array of size 1')
     quadratic_exponential = x(1) * x(1) + exp ( - x(1) )
 
   end function quadratic_exponential
@@ -248,7 +251,8 @@ CONTAINS
     real(dp), dimension(:), intent(in) :: x
     real(dp)                           :: quartic
 
-    if (size(x,1) .gt. 1_i4) stop 'quartic: Input has to be array of size 1'
+    if (size(x,1) .gt. 1_i4) &
+      call error_message('quartic: Input has to be array of size 1')
     quartic = ( ( x(1) * x(1) + 2.0_dp ) * x(1) + 1.0_dp ) * x(1) + 3.0_dp
 
   end function quartic
@@ -304,7 +308,8 @@ CONTAINS
     real(dp), dimension(:), intent(in) :: x
     real(dp)                           :: steep_valley
 
-    if (size(x,1) .gt. 1_i4) stop 'steep_valley: Input has to be array of size 1'
+    if (size(x,1) .gt. 1_i4) &
+      call error_message('steep_valley: Input has to be array of size 1')
     steep_valley = exp ( x(1) ) + 0.01_dp / x(1)
 
     steep_valley = steep_valley + 0.0009877013_dp
@@ -353,7 +358,8 @@ CONTAINS
     real(dp), dimension(:), intent(in) :: x
     real(dp)                           :: steep_valley2
 
-    if (size(x,1) .gt. 1_i4) stop 'steep_valley2: Input has to be array of size 1'
+    if (size(x,1) .gt. 1_i4) &
+      call error_message('steep_valley2: Input has to be array of size 1')
     steep_valley2 = exp( x(1) ) - 2.0_dp * x(1) + 0.01_dp / x(1) - 0.000001_dp / x(1) / x(1)
 
   end function steep_valley2
@@ -398,7 +404,8 @@ CONTAINS
     real(dp), dimension(:), intent(in) :: x
     real(dp)                           :: dying_snake
 
-    if (size(x,1) .gt. 1_i4) stop 'dying_snake: Input has to be array of size 1'
+    if (size(x,1) .gt. 1_i4) &
+      call error_message('dying_snake: Input has to be array of size 1')
     dying_snake = ( x(1) + sin ( x(1) ) ) * exp ( - x(1) * x(1) )
 
     dying_snake = dying_snake + 0.8242393985_dp
@@ -456,7 +463,8 @@ CONTAINS
     real(dp), dimension(:), intent(in) :: x
     real(dp)                           :: thin_pole
 
-    if (size(x,1) .gt. 1_i4) stop 'thin_pole: Input has to be array of size 1'
+    if (size(x,1) .gt. 1_i4) &
+      call error_message('thin_pole: Input has to be array of size 1')
     if ( eq(x(1),pi_dp) ) then
        thin_pole = - 10000.0_dp
     else
@@ -504,7 +512,8 @@ CONTAINS
     real(dp), dimension(:), intent(in) :: x
     real(dp)                           :: oscillatory_parabola
 
-    if (size(x,1) .gt. 1_i4) stop 'oscillatory_parabola: Input has to be array of size 1'
+    if (size(x,1) .gt. 1_i4) &
+      call error_message('oscillatory_parabola: Input has to be array of size 1')
     oscillatory_parabola = x(1) * x(1) - 10.0_dp * sin ( x(1) * x(1) - 3.0_dp * x(1) + 2.0_dp )
 
     oscillatory_parabola = oscillatory_parabola + 9.9779149346_dp
@@ -570,7 +579,8 @@ CONTAINS
     real(dp), dimension(:), intent(in) :: x
     real(dp)                           :: cosine_combo
 
-    if (size(x,1) .gt. 1_i4) stop 'cosine_combo: Input has to be array of size 1'
+    if (size(x,1) .gt. 1_i4) &
+      call error_message('cosine_combo: Input has to be array of size 1')
     cosine_combo =   cos (         x(1) ) &
          + 5.0_dp * cos ( 1.6_dp * x(1) ) &
          - 2.0_dp * cos ( 2.0_dp * x(1) ) &
@@ -614,7 +624,8 @@ CONTAINS
     real(dp), dimension(:), intent(in) :: x
     real(dp)                           :: abs1
 
-    if (size(x,1) .gt. 1_i4) stop 'abs1: Input has to be array of size 1'
+    if (size(x,1) .gt. 1_i4) &
+      call error_message('abs1: Input has to be array of size 1')
     abs1 = 1.0_dp + abs ( 3.0_dp * x(1) - 1.0_dp )
 
   end function abs1
@@ -698,6 +709,7 @@ CONTAINS
     use mo_utils, only: le
 
     implicit none
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     integer(i4), save :: iset = -1
     real(dp) v1
@@ -715,21 +727,15 @@ CONTAINS
        call random_number ( harvest = v1 )
 
        if ( le(v1,0.0_dp) ) then
-          write ( *, '(a)' ) ' '
-          write ( *, '(a)' ) 'NORMAL_01_SAMPLE - Fatal error!'
-          write ( *, '(a)' ) '  V1 <= 0.'
-          write ( *, '(a,g14.6)' ) '  V1 = ', v1
-          stop
+          write(diagnostic_text, '(a,g14.6)') '  V1 = ', v1
+          call error_message('NORMAL_01_SAMPLE - Fatal error! V1 <= 0. ', trim(diagnostic_text))
        end if
 
        call random_number ( harvest = v2 )
 
        if ( le(v2,0.0_dp) ) then
-          write ( *, '(a)' ) ' '
-          write ( *, '(a)' ) 'NORMAL_01_SAMPLE - Fatal error!'
-          write ( *, '(a)' ) '  V2 <= 0.'
-          write ( *, '(a,g14.6)' ) '  V2 = ', v2
-          stop
+          write(diagnostic_text, '(a,g14.6)') '  V2 = ', v2
+          call error_message('NORMAL_01_SAMPLE - Fatal error! V2 <= 0. ', trim(diagnostic_text))
        end if
 
        x = sqrt ( - 2.0_dp * log ( v1 ) ) * cos ( 2.0_dp * pi_dp * v2 )
@@ -1458,6 +1464,7 @@ CONTAINS
     real(dp) :: r
     real(dp) :: t
     real(dp), dimension(:), intent(in) :: x
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
     real(dp) :: sqrtHuge
 
     sqrtHuge = Huge(1.0_dp)**0.5_dp -1.0_dp
@@ -1477,8 +1484,10 @@ CONTAINS
 
        ! avoiding underflow
        if ( x(3)*Log(r) .gt. -708.-dp ) then
-          print*, '-exp(x(3)*Log(r)) = ',-exp(x(3)*Log(r))
-          print*, 'x(1)              = ',x(1)
+          write(diagnostic_text, *) '-exp(x(3)*Log(r)) = ', -exp(x(3)*Log(r))
+          call message(trim(diagnostic_text))
+          write(diagnostic_text, *) 'x(1)              = ', x(1)
+          call message(trim(diagnostic_text))
           if ( -exp(x(3)*Log(r)) / x(1) .lt. -708._dp) then
              t = -arg
           else
@@ -5015,7 +5024,8 @@ CONTAINS
     real(dp)    :: gg
 
     npara = size(paraset)
-    if (npara .ne. 3) stop ('mo_objective: fon_2d: This function requires 3-dimensional parameter sets')
+    if (npara .ne. 3) &
+      call error_message(('mo_objective: fon_2d: This function requires 3-dimensional parameter sets'))
 
     nobj  = 2
     allocate(obj(nobj))
@@ -5164,7 +5174,8 @@ CONTAINS
     real(dp)    :: a1, a2, b1, b2
 
     npara = size(paraset)
-    if (npara .ne. 2) stop ('mo_objective: pol_2d: This function requires 2-dimensional parameter sets')
+    if (npara .ne. 2) &
+      call error_message(('mo_objective: pol_2d: This function requires 2-dimensional parameter sets'))
 
     nobj  = 2
     allocate(obj(nobj))
@@ -5226,7 +5237,8 @@ CONTAINS
     integer(i4) :: npara, nobj
 
     npara = size(paraset)
-    if (npara .ne. 1) stop ('mo_objective: sch_2d: This function requires 1-dimensional parameter sets')
+    if (npara .ne. 1) &
+      call error_message(('mo_objective: sch_2d: This function requires 1-dimensional parameter sets'))
 
     nobj  = 2
     allocate(obj(nobj))

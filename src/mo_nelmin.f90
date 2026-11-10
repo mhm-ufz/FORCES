@@ -12,6 +12,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_optimization
 MODULE mo_nelmin
+  use mo_forces_message, only: error_message
 
   USE mo_kind,  ONLY: i4, sp, dp
   USE mo_utils, ONLY: ne
@@ -198,14 +199,16 @@ CONTAINS
     !
     nelmin(:) = 0.
     if (present(varmin)) then
-       if (varmin <= 0.0_dp) stop 'Error nelmin: varmin<0'
+       if (varmin <= 0.0_dp) &
+         call error_message('Error nelmin: varmin<0')
        ivarmin = varmin
     else
        ivarmin = 1.0e-9_dp
     endif
     ! maximal number of function evaluations
     if (present(maxeval)) then
-       if (maxeval <= 1) stop 'Error nelmin: maxeval<=1'
+       if (maxeval <= 1) &
+         call error_message('Error nelmin: maxeval<=1')
        imaxeval = maxeval
     else
        imaxeval = 1000
@@ -220,7 +223,8 @@ CONTAINS
     else
        ikonvge = imaxeval / 10
     endif
-    if (ikonvge < 1) stop 'Error nelmin: konvg<1'
+    if (ikonvge < 1) &
+      call error_message('Error nelmin: konvg<1')
     !
     if (present(step)) then
        istep = step
@@ -541,14 +545,16 @@ CONTAINS
     !
     nelminxy(:) = 0.
     if (present(varmin)) then
-       if (varmin <= 0.0_dp) stop 'Error nelminxy: varmin<0'
+       if (varmin <= 0.0_dp) &
+         call error_message('Error nelminxy: varmin<0')
        ivarmin = varmin
     else
        ivarmin = 1.0e-9_dp
     endif
     ! maximal number of function evaluations
     if (present(maxeval)) then
-       if (maxeval <= 1) stop 'Error nelminxy: maxeval<=1'
+       if (maxeval <= 1) &
+         call error_message('Error nelminxy: maxeval<=1')
        imaxeval = maxeval
     else
        imaxeval = 1000
@@ -563,8 +569,10 @@ CONTAINS
     else
        ikonvge = imaxeval / 10
     endif
-    if (ikonvge < 1) stop 'Error nelminxy: konvg<1'
-    if (size(xx) /= size(yy)) stop 'Error nelminxy: size(xx) /= size(yy)'
+    if (ikonvge < 1) &
+      call error_message('Error nelminxy: konvg<1')
+    if (size(xx) /= size(yy)) &
+      call error_message('Error nelminxy: size(xx) /= size(yy)')
     !
     if (present(step)) then
        istep = step
@@ -881,14 +889,16 @@ CONTAINS
     nelminrange_dp(:) = 0.5_dp * ( prange(:,1) + prange(:,2) )
 
     if (present(varmin)) then
-       if (varmin <= 0.0_dp) stop 'Error nelmin: varmin<0'
+       if (varmin <= 0.0_dp) &
+         call error_message('Error nelmin: varmin<0')
        ivarmin = varmin
     else
        ivarmin = 1.0e-9_dp
     endif
     ! maximal number of function evaluations
     if (present(maxeval)) then
-       if (maxeval <= 1) stop 'Error nelmin: maxeval<=1'
+       if (maxeval <= 1) &
+         call error_message('Error nelmin: maxeval<=1')
        imaxeval = maxeval
     else
        imaxeval = 1000
@@ -903,7 +913,8 @@ CONTAINS
     else
        ikonvge = imaxeval / 10
     endif
-    if (ikonvge < 1) stop 'Error nelmin: konvg<1'
+    if (ikonvge < 1) &
+      call error_message('Error nelmin: konvg<1')
     !
     if (present(step)) then
        istep = step
@@ -924,11 +935,12 @@ CONTAINS
     !
     !  Check the input parameters.
     !
-    if (size(prange,2) .ne. 2_i4)           stop 'nelminrange_dp: range has to be array of size (:,2)'
-    if (size(prange,1) .ne.  size(ipstart)) stop 'nelminrange_dp: range has to be given for each dimension'
-    if (.not. (all(prange(:,1) .le. pstart(:)) .and. all(prange(:,2) .ge. pstart(:)) )) then
-       stop 'nelminrange_dp: starting point is not in range'
-    end if
+    if (size(prange,2) .ne. 2_i4) &
+      call error_message('nelminrange_dp: range has to be array of size (:,2)')
+    if (size(prange,1) .ne.  size(ipstart)) &
+      call error_message('nelminrange_dp: range has to be given for each dimension')
+    if (.not. (all(prange(:,1) .le. pstart(:)) .and. all(prange(:,2) .ge. pstart(:)) )) &
+      call error_message('nelminrange_dp: starting point is not in range')
     !
     !  Initialization.
     !
@@ -1238,14 +1250,16 @@ CONTAINS
     nelminrange_sp(:) = 0.5_sp * ( prange(:,1) + prange(:,2) )
 
     if (present(varmin)) then
-       if (varmin <= 0.0_sp) stop 'Error nelmin: varmin<0'
+       if (varmin <= 0.0_sp) &
+         call error_message('Error nelmin: varmin<0')
        ivarmin = varmin
     else
        ivarmin = 1.0e-9_sp
     endif
     ! maximal number of function evaluations
     if (present(maxeval)) then
-       if (maxeval <= 1) stop 'Error nelmin: maxeval<=1'
+       if (maxeval <= 1) &
+         call error_message('Error nelmin: maxeval<=1')
        imaxeval = maxeval
     else
        imaxeval = 1000
@@ -1260,7 +1274,8 @@ CONTAINS
     else
        ikonvge = imaxeval / 10
     endif
-    if (ikonvge < 1) stop 'Error nelmin: konvg<1'
+    if (ikonvge < 1) &
+      call error_message('Error nelmin: konvg<1')
     !
     if (present(step)) then
        istep = step
@@ -1281,11 +1296,12 @@ CONTAINS
     !
     !  Check the input parameters.
     !
-    if (size(prange,2) .ne. 2_i4)           stop 'nelminrange_sp: range has to be array of size (:,2)'
-    if (size(prange,1) .ne.  size(ipstart)) stop 'nelminrange_sp: range has to be given for each dimension'
-    if (.not. (all(prange(:,1) .le. pstart(:)) .and. all(prange(:,2) .ge. pstart(:)) )) then
-       stop 'nelminrange_sp: starting point is not in range'
-    end if
+    if (size(prange,2) .ne. 2_i4) &
+      call error_message('nelminrange_sp: range has to be array of size (:,2)')
+    if (size(prange,1) .ne.  size(ipstart)) &
+      call error_message('nelminrange_sp: range has to be given for each dimension')
+    if (.not. (all(prange(:,1) .le. pstart(:)) .and. all(prange(:,2) .ge. pstart(:)) )) &
+      call error_message('nelminrange_sp: starting point is not in range')
     !
     !  Initialization.
     !

@@ -21,6 +21,7 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_io
 module mo_netcdf
+  use mo_forces_message, only: error_message
 
   use mo_kind, only: sp, dp, i1, i2, i4, i8
   use mo_utils, only: ne
@@ -84,6 +85,7 @@ module mo_netcdf
     NF90_CLASSIC_MODEL     => NCW_CLASSIC_MODEL
 
   implicit none
+  private :: error_message ! Diagnostic imports are implementation details
 
   ! --------------------------------------------------------------------------------------
   character(10), parameter :: CF_FILL_VALUE = '_FillValue' !< CF fill value
@@ -880,8 +882,7 @@ contains
     case("a")
       status = nf90_open(trim(fname), NF90_WRITE, out%id)
     case default
-      write(*, *) "Mode argument must be in 'w','r','a' ! "
-      stop 1
+      call error_message("Mode argument must be in 'w','r','a' ! ")
     end select
     call check(status, "Failed to open file: " // fname)
 
@@ -1052,10 +1053,8 @@ contains
     call check(nf90_inquire(self%id, unlimitedDimId = dimid), &
             "Failed to inquire group " // self%getName())
 
-    if (dimid == -1) then
-      write(*, *) "Dataset has no unlimited dimension"
-      stop 1
-    end if
+    if (dimid == -1) &
+      call error_message("Dataset has no unlimited dimension")
 
     getUnlimitedDimension = self%getDimension(dimid)
   end function getUnlimitedDimension
@@ -1128,6 +1127,7 @@ contains
     real(dp)      , intent(in), dimension(:) :: bounds
     integer(i4)   , intent(in), optional :: referenceArg
     type(NcVariable), intent(out) :: ncVar
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
 
     type(NcVariable) :: ncVarBounds
     type(NcDimension) :: bndsDim
@@ -1156,8 +1156,8 @@ contains
       ! set the end values
       call ncVar%setData(bounds(2_i8:dimLength))
     case default
-      write(*,*) "reference id for set_Dimension is ", reference, ", must be 0, 1 or 2."
-      stop 1
+      write(diagnostic_text, *) "reference id for set_Dimension is ", reference, ", must be 0, 1 or 2."
+      call error_message(trim(diagnostic_text))
     end select
 
     ! --- bounds ---
@@ -2166,23 +2166,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -2260,23 +2254,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -2354,23 +2342,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -2448,23 +2430,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -2542,23 +2518,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -2636,23 +2606,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -2730,23 +2694,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -2824,23 +2782,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -2918,23 +2870,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -3012,23 +2958,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -3106,23 +3046,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -3200,23 +3134,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -3489,23 +3417,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -3583,23 +3505,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -3677,23 +3593,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -3771,23 +3681,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -3865,23 +3769,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -3959,23 +3857,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -4053,23 +3945,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -4147,23 +4033,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -4241,23 +4121,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -4335,23 +4209,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -4429,23 +4297,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -4523,23 +4385,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -4802,23 +4658,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -4892,23 +4742,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -4982,23 +4826,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -5072,23 +4910,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -5162,23 +4994,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -5252,23 +5078,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -5342,23 +5162,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -5432,23 +5246,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -5522,23 +5330,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -5612,23 +5414,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -5702,23 +5498,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -5792,23 +5582,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -6066,23 +5850,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -6156,23 +5934,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -6246,23 +6018,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -6336,23 +6102,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -6426,23 +6186,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -6516,23 +6270,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -6606,23 +6354,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -6696,23 +6438,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -6786,23 +6522,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -6876,23 +6606,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -6966,23 +6690,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -7056,23 +6774,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -7330,23 +7042,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -7420,23 +7126,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -7510,23 +7210,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -7600,23 +7294,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -7690,23 +7378,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -7780,23 +7462,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -7870,23 +7546,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -7960,23 +7630,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -8050,23 +7714,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -8140,23 +7798,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -8230,23 +7882,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -8320,23 +7966,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -8594,23 +8234,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -8684,23 +8318,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -8774,23 +8402,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -8864,23 +8486,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -8954,23 +8570,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -9044,23 +8654,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -9134,23 +8738,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -9224,23 +8822,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -9314,23 +8906,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -9404,23 +8990,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -9494,23 +9074,17 @@ contains
     datashape = shape(data)
     slcshape = self%getSlicingShape(start, cnt, stride)
     expected_shape = getReadShape(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -9584,23 +9158,17 @@ contains
     datashape = shape(data, kind=i8)
     slcshape = self%getSlicingShape64(start, cnt, stride)
     expected_shape = getReadShape64(slcshape, size(datashape))
-    if (size(expected_shape) /= size(datashape)) then
-      write(*, *) "NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
-    if (any(expected_shape /= datashape)) then
-      write(*, *) "NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName())
-      stop 1
-    end if
+    if (size(expected_shape) /= size(datashape)) &
+      call error_message("NcVariable%readInto64: data rank mismatch for variable: ", trim(self%getName()))
+    if (any(expected_shape /= datashape)) &
+      call error_message("NcVariable%readInto64: data shape mismatch for variable: ", trim(self%getName()))
 
     call check(nf90_get_var64(self%parent%id, self%id, data, start, cnt, stride, map), &
             "Could not read data from variable: " // trim(self%getName()))
     if (present(mask)) then
       maskshape = shape(mask, kind=i8)
-      if (any(maskshape /= datashape)) then
-        write(*, *) "NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName())
-        stop 1
-      end if
+      if (any(maskshape /= datashape)) &
+        call error_message("NcVariable%readInto64: mask shape mismatch for variable: ", trim(self%getName()))
       mask = .true.
       call self%getCFAttributes(minValue, maxValue, fillValue, flagMissing)
       select case(flagMissing)
@@ -9734,8 +9302,7 @@ contains
       ! else if (naxis .lt. outrank) then
       ! would be nice...
     else
-      write(*, *) "Given indices do not match output variable rank!"
-      stop 1
+      call error_message("Given indices do not match output variable rank!")
     end if
   end function getReadShape
 
@@ -9757,12 +9324,12 @@ contains
     else if (naxis == outrank) then
       out = pack(slcshape, slcshape > 1_i8)
     else
-      write(*, *) "Given indices do not match output variable rank!"
-      stop 1
+      call error_message("Given indices do not match output variable rank!")
     end if
   end function getReadShape64
 
   function getDtypeFromString(dtype)
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
     integer(i4) :: getDtypeFromString
     character(*)         :: dtype
 
@@ -9782,12 +9349,13 @@ contains
     case("char")
        getDtypeFromString = NF90_CHAR
     case default
-       write(*,*) "Datatype not understood: ", dtype
-       stop 1
+       write(diagnostic_text, *) "Datatype not understood: ", dtype
+       call error_message(trim(diagnostic_text))
     end select
   end function getDtypeFromString
 
   function getDtypeFromInteger(dtype)
+    character(len=32000) :: diagnostic_text ! Local reusable diagnostic formatting buffer
     character(4) :: getDtypeFromInteger
     integer(i4) :: dtype
 
@@ -9807,8 +9375,8 @@ contains
     case(NF90_CHAR)
        getDtypeFromInteger = "char"
     case default
-       write(*,*) "Datatype not understood: ", dtype
-       stop 1
+       write(diagnostic_text, *) "Datatype not understood: ", dtype
+       call error_message(trim(diagnostic_text))
     end select
   end function getDtypeFromInteger
 
@@ -9835,8 +9403,7 @@ contains
     case ("64BIT_OFFSET")
       getCreationMode = NF90_64BIT_OFFSET
     case default
-      print*, "Creation mode not understood: " // trim(mode)
-      stop 1
+      call error_message("Creation mode not understood: " // trim(mode))
     end select
 
   end function getCreationMode
@@ -9845,11 +9412,8 @@ contains
     integer(i4), intent(in) :: status
     character(*), intent(in) :: msg
 
-    if (status /= NF90_NOERR) then
-      write(*, *) msg
-      write(*, *) nf90_strerror(status)
-      stop 1
-    end if
+    if (status /= NF90_NOERR) &
+      call error_message(trim(msg), ': ', trim(nf90_strerror(status)))
   end subroutine check
 
 end module mo_netcdf

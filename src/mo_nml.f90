@@ -18,10 +18,10 @@
 !! FORCES is released under the LGPLv3+ license \license_note
 !> \ingroup f_io
 MODULE mo_nml
+  use mo_forces_message, only: error_message, message
 
   USE mo_kind, ONLY : i4
   USE mo_string_utils, ONLY : tolower
-  USE mo_message, ONLY : message, error_message
 
   IMPLICIT NONE
 
@@ -92,12 +92,12 @@ CONTAINS
     if (present(quiet)) iquiet = quiet
 
     nunitnml = unit
-    if (.not. iquiet) CALL message('    This is namelist ', trim(file))
+    if (.not. iquiet) &
+      CALL message('    This is namelist ', trim(file))
     OPEN (nunitnml, file = file, iostat = istat, status = 'old', action = 'read', delim = 'apostrophe')
 
-    IF (istat .ne. 0) THEN
+    IF (istat .ne. 0) &
       CALL error_message('OPEN_NML: Could not open namelist file ', trim(file))
-    END IF
 
   END SUBROUTINE open_nml
 
@@ -138,11 +138,13 @@ CONTAINS
     nnml = nunitnml
     if (present(unit)) nnml = unit
 
-    IF (nnml .lt. 0) CALL error_message('CLOSE_NML: No namelist file opened.')
+    IF (nnml .lt. 0) &
+      CALL error_message('CLOSE_NML: No namelist file opened.')
 
     CLOSE(nnml, IOSTAT = istat)
 
-    IF (istat .ne. 0) CALL error_message('CLOSE_NML: Could not close namelist file.')
+    IF (istat .ne. 0) &
+      CALL error_message('CLOSE_NML: Could not close namelist file.')
 
     if (.not. present(unit)) nunitnml = -1
 
