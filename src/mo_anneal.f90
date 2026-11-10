@@ -158,6 +158,9 @@ MODULE mo_anneal
   !>        \param[in]  "real(dp), optional              :: undef_funcval"   objective function value defining invalid
   !!                                                                         model output, e.g. -999.0_dp \n
   !>        \param[in]  "character(len=*) , optional     :: tmp_file"        file with temporal output
+  !>        \param[in]  "logical, optional               :: strict_maxiter"  If .true., nITERmax is a hard upper limit
+  !!                                                                         (no automatic 10% extension). \n
+  !!                                                                         DEFAULT: .false.
   !>        \param[out]  "real(dp), optional             :: funcbest"        minimized value of cost function
   !>        \param[out]  "real(dp), dimension(:,:), allocatable, optional   :: history"
   !!                                                                         returns a vector of achieved objective
@@ -296,7 +299,7 @@ CONTAINS
           seeds, printflag, maskpara, weight, &   ! optional IN
           changeParaMode, reflectionFlag, &   ! optional IN
           pertubFlexFlag, maxit, undef_funcval, &   ! optional IN
-          tmp_file, &   ! optional IN
+          tmp_file, strict_maxiter, &   ! optional IN
           funcbest, history                          &   ! optional OUT
           ) &
           result(parabest)
@@ -352,6 +355,10 @@ CONTAINS
                                                                           !!  parameter set leads to  invalid model results,
                                                                           !! e.g. -9999.0_dp! (DEFAULT: not present)
     CHARACTER(LEN = *), optional, intent(in) :: tmp_file                  !< file for temporal output
+    logical, optional, intent(in) :: strict_maxiter                       !< .true.: nITERmax is a hard upper limit of
+                                                                          !! objective evaluations in the main loop
+                                                                          !! (no automatic extension, stop also inside a
+                                                                          !! Markov chain). (DEFAULT: .false.)
     real(dp), optional, intent(out) :: funcbest                           !< minimized value of cost function
                                                                           !! (DEFAULT: not present)
     real(dp), optional, dimension(:, :), allocatable, intent(out) :: history !< returns a vector of achieved objective!
@@ -365,6 +372,8 @@ CONTAINS
     real(dp) :: T_in           ! Temperature
     real(dp) :: DT_IN          ! Temperature decreement
     integer(i4) :: nITERmax_in    ! maximal number of iterations
+    logical :: strict_maxiter_in  ! nITERmax_in is a hard limit
+    integer(i4) :: nsample_T      ! sample size for the estimation of the initial temperature
     integer(i4) :: LEN_IN         ! Length of Markov Chain
     integer(i4) :: nST_in         ! Number of consecutive LEN steps
     real(dp) :: eps_in         ! epsilon decreement of cost function
@@ -513,6 +522,20 @@ CONTAINS
       printflag_in = .false.
     end if
 
+    if (present(strict_maxiter)) then
+      strict_maxiter_in = strict_maxiter
+    else
+      strict_maxiter_in = .false.
+    end if
+
+    ! sample size of the initial-temperature estimation (Ben-Ameur 2004)
+    ! with a hard limit it is taken from the nITERmax budget (at most half of it)
+    if (strict_maxiter_in .and. (.not. present(temp))) then
+      nsample_T = min(2_i4 * LEN_IN, max(1_i4, nITERmax_in / 2_i4))
+    else
+      nsample_T = 2_i4 * LEN_IN
+    end if
+
     if (present(maskpara)) then
       if (count(maskpara) .eq. 0_i4) then
         stop 'Input argument maskpara: At least one element has to be true'
@@ -545,28 +568,33 @@ CONTAINS
       if (present(prange_func)) then
         if (present(undef_funcval)) then
           T_in = GetTemperature(objective, para, 0.95_dp, prange_func = prange_func, &
-                  maskpara = maskpara_in, samplesize = 2_i4 * LEN_IN, &
+                  maskpara = maskpara_in, samplesize = nsample_T, &
                   seeds = seeds_in(1 : 2), printflag = printflag_in, &
                   maxit = ldummy, undef_funcval = undef_funcval)
         else
           T_in = GetTemperature(objective, para, 0.95_dp, prange_func = prange_func, &
-                  maskpara = maskpara_in, samplesize = 2_i4 * LEN_IN, &
+                  maskpara = maskpara_in, samplesize = nsample_T, &
                   seeds = seeds_in(1 : 2), printflag = printflag_in, &
                   maxit = ldummy)
         end if
       else
         if (present(undef_funcval)) then
           T_in = GetTemperature(objective, para, 0.95_dp, prange = prange, &
-                  maskpara = maskpara_in, samplesize = 2_i4 * LEN_IN, &
+                  maskpara = maskpara_in, samplesize = nsample_T, &
                   seeds = seeds_in(1 : 2), printflag = printflag_in, &
                   maxit = ldummy, undef_funcval = undef_funcval)
         else
           T_in = GetTemperature(objective, para, 0.95_dp, prange = prange, &
-                  maskpara = maskpara_in, samplesize = 2_i4 * LEN_IN, &
+                  maskpara = maskpara_in, samplesize = nsample_T, &
                   seeds = seeds_in(1 : 2), printflag = printflag_in, &
                   maxit = ldummy)
         end if
       end if
+    end if
+
+    ! remaining budget for the annealing loop
+    if (strict_maxiter_in .and. (.not. present(temp))) then
+      nITERmax_in = max(1_i4, nITERmax_in - nsample_T)
     end if
 
     if (present(changeParaMode)) then
@@ -853,6 +881,8 @@ CONTAINS
             end if
           end if
           j = j + 1
+          ! hard limit: stop within the Markov chain once nITERmax is reached
+          if (strict_maxiter_in .and. (iTotalCounter >= nITERmax_in)) exit loopLEN
         else
           ! function value was not valid
           iTotalCounterR = iTotalCounterR - 1_i4
@@ -861,7 +891,7 @@ CONTAINS
       end do loopLEN
 
       ! estimate acceptance ratio
-      ac_ratio = (real(Ipos, dp) + real(Ineg, dp)) / real(LEN_IN, dp)
+      ac_ratio = (real(Ipos, dp) + real(Ineg, dp)) / real(max(j - 1_i4, 1_i4), dp)
       if (modulo(iTotalCounter, LEN_IN * nST_in) / LEN_IN .gt. 0_i4) then
         idummy = modulo(iTotalCounter, LEN_IN * nST_in) / LEN_IN
       else
@@ -870,8 +900,8 @@ CONTAINS
       iPos_iNeg_history(idummy, :) = (/ iPos, iNeg /)
 
       ! store current best in history vector
-      history_out(iTotalCounter / LEN_IN, 1) = real(iTotalCounter, dp)
-      history_out(iTotalCounter / LEN_IN, 2) = maxit_in * fBest * normPhi
+      history_out(max(1_i4, (iTotalCounter + LEN_IN - 1_i4) / LEN_IN), 1) = real(iTotalCounter, dp)
+      history_out(max(1_i4, (iTotalCounter + LEN_IN - 1_i4) / LEN_IN), 2) = maxit_in * fBest * normPhi
 
       file_write2 : if (present(tmp_file)) then
         open(unit = 999, file = trim(adjustl(tmp_file)), action = 'write', position = 'append', recl = (n + 2) * 30)
@@ -928,7 +958,7 @@ CONTAINS
         iStop = .FALSE.
       end if
       ! a way out maximum
-      if ((iTotalCounter > nITERmax_in) .and. & !(ac_ratio > acc_in) .and. &
+      if ((.not. strict_maxiter_in) .and. (iTotalCounter > nITERmax_in) .and. & !(ac_ratio > acc_in) .and. &
               (sum(iPos_iNeg_history(:, :)) .ge. 1_i4)) then
 
         ! store achieved history so far
@@ -953,7 +983,8 @@ CONTAINS
 
       end if
       ! STOP condition
-      if (iTotalCounter > nITERmax_in) then
+      if ((iTotalCounter > nITERmax_in) .or. &
+              (strict_maxiter_in .and. (iTotalCounter >= nITERmax_in))) then
         iStop = .FALSE.
       end if
 
